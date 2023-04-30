@@ -52,17 +52,20 @@ class TestHeader(TestUsingServer):
 class TestSlice(TestUsingServer):
     def test_both_bounds(self):
         resp = self.request("/document.txt", query="pipe=slice(1,10)")
-        expected = open(os.path.join(doc_root, "document.txt"), 'rb').read()
+        with open(os.path.join(doc_root, "document.txt"), 'rb') as f:
+            expected = f.read()
         self.assertEqual(resp.read(), expected[1:10])
 
     def test_no_upper(self):
         resp = self.request("/document.txt", query="pipe=slice(1)")
-        expected = open(os.path.join(doc_root, "document.txt"), 'rb').read()
+        with open(os.path.join(doc_root, "document.txt"), 'rb') as f:
+            expected = f.read()
         self.assertEqual(resp.read(), expected[1:])
 
     def test_no_lower(self):
         resp = self.request("/document.txt", query="pipe=slice(null,10)")
-        expected = open(os.path.join(doc_root, "document.txt"), 'rb').read()
+        with open(os.path.join(doc_root, "document.txt"), 'rb') as f:
+            expected = f.read()
         self.assertEqual(resp.read(), expected[:10])
 
 class TestSub(TestUsingServer):
@@ -147,7 +150,8 @@ class TestTrickle(TestUsingServer):
         t0 = time.time()
         resp = self.request("/document.txt", query="pipe=trickle(1:d2:5:d1:r2)")
         t1 = time.time()
-        expected = open(os.path.join(doc_root, "document.txt"), 'rb').read()
+        with open(os.path.join(doc_root, "document.txt"), 'rb') as f:
+            expected = f.read()
         self.assertEqual(resp.read(), expected)
         self.assertGreater(6, t1-t0)
 

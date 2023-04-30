@@ -5,12 +5,18 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
 <style>
-  main > div {
+  main {
+    scroll-timeline-attachment: defer;
+    scroll-timeline-name: top_timeline, bottom_timeline, left_timeline, right_timeline;
+  }
+
+  .scroller {
     overflow: hidden;
     width: 100px;
     height: 100px;
+    scroll-timeline-attachment: ancestor;
   }
-  main > div > div {
+  .scroller > div {
     height: 200px;
     width:  200px;
   }
@@ -33,16 +39,20 @@
   }
 
   #top_scroller {
-    scroll-timeline: top_timeline block;
+    scroll-timeline-name: top_timeline;
+    scroll-timeline-axis: block;
   }
   #bottom_scroller {
-    scroll-timeline: bottom_timeline inline;
+    scroll-timeline-name: bottom_timeline;
+    scroll-timeline-axis: inline;
   }
   #left_scroller {
-    scroll-timeline: left_timeline block;
+    scroll-timeline-name: left_timeline;
+    scroll-timeline-axis: block;
   }
   #right_scroller {
-    scroll-timeline: right_timeline inline;
+    scroll-timeline-name: right_timeline;
+    scroll-timeline-axis: inline;
   }
 
   #element {
@@ -57,10 +67,10 @@
   }
 </style>
 <main>
-  <div id=top_scroller><div></div></div>
-  <div id=bottom_scroller><div></div></div>
-  <div id=left_scroller><div></div></div>
-  <div id=right_scroller><div></div></div>
+  <div class=scroller id=top_scroller><div></div></div>
+  <div class=scroller id=bottom_scroller><div></div></div>
+  <div class=scroller id=left_scroller><div></div></div>
+  <div class=scroller id=right_scroller><div></div></div>
   <div id=element></div>
 </main>
 <script>
@@ -86,5 +96,4 @@
     assert_equals(getComputedStyle(element).left, '160px');
     assert_equals(getComputedStyle(element).right, '180px');
   }, 'animation-timeline works with multiple timelines');
-
 </script>

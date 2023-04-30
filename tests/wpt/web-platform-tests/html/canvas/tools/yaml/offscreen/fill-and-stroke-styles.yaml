@@ -292,6 +292,7 @@
     g.addColorStop(0, '#f00');
     g.addColorStop(1, '#f00');
     ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
     g.addColorStop(0.1, '#0f0');
     g.addColorStop(0.9, '#0f0');
     ctx.fillRect(0, 0, 100, 50);

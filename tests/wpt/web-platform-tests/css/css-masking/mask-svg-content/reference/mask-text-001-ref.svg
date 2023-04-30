@@ -3,7 +3,7 @@
 <g id="testmeta">
 	<title>CSS Masking: Reftest reference</title>
 	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
-	<html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+	<html:link rel="stylesheet" href="/fonts/ahem.css"/>
 	<metadata class="flags">svg</metadata>
 </g>
 <text fill="#000" font-family="Ahem" font-size="12px" transform="rotate(90 50 50)" x="50" y="50">foobar</text>

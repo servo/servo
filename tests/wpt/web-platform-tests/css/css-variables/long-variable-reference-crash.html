@@ -1,0 +1,8 @@
+<!doctype html>
+<title>Very long properties with variable references should not crash</title>
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="help" href="https://crbug.com/1429823">
+<style id="x"></style>
+<script>
+x.textContent = '* { border: ' + 'a'.repeat(2097152) + ' var(--b); }';
+</script>

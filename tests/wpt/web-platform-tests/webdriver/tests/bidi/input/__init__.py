@@ -3,7 +3,7 @@ import json
 from webdriver.bidi.modules.script import ContextTarget
 
 
-async def get_events(context, bidi_session):
+async def get_events(bidi_session, context):
     """Return list of key events recorded on the test_actions.html page."""
     events_str = await bidi_session.script.evaluate(
         expression="JSON.stringify(allEvents.events)",
@@ -26,3 +26,13 @@ async def get_events(context, bidi_session):
         if "code" in e and e["code"] == "Unidentified":
             e["code"] = ""
     return events
+
+
+async def get_keys_value(bidi_session, context):
+    keys_value = await bidi_session.script.evaluate(
+        expression="""document.getElementById("keys").value""",
+        target=ContextTarget(context),
+        await_promise=False,
+    )
+
+    return keys_value["value"]

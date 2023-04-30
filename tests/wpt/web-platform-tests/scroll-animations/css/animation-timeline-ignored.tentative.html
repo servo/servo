@@ -7,13 +7,16 @@
   main {
     overflow: hidden;
     height: 0px;
+    scroll-timeline-attachment: defer;
+    scroll-timeline-name: timeline1, timeline2, timeline3;
   }
-  main > div {
+  .scroller {
     overflow: hidden;
     width: 100px;
     height: 100px;
+    scroll-timeline-attachment: ancestor;
   }
-  main > div > div {
+  .scroller > div {
     height: 200px;
   }
   @keyframes expand {
@@ -21,13 +24,13 @@
     to { width: 200px; }
   }
   #scroller1 {
-    scroll-timeline: timeline1;
+    scroll-timeline-name: timeline1;
   }
   #scroller2 {
-    scroll-timeline: timeline2;
+    scroll-timeline-name: timeline2;
   }
   #scroller3 {
-    scroll-timeline: timeline3;
+    scroll-timeline-name: timeline3;
   }
   #element {
     width: 0px;
@@ -43,10 +46,10 @@
   }
 </style>
 <main>
-  <div id=scroller1><div></div></div>
-  <div id=scroller2><div></div></div>
-  <div id=scroller3><div></div></div>
-  <div id=scroller4><div></div></div>
+  <div class=scroller id=scroller1><div></div></div>
+  <div class=scroller id=scroller2><div></div></div>
+  <div class=scroller id=scroller3><div></div></div>
+  <div class=scroller id=scroller4><div></div></div>
   <div id=container></div>
 </main>
 <script>
@@ -141,5 +144,4 @@
     element.style = 'animation-timeline:timeline2';
     assert_equals(getComputedStyle(element).width, '120px');
   }, 'animation-timeline ignored after setting timeline with JS (null)');
-
 </script>

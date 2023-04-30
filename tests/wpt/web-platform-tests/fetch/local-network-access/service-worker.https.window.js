@@ -3,8 +3,9 @@
 //
 // Spec: https://wicg.github.io/private-network-access/#integration-fetch
 //
-// These tests check that initial `ServiceWorker` script fetches are subject to
-// Private Network Access checks, just like a regular `fetch()`.
+// These tests check that initial `ServiceWorker` script fetches are exempt from
+// Private Network Access checks because they are always same-origin and the
+// origin is potentially trustworthy.
 //
 // See also: worker.https.window.js
 
@@ -64,18 +65,6 @@ promise_test(t => makeTest(t, {
     treatAsPublic: true,
   },
   target: { server: Server.HTTPS_LOCAL },
-  expected: TestResult.FAILURE,
-}), "treat-as-public to local: failed preflight.");
-
-promise_test(t => makeTest(t, {
-  source: {
-    server: Server.HTTPS_LOCAL,
-    treatAsPublic: true,
-  },
-  target: {
-    server: Server.HTTPS_LOCAL,
-    behavior: { preflight: PreflightBehavior.serviceWorkerSuccess(token()) },
-  },
   expected: TestResult.SUCCESS,
 }), "treat-as-public to local: success.");
 
@@ -85,18 +74,6 @@ promise_test(t => makeTest(t, {
     treatAsPublic: true,
   },
   target: { server: Server.HTTPS_PRIVATE },
-  expected: TestResult.FAILURE,
-}), "treat-as-public to private: failed preflight.");
-
-promise_test(t => makeTest(t, {
-  source: {
-    server: Server.HTTPS_PRIVATE,
-    treatAsPublic: true,
-  },
-  target: {
-    server: Server.HTTPS_PRIVATE,
-    behavior: { preflight: PreflightBehavior.serviceWorkerSuccess(token()) },
-  },
   expected: TestResult.SUCCESS,
 }), "treat-as-public to private: success.");
 

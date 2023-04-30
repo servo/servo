@@ -193,3 +193,12 @@ def http2_compatible() -> bool:
             (ssl_v[0] == 1 and
              (ssl_v[1] == 1 or
               (ssl_v[1] == 0 and ssl_v[2] >= 2))))
+
+
+def get_error_cause(exc: BaseException) -> BaseException:
+    """Get the parent cause/context from an exception"""
+    if exc.__cause__ is not None:
+        return exc.__cause__
+    if exc.__context__ is not None:
+        return exc.__context__
+    return exc

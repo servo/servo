@@ -252,7 +252,6 @@ def run_test_iteration(test_status, test_loader, test_source_kwargs, test_source
                                extra={"run_by_dir": run_test_kwargs["run_by_dir"]})
 
         with ManagerGroup("web-platform-tests",
-                          run_test_kwargs["processes"],
                           test_source_cls,
                           test_source_kwargs,
                           test_implementation_by_type,
@@ -375,8 +374,6 @@ def run_tests(config, test_paths, product, **kwargs):
                                            test_groups=test_groups,
                                            **kwargs)
 
-        logger.info("Using %i client processes" % kwargs["processes"])
-
         test_status = TestStatus()
         repeat = kwargs["repeat"]
         test_status.expected_repeated_runs = repeat
@@ -413,7 +410,8 @@ def run_tests(config, test_paths, product, **kwargs):
                                  env_extras,
                                  kwargs["enable_webtransport_h3"],
                                  mojojs_path,
-                                 inject_script) as test_environment:
+                                 inject_script,
+                                 kwargs["suppress_handler_traceback"]) as test_environment:
             recording.set(["startup", "ensure_environment"])
             try:
                 test_environment.ensure_started()

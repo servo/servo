@@ -750,27 +750,6 @@ def test_open_mode():
         ]
 
 
-@pytest.mark.parametrize(
-    "filename,expect_error",
-    [
-        ("foo/bar.html", False),
-        ("css/bar.html", True),
-    ])
-def test_css_support_file(filename, expect_error):
-    errors = check_file_contents("", filename, io.BytesIO(b""))
-    check_errors(errors)
-
-    if expect_error:
-        assert errors == [
-            ('SUPPORT-WRONG-DIR',
-             'Support file not in support directory',
-             filename,
-             None),
-        ]
-    else:
-        assert errors == []
-
-
 def test_css_missing_file_in_css():
     code = b"""\
 <html xmlns="http://www.w3.org/1999/xhtml">

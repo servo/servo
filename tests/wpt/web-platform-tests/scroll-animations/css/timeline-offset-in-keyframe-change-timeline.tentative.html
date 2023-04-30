@@ -27,15 +27,16 @@
     overflow-x: hidden;
     width: 300px;
     height: 200px;
+    view-timeline: sibling defer;
   }
-  #block {
+  #sibling {
     margin-top: 800px;
     margin-left:  10px;
     margin-right:  10px;
     width:  100px;
     height:  50px;
     background-color:  blue;
-    view-timeline:  block block;
+    view-timeline: sibling block ancestor;
   }
   #target {
     margin-bottom: 800px;
@@ -56,12 +57,12 @@
     animation-timeline: target;
   }
   #target.with-view-timeline.retarget {
-    animation-timeline: block;
+    animation-timeline: sibling;
   }
 </style>
 <body>
   <div id="scroller">
-    <div id="block"></div>
+    <div id="sibling"></div>
     <div id="target"></div>
   </div>
 </body>
@@ -109,7 +110,7 @@
       assert_frame_lists_equal(frames, expected);
 
       target.classList.add('retarget');
-      assert_equals(getComputedStyle(target).animationTimeline, 'block',
+      assert_equals(getComputedStyle(target).animationTimeline, 'sibling',
                     'Switch to another view timeline');
       await waitForNextFrame();
       frames = anim.effect.getKeyframes();

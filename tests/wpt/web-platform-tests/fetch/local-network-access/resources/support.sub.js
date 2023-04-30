@@ -81,6 +81,7 @@ const SERVER_PORTS = {
   },
   "https": {
     "loopback": {{ports[https][0]}},
+    "other-loopback": {{ports[https][1]}},
     "local": {{ports[https-private][0]}},
     "public": {{ports[https-public][0]}},
   },
@@ -130,6 +131,7 @@ class Server {
   static HTTP_PRIVATE = Server.get("http", "local");
   static HTTP_PUBLIC = Server.get("http", "public");
   static HTTPS_LOCAL = Server.get("https", "loopback");
+  static OTHER_HTTPS_LOCAL = Server.get("https", "other-loopback");
   static HTTPS_PRIVATE = Server.get("https", "local");
   static HTTPS_PUBLIC = Server.get("https", "public");
   static WS_LOCAL = Server.get("ws", "loopback");

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Test that mutation observer doesn't break noassert container size setter.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+
+async function checkMutationObserver() {
+  // Create a FLEDGE FF with a constant content size and given container size.
+  const requested_width_1 = '299px';
+  const requested_height_1 = '72px';
+  const frame = await attachFencedFrameContext({
+      generator_api: 'fledge', resolve_to_config: true, ad_with_size: true,
+      requested_size: [requested_width_1, requested_height_1]});
+
+  // Install a mutation observer.
+  const config = { attributes: true, childList: true, subtree: true };
+  const callback = (mutationList, observer) => {
+    throw new Error("mutation observed");
+  }
+  const observer = new MutationObserver(callback);
+  observer.observe(frame.element, config);
+
+  // Modify the container size manually.
+  const modified_width = '121px';
+  const modified_height = '444px';
+  frame.element.width = modified_width;
+  frame.element.height = modified_height;
+
+  // Navigate to a new FLEDGE FF config with a different container size.
+  const requested_width_2 = '321px';
+  const requested_height_2 = '49px';
+  const replaced_frame = await replaceFrameContext(frame, {
+      generator_api: 'fledge', resolve_to_config: true, ad_with_size: true,
+      requested_size: [requested_width_2, requested_height_2]});
+
+  observer.disconnect();
+}
+
+setup({allow_uncaught_exception: true});
+promise_test(async () => { return checkMutationObserver(); }, 'Container size assert no exception ignores mutation observer');
+
+</script>
+</body>

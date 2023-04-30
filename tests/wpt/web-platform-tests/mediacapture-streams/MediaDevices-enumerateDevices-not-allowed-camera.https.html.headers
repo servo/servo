@@ -1,1 +1,1 @@
-Feature-Policy: camera 'none'
+Permissions-Policy: camera=()

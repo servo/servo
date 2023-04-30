@@ -11,8 +11,45 @@
 <h1><code>pattern</code> attribute</h1>
 <div style="display: none">
   <input pattern="[a-z]{3}" value="abcd" id="basic">
+
   <input pattern="a.b" value="a&#x1D306;b" id="unicode-code-points">
-  <input pattern="\p{ASCII_Hex_Digit}+" value="c0ff33" id="unicode-property-escape">
+  <input pattern="\p{ASCII_Hex_Digit}+" value="c0ff33" id="unicode-property">
+
+  <input pattern="\p{RGI_Emoji}+" value="&#x1F618;&#x1F48B;" id="unicode-property-of-strings">
+  <input pattern="[\p{ASCII_Hex_Digit}--[Ff]]" value="0123456789abcdefABCDEF" id="set-difference">
+  <input pattern="[_\q{a|bc|def}]" value="q" id="string-literal">
+
+  <div class="breaking-changes-from-u-to-v">
+    <!-- Unescaped special characters in character classes. -->
+    <input pattern="[(]" value="foo">
+    <input pattern="[)]" value="foo">
+    <input pattern="[[]" value="foo">
+    <input pattern="[{]" value="foo">
+    <input pattern="[}]" value="foo">
+    <input pattern="[/]" value="foo">
+    <input pattern="[-]" value="foo">
+    <input pattern="[|]" value="foo">
+    <!-- Double punctuators in character classes. -->
+    <input pattern="[&&]" value="foo">
+    <input pattern="[!!]" value="foo">
+    <input pattern="[##]" value="foo">
+    <input pattern="[$$]" value="foo">
+    <input pattern="[%%]" value="foo">
+    <input pattern="[**]" value="foo">
+    <input pattern="[++]" value="foo">
+    <input pattern="[,,]" value="foo">
+    <input pattern="[..]" value="foo">
+    <input pattern="[::]" value="foo">
+    <input pattern="[;;]" value="foo">
+    <input pattern="[<<]" value="foo">
+    <input pattern="[==]" value="foo">
+    <input pattern="[>>]" value="foo">
+    <input pattern="[??]" value="foo">
+    <input pattern="[@@]" value="foo">
+    <input pattern="[``]" value="foo">
+    <input pattern="[~~]" value="foo">
+    <input pattern="[_^^]" value="foo">
+  </div>
 </div>
 <div id="log"></div>
 <script>
@@ -24,6 +61,7 @@
 
     assert_inherits(input, "validity");
     assert_false(input.validity.valid);
+    assert_true(input.validity.patternMismatch);
 
     assert_true(input.matches(":invalid"));
   }, "basic <input pattern> support");
@@ -32,11 +70,48 @@
     const input = document.querySelector("#unicode-code-points");
     assert_true(input.validity.valid);
     assert_true(input.matches(":valid"));
+    assert_false(input.validity.patternMismatch);
   }, "<input pattern> is Unicode code point-aware");
 
   test(() => {
-    const input = document.querySelector("#unicode-property-escape");
+    const input = document.querySelector("#unicode-property");
     assert_true(input.validity.valid);
     assert_true(input.matches(":valid"));
+    assert_false(input.validity.patternMismatch);
   }, "<input pattern> supports Unicode property escape syntax");
+
+  test(() => {
+    const input = document.querySelector("#unicode-property-of-strings");
+    assert_true(input.validity.valid);
+    assert_true(input.matches(":valid"));
+    assert_false(input.validity.patternMismatch);
+  }, "<input pattern> supports Unicode property escape syntax for properties of strings");
+
+  test(() => {
+    const input = document.querySelector("#set-difference");
+    assert_false(input.validity.valid);
+    assert_false(input.matches(":valid"));
+    assert_true(input.validity.patternMismatch);
+  }, "<input pattern> supports set difference syntax");
+
+  test(() => {
+    const input = document.querySelector("#string-literal");
+    assert_false(input.validity.valid);
+    assert_true(input.validity.patternMismatch);
+    assert_true(input.matches(":invalid"));
+  }, "<input pattern> supports string literal syntax");
+
+  test(() => {
+    const inputs = document.querySelectorAll(".breaking-changes-from-u-to-v input");
+    // These examples are all written such that they’re all `:invalid`
+    // when using `u`, but would become `:valid` when using `v` because
+    // the pattern would error, in turn resulting in
+    // `validity.valid === true`.
+    for (const input of inputs) {
+      const html = input.outerHTML;
+      assert_true(input.validity.valid, `${html} should be valid`);
+      assert_true(input.matches(":valid"), `${html} should match \`:valid\``);
+      assert_false(input.validity.patternMismatch, `${html} should not trigger a pattern mismatch`);
+    }
+  }, "<input pattern> enables the RegExp v flag");
 </script>

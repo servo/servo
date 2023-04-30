@@ -889,19 +889,19 @@ class TestRunnerManager(threading.Thread):
 
 
 def make_test_queue(tests, test_source_cls, **test_source_kwargs):
-    queue = test_source_cls.make_queue(tests, **test_source_kwargs)
+    queue, num_of_workers = test_source_cls.make_queue(tests, **test_source_kwargs)
 
     # There is a race condition that means sometimes we continue
     # before the tests have been written to the underlying pipe.
     # Polling the pipe for data here avoids that
     queue._reader.poll(10)
     assert not queue.empty()
-    return queue
+    return queue, num_of_workers
 
 
 class ManagerGroup:
     """Main thread object that owns all the TestRunnerManager threads."""
-    def __init__(self, suite_name, size, test_source_cls, test_source_kwargs,
+    def __init__(self, suite_name, test_source_cls, test_source_kwargs,
                  test_implementation_by_type,
                  rerun=1,
                  pause_after_test=False,
@@ -912,7 +912,6 @@ class ManagerGroup:
                  restart_on_new_group=True,
                  recording=None):
         self.suite_name = suite_name
-        self.size = size
         self.test_source_cls = test_source_cls
         self.test_source_kwargs = test_source_kwargs
         self.test_implementation_by_type = test_implementation_by_type
@@ -940,11 +939,11 @@ class ManagerGroup:
 
     def run(self, tests):
         """Start all managers in the group"""
-        self.logger.debug("Using %i processes" % self.size)
 
-        test_queue = make_test_queue(tests, self.test_source_cls, **self.test_source_kwargs)
+        test_queue, size = make_test_queue(tests, self.test_source_cls, **self.test_source_kwargs)
+        self.logger.info("Using %i child processes" % size)
 
-        for idx in range(self.size):
+        for idx in range(size):
             manager = TestRunnerManager(self.suite_name,
                                         idx,
                                         test_queue,

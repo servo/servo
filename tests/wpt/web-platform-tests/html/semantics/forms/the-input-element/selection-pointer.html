@@ -37,8 +37,20 @@ for (const inputType of inputVisibleTypes) {
       .pointerMove(0, 0, {origin: bar})
       .pointerUp()
       .send();
-    assert_equals(selection.anchorNode, foo.childNodes[0], "anchorNode");
-    assert_equals(selection.focusNode, bar.childNodes[0], "focusNode");
+    const nRanges = selection.rangeCount;
+    assert_true(nRanges > 0);
+    const expectedStart = foo.childNodes[0];
+    const expectedEnd = bar.childNodes[0];
+    if (nRanges === 1) {
+      assert_equals(selection.anchorNode, expectedStart, "anchorNode");
+      assert_equals(selection.focusNode, expectedEnd, "focusNode");
+    } else {
+      // In case multiple ranges are supported, make sure the set of ranges
+      // spans the full selection, across the input.
+      const ranges = [...Array(nRanges).keys()].map(n => selection.getRangeAt(n));
+      assert_true(ranges.some(r => r.startContainer === expectedStart),"startContainer");
+      assert_true(ranges.some(r => r.endContainer === expectedEnd),"endContainer");
+    }
   }, `Selecting texts across <input type=${inputType}> should not cancel selection`);
 }
 </script>

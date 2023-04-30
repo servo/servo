@@ -1,5 +1,5 @@
 import pytest
-from webdriver.bidi.modules.script import ContextTarget
+from webdriver.bidi.modules.script import ContextTarget, SerializationOptions
 
 from ... import any_string, recursive_compare
 
@@ -140,6 +140,7 @@ async def test_element_node(bidi_session, get_test_page, top_context, expression
         expression=expression,
         target=ContextTarget(top_context["context"]),
         await_promise=False,
+        serialization_options=SerializationOptions(max_dom_depth=1),
     )
 
     recursive_compare(expected, result)
@@ -158,7 +159,6 @@ async def test_element_node(bidi_session, get_test_page, top_context, expression
                 "sharedId": any_string,
                 "value": {
                     "childNodeCount": 0,
-                    "children": [],
                     "localName": "id",
                     "namespaceURI": None,
                     "nodeType": 2,
@@ -174,7 +174,6 @@ async def test_element_node(bidi_session, get_test_page, top_context, expression
                 "sharedId": any_string,
                 "value": {
                     "childNodeCount": 0,
-                    "children": [],
                     "localName": "foo",
                     "namespaceURI": "http://www.w3.org/2000/svg",
                     "nodeType": 2,
@@ -214,7 +213,6 @@ async def test_attribute_node(bidi_session, get_test_page, top_context, expressi
                 "sharedId": any_string,
                 "value": {
                     "childNodeCount": 0,
-                    "children": [],
                     "nodeType": 3,
                     "nodeValue": "Lorem",
                 }
@@ -251,7 +249,6 @@ async def test_text_node(bidi_session, get_test_page, top_context, expression, e
                 "sharedId": any_string,
                 "value": {
                     "childNodeCount": 0,
-                    "children": [],
                     "nodeType": 4,
                     "nodeValue": " < > & ",
                 }
@@ -290,7 +287,6 @@ async def test_cdata_node(bidi_session, inline, new_tab, expression, expected):
                 "sharedId": any_string,
                 "value": {
                     "childNodeCount": 0,
-                    "children": [],
                     "nodeType": 7,
                     "nodeValue": "href='foo.css'",
                 }
@@ -331,7 +327,6 @@ async def test_processing_instruction_node(
                 "sharedId": any_string,
                 "value": {
                     "childNodeCount": 0,
-                    "children": [],
                     "nodeType": 8,
                     "nodeValue": " Comment ",
                 }
@@ -403,6 +398,7 @@ async def test_document_node(bidi_session, get_test_page, top_context, expressio
         expression=expression,
         target=ContextTarget(top_context["context"]),
         await_promise=False,
+        serialization_options=SerializationOptions(max_dom_depth=1),
     )
 
     recursive_compare(expected, result)
@@ -421,7 +417,6 @@ async def test_document_node(bidi_session, get_test_page, top_context, expressio
                 "sharedId": any_string,
                 "value": {
                     "childNodeCount": 0,
-                    "children": [],
                     "nodeType": 10,
                 }
             }
@@ -502,6 +497,7 @@ async def test_document_fragment_node(
         expression=expression,
         target=ContextTarget(top_context["context"]),
         await_promise=False,
+        serialization_options=SerializationOptions(max_dom_depth=1),
     )
 
     recursive_compare(expected, result)
@@ -601,6 +597,7 @@ async def test_node_within_dom_collection(
         expression=expression,
         target=ContextTarget(top_context["context"]),
         await_promise=False,
+        serialization_options=SerializationOptions(max_dom_depth=1),
     )
 
     recursive_compare(expected, result)
@@ -631,7 +628,6 @@ async def test_custom_element_with_shadow_root(
                 "id": "custom-element",
             },
             "childNodeCount": 0,
-            "children": [],
             "localName": "custom-element",
             "namespaceURI": "http://www.w3.org/1999/xhtml",
             "nodeType": 1,

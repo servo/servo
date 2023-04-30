@@ -1,5 +1,5 @@
 import pytest
-from webdriver.bidi.modules.script import ContextTarget
+from webdriver.bidi.modules.script import ContextTarget, SerializationOptions
 
 
 @pytest.mark.asyncio
@@ -135,6 +135,7 @@ async def test_remote_values(bidi_session, top_context, expression, expected):
         expression=expression,
         target=ContextTarget(top_context["context"]),
         await_promise=False,
+        serialization_options=SerializationOptions(max_object_depth=1),
     )
 
     assert result == expected

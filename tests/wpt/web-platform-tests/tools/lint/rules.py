@@ -108,26 +108,6 @@ class IgnoredPath(Rule):
     """)
 
 
-class CSSCollidingTestName(Rule):
-    name = "CSS-COLLIDING-TEST-NAME"
-    description = "The filename %s in the %s testsuite is shared by: %s"
-
-
-class CSSCollidingRefName(Rule):
-    name = "CSS-COLLIDING-REF-NAME"
-    description = "The filename %s is shared by: %s"
-
-
-class CSSCollidingSupportName(Rule):
-    name = "CSS-COLLIDING-SUPPORT-NAME"
-    description = "The filename %s is shared by: %s"
-
-
-class SupportWrongDir(Rule):
-    name = "SUPPORT-WRONG-DIR"
-    description = "Support file not in support directory"
-
-
 class ParseFailed(Rule):
     name = "PARSE-FAILED"
     description = "Unable to parse file"

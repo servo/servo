@@ -193,8 +193,7 @@ def check_gitignore_file(repo_root, path):
         return []
 
     if (path_parts[0] in ["tools", "docs"] or
-        path_parts[:2] == ["resources", "webidl2"] or
-        path_parts[:3] == ["css", "tools", "apiclient"]):
+        path_parts[:2] == ["resources", "webidl2"]):
         return []
 
     return [rules.GitIgnoreFile.error(path)]
@@ -252,99 +251,6 @@ def check_git_ignore(repo_root, paths):
 drafts_csswg_re = re.compile(r"https?\:\/\/drafts\.csswg\.org\/([^/?#]+)")
 w3c_tr_re = re.compile(r"https?\:\/\/www\.w3c?\.org\/TR\/([^/?#]+)")
 w3c_dev_re = re.compile(r"https?\:\/\/dev\.w3c?\.org\/[^/?#]+\/([^/?#]+)")
-
-
-def check_css_globally_unique(repo_root, paths):
-    # type: (Text, List[Text]) -> List[rules.Error]
-    """
-    Checks that CSS filenames are sufficiently unique
-
-    This groups files by path classifying them as "test", "reference", or
-    "support".
-
-    "test" files must have a unique name across files that share links to the
-    same spec.
-
-    "reference" and "support" files, on the other hand, must have globally
-    unique names.
-
-    :param repo_root: the repository root
-    :param paths: list of all paths
-    :returns: a list of errors found in ``paths``
-
-    """
-    test_files = defaultdict(set)  # type: Dict[Text, Set[Text]]
-    ref_files = defaultdict(set)  # type: Dict[Text, Set[Text]]
-    support_files = defaultdict(set)  # type: Dict[Text, Set[Text]]
-
-    for path in paths:
-        if os.name == "nt":
-            path = path.replace("\\", "/")
-
-        if not path.startswith("css/"):
-            continue
-
-        source_file = SourceFile(repo_root, path, "/")
-        if source_file.name_is_non_test:
-            # If we're name_is_non_test for a reason apart from support, ignore it.
-            # We care about support because of the requirement all support files in css/ to be in
-            # a support directory; see the start of check_parsed.
-            offset = path.find("/support/")
-            if offset == -1:
-                continue
-
-            parts = source_file.dir_path.split(os.path.sep)
-            if (parts[0] in source_file.root_dir_non_test or
-                any(item in source_file.dir_non_test - {"support"} for item in parts) or
-                any(parts[:len(non_test_path)] == list(non_test_path) for non_test_path in source_file.dir_path_non_test)):
-                continue
-
-            support_name = path[offset+1:]
-            support_files[support_name].add(path)
-        elif source_file.name_is_reference:
-            ref_files[source_file.name].add(path)
-        else:
-            test_name = source_file.name  # type: Text
-            test_name = test_name.replace('-manual', '')
-            test_files[test_name].add(path)
-
-    errors = []
-
-    for name, colliding in test_files.items():
-        if len(colliding) > 1:
-            if not _all_files_equal([os.path.join(repo_root, x) for x in colliding]):
-                # Only compute by_spec if there are prima-facie collisions because of cost
-                by_spec = defaultdict(set)  # type: Dict[Text, Set[Text]]
-                for path in colliding:
-                    source_file = SourceFile(repo_root, path, "/")
-                    for link in source_file.spec_links:
-                        for r in (drafts_csswg_re, w3c_tr_re, w3c_dev_re):
-                            m = r.match(link)
-                            if m:
-                                spec = m.group(1)
-                                break
-                        else:
-                            continue
-                        by_spec[spec].add(path)
-
-                for spec, spec_paths in by_spec.items():
-                    if not _all_files_equal([os.path.join(repo_root, x) for x in spec_paths]):
-                        for x in spec_paths:
-                            context1 = (name, spec, ", ".join(sorted(spec_paths)))
-                            errors.append(rules.CSSCollidingTestName.error(x,
-                                                                           context1))
-
-    for rule_class, d in [(rules.CSSCollidingRefName, ref_files),
-                          (rules.CSSCollidingSupportName, support_files)]:
-        for name, colliding in d.items():
-            if len(colliding) > 1:
-                if not _all_files_equal([os.path.join(repo_root, x) for x in colliding]):
-                    context2 = (name, ", ".join(sorted(colliding)))
-
-                    for x in colliding:
-                        errors.append(rule_class.error(x, context2))
-
-    return errors
 
 
 def check_unique_testharness_basenames(repo_root, paths):
@@ -498,11 +404,6 @@ def check_parsed(repo_root, path, f):
     errors = []  # type: List[rules.Error]
 
     if path.startswith("css/"):
-        if (source_file.type == "support" and
-            not source_file.name_is_non_test and
-            not source_file.name_is_reference):
-            return [rules.SupportWrongDir.error(path)]
-
         if (source_file.type != "support" and
             not source_file.name_is_reference and
             not source_file.name_is_tentative and
@@ -1125,7 +1026,7 @@ def lint(repo_root, paths, output_format, ignore_glob=None, github_checks_output
 
 path_lints = [check_file_type, check_path_length, check_worker_collision, check_ahem_copy,
               check_mojom_js, check_tentative_directories, check_gitignore_file]
-all_paths_lints = [check_css_globally_unique, check_unique_testharness_basenames,
+all_paths_lints = [check_unique_testharness_basenames,
                    check_unique_case_insensitive_paths]
 file_lints = [check_regexp_line, check_parsed, check_python_ast, check_script_metadata,
               check_ahem_system_font]

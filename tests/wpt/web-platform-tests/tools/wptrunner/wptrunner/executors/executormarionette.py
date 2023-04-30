@@ -24,7 +24,8 @@ from .base import (CallbackHandler,
                    WdspecExecutor,
                    get_pages,
                    strip_server)
-from .protocol import (ActionSequenceProtocolPart,
+from .protocol import (AccessibilityProtocolPart,
+                       ActionSequenceProtocolPart,
                        AssertsProtocolPart,
                        BaseProtocolPart,
                        TestharnessProtocolPart,
@@ -701,6 +702,17 @@ loadDevTools().catch((e) => console.error("Devtools failed to load", e))
 """, asynchronous=True)
 
 
+class MarionetteAccessibilityProtocolPart(AccessibilityProtocolPart):
+    def setup(self):
+        self.marionette = self.parent.marionette
+
+    def get_computed_label(self, element):
+        return element.computed_label
+
+    def get_computed_role(self, element):
+        return element.computed_role
+
+
 class MarionetteProtocol(Protocol):
     implements = [MarionetteBaseProtocolPart,
                   MarionetteTestharnessProtocolPart,
@@ -719,7 +731,8 @@ class MarionetteProtocol(Protocol):
                   MarionetteVirtualAuthenticatorProtocolPart,
                   MarionetteSetPermissionProtocolPart,
                   MarionettePrintProtocolPart,
-                  MarionetteDebugProtocolPart]
+                  MarionetteDebugProtocolPart,
+                  MarionetteAccessibilityProtocolPart]
 
     def __init__(self, executor, browser, capabilities=None, timeout_multiplier=1, e10s=True, ccov=False):
         do_delayed_imports()

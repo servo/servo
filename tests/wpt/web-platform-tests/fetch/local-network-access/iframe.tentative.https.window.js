@@ -154,9 +154,18 @@ makePreflightTests({
   sourceServer: Server.HTTPS_LOCAL,
   sourceTreatAsPublic: true,
   sourceName: "treat-as-public-address",
-  targetServer: Server.HTTPS_LOCAL,
+  targetServer: Server.OTHER_HTTPS_LOCAL,
   targetName: "local",
 });
+
+promise_test_parallel(t => iframeTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: { server: Server.HTTPS_LOCAL },
+  expected: IframeTestResult.SUCCESS,
+}), "treat-as-public-address to local (same-origin): no preflight required.");
 
 makePreflightTests({
   sourceServer: Server.HTTPS_LOCAL,
@@ -194,6 +203,14 @@ promise_test_parallel(t => iframeTest(t, {
 
 iframeGrandparentTest({
   name: "local to local, grandparent navigates: no preflight required.",
+  grandparentServer: Server.HTTPS_LOCAL,
+  child: { server: Server.HTTPS_PUBLIC },
+  grandchild: { server: Server.OTHER_HTTPS_LOCAL },
+  expected: IframeTestResult.SUCCESS,
+});
+
+iframeGrandparentTest({
+  name: "local to local (same-origin), grandparent navigates: no preflight required.",
   grandparentServer: Server.HTTPS_LOCAL,
   child: { server: Server.HTTPS_PUBLIC },
   grandchild: { server: Server.HTTPS_LOCAL },

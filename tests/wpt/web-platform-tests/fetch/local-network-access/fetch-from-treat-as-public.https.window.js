@@ -12,7 +12,10 @@ promise_test(t => fetchTest(t, {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
   },
-  target: { server: Server.HTTPS_LOCAL },
+  target: {
+    server: Server.OTHER_HTTPS_LOCAL,
+    preflight: PreflightBehavior.noPnaHeader(token()),
+  },
   expected: FetchTestResult.FAILURE,
 }), "treat-as-public-address to local: failed preflight.");
 
@@ -22,14 +25,23 @@ promise_test(t => fetchTest(t, {
     treatAsPublic: true,
   },
   target: {
-    server: Server.HTTPS_LOCAL,
+    server: Server.OTHER_HTTPS_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.optionalSuccess(token()),
-      // Interesting: no need for CORS headers on same-origin final response.
+      preflight: PreflightBehavior.success(token()),
+      response: ResponseBehavior.allowCrossOrigin(),
     },
   },
   expected: FetchTestResult.SUCCESS,
 }), "treat-as-public-address to local: success.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: { server: Server.HTTPS_LOCAL },
+  expected: FetchTestResult.SUCCESS,
+}), "treat-as-public-address to local (same-origin): no preflight required.");
 
 promise_test(t => fetchTest(t, {
   source: {

@@ -144,7 +144,6 @@ async def test_invalid_function(bidi_session, top_context):
                 'value': {
                     'attributes': {},
                     'childNodeCount': 0,
-                    'children': [],
                     'localName': 'div',
                     'namespaceURI': 'http://www.w3.org/1999/xhtml',
                     'nodeType': 1,
@@ -173,6 +172,36 @@ async def test_exception_details(bidi_session, top_context, await_promise, expre
             "exceptionDetails": {
                 "columnNumber": any_int,
                 "exception": expected,
+                "lineNumber": any_int,
+                "stackTrace": any_stack_trace,
+                "text": any_string,
+            },
+        },
+        exception.value.result,
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("chained", [True, False])
+async def test_rejected_promise(bidi_session, top_context, chained):
+    if chained:
+        function_declaration = "() => Promise.reject('error').then(() => { })"
+    else:
+        function_declaration = "() => Promise.reject('error')"
+
+    with pytest.raises(ScriptEvaluateResultException) as exception:
+        await bidi_session.script.call_function(
+            function_declaration=function_declaration,
+            await_promise=True,
+            target=ContextTarget(top_context["context"]),
+        )
+
+    recursive_compare(
+        {
+            "realm": any_string,
+            "exceptionDetails": {
+                "columnNumber": any_int,
+                "exception": {"type": "string", "value": "error"},
                 "lineNumber": any_int,
                 "stackTrace": any_stack_trace,
                 "text": any_string,

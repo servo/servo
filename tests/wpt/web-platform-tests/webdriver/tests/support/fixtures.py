@@ -211,8 +211,8 @@ def url(server_config):
 
 
 @pytest.fixture
-def modifier_key(session):
-    if session.capabilities["platformName"] == "mac":
+def modifier_key(current_session):
+    if current_session.capabilities["platformName"] == "mac":
         return Keys.META
     else:
         return Keys.CONTROL
@@ -253,6 +253,24 @@ def iframe(inline):
         return "<iframe src='{}'></iframe>".format(inline(src, **kwargs))
 
     return iframe
+
+
+@pytest.fixture
+def get_actions_origin_page(inline):
+    """Create a test pagefor action origin tests, recording mouse coordinates
+    automatically on window.coords."""
+
+    def get_actions_origin_page(inner_style, outer_style=""):
+        return inline(
+            f"""
+          <div id="outer" style="{outer_style}"
+               onmousemove="window.coords = {{x: event.clientX, y: event.clientY}}">
+            <div id="inner" style="{inner_style}"></div>
+          </div>
+        """
+        )
+
+    return get_actions_origin_page
 
 
 @pytest.fixture

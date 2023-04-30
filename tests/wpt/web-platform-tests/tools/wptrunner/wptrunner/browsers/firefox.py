@@ -198,7 +198,7 @@ def run_info_extras(**kwargs):
           "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
           "fission": enable_fission,
           "sessionHistoryInParent": (enable_fission or
-                                     get_bool_pref("fission.sessionHistoryInParent")),
+                                     not get_bool_pref("fission.disableSessionHistoryInParent")),
           "swgl": get_bool_pref("gfx.webrender.software")}
 
     rv.update(run_info_browser_version(**kwargs))

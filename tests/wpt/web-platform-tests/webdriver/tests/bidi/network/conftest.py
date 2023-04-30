@@ -15,7 +15,7 @@ def fetch(bidi_session, top_context, configuration):
     """Perform a fetch from the page of the provided context, default to the
     top context.
     """
-    async def fetch(url, method="GET", headers=None, context=top_context, timeout_in_seconds=1):
+    async def fetch(url, method="GET", headers=None, context=top_context, timeout_in_seconds=3):
         method_arg = f"method: '{method}',"
 
         headers_arg = ""

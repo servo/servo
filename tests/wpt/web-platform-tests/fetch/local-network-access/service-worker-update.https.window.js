@@ -3,9 +3,10 @@
 //
 // Spec: https://wicg.github.io/private-network-access/#integration-fetch
 //
-// These tests check that `ServiceWorker` script update fetches are subject to
-// Private Network Access checks, just like regular `fetch()` calls. The client
-// of the fetch, for PNA purposes, is taken to be the previous script.
+// These tests check that `ServiceWorker` script update fetches are exempt from
+// Private Network Access checks because they are always same-origin and the
+// origin is potentially trustworthy. The client of the fetch, for PNA purposes,
+// is taken to be the previous script.
 //
 // The tests is carried out by instantiating a service worker from a resource
 // that carries the `Content-Security-Policy: treat-as-public-address` header,
@@ -91,27 +92,11 @@ async function makeTest(t, { target, expected }) {
 
 promise_test(t => makeTest(t, {
   target: { server: Server.HTTPS_LOCAL },
-  expected: TestResult.FAILURE,
-}), "update public to local: failed preflight.");
-
-promise_test(t => makeTest(t, {
-  target: {
-    server: Server.HTTPS_LOCAL,
-    behavior: { preflight: PreflightBehavior.serviceWorkerSuccess(token()) },
-  },
   expected: TestResult.SUCCESS,
 }), "update public to local: success.");
 
 promise_test(t => makeTest(t, {
   target: { server: Server.HTTPS_PRIVATE },
-  expected: TestResult.FAILURE,
-}), "update public to private: failed preflight.");
-
-promise_test(t => makeTest(t, {
-  target: {
-    server: Server.HTTPS_PRIVATE,
-    behavior: { preflight: PreflightBehavior.serviceWorkerSuccess(token()) },
-  },
   expected: TestResult.SUCCESS,
 }), "update public to private: success.");
 

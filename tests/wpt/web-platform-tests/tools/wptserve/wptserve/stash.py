@@ -194,7 +194,11 @@ class Stash:
         if isinstance(key, bytes):
             # UUIDs are within the ASCII charset.
             key = key.decode('ascii')
-        return (isomorphic_encode(path), uuid.UUID(key).bytes)
+        try:
+            my_uuid = uuid.UUID(key).bytes
+        except ValueError as e:
+            raise ValueError(f"""Invalid UUID "{key}" used as stash key""") from e
+        return (isomorphic_encode(path), my_uuid)
 
     def put(self, key, value, path=None):
         """Place a value in the shared stash.

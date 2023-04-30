@@ -25,12 +25,11 @@ window.waitForLoadAllowingIntermediateLoads = (t, iframe, urlRelativeToThisDocum
   });
 };
 
-window.waitForMessage = (t, expected) => {
+window.waitForMessage = () => {
   return new Promise(resolve => {
-    window.addEventListener("message", t.step_func(e => {
-      assert_equals(e.data, expected);
-      resolve();
-    }), { once: true });
+    window.addEventListener("message", e => {
+      resolve(e.data);
+    }, { once: true });
   });
 };
 
@@ -55,13 +54,36 @@ window.checkSentinelIframe = async (t, sentinelIframe) => {
   await waitForLoad(t, sentinelIframe, "/common/blank.html?sentinelstart");
 };
 
-window.insertIframe = (t, url) => {
+window.insertIframe = (t, url, name) => {
   const iframe = document.createElement("iframe");
   iframe.src = url;
+
+  // In at least Chromium, window name targeting for form submission doesn't work if the name is set
+  // after the iframe is inserted into the DOM. So we can't just have callers do this themselves.
+  if (name) {
+    iframe.name = name;
+  }
+
   document.body.append(iframe);
 
   // Intentionally not including the following:
   //  t.add_cleanup(() => iframe.remove());
   // Doing so breaks some of the testdriver.js tests with "cannot find window" errors.
   return iframe;
+};
+
+// TODO(domenic): clean up other tests in the parent directory to use this.
+window.absoluteURL = relativeURL => {
+  return (new URL(relativeURL, location.href)).href;
+};
+
+// TODO(domenic): clean up other tests in the parent directory to use this.
+window.codeInjectorURL = code => {
+  return absoluteURL("resources/code-injector.html?pipe=sub(none)&code=" + encodeURIComponent(code));
+};
+
+window.changeURLHost = (url, newHost) => {
+  const urlObj = new URL(url);
+  urlObj.host = newHost;
+  return urlObj.href;
 };

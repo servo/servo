@@ -4,7 +4,6 @@ import errno
 import http.server
 import os
 import socket
-from socketserver import ThreadingMixIn
 import ssl
 import sys
 import threading
@@ -33,7 +32,7 @@ from .logger import get_logger
 from .request import Server, Request, H2Request
 from .response import Response, H2Response
 from .router import Router
-from .utils import HTTPException, isomorphic_decode, isomorphic_encode
+from .utils import HTTPException, get_error_cause, isomorphic_decode, isomorphic_encode
 from .constants import h2_headers
 from .ws_h2_handshake import WsH2Handshaker
 
@@ -129,7 +128,7 @@ class RequestRewriter:
                 request_handler.path = new_url
 
 
-class WebTestServer(ThreadingMixIn, http.server.HTTPServer):
+class WebTestServer(http.server.ThreadingHTTPServer):
     allow_reuse_address = True
     acceptable_errors = (errno.EPIPE, errno.ECONNABORTED)
     request_queue_size = 2000
@@ -190,7 +189,7 @@ class WebTestServer(ThreadingMixIn, http.server.HTTPServer):
         else:
             hostname_port = ("",server_address[1])
 
-        http.server.HTTPServer.__init__(self, hostname_port, request_handler_cls, **kwargs)
+        super().__init__(hostname_port, request_handler_cls)
 
         if config is not None:
             Server.config = config
@@ -243,27 +242,27 @@ class BaseWebTestRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
         self.logger = get_logger()
-        http.server.BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def finish_handling_h1(self, request_line_is_valid):
 
         self.server.rewriter.rewrite(self)
 
-        request = Request(self)
-        response = Response(self, request)
+        with Request(self) as request:
+            response = Response(self, request)
 
-        if request.method == "CONNECT":
-            self.handle_connect(response)
-            return
+            if request.method == "CONNECT":
+                self.handle_connect(response)
+                return
 
-        if not request_line_is_valid:
-            response.set_error(414)
-            response.write()
-            return
+            if not request_line_is_valid:
+                response.set_error(414)
+                response.write()
+                return
 
-        self.logger.debug(f"{request.method} {request.request_path}")
-        handler = self.server.router.get_handler(request)
-        self.finish_handling(request, response, handler)
+            self.logger.debug(f"{request.method} {request.request_path}")
+            handler = self.server.router.get_handler(request)
+            self.finish_handling(request, response, handler)
 
     def finish_handling(self, request, response, handler):
         # If the handler we used for the request had a non-default base path
@@ -288,12 +287,10 @@ class BaseWebTestRequestHandler(http.server.BaseHTTPRequestHandler):
             try:
                 handler(request, response)
             except HTTPException as e:
-                if 500 <= e.code < 600:
-                    self.logger.warning("HTTPException in handler: %s" % e)
-                    self.logger.warning(traceback.format_exc())
-                response.set_error(e.code, str(e))
+                exc = get_error_cause(e) if 500 <= e.code < 600 else e
+                response.set_error(e.code, exc)
             except Exception as e:
-                self.respond_with_error(response, e)
+                response.set_error(500, e)
         self.logger.debug("%i %s %s (%s) %i" % (response.status[0],
                                                 request.method,
                                                 request.request_path,
@@ -331,15 +328,6 @@ class BaseWebTestRequestHandler(http.server.BaseHTTPRequestHandler):
                                            server_side=True)
             self.setup()
         return
-
-    def respond_with_error(self, response, e):
-        message = str(e)
-        if message:
-            err = [message]
-        else:
-            err = []
-        err.append(traceback.format_exc())
-        response.set_error(500, "\n".join(err))
 
 
 class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
@@ -380,7 +368,11 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
             data = connection.data_to_send()
             window_size = connection.remote_settings.initial_window_size
 
-        self.request.sendall(data)
+        try:
+            self.request.sendall(data)
+        except ConnectionResetError:
+            self.logger.warning("Connection reset during h2 setup")
+            return
 
         # Dict of { stream_id: (thread, queue) }
         stream_queues = {}
@@ -490,8 +482,8 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
             try:
                 handshaker.do_handshake()
             except HandshakeException as e:
-                self.logger.info('Handshake failed for error: %s' % e)
-                h2response.set_error(e.status)
+                self.logger.info("Handshake failed")
+                h2response.set_error(e.status, e)
                 h2response.write()
                 return
             except AbortedByUserException:
@@ -643,10 +635,11 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         try:
             return handler.frame_handler(request)
         except HTTPException as e:
-            response.set_error(e.code, str(e))
+            exc = get_error_cause(e) if 500 <= e.code < 600 else e
+            response.set_error(exc.code, exc)
             response.write()
         except Exception as e:
-            self.respond_with_error(response, e)
+            response.set_error(500, e)
             response.write()
 
 
@@ -726,10 +719,9 @@ class Http1WebTestRequestHandler(BaseWebTestRequestHandler):
             self.close_connection = True
             return
 
-        except Exception:
-            err = traceback.format_exc()
+        except Exception as e:
             if response:
-                response.set_error(500, err)
+                response.set_error(500, e)
                 response.write()
 
     def get_request_line(self):

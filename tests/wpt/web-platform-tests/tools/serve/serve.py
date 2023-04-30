@@ -633,7 +633,7 @@ class ServerProc:
         # in the logging module unlocked
         importlib.reload(logging)
 
-        logger = get_logger(config.log_level, log_handlers)
+        logger = get_logger(config.logging["level"], log_handlers)
 
         if sys.platform == "darwin":
             # on Darwin, NOFILE starts with a very low limit (256), so bump it up a little
@@ -1003,7 +1003,6 @@ class ConfigBuilder(config.ConfigBuilder):
             "webtransport-h3": ["auto"],
         },
         "check_subdomains": True,
-        "log_level": "info",
         "bind_address": True,
         "ssl": {
             "type": "pregenerated",
@@ -1022,7 +1021,11 @@ class ConfigBuilder(config.ConfigBuilder):
             },
             "none": {}
         },
-        "aliases": []
+        "aliases": [],
+        "logging": {
+            "level": "info",
+            "suppress_handler_traceback": False
+        }
     }
 
     computed_properties = ["ws_doc_root"] + config.ConfigBuilder.computed_properties
@@ -1082,7 +1085,7 @@ def build_config(logger, override_path=None, config_cls=ConfigBuilder, **kwargs)
             raise ValueError("Config path %s does not exist" % other_path)
 
     if kwargs.get("verbose"):
-        rv.log_level = "debug"
+        rv.logging["level"] = "DEBUG"
 
     setattr(rv, "inject_script", kwargs.get("inject_script"))
 
@@ -1174,7 +1177,7 @@ def run(config_cls=ConfigBuilder, route_builder=None, mp_context=None, log_handl
                       config_cls=config_cls,
                       **kwargs) as config:
         # This sets the right log level
-        logger = get_logger(config.log_level, log_handlers)
+        logger = get_logger(config.logging["level"], log_handlers)
 
         bind_address = config["bind_address"]
 

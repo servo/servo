@@ -7,8 +7,8 @@
 // loaded from blob URLs are subject to Private Network Access checks, just like
 // fetches from within documents.
 //
-// This file covers only those tests that must execute in a non-secure context.
-// Other tests are defined in: shared-worker-blob-fetch.https.window.js
+// This file covers only those tests that must execute in a secure context.
+// Other tests are defined in: shared-worker-blob-fetch.window.js
 
 promise_test(t => sharedWorkerBlobFetchTest(t, {
   source: { server: Server.HTTPS_LOCAL },
@@ -96,7 +96,10 @@ promise_test(t => sharedWorkerBlobFetchTest(t, {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
   },
-  target: { server: Server.HTTPS_LOCAL },
+  target: {
+    server: Server.OTHER_HTTPS_LOCAL,
+    behavior: { response: ResponseBehavior.allowCrossOrigin() },
+  },
   expected: WorkerFetchTestResult.FAILURE,
 }), "treat-as-public to local: failed preflight.");
 
@@ -106,11 +109,23 @@ promise_test(t => sharedWorkerBlobFetchTest(t, {
     treatAsPublic: true,
   },
   target: {
-    server: Server.HTTPS_LOCAL,
-    behavior: { preflight: PreflightBehavior.success(token()) },
+    server: Server.OTHER_HTTPS_LOCAL,
+    behavior: {
+      preflight: PreflightBehavior.success(token()),
+      response: ResponseBehavior.allowCrossOrigin(),
+    },
   },
   expected: WorkerFetchTestResult.SUCCESS,
 }), "treat-as-public to local: success.");
+
+promise_test(t => sharedWorkerBlobFetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: { server: Server.HTTPS_LOCAL },
+  expected: WorkerFetchTestResult.SUCCESS,
+}), "treat-as-public to local (same-origin): no preflight required.");
 
 promise_test(t => sharedWorkerBlobFetchTest(t, {
   source: {

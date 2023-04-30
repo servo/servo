@@ -69,29 +69,29 @@ function runTest(api, as, description, shouldPreloadSucceed, shouldMainLoadSucce
     if (api === 'image') {
       mainPromise = new Promise(t.step_func((resolve, reject) => {
           const img = document.createElement('img');
-          img.src = url;
           img.setAttribute('crossorigin', 'anonymous');
           img.onload = resolve;
           img.onerror = () => reject(new TypeError('img onerror'));
+          img.src = url;
           document.head.appendChild(img);
       }));
     } else if (api === 'style') {
       mainPromise = new Promise(t.step_func((resolve, reject) => {
           const link = document.createElement('link');
-          link.href = url;
           link.setAttribute('rel', 'stylesheet');
           link.setAttribute('crossorigin', 'anonymous');
           link.onload = resolve;
           link.onerror = () => reject(new TypeError('link rel=stylesheet onerror'));
+          link.href = url;
           document.head.appendChild(link);
       }));
     } else if (api === 'script') {
       mainPromise = new Promise(t.step_func((resolve, reject) => {
           const script = document.createElement('script');
-          script.src = url;
           script.setAttribute('crossorigin', 'anonymous');
           script.onload = resolve;
           script.onerror = () => reject(new TypeError('script onerror'));
+          script.src = url;
           document.head.appendChild(script);
       }));
     } else if (api === 'xhr') {
