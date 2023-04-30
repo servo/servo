@@ -5,6 +5,7 @@
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::element_data::{LayoutBox, LayoutDataForElement};
+use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags, Tag};
 use crate::geom::PhysicalSize;
 use crate::replaced::{CanvasInfo, CanvasSource, ReplacedContent};
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
@@ -70,6 +71,31 @@ impl<Node: Clone> NodeAndStyleInfo<Node> {
             node: self.node.clone(),
             pseudo_element_type: self.pseudo_element_type.clone(),
             style,
+        }
+    }
+}
+
+impl<'dom, Node> From<&NodeAndStyleInfo<Node>> for BaseFragmentInfo
+where
+    Node: NodeExt<'dom>,
+{
+    fn from(info: &NodeAndStyleInfo<Node>) -> Self {
+        let pseudo = info.pseudo_element_type.map(|pseudo| match pseudo {
+            WhichPseudoElement::Before => PseudoElement::Before,
+            WhichPseudoElement::After => PseudoElement::After,
+        });
+
+        let threadsafe_node = info.node.to_threadsafe();
+        let flags = match threadsafe_node.as_element() {
+            Some(element) if element.is_body_element_of_html_element_root() => {
+                FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT
+            },
+            _ => FragmentFlags::empty(),
+        };
+
+        Self {
+            tag: Tag::new_pseudo(threadsafe_node.opaque(), pseudo),
+            flags,
         }
     }
 }

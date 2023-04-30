@@ -732,7 +732,7 @@ impl FlexLine<'_> {
                 let margin = flex_context.sides_to_flow_relative(*margin);
                 let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
                 BoxFragment::new(
-                    item.box_.tag(),
+                    item.box_.base_fragment_info(),
                     item.box_.style().clone(),
                     fragments,
                     content_rect,

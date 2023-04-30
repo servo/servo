@@ -9,7 +9,7 @@ use crate::context::LayoutContext;
 use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use crate::display_list::IndexableText;
 use crate::flow::{Flow, GetBaseFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, FragmentFlags, SpecificFragmentInfo};
 use crate::inline::InlineFragmentNodeFlags;
 use crate::opaque_node::OpaqueNodeMethods;
 use crate::sequential;
@@ -666,11 +666,9 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 self.has_processed_node = true;
             }
         } else if self.node_offset_box.is_none() {
-            // TODO(gw): Is there a less fragile way of checking whether this
-            // fragment is the body element, rather than just checking that
-            // it's at level 1 (below the root node)?
-            let is_body_element = level == 1;
-
+            let is_body_element = fragment
+                .flags
+                .contains(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT);
             let is_valid_parent = match (
                 is_body_element,
                 fragment.style.get_box().position,

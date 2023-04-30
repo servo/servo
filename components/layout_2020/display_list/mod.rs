@@ -5,7 +5,8 @@
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
-use crate::fragments::{BoxFragment, Fragment, Tag, TextFragment};
+use crate::fragment_tree::Tag;
+use crate::fragments::{BoxFragment, Fragment, TextFragment};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
 use crate::style_ext::ComputedValuesExt;
@@ -95,19 +96,24 @@ impl<'a> DisplayListBuilder<'a> {
         }
     }
 
-    fn hit_info(&mut self, style: &ComputedValues, tag: Tag, auto_cursor: Cursor) -> HitInfo {
+    fn hit_info(
+        &mut self,
+        style: &ComputedValues,
+        tag: Option<Tag>,
+        auto_cursor: Cursor,
+    ) -> HitInfo {
         use style::computed_values::pointer_events::T as PointerEvents;
 
         let inherited_ui = style.get_inherited_ui();
         if inherited_ui.pointer_events == PointerEvents::None {
-            None
-        } else {
-            let hit_test_index = self.compositor_info.add_hit_test_info(
-                tag.node().0 as u64,
-                Some(cursor(inherited_ui.cursor.keyword, auto_cursor)),
-            );
-            Some((hit_test_index as u64, 0u16))
+            return None;
         }
+
+        let hit_test_index = self.compositor_info.add_hit_test_info(
+            tag?.node.0 as u64,
+            Some(cursor(inherited_ui.cursor.keyword, auto_cursor)),
+        );
+        Some((hit_test_index as u64, 0u16))
     }
 }
 
@@ -210,7 +216,7 @@ impl Fragment {
         }
 
         let mut common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
-        common.hit_info = builder.hit_info(&fragment.parent_style, fragment.tag, Cursor::Text);
+        common.hit_info = builder.hit_info(&fragment.parent_style, fragment.base.tag, Cursor::Text);
 
         let color = fragment.parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
@@ -431,7 +437,11 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_hit_test(&self, builder: &mut DisplayListBuilder) {
-        let hit_info = builder.hit_info(&self.fragment.style, self.fragment.tag, Cursor::Default);
+        let hit_info = builder.hit_info(
+            &self.fragment.style,
+            self.fragment.base.tag,
+            Cursor::Default,
+        );
         if hit_info.is_some() {
             let mut common = builder.common_properties(self.border_rect, &self.fragment.style);
             common.hit_info = hit_info;
@@ -443,7 +453,11 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_background(&mut self, builder: &mut DisplayListBuilder) {
-        if self.fragment.tag.node() == builder.element_for_canvas_background {
+        if self
+            .fragment
+            .base
+            .is_for_node(builder.element_for_canvas_background)
+        {
             // This background is already painted for the canvas, don’t paint it again here.
             return;
         }
@@ -494,25 +508,31 @@ impl<'a> BuilderForBoxFragment<'a> {
                     }
                 },
                 Image::Url(ref image_url) => {
-                    // FIXME: images won’t always have in intrinsic width or height
-                    // when support for SVG is added.
-                    // Or a WebRender `ImageKey`, for that matter.
-                    let (width, height, key) = match image_url.url() {
-                        Some(url) => {
-                            match builder.context.get_webrender_image_for_url(
-                                self.fragment.tag.node(),
-                                url.clone(),
-                                UsePlaceholder::No,
-                            ) {
-                                Some(WebRenderImageInfo {
-                                    width,
-                                    height,
-                                    key: Some(key),
-                                }) => (width, height, key),
-                                _ => continue,
-                            }
-                        },
+                    // FIXME: images won’t always have in intrinsic width or
+                    // height when support for SVG is added, or a WebRender
+                    // `ImageKey`, for that matter.
+                    //
+                    // FIXME: It feels like this should take into account the pseudo
+                    // element and not just the node.
+                    let node = match self.fragment.base.tag {
+                        Some(tag) => tag.node,
                         None => continue,
+                    };
+                    let image_url = match image_url.url() {
+                        Some(url) => url.clone(),
+                        None => continue,
+                    };
+                    let (width, height, key) = match builder.context.get_webrender_image_for_url(
+                        node,
+                        image_url,
+                        UsePlaceholder::No,
+                    ) {
+                        Some(WebRenderImageInfo {
+                            width,
+                            height,
+                            key: Some(key),
+                        }) => (width, height, key),
+                        _ => continue,
                     };
 
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution

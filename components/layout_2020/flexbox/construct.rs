@@ -10,7 +10,6 @@ use crate::dom_traversal::{
 };
 use crate::element_data::LayoutBox;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::Tag;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::DisplayGeneratingBox;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -150,7 +149,7 @@ where
                             .info
                             .new_replacing_style(anonymous_style.clone().unwrap()),
                         runs.into_iter().map(|run| crate::flow::inline::TextRun {
-                            tag: Tag::from_node_and_style_info(&run.info),
+                            base_fragment_info: (&run.info).into(),
                             text: run.text.into(),
                             parent_style: run.info.style,
                         }),

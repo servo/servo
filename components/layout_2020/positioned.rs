@@ -632,7 +632,7 @@ impl HoistedAbsolutelyPositionedBox {
             };
 
             BoxFragment::new(
-                absolutely_positioned_box.context.tag(),
+                absolutely_positioned_box.context.base_fragment_info(),
                 absolutely_positioned_box.context.style().clone(),
                 fragments,
                 content_rect,

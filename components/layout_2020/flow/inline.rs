@@ -7,9 +7,9 @@ use crate::context::LayoutContext;
 use crate::flow::float::FloatBox;
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
+use crate::fragment_tree::BaseFragmentInfo;
 use crate::fragments::{
-    AnonymousFragment, BoxFragment, CollapsedBlockMargins, DebugId, FontMetrics, Fragment, Tag,
-    TextFragment,
+    AnonymousFragment, BoxFragment, CollapsedBlockMargins, FontMetrics, Fragment, TextFragment,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{
@@ -51,7 +51,7 @@ pub(crate) enum InlineLevelBox {
 
 #[derive(Debug, Serialize)]
 pub(crate) struct InlineBox {
-    pub tag: Tag,
+    pub base_fragment_info: BaseFragmentInfo,
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     pub first_fragment: bool,
@@ -62,7 +62,7 @@ pub(crate) struct InlineBox {
 /// https://www.w3.org/TR/css-display-3/#css-text-run
 #[derive(Debug, Serialize)]
 pub(crate) struct TextRun {
-    pub tag: Tag,
+    pub base_fragment_info: BaseFragmentInfo,
     #[serde(skip_serializing)]
     pub parent_style: Arc<ComputedValues>,
     pub text: String,
@@ -82,7 +82,7 @@ struct InlineNestingLevelState<'box_tree> {
 }
 
 struct PartialInlineBoxFragment<'box_tree> {
-    tag: Tag,
+    base_fragment_info: BaseFragmentInfo,
     style: Arc<ComputedValues>,
     start_corner: Vec2<Length>,
     padding: Sides<Length>,
@@ -471,7 +471,7 @@ impl InlineBox {
         let text_decoration_line =
             ifc.current_nesting_level.text_decoration_line | style.clone_text_decoration_line();
         PartialInlineBoxFragment {
-            tag: self.tag,
+            base_fragment_info: self.base_fragment_info,
             style,
             start_corner,
             padding,
@@ -512,7 +512,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
         };
 
         let mut fragment = BoxFragment::new(
-            self.tag,
+            self.base_fragment_info,
             self.style.clone(),
             std::mem::take(&mut nesting_level.fragments_so_far),
             content_rect,
@@ -580,7 +580,7 @@ fn layout_atomic(
                 .make_fragments(&replaced.style, size.clone());
             let content_rect = Rect { start_corner, size };
             BoxFragment::new(
-                replaced.tag,
+                replaced.base_fragment_info,
                 replaced.style.clone(),
                 fragments,
                 content_rect,
@@ -655,7 +655,7 @@ fn layout_atomic(
                 },
             };
             BoxFragment::new(
-                non_replaced.tag,
+                non_replaced.base_fragment_info,
                 non_replaced.style.clone(),
                 independent_layout.fragments,
                 content_rect,
@@ -836,8 +836,7 @@ impl TextRun {
             ifc.current_nesting_level
                 .fragments_so_far
                 .push(Fragment::Text(TextFragment {
-                    tag: self.tag,
-                    debug_id: DebugId::new(),
+                    base: self.base_fragment_info.into(),
                     parent_style: self.parent_style.clone(),
                     rect,
                     font_metrics,

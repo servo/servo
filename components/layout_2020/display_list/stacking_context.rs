@@ -384,8 +384,8 @@ impl StackingContext {
 
         // The `StackingContextFragment` we found is for the root DOM element:
         debug_assert_eq!(
-            box_fragment.tag.node(),
-            fragment_tree.canvas_background.root_element
+            fragment.tag().map(|tag| tag.node),
+            Some(fragment_tree.canvas_background.root_element),
         );
 
         // The root element may have a CSS transform,
@@ -868,8 +868,8 @@ impl BoxFragment {
             return None;
         }
 
-        let external_id =
-            wr::ExternalScrollId(self.tag.to_display_list_fragment_id(), wr.pipeline_id);
+        let tag = self.base.tag?;
+        let external_id = wr::ExternalScrollId(tag.to_display_list_fragment_id(), wr.pipeline_id);
 
         let sensitivity =
             if ComputedOverflow::Hidden == overflow_x && ComputedOverflow::Hidden == overflow_y {

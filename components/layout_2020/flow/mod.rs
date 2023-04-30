@@ -11,8 +11,9 @@ use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
 };
+use crate::fragment_tree::BaseFragmentInfo;
 use crate::fragments::{
-    AnonymousFragment, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, Tag,
+    AnonymousFragment, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -50,7 +51,7 @@ pub(crate) enum BlockContainer {
 #[derive(Debug, Serialize)]
 pub(crate) enum BlockLevelBox {
     SameFormattingContextBlock {
-        tag: Tag,
+        base_fragment_info: BaseFragmentInfo,
         #[serde(skip_serializing)]
         style: Arc<ComputedValues>,
         contents: BlockContainer,
@@ -306,7 +307,7 @@ impl BlockLevelBox {
     ) -> Fragment {
         match self {
             BlockLevelBox::SameFormattingContextBlock {
-                tag,
+                base_fragment_info: tag,
                 style,
                 contents,
             } => Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
@@ -335,7 +336,7 @@ impl BlockLevelBox {
                         |_positioning_context| {
                             layout_in_flow_replaced_block_level(
                                 containing_block,
-                                replaced.tag,
+                                replaced.base_fragment_info,
                                 &replaced.style,
                                 &replaced.contents,
                             )
@@ -352,7 +353,7 @@ impl BlockLevelBox {
                                 layout_context,
                                 positioning_context,
                                 containing_block,
-                                non_replaced.tag,
+                                non_replaced.base_fragment_info,
                                 &non_replaced.style,
                                 NonReplacedContents::EstablishesAnIndependentFormattingContext(
                                     non_replaced,
@@ -420,7 +421,7 @@ fn layout_in_flow_non_replaced_block_level(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     containing_block: &ContainingBlock,
-    tag: Tag,
+    base_fragment_info: BaseFragmentInfo,
     style: &Arc<ComputedValues>,
     block_level_kind: NonReplacedContents,
     tree_rank: usize,
@@ -559,7 +560,7 @@ fn layout_in_flow_non_replaced_block_level(
         },
     };
     BoxFragment::new(
-        tag,
+        base_fragment_info,
         style.clone(),
         fragments,
         content_rect,
@@ -575,7 +576,7 @@ fn layout_in_flow_non_replaced_block_level(
 /// https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
 fn layout_in_flow_replaced_block_level<'a>(
     containing_block: &ContainingBlock,
-    tag: Tag,
+    base_fragment_info: BaseFragmentInfo,
     style: &Arc<ComputedValues>,
     replaced: &ReplacedContent,
 ) -> BoxFragment {
@@ -600,7 +601,7 @@ fn layout_in_flow_replaced_block_level<'a>(
     };
     let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
     BoxFragment::new(
-        tag,
+        base_fragment_info,
         style.clone(),
         fragments,
         content_rect,

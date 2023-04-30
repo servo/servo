@@ -677,18 +677,27 @@ impl Fragment {
         let mut restyle_damage = node.restyle_damage();
         restyle_damage.remove(ServoRestyleDamage::RECONSTRUCT_FLOW);
 
+        let mut flags = FragmentFlags::empty();
+        let is_body = node
+            .as_element()
+            .map(|element| element.is_body_element_of_html_element_root())
+            .unwrap_or(false);
+        if is_body {
+            flags |= FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT;
+        }
+
         Fragment {
             node: node.opaque(),
-            style: style,
+            style,
             selected_style: node.selected_style(),
-            restyle_damage: restyle_damage,
+            restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
-            specific: specific,
+            specific,
             inline_context: None,
             pseudo: node.get_pseudo_element_type(),
-            flags: FragmentFlags::empty(),
+            flags,
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::root(),
             established_reference_frame: None,
@@ -3277,16 +3286,24 @@ impl fmt::Debug for Fragment {
             "".to_owned()
         };
 
+        let flags_string = if !self.flags.is_empty() {
+            format!("\nflags={:?}", self.flags)
+        } else {
+            "".to_owned()
+        };
+
         write!(
             f,
-            "\n{}({}) [{:?}]\nborder_box={:?}{}{}{}",
+            "\n{}({}) [{:?}]\
+            \nborder_box={:?}\
+            {border_padding_string}\
+            {margin_string}\
+            {damage_string}\
+            {flags_string}",
             self.specific.get_type(),
             self.debug_id,
             self.specific,
             self.border_box,
-            border_padding_string,
-            margin_string,
-            damage_string
         )
     }
 }
@@ -3430,6 +3447,8 @@ bitflags! {
         const IS_BLOCK_FLEX_ITEM = 0b0000_0010;
         /// Whether this fragment represents the generated text from a text-overflow clip.
         const IS_ELLIPSIS = 0b0000_0100;
+        /// Whether this fragment is for the body element child of a html element root element.
+        const IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT =  0b0000_1000;
     }
 }
 

@@ -18,6 +18,7 @@ pub mod element_data;
 mod flexbox;
 pub mod flow;
 mod formatting_contexts;
+mod fragment_tree;
 mod fragments;
 pub mod geom;
 #[macro_use]

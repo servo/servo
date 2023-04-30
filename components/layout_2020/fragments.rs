@@ -3,65 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::cell::ArcRefCell;
-use crate::dom_traversal::{NodeAndStyleInfo, NodeExt, WhichPseudoElement};
+use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, Tag};
 use crate::geom::flow_relative::{Rect, Sides};
 use crate::geom::{PhysicalPoint, PhysicalRect};
-#[cfg(debug_assertions)]
-use crate::layout_debug;
 use crate::positioned::HoistedSharedFragment;
 use gfx::font::FontMetrics as GfxFontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
-use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
-#[cfg(not(debug_assertions))]
-use serde::ser::{Serialize, Serializer};
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
-use style::dom::OpaqueNode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
-pub(crate) enum Tag {
-    Node(OpaqueNode),
-    BeforePseudo(OpaqueNode),
-    AfterPseudo(OpaqueNode),
-}
-
-impl Tag {
-    pub(crate) fn node(&self) -> OpaqueNode {
-        match self {
-            Self::Node(node) | Self::AfterPseudo(node) | Self::BeforePseudo(node) => *node,
-        }
-    }
-
-    pub(crate) fn to_display_list_fragment_id(&self) -> u64 {
-        let (node, content_type) = match self {
-            Self::Node(node) => (node, FragmentType::FragmentBody),
-            Self::AfterPseudo(node) => (node, FragmentType::BeforePseudoContent),
-            Self::BeforePseudo(node) => (node, FragmentType::AfterPseudoContent),
-        };
-        combine_id_with_fragment_type(node.id() as usize, content_type) as u64
-    }
-
-    pub(crate) fn from_node_and_style_info<'dom, Node>(info: &NodeAndStyleInfo<Node>) -> Self
-    where
-        Node: NodeExt<'dom>,
-    {
-        let opaque_node = info.node.as_opaque();
-        match info.pseudo_element_type {
-            None => Self::Node(opaque_node),
-            Some(WhichPseudoElement::Before) => Self::BeforePseudo(opaque_node),
-            Some(WhichPseudoElement::After) => Self::AfterPseudo(opaque_node),
-        }
-    }
-}
 
 #[derive(Serialize)]
 pub(crate) enum Fragment {
@@ -82,8 +40,8 @@ pub(crate) enum Fragment {
 
 #[derive(Serialize)]
 pub(crate) struct BoxFragment {
-    pub tag: Tag,
-    pub debug_id: DebugId,
+    pub base: BaseFragment,
+
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
     pub children: Vec<ArcRefCell<Fragment>>,
@@ -119,7 +77,7 @@ pub(crate) struct CollapsedMargin {
 /// Can contain child fragments with relative coordinates, but does not contribute to painting itself.
 #[derive(Serialize)]
 pub(crate) struct AnonymousFragment {
-    pub debug_id: DebugId,
+    pub base: BaseFragment,
     pub rect: Rect<Length>,
     pub children: Vec<ArcRefCell<Fragment>>,
     pub mode: WritingMode,
@@ -153,8 +111,7 @@ impl From<&GfxFontMetrics> for FontMetrics {
 
 #[derive(Serialize)]
 pub(crate) struct TextFragment {
-    pub debug_id: DebugId,
-    pub tag: Tag,
+    pub base: BaseFragment,
     #[serde(skip_serializing)]
     pub parent_style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
@@ -168,7 +125,7 @@ pub(crate) struct TextFragment {
 
 #[derive(Serialize)]
 pub(crate) struct ImageFragment {
-    pub debug_id: DebugId,
+    pub base: BaseFragment,
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
@@ -178,7 +135,7 @@ pub(crate) struct ImageFragment {
 
 #[derive(Serialize)]
 pub(crate) struct IFrameFragment {
-    pub debug_id: DebugId,
+    pub base: BaseFragment,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
     pub rect: Rect<Length>,
@@ -200,15 +157,19 @@ impl Fragment {
         position.inline += *offset;
     }
 
+    pub fn base(&self) -> Option<&BaseFragment> {
+        Some(match self {
+            Fragment::Box(fragment) => &fragment.base,
+            Fragment::Text(fragment) => &fragment.base,
+            Fragment::AbsoluteOrFixedPositioned(_) => return None,
+            Fragment::Anonymous(fragment) => &fragment.base,
+            Fragment::Image(fragment) => &fragment.base,
+            Fragment::IFrame(fragment) => &fragment.base,
+        })
+    }
+
     pub fn tag(&self) -> Option<Tag> {
-        match self {
-            Fragment::Box(fragment) => Some(fragment.tag),
-            Fragment::Text(fragment) => Some(fragment.tag),
-            Fragment::AbsoluteOrFixedPositioned(_) |
-            Fragment::Anonymous(_) |
-            Fragment::Image(_) |
-            Fragment::IFrame(_) => None,
-        }
+        self.base().and_then(|base| base.tag)
     }
 
     pub fn print(&self, tree: &mut PrintTree) {
@@ -285,7 +246,7 @@ impl Fragment {
 impl AnonymousFragment {
     pub fn no_op(mode: WritingMode) -> Self {
         Self {
-            debug_id: DebugId::new(),
+            base: BaseFragment::anonymous(),
             children: vec![],
             rect: Rect::zero(),
             mode,
@@ -306,7 +267,7 @@ impl AnonymousFragment {
             )
         });
         AnonymousFragment {
-            debug_id: DebugId::new(),
+            base: BaseFragment::anonymous(),
             rect,
             children: children
                 .into_iter()
@@ -334,7 +295,7 @@ impl AnonymousFragment {
 
 impl BoxFragment {
     pub fn new(
-        tag: Tag,
+        base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
         children: Vec<Fragment>,
         content_rect: Rect<Length>,
@@ -351,8 +312,7 @@ impl BoxFragment {
                 acc.union(&child.scrollable_overflow(&containing_block))
             });
         BoxFragment {
-            tag,
-            debug_id: DebugId::new(),
+            base: base_fragment_info.into(),
             style,
             children: children
                 .into_iter()
@@ -397,12 +357,14 @@ impl BoxFragment {
     pub fn print(&self, tree: &mut PrintTree) {
         tree.new_level(format!(
             "Box\
+                \nbase={:?}\
                 \ncontent={:?}\
                 \npadding rect={:?}\
                 \nborder rect={:?}\
                 \nscrollable_overflow={:?}\
                 \noverflow={:?} / {:?}\
                 \nstyle={:p}",
+            self.base,
             self.content_rect,
             self.padding_rect(),
             self.border_rect(),
@@ -532,35 +494,5 @@ impl CollapsedMargin {
 
     pub fn solve(&self) -> Length {
         self.max_positive + self.min_negative
-    }
-}
-
-#[cfg(not(debug_assertions))]
-#[derive(Clone)]
-pub struct DebugId;
-
-#[cfg(debug_assertions)]
-#[derive(Clone, Serialize)]
-#[serde(transparent)]
-pub struct DebugId(u16);
-
-#[cfg(not(debug_assertions))]
-impl DebugId {
-    pub fn new() -> DebugId {
-        DebugId
-    }
-}
-
-#[cfg(debug_assertions)]
-impl DebugId {
-    pub fn new() -> DebugId {
-        DebugId(layout_debug::generate_unique_debug_id())
-    }
-}
-
-#[cfg(not(debug_assertions))]
-impl Serialize for DebugId {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&format!("{:p}", &self))
     }
 }
