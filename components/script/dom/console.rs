@@ -14,9 +14,9 @@ use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
 use js::jsapi::JSContext;
 use js::rust::describe_scripted_caller;
 use js::rust::HandleValue;
+use std::cmp::max;
 use std::io;
 use std::option::Option;
-use std::cmp::max;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 pub struct Console(());
@@ -76,14 +76,11 @@ fn console_message(global: &GlobalScope, message: DOMString, level: LogLevel) {
 ///Generates matrix of table elements, and then converts matrix into a properly formatted DOMString
 ///TODO: Implement generate_table for objects and arrays of objects
 #[allow(unsafe_code)]
-unsafe fn generate_table(
-    cx: *mut JSContext,
-    tabular_data: &HandleValue
-) -> Option<DOMString> {
+unsafe fn generate_table(cx: *mut JSContext, tabular_data: &HandleValue) -> Option<DOMString> {
     if !tabular_data.get().is_object() || !is_array_like(cx, *tabular_data) {
         return None;
     }
-    
+
     let vec: Vec<DOMString> =
         Vec::<DOMString>::from_jsval(cx, *tabular_data, StringificationBehavior::Empty)
             .expect("Unable to convert Array object to Vec<DOMString>")
@@ -138,17 +135,11 @@ impl Console {
         let cx_ptr: *mut JSContext = *cx as *mut JSContext;
 
         #[allow(unsafe_code)]
-        let table: Option<DOMString> = unsafe {
-            generate_table(cx_ptr, &tabular_data)
-        };
+        let table: Option<DOMString> = unsafe { generate_table(cx_ptr, &tabular_data) };
 
         match table {
-            Some(table_string) => {
-                console_messages(global, &[table_string], LogLevel::Log)
-            },
-            None => {
-                console_messages(global, &[], LogLevel::Log)
-            }
+            Some(table_string) => console_messages(global, &[table_string], LogLevel::Log),
+            None => console_messages(global, &[], LogLevel::Log),
         }
     }
 
