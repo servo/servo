@@ -322,12 +322,30 @@ impl<'a> BuilderForBoxFragment<'a> {
                 )
             };
             let b = fragment.style.get_border();
-            wr::BorderRadius {
+            let mut radius = wr::BorderRadius {
                 top_left: corner(&b.border_top_left_radius),
                 top_right: corner(&b.border_top_right_radius),
                 bottom_right: corner(&b.border_bottom_right_radius),
                 bottom_left: corner(&b.border_bottom_left_radius),
+            };
+            // Normalize radii that add up to > 100%.
+            // https://www.w3.org/TR/css-backgrounds-3/#corner-overlap
+            // > Let f = min(L_i/S_i), where i ∈ {top, right, bottom, left},
+            // > S_i is the sum of the two corresponding radii of the corners on side i,
+            // > and L_top = L_bottom = the width of the box,
+            // > and L_left = L_right = the height of the box.
+            // > If f < 1, then all corner radii are reduced by multiplying them by f.
+            let f = (border_rect.width() / (radius.top_left.width + radius.top_right.width))
+                .min(border_rect.width() / (radius.bottom_left.width + radius.bottom_right.width))
+                .min(border_rect.height() / (radius.top_left.height + radius.bottom_left.height))
+                .min(border_rect.height() / (radius.top_right.height + radius.bottom_right.height));
+            if f < 1.0 {
+                radius.top_left *= f;
+                radius.top_right *= f;
+                radius.bottom_right *= f;
+                radius.bottom_left *= f;
             }
+            radius
         };
 
         Self {
