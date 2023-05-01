@@ -71,7 +71,7 @@ use script_traits::{
 };
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
-use servo_config::opts;
+use servo_config::opts::{self, DebugOptions};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -200,30 +200,9 @@ pub struct LayoutThread {
     /// Flag that indicates if LayoutThread is busy handling a request.
     busy: Arc<AtomicBool>,
 
-    /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
-    load_webfonts_synchronously: bool,
-
-    /// Dumps the display list form after a layout.
-    dump_display_list: bool,
-
-    /// Dumps the display list in JSON form after a layout.
-    dump_display_list_json: bool,
-
-    /// Dumps the DOM after restyle.
-    dump_style_tree: bool,
-
-    /// Dumps the flow tree after a layout.
-    dump_rule_tree: bool,
-
-    /// Dumps the flow tree after a layout.
-    dump_flow_tree: bool,
-
-    /// Emits notifications when there is a relayout.
-    relayout_event: bool,
-
-    /// True if each step of layout is traced to an external JSON file
-    /// for debugging purposes.
-    trace_layout: bool,
+    /// Debug options, copied from configuration to this `LayoutThread` in order
+    /// to avoid having to constantly access the thread-safe global options.
+    debug: DebugOptions,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -247,16 +226,7 @@ impl LayoutThreadFactory for LayoutThread {
         webrender_api_sender: WebrenderIpcSender,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
-        load_webfonts_synchronously: bool,
         window_size: WindowSizeData,
-        dump_display_list: bool,
-        dump_display_list_json: bool,
-        dump_style_tree: bool,
-        dump_rule_tree: bool,
-        relayout_event: bool,
-        _nonincremental_layout: bool,
-        trace_layout: bool,
-        dump_flow_tree: bool,
     ) {
         thread::Builder::new()
             .name(format!("Layout{}", id))
@@ -295,15 +265,7 @@ impl LayoutThreadFactory for LayoutThread {
                         webrender_api_sender,
                         paint_time_metrics,
                         busy,
-                        load_webfonts_synchronously,
                         window_size,
-                        relayout_event,
-                        dump_display_list,
-                        dump_display_list_json,
-                        dump_style_tree,
-                        dump_rule_tree,
-                        dump_flow_tree,
-                        trace_layout,
                     );
 
                     let reporter_name = format!("layout-reporter-{}", id);
@@ -463,15 +425,7 @@ impl LayoutThread {
         webrender_api_sender: WebrenderIpcSender,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
-        load_webfonts_synchronously: bool,
         window_size: WindowSizeData,
-        relayout_event: bool,
-        dump_display_list: bool,
-        dump_display_list_json: bool,
-        dump_style_tree: bool,
-        dump_rule_tree: bool,
-        dump_flow_tree: bool,
-        trace_layout: bool,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
         webrender_api_sender.send_initial_transaction(id.to_webrender());
@@ -494,22 +448,22 @@ impl LayoutThread {
             ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_font_cache_receiver);
 
         LayoutThread {
-            id: id,
+            id,
             top_level_browsing_context_id: top_level_browsing_context_id,
-            url: url,
-            is_iframe: is_iframe,
-            port: port,
+            url,
+            is_iframe,
+            port,
             pipeline_port: pipeline_receiver,
             constellation_chan,
             script_chan: script_chan.clone(),
             background_hang_monitor,
-            time_profiler_chan: time_profiler_chan,
-            mem_profiler_chan: mem_profiler_chan,
+            time_profiler_chan,
+            mem_profiler_chan,
             registered_painters: RegisteredPaintersImpl(Default::default()),
             image_cache,
-            font_cache_thread: font_cache_thread,
+            font_cache_thread,
             first_reflow: Cell::new(true),
-            font_cache_receiver: font_cache_receiver,
+            font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
             generation: Cell::new(0),
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
@@ -540,14 +494,7 @@ impl LayoutThread {
             paint_time_metrics: paint_time_metrics,
             last_iframe_sizes: Default::default(),
             busy,
-            load_webfonts_synchronously,
-            relayout_event,
-            dump_display_list,
-            dump_display_list_json,
-            dump_style_tree,
-            dump_rule_tree,
-            dump_flow_tree,
-            trace_layout,
+            debug: opts::get().debug.clone(),
         }
     }
 
@@ -803,16 +750,7 @@ impl LayoutThread {
             self.webrender_api.clone(),
             info.paint_time_metrics,
             info.layout_is_busy,
-            self.load_webfonts_synchronously,
             info.window_size,
-            self.dump_display_list,
-            self.dump_display_list_json,
-            self.dump_style_tree,
-            self.dump_rule_tree,
-            self.relayout_event,
-            true,                // nonincremental_layout
-            self.trace_layout,   // trace_layout
-            self.dump_flow_tree, // dump_flow_tree
         );
     }
 
@@ -850,7 +788,7 @@ impl LayoutThread {
                 &self.font_cache_thread,
                 &self.font_cache_sender,
                 &self.outstanding_web_fonts,
-                self.load_webfonts_synchronously,
+                self.debug.load_webfonts_synchronously,
             );
         }
     }
@@ -1116,14 +1054,14 @@ impl LayoutThread {
             unsafe { element.unset_snapshot_flags() }
         }
 
-        if self.dump_style_tree {
+        if self.debug.dump_style_tree {
             println!(
                 "{:?}",
                 style::dom::ShowSubtreeDataAndPrimaryValues(root_element.as_node())
             );
         }
 
-        if self.dump_rule_tree {
+        if self.debug.dump_rule_tree {
             layout_context
                 .style_context
                 .stylist
@@ -1302,7 +1240,7 @@ impl LayoutThread {
             &fragment_tree,
         );
 
-        if self.trace_layout {
+        if self.debug.trace_layout {
             if let Some(box_tree) = &*self.box_tree.borrow() {
                 layout_debug::begin_trace(box_tree.clone(), fragment_tree.clone());
             }
@@ -1330,13 +1268,13 @@ impl LayoutThread {
         // the display list for printing the serialized version when `finalize()` is called.
         // We need to call this before adding any display items so that they are printed
         // during `finalize()`.
-        if self.dump_display_list {
+        if self.debug.dump_display_list {
             display_list.wr.dump_serialized_display_list();
         }
 
         fragment_tree.build_display_list(&mut display_list);
 
-        if self.dump_flow_tree {
+        if self.debug.dump_flow_tree {
             fragment_tree.print();
         }
         debug!("Layout done!");
@@ -1364,7 +1302,7 @@ impl LayoutThread {
 
         self.update_iframe_sizes(display_list.iframe_sizes);
 
-        if self.trace_layout {
+        if self.debug.trace_layout {
             layout_debug::end_trace(self.generation.get());
         }
 
