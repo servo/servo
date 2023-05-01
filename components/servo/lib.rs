@@ -359,7 +359,7 @@ where
         );
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
 
-        let devtools_chan = if opts.devtools_server_enabled {
+        let devtools_sender = if opts.devtools_server_enabled {
             Some(devtools::start_server(
                 opts.devtools_port,
                 embedder_proxy.clone(),
@@ -507,7 +507,7 @@ where
             compositor_proxy.clone(),
             time_profiler_chan.clone(),
             mem_profiler_chan.clone(),
-            devtools_chan,
+            devtools_sender,
             webrender_document,
             webrender_api_sender,
             webxr_main_thread.registry(),
@@ -868,7 +868,7 @@ fn create_constellation(
     compositor_proxy: CompositorProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
-    devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
+    devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     webrender_document: webrender_api::DocumentId,
     webrender_api_sender: webrender_api::RenderApiSender,
     webxr_registry: webxr_api::Registry,
@@ -888,7 +888,7 @@ fn create_constellation(
 
     let (public_resource_threads, private_resource_threads) = new_resource_threads(
         user_agent.clone(),
-        devtools_chan.clone(),
+        devtools_sender.clone(),
         time_profiler_chan.clone(),
         mem_profiler_chan.clone(),
         embedder_proxy.clone(),
@@ -901,7 +901,7 @@ fn create_constellation(
         Box::new(FontCacheWR(compositor_proxy.clone())),
     );
 
-    let (canvas_chan, ipc_canvas_chan) = CanvasPaintThread::start(
+    let (canvas_create_sender, canvas_ipc_sender) = CanvasPaintThread::start(
         Box::new(CanvasWebrenderApi(compositor_proxy.clone())),
         font_cache_thread.clone(),
     );
@@ -909,7 +909,7 @@ fn create_constellation(
     let initial_state = InitialConstellationState {
         compositor_proxy,
         embedder_proxy,
-        devtools_chan,
+        devtools_sender,
         bluetooth_thread,
         font_cache_thread,
         public_resource_threads,
@@ -941,8 +941,8 @@ fn create_constellation(
         opts.is_running_problem_test,
         opts.hard_fail,
         !opts.debug.disable_canvas_antialiasing,
-        canvas_chan,
-        ipc_canvas_chan,
+        canvas_create_sender,
+        canvas_ipc_sender,
     );
 
     constellation_chan

@@ -55,7 +55,7 @@ use std::time::Duration;
 /// Returns a tuple of (public, private) senders to the new threads.
 pub fn new_resource_threads(
     user_agent: Cow<'static, str>,
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: EmbedderProxy,
@@ -64,7 +64,7 @@ pub fn new_resource_threads(
 ) -> (ResourceThreads, ResourceThreads) {
     let (public_core, private_core) = new_core_resource_thread(
         user_agent,
-        devtools_chan,
+        devtools_sender,
         time_profiler_chan,
         mem_profiler_chan,
         embedder_proxy,
@@ -81,7 +81,7 @@ pub fn new_resource_threads(
 /// Create a CoreResourceThread
 pub fn new_core_resource_thread(
     user_agent: Cow<'static, str>,
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: EmbedderProxy,
@@ -97,7 +97,7 @@ pub fn new_core_resource_thread(
         .spawn(move || {
             let resource_manager = CoreResourceManager::new(
                 user_agent,
-                devtools_chan,
+                devtools_sender,
                 time_profiler_chan,
                 embedder_proxy,
                 certificate_path.clone(),
@@ -451,7 +451,7 @@ pub struct AuthCache {
 
 pub struct CoreResourceManager {
     user_agent: Cow<'static, str>,
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
     thread_pool: Arc<CoreResourceThreadPool>,
@@ -586,7 +586,7 @@ impl CoreResourceThreadPool {
 impl CoreResourceManager {
     pub fn new(
         user_agent: Cow<'static, str>,
-        devtools_channel: Option<Sender<DevtoolsControlMsg>>,
+        devtools_sender: Option<Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
         embedder_proxy: EmbedderProxy,
         certificate_path: Option<String>,
@@ -595,7 +595,7 @@ impl CoreResourceManager {
         let pool_handle = Arc::new(pool);
         CoreResourceManager {
             user_agent: user_agent,
-            devtools_chan: devtools_channel,
+            devtools_sender,
             sw_managers: Default::default(),
             filemanager: FileManager::new(embedder_proxy, Arc::downgrade(&pool_handle)),
             thread_pool: pool_handle,
@@ -636,7 +636,7 @@ impl CoreResourceManager {
     ) {
         let http_state = http_state.clone();
         let ua = self.user_agent.clone();
-        let dc = self.devtools_chan.clone();
+        let dc = self.devtools_sender.clone();
         let filemanager = self.filemanager.clone();
 
         let timing_type = match request_builder.destination {
