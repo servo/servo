@@ -169,11 +169,17 @@ impl DeepCloneWithLock for ImportSheet {
     }
 }
 
-/// The layer keyword or function in an import rule.
+/// The layer specified in an import rule (can be none, anonymous, or named).
 #[derive(Debug, Clone)]
-pub struct ImportLayer {
-    /// The layer name, or None for an anonymous layer.
-    pub name: Option<LayerName>,
+pub enum ImportLayer {
+    /// No layer specified
+    None,
+
+    /// Anonymous layer (`layer`)
+    Anonymous,
+
+    /// Named layer (`layer(name)`)
+    Named(LayerName),
 }
 
 /// The supports condition in an import rule.
@@ -191,9 +197,10 @@ impl ToCss for ImportLayer {
     where
         W: Write,
     {
-        match self.name {
-            None => dest.write_str("layer"),
-            Some(ref name) => {
+        match *self {
+            ImportLayer::None => Ok(()),
+            ImportLayer::Anonymous => dest.write_str("layer"),
+            ImportLayer::Named(ref name) => {
                 dest.write_str("layer(")?;
                 name.to_css(dest)?;
                 dest.write_char(')')
@@ -219,7 +226,7 @@ pub struct ImportRule {
     pub supports: Option<ImportSupportsCondition>,
 
     /// A `layer()` function name.
-    pub layer: Option<ImportLayer>,
+    pub layer: ImportLayer,
 
     /// The line and column of the rule's source code.
     pub source_location: SourceLocation,
@@ -238,21 +245,21 @@ impl ImportRule {
         input: &mut Parser<'i, 't>,
         context: &ParserContext,
         namespaces: &Namespaces,
-    ) -> (Option<ImportLayer>, Option<ImportSupportsCondition>) {
+    ) -> (ImportLayer, Option<ImportSupportsCondition>) {
         let layer = if input
             .try_parse(|input| input.expect_ident_matching("layer"))
             .is_ok()
         {
-            Some(ImportLayer { name: None })
+            ImportLayer::Anonymous
         } else {
             input
                 .try_parse(|input| {
                     input.expect_function_matching("layer")?;
                     input
                         .parse_nested_block(|input| LayerName::parse(context, input))
-                        .map(|name| ImportLayer { name: Some(name) })
+                        .map(|name| ImportLayer::Named(name))
                 })
-                .ok()
+                .ok().unwrap_or(ImportLayer::None)
         };
 
         #[cfg(feature = "gecko")]
@@ -308,9 +315,9 @@ impl ToCssWithGuard for ImportRule {
         dest.write_str("@import ")?;
         self.url.to_css(&mut CssWriter::new(dest))?;
 
-        if let Some(ref layer) = self.layer {
+        if !matches!(self.layer, ImportLayer::None) {
             dest.write_char(' ')?;
-            layer.to_css(&mut CssWriter::new(dest))?;
+            self.layer.to_css(&mut CssWriter::new(dest))?;
         }
 
         if let Some(ref supports) = self.supports {

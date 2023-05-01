@@ -204,7 +204,7 @@ pub enum AtRulePrelude {
     /// A @document rule, with its conditional.
     Document(DocumentCondition),
     /// A @import rule prelude.
-    Import(CssUrl, Arc<Locked<MediaList>>, Option<ImportSupportsCondition>, Option<ImportLayer>),
+    Import(CssUrl, Arc<Locked<MediaList>>, Option<ImportSupportsCondition>, ImportLayer),
     /// A @namespace rule prelude.
     Namespace(Option<Prefix>, Namespace),
     /// A @layer rule prelude.
