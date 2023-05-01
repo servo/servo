@@ -576,17 +576,6 @@ impl UnprivilegedPipelineContent {
                 inherited_secure_context: self.load_data.inherited_secure_context.clone(),
             },
             self.load_data.clone(),
-            self.opts.debug.profile_script_events,
-            self.opts.print_pwm,
-            self.opts.debug.relayout_event,
-            self.opts.output_file.is_some() ||
-                self.opts.exit_after_load ||
-                self.opts.webdriver_port.is_some(),
-            self.opts.unminify_js,
-            self.opts.local_script_source,
-            self.opts.userscripts,
-            self.opts.headless,
-            self.opts.debug.replace_surrogates,
             self.user_agent,
         );
 

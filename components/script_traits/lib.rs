@@ -700,15 +700,6 @@ pub trait ScriptThreadFactory {
     fn create(
         state: InitialScriptState,
         load_data: LoadData,
-        profile_script_events: bool,
-        print_pwm: bool,
-        relayout_event: bool,
-        prepare_for_screenshot: bool,
-        unminify_js: bool,
-        local_script_source: Option<String>,
-        userscripts_path: Option<String>,
-        headless: bool,
-        replace_surrogates: bool,
         user_agent: Cow<'static, str>,
     ) -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
