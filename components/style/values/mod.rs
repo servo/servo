@@ -109,6 +109,11 @@ where
     }
 
     if !v.is_finite() && nan_inf_enabled() {
+        // https://drafts.csswg.org/css-values/#calc-error-constants:
+        // "While not technically numbers, these keywords act as numeric values,
+        // similar to e and pi. Thus to get an infinite length, for example,
+        // requires an expression like calc(infinity * 1px)."
+
         if v.is_nan() {
             dest.write_str("NaN * 1")?;
         } else if v == f32::INFINITY {
@@ -398,8 +403,16 @@ impl std::borrow::Borrow<crate::gecko_string_cache::WeakAtom> for AtomIdent {
     }
 }
 
-/// Serialize a normalized value into percentage.
+/// Serialize a value into percentage.
 pub fn serialize_percentage<W>(value: CSSFloat, dest: &mut CssWriter<W>) -> fmt::Result
+where
+    W: Write,
+{
+    serialize_specified_dimension(value * 100., "%", /* was_calc = */ false, dest)
+}
+
+/// Serialize a value into normalized (no NaN/inf serialization) percentage.
+pub fn serialize_normalized_percentage<W>(value: CSSFloat, dest: &mut CssWriter<W>) -> fmt::Result
 where
     W: Write,
 {
