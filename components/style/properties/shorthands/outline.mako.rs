@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="outline"
-                    engines="gecko servo-2013"
+                    engines="gecko servo-2013 servo-2020"
                     sub_properties="outline-color outline-style outline-width"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-ui/#propdef-outline">
