@@ -6,6 +6,7 @@ use crate::cell::ArcRefCell;
 use crate::flexbox::FlexLevelBox;
 use crate::flow::inline::InlineLevelBox;
 use crate::flow::BlockLevelBox;
+use script_layout_interface::wrapper_traits::LayoutDataTrait;
 
 #[derive(Default)]
 pub struct LayoutDataForElement {
@@ -20,3 +21,5 @@ pub(super) enum LayoutBox {
     InlineLevel(ArcRefCell<InlineLevelBox>),
     FlexLevel(ArcRefCell<FlexLevelBox>),
 }
+
+impl LayoutDataTrait for LayoutDataForElement {}

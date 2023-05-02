@@ -73,6 +73,8 @@ mod image_listener;
 mod init;
 #[warn(deprecated)]
 mod layout_image;
+
+pub mod layout_dom;
 #[warn(deprecated)]
 mod mem;
 #[warn(deprecated)]
@@ -115,23 +117,3 @@ mod window_named_properties;
 
 pub use init::init;
 pub use script_runtime::JSEngineSetup;
-
-/// A module with everything layout can use from script.
-///
-/// Try to keep this small!
-///
-/// TODO(emilio): A few of the FooHelpers can go away, presumably...
-pub mod layout_exports {
-    pub use crate::dom::bindings::inheritance::{
-        CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId,
-    };
-    pub use crate::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId, TextTypeId};
-    pub use crate::dom::bindings::root::LayoutDom;
-    pub use crate::dom::characterdata::LayoutCharacterDataHelpers;
-    pub use crate::dom::document::{Document, LayoutDocumentHelpers};
-    pub use crate::dom::element::{Element, LayoutElementHelpers};
-    pub use crate::dom::node::NodeFlags;
-    pub use crate::dom::node::{LayoutNodeHelpers, Node};
-    pub use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
-    pub use crate::dom::text::Text;
-}

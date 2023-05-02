@@ -11,17 +11,12 @@
 #[macro_use]
 extern crate crossbeam_channel;
 #[macro_use]
-extern crate html5ever;
-#[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate profile_traits;
 
-mod dom_wrapper;
-
-use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use app_units::Au;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
@@ -35,6 +30,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
 use layout::display_list::{DisplayListBuilder, WebRenderImageInfo};
+use layout::element_data::LayoutDataForElement;
 use layout::layout_debug;
 use layout::query::{
     process_content_box_request, process_content_boxes_request, process_resolved_font_style_query,
@@ -60,6 +56,7 @@ use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
+use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::message::{LayoutThreadInit, Msg, NodesFromPointQueryType};
 use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::TextIndexResponse;
@@ -804,7 +801,7 @@ impl LayoutThread {
         data: &mut ScriptReflowResult,
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
     ) {
-        let document = unsafe { ServoLayoutNode::new(&data.document) };
+        let document = unsafe { ServoLayoutNode::<LayoutDataForElement>::new(&data.document) };
         let document = document.as_document().unwrap();
 
         let mut rw_data = possibly_locked_rw_data.lock();
@@ -959,11 +956,19 @@ impl LayoutThread {
         let elements_with_snapshot: Vec<_> = restyles
             .iter()
             .filter(|r| r.1.snapshot.is_some())
-            .map(|r| unsafe { ServoLayoutNode::new(&r.0).as_element().unwrap() })
+            .map(|r| unsafe {
+                ServoLayoutNode::<LayoutDataForElement>::new(&r.0)
+                    .as_element()
+                    .unwrap()
+            })
             .collect();
 
         for (el, restyle) in restyles {
-            let el = unsafe { ServoLayoutNode::new(&el).as_element().unwrap() };
+            let el = unsafe {
+                ServoLayoutNode::<LayoutDataForElement>::new(&el)
+                    .as_element()
+                    .unwrap()
+            };
 
             // If we haven't styled this node yet, we don't need to track a
             // restyle.
@@ -999,14 +1004,16 @@ impl LayoutThread {
         );
 
         let dirty_root = unsafe {
-            ServoLayoutNode::new(&data.dirty_root.unwrap())
+            ServoLayoutNode::<LayoutDataForElement>::new(&data.dirty_root.unwrap())
                 .as_element()
                 .unwrap()
         };
 
         let traversal = RecalcStyle::new(layout_context);
         let token = {
-            let shared = DomTraversal::<ServoLayoutElement>::shared_context(&traversal);
+            let shared = DomTraversal::<ServoLayoutElement<LayoutDataForElement>>::shared_context(
+                &traversal,
+            );
             RecalcStyle::pre_traverse(dirty_root, shared)
         };
 
@@ -1014,7 +1021,8 @@ impl LayoutThread {
         let rayon_pool = rayon_pool.as_ref();
 
         if token.should_traverse() {
-            let dirty_root = driver::traverse_dom(&traversal, token, rayon_pool).as_node();
+            let dirty_root: ServoLayoutNode<LayoutDataForElement> =
+                driver::traverse_dom(&traversal, token, rayon_pool).as_node();
 
             let root_node = root_element.as_node();
             let mut box_tree = self.box_tree.borrow_mut();
@@ -1126,12 +1134,12 @@ impl LayoutThread {
                         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone());
                 },
                 &QueryMsg::NodeScrollIdQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node = unsafe { ServoLayoutNode::<LayoutDataForElement>::new(&node) };
                     rw_data.scroll_id_response =
                         Some(process_node_scroll_id_request(self.id, node));
                 },
                 &QueryMsg::ResolvedStyleQuery(node, ref pseudo, ref property) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node = unsafe { ServoLayoutNode::<LayoutDataForElement>::new(&node) };
                     let fragment_tree = self.fragment_tree.borrow().clone();
                     rw_data.resolved_style_response = process_resolved_style_request(
                         context,
@@ -1142,7 +1150,7 @@ impl LayoutThread {
                     );
                 },
                 &QueryMsg::ResolvedFontStyleQuery(node, ref property, ref value) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node = unsafe { ServoLayoutNode::<LayoutDataForElement>::new(&node) };
                     rw_data.resolved_font_style_response =
                         process_resolved_font_style_query(node, property, value);
                 },
@@ -1172,7 +1180,7 @@ impl LayoutThread {
                         results.iter().map(|result| result.node).collect()
                 },
                 &QueryMsg::ElementInnerTextQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node = unsafe { ServoLayoutNode::<LayoutDataForElement>::new(&node) };
                     rw_data.element_inner_text_response = process_element_inner_text_query(node);
                 },
                 &QueryMsg::InnerWindowDimensionsQuery(_browsing_context_id) => {
@@ -1232,7 +1240,7 @@ impl LayoutThread {
         &self,
         fragment_tree: Arc<FragmentTree>,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument>,
+        document: Option<&ServoLayoutDocument<LayoutDataForElement>>,
         context: &mut LayoutContext,
     ) {
         Self::cancel_animations_for_nodes_not_in_fragment_tree(

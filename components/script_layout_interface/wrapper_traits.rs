@@ -31,6 +31,8 @@ use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorIm
 use style::stylist::RuleInclusion;
 use webrender_api::ExternalScrollId;
 
+pub trait LayoutDataTrait: Default + Send + Sync + 'static {}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PseudoElementType {
     Normal,
