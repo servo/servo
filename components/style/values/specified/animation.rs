@@ -13,7 +13,9 @@ use crate::values::{CustomIdent, KeyframesName, TimelineName};
 use crate::Atom;
 use cssparser::Parser;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo, ToCss};
+use style_traits::{
+    CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss,
+};
 
 /// A given transition property, that is either `All`, a longhand or shorthand
 /// property, or an unsupported or custom property.
@@ -203,9 +205,15 @@ pub enum Scroller {
     Nearest,
     /// The document viewport as the scroll container.
     Root,
-    // FIXME: Bug 1764450: Once we support container-name CSS property (Bug 1744224), we may add
-    // <custom-ident> here, based on the result of the spec issue:
-    // https://github.com/w3c/csswg-drafts/issues/7046
+    // FIXME: Bug 1814444. Support self keyword.
+}
+
+impl Scroller {
+    /// Returns true if it is default.
+    #[inline]
+    fn is_default(&self) -> bool {
+        matches!(*self, Self::Nearest)
+    }
 }
 
 impl Default for Scroller {
@@ -245,25 +253,25 @@ pub enum ScrollAxis {
     Horizontal = 3,
 }
 
+impl ScrollAxis {
+    /// Returns true if it is default.
+    #[inline]
+    pub fn is_default(&self) -> bool {
+        matches!(*self, Self::Block)
+    }
+}
+
 impl Default for ScrollAxis {
     fn default() -> Self {
         Self::Block
     }
 }
 
-#[inline]
-fn is_default<T: Default + PartialEq>(value: &T) -> bool {
-    *value == Default::default()
-}
-
-/// A value for the <single-animation-timeline>.
-///
-/// https://drafts.csswg.org/css-animations-2/#typedef-single-animation-timeline
+/// The scroll() notation.
+/// https://drafts.csswg.org/scroll-animations-1/#scroll-notation
 #[derive(
     Clone,
     Debug,
-    Eq,
-    Hash,
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
@@ -272,40 +280,77 @@ fn is_default<T: Default + PartialEq>(value: &T) -> bool {
     ToResolvedValue,
     ToShmem,
 )]
-#[repr(C, u8)]
-pub enum AnimationTimeline {
-    /// Use default timeline. The animation’s timeline is a DocumentTimeline.
-    Auto,
-    /// The scroll-timeline name or view-timeline-name.
-    /// https://drafts.csswg.org/scroll-animations-1/#scroll-timelines-named
-    /// https://drafts.csswg.org/scroll-animations-1/#view-timeline-name
-    Timeline(TimelineName),
-    /// The scroll() notation.
-    /// https://drafts.csswg.org/scroll-animations-1/#scroll-notation
-    #[css(function)]
-    Scroll(
-        #[css(skip_if = "is_default")] ScrollAxis,
-        #[css(skip_if = "is_default")] Scroller,
-    ),
+#[css(function = "scroll")]
+#[repr(C)]
+pub struct ScrollFunction {
+    /// The axis of scrolling that drives the progress of the timeline.
+    #[css(skip_if = "ScrollAxis::is_default")]
+    pub axis: ScrollAxis,
+    /// The scroll container element whose scroll position drives the progress of the timeline.
+    #[css(skip_if = "Scroller::is_default")]
+    pub scroller: Scroller,
 }
 
-impl AnimationTimeline {
-    /// Returns the `auto` value.
-    pub fn auto() -> Self {
-        Self::Auto
-    }
-
-    /// Returns true if it is auto (i.e. the default value).
-    pub fn is_auto(&self) -> bool {
-        matches!(self, Self::Auto)
+impl ScrollFunction {
+    /// Parse the inner function arguments of `scroll()`.
+    fn parse_arguments<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        // <scroll()> = scroll( [ <scroller> || <axis> ]? )
+        // https://drafts.csswg.org/scroll-animations-1/#funcdef-scroll
+        //
+        // FIXME: This doesn't match the spec. I will update it in Bug 1814444.
+        Ok(Self {
+            axis: input.try_parse(ScrollAxis::parse).unwrap_or_default(),
+            scroller: input.try_parse(Scroller::parse).unwrap_or_default(),
+        })
     }
 }
+
+impl generics::ViewFunction<LengthPercentage> {
+    /// Parse the inner function arguments of `view()`.
+    fn parse_arguments<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        // <view()> = view( [ <axis> || <'view-timeline-inset'> ]? )
+        // https://drafts.csswg.org/scroll-animations-1/#funcdef-view
+        let mut axis = None;
+        let mut inset = None;
+        loop {
+            if axis.is_none() {
+                axis = input.try_parse(ScrollAxis::parse).ok();
+            }
+
+            if inset.is_none() {
+                inset = input
+                    .try_parse(|i| ViewTimelineInset::parse(context, i))
+                    .ok();
+                if inset.is_some() {
+                    continue;
+                }
+            }
+            break;
+        }
+
+        Ok(Self {
+            inset: inset.unwrap_or_default(),
+            axis: axis.unwrap_or_default(),
+        })
+    }
+}
+
+/// A specified value for the `animation-timeline` property.
+pub type AnimationTimeline = generics::GenericAnimationTimeline<LengthPercentage>;
 
 impl Parse for AnimationTimeline {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        use crate::values::generics::animation::ViewFunction;
+
+        // <single-animation-timeline> = auto | none | <custom-ident> | <scroll()> | <view()>
+        // https://drafts.csswg.org/css-animations-2/#typedef-single-animation-timeline
+
         if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(Self::Auto);
         }
@@ -314,20 +359,24 @@ impl Parse for AnimationTimeline {
             return Ok(AnimationTimeline::Timeline(TimelineName::none()));
         }
 
-        // https://drafts.csswg.org/scroll-animations-1/#scroll-notation
-        if input
-            .try_parse(|i| i.expect_function_matching("scroll"))
-            .is_ok()
-        {
-            return input.parse_nested_block(|i| {
-                Ok(Self::Scroll(
-                    i.try_parse(ScrollAxis::parse).unwrap_or(ScrollAxis::Block),
-                    i.try_parse(Scroller::parse).unwrap_or(Scroller::Nearest),
-                ))
-            });
+        if let Ok(name) = input.try_parse(|i| TimelineName::parse(context, i)) {
+            return Ok(AnimationTimeline::Timeline(name));
         }
 
-        TimelineName::parse(context, input).map(AnimationTimeline::Timeline)
+        // Parse possible functions
+        let location = input.current_source_location();
+        let function = input.expect_function()?.clone();
+        input.parse_nested_block(move |i| {
+            match_ignore_ascii_case! { &function,
+                "scroll" => ScrollFunction::parse_arguments(i).map(Self::Scroll),
+                "view" => ViewFunction::parse_arguments(context, i).map(Self::View),
+                _ => {
+                    Err(location.new_custom_error(
+                        StyleParseErrorKind::UnexpectedFunction(function.clone())
+                    ))
+                },
+            }
+        })
     }
 }
 
