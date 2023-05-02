@@ -13,6 +13,7 @@ use cssparser::Parser;
 use std::ops::Add;
 use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 
+pub mod animation;
 pub mod background;
 pub mod basic_shape;
 pub mod border;
