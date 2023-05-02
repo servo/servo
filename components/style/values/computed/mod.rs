@@ -48,24 +48,25 @@ pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderImageSlice, BorderImageWidth};
 pub use self::box_::{
-    AnimationIterationCount, AnimationName, AnimationTimeline, Contain, ContainerName,
-    ContainerType,
-};
-pub use self::box_::{
     Appearance, BreakBetween, BreakWithin, Clear, ContainIntrinsicSize, ContentVisibility, Float,
 };
-pub use self::box_::{Display, LineClamp, Overflow, OverflowAnchor, TransitionProperty};
+pub use self::box_::{
+    Contain, ContainerName, ContainerType, Display, LineClamp, Overflow, OverflowAnchor,
+};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
-pub use self::box_::{ScrollAxis, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
-pub use self::box_::{ScrollSnapStrictness, ScrollSnapType, ScrollTimelineName};
+pub use self::box_::{
+    ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop, ScrollSnapStrictness, ScrollSnapType,
+};
 pub use self::box_::{TouchAction, VerticalAlign, WillChange};
-pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, ColorScheme, PrintColorAdjust, ForcedColorAdjust};
+pub use self::color::{
+    Color, ColorOrAuto, ColorPropertyValue, ColorScheme, ForcedColorAdjust, PrintColorAdjust,
+};
 pub use self::column::ColumnCount;
 pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset, CounterSet};
 pub use self::easing::TimingFunction;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
-pub use self::font::{FontFamily, FontLanguageOverride, FontStyle, FontPalette};
+pub use self::font::{FontFamily, FontLanguageOverride, FontPalette, FontStyle};
 pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
 pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis};
 pub use self::font::{FontVariantAlternates, FontWeight};
@@ -104,7 +105,9 @@ pub use self::transform::{Rotate, Scale, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{BoolInteger, Cursor, UserSelect, ViewTimelineInset};
+pub use self::ui::{BoolInteger, Cursor, UserSelect};
+pub use self::animation::{AnimationIterationCount, AnimationName, AnimationTimeline};
+pub use self::animation::{ScrollAxis, ScrollTimelineName, TransitionProperty, ViewTimelineInset};
 pub use super::specified::TextTransform;
 pub use super::specified::ViewportVariant;
 pub use super::specified::{BorderStyle, TextDecorationLine};
@@ -113,6 +116,7 @@ pub use app_units::Au;
 #[cfg(feature = "gecko")]
 pub mod align;
 pub mod angle;
+pub mod animation;
 pub mod background;
 pub mod basic_shape;
 pub mod border;
