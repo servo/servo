@@ -3852,6 +3852,18 @@ impl Document {
             .update_for_new_timeline_value(&self.window, current_timeline_value);
     }
 
+    pub(crate) fn maybe_mark_animating_nodes_as_dirty(&self) {
+        let current_timeline_value = self.current_animation_timeline_value();
+        let marked_dirty = self
+            .animations
+            .borrow()
+            .mark_animating_nodes_as_dirty(current_timeline_value);
+
+        if marked_dirty {
+            self.window().add_pending_reflow();
+        }
+    }
+
     pub(crate) fn current_animation_timeline_value(&self) -> f64 {
         self.animation_timeline.borrow().current_value()
     }
