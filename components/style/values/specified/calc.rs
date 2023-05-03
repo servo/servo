@@ -724,7 +724,7 @@ impl CalcNode {
                         },
                         Token::Delim('-') => {
                             let mut rhs = Self::parse_product(context, input, allowed_units)?;
-                            rhs.mul_by(-1.0);
+                            rhs.negate();
                             sum.push(rhs);
                         },
                         _ => {
