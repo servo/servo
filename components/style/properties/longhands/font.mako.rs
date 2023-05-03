@@ -331,9 +331,9 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-    "-x-text-zoom",
-    "XTextZoom",
-    "computed::XTextZoom(true)",
+    "-x-text-scale",
+    "XTextScale",
+    "computed::XTextScale::All",
     engines="gecko",
     animation_value_type="none",
     enabled_in="",

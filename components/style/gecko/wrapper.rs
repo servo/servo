@@ -1596,10 +1596,9 @@ impl<'le> TElement for GeckoElement<'le> {
         V: Push<ApplicableDeclarationBlock>,
     {
         use crate::properties::longhands::_x_lang::SpecifiedValue as SpecifiedLang;
-        use crate::properties::longhands::_x_text_zoom::SpecifiedValue as SpecifiedZoom;
         use crate::properties::longhands::color::SpecifiedValue as SpecifiedColor;
         use crate::stylesheets::layer_rule::LayerOrder;
-        use crate::values::specified::color::Color;
+        use crate::values::specified::{color::Color, font::XTextScale};
         lazy_static! {
             static ref TABLE_COLOR_RULE: ApplicableDeclarationBlock = {
                 let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -1627,10 +1626,10 @@ impl<'le> TElement for GeckoElement<'le> {
                     LayerOrder::root(),
                 )
             };
-            static ref SVG_TEXT_DISABLE_ZOOM_RULE: ApplicableDeclarationBlock = {
+            static ref SVG_TEXT_DISABLE_SCALE_RULE: ApplicableDeclarationBlock = {
                 let global_style_data = &*GLOBAL_STYLE_DATA;
                 let pdb = PropertyDeclarationBlock::with_one(
-                    PropertyDeclaration::XTextZoom(SpecifiedZoom(false)),
+                    PropertyDeclaration::XTextScale(XTextScale::None),
                     Importance::Normal,
                 );
                 let arc = Arc::new_leaked(global_style_data.shared_lock.wrap(pdb));
@@ -1653,7 +1652,7 @@ impl<'le> TElement for GeckoElement<'le> {
         }
         if ns == structs::kNameSpaceID_SVG as i32 {
             if self.local_name().as_ptr() == atom!("text").as_ptr() {
-                hints.push(SVG_TEXT_DISABLE_ZOOM_RULE.clone());
+                hints.push(SVG_TEXT_DISABLE_SCALE_RULE.clone());
             }
         }
         let declarations =

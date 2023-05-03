@@ -71,7 +71,7 @@ pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumer
 pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis};
 pub use self::font::{FontVariantAlternates, FontWeight};
 pub use self::font::{FontVariantEastAsian, FontVariationSettings};
-pub use self::font::{MathDepth, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
+pub use self::font::{MathDepth, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextScale};
 pub use self::image::{Gradient, Image, ImageRendering, LineDirection, MozImageRect};
 pub use self::length::{CSSPixelLength, NonNegativeLength};
 pub use self::length::{Length, LengthOrNumber, LengthPercentage, NonNegativeLengthOrNumber};
@@ -390,10 +390,7 @@ impl<'a> Context<'a> {
     /// Apply text-zoom if enabled.
     #[cfg(feature = "gecko")]
     pub fn maybe_zoom_text(&self, size: CSSPixelLength) -> CSSPixelLength {
-        // We disable zoom for <svg:text> by unsetting the
-        // -x-text-zoom property, which leads to a false value
-        // in mAllowZoomAndMinSize
-        if self.style().get_font().gecko.mAllowZoomAndMinSize {
+        if self.style().get_font().clone__x_text_scale().text_zoom_enabled() {
             self.device().zoom_text(size)
         } else {
             size

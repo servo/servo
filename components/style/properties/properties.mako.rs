@@ -915,9 +915,7 @@ CASCADE_GROUPS = {
     # Cascade::fixup_font_stuff.
     "fonts_and_color": [
         # Needed to properly compute the zoomed font-size.
-        # FIXME(emilio): This could probably just be a cascade flag
-        # like IN_SVG_SUBTREE or such, and we could nuke this property.
-        "-x-text-zoom",
+        "-x-text-scale",
         # Needed to do font-size computation in a language-dependent way.
         "-x-lang",
         # Needed for ruby to respect language-dependent min-font-size
