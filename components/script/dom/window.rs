@@ -1708,13 +1708,18 @@ impl Window {
         let body = self.Document().GetBody();
         let (x, y) = match body {
             Some(e) => {
-                let scroll_area = e.upcast::<Node>().scroll_area();
+                // This doesn't properly take into account the overflow set on <body>
+                // and the root element, which might affect how much the root can
+                // scroll. That requires properly handling propagating those values
+                // according to the rules defined in in the specification at:
+                // https://w3c.github.io/csswg-drafts/css-overflow/#overflow-propagation
+                let scroll_area = e.upcast::<Node>().bounding_content_box_or_zero();
                 (
                     xfinite
-                        .min(scroll_area.width() as f64 - viewport.width as f64)
+                        .min(scroll_area.width().to_f64_px() - viewport.width as f64)
                         .max(0.0f64),
                     yfinite
-                        .min(scroll_area.height() as f64 - viewport.height as f64)
+                        .min(scroll_area.height().to_f64_px() - viewport.height as f64)
                         .max(0.0f64),
                 )
             },

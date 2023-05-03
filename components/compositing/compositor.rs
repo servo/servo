@@ -490,7 +490,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     self.ready_to_save_state,
                     ReadyState::WaitingForConstellationReply
                 );
-                if is_ready && !self.waiting_on_pending_frame {
+                if is_ready && !self.waiting_on_pending_frame && !self.waiting_for_results_of_scroll
+                {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
                     if self.is_running_problem_test {
                         println!("ready to save image!");
@@ -623,8 +624,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 scroll_id,
                 clamping,
             )) => {
+                self.waiting_for_results_of_scroll = true;
+
                 let mut txn = webrender_api::Transaction::new();
                 txn.scroll_node_with_id(point, scroll_id, clamping);
+                txn.generate_frame();
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
