@@ -46,15 +46,6 @@ pub trait LayoutThreadFactory {
         webrender_api_sender: WebrenderIpcSender,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
-        load_webfonts_synchronously: bool,
         window_size: WindowSizeData,
-        dump_display_list: bool,
-        dump_display_list_json: bool,
-        dump_style_tree: bool,
-        dump_rule_tree: bool,
-        relayout_event: bool,
-        nonincremental_layout: bool,
-        trace_layout: bool,
-        dump_flow_tree: bool,
     );
 }

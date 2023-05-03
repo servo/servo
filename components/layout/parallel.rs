@@ -196,7 +196,7 @@ pub fn reflow(
     context: &LayoutContext,
     queue: &rayon::ThreadPool,
 ) {
-    if opts::get().bubble_inline_sizes_separately {
+    if opts::get().debug.bubble_inline_sizes_separately {
         let bubble_inline_sizes = BubbleISizes {
             layout_context: &context,
         };

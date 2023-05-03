@@ -755,15 +755,6 @@ impl ScriptThreadFactory for ScriptThread {
     fn create(
         state: InitialScriptState,
         load_data: LoadData,
-        profile_script_events: bool,
-        print_pwm: bool,
-        relayout_event: bool,
-        prepare_for_screenshot: bool,
-        unminify_js: bool,
-        local_script_source: Option<String>,
-        userscripts_path: Option<String>,
-        headless: bool,
-        replace_surrogates: bool,
         user_agent: Cow<'static, str>,
     ) -> (Sender<message::Msg>, Receiver<message::Msg>) {
         let (script_chan, script_port) = unbounded();
@@ -788,21 +779,8 @@ impl ScriptThreadFactory for ScriptThread {
                 let window_size = state.window_size;
                 let layout_is_busy = state.layout_is_busy.clone();
 
-                let script_thread = ScriptThread::new(
-                    state,
-                    script_port,
-                    script_chan.clone(),
-                    profile_script_events,
-                    print_pwm,
-                    relayout_event,
-                    prepare_for_screenshot,
-                    unminify_js,
-                    local_script_source,
-                    userscripts_path,
-                    headless,
-                    replace_surrogates,
-                    user_agent,
-                );
+                let script_thread =
+                    ScriptThread::new(state, script_port, script_chan.clone(), user_agent);
 
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(&script_thread as *const _));
@@ -1273,17 +1251,12 @@ impl ScriptThread {
         state: InitialScriptState,
         port: Receiver<MainThreadScriptMsg>,
         chan: Sender<MainThreadScriptMsg>,
-        profile_script_events: bool,
-        print_pwm: bool,
-        relayout_event: bool,
-        prepare_for_screenshot: bool,
-        unminify_js: bool,
-        local_script_source: Option<String>,
-        userscripts_path: Option<String>,
-        headless: bool,
-        replace_surrogates: bool,
         user_agent: Cow<'static, str>,
     ) -> ScriptThread {
+        let opts = opts::get();
+        let prepare_for_screenshot =
+            opts.output_file.is_some() || opts.exit_after_load || opts.webdriver_port.is_some();
+
         let boxed_script_sender = Box::new(MainThreadScriptChan(chan.clone()));
 
         let runtime = new_rt_and_cx(Some(NetworkingTaskSource(
@@ -1392,17 +1365,17 @@ impl ScriptThread {
             webrender_document: state.webrender_document,
             webrender_api_sender: state.webrender_api_sender,
 
-            profile_script_events,
-            print_pwm,
+            profile_script_events: opts.debug.profile_script_events,
+            print_pwm: opts.print_pwm,
+            relayout_event: opts.debug.relayout_event,
 
-            relayout_event,
             prepare_for_screenshot,
-            unminify_js,
-            local_script_source,
+            unminify_js: opts.unminify_js,
+            local_script_source: opts.local_script_source.clone(),
 
-            userscripts_path,
-            headless,
-            replace_surrogates,
+            userscripts_path: opts.userscripts.clone(),
+            headless: opts.headless,
+            replace_surrogates: opts.debug.replace_surrogates,
             user_agent,
             player_context: state.player_context,
             event_loop_waker: state.event_loop_waker,
