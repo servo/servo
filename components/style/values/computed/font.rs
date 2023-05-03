@@ -30,7 +30,7 @@ pub use crate::values::specified::font::{FontPalette, FontSynthesis};
 pub use crate::values::specified::font::MozScriptSizeMultiplier;
 pub use crate::values::specified::font::{
     FontVariantAlternates, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric, XLang,
-    XTextZoom,
+    XTextScale,
 };
 pub use crate::values::specified::Integer as SpecifiedInteger;
 pub use crate::values::specified::Number as SpecifiedNumber;

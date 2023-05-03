@@ -841,8 +841,7 @@ fn static_assert() {
                             font-variant-alternates font-variant-east-asian
                             font-variant-ligatures font-variant-numeric
                             font-language-override font-feature-settings
-                            font-variation-settings -moz-min-font-size-ratio
-                            -x-text-zoom""" %>
+                            font-variation-settings -moz-min-font-size-ratio""" %>
 <%self:impl_trait style_struct_name="Font"
     skip_longhands="${skip_font_longhands}">
 
@@ -943,27 +942,8 @@ fn static_assert() {
         })
     }
 
-    #[allow(non_snake_case)]
-    pub fn set__x_text_zoom(&mut self, v: longhands::_x_text_zoom::computed_value::T) {
-        self.gecko.mAllowZoomAndMinSize = v.0;
-    }
 
-    #[allow(non_snake_case)]
-    pub fn copy__x_text_zoom_from(&mut self, other: &Self) {
-        self.gecko.mAllowZoomAndMinSize = other.gecko.mAllowZoomAndMinSize;
-    }
-
-    #[allow(non_snake_case)]
-    pub fn reset__x_text_zoom(&mut self, other: &Self) {
-        self.copy__x_text_zoom_from(other)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn clone__x_text_zoom(&self) -> longhands::_x_text_zoom::computed_value::T {
-        longhands::_x_text_zoom::computed_value::T(self.gecko.mAllowZoomAndMinSize)
-    }
-
-    <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
+    ${impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride")}
     ${impl_simple_type_with_conversion("font_variant_ligatures", "mFont.variantLigatures")}
     ${impl_simple_type_with_conversion("font_variant_east_asian", "mFont.variantEastAsian")}
     ${impl_simple_type_with_conversion("font_variant_numeric", "mFont.variantNumeric")}
