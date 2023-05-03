@@ -610,7 +610,13 @@ impl<'a> BuilderForBoxFragment<'a> {
         if width == 0.0 {
             return;
         }
-        let outline_rect = self.border_rect.inflate(width, width);
+        let offset = outline
+            .outline_offset
+            .px()
+            .max(-self.border_rect.width() / 2.0)
+            .max(-self.border_rect.height() / 2.0) +
+            width;
+        let outline_rect = self.border_rect.inflate(offset, offset);
         let common = builder.common_properties(outline_rect, &self.fragment.style);
         let widths = SideOffsets2D::new_all_same(width);
         let style = match outline.outline_style {
@@ -625,7 +631,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             right: side,
             bottom: side,
             left: side,
-            radius: expand_radii(self.border_radius, width),
+            radius: offset_radii(self.border_radius, offset),
             do_aa: true,
         });
         builder
@@ -722,29 +728,38 @@ fn image_rendering(ir: style::computed_values::image_rendering::T) -> wr::ImageR
 }
 
 /// Radii for the padding edge or content edge
-fn inner_radii(mut radii: wr::BorderRadius, offsets: units::LayoutSideOffsets) -> wr::BorderRadius {
-    radii.top_left.width -= offsets.left;
-    radii.bottom_left.width -= offsets.left;
+fn inner_radii(mut radii: wr::BorderRadius, insets: units::LayoutSideOffsets) -> wr::BorderRadius {
+    assert!(insets.left >= 0.0, "left inset must not be negative");
+    radii.top_left.width -= insets.left;
+    radii.bottom_left.width -= insets.left;
 
-    radii.top_right.width -= offsets.right;
-    radii.bottom_right.width -= offsets.right;
+    assert!(insets.right >= 0.0, "left inset must not be negative");
+    radii.top_right.width -= insets.right;
+    radii.bottom_right.width -= insets.right;
 
-    radii.top_left.height -= offsets.top;
-    radii.top_right.height -= offsets.top;
+    assert!(insets.top >= 0.0, "top inset must not be negative");
+    radii.top_left.height -= insets.top;
+    radii.top_right.height -= insets.top;
 
-    radii.bottom_left.height -= offsets.bottom;
-    radii.bottom_right.height -= offsets.bottom;
+    assert!(insets.bottom >= 0.0, "bottom inset must not be negative");
+    radii.bottom_left.height -= insets.bottom;
+    radii.bottom_right.height -= insets.bottom;
     radii
 }
 
-fn expand_radii(mut radii: wr::BorderRadius, increment: f32) -> wr::BorderRadius {
-    assert!(increment > 0.0, "increment must be positive");
+fn offset_radii(mut radii: wr::BorderRadius, offset: f32) -> wr::BorderRadius {
+    if offset == 0.0 {
+        return radii;
+    }
+    if offset < 0.0 {
+        return inner_radii(radii, units::LayoutSideOffsets::new_all_same(-offset));
+    }
     let expand = |radius: &mut f32| {
         // Expand the radius by the specified amount, but keeping sharp corners.
         // TODO: this behavior is not continuous, it's being discussed in the CSSWG:
         // https://github.com/w3c/csswg-drafts/issues/7103
         if *radius > 0.0 {
-            *radius += increment;
+            *radius += offset;
         }
     };
     expand(&mut radii.top_left.width);
