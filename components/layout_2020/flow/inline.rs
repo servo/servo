@@ -8,8 +8,8 @@ use crate::flow::float::FloatBox;
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{
-    AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment, CollapsedBlockMargins,
-    DebugId, FontMetrics, Fragment, Tag, TextFragment,
+    AnonymousFragment, BoxFragment, CollapsedBlockMargins, DebugId, FontMetrics, Fragment, Tag,
+    TextFragment,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{
@@ -338,14 +338,9 @@ impl InlineFormattingContext {
                         );
                         let hoisted_fragment = hoisted_box.fragment.clone();
                         ifc.push_hoisted_box_to_positioning_context(hoisted_box);
-                        ifc.current_nesting_level.fragments_so_far.push(
-                            Fragment::AbsoluteOrFixedPositioned(
-                                AbsoluteOrFixedPositionedFragment {
-                                    hoisted_fragment,
-                                    position: style.clone_position(),
-                                },
-                            ),
-                        );
+                        ifc.current_nesting_level
+                            .fragments_so_far
+                            .push(Fragment::AbsoluteOrFixedPositioned(hoisted_fragment));
                     },
                     InlineLevelBox::OutOfFlowFloatBox(_box_) => {
                         // TODO

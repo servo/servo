@@ -6,7 +6,6 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::display_list::stacking_context::{
     ContainingBlock, ContainingBlockInfo, StackingContext, StackingContextBuildMode,
-    StackingContextBuilder,
 };
 use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo, NodeExt};
 use crate::element_data::LayoutBox;
@@ -40,6 +39,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::computed::Length;
 use style_traits::CSSPixel;
+use webrender_api::{ClipId, SpaceAndClipInfo, SpatialId};
 
 #[derive(Serialize)]
 pub struct BoxTree {
@@ -386,30 +386,7 @@ impl BoxTree {
 
 impl FragmentTree {
     pub fn build_display_list(&self, builder: &mut crate::display_list::DisplayListBuilder) {
-        let mut stacking_context = StackingContext::create_root(&builder.wr);
-        {
-            let mut stacking_context_builder = StackingContextBuilder::new(&mut builder.wr);
-            let containing_block_info = ContainingBlockInfo {
-                rect: self.initial_containing_block,
-                nearest_containing_block: None,
-                containing_block_for_all_descendants: ContainingBlock::new(
-                    &self.initial_containing_block,
-                    stacking_context_builder.current_space_and_clip,
-                ),
-            };
-
-            for fragment in &self.root_fragments {
-                fragment.borrow().build_stacking_context_tree(
-                    fragment,
-                    &mut stacking_context_builder,
-                    &containing_block_info,
-                    &mut stacking_context,
-                    StackingContextBuildMode::SkipHoisted,
-                );
-            }
-        }
-
-        stacking_context.sort();
+        let stacking_context = self.build_stacking_context_tree(builder);
 
         // Paint the canvas’ background (if any) before/under everything else
         stacking_context.build_canvas_background_display_list(
@@ -419,6 +396,47 @@ impl FragmentTree {
         );
 
         stacking_context.build_display_list(builder);
+    }
+
+    fn build_stacking_context_tree(
+        &self,
+        builder: &mut crate::display_list::DisplayListBuilder,
+    ) -> StackingContext {
+        let mut stacking_context = StackingContext::create_root(&builder.wr);
+        let pipeline_id = builder.wr.pipeline_id;
+        let cb_for_non_fixed_descendants = ContainingBlock::new(
+            &self.initial_containing_block,
+            SpaceAndClipInfo::root_scroll(pipeline_id),
+        );
+        let cb_for_fixed_descendants = ContainingBlock::new(
+            &self.initial_containing_block,
+            SpaceAndClipInfo {
+                spatial_id: SpatialId::root_reference_frame(pipeline_id),
+                clip_id: ClipId::root(pipeline_id),
+            },
+        );
+
+        for fragment in &self.root_fragments {
+            fragment.borrow().build_stacking_context_tree(
+                fragment,
+                &mut builder.wr,
+                // We need to specify all three containing blocks here, because absolute
+                // descdendants of the root cannot share the containing block we specify
+                // for fixed descendants. In this case, they need to have the spatial
+                // id of the root scroll frame, whereas fixed descendants need the
+                // spatial id of the root reference frame so that they do not scroll with
+                // page content.
+                &ContainingBlockInfo {
+                    for_non_absolute_descendants: &cb_for_non_fixed_descendants,
+                    for_absolute_descendants: Some(&cb_for_non_fixed_descendants),
+                    for_absolute_and_fixed_descendants: &cb_for_fixed_descendants,
+                },
+                &mut stacking_context,
+                StackingContextBuildMode::SkipHoisted,
+            );
+        }
+        stacking_context.sort();
+        stacking_context
     }
 
     pub fn print(&self) {
