@@ -336,8 +336,22 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    /// Returns true if this style has a transform, or perspective property set.
+    /// Returns true if this style has a transform, or perspective property set and
+    /// it applies to this element.
     fn has_transform_or_perspective(&self) -> bool {
+        // "A transformable element is an element in one of these categories:
+        //   * all elements whose layout is governed by the CSS box model except for
+        //     non-replaced inline boxes, table-column boxes, and table-column-group
+        //     boxes,
+        //   * all SVG paint server elements, the clipPath element  and SVG renderable
+        //     elements with the exception of any descendant element of text content
+        //     elements."
+        // https://drafts.csswg.org/css-transforms/#transformable-element
+        // FIXME(mrobinson): Properly handle tables and replaced elements here.
+        if self.get_box().display.is_inline_flow() {
+            return false;
+        }
+
         !self.get_box().transform.0.is_empty() || self.get_box().perspective != Perspective::None
     }
 
@@ -414,9 +428,7 @@ impl ComputedValuesExt for ComputedValues {
     /// Note that this also implies that it establishes a containing block
     /// for absolute descendants (`position: absolute`).
     fn establishes_containing_block_for_all_descendants(&self) -> bool {
-        if self.get_box().display.outside() != stylo::DisplayOutside::Inline &&
-            self.has_transform_or_perspective()
-        {
+        if self.has_transform_or_perspective() {
             return true;
         }
 
