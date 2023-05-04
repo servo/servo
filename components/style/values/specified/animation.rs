@@ -205,7 +205,9 @@ pub enum Scroller {
     Nearest,
     /// The document viewport as the scroll container.
     Root,
-    // FIXME: Bug 1814444. Support self keyword.
+    /// Specifies to use the element’s own principal box as the scroll container.
+    #[css(keyword = "self")]
+    SelfElement,
 }
 
 impl Scroller {
