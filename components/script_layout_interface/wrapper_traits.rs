@@ -491,4 +491,14 @@ pub trait ThreadSafeLayoutElement<'dom>:
     }
 
     fn is_shadow_host(&self) -> bool;
+
+    /// Returns whether this node is a body element of an html element root
+    /// in an HTML element document.
+    ///
+    /// Note that this does require accessing the parent, which this interface
+    /// technically forbids. But accessing the parent is only unsafe insofar as
+    /// it can be used to reach siblings and cousins. A simple immutable borrow
+    /// of the parent data is fine, since the bottom-up traversal will not process
+    /// the parent until all the children have been processed.
+    fn is_body_element_of_html_element_root(&self) -> bool;
 }

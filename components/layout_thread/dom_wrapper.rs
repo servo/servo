@@ -420,6 +420,39 @@ impl<'le> fmt::Debug for ServoLayoutElement<'le> {
     }
 }
 
+impl<'dom> ServoLayoutElement<'dom> {
+    /// Returns true if this element is the body child of an html element root element.
+    fn is_body_element_of_html_element_root(&self) -> bool {
+        if self.element.local_name() != &local_name!("body") {
+            return false;
+        }
+
+        self.parent_element()
+            .map(|element| {
+                element.is_root() && element.element.local_name() == &local_name!("html")
+            })
+            .unwrap_or(false)
+    }
+
+    /// Returns the parent element of this element, if it has one.
+    fn parent_element(&self) -> Option<Self> {
+        self.element
+            .upcast()
+            .composed_parent_node_ref()
+            .and_then(as_element)
+    }
+
+    fn is_root(&self) -> bool {
+        match self.as_node().parent_node() {
+            None => false,
+            Some(node) => match node.script_type_id() {
+                NodeTypeId::Document(_) => true,
+                _ => false,
+            },
+        }
+    }
+}
+
 impl<'le> TElement for ServoLayoutElement<'le> {
     type ConcreteNode = ServoLayoutNode<'le>;
     type TraversalChildrenIterator = DomChildren<Self::ConcreteNode>;
@@ -671,11 +704,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn is_html_document_body_element(&self) -> bool {
-        // This is only used for the "tables inherit from body" quirk, which we
-        // don't implement.
-        //
-        // FIXME(emilio): We should be able to give the right answer though!
-        false
+        self.is_body_element_of_html_element_root()
     }
 
     fn synthesize_presentational_hints_for_legacy_attributes<V>(
@@ -770,10 +799,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
-        self.element
-            .upcast()
-            .composed_parent_node_ref()
-            .and_then(as_element)
+        ServoLayoutElement::parent_element(self)
     }
 
     fn parent_node_is_shadow_root(&self) -> bool {
@@ -831,13 +857,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn is_root(&self) -> bool {
-        match self.as_node().parent_node() {
-            None => false,
-            Some(node) => match node.script_type_id() {
-                NodeTypeId::Document(_) => true,
-                _ => false,
-            },
-        }
+        ServoLayoutElement::is_root(self)
     }
 
     fn is_empty(&self) -> bool {
@@ -973,11 +993,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
-        if !self.element.is_html_element() {
-            return false;
-        }
-
-        self.as_node().owner_doc().is_html_document()
+        self.element.is_html_element() && self.as_node().owner_doc().is_html_document()
     }
 }
 
@@ -1349,6 +1365,10 @@ impl<'le> ThreadSafeLayoutElement<'le> for ServoThreadSafeLayoutElement<'le> {
 
     fn is_shadow_host(&self) -> bool {
         self.element.shadow_root().is_some()
+    }
+
+    fn is_body_element_of_html_element_root(&self) -> bool {
+        self.element.is_html_document_body_element()
     }
 }
 

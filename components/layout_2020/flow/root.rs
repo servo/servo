@@ -15,7 +15,8 @@ use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineLevelBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::{Fragment, Tag};
+use crate::fragment_tree::Tag;
+use crate::fragments::Fragment;
 use crate::geom::flow_relative::Vec2;
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::positioned::AbsolutelyPositionedBox;
@@ -36,7 +37,6 @@ use servo_arc::Arc;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-use style::selector_parser::PseudoElement;
 use style::values::computed::Length;
 use style_traits::CSSPixel;
 use webrender_api::{ClipId, SpaceAndClipInfo, SpatialId};
@@ -466,19 +466,15 @@ impl FragmentTree {
 
     pub fn remove_nodes_in_fragment_tree_from_set(&self, set: &mut FxHashSet<AnimationSetKey>) {
         self.find(|fragment, _, _| {
-            let (node, pseudo) = match fragment.tag()? {
-                Tag::Node(node) => (node, None),
-                Tag::BeforePseudo(node) => (node, Some(PseudoElement::Before)),
-                Tag::AfterPseudo(node) => (node, Some(PseudoElement::After)),
-            };
-            set.remove(&AnimationSetKey::new(node, pseudo));
+            let tag = fragment.tag()?;
+            set.remove(&AnimationSetKey::new(tag.node, tag.pseudo));
             None::<()>
         });
     }
 
     pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Rect<Au> {
         let mut bounding_box = PhysicalRect::zero();
-        let tag_to_find = Tag::Node(requested_node);
+        let tag_to_find = Tag::new(requested_node);
         self.find(|fragment, _, containing_block| {
             if fragment.tag() != Some(tag_to_find) {
                 return None::<()>;
@@ -516,17 +512,15 @@ impl FragmentTree {
     }
 
     pub fn get_border_dimensions_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
+        let tag_to_find = Tag::new(requested_node);
         self.find(|fragment, _, containing_block| {
+            if fragment.tag() != Some(tag_to_find) {
+                return None;
+            }
+
             let (style, padding_rect) = match fragment {
-                Fragment::Box(fragment) if fragment.tag.node() == requested_node => {
-                    (&fragment.style, fragment.padding_rect())
-                },
-                Fragment::AbsoluteOrFixedPositioned(_) |
-                Fragment::Box(_) |
-                Fragment::Text(_) |
-                Fragment::Image(_) |
-                Fragment::IFrame(_) |
-                Fragment::Anonymous(_) => return None,
+                Fragment::Box(fragment) => (&fragment.style, fragment.padding_rect()),
+                _ => return None,
             };
 
             // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
@@ -559,7 +553,7 @@ impl FragmentTree {
 
     pub fn get_scroll_area_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
         let mut scroll_area: PhysicalRect<Length> = PhysicalRect::zero();
-        let tag_to_find = Tag::Node(requested_node);
+        let tag_to_find = Tag::new(requested_node);
         self.find(|fragment, _, containing_block| {
             if fragment.tag() != Some(tag_to_find) {
                 return None::<()>;

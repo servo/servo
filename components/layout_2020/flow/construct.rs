@@ -12,7 +12,6 @@ use crate::flow::float::FloatBox;
 use crate::flow::inline::{InlineBox, InlineFormattingContext, InlineLevelBox, TextRun};
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::Tag;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -384,7 +383,7 @@ where
 
         if let Some(text) = new_text_run_contents {
             inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun {
-                tag: Tag::from_node_and_style_info(info),
+                base_fragment_info: info.into(),
                 parent_style: Arc::clone(&info.style),
                 text,
             })))
@@ -495,7 +494,7 @@ where
             // Whatever happened before, all we need to do before recurring
             // is to remember this ongoing inline level box.
             self.ongoing_inline_boxes_stack.push(InlineBox {
-                tag: Tag::from_node_and_style_info(info),
+                base_fragment_info: info.into(),
                 style: info.style.clone(),
                 first_fragment: true,
                 last_fragment: false,
@@ -556,7 +555,7 @@ where
                 .rev()
                 .map(|ongoing| {
                     let fragmented = InlineBox {
-                        tag: ongoing.tag,
+                        base_fragment_info: ongoing.base_fragment_info,
                         style: ongoing.style.clone(),
                         first_fragment: ongoing.first_fragment,
                         // The fragmented boxes before the block level element
@@ -755,7 +754,7 @@ where
             BlockLevelCreator::SameFormattingContextBlock(contents) => {
                 let (contents, contains_floats) = contents.finish(context, info);
                 let block_level_box = ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
-                    tag: Tag::from_node_and_style_info(info),
+                    base_fragment_info: info.into(),
                     contents,
                     style: Arc::clone(&info.style),
                 });

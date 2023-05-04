@@ -4,7 +4,8 @@
 
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeExt;
-use crate::fragments::{DebugId, Fragment, IFrameFragment, ImageFragment};
+use crate::fragment_tree::BaseFragmentInfo;
+use crate::fragments::{Fragment, IFrameFragment, ImageFragment};
 use crate::geom::flow_relative::{Rect, Vec2};
 use crate::geom::PhysicalSize;
 use crate::sizing::ContentSizes;
@@ -29,6 +30,7 @@ use webrender_api::ImageKey;
 pub(crate) struct ReplacedContent {
     pub kind: ReplacedContentKind,
     intrinsic: IntrinsicSizes,
+    base_fragment_info: BaseFragmentInfo,
 }
 
 /// * Raster images always have an intrinsic width and height, with 1 image pixel = 1px.
@@ -140,7 +142,12 @@ impl ReplacedContent {
             },
         );
 
-        return Some(Self { kind, intrinsic });
+        let base_fragment_info = BaseFragmentInfo::new_for_node(element.as_opaque());
+        return Some(Self {
+            kind,
+            intrinsic,
+            base_fragment_info,
+        });
     }
 
     pub fn from_image_url<'dom>(
@@ -171,6 +178,7 @@ impl ReplacedContent {
                     // FIXME https://github.com/w3c/csswg-drafts/issues/4572
                     ratio: Some(width / height),
                 },
+                base_fragment_info: BaseFragmentInfo::new_for_node(element.as_opaque()),
             });
         }
         None
@@ -219,7 +227,7 @@ impl ReplacedContent {
                 .and_then(|image| image.id)
                 .map(|image_key| {
                     Fragment::Image(ImageFragment {
-                        debug_id: DebugId::new(),
+                        base: self.base_fragment_info.into(),
                         style: style.clone(),
                         rect: Rect {
                             start_corner: Vec2::zero(),
@@ -232,7 +240,7 @@ impl ReplacedContent {
                 .collect(),
             ReplacedContentKind::IFrame(iframe) => {
                 vec![Fragment::IFrame(IFrameFragment {
-                    debug_id: DebugId::new(),
+                    base: self.base_fragment_info.into(),
                     style: style.clone(),
                     pipeline_id: iframe.pipeline_id,
                     browsing_context_id: iframe.browsing_context_id,
@@ -268,7 +276,7 @@ impl ReplacedContent {
                     },
                 };
                 vec![Fragment::Image(ImageFragment {
-                    debug_id: DebugId::new(),
+                    base: self.base_fragment_info.into(),
                     style: style.clone(),
                     rect: Rect {
                         start_corner: Vec2::zero(),

@@ -6,7 +6,8 @@ use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NodeExt};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
-use crate::fragments::{Fragment, Tag};
+use crate::fragment_tree::BaseFragmentInfo;
+use crate::fragments::Fragment;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
@@ -28,7 +29,7 @@ pub(crate) enum IndependentFormattingContext {
 
 #[derive(Debug, Serialize)]
 pub(crate) struct NonReplacedFormattingContext {
-    pub tag: Tag,
+    pub base_fragment_info: BaseFragmentInfo,
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     /// If it was requested during construction
@@ -38,7 +39,7 @@ pub(crate) struct NonReplacedFormattingContext {
 
 #[derive(Debug, Serialize)]
 pub(crate) struct ReplacedFormattingContext {
-    pub tag: Tag,
+    pub base_fragment_info: BaseFragmentInfo,
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     pub contents: ReplacedContent,
@@ -63,7 +64,7 @@ pub(crate) struct IndependentLayout {
 impl IndependentFormattingContext {
     pub fn construct<'dom>(
         context: &LayoutContext,
-        info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
+        node_and_style_info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         display_inside: DisplayInside,
         contents: Contents,
         propagated_text_decoration_line: TextDecorationLine,
@@ -76,7 +77,7 @@ impl IndependentFormattingContext {
                         NonReplacedFormattingContextContents::Flow(
                             BlockFormattingContext::construct(
                                 context,
-                                info,
+                                node_and_style_info,
                                 non_replaced,
                                 propagated_text_decoration_line,
                                 is_list_item,
@@ -86,37 +87,37 @@ impl IndependentFormattingContext {
                     DisplayInside::Flex => {
                         NonReplacedFormattingContextContents::Flex(FlexContainer::construct(
                             context,
-                            info,
+                            node_and_style_info,
                             non_replaced,
                             propagated_text_decoration_line,
                         ))
                     },
                 };
                 Self::NonReplaced(NonReplacedFormattingContext {
-                    tag: Tag::from_node_and_style_info(info),
-                    style: Arc::clone(&info.style),
+                    base_fragment_info: node_and_style_info.into(),
+                    style: Arc::clone(&node_and_style_info.style),
                     content_sizes: None,
                     contents,
                 })
             },
             Err(contents) => Self::Replaced(ReplacedFormattingContext {
-                tag: Tag::from_node_and_style_info(info),
-                style: Arc::clone(&info.style),
+                base_fragment_info: node_and_style_info.into(),
+                style: Arc::clone(&node_and_style_info.style),
                 contents,
             }),
         }
     }
 
     pub fn construct_for_text_runs<'dom>(
-        info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
+        node_and_style_info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         runs: impl Iterator<Item = crate::flow::inline::TextRun>,
         propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
         let bfc =
             BlockFormattingContext::construct_for_text_runs(runs, propagated_text_decoration_line);
         Self::NonReplaced(NonReplacedFormattingContext {
-            tag: Tag::from_node_and_style_info(info),
-            style: Arc::clone(&info.style),
+            base_fragment_info: node_and_style_info.into(),
+            style: Arc::clone(&node_and_style_info.style),
             content_sizes: None,
             contents: NonReplacedFormattingContextContents::Flow(bfc),
         })
@@ -129,10 +130,10 @@ impl IndependentFormattingContext {
         }
     }
 
-    pub fn tag(&self) -> Tag {
+    pub fn base_fragment_info(&self) -> BaseFragmentInfo {
         match self {
-            Self::NonReplaced(inner) => inner.tag,
-            Self::Replaced(inner) => inner.tag,
+            Self::NonReplaced(inner) => inner.base_fragment_info,
+            Self::Replaced(inner) => inner.base_fragment_info,
         }
     }
 

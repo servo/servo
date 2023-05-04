@@ -967,13 +967,23 @@ impl fmt::Debug for BaseFlow {
             "".to_owned()
         };
 
+        let flags_string = if !self.flags.is_empty() {
+            format!("\nflags={:?}", self.flags)
+        } else {
+            "".to_owned()
+        };
+
         write!(
             f,
             "\nsc={:?}\
              \npos={:?}{}{}\
              \nfloatspec-in={:?}\
              \nfloatspec-out={:?}\
-             \noverflow={:?}{}{}{}",
+             \noverflow={:?}\
+             {child_count_string}\
+             {absolute_descendants_string}\
+             {damage_string}\
+             {flags_string}",
             self.stacking_context_id,
             self.position,
             if self.flags.contains(FlowFlags::FLOATS_LEFT) {
@@ -989,9 +999,6 @@ impl fmt::Debug for BaseFlow {
             self.speculated_float_placement_in,
             self.speculated_float_placement_out,
             self.overflow,
-            child_count_string,
-            absolute_descendants_string,
-            damage_string
         )
     }
 }

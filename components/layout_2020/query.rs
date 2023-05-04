@@ -5,7 +5,8 @@
 //! Utilities for querying the layout, as needed by the layout thread.
 use crate::context::LayoutContext;
 use crate::flow::FragmentTree;
-use crate::fragments::{Fragment, Tag};
+use crate::fragment_tree::{FragmentFlags, Tag};
+use crate::fragments::Fragment;
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
@@ -263,13 +264,7 @@ pub fn process_resolved_style_request<'dom>(
     let computed_style =
         || style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id));
 
-    let opaque = node.opaque();
-    let tag_to_find = match *pseudo {
-        None => Tag::Node(opaque),
-        Some(PseudoElement::Before) => Tag::BeforePseudo(opaque),
-        Some(PseudoElement::After) => Tag::AfterPseudo(opaque),
-        Some(_) => unreachable!("Should have returned before this point."),
-    };
+    let tag_to_find = Tag::new_pseudo(node.opaque(), *pseudo);
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
     // Here we are trying to conform to the specification that says that getComputedStyle
@@ -302,8 +297,12 @@ pub fn process_resolved_style_request<'dom>(
     };
     fragment_tree
         .find(|fragment, _, containing_block| {
+            if Some(tag_to_find) != fragment.tag() {
+                return None;
+            }
+
             let box_fragment = match fragment {
-                Fragment::Box(ref box_fragment) if box_fragment.tag == tag_to_find => box_fragment,
+                Fragment::Box(ref box_fragment) => box_fragment,
                 _ => return None,
             };
 
@@ -399,13 +398,14 @@ fn process_offset_parent_query_inner(
 
     // https://www.w3.org/TR/2016/WD-cssom-view-1-20160317/#extensions-to-the-htmlelement-interface
     let mut parent_node_addresses = Vec::new();
+    let tag_to_find = Tag::new(node);
     let node_offset_box = fragment_tree.find(|fragment, level, containing_block| {
-        // FIXME: Is there a less fragile way of checking whether this
-        // fragment is the body element, rather than just checking that
-        // it's at level 1 (below the root node)?
-        let is_body_element = level == 1;
+        let base = fragment.base()?;
+        let is_body_element = base
+            .flags
+            .contains(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT);
 
-        if fragment.tag() == Some(Tag::Node(node)) {
+        if fragment.tag() == Some(tag_to_find) {
             // Only consider the first fragment of the node found as per a
             // possible interpretation of the specification: "[...] return the
             // y-coordinate of the top border edge of the first CSS layout box
@@ -497,10 +497,9 @@ fn process_offset_parent_query_inner(
                             (false, Position::Static) => false,
                         };
 
-                    if let Tag::Node(node_address) = fragment.tag {
-                        is_eligible_parent.then(|| node_address)
-                    } else {
-                        None
+                    match base.tag {
+                        Some(tag) if is_eligible_parent && !tag.is_pseudo() => Some(tag.node),
+                        _ => None,
                     }
                 },
                 Fragment::AbsoluteOrFixedPositioned(_) |
@@ -533,11 +532,12 @@ fn process_offset_parent_query_inner(
             //
             // Since we saw `offset_parent_node_address` once, we should be able
             // to find it again.
+            let offset_parent_node_tag = Tag::new(offset_parent_node_address);
             fragment_tree
                 .find(|fragment, _, containing_block| {
                     match fragment {
                         Fragment::Box(fragment)
-                            if fragment.tag == Tag::Node(offset_parent_node_address) =>
+                            if fragment.base.tag == Some(offset_parent_node_tag) =>
                         {
                             // Again, take the *first* associated CSS layout box.
                             let padding_box_corner = fragment
