@@ -151,13 +151,19 @@ impl ToComputedValue for BorderSideWidth {
         // We choose the pixel length of the keyword values the same as both spec and gecko.
         // Spec: https://drafts.csswg.org/css-backgrounds-3/#line-width
         // Gecko: https://bugzilla.mozilla.org/show_bug.cgi?id=1312155#c0
-        match *self {
+        let width = match *self {
             BorderSideWidth::Thin => NonNegativeLength::from_px(1.).to_computed_value(context),
             BorderSideWidth::Medium => NonNegativeLength::from_px(3.).to_computed_value(context),
             BorderSideWidth::Thick => NonNegativeLength::from_px(5.).to_computed_value(context),
             BorderSideWidth::Length(ref length) => length.to_computed_value(context),
+        };
+        if width.px() == 0.0 {
+            width
+        } else {
+            // https://www.w3.org/TR/css-values-4/#snap-a-length-as-a-border-width
+            let dppx = context.builder.device.device_pixel_ratio().get();
+            Self::ComputedValue::new((width.px() * dppx).floor().max(1.0) / dppx)
         }
-        .into()
     }
 
     #[inline]
