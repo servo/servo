@@ -153,6 +153,11 @@ def get_github_run_url() -> Optional[str]:
     return f"[#{run_id}](https://github.com/{repository}/actions/runs/{run_id})"
 
 
+def is_pr_open(pr_number: str) -> bool:
+    return b"open" == subprocess.check_output(
+        ["gh", "api", f"/repos/servo/servo/pulls/{pr_number}", "--template", "{{.state}}"])
+
+
 def get_pr_number() -> Optional[str]:
     github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
     if "event" not in github_context:
@@ -161,20 +166,29 @@ def get_pr_number() -> Optional[str]:
         return None
     commit_title = github_context["event"]["head_commit"]["message"]
     match = re.match(r"^Auto merge of #(\d+)", commit_title)
-    return match.group(1) if match else None
+
+    if not match:
+        return None
+
+    # Only return a PR number if the PR is open. bors will often push old merges
+    # onto the HEAD of try branches and we don't want to return results for these
+    # old PRs.
+    number = match.group(1)
+    return number if is_pr_open(number) else None
 
 
-def create_check_run(body: str, tag: str):
+def create_check_run(body: str, tag: str = ""):
+    # This process is based on the documentation here:
     # https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-runs
-    conclusion = 'neutral'
-    # get conclusion
     results = json.loads(os.environ.get("RESULTS", "{}"))
-    if "cancelled" in results:
-        conclusion = 'cancelled'
-    if "failure" in results:
-        conclusion = 'failure'
     if all(r == 'success' for r in results):
         conclusion = 'success'
+    elif "failure" in results:
+        conclusion = 'failure'
+    elif "cancelled" in results:
+        conclusion = 'cancelled'
+    else:
+        conclusion = 'neutral'
 
     github_token = os.environ.get("GITHUB_TOKEN")
     github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
@@ -193,11 +207,9 @@ def create_check_run(body: str, tag: str):
         'output': {
             'title': f'Aggregated {tag} report',
             'summary': body,
-            # 'text': '',
             'images': [{'alt': 'WPT logo', 'image_url': 'https://avatars.githubusercontent.com/u/37226233'}]
         },
         'actions': [
-            # {'label': 'Fix', 'identifier': 'fix_errors', 'description': 'Allow us to fix these errors for you'}
         ]
     }
 
