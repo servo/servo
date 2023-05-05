@@ -7,7 +7,6 @@
 <%helpers:shorthand name="outline"
                     engines="gecko servo-2013 servo-2020"
                     sub_properties="outline-color outline-style outline-width"
-                    derive_serialize="True"
                     spec="https://drafts.csswg.org/css-ui/#propdef-outline">
     use crate::properties::longhands::{outline_color, outline_width, outline_style};
     use crate::values::specified;
@@ -54,6 +53,28 @@
             })
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            let mut wrote_value = false;
+
+            % for name in "color style width".split():
+                if *self.outline_${name} != outline_${name}::get_initial_specified_value() {
+                    if wrote_value {
+                        dest.write_char(' ')?;
+                    }
+                    self.outline_${name}.to_css(dest)?;
+                    wrote_value = true;
+                }
+            % endfor
+
+            if !wrote_value {
+                self.outline_style.to_css(dest)?;
+            }
+
+            Ok(())
         }
     }
 </%helpers:shorthand>
