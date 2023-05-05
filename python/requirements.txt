@@ -22,7 +22,7 @@ ply == 3.8
 colorama == 0.3.7
 
 # For package uploading
-boto3 == 1.17.27
+boto3 == 1.26.127
 PyGithub == 1.58.1
 
 # Default root CAs on Windows CI do not trust CloudFront certificates,
