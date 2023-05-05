@@ -81,13 +81,15 @@ use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::ReflowReason;
-use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 use crate::task::TaskOnce;
+use app_units::Au;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
+use euclid::default::Point2D;
 use euclid::default::Rect;
+use euclid::default::Size2D;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
@@ -2502,32 +2504,11 @@ impl ElementMethods for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
     fn ClientWidth(&self) -> i32 {
-        let owner_doc: &Document = &self.node.owner_doc();
-        if self.local_name().to_string() == "body" ||
-            matches!(owner_doc.quirks_mode(), QuirksMode::Quirks)
-        {
-            let window: &Window = owner_doc.window();
-            return window.window_size().initial_viewport.round().to_i32().width;
-        }
-
         self.client_rect().size.width
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
     fn ClientHeight(&self) -> i32 {
-        let owner_doc: &Document = &self.node.owner_doc();
-        if self.local_name().to_string() == "body" ||
-            matches!(owner_doc.quirks_mode(), QuirksMode::Quirks)
-        {
-            let window: &Window = owner_doc.window();
-            return window
-                .window_size()
-                .initial_viewport
-                .round()
-                .to_i32()
-                .height;
-        }
-
         self.client_rect().size.height
     }
 
@@ -3314,7 +3295,30 @@ impl Element {
         {
             return rect;
         }
-        let rect = self.upcast::<Node>().client_rect();
+
+        let mut rect = self.upcast::<Node>().client_rect();
+        let owner_doc = self.node.owner_doc();
+
+        if (matches!(owner_doc.quirks_mode(), QuirksMode::Quirks) &&
+            owner_doc.GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
+            (matches!(owner_doc.quirks_mode(), QuirksMode::NoQuirks) &&
+                *self.root_element() == *self)
+        {
+            let viewport = owner_doc.window().current_viewport();
+
+            //cast Rect<Au, _> into Rect<i32, _>
+            rect = Rect::<i32>::new(
+                Point2D::<i32>::new(
+                    viewport.origin.x.to_nearest_px(),
+                    viewport.origin.y.to_nearest_px(),
+                ),
+                Size2D::<i32>::new(
+                    viewport.size.width.to_nearest_px(),
+                    viewport.size.height.to_nearest_px(),
+                ),
+            );
+        }
+
         self.ensure_rare_data().client_rect = Some(window_from_node(self).cache_layout_value(rect));
         rect
     }

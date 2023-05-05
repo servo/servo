@@ -2609,7 +2609,13 @@ impl Window {
             layout_chan,
             layout_rpc,
             window_size: Cell::new(window_size),
-            current_viewport: Cell::new(Rect::zero()),
+            current_viewport: Cell::new(Rect::new(
+                Point2D::zero(),
+                Size2D::new(
+                    Au::from_f32_px(window_size.initial_viewport.width.into()),
+                    Au::from_f32_px(window_size.initial_viewport.width.into()),
+                ),
+            )),
             suppress_reflow: Cell::new(true),
             pending_reflow_count: Default::default(),
             current_state: Cell::new(WindowState::Alive),
