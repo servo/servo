@@ -92,12 +92,13 @@ ${helpers.single_keyword(
     gecko_enum_prefix = "StyleFlexWrap",
 )}
 
-% if engine == "servo-2013":
+% if engine in ["servo-2013", "servo-2020"]:
     // FIXME: Update Servo to support the same Syntax as Gecko.
     ${helpers.single_keyword(
         "justify-content",
         "flex-start stretch flex-end center space-between space-around",
-        engines="servo-2013",
+        engines="servo-2013 servo-2020",
+        servo_2020_pref="layout.flexbox.enabled",
         extra_prefixes="webkit",
         spec="https://drafts.csswg.org/css-align/#propdef-justify-content",
         animation_value_type="discrete",

@@ -22,9 +22,11 @@ use style::properties::longhands::align_self::computed_value::T as AlignSelf;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
+use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
 use style::values::computed::length::Size;
 use style::values::computed::Length;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
+use style::values::CSSFloat;
 use style::Zero;
 
 // FIMXE: “Flex items […] `z-index` values other than `auto` create a stacking context
@@ -45,6 +47,7 @@ struct FlexContext<'a> {
     main_start_cross_start_sides_are: MainStartCrossStart,
     container_definite_inner_size: FlexRelativeVec2<Option<Length>>,
     align_items: AlignItems,
+    justify_content: JustifyContent,
 }
 
 /// A flex item with some intermediate results
@@ -259,6 +262,7 @@ fn layout<'context, 'boxes>(
         FlexWrap::WrapReverse => true,
     };
     let align_items = containing_block.style.clone_align_items();
+    let justify_content = containing_block.style.clone_justify_content();
 
     let mut flex_context = FlexContext {
         layout_context,
@@ -269,6 +273,7 @@ fn layout<'context, 'boxes>(
         container_is_single_line,
         flex_axis,
         align_items,
+        justify_content,
         main_start_cross_start_sides_are: MainStartCrossStart::from(
             flex_direction,
             flex_wrap_reverse,
@@ -669,10 +674,37 @@ impl FlexLine<'_> {
 
         // Distribute any remaining free space
         // https://drafts.csswg.org/css-flexbox/#algo-main-align
-        let item_main_margins = self.resolve_auto_main_margins(remaining_free_space);
+        let (item_main_margins, free_space_distributed) =
+            self.resolve_auto_main_margins(remaining_free_space);
 
-        // FIXME: “Align the items along the main-axis per justify-content.”
-        // For now we hard-code `justify-content` to `flex-start`.
+        // Align the items along the main-axis per justify-content.
+        let item_count = self.items.len();
+        let main_start_position = if free_space_distributed {
+            Length::zero()
+        } else {
+            match flex_context.justify_content {
+                JustifyContent::FlexEnd => remaining_free_space,
+                JustifyContent::Center => remaining_free_space / 2.0,
+                JustifyContent::SpaceAround => remaining_free_space / (item_count * 2) as CSSFloat,
+                _ => Length::zero(),
+            }
+        };
+
+        let item_main_interval = if free_space_distributed {
+            Length::zero()
+        } else {
+            match flex_context.justify_content {
+                JustifyContent::SpaceBetween => {
+                    if item_count > 1 {
+                        remaining_free_space / (item_count - 1) as CSSFloat
+                    } else {
+                        Length::zero()
+                    }
+                },
+                JustifyContent::SpaceAround => remaining_free_space / item_count as CSSFloat,
+                _ => Length::zero(),
+            }
+        };
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-margins
         let item_cross_margins = self.items.iter().zip(&item_used_cross_sizes).map(
@@ -697,8 +729,12 @@ impl FlexLine<'_> {
             )
             .collect::<Vec<_>>();
         // https://drafts.csswg.org/css-flexbox/#algo-main-align
-        let items_content_main_start_positions =
-            self.align_along_main_axis(&item_used_main_sizes, &item_margins);
+        let items_content_main_start_positions = self.align_along_main_axis(
+            &item_used_main_sizes,
+            &item_margins,
+            main_start_position,
+            item_main_interval,
+        );
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-align
         let item_content_cross_start_posititons = self
@@ -1029,11 +1065,12 @@ impl<'items> FlexLine<'items> {
     }
 
     // Return the main-start and main-end margin of each item in the line,
-    // with `auto` values resolved.
+    // with `auto` values resolved,
+    // and return whether free space has been distributed.
     fn resolve_auto_main_margins(
         &self,
         remaining_free_space: Length,
-    ) -> impl Iterator<Item = (Length, Length)> + '_ {
+    ) -> (impl Iterator<Item = (Length, Length)> + '_, bool) {
         let each_auto_margin = if remaining_free_space > Length::zero() {
             let auto_margins_count = self
                 .items
@@ -1050,12 +1087,15 @@ impl<'items> FlexLine<'items> {
         } else {
             Length::zero()
         };
-        self.items.iter().map(move |item| {
-            (
-                item.margin.main_start.auto_is(|| each_auto_margin),
-                item.margin.main_end.auto_is(|| each_auto_margin),
-            )
-        })
+        (
+            self.items.iter().map(move |item| {
+                (
+                    item.margin.main_start.auto_is(|| each_auto_margin),
+                    item.margin.main_end.auto_is(|| each_auto_margin),
+                )
+            }),
+            each_auto_margin > Length::zero(),
+        )
     }
 
     /// Return the coordinate of the main-start side of the content area of each item
@@ -1063,11 +1103,11 @@ impl<'items> FlexLine<'items> {
         &'a self,
         item_used_main_sizes: &'a [Length],
         item_margins: &'a [FlexRelativeSides<Length>],
+        main_start_position: Length,
+        item_main_interval: Length,
     ) -> impl Iterator<Item = Length> + 'a {
         // “Align the items along the main-axis”
-        // FIXME: “per justify-content.”
-        // For now we hard-code the behavior for `justify-content: flex-start`.
-        let mut main_position_cursor = Length::zero();
+        let mut main_position_cursor = main_start_position;
         self.items
             .iter()
             .zip(item_used_main_sizes)
@@ -1079,7 +1119,8 @@ impl<'items> FlexLine<'items> {
                 main_position_cursor += main_content_size +
                     item.padding.main_end +
                     item.border.main_end +
-                    margin.main_end;
+                    margin.main_end +
+                    item_main_interval;
                 content_main_start_position
             })
     }
