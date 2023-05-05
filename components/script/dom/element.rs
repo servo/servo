@@ -84,10 +84,8 @@ use crate::dom::window::ReflowReason;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 use crate::task::TaskOnce;
-use app_units::Au;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
-use euclid::default::Point2D;
 use euclid::default::Rect;
 use euclid::default::Size2D;
 use html5ever::serialize;
@@ -3297,26 +3295,21 @@ impl Element {
         }
 
         let mut rect = self.upcast::<Node>().client_rect();
-        let owner_doc = self.node.owner_doc();
+        let in_quirks_mode = self.node.owner_doc().quirks_mode() == QuirksMode::Quirks;
 
-        if (matches!(owner_doc.quirks_mode(), QuirksMode::Quirks) &&
-            owner_doc.GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
-            (matches!(owner_doc.quirks_mode(), QuirksMode::NoQuirks) &&
-                *self.root_element() == *self)
+        if (in_quirks_mode &&
+            self.node.owner_doc().GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
+            (!in_quirks_mode && *self.root_element() == *self)
         {
-            let viewport = owner_doc.window().current_viewport();
-
-            //cast Rect<Au, _> into Rect<i32, _>
-            rect = Rect::<i32>::new(
-                Point2D::<i32>::new(
-                    viewport.origin.x.to_nearest_px(),
-                    viewport.origin.y.to_nearest_px(),
-                ),
-                Size2D::<i32>::new(
-                    viewport.size.width.to_nearest_px(),
-                    viewport.size.height.to_nearest_px(),
-                ),
-            );
+            let viewport_dimensions = self
+                .node
+                .owner_doc()
+                .window()
+                .window_size()
+                .initial_viewport
+                .round()
+                .to_i32();
+            rect.size = Size2D::<i32>::new(viewport_dimensions.width, viewport_dimensions.height);
         }
 
         self.ensure_rare_data().client_rect = Some(window_from_node(self).cache_layout_value(rect));
