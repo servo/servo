@@ -81,6 +81,7 @@ use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::ReflowReason;
+use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 use crate::task::TaskOnce;
@@ -2501,11 +2502,32 @@ impl ElementMethods for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
     fn ClientWidth(&self) -> i32 {
+        let owner_doc: &Document = &self.node.owner_doc();
+        if self.local_name().to_string() == "body" ||
+            matches!(owner_doc.quirks_mode(), QuirksMode::Quirks)
+        {
+            let window: &Window = owner_doc.window();
+            return window.window_size().initial_viewport.round().to_i32().width;
+        }
+
         self.client_rect().size.width
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
     fn ClientHeight(&self) -> i32 {
+        let owner_doc: &Document = &self.node.owner_doc();
+        if self.local_name().to_string() == "body" ||
+            matches!(owner_doc.quirks_mode(), QuirksMode::Quirks)
+        {
+            let window: &Window = owner_doc.window();
+            return window
+                .window_size()
+                .initial_viewport
+                .round()
+                .to_i32()
+                .height;
+        }
+
         self.client_rect().size.height
     }
 
