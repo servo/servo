@@ -58,7 +58,7 @@ impl error::Error for FailedAllocationError {
 }
 
 impl fmt::Display for FailedAllocationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.allocation_info {
             Some(ref info) => write!(
                 f,

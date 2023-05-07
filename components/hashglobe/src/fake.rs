@@ -75,7 +75,7 @@ where
         Ok(self.shrink_to_fit())
     }
 
-    pub fn try_entry(&mut self, key: K) -> Result<Entry<K, V>, FailedAllocationError> {
+    pub fn try_entry(&mut self, key: K) -> Result<Entry<'_, K, V>, FailedAllocationError> {
         Ok(self.entry(key))
     }
 
@@ -159,7 +159,7 @@ where
     V: fmt::Debug,
     S: BuildHasher,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
 }
@@ -220,7 +220,7 @@ where
     T: Eq + Hash + fmt::Debug,
     S: BuildHasher,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
 }

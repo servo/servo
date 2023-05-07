@@ -271,7 +271,7 @@ where
     ///     println!("{}", x);
     /// }
     /// ```
-    pub fn iter(&self) -> Iter<T> {
+    pub fn iter(&self) -> Iter<'_, T> {
         Iter {
             iter: self.map.keys(),
         }
@@ -436,7 +436,7 @@ where
     /// assert!(set.is_empty());
     /// ```
     #[inline]
-    pub fn drain(&mut self) -> Drain<T> {
+    pub fn drain(&mut self) -> Drain<'_, T> {
         Drain {
             iter: self.map.drain(),
         }
@@ -696,7 +696,7 @@ where
     T: Eq + Hash + fmt::Debug,
     S: BuildHasher,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_set().entries(self.iter()).finish()
     }
 }
@@ -881,7 +881,7 @@ where
 ///
 /// [`HashSet`]: struct.HashSet.html
 /// [`iter`]: struct.HashSet.html#method.iter
-pub struct Iter<'a, K: 'a> {
+pub struct Iter<'a, K> {
     iter: Keys<'a, K, ()>,
 }
 
@@ -914,7 +914,7 @@ pub struct Drain<'a, K: 'static> {
 ///
 /// [`HashSet`]: struct.HashSet.html
 /// [`intersection`]: struct.HashSet.html#method.intersection
-pub struct Intersection<'a, T: 'a, S: 'a> {
+pub struct Intersection<'a, T, S> {
     // iterator of the first set
     iter: Iter<'a, T>,
     // the second set
@@ -928,7 +928,7 @@ pub struct Intersection<'a, T: 'a, S: 'a> {
 ///
 /// [`HashSet`]: struct.HashSet.html
 /// [`difference`]: struct.HashSet.html#method.difference
-pub struct Difference<'a, T: 'a, S: 'a> {
+pub struct Difference<'a, T, S> {
     // iterator of the first set
     iter: Iter<'a, T>,
     // the second set
@@ -942,7 +942,7 @@ pub struct Difference<'a, T: 'a, S: 'a> {
 ///
 /// [`HashSet`]: struct.HashSet.html
 /// [`symmetric_difference`]: struct.HashSet.html#method.symmetric_difference
-pub struct SymmetricDifference<'a, T: 'a, S: 'a> {
+pub struct SymmetricDifference<'a, T, S> {
     iter: Chain<Difference<'a, T, S>, Difference<'a, T, S>>,
 }
 
@@ -953,7 +953,7 @@ pub struct SymmetricDifference<'a, T: 'a, S: 'a> {
 ///
 /// [`HashSet`]: struct.HashSet.html
 /// [`union`]: struct.HashSet.html#method.union
-pub struct Union<'a, T: 'a, S: 'a> {
+pub struct Union<'a, T, S> {
     iter: Chain<Iter<'a, T>, Difference<'a, T, S>>,
 }
 
@@ -1029,7 +1029,7 @@ impl<'a, K> ExactSizeIterator for Iter<'a, K> {
 }
 
 impl<'a, K: fmt::Debug> fmt::Debug for Iter<'a, K> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.clone()).finish()
     }
 }
@@ -1051,7 +1051,7 @@ impl<K> ExactSizeIterator for IntoIter<K> {
 }
 
 impl<K: fmt::Debug> fmt::Debug for IntoIter<K> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let entries_iter = self.iter.inner.iter().map(|(k, _)| k);
         f.debug_list().entries(entries_iter).finish()
     }
@@ -1074,7 +1074,7 @@ impl<'a, K> ExactSizeIterator for Drain<'a, K> {
 }
 
 impl<'a, K: fmt::Debug> fmt::Debug for Drain<'a, K> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let entries_iter = self.iter.inner.iter().map(|(k, _)| k);
         f.debug_list().entries(entries_iter).finish()
     }
@@ -1116,7 +1116,7 @@ where
     T: fmt::Debug + Eq + Hash,
     S: BuildHasher,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.clone()).finish()
     }
 }
@@ -1157,7 +1157,7 @@ where
     T: fmt::Debug + Eq + Hash,
     S: BuildHasher,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.clone()).finish()
     }
 }
@@ -1190,7 +1190,7 @@ where
     T: fmt::Debug + Eq + Hash,
     S: BuildHasher,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.clone()).finish()
     }
 }
@@ -1208,7 +1208,7 @@ where
     T: fmt::Debug + Eq + Hash,
     S: BuildHasher,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.clone()).finish()
     }
 }

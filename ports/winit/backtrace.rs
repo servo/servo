@@ -28,7 +28,7 @@ struct Print {
 }
 
 impl fmt::Debug for Print {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Safety: we’re in a signal handler that is about to call `libc::_exit`.
         // Potential data races from using `*_unsynchronized` functions are perhaps
         // less bad than potential deadlocks?
@@ -78,7 +78,7 @@ impl fmt::Debug for Print {
     }
 }
 
-fn print_path(fmt: &mut fmt::Formatter, path: BytesOrWideString) -> fmt::Result {
+fn print_path(fmt: &mut fmt::Formatter<'_>, path: BytesOrWideString<'_>) -> fmt::Result {
     match path {
         BytesOrWideString::Bytes(mut bytes) => loop {
             match std::str::from_utf8(bytes) {

@@ -142,7 +142,7 @@ impl App {
     }
 
     // This function decides whether the event should be handled during `run_forever`.
-    fn winit_event_to_servo_event(&self, event: winit::event::Event<ServoEvent>) {
+    fn winit_event_to_servo_event(&self, event: winit::event::Event<'_, ServoEvent>) {
         match event {
             // App level events
             winit::event::Event::Suspended => {

@@ -54,7 +54,7 @@ pub struct RootTypeDef {
 }
 
 impl Parse for MacroInput {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream<'_>) -> Result<Self> {
         let fields: Punctuated<MacroArg, Token![, ]> = input.parse_terminated(MacroArg::parse)?;
         let mut gen_accessors = None;
         let mut type_def = None;
@@ -83,7 +83,7 @@ impl Parse for MacroInput {
 }
 
 impl Parse for MacroArg {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream<'_>) -> Result<Self> {
         let lookahead = input.lookahead1();
         if lookahead.peek(kw::gen_types) {
             Ok(MacroArg::Types(input.parse()?))
@@ -98,7 +98,7 @@ impl Parse for MacroArg {
 }
 
 impl<K: Parse, V: Parse> Parse for ArgInner<K, V> {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream<'_>) -> Result<Self> {
         Ok(ArgInner {
             _field_kw: input.parse()?,
             _equals: input.parse()?,
@@ -108,7 +108,7 @@ impl<K: Parse, V: Parse> Parse for ArgInner<K, V> {
 }
 
 impl Parse for Field {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream<'_>) -> Result<Self> {
         Ok(Field {
             attributes: input.call(Attribute::parse_outer)?,
             name: input.parse()?,
@@ -119,7 +119,7 @@ impl Parse for Field {
 }
 
 impl Parse for RootTypeDef {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream<'_>) -> Result<Self> {
         Ok(RootTypeDef {
             type_name: input.parse()?,
             type_def: input.parse()?,
@@ -128,7 +128,7 @@ impl Parse for RootTypeDef {
 }
 
 impl Parse for NewTypeDef {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream<'_>) -> Result<Self> {
         let content;
         #[allow(clippy::eval_order_dependence)]
         Ok(NewTypeDef {
@@ -139,7 +139,7 @@ impl Parse for NewTypeDef {
 }
 
 impl Parse for FieldType {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream<'_>) -> Result<Self> {
         if input.peek(token::Brace) {
             Ok(FieldType::NewTypeDef(input.parse()?))
         } else {
