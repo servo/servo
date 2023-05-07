@@ -13,18 +13,17 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
 
-ctx.transform(1,2, 3,4, 5,6);
-ctx.transform(-2,1, 3/2,-1/2, 1,-2);
-ctx.fillStyle = '#0f0';
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255);
-t.done();
-
+  ctx.transform(1,2, 3,4, 5,6);
+  ctx.transform(-2,1, 3/2,-1/2, 1,-2);
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,255,0,255);
+  t.done();
 });
 done();

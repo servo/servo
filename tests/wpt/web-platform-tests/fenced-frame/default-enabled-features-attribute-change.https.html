@@ -12,8 +12,8 @@
 <script>
 promise_test(async(t) => {
   const fencedframe = await attachFencedFrameContext({
-        generator_api: "sharedstorage",
-        attributes: [["allow", "shared-storage *; attribution-reporting *"]],
+        generator_api: 'fledge',
+        attributes: [["allow", "attribution-reporting *"]],
         origin: get_host_info().ORIGIN});
 
   fencedframe.element.allow = "attribution-reporting 'none'";
@@ -26,8 +26,8 @@ promise_test(async(t) => {
 
 promise_test(async(t) => {
   const fencedframe = await attachFencedFrameContext({
-        generator_api: "sharedstorage",
-        attributes: [["allow", "shared-storage *; attribution-reporting *"]],
+        generator_api: 'fledge',
+        attributes: [["allow", "attribution-reporting *"]],
         origin: get_host_info().ORIGIN});
 
   fencedframe.element.allow = "attribution-reporting 'none'";

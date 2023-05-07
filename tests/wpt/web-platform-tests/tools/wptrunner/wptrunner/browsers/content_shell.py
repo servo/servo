@@ -63,8 +63,12 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data,
                     **kwargs):
+    sanitizer_enabled = kwargs.get("sanitizer_enabled")
+    if sanitizer_enabled:
+        test_type = "crashtest"
     executor_kwargs = base_executor_kwargs(test_type, test_environment, run_info_data,
                                            **kwargs)
+    executor_kwargs["sanitizer_enabled"] = sanitizer_enabled
     return executor_kwargs
 
 

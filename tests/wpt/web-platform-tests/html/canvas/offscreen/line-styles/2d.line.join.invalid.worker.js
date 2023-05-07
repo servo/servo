@@ -13,36 +13,35 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.lineJoin = 'bevel'
-_assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
+  ctx.lineJoin = 'bevel'
+  _assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
 
-ctx.lineJoin = 'bevel';
-ctx.lineJoin = 'invalid';
-_assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
+  ctx.lineJoin = 'bevel';
+  ctx.lineJoin = 'invalid';
+  _assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
 
-ctx.lineJoin = 'bevel';
-ctx.lineJoin = 'ROUND';
-_assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
+  ctx.lineJoin = 'bevel';
+  ctx.lineJoin = 'ROUND';
+  _assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
 
-ctx.lineJoin = 'bevel';
-ctx.lineJoin = 'round\0';
-_assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
+  ctx.lineJoin = 'bevel';
+  ctx.lineJoin = 'round\0';
+  _assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
 
-ctx.lineJoin = 'bevel';
-ctx.lineJoin = 'round ';
-_assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
+  ctx.lineJoin = 'bevel';
+  ctx.lineJoin = 'round ';
+  _assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
 
-ctx.lineJoin = 'bevel';
-ctx.lineJoin = "";
-_assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
+  ctx.lineJoin = 'bevel';
+  ctx.lineJoin = "";
+  _assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
 
-ctx.lineJoin = 'bevel';
-ctx.lineJoin = 'butt';
-_assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
-t.done();
-
+  ctx.lineJoin = 'bevel';
+  ctx.lineJoin = 'butt';
+  _assertSame(ctx.lineJoin, 'bevel', "ctx.lineJoin", "'bevel'");
+  t.done();
 });
 done();

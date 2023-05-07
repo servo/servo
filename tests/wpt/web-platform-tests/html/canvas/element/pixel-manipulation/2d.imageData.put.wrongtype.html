@@ -19,11 +19,10 @@
 var t = async_test("putImageData() does not accept non-ImageData objects");
 _addTest(function(canvas, ctx) {
 
-var imgdata = { width: 1, height: 1, data: [255, 0, 0, 255] };
-assert_throws_js(TypeError, function() { ctx.putImageData(imgdata, 0, 0); });
-assert_throws_js(TypeError, function() { ctx.putImageData("cheese", 0, 0); });
-assert_throws_js(TypeError, function() { ctx.putImageData(42, 0, 0); });
-
+  var imgdata = { width: 1, height: 1, data: [255, 0, 0, 255] };
+  assert_throws_js(TypeError, function() { ctx.putImageData(imgdata, 0, 0); });
+  assert_throws_js(TypeError, function() { ctx.putImageData("cheese", 0, 0); });
+  assert_throws_js(TypeError, function() { ctx.putImageData(42, 0, 0); });
 
 });
 </script>

@@ -16,15 +16,12 @@
         height: 25px;
         background-color: lime;
         /*
-         * The original path length is 50px, which is not enough to contain
-         * the element entirely, so it should be increased.
-         * "75px" is just the center of the element, which makes the path
-         * length increase minimally.
-         * Besides, -75px = (-150px * 2) + 225px, the used offset distance is
-         * -225px in this case.
-         * Note: offset-anchor is "200% -300%", and ray angle is -90deg.
+         * The original path length is 50px, contain applies
+         * decrease, so that the new length is -25px (-150px / 2).
+         * Note: offset-anchor is "200% -300%", and ray angle is -90deg
+           and offset-rotate is -90deg.
          */
-        transform: translate(calc(-75px), calc(25px * 3));
+        transform: translate(-75px, -12.5px) rotate(-90deg) translate(-225px, 87.5px);
       }
     </style>
   </head>

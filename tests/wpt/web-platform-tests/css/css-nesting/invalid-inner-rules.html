@@ -8,7 +8,7 @@
 <style id="ss">
 div {
   /* This is not a conditional rule, and thus cannot be in nesting context. */
-  @layer {
+  @font-face {
     &.a { font-size: 10px; }
   }
 
@@ -16,7 +16,7 @@ div {
     &.a { color: red; }
 
     /* Same. */
-    @layer {
+    @font-face {
       &.a { font-size: 10px; }
     }
   }
@@ -41,11 +41,11 @@ div {
     let [ss] = document.styleSheets;
     assert_equals(ss.cssRules.length, 1);
     assert_throws_dom('HierarchyRequestError',
-      () => { ss.cssRules[0].cssRules[0].insertRule('@layer {}', 0); });
+      () => { ss.cssRules[0].cssRules[0].insertRule('@font-face {}', 0); });
     assert_throws_dom('HierarchyRequestError',
-      () => { ss.cssRules[0].insertRule('@layer {}', 0); });
+      () => { ss.cssRules[0].insertRule('@font-face {}', 0); });
 
-    // The @layer rules should be ignored (again).
+    // The @font-face rules should be ignored (again).
     assert_equals(ss.cssRules[0].cssText,
 `div {
   @media screen {

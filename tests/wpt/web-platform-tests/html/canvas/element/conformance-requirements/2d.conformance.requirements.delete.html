@@ -19,10 +19,9 @@
 var t = async_test("window.CanvasRenderingContext2D is Configurable");
 _addTest(function(canvas, ctx) {
 
-_assertDifferent(window.CanvasRenderingContext2D, undefined, "window.CanvasRenderingContext2D", "undefined");
-_assertSame(delete window.CanvasRenderingContext2D, true, "delete window.CanvasRenderingContext2D", "true");
-_assertSame(window.CanvasRenderingContext2D, undefined, "window.CanvasRenderingContext2D", "undefined");
-
+  _assertDifferent(window.CanvasRenderingContext2D, undefined, "window.CanvasRenderingContext2D", "undefined");
+  _assertSame(delete window.CanvasRenderingContext2D, true, "delete window.CanvasRenderingContext2D", "true");
+  _assertSame(window.CanvasRenderingContext2D, undefined, "window.CanvasRenderingContext2D", "undefined");
 
 });
 </script>

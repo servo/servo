@@ -88,7 +88,7 @@ def assert_javascript_entry(
     }, entry)
 
 
-async def create_console_api_message_for_primitive_value(bidi_session, context, type, value):
+async def create_console_api_message_from_string(bidi_session, context, type, value):
     await bidi_session.script.evaluate(
         expression=f"""console.{type}({value})""",
         await_promise=False,

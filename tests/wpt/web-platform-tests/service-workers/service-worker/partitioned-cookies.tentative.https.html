@@ -59,7 +59,7 @@ promise_test(async t => {
   document.cookie = '__Host-partitioned=123; Secure; Path=/; SameSite=None; Partitioned;';
   assert_true(document.cookie.includes('__Host-partitioned=123'));
 
-  // Test that the partitioned cookie is available to this worker.
+  // Test that the partitioned cookie is available to this worker via HTTP.
   wait_promise = new Promise(resolve => {
     resolve_wait_promise = resolve;
   });
@@ -67,10 +67,23 @@ promise_test(async t => {
     got = ev.data;
     resolve_wait_promise();
   };
-  filtered_registrations[0].active.postMessage({type: 'echo_cookies'});
+  filtered_registrations[0].active.postMessage({type: 'echo_cookies_http'});
   await wait_promise;
   assert_true(got.ok, 'Get cookies');
-  assert_true(got.cookies.includes('__Host-partitioned'), 'Can access partitioned cookie');
+  assert_true(got.cookies.includes('__Host-partitioned'), 'Can access partitioned cookie via HTTP');
+
+  // Test that the partitioned cookie is available to this worker via CookieStore API.
+  wait_promise = new Promise(resolve => {
+    resolve_wait_promise = resolve;
+  });
+  on_message = ev => {
+    got = ev.data;
+    resolve_wait_promise();
+  };
+  filtered_registrations[0].active.postMessage({type: 'echo_cookies_js'});
+  await wait_promise;
+  assert_true(got.ok, 'Get cookies');
+  assert_true(got.cookies.includes('__Host-partitioned'), 'Can access partitioned cookie via JS');
 
   const popup = window.open(
       new URL(

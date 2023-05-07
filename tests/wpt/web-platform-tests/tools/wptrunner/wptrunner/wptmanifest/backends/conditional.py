@@ -33,7 +33,7 @@ class ConditionalValue:
         if isinstance(self.value_node, ValueNode):
             self.value_node.data = value
         else:
-            assert(isinstance(self.value_node, ListNode))
+            assert isinstance(self.value_node, ListNode)
             while self.value_node.children:
                 self.value_node.children[0].remove()
             assert len(self.value_node.children) == 0

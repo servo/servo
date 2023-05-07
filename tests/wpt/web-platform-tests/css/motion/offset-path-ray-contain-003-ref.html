@@ -14,8 +14,9 @@
         width: 100px;
         height: 100px;
         background-color: lime;
-        /* The movement is about 150 - 50 * sqrt(2) */
-        transform: rotate(-45deg) translate(79.29px) rotate(45deg);
+        /* ray length is sqrt(150^2 + 0^2); contain does -max(100, 100) / 2; */
+        /* the result length is 100. sin(45deg) * length = 70.71; */
+        transform: rotate(-45deg) translate(100px) rotate(45deg);
       }
     </style>
   </head>

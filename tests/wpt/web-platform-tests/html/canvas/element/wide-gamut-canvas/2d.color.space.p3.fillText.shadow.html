@@ -19,44 +19,43 @@
 var t = async_test("Test if fillText can be used with a display-p3 shadow color");
 _addTest(function(canvas, ctx) {
 
-deferTest();
+  deferTest();
 
-const fullRedInP3 = [255, 0, 0, 255];
-const sRGBRedInP3 = [234, 51, 35, 255];
+  const fullRedInP3 = [255, 0, 0, 255];
+  const sRGBRedInP3 = [234, 51, 35, 255];
 
-canvas.width = 100;
-canvas.height = 100;
+  canvas.width = 100;
+  canvas.height = 100;
 
-let f = new FontFace("Ahem", "url(/fonts/Ahem.ttf)");
-document.fonts.add(f);
-f.load().then(function() {
-    t.step(function() {
-        ctx.font = "40px Ahem";
+  let f = new FontFace("Ahem", "url(/fonts/Ahem.ttf)");
+  document.fonts.add(f);
+  f.load().then(function() {
+      t.step(function() {
+          ctx.font = "40px Ahem";
 
-        ctx.fillStyle = "black";
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 50;
-        ctx.shadowColor = "#f00";
-        ctx.fillText("A", 0, 0);
+          ctx.fillStyle = "black";
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 50;
+          ctx.shadowColor = "#f00";
+          ctx.fillText("A", 0, 0);
 
-        ctx.shadowColor = "black";
-        ctx.shadowColor = "color(display-p3 100% 0 0)";
-        ctx.fillText("A", 50, 0);
+          ctx.shadowColor = "black";
+          ctx.shadowColor = "color(display-p3 100% 0 0)";
+          ctx.fillText("A", 50, 0);
 
-        let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height, { colorSpace: "display-p3" }).data;
-        let pixelAt = function(x, y) {
-            let offset = (y * canvas.width + x) * 4;
-            return [pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]];
-        };
+          let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height, { colorSpace: "display-p3" }).data;
+          let pixelAt = function(x, y) {
+              let offset = (y * canvas.width + x) * 4;
+              return [pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]];
+          };
 
-        assert_array_equals(pixelAt(25, 25), sRGBRedInP3);
-        assert_array_equals(pixelAt(75, 25), fullRedInP3);
+          assert_array_equals(pixelAt(25, 25), sRGBRedInP3);
+          assert_array_equals(pixelAt(75, 25), fullRedInP3);
 
-        t.done();
-    });
-});
-
+          t.done();
+      });
+  });
 
 }, {colorSpace: "display-p3"});
 </script>

@@ -9,12 +9,15 @@
       }
       #target {
         position: relative;
-        left: 150px;
-        top: 150px;
-        width: 100px;
-        height: 100px;
+        left: 30px;
+        top: 40px;
+        width: 10px;
+        height: 10px;
         background-color: lime;
-        transform: rotate(0deg) translate(50px, -150px);
+        /* ray length is sqrt(30^2 + 40^2); contain does -max(10, 10) / 2; */
+        /* the result length is 45px. angle is 180deg; */
+        /* 5 is origin shift. */
+        transform: translate(-5px, 40px);
       }
     </style>
   </head>

@@ -4,7 +4,7 @@ import os
 import shutil
 import sys
 import logging
-from distutils.spawn import find_executable
+from shutil import which
 
 # The `pkg_resources` module is provided by `setuptools`, which is itself a
 # dependency of `virtualenv`. Tolerate its absence so that this module may be
@@ -27,7 +27,7 @@ class Virtualenv:
         self.path = path
         self.skip_virtualenv_setup = skip_virtualenv_setup
         if not skip_virtualenv_setup:
-            self.virtualenv = find_executable("virtualenv")
+            self.virtualenv = which("virtualenv")
             if not self.virtualenv:
                 raise ValueError("virtualenv must be installed and on the PATH")
             self._working_set = None
@@ -57,7 +57,7 @@ class Virtualenv:
 
     @property
     def pip_path(self):
-        path = find_executable("pip3", self.bin_path)
+        path = which("pip3", path=self.bin_path)
         if path is None:
             raise ValueError("pip3 not found")
         return path

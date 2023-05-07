@@ -19,12 +19,11 @@
 var t = async_test("Verify test doesn't crash with invalid video.");
 _addTest(function(canvas, ctx) {
 
-var v = document.createElement('video');
-v.play();
-// Test is deliberately not waiting for the 'playing' event to fire.
-ctx.createPattern(v, 'repeat-x');
-ctx.drawImage(v, 0, 0);
-
+  var v = document.createElement('video');
+  v.play();
+  // Test is deliberately not waiting for the 'playing' event to fire.
+  ctx.createPattern(v, 'repeat-x');
+  ctx.drawImage(v, 0, 0);
 
 });
 </script>

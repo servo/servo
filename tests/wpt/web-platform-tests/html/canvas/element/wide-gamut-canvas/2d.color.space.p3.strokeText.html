@@ -19,41 +19,40 @@
 var t = async_test("Test if strokeText can be used with a solid display-p3 color");
 _addTest(function(canvas, ctx) {
 
-deferTest();
+  deferTest();
 
-const fullRedInP3 = [255, 0, 0, 255];
-const sRGBRedInP3 = [234, 51, 35, 255];
+  const fullRedInP3 = [255, 0, 0, 255];
+  const sRGBRedInP3 = [234, 51, 35, 255];
 
-canvas.width = 100;
-canvas.height = 100;
+  canvas.width = 100;
+  canvas.height = 100;
 
-let f = new FontFace("Ahem", "url(/fonts/Ahem.ttf)");
-document.fonts.add(f);
-f.load().then(function() {
-    t.step(function() {
-        ctx.font = "40px Ahem";
+  let f = new FontFace("Ahem", "url(/fonts/Ahem.ttf)");
+  document.fonts.add(f);
+  f.load().then(function() {
+      t.step(function() {
+          ctx.font = "40px Ahem";
 
-        ctx.strokeStyle = "#f00";
-        ctx.lineWidth = 20;
-        ctx.strokeText("A", 0, 50);
+          ctx.strokeStyle = "#f00";
+          ctx.lineWidth = 20;
+          ctx.strokeText("A", 0, 50);
 
-        ctx.strokeStyle = "black";
-        ctx.strokeStyle = "color(display-p3 100% 0 0)";
-        ctx.strokeText("A", 50, 50);
+          ctx.strokeStyle = "black";
+          ctx.strokeStyle = "color(display-p3 100% 0 0)";
+          ctx.strokeText("A", 50, 50);
 
-        let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height, { colorSpace: "display-p3" }).data;
-        let pixelAt = function(x, y) {
-            let offset = (y * canvas.width + x) * 4;
-            return [pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]];
-        };
+          let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height, { colorSpace: "display-p3" }).data;
+          let pixelAt = function(x, y) {
+              let offset = (y * canvas.width + x) * 4;
+              return [pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]];
+          };
 
-        assert_array_equals(pixelAt(25, 25), sRGBRedInP3);
-        assert_array_equals(pixelAt(75, 25), fullRedInP3);
+          assert_array_equals(pixelAt(25, 25), sRGBRedInP3);
+          assert_array_equals(pixelAt(75, 25), fullRedInP3);
 
-        t.done();
-    });
-});
-
+          t.done();
+      });
+  });
 
 }, {colorSpace: "display-p3"});
 </script>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<title>Test setting auction config's resolveToConfig to a promise</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/default-enabled-features-helper.js"></script>
+
+<body>
+<script>
+// To simulate the time it takes for a promise to resolve, we use a simple
+// timeout that eventually resolves to a boolean.
+function delayValue(value, timeout) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(value);
+    }, timeout);
+  });
+}
+
+promise_test(async(t) => {
+  const key = token();
+
+  const urn = await generateURNFromFledge("resources/embeddee.html", [key],
+      [], delayValue(true, 500));
+  assert_true(urn instanceof FencedFrameConfig);
+  const fencedframe = attachFencedFrame(urn);
+
+  const page1_resp = await nextValueFromServer(key);
+  assert_equals(page1_resp, "PASS",
+      "The page should have loaded.");
+}, 'resolveToConfig set to a promise that resolves to true');
+
+promise_test(async(t) => {
+  const key = token();
+
+  const urn = await generateURNFromFledge("resources/embeddee.html", [key],
+      [], delayValue(false, 500));
+  assert_false(urn instanceof FencedFrameConfig);
+  const fencedframe = attachFencedFrame(urn);
+
+  const page1_resp = await nextValueFromServer(key);
+  assert_equals(page1_resp, "PASS",
+      "The page should have loaded.");
+}, 'resolveToConfig set to a promise that resolves to false');
+
+promise_test(async(t) => {
+  // This tests the case where the resolveToConfig promise resolves before
+  // the auction finishes
+  const key = token();
+
+  const urn = await generateURNFromFledge("resources/embeddee.html", [key],
+      [], delayValue(true, 0));
+  assert_true(urn instanceof FencedFrameConfig);
+  const fencedframe = attachFencedFrame(urn);
+
+  const page1_resp = await nextValueFromServer(key);
+  assert_equals(page1_resp, "PASS",
+      "The page should have loaded.");
+}, 'resolveToConfig set to a promise that immediately resolves');
+
+promise_test(async(t) => {
+  const key = token();
+
+  // This should still resolve, but resolve to a URN.
+  const urn = await generateURNFromFledge("resources/embeddee.html", [key],
+      [], delayValue("invalid", 0));
+  assert_false(urn instanceof FencedFrameConfig);
+  const fencedframe = attachFencedFrame(urn);
+
+  const page1_resp = await nextValueFromServer(key);
+  assert_equals(page1_resp, "PASS",
+      "The page should have loaded.");
+}, 'resolveToConfig set to a promise that resolves to an invalid value');
+
+</script>
+</body>
+</html>

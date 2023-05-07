@@ -2,8 +2,8 @@
 
 import os
 import plistlib
-from distutils.spawn import find_executable
-from distutils.version import LooseVersion
+from packaging.version import Version
+from shutil import which
 
 import psutil
 
@@ -50,9 +50,9 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, **kwargs
     if kwargs["binary"] is not None:
         raise ValueError("Safari doesn't support setting executable location")
 
-    V = LooseVersion
     browser_bundle_version = run_info_data["browser_bundle_version"]
-    if browser_bundle_version is not None and V(browser_bundle_version[2:]) >= V("613.1.7.1"):
+    if (browser_bundle_version is not None and
+        Version(browser_bundle_version[2:]) >= Version("613.1.7.1")):
         logger.debug("using acceptInsecureCerts=True")
         executor_kwargs["capabilities"]["acceptInsecureCerts"] = True
     else:
@@ -161,7 +161,7 @@ class SafariBrowser(WebDriverBrowser):
                          env=env)
 
         if "/" not in webdriver_binary:
-            wd_path = find_executable(webdriver_binary)
+            wd_path = which(webdriver_binary)
         else:
             wd_path = webdriver_binary
         self.safari_path = self._find_safari_executable(wd_path)

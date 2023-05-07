@@ -19,36 +19,35 @@
 var t = async_test("Verify that when one radius is given to roundRect() as a non-array argument, specified as a DOMPointInit, applies to all corners.");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
-ctx.roundRect(0, 0, 100, 50, {x: 40, y: 20});
-ctx.fillStyle = '#0f0';
-ctx.fill();
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.roundRect(0, 0, 100, 50, {x: 40, y: 20});
+  ctx.fillStyle = '#0f0';
+  ctx.fill();
 
-// top-left corner
-_assertPixel(canvas, 20,1, 255,0,0,255);
-_assertPixel(canvas, 41,1, 0,255,0,255);
-_assertPixel(canvas, 1,10, 255,0,0,255);
-_assertPixel(canvas, 1,21, 0,255,0,255);
+  // top-left corner
+  _assertPixel(canvas, 20,1, 255,0,0,255);
+  _assertPixel(canvas, 41,1, 0,255,0,255);
+  _assertPixel(canvas, 1,10, 255,0,0,255);
+  _assertPixel(canvas, 1,21, 0,255,0,255);
 
-// top-right corner
-_assertPixel(canvas, 79,1, 255,0,0,255);
-_assertPixel(canvas, 58,1, 0,255,0,255);
-_assertPixel(canvas, 98,10, 255,0,0,255);
-_assertPixel(canvas, 98,21, 0,255,0,255);
+  // top-right corner
+  _assertPixel(canvas, 79,1, 255,0,0,255);
+  _assertPixel(canvas, 58,1, 0,255,0,255);
+  _assertPixel(canvas, 98,10, 255,0,0,255);
+  _assertPixel(canvas, 98,21, 0,255,0,255);
 
-// bottom-right corner
-_assertPixel(canvas, 79,48, 255,0,0,255);
-_assertPixel(canvas, 58,48, 0,255,0,255);
-_assertPixel(canvas, 98,39, 255,0,0,255);
-_assertPixel(canvas, 98,28, 0,255,0,255);
+  // bottom-right corner
+  _assertPixel(canvas, 79,48, 255,0,0,255);
+  _assertPixel(canvas, 58,48, 0,255,0,255);
+  _assertPixel(canvas, 98,39, 255,0,0,255);
+  _assertPixel(canvas, 98,28, 0,255,0,255);
 
-// bottom-left corner
-_assertPixel(canvas, 20,48, 255,0,0,255);
-_assertPixel(canvas, 41,48, 0,255,0,255);
-_assertPixel(canvas, 1,39, 255,0,0,255);
-_assertPixel(canvas, 1,28, 0,255,0,255);
-
+  // bottom-left corner
+  _assertPixel(canvas, 20,48, 255,0,0,255);
+  _assertPixel(canvas, 41,48, 0,255,0,255);
+  _assertPixel(canvas, 1,39, 255,0,0,255);
+  _assertPixel(canvas, 1,28, 0,255,0,255);
 
 });
 </script>

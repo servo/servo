@@ -21,7 +21,27 @@ promise_test(async t => {
 
   // Check that the message from the readable end matches the writable end.
   assert_equals(reply, 'Hello World');
-}, 'WebTransport server should be able to create and handle a bidirectional stream');
+}, 'WebTransport client should be able to create and handle a bidirectional stream');
+
+promise_test(async t => {
+  // Establish a WebTransport session.
+  const wt = new WebTransport(webtransport_url('echo.py'));
+
+  // Create a bidirectional stream.
+  const bidi_stream = await wt.createBidirectionalStream();
+
+  // Write a message to the writable end, and close it.
+  const writer = bidi_stream.writable.getWriter();
+  const encoder = new TextEncoder();
+  await writer.write(encoder.encode('Hello World'));
+  await writer.close();
+
+  // Read the data on the readable end.
+  const reply = await read_stream_as_string(bidi_stream.readable);
+
+  // Check that the message from the readable end matches the writable end.
+  assert_equals(reply, 'Hello World');
+}, 'WebTransport client should be able to create and handle a bidirectional stream without waiting for ready');
 
 promise_test(async t => {
   // Establish a WebTransport session.
@@ -76,7 +96,36 @@ promise_test(async t => {
   // Make sure the message on the writable and readable ends of the streams
   // match.
   assert_equals(reply, 'Hello World');
-}, 'WebTransport server should be able to create, accept, and handle a unidirectional stream');
+}, 'WebTransport client should be able to create, accept, and handle a unidirectional stream');
+
+promise_test(async t => {
+  // Establish a WebTransport session.
+  const wt = new WebTransport(webtransport_url('echo.py'));
+
+  // Create a unidirectional stream.
+  const writable = await wt.createUnidirectionalStream();
+
+  // Write a message to the writable end, and close it.
+  const encoder = new TextEncoderStream();
+  encoder.readable.pipeTo(writable);
+  const writer = encoder.writable.getWriter();
+  await writer.write('Hello World');
+  await writer.close();
+
+  // The echo handler creates a new unidirectional stream to echo back data from
+  // the server to client. Accept the unidirectional stream.
+  const readable = wt.incomingUnidirectionalStreams;
+  const stream_reader = readable.getReader();
+  const { value: recv_stream } = await stream_reader.read();
+  stream_reader.releaseLock();
+
+  // Read the data on the readable end.
+  const reply = await read_stream_as_string(recv_stream);
+
+  // Make sure the message on the writable and readable ends of the streams
+  // match.
+  assert_equals(reply, 'Hello World');
+}, 'WebTransport client should be able to create, accept, and handle a unidirectional stream without waiting for ready');
 
 promise_test(async t => {
   // Establish a WebTransport session.

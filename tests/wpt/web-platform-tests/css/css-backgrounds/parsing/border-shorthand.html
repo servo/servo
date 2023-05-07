@@ -9,9 +9,14 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/shorthand-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
 </head>
 <body>
 <script>
+
+test_invalid_value('border', '2px solid color-mix(42deg)');
+test_invalid_value('border', '2px solid color-contrast(42deg)');
+
 test_shorthand_value('border', '5px dotted blue', {
   'border-top-width': '5px',
   'border-right-width': '5px',

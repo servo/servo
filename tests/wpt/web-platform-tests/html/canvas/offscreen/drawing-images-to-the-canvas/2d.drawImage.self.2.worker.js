@@ -13,22 +13,21 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.fillStyle = '#0f0';
-ctx.fillRect(0, 1, 100, 49);
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 1);
-ctx.drawImage(canvas, 0, 1);
-ctx.fillStyle = '#0f0';
-ctx.fillRect(0, 0, 100, 2);
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(0, 1, 100, 49);
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 1);
+  ctx.drawImage(canvas, 0, 1);
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(0, 0, 100, 2);
 
-_assertPixelApprox(canvas, 0,0, 0,255,0,255, 2);
-_assertPixelApprox(canvas, 99,0, 0,255,0,255, 2);
-_assertPixelApprox(canvas, 0,49, 0,255,0,255, 2);
-_assertPixelApprox(canvas, 99,49, 0,255,0,255, 2);
-t.done();
-
+  _assertPixelApprox(canvas, 0,0, 0,255,0,255, 2);
+  _assertPixelApprox(canvas, 99,0, 0,255,0,255, 2);
+  _assertPixelApprox(canvas, 0,49, 0,255,0,255, 2);
+  _assertPixelApprox(canvas, 99,49, 0,255,0,255, 2);
+  t.done();
 });
 done();

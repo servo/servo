@@ -19,8 +19,7 @@
 var t = async_test("putImageData() with null imagedata throws TypeError");
 _addTest(function(canvas, ctx) {
 
-assert_throws_js(TypeError, function() { ctx.putImageData(null, 0, 0); });
-
+  assert_throws_js(TypeError, function() { ctx.putImageData(null, 0, 0); });
 
 });
 </script>

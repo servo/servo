@@ -19,19 +19,18 @@
 var t = async_test("drawImage with zero-sized canvas as the source shoud throw exception");
 _addTest(function(canvas, ctx) {
 
-var canvas2 = document.createElement('canvas');
-canvas2.width = 0;
-canvas2.height = 50;
-assert_throws_dom("INVALID_STATE_ERR", function() { ctx.drawImage(canvas2, 0, 0); });
+  var canvas2 = document.createElement('canvas');
+  canvas2.width = 0;
+  canvas2.height = 50;
+  assert_throws_dom("INVALID_STATE_ERR", function() { ctx.drawImage(canvas2, 0, 0); });
 
-canvas2.width = 50;
-canvas2.height = 0;
-assert_throws_dom("INVALID_STATE_ERR", function() { ctx.drawImage(canvas2, 0, 0); });
+  canvas2.width = 50;
+  canvas2.height = 0;
+  assert_throws_dom("INVALID_STATE_ERR", function() { ctx.drawImage(canvas2, 0, 0); });
 
-canvas2.width = 0;
-canvas2.height = 0;
-assert_throws_dom("INVALID_STATE_ERR", function() { ctx.drawImage(canvas2, 0, 0); });
-
+  canvas2.width = 0;
+  canvas2.height = 0;
+  assert_throws_dom("INVALID_STATE_ERR", function() { ctx.drawImage(canvas2, 0, 0); });
 
 });
 </script>

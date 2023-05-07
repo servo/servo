@@ -4,7 +4,7 @@ import argparse
 import os
 import sys
 from collections import OrderedDict
-from distutils.spawn import find_executable
+from shutil import which
 from datetime import timedelta
 
 from . import config
@@ -362,6 +362,11 @@ scheme host and port.""")
     chrome_group.add_argument("--no-enable-experimental", action="store_false", dest="enable_experimental",
                               help="Do not enable --enable-experimental-web-platform-features flag "
                               "on experimental channels")
+    chrome_group.add_argument(
+        "--enable-sanitizer",
+        action="store_true",
+        dest="sanitizer_enabled",
+        help="Only alert on sanitizer-related errors and crashes.")
 
     sauce_group = parser.add_argument_group("Sauce Labs-specific")
     sauce_group.add_argument("--sauce-browser", dest="sauce_browser",
@@ -502,7 +507,7 @@ def exe_path(name):
     if name is None:
         return
 
-    path = find_executable(name)
+    path = which(name)
     if path and os.access(path, os.X_OK):
         return path
     else:

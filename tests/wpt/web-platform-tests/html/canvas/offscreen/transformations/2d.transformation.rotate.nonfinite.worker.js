@@ -13,22 +13,21 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
 
-ctx.translate(100, 10);
-ctx.rotate(Infinity);
-ctx.rotate(-Infinity);
-ctx.rotate(NaN);
+  ctx.translate(100, 10);
+  ctx.rotate(Infinity);
+  ctx.rotate(-Infinity);
+  ctx.rotate(NaN);
 
-ctx.fillStyle = '#0f0';
-ctx.fillRect(-100, -10, 100, 50);
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(-100, -10, 100, 50);
 
-_assertPixel(canvas, 50,25, 0,255,0,255);
-t.done();
-
+  _assertPixel(canvas, 50,25, 0,255,0,255);
+  t.done();
 });
 done();

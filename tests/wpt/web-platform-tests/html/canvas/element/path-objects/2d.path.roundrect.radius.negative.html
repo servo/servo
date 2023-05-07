@@ -19,13 +19,12 @@
 var t = async_test("roundRect() with negative radius throws an exception");
 _addTest(function(canvas, ctx) {
 
-assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [-1])});
-assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [1, -1])});
-assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [new DOMPoint(-1, 1), 1])});
-assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [new DOMPoint(1, -1)])});
-assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [{x: -1, y: 1}, 1])});
-assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [{x: 1, y: -1}])});
-
+  assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [-1])});
+  assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [1, -1])});
+  assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [new DOMPoint(-1, 1), 1])});
+  assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [new DOMPoint(1, -1)])});
+  assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [{x: -1, y: 1}, 1])});
+  assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 0, 0, [{x: 1, y: -1}])});
 
 });
 </script>

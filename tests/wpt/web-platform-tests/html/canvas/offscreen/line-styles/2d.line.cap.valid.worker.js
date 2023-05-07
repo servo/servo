@@ -13,18 +13,17 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.lineCap = 'butt'
-_assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
+  ctx.lineCap = 'butt'
+  _assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
 
-ctx.lineCap = 'round';
-_assertSame(ctx.lineCap, 'round', "ctx.lineCap", "'round'");
+  ctx.lineCap = 'round';
+  _assertSame(ctx.lineCap, 'round', "ctx.lineCap", "'round'");
 
-ctx.lineCap = 'square';
-_assertSame(ctx.lineCap, 'square', "ctx.lineCap", "'square'");
-t.done();
-
+  ctx.lineCap = 'square';
+  _assertSame(ctx.lineCap, 'square', "ctx.lineCap", "'square'");
+  t.done();
 });
 done();

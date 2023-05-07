@@ -19,21 +19,20 @@
 var t = async_test("isPointInStroke() should return correct results on dashed paths at high scale factors");
 _addTest(function(canvas, ctx) {
 
-var scale = 20;
-ctx.setLineDash([10, 21.4159]); // dash from t=0 to t=10 along the circle
-ctx.scale(scale, scale);
-ctx.ellipse(6, 10, 5, 5, 0, 2*Math.PI, false);
-ctx.stroke();
+  var scale = 20;
+  ctx.setLineDash([10, 21.4159]); // dash from t=0 to t=10 along the circle
+  ctx.scale(scale, scale);
+  ctx.ellipse(6, 10, 5, 5, 0, 2*Math.PI, false);
+  ctx.stroke();
 
-// hit-test the beginning of the dash (t=0)
-_assertSame(ctx.isPointInStroke(11*scale, 10*scale), true, "ctx.isPointInStroke(11*scale, 10*scale)", "true");
-// hit-test the middle of the dash (t=5)
-_assertSame(ctx.isPointInStroke(8.70*scale, 14.21*scale), true, "ctx.isPointInStroke(8.70*scale, 14.21*scale)", "true");
-// hit-test the end of the dash (t=9.8)
-_assertSame(ctx.isPointInStroke(4.10*scale, 14.63*scale), true, "ctx.isPointInStroke(4.10*scale, 14.63*scale)", "true");
-// hit-test past the end of the dash (t=10.2)
-_assertSame(ctx.isPointInStroke(3.74*scale, 14.46*scale), false, "ctx.isPointInStroke(3.74*scale, 14.46*scale)", "false");
-
+  // hit-test the beginning of the dash (t=0)
+  _assertSame(ctx.isPointInStroke(11*scale, 10*scale), true, "ctx.isPointInStroke(11*scale, 10*scale)", "true");
+  // hit-test the middle of the dash (t=5)
+  _assertSame(ctx.isPointInStroke(8.70*scale, 14.21*scale), true, "ctx.isPointInStroke(8.70*scale, 14.21*scale)", "true");
+  // hit-test the end of the dash (t=9.8)
+  _assertSame(ctx.isPointInStroke(4.10*scale, 14.63*scale), true, "ctx.isPointInStroke(4.10*scale, 14.63*scale)", "true");
+  // hit-test past the end of the dash (t=10.2)
+  _assertSame(ctx.isPointInStroke(3.74*scale, 14.46*scale), false, "ctx.isPointInStroke(3.74*scale, 14.46*scale)", "false");
 
 });
 </script>

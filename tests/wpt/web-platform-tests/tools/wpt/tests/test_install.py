@@ -51,14 +51,17 @@ def test_install_chrome_chromedriver_by_version():
     if sys.platform == "win32":
         dest = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "Scripts")
         chromedriver_path = os.path.join(dest, "chrome", "chromedriver.exe")
+        # By default Windows treats paths as case-insensitive
+        path_fn = lambda path: path.lower()
     else:
         dest = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "bin")
         chromedriver_path = os.path.join(dest, "chrome", "chromedriver")
+        path_fn = lambda path: path
     if os.path.exists(chromedriver_path):
         os.unlink(chromedriver_path)
     # This is a stable version.
     binary_path = chrome.install_webdriver_by_version(dest=dest, version="111.0.5563.146")
-    assert binary_path == chromedriver_path
+    assert path_fn(binary_path) == path_fn(chromedriver_path)
     assert os.path.exists(chromedriver_path)
     os.unlink(chromedriver_path)
 

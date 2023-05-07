@@ -1,31 +1,20 @@
-from os.path import dirname, join
-
 from collections import OrderedDict
-
+from typing import Dict, List, Optional, Text, Union
+from os.path import dirname, join
 from xml.parsers import expat
 import xml.etree.ElementTree as etree  # noqa: N813
 
-MYPY = False
-if MYPY:
-    # MYPY is set to True when run under Mypy.
-    from typing import Dict
-    from typing import List
-    from typing import Optional
-    from typing import Text
-    from typing import Union
 
 _catalog = join(dirname(__file__), "catalog")
 
-def _wrap_error(e):
-    # type: (expat.error) -> etree.ParseError
+def _wrap_error(e: expat.error) -> etree.ParseError:
     err = etree.ParseError(e)
     err.code = e.code
     err.position = e.lineno, e.offset
     raise err
 
-_names = {}  # type: Dict[Text, Text]
-def _fixname(key):
-    # type: (Text) -> Text
+_names: Dict[Text, Text] = {}
+def _fixname(key: Text) -> Text:
     try:
         name = _names[key]
     except KeyError:
@@ -36,7 +25,7 @@ def _fixname(key):
     return name
 
 
-_undefined_entity_code = expat.errors.codes[expat.errors.XML_ERROR_UNDEFINED_ENTITY]  # type: int
+_undefined_entity_code: int = expat.errors.codes[expat.errors.XML_ERROR_UNDEFINED_ENTITY]
 
 
 class XMLParser:
@@ -48,8 +37,7 @@ class XMLParser:
     (therefore allowing XHTML entities) and supports all encodings
     Python does, rather than just those supported by expat.
     """
-    def __init__(self, encoding=None):
-        # type: (Optional[Text]) -> None
+    def __init__(self, encoding: Optional[Text] = None) -> None:
         self._parser = expat.ParserCreate(encoding, "}")
         self._target = etree.TreeBuilder()
         # parser settings
@@ -64,34 +52,29 @@ class XMLParser:
         self._parser.ExternalEntityRefHandler = self._external
         self._parser.SkippedEntityHandler = self._skipped
         # used for our horrible re-encoding hack
-        self._fed_data = []  # type: Optional[List[bytes]]
-        self._read_encoding = None  # type: Optional[Text]
+        self._fed_data: Optional[List[bytes]] = []
+        self._read_encoding: Optional[Text] = None
 
-    def _xml_decl(self, version, encoding, standalone):
-        # type: (Text, Optional[Text], int) -> None
+    def _xml_decl(self, version: Text, encoding: Optional[Text], standalone: int) -> None:
         self._read_encoding = encoding
 
-    def _start(self, tag, attrib_in):
-        # type: (Text, List[str]) -> etree.Element
+    def _start(self, tag: Text, attrib_in: List[str]) -> etree.Element:
         assert isinstance(tag, str)
         self._fed_data = None
         tag = _fixname(tag)
-        attrib = OrderedDict()  # type: Dict[Union[bytes, Text], Union[bytes, Text]]
+        attrib: Dict[Union[bytes, Text], Union[bytes, Text]] = OrderedDict()
         if attrib_in:
             for i in range(0, len(attrib_in), 2):
                 attrib[_fixname(attrib_in[i])] = attrib_in[i+1]
         return self._target.start(tag, attrib)
 
-    def _data(self, text):
-        # type: (Text) -> None
+    def _data(self, text: Text) -> None:
         self._target.data(text)
 
-    def _end(self, tag):
-        # type: (Text) -> etree.Element
+    def _end(self, tag: Text) -> etree.Element:
         return self._target.end(_fixname(tag))
 
-    def _external(self, context, base, system_id, public_id):
-        # type: (Text, Optional[Text], Optional[Text], Optional[Text]) -> bool
+    def _external(self, context: Text, base: Optional[Text], system_id: Optional[Text], public_id: Optional[Text]) -> bool:
         if public_id in {
                 "-//W3C//DTD XHTML 1.0 Transitional//EN",
                 "-//W3C//DTD XHTML 1.1//EN",
@@ -112,8 +95,7 @@ class XMLParser:
 
         return True
 
-    def _skipped(self, name, is_parameter_entity):
-        # type: (Text, bool) -> None
+    def _skipped(self, name: Text, is_parameter_entity: bool) -> None:
         err = expat.error("undefined entity %s: line %d, column %d" %
                           (name, self._parser.ErrorLineNumber,
                            self._parser.ErrorColumnNumber))
@@ -122,8 +104,7 @@ class XMLParser:
         err.offset = self._parser.ErrorColumnNumber
         raise err
 
-    def feed(self, data):
-        # type: (bytes) -> None
+    def feed(self, data: bytes) -> None:
         if self._fed_data is not None:
             self._fed_data.append(data)
         try:
@@ -141,8 +122,7 @@ class XMLParser:
                 self._fed_data = None
                 self.feed(xml)
 
-    def close(self):
-        # type: () -> etree.Element
+    def close(self) -> etree.Element:
         try:
             self._parser.Parse("", True)
         except expat.error as v:

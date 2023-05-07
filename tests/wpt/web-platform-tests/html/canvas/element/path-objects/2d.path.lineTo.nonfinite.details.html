@@ -19,12 +19,11 @@
 var t = async_test("lineTo() with Infinity/NaN for first arg still converts the second arg");
 _addTest(function(canvas, ctx) {
 
-for (var arg1 of [Infinity, -Infinity, NaN]) {
-  var converted = false;
-  ctx.lineTo(arg1, { valueOf: function() { converted = true; return 0; } });
-  _assert(converted, "converted");
-}
-
+  for (var arg1 of [Infinity, -Infinity, NaN]) {
+    var converted = false;
+    ctx.lineTo(arg1, { valueOf: function() { converted = true; return 0; } });
+    _assert(converted, "converted");
+  }
 
 });
 </script>

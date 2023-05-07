@@ -12,15 +12,15 @@
 <script>
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, /*should_load=*/false,
-      get_host_info().ORIGIN,
-      allow="attribution-reporting *; shared-storage *;");
+      get_host_info().ORIGIN, generator_api="fledge",
+      allow="attribution-reporting *;");
 }, 'Same-origin fenced frame with allow attribute enabling required feature ' +
     'but page disabling feature.');
 
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, /*should_load=*/false,
-      get_host_info().REMOTE_ORIGIN,
-      allow="attribution-reporting *; shared-storage *;");
+      get_host_info().REMOTE_ORIGIN, generator_api="fledge",
+      allow="attribution-reporting *;");
 }, 'Cross-origin fenced frame with allow attribute enabling required feature ' +
     'but page disabling feature.');
 </script>

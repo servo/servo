@@ -13,36 +13,35 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.lineCap = 'butt'
-_assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
+  ctx.lineCap = 'butt'
+  _assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
 
-ctx.lineCap = 'butt';
-ctx.lineCap = 'invalid';
-_assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
+  ctx.lineCap = 'butt';
+  ctx.lineCap = 'invalid';
+  _assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
 
-ctx.lineCap = 'butt';
-ctx.lineCap = 'ROUND';
-_assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
+  ctx.lineCap = 'butt';
+  ctx.lineCap = 'ROUND';
+  _assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
 
-ctx.lineCap = 'butt';
-ctx.lineCap = 'round\0';
-_assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
+  ctx.lineCap = 'butt';
+  ctx.lineCap = 'round\0';
+  _assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
 
-ctx.lineCap = 'butt';
-ctx.lineCap = 'round ';
-_assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
+  ctx.lineCap = 'butt';
+  ctx.lineCap = 'round ';
+  _assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
 
-ctx.lineCap = 'butt';
-ctx.lineCap = "";
-_assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
+  ctx.lineCap = 'butt';
+  ctx.lineCap = "";
+  _assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
 
-ctx.lineCap = 'butt';
-ctx.lineCap = 'bevel';
-_assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
-t.done();
-
+  ctx.lineCap = 'butt';
+  ctx.lineCap = 'bevel';
+  _assertSame(ctx.lineCap, 'butt', "ctx.lineCap", "'butt'");
+  t.done();
 });
 done();

@@ -41,6 +41,20 @@
   <option id="selectMenu4-option2">two</option>
 </selectmenu>
 
+<selectmenu id="selectMenu5WithTabIndex" tabindex="1">
+  <option>one</option>
+  <option>two</option>
+</selectmenu>
+
+<input id="input6"/>
+<selectmenu id="selectMenu7">
+  <button slot="button" behavior="button" id="selectMenu7-button">
+    selectMenu7-button
+  </button>
+  <option>one</option>
+  <option>two</option>
+</selectmenu>
+
 <script>
 
   function clickOn(element) {
@@ -79,10 +93,11 @@
 
   // See https://w3c.github.io/webdriver/#keyboard-actions
   const KEY_CODE_MAP = {
+    'Tab':        '\uE004',
     'Enter':      '\uE007',
     'Space':      '\uE00D',
     'ArrowUp':    '\uE013',
-    'ArrowDown':  '\uE015'
+    'ArrowDown':  '\uE015',
   };
 
   promise_test(async () => {
@@ -204,4 +219,39 @@
     assert_equals(input_event_count, 1, "input event shouldn't fire when selected option didn't change");
     assert_equals(change_event_count, 1, "change event shouldn't fire when selected option didn't change");
   }, "<selectmenu> should fire input and change events when option in listbox is clicked");
+
+  promise_test(async() => {
+    const selectMenu = document.getElementById("selectMenu2");
+    await test_driver.send_keys(selectMenu, " ");
+    assert_true(selectMenu.open, "<Space> should open selectmenu");
+    await test_driver.send_keys(selectMenu, KEY_CODE_MAP.Enter);
+    assert_false(selectMenu.open, "<Enter> should close selectmenu");
+  }, "Check that <Space> opens <selectmenu>.");
+
+  promise_test(async() => {
+    const selectMenu = document.getElementById("selectMenu5WithTabIndex");
+    await test_driver.send_keys(selectMenu, " ");
+    assert_true(selectMenu.open, "<Space> should open selectmenu");
+    await test_driver.send_keys(selectMenu, KEY_CODE_MAP.Enter);
+    assert_false(selectMenu.open, "<Enter> should close selectmenu");
+  }, "Check that <Space> opens <selectmenu> when <selectmenu> specifies tabindex");
+
+  promise_test(async() => {
+    const input6 = document.getElementById("input6");
+    const selectMenu = document.getElementById("selectMenu7");
+    const selectMenuButton = document.getElementById("selectMenu7-button")
+
+    var keydown_count = 0;
+    selectMenuButton.addEventListener("keydown", (e) => {
+      keydown_count++;
+    });
+
+    // Focus selectmenu via Tab traversal because focus() does not work when selectmenu
+    // has custom slot.
+    // TODO(http://crbug.com/1440573) Fix this.
+    await test_driver.send_keys(input6, KEY_CODE_MAP.Tab);
+
+    await test_driver.send_keys(selectMenu, "a");
+    assert_equals(keydown_count, 1, "button in shadowroot should have observed keydown");
+}, "Test that <selectmenu> button slot receives key events.");
 </script>

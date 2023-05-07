@@ -19,15 +19,14 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = '#f00';
-ctx.roundRect(0, 0, 100, 50, [0]);
-ctx.strokeStyle = '#0f0';
-ctx.lineWidth = 90;
-ctx.beginPath();
-ctx.roundRect(45, 20, 10, 10, [0]);
-ctx.stroke();
-_assertPixel(canvas, 50,25, 0,255,0,255);
-
+  ctx.fillStyle = '#f00';
+  ctx.roundRect(0, 0, 100, 50, [0]);
+  ctx.strokeStyle = '#0f0';
+  ctx.lineWidth = 90;
+  ctx.beginPath();
+  ctx.roundRect(45, 20, 10, 10, [0]);
+  ctx.stroke();
+  _assertPixel(canvas, 50,25, 0,255,0,255);
 
 });
 </script>

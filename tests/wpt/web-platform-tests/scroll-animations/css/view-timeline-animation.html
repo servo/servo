@@ -122,7 +122,7 @@
 <template id=multiple_timelines>
   <style>
     #timelines {
-      view-timeline: tv vertical, th horizontal;
+      view-timeline: tv vertical ancestor,  th horizontal ancestor;
       background-color: red;
     }
     #scroller {
@@ -132,6 +132,7 @@
       display: grid;
       grid-template-columns: 50px 50px 50px 50px 50px 50px 50px;
       grid-template-row: 50px 50px 50px 50px 50px 50px 50px;
+      view-timeline: tv defer, th defer;
     }
     #scroller > div {
       z-index: -1;

@@ -13,21 +13,20 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.miterLimit = 1.5;
-_assertSame(ctx.miterLimit, 1.5, "ctx.miterLimit", "1.5");
+  ctx.miterLimit = 1.5;
+  _assertSame(ctx.miterLimit, 1.5, "ctx.miterLimit", "1.5");
 
-ctx.miterLimit = "1e1";
-_assertSame(ctx.miterLimit, 10, "ctx.miterLimit", "10");
+  ctx.miterLimit = "1e1";
+  _assertSame(ctx.miterLimit, 10, "ctx.miterLimit", "10");
 
-ctx.miterLimit = 1/1024;
-_assertSame(ctx.miterLimit, 1/1024, "ctx.miterLimit", "1/1024");
+  ctx.miterLimit = 1/1024;
+  _assertSame(ctx.miterLimit, 1/1024, "ctx.miterLimit", "1/1024");
 
-ctx.miterLimit = 1000;
-_assertSame(ctx.miterLimit, 1000, "ctx.miterLimit", "1000");
-t.done();
-
+  ctx.miterLimit = 1000;
+  _assertSame(ctx.miterLimit, 1000, "ctx.miterLimit", "1000");
+  t.done();
 });
 done();

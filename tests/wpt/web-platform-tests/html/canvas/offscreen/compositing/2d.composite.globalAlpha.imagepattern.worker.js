@@ -6,31 +6,22 @@
 importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
-var t = async_test("");
-var t_pass = t.done.bind(t);
-var t_fail = t.step_func(function(reason) {
-    throw reason;
-});
-t.step(function() {
+promise_test(async t => {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.fillStyle = '#0f0';
-ctx.fillRect(0, 0, 100, 50);
-fetch('/images/red.png')
-  .then(response => response.blob())
-    .then(blob => {
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(0, 0, 100, 50);
+  const response = await fetch('/images/red.png');
+  const blob = await response.blob();
+  const bitmap = await createImageBitmap(blob);
 
-    createImageBitmap(blob)
-      .then(bitmap => {
-        ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
-        ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
-        ctx.fillRect(0, 0, 100, 50);
-        _assertPixelApprox(canvas, 50,25, 2,253,0,255, 2);
-    });
-});
-t.done();
-
-});
+  ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
+  // Avoiding any potential alpha = 0 optimisations.
+  ctx.globalAlpha = 0.01;
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixelApprox(canvas, 50,25, 2,253,0,255, 2);
+  t.done();
+}, "");
 done();

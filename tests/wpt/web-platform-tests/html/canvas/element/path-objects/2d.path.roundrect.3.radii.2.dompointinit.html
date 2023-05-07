@@ -19,28 +19,27 @@
 var t = async_test("Verify that when three radii are given to roundRect(), the second radius, specified as a DOMPoint, applies to the top-right and bottom-left corners.");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
-ctx.roundRect(0, 0, 100, 50, [0, {x: 40, y: 20}, 0]);
-ctx.fillStyle = '#0f0';
-ctx.fill();
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.roundRect(0, 0, 100, 50, [0, {x: 40, y: 20}, 0]);
+  ctx.fillStyle = '#0f0';
+  ctx.fill();
 
-// top-right corner
-_assertPixel(canvas, 79,1, 255,0,0,255);
-_assertPixel(canvas, 58,1, 0,255,0,255);
-_assertPixel(canvas, 98,10, 255,0,0,255);
-_assertPixel(canvas, 98,21, 0,255,0,255);
+  // top-right corner
+  _assertPixel(canvas, 79,1, 255,0,0,255);
+  _assertPixel(canvas, 58,1, 0,255,0,255);
+  _assertPixel(canvas, 98,10, 255,0,0,255);
+  _assertPixel(canvas, 98,21, 0,255,0,255);
 
-// bottom-left corner
-_assertPixel(canvas, 20,48, 255,0,0,255);
-_assertPixel(canvas, 41,48, 0,255,0,255);
-_assertPixel(canvas, 1,39, 255,0,0,255);
-_assertPixel(canvas, 1,28, 0,255,0,255);
+  // bottom-left corner
+  _assertPixel(canvas, 20,48, 255,0,0,255);
+  _assertPixel(canvas, 41,48, 0,255,0,255);
+  _assertPixel(canvas, 1,39, 255,0,0,255);
+  _assertPixel(canvas, 1,28, 0,255,0,255);
 
-// other corners
-_assertPixel(canvas, 1,1, 0,255,0,255);
-_assertPixel(canvas, 98,48, 0,255,0,255);
-
+  // other corners
+  _assertPixel(canvas, 1,1, 0,255,0,255);
+  _assertPixel(canvas, 98,48, 0,255,0,255);
 
 });
 </script>

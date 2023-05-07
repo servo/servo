@@ -19,12 +19,11 @@
 var t = async_test("strokeRect of Nx0 pixels draws a closed line with no caps");
 _addTest(function(canvas, ctx) {
 
-ctx.strokeStyle = '#f00';
-ctx.lineWidth = 250;
-ctx.lineCap = 'round';
-ctx.strokeRect(100, 25, 100, 0);
-_assertPixel(canvas, 50,25, 0,0,0,0);
-
+  ctx.strokeStyle = '#f00';
+  ctx.lineWidth = 250;
+  ctx.lineCap = 'round';
+  ctx.strokeRect(100, 25, 100, 0);
+  _assertPixel(canvas, 50,25, 0,0,0,0);
 
 });
 </script>

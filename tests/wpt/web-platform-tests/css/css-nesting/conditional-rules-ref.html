@@ -5,19 +5,46 @@
 <style>
   .test {
     background-color: red;
-    width: 100px;
-    height: 100px;
+    width: 30px;
+    height: 30px;
     display: grid;
   }
 
-  @media (min-width: 50px) {
+  @media (min-width: 10px) {
     .test-5 > div {
+      background-color: green;
+    }
+  }
+
+  @media (min-width: 10px) {
+    .test-6 > div {
       background-color: green;
     }
   }
 
   @supports (display: grid) {
     .test-10 {
+      background-color: green;
+    }
+  }
+
+  @layer {
+    .test-11 {
+      background-color: green !important;
+    }
+  }
+
+  @scope (.test-12) {
+    :scope {
+      background-color: green;
+    }
+  }
+
+  div {
+    container-type: inline-size;
+  }
+  @container (width >= 0px) {
+    .test-13 {
       background-color: green;
     }
   }
@@ -29,5 +56,9 @@
 <body>
   <p>Tests pass if <strong>block is green</strong></p>
   <div class="test test-5"><div></div></div>
+  <div class="test test-6"><div></div></div>
   <div class="test test-10"><div></div></div>
+  <div class="test test-11"><div></div></div>
+  <div class="test"><div class="test-12"></div></div>
+  <div class="test"><div class="test-13"></div></div>
 </body>

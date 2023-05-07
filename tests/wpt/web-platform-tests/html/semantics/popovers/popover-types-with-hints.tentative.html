@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <link rel="author" href="mailto:masonf@chromium.org">
-<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -73,7 +73,7 @@
       <div popover>popover 3</div>
     </div>
   </div>
-  <div popover=hint anchor=anchorid>Hint anchored to pop-up</div>
+  <div popover=hint anchor=anchorid>Hint anchored to popover</div>
   <script>
   {
     const popover1 = document.currentScript.parentElement.querySelectorAll('[popover=""]')[0];
@@ -116,7 +116,7 @@
     assert_false(hint1.matches(':popover-open'));
     assert_true(hint2.matches(':popover-open'));
     hint2.hidePopover();
-  },'If a popover=hint is shown, it should hide any other open popover=hint pop-ups, including ancestral pop-ups. (You can\'t nest popover=hint)');
+  },'If a popover=hint is shown, it should hide any other open popover=hint popovers, including ancestral popovers. (You can\'t nest popover=hint)');
   </script>
 </div>
 
@@ -135,7 +135,7 @@
     assert_false(hint.matches(':popover-open'));
     assert_true(auto.matches(':popover-open'));
     auto.hidePopover();
-  },'If a popover=auto is shown, it should hide any open popover=hint, including if the popover=hint is an ancestral pop-up of the popover=auto. (You can\'t nest a popover=auto inside a popover=hint)');
+  },'If a popover=auto is shown, it should hide any open popover=hint, including if the popover=hint is an ancestral popover of the popover=auto. (You can\'t nest a popover=auto inside a popover=hint)');
   </script>
 </div>
 

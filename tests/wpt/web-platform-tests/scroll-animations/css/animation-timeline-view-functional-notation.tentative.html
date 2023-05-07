@@ -8,6 +8,20 @@
 <script src="/web-animations/testcommon.js"></script>
 <script src="support/testcommon.js"></script>
 <style>
+  @keyframes fade-in-out-without-timeline-range {
+    0% { opacity: 0; }
+    40% { opacity: 1; }
+    60% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes fade-out-without-timeline-range {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes change-font-size-without-timeline-range {
+    0% { font-size: 10px; }
+    100% { font-size: 30px; }
+  }
   @keyframes fade-in-out {
     entry 0% { opacity: 0; }
     entry 100% { opacity: 1; }
@@ -95,6 +109,203 @@ async function scrollTop(element, value) {
   element.scrollTop = value;
   await waitForNextFrame();
 }
+
+// ---------------------------------
+// Tests without timeline range name
+// ---------------------------------
+
+promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, ['content', 'target', 'content']);
+  container.style.overflow = 'hidden';
+  div.style.animation = "fade-in-out-without-timeline-range 1s linear";
+  div.style.animationTimeline = "view()";
+  // So the range is [200px, 500px].
+
+  await scrollTop(container, 200);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 0%');
+  await scrollTop(container, 260);
+  assert_equals(getComputedStyle(div).opacity, '0.5', 'At 20%');
+  await scrollTop(container, 320);
+  assert_equals(getComputedStyle(div).opacity, '1', 'At 40%');
+
+  await scrollTop(container, 380);
+  assert_equals(getComputedStyle(div).opacity, '1', 'At 60%');
+  await scrollTop(container, 440);
+  assert_equals(getComputedStyle(div).opacity, '0.5', 'At 80%');
+  await scrollTop(container, 500);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
+}, 'animation-timeline: view() without timeline range name');
+
+promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, ['content', 'target', 'content']);
+  container.style.overflow = 'hidden';
+  div.style.animation = "fade-in-out-without-timeline-range 1s linear";
+  div.style.animationTimeline = "view(50px)";
+  // So the range is [250px, 450px].
+
+  await scrollTop(container, 250);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 0%');
+  await scrollTop(container, 290);
+  assert_equals(getComputedStyle(div).opacity, '0.5', 'At 20%');
+  await scrollTop(container, 330);
+  assert_equals(getComputedStyle(div).opacity, '1', 'At 40%');
+
+  await scrollTop(container, 370);
+  assert_equals(getComputedStyle(div).opacity, '1', 'At 60%');
+  await scrollTop(container, 410);
+  assert_equals(getComputedStyle(div).opacity, '0.5', 'At 80%');
+  await scrollTop(container, 450);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
+}, 'animation-timeline: view(50px) without timeline range name');
+
+promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, ['content', 'target', 'content']);
+  container.style.overflow = 'hidden';
+  div.style.animation = "fade-in-out-without-timeline-range 1s linear";
+  div.style.animationTimeline = "view(auto 50px)";
+  // So the range is [250px, 500px].
+
+  await scrollTop(container, 250);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 0%');
+  await scrollTop(container, 300);
+  assert_equals(getComputedStyle(div).opacity, '0.5', 'At 20%');
+  await scrollTop(container, 350);
+  assert_equals(getComputedStyle(div).opacity, '1', 'At 40%');
+
+  await scrollTop(container, 400);
+  assert_equals(getComputedStyle(div).opacity, '1', 'At 60%');
+  await scrollTop(container, 450);
+  assert_equals(getComputedStyle(div).opacity, '0.5', 'At 80%');
+  await scrollTop(container, 500);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
+}, 'animation-timeline: view(auto 50px) without timeline range name');
+
+promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, ['target', 'content']);
+  container.style.overflow = 'hidden';
+  div.style.animation = "fade-out-without-timeline-range 1s linear";
+  div.style.animationTimeline = "view(inline)";
+  // So the range is [-200px, 100px], but it is impossible to scroll to the
+  // negative part.
+
+  await scrollLeft(container, 0);
+  assert_approx_equals(parseFloat(getComputedStyle(div).opacity), 0.33333,
+                       0.00001, 'At 66.7%');
+  // Note: 20% for each 60px.
+  await scrollLeft(container, 40);
+  assert_equals(getComputedStyle(div).opacity, '0.2', 'At 80%');
+  await scrollLeft(container, 100);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
+}, 'animation-timeline: view(inline) without timeline range name');
+
+promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, ['target', 'content']);
+  container.style.overflow = 'hidden';
+  div.style.animation = "fade-out-without-timeline-range 1s linear";
+  div.style.animationTimeline = "view(horizontal)";
+  // So the range is [-200px, 100px], but it is impossible to scroll to the
+  // negative part.
+
+  await scrollLeft(container, 0);
+  assert_approx_equals(parseFloat(getComputedStyle(div).opacity), 0.33333,
+                       0.00001, 'At 66.7%');
+  // Note: 20% for each 60px.
+  await scrollLeft(container, 40);
+  assert_equals(getComputedStyle(div).opacity, '0.2', 'At 80%');
+  await scrollLeft(container, 100);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
+}, 'animation-timeline: view(horizontal) without timeline range name');
+
+promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, ['target', 'content']);
+  div.style.animation = "fade-out-without-timeline-range 1s linear";
+  div.style.animationTimeline = "view(vertical)";
+  // So the range is [-200px, 100px], but it is impossible to scroll to the
+  // negative part.
+
+  await scrollTop(container, 0);
+  assert_approx_equals(parseFloat(getComputedStyle(div).opacity), 0.33333,
+                       0.00001, 'At 66.7%');
+  // Note: 20% for each 60px.
+  await scrollTop(container, 40);
+  assert_equals(getComputedStyle(div).opacity, '0.2', 'At 80%');
+  await scrollTop(container, 100);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
+}, 'animation-timeline: view(vertical) without timeline range name');
+
+promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, ['target', 'content']);
+  container.style.overflow = 'hidden';
+  div.style.animation = "fade-out-without-timeline-range 1s linear";
+  div.style.animationTimeline = "view(horizontal 50px)";
+  // So the range is [-150px, 50px], but it is impossible to scroll to the
+  // negative part.
+
+  // Note: 25% for each 50px.
+  await scrollLeft(container, 0);
+  assert_equals(getComputedStyle(div).opacity, '0.25', 'At 75%');
+  await scrollLeft(container, 10);
+  assert_equals(getComputedStyle(div).opacity, '0.2', 'At 80%');
+  await scrollLeft(container, 50);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
+}, 'animation-timeline: view(horizontal 50px) without timeline range name');
+
+promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, ['target', 'content']);
+  container.style.overflow = 'hidden';
+  div.style.animation = "fade-out-without-timeline-range 1s linear, " +
+                        "change-font-size-without-timeline-range 1s linear";
+  div.style.animationTimeline = "view(50px), view(inline 50px)";
+
+  await scrollLeft(container, 0);
+  assert_equals(getComputedStyle(div).fontSize, '25px', 'At 75% inline');
+  await scrollLeft(container, 10);
+  assert_equals(getComputedStyle(div).fontSize, '26px', 'At 80% inline');
+  await scrollLeft(container, 50);
+  assert_equals(getComputedStyle(div).fontSize, '30px', 'At 100% inline');
+
+  await scrollLeft(container, 0);
+
+  await scrollTop(container, 0);
+  assert_equals(getComputedStyle(div).opacity, '0.25', 'At 75% block');
+  await scrollTop(container, 10);
+  assert_equals(getComputedStyle(div).opacity, '0.2', 'At 80% block');
+  await scrollTop(container, 50);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 100% block');
+
+  await scrollLeft(container, 10);
+  await scrollTop(container, 10);
+  assert_equals(getComputedStyle(div).fontSize, '26px', 'At 80% inline');
+  assert_equals(getComputedStyle(div).opacity, '0.2', 'At 80% block');
+}, 'animation-timeline: view(50px), view(inline 50px) without timeline range ' +
+   'name');
+
+promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, ['target', 'content']);
+  container.style.overflow = 'hidden';
+  div.style.animation = "fade-out-without-timeline-range 1s linear";
+
+  div.style.animationTimeline = "view(inline)";
+  await scrollLeft(container, 0);
+  assert_approx_equals(parseFloat(getComputedStyle(div).opacity), 0.33333,
+                       0.00001, 'At 66.7%');
+  await scrollLeft(container, 40);
+  assert_equals(getComputedStyle(div).opacity, '0.2', 'At 80%');
+  await scrollLeft(container, 100);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
+
+  div.style.animationTimeline = "view(inline 50px)";
+  await scrollLeft(container, 0);
+  assert_equals(getComputedStyle(div).opacity, '0.25', 'At 75%');
+  await scrollLeft(container, 50);
+  assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
+}, 'animation-timeline: view(inline) changes to view(inline 50px), without' +
+   'timeline range name');
+
+
+// ---------------------------------
+// Tests with timeline range name
+// ---------------------------------
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['content', 'target', 'content']);

@@ -12,7 +12,7 @@ import requests
 here = os.path.abspath(os.path.dirname(__file__))
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
-if not(wpt_root in sys.path):
+if wpt_root not in sys.path:
     sys.path.append(wpt_root)
 
 from tools.wpt.testfiles import get_git_cmd

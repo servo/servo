@@ -19,10 +19,9 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-ctx.globalCompositeOperation = 'xor';
-ctx.globalCompositeOperation = 'source-over\0';
-_assertSame(ctx.globalCompositeOperation, 'xor', "ctx.globalCompositeOperation", "'xor'");
-
+  ctx.globalCompositeOperation = 'xor';
+  ctx.globalCompositeOperation = 'source-over\0';
+  _assertSame(ctx.globalCompositeOperation, 'xor', "ctx.globalCompositeOperation", "'xor'");
 
 });
 </script>

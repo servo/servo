@@ -19,8 +19,7 @@
 var t = async_test("Test that canvas crash when image data cannot be allocated.");
 _addTest(function(canvas, ctx) {
 
-assert_throws_js(TypeError, function() { ctx.getImageData(10, 0xffffffff, 2147483647, 10); });
-
+  assert_throws_js(TypeError, function() { ctx.getImageData(10, 0xffffffff, 2147483647, 10); });
 
 });
 </script>

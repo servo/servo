@@ -62,13 +62,13 @@ def test_webkitgtk_certificate_domain_list(product):
                                                          MockEnvironment(env_config),
                                                          {},
                                                          **kwargs)
-        assert('capabilities' in executor_args)
-        assert('webkitgtk:browserOptions' in executor_args['capabilities'])
-        assert('certificates' in executor_args['capabilities']['webkitgtk:browserOptions'])
+        assert 'capabilities' in executor_args
+        assert 'webkitgtk:browserOptions' in executor_args['capabilities']
+        assert 'certificates' in executor_args['capabilities']['webkitgtk:browserOptions']
         cert_list = executor_args['capabilities']['webkitgtk:browserOptions']['certificates']
         for valid_domain in valid_domains_test:
-            assert(domain_is_inside_certificate_list_cert(valid_domain, cert_list, cert_file))
-            assert(not domain_is_inside_certificate_list_cert(valid_domain, cert_list, cert_file + ".backup_non_existent"))
+            assert domain_is_inside_certificate_list_cert(valid_domain, cert_list, cert_file)
+            assert not domain_is_inside_certificate_list_cert(valid_domain, cert_list, cert_file + ".backup_non_existent")
         for invalid_domain in invalid_domains_test:
-            assert(not domain_is_inside_certificate_list_cert(invalid_domain, cert_list, cert_file))
-            assert(not domain_is_inside_certificate_list_cert(invalid_domain, cert_list, cert_file + ".backup_non_existent"))
+            assert not domain_is_inside_certificate_list_cert(invalid_domain, cert_list, cert_file)
+            assert not domain_is_inside_certificate_list_cert(invalid_domain, cert_list, cert_file + ".backup_non_existent")

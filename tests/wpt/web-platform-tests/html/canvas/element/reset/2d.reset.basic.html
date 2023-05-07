@@ -19,17 +19,16 @@
 var t = async_test("reset clears to transparent black");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-ctx.reset();
-_assertPixel(canvas, 0,0, 0,0,0,0);
-_assertPixel(canvas, 50,25, 0,0,0,0);
-_assertPixel(canvas, 25,50, 0,0,0,0);
-_assertPixel(canvas, 100,50, 0,0,0,0);
-_assertPixel(canvas, 0,50, 0,0,0,0);
-_assertPixel(canvas, 100,0, 0,0,0,0);
-t.done();
-
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.reset();
+  _assertPixel(canvas, 0,0, 0,0,0,0);
+  _assertPixel(canvas, 50,25, 0,0,0,0);
+  _assertPixel(canvas, 25,50, 0,0,0,0);
+  _assertPixel(canvas, 100,50, 0,0,0,0);
+  _assertPixel(canvas, 0,50, 0,0,0,0);
+  _assertPixel(canvas, 100,0, 0,0,0,0);
+  t.done();
 
 });
 </script>

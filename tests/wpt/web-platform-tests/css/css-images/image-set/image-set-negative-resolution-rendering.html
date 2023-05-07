@@ -2,12 +2,12 @@
 <title>Image set negative resolution rendering</title>
 <link rel="author" title="Traian Captan" href="mailto:tcaptan@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
-<link rel="match" href="/css/reference/blank.html">
+<link rel="match" href="reference/image-set-rendering-ref.html">
 <meta name="assert" content="image-set rendering with negative resolution">
 <style>
   #test {
-    background-image: url("/images/red.png");
-    background-image: image-set(url("/images/green.png") -1x);
+    background-image: url("/images/green.png");
+    background-image: image-set(url("/images/red.png") -1x);
     width: 100px;
     height: 100px;
   }

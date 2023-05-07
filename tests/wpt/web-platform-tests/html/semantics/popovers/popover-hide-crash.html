@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class='reftest-wait'>
+<meta charset='utf-8' />
+<title>Popover hide crash test</title>
+<link rel='author' href="mailto:cathiechen@iglaia.com">
+<link rel=help href="https://github.com/whatwg/html/issues/9197">
+
+<p>This test passes if it does not crash.</p>
+<div id='popover1' popover='auto'>
+    <div id='popover2' popover='auto'></div>
+    <div id='popover3' popover='auto'></div>
+</div>
+
+<script>
+var showedPopover2 = false;
+popover1.showPopover();
+popover3.showPopover();
+popover3.addEventListener('beforetoggle', (e) => {
+    if (e.newState != 'open' && !showedPopover2) {
+        showedPopover2 = true;
+        popover2.showPopover();
+    }
+});
+popover1.hidePopover();
+</script>

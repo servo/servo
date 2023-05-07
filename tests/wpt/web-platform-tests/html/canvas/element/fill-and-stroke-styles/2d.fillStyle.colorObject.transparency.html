@@ -19,22 +19,21 @@
 var t = async_test("ctx.fillStyle with color objects has transparency");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = {r: 0, g: 1, b: 0, a: 0};
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,0,0,0);
-ctx.clearRect(0, 0, 100, 50);
-ctx.fillStyle = {r: 0, g: 1, b: 0, a: -1};
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,0,0,0);
-ctx.clearRect(0, 0, 100, 50);
-ctx.fillStyle = {r: 0, g: 1, b: 0, a: 0.5};
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,128);
-ctx.clearRect(0, 0, 100, 50);
-ctx.fillStyle = {r: 0, g: 1, b: 0, a: 1};
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255);
-
+  ctx.fillStyle = {r: 0, g: 1, b: 0, a: 0};
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,0,0,0);
+  ctx.clearRect(0, 0, 100, 50);
+  ctx.fillStyle = {r: 0, g: 1, b: 0, a: -1};
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,0,0,0);
+  ctx.clearRect(0, 0, 100, 50);
+  ctx.fillStyle = {r: 0, g: 1, b: 0, a: 0.5};
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,255,0,128);
+  ctx.clearRect(0, 0, 100, 50);
+  ctx.fillStyle = {r: 0, g: 1, b: 0, a: 1};
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,255,0,255);
 
 });
 </script>

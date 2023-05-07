@@ -16,22 +16,16 @@
 <p class="output expectedtext">Expected output:<p><img src="/images/green-100x50.png" class="output expected" id="expected" alt="">
 <ul id="d"></ul>
 <script>
-var t = async_test("");
-_addTest(function(canvas, ctx) {
+promise_test(async t => {
 
-fetch('/images/broken.png')
-  .then(response => response.blob())
-    .then(blob => {
-      createImageBitmap(blob)
-        .then(bitmap => {
-        ctx.fillStyle = '#0f0';
-        ctx.fillRect(0, 0, 100, 50);
-        ctx.drawImage(bitmap, 0, 0);
-        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-    });
-});
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
 
+  const response = await fetch('/images/broken.png');
+  const blob = await response.blob();
 
-});
+  await promise_rejects_dom(t, 'InvalidStateError', createImageBitmap(blob), 'The source image could not be decoded.');
+
+}, "");
 </script>
 

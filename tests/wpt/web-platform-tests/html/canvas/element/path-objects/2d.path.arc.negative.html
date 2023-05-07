@@ -19,10 +19,9 @@
 var t = async_test("arc() with negative radius throws INDEX_SIZE_ERR");
 _addTest(function(canvas, ctx) {
 
-assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.arc(0, 0, -1, 0, 0, true); });
-var path = new Path2D();
-assert_throws_dom("INDEX_SIZE_ERR", function() { path.arc(10, 10, -5, 0, 1, false); });
-
+  assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.arc(0, 0, -1, 0, 0, true); });
+  var path = new Path2D();
+  assert_throws_dom("INDEX_SIZE_ERR", function() { path.arc(10, 10, -5, 0, 1, false); });
 
 });
 </script>

@@ -19,10 +19,9 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-ctx.globalCompositeOperation = 'xor';
-ctx.globalCompositeOperation = 'clear';
-_assertSame(ctx.globalCompositeOperation, 'clear', "ctx.globalCompositeOperation", "'clear'");
-
+  ctx.globalCompositeOperation = 'xor';
+  ctx.globalCompositeOperation = 'clear';
+  _assertSame(ctx.globalCompositeOperation, 'clear', "ctx.globalCompositeOperation", "'clear'");
 
 });
 </script>

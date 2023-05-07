@@ -10,6 +10,8 @@
 
 <body>
 <script>
+// Note: Shared storage will refuse to run selectURL() on this page because its
+// permissions policy is disabled. Therefore, we can only test the FLEDGE case.
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, false, get_host_info().ORIGIN);
 }, 'Same-origin fenced frame does not load when feature policies are none');

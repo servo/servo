@@ -14,6 +14,7 @@
     overflow: hidden;
     width: 100px;
     height: 100px;
+    view-timeline: t1 defer;
   }
   .scroller > div {
     height: 100px;
@@ -45,7 +46,7 @@
 <template id=dynamic_view_timeline_name>
   <style>
     .timeline {
-      view-timeline-name: t1;
+      view-timeline: t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
@@ -68,27 +69,34 @@
     // scrollTop=50 is 75% for div75.
     div75.classList.add('timeline');
     await waitForCSSScrollTimelineStyle();
-    assert_equals(getComputedStyle(target).zIndex, '75');
+    assert_equals(getComputedStyle(target).zIndex, '75', 'div75');
 
-    // scrollTop=50 is 25% for div25.
+    // Identical timelines in div75 and div25 creates an ambiguity.
     div25.classList.add('timeline');
     await waitForCSSScrollTimelineStyle();
-    assert_equals(getComputedStyle(target).zIndex, '25');
+    assert_equals(getComputedStyle(target).zIndex, '-1', 'ambiguous');
+    // Removing the timeline from div75 unambiguously links div25 to the
+    // timeline, making scrollTop=50 at 25% for div25.
+    div75.classList.remove('timeline');
+    await waitForCSSScrollTimelineStyle();
+    assert_equals(getComputedStyle(target).zIndex, '25', 'div25');
 
     // scrollTop=50 is before the timeline start for div_before.
+    div25.classList.remove('timeline');
     div_before.classList.add('timeline');
     await waitForCSSScrollTimelineStyle();
-    assert_equals(getComputedStyle(target).zIndex, '-1');
+    assert_equals(getComputedStyle(target).zIndex, '-1', 'ahead of div_before');
     // Scroll to 25% (for div_before) to verify that we're linked to that
     // timeline.
     await scrollTop(scroller, 150);
-    assert_equals(getComputedStyle(target).zIndex, '25');
+    assert_equals(getComputedStyle(target).zIndex, '25', 'div_before');
 
-    // Now we should be back to div25's timeline, although with the new
-    // scrollTop=150, it's actually at 75%.
+    // Linking the timeline back to div25 verifies that the new scrollTop=150 is
+    // actually at 75%.
     div_before.classList.remove('timeline');
+    div25.classList.add('timeline');
     await waitForCSSScrollTimelineStyle();
-    assert_equals(getComputedStyle(target).zIndex, '75');
+    assert_equals(getComputedStyle(target).zIndex, '75', 'div25 again');
   }, 'Dynamically changing view-timeline-name');
 </script>
 
@@ -98,7 +106,7 @@
       width: 100px;
       height: 100px;
       margin: 100px;
-      view-timeline-name: t1;
+      view-timeline: t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
@@ -117,10 +125,10 @@
     await scrollTop(scroller, 50); // 25% (vertical)
     await scrollLeft(scroller, 20); // 10% (horizontal)
 
-    assert_equals(getComputedStyle(target).zIndex, '25');
+    assert_equals(getComputedStyle(target).zIndex, '25', 'vertical');
     timeline.style.viewTimelineAxis = 'horizontal';
     await waitForCSSScrollTimelineStyle();
-    assert_equals(getComputedStyle(target).zIndex, '10');
+    assert_equals(getComputedStyle(target).zIndex, '10', 'horizontal');
   }, 'Dynamically changing view-timeline-axis');
 </script>
 
@@ -130,7 +138,7 @@
       width: 100px;
       height: 100px;
       margin: 100px;
-      view-timeline-name: t1;
+      view-timeline: t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
@@ -148,17 +156,17 @@
 
     await scrollTop(scroller, 50); // 25% (without inset).
 
-    assert_equals(getComputedStyle(target).zIndex, '25');
+    assert_equals(getComputedStyle(target).zIndex, '25', 'without inset');
     timeline.style.viewTimelineInset = '0px 50px';
     await waitForCSSScrollTimelineStyle();
-    assert_equals(getComputedStyle(target).zIndex, '0');
+    assert_equals(getComputedStyle(target).zIndex, '0', 'with inset');
   }, 'Dynamically changing view-timeline-inset');
 </script>
 
 <template id=timeline_display_none>
   <style>
     #timeline {
-      view-timeline-name: t1;
+      view-timeline: t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
@@ -176,12 +184,10 @@
     inflate(t, timeline_display_none);
 
     await scrollTop(scroller, 50);
-    assert_equals(getComputedStyle(target).zIndex, '25');
+    assert_equals(getComputedStyle(target).zIndex, '25', 'display:block');
     timeline.style.display = 'none';
-    // Animation is held at previous current time.
-    assert_equals(getComputedStyle(target).zIndex, '25');
-    const anim = target.getAnimations()[0];
-    assert_equals(anim.startTime, null);
-    assert_times_equal(anim.currentTime, 250);
+    await waitForNextFrame();
+    // The timeline became inactive.
+    assert_equals(getComputedStyle(target).zIndex, '-1', 'display:none');
   }, 'Element with view-timeline becoming display:none');
 </script>

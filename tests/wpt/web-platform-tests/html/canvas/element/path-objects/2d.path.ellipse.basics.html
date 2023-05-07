@@ -19,14 +19,13 @@
 var t = async_test("Verify canvas throws error when drawing ellipse with negative radii.");
 _addTest(function(canvas, ctx) {
 
-ctx.ellipse(10, 10, 10, 5, 0, 0, 1, false);
-ctx.ellipse(10, 10, 10, 0, 0, 0, 1, false);
-ctx.ellipse(10, 10, -0, 5, 0, 0, 1, false);
-assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.ellipse(10, 10, -2, 5, 0, 0, 1, false); });
-assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.ellipse(10, 10, 0, -1.5, 0, 0, 1, false); });
-assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.ellipse(10, 10, -2, -5, 0, 0, 1, false); });
-ctx.ellipse(80, 0, 10, 4294967277, Math.PI / -84, -Math.PI / 2147483436, false);
-
+  ctx.ellipse(10, 10, 10, 5, 0, 0, 1, false);
+  ctx.ellipse(10, 10, 10, 0, 0, 0, 1, false);
+  ctx.ellipse(10, 10, -0, 5, 0, 0, 1, false);
+  assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.ellipse(10, 10, -2, 5, 0, 0, 1, false); });
+  assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.ellipse(10, 10, 0, -1.5, 0, 0, 1, false); });
+  assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.ellipse(10, 10, -2, -5, 0, 0, 1, false); });
+  ctx.ellipse(80, 0, 10, 4294967277, Math.PI / -84, -Math.PI / 2147483436, false);
 
 });
 </script>

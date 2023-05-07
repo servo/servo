@@ -14,6 +14,7 @@ function test_serialization(t,s, {prop="width"}={}) {
 //TEST CASE                                          | EXPECTED
 var test_map = {
     "1px * NaN"                                     :"calc(NaN * 1px)",
+    "1% * NaN"                                      :"calc(NaN * 1%)",
     "1in * NaN"                                     :"calc(NaN * 1px)",
     "1cm * NaN"                                     :"calc(NaN * 1px)",
     "1mm * NaN"                                     :"calc(NaN * 1px)",
@@ -28,6 +29,8 @@ var test_map = {
     "1px * (infinity - infinity)"                   :"calc(NaN * 1px)",
     "1px * infinity"                                :"calc(infinity * 1px)",
     "1px * -infinity"                               :"calc(-infinity * 1px)",
+    "1% * infinity"                                 :"calc(infinity * 1%)",
+    "1% * -infinity"                                :"calc(-infinity * 1%)",
     "1px * iNFinIty"                                :"calc(infinity * 1px)",
     "1px * (infinity + infinity)"                   :"calc(infinity * 1px)",
     "1px * (-infinity + -infinity)"                 :"calc(-infinity * 1px)",

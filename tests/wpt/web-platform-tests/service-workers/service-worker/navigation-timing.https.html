@@ -54,6 +54,7 @@ promise_test(async (t) => {
     t.add_cleanup(() => frame.remove());
 
     const timing = await navigate_in_frame(frame, scope);
+    assert_greater_than(timing.workerStart, 0);
     verify(timing);
 }, 'Service worker controlled navigation timing network fallback');
 

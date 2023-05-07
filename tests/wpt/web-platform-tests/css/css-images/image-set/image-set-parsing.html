@@ -160,19 +160,19 @@ function test_non_positive_resolutions_parsing() {
     'image-set(url("example.png") 0dpcm)'
   );
 
-  test_valid_value_variants(
+  test_invalid_value_variants(
     'background-image',
     'image-set(url("example.png") -1x)'
   );
-  test_valid_value_variants(
+  test_invalid_value_variants(
     'background-image',
     'image-set(url("example.png") -3dppx)'
   );
-  test_valid_value_variants(
+  test_invalid_value_variants(
     'background-image',
     'image-set(url("example.png") -96dpi)'
   );
-  test_valid_value_variants(
+  test_invalid_value_variants(
     'background-image',
     'image-set(url("example.png") -113dpcm)'
   );

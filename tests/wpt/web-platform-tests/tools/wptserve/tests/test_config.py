@@ -1,9 +1,8 @@
 import json
 import logging
 import pickle
-
-from distutils.spawn import find_executable
 from logging import handlers
+from shutil import which
 
 import pytest
 
@@ -180,7 +179,7 @@ def test_ports_no_ssl():
         assert ports["ws"] == [1003]
 
 
-@pytest.mark.skipif(find_executable("openssl") is None,
+@pytest.mark.skipif(which("openssl") is None,
                     reason="requires OpenSSL")
 def test_ports_openssl():
     with config.ConfigBuilder(logger,

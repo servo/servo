@@ -19,16 +19,15 @@
 var t = async_test("Verify that when one radius is given to roundRect() as a non-array argument, specified as a double, it applies to all corners.");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
-ctx.roundRect(0, 0, 100, 50, 20);
-ctx.fillStyle = '#0f0';
-ctx.fill();
-_assertPixel(canvas, 1,1, 255,0,0,255);
-_assertPixel(canvas, 98,1, 255,0,0,255);
-_assertPixel(canvas, 98,48, 255,0,0,255);
-_assertPixel(canvas, 1,48, 255,0,0,255);
-
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.roundRect(0, 0, 100, 50, 20);
+  ctx.fillStyle = '#0f0';
+  ctx.fill();
+  _assertPixel(canvas, 1,1, 255,0,0,255);
+  _assertPixel(canvas, 98,1, 255,0,0,255);
+  _assertPixel(canvas, 98,48, 255,0,0,255);
+  _assertPixel(canvas, 1,48, 255,0,0,255);
 
 });
 </script>

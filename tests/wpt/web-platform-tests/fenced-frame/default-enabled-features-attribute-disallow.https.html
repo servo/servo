@@ -12,12 +12,20 @@
 <script>
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, /*should_load=*/false,
-      get_host_info().ORIGIN, allow="shared-storage 'none'");
+      get_host_info().ORIGIN, generator_api="fledge",
+      allow="private-aggregation 'none'");
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/false,
+      get_host_info().ORIGIN, generator_api="sharedstorage",
+      allow="shared-storage 'none'");
 }, 'Same-origin fenced frame with allow attribute disabling required feature');
 
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, /*should_load=*/false,
-      get_host_info().REMOTE_ORIGIN, allow="shared-storage 'none'");
+      get_host_info().REMOTE_ORIGIN, generator_api="fledge",
+      allow="private-aggregation 'none'");
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/false,
+      get_host_info().REMOTE_ORIGIN, generator_api="sharedstorage",
+      allow="shared-storage 'none'");
 }, 'Cross-origin fenced frame with allow attribute disabling required feature');
 
 </script>

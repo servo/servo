@@ -287,18 +287,30 @@ def _write_reference_test(is_js_ref: bool, templates: Mapping[str, str],
 
 def _write_testharness_test(templates: Mapping[str, str],
                             template_params: MutableMapping[str, str],
+                            test_type: str,
                             canvas_path: Optional[str],
                             offscreen_path: Optional[str]):
-
     # Create test cases for canvas and offscreencanvas.
+    code = template_params['code']
+    template_params['code'] = textwrap.indent(code, '  ')
     if canvas_path:
+        template_name = 'element'
+        if test_type:
+            template_name += '-' + test_type
+
         pathlib.Path(f'{canvas_path}.html').write_text(
-            templates['element'] % template_params, 'utf-8')
+            templates[template_name] % template_params, 'utf-8')
 
     if offscreen_path:
-        code = template_params['code']
-        offscreen_template = templates['offscreen']
-        worker_template = templates['worker']
+        offscreen_template_name = 'offscreen'
+        worker_template_name = 'worker'
+        if test_type:
+            offscreen_template_name += '-' + test_type
+            worker_template_name += '-' + test_type
+
+        offscreen_template = templates[offscreen_template_name]
+        worker_template = templates[worker_template_name]
+
         if ('then(t_pass, t_fail);' in code):
             offscreen_template = offscreen_template.replace('t.done();\n', '')
             worker_template = worker_template.replace('t.done();\n', '')
@@ -443,6 +455,19 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
             f'Test {name} is invalid, "reference" and "html_reference" can\'t '
             'both be specified at the same time.')
 
+    test_type = ''
+    if 'test_type' in test:
+        test_type = test['test_type']
+        if test_type != 'promise':
+            raise InvalidTestDefinitionError(
+                f'Test {name}\' test_type is invalid, it only accepts '
+                '"promise" now for creating promise test type in the template '
+                'file.')
+        if js_reference is not None or html_reference is not None:
+            raise InvalidTestDefinitionError(
+                f'Test {name}: promise test type cannot be used together with '
+                'html_reference or js_reference.')
+
     ref_code = js_reference or html_reference
     if ref_code is not None:
         _write_reference_test(
@@ -451,7 +476,7 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
             offscreen_path if offscreen_canvas_cfg.enabled else None)
     else:
         _write_testharness_test(
-            templates, template_params,
+            templates, template_params, test_type,
             canvas_path if html_canvas_cfg.enabled else None,
             offscreen_path if offscreen_canvas_cfg.enabled else None)
 

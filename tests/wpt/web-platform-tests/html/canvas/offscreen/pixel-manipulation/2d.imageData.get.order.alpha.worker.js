@@ -13,15 +13,14 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-ctx.fillRect(0, 0, 100, 50);
-var imgdata = ctx.getImageData(0, 0, 10, 10);
-_assert(imgdata.data[3] < 200, "imgdata.data[\""+(3)+"\"] < 200");
-_assert(imgdata.data[3] > 100, "imgdata.data[\""+(3)+"\"] > 100");
-t.done();
-
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillRect(0, 0, 100, 50);
+  var imgdata = ctx.getImageData(0, 0, 10, 10);
+  _assert(imgdata.data[3] < 200, "imgdata.data[\""+(3)+"\"] < 200");
+  _assert(imgdata.data[3] > 100, "imgdata.data[\""+(3)+"\"] > 100");
+  t.done();
 });
 done();

@@ -19,25 +19,24 @@
 var t = async_test("ctx.fillStyle works with color objects");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = {r: 1, g: 0, b: 0};
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 255,0,0,255);
-ctx.fillStyle = {r: 0, g: 0, b: 1};
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,0,255,255);
-ctx.fillStyle = {r: 0.2, g: 0.4, b: 0.6};
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 51,102,153,255);
-ctx.fillStyle = {r: 0, g: 1, b: 0};
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255);
-ctx.fillStyle = {r: -1, g: 0, b: 0};
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,0,0,255);
-ctx.fillStyle = {r: 0, g: 2, b: 0};
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255);
-
+  ctx.fillStyle = {r: 1, g: 0, b: 0};
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 255,0,0,255);
+  ctx.fillStyle = {r: 0, g: 0, b: 1};
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,0,255,255);
+  ctx.fillStyle = {r: 0.2, g: 0.4, b: 0.6};
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 51,102,153,255);
+  ctx.fillStyle = {r: 0, g: 1, b: 0};
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,255,0,255);
+  ctx.fillStyle = {r: -1, g: 0, b: 0};
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,0,0,255);
+  ctx.fillStyle = {r: 0, g: 2, b: 0};
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,255,0,255);
 
 });
 </script>

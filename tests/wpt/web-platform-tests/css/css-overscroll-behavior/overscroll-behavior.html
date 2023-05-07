@@ -119,7 +119,7 @@ function verify_x_prevented_and_set_boundary_allows_inner() {
   instruction3.style.fontWeight = 'bold';
   test.step(function() {
     assert_equals(root.scrollTop, 0, "overscroll-behavior-x: none should only prevent scroll propagation on x axis.");
-    assert_equalhhs(root.scrollLeft, 100, "overscroll-behavior-x: none should prevent scroll propagation on x axis." );
+    assert_equals(root.scrollLeft, 100, "overscroll-behavior-x: none should prevent scroll propagation on x axis." );
   });
 
   container.style.overscrollBehaviorX = 'none';

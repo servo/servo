@@ -13,11 +13,15 @@
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
       get_host_info().ORIGIN);
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
+      get_host_info().ORIGIN, generator_api="sharedstorage");
 }, 'Same-origin fenced frame loads when feature policies are unset');
 
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
       get_host_info().REMOTE_ORIGIN);
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
+      get_host_info().REMOTE_ORIGIN, generator_api="sharedstorage");
 }, 'Cross-origin fenced frame loads when feature policies are unset');
 
 </script>

@@ -13,23 +13,22 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.fillStyle = '#0f0';
-ctx.fillRect(0, 0, 100, 50)
-var imgdata = ctx.getImageData(0, 0, 100, 50);
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50)
-ctx.globalAlpha = 0.1;
-ctx.globalCompositeOperation = 'destination-atop';
-ctx.shadowColor = '#f00';
-ctx.shadowBlur = 1;
-ctx.translate(100, 50);
-ctx.scale(0.1, 0.1);
-ctx.putImageData(imgdata, 0, 0);
-_assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-t.done();
-
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(0, 0, 100, 50)
+  var imgdata = ctx.getImageData(0, 0, 100, 50);
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50)
+  ctx.globalAlpha = 0.1;
+  ctx.globalCompositeOperation = 'destination-atop';
+  ctx.shadowColor = '#f00';
+  ctx.shadowBlur = 1;
+  ctx.translate(100, 50);
+  ctx.scale(0.1, 0.1);
+  ctx.putImageData(imgdata, 0, 0);
+  _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+  t.done();
 });
 done();
