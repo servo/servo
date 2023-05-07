@@ -897,7 +897,7 @@ install them, let us know by filing a bug!")
         target, android = self.pick_target_triple(target, android, magicleap)
 
         args = []
-        if "--manifest-path" not in args:
+        if "--manifest-path" not in cargo_args:
             if libsimpleservo or android:
                 if android:
                     api = "jniapi"
@@ -915,29 +915,31 @@ install them, let us know by filing a bug!")
 
         if features is None:  # If we're passed a list, mutate it even if it's empty
             features = []
-        if self.config["build"]["debug-mozjs"] or debug_mozjs:
-            features.append("debugmozjs")
-        if not magicleap:
-            features.append("native-bluetooth")
-        if uwp:
-            features.append("no-wgl")
-            features.append("uwp")
-        else:
-            # Non-UWP builds provide their own libEGL via mozangle.
-            features.append("egl")
-        if with_layout_2020 or (self.config["build"]["layout-2020"] and not with_layout_2013):
-            features.append("layout-2020")
-        elif "layout-2020" not in features:
-            features.append("layout-2013")
-        if with_frame_pointer:
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
-            features.append("profilemozjs")
-        if without_wgl:
-            features.append("no-wgl")
-        if self.config["build"]["webgl-backtrace"]:
-            features.append("webgl-backtrace")
-        if self.config["build"]["dom-backtrace"]:
-            features.append("dom-backtrace")
+
+        if "-p" not in cargo_args:  # We're building specific package, that may not have features
+            if self.config["build"]["debug-mozjs"] or debug_mozjs:
+                features.append("debugmozjs")
+            if not magicleap:
+                features.append("native-bluetooth")
+            if uwp:
+                features.append("no-wgl")
+                features.append("uwp")
+            else:
+                # Non-UWP builds provide their own libEGL via mozangle.
+                features.append("egl")
+            if with_layout_2020 or (self.config["build"]["layout-2020"] and not with_layout_2013):
+                features.append("layout-2020")
+            elif "layout-2020" not in features:
+                features.append("layout-2013")
+            if with_frame_pointer:
+                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
+                features.append("profilemozjs")
+            if without_wgl:
+                features.append("no-wgl")
+            if self.config["build"]["webgl-backtrace"]:
+                features.append("webgl-backtrace")
+            if self.config["build"]["dom-backtrace"]:
+                features.append("dom-backtrace")
         if with_debug_assertions or self.config["build"]["debug-assertions"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
