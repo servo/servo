@@ -82,7 +82,7 @@ impl EventsLoop {
 
     pub fn run_forever<F: 'static>(self, mut callback: F)
     where F: FnMut(
-        winit::event::Event<ServoEvent>,
+        winit::event::Event<'_, ServoEvent>,
         Option<&winit::event_loop::EventLoopWindowTarget<ServoEvent>>,
         &mut winit::event_loop::ControlFlow
     ) {

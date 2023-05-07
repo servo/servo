@@ -853,7 +853,7 @@ impl<K, V> RawTable<K, V> {
         self.size
     }
 
-    fn raw_buckets(&self) -> RawBuckets<K, V> {
+    fn raw_buckets(&self) -> RawBuckets<'_, K, V> {
         RawBuckets {
             raw: self.raw_bucket_at(0),
             elems_left: self.size,
@@ -861,13 +861,13 @@ impl<K, V> RawTable<K, V> {
         }
     }
 
-    pub fn iter(&self) -> Iter<K, V> {
+    pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
             iter: self.raw_buckets(),
         }
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<K, V> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
         IterMut {
             iter: self.raw_buckets(),
             _marker: marker::PhantomData,
@@ -889,7 +889,7 @@ impl<K, V> RawTable<K, V> {
         }
     }
 
-    pub fn drain(&mut self) -> Drain<K, V> {
+    pub fn drain(&mut self) -> Drain<'_, K, V> {
         let RawBuckets {
             raw, elems_left, ..
         } = self.raw_buckets();
@@ -1008,7 +1008,7 @@ impl<'a, K, V> Clone for Iter<'a, K, V> {
 }
 
 /// Iterator over mutable references to entries in a table.
-pub struct IterMut<'a, K: 'a, V: 'a> {
+pub struct IterMut<'a, K: 'a, V> {
     iter: RawBuckets<'a, K, V>,
     // To ensure invariance with respect to V
     _marker: marker::PhantomData<&'a mut V>,
@@ -1020,7 +1020,7 @@ unsafe impl<'a, K: Sync, V: Sync> Sync for IterMut<'a, K, V> {}
 unsafe impl<'a, K: Send, V: Send> Send for IterMut<'a, K, V> {}
 
 impl<'a, K: 'a, V: 'a> IterMut<'a, K, V> {
-    pub fn iter(&self) -> Iter<K, V> {
+    pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
             iter: self.iter.clone(),
         }
@@ -1037,7 +1037,7 @@ unsafe impl<K: Sync, V: Sync> Sync for IntoIter<K, V> {}
 unsafe impl<K: Send, V: Send> Send for IntoIter<K, V> {}
 
 impl<K, V> IntoIter<K, V> {
-    pub fn iter(&self) -> Iter<K, V> {
+    pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
             iter: self.iter.clone(),
         }
@@ -1055,7 +1055,7 @@ unsafe impl<'a, K: Sync, V: Sync> Sync for Drain<'a, K, V> {}
 unsafe impl<'a, K: Send, V: Send> Send for Drain<'a, K, V> {}
 
 impl<'a, K, V> Drain<'a, K, V> {
-    pub fn iter(&self) -> Iter<K, V> {
+    pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
             iter: self.iter.clone(),
         }

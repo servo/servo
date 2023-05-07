@@ -98,7 +98,7 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn winit_event_to_servo_event(&self, _event: winit::event::WindowEvent) {
+    fn winit_event_to_servo_event(&self, _event: winit::event::WindowEvent<'_>) {
         // Not expecting any winit events.
     }
 
