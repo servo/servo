@@ -77,38 +77,38 @@ impl URL {
         url: USVString,
         base: Option<USVString>,
     ) -> Fallible<DomRoot<URL>> {
+        // Step 1. Parse url with base.
         let parsed_base = match base {
-            None => {
-                // Step 1.
-                None
-            },
-            Some(base) =>
-            // Step 2.1.
-            {
+            None => None,
+            Some(base) => {
                 match ServoUrl::parse(&base.0) {
                     Ok(base) => Some(base),
                     Err(error) => {
-                        // Step 2.2.
+                        // Step 2. Throw a TypeError if URL parsing fails.
                         return Err(Error::Type(format!("could not parse base: {}", error)));
                     },
                 }
             },
         };
-        // Step 3.
         let parsed_url = match ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0) {
             Ok(url) => url,
             Err(error) => {
-                // Step 4.
+                // Step 2. Throw a TypeError if URL parsing fails.
                 return Err(Error::Type(format!("could not parse URL: {}", error)));
             },
         };
-        // Step 5: Skip (see step 8 below).
-        // Steps 6-7.
-        let result = URL::new(global, parsed_url);
-        // Step 8: Instead of construcing a new `URLSearchParams` object here, construct it
-        //         on-demand inside `URL::SearchParams`.
-        // Step 9.
-        Ok(result)
+
+        // Skip the steps below.
+        // Instead of construcing a new `URLSearchParams` object here, construct it
+        // on-demand inside `URL::SearchParams`.
+        //
+        // Step 3. Let query be parsedURL’s query.
+        // Step 5. Set this’s query object to a new URLSearchParams object.
+        // Step 6. Initialize this’s query object with query.
+        // Step 7. Set this’s query object’s URL object to this.
+
+        // Step 4. Set this’s URL to parsedURL.
+        Ok(URL::new(global, parsed_url))
     }
 
     // https://url.spec.whatwg.org/#dom-url-canparse
