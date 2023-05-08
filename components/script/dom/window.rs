@@ -134,7 +134,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::cmp;
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::env;
 use std::io::{stderr, stdout, Write};
@@ -224,8 +224,8 @@ pub struct Window {
     /// Pending resize event, if any.
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
-    /// Parent id associated with this page, if any.
-    parent_info: Option<PipelineId>,
+    /// The ancestors browsing contexts, if any.
+    ancestors: VecDeque<BrowsingContextId>,
 
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
@@ -436,8 +436,8 @@ impl Window {
         &self.script_chan.0
     }
 
-    pub fn parent_info(&self) -> Option<PipelineId> {
-        self.parent_info
+    pub fn has_parent(&self) -> bool {
+        !self.ancestors.is_empty()
     }
 
     pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
@@ -2437,7 +2437,11 @@ impl Window {
 
     // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
     pub fn is_top_level(&self) -> bool {
-        self.parent_info.is_none()
+        !self.has_parent()
+    }
+
+    pub fn ancestors(&self) -> VecDeque<BrowsingContextId> {
+        self.ancestors.clone()
     }
 
     /// Evaluate media query lists and report changes
@@ -2536,7 +2540,7 @@ impl Window {
         scheduler_chan: IpcSender<TimerSchedulerMsg>,
         layout_chan: Sender<Msg>,
         pipelineid: PipelineId,
-        parent_info: Option<PipelineId>,
+        ancestors: VecDeque<BrowsingContextId>,
         window_size: WindowSizeData,
         origin: MutableOrigin,
         creator_url: ServoUrl,
@@ -2604,7 +2608,7 @@ impl Window {
             session_storage: Default::default(),
             local_storage: Default::default(),
             status: DomRefCell::new(DOMString::new()),
-            parent_info,
+            ancestors,
             dom_static: GlobalStaticData::new(),
             js_runtime: DomRefCell::new(Some(runtime.clone())),
             bluetooth_thread,

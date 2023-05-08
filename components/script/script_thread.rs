@@ -146,7 +146,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::cell::RefCell;
-use std::collections::{hash_map, HashMap, HashSet};
+use std::collections::{hash_map, HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::ops::Deref;
 use std::option::Option;
@@ -192,6 +192,9 @@ struct InProgressLoad {
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The parent pipeline and frame type associated with this load, if any.
     parent_info: Option<PipelineId>,
+    /// The ID of all ancestors, if any.
+    /// If empty, this is the root.
+    ancestors: VecDeque<BrowsingContextId>,
     /// The opener, if this is an auxiliary.
     opener: Option<BrowsingContextId>,
     /// The current window size associated with this pipeline.
@@ -225,6 +228,7 @@ impl InProgressLoad {
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         parent_info: Option<PipelineId>,
+        ancestors: VecDeque<BrowsingContextId>,
         opener: Option<BrowsingContextId>,
         layout_chan: Sender<message::Msg>,
         window_size: WindowSizeData,
@@ -243,6 +247,7 @@ impl InProgressLoad {
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
             parent_info: parent_info,
+            ancestors,
             opener: opener,
             layout_chan: layout_chan,
             window_size: window_size,
@@ -773,6 +778,7 @@ impl ScriptThreadFactory for ScriptThread {
                 let browsing_context_id = state.browsing_context_id;
                 let top_level_browsing_context_id = state.top_level_browsing_context_id;
                 let parent_info = state.parent_info;
+                let ancestors = state.ancestors.clone();
                 let opener = state.opener;
                 let secure = load_data.inherited_secure_context.clone();
                 let mem_profiler_chan = state.mem_profiler_chan.clone();
@@ -794,6 +800,7 @@ impl ScriptThreadFactory for ScriptThread {
                     browsing_context_id,
                     top_level_browsing_context_id,
                     parent_info,
+                    ancestors,
                     opener,
                     layout_chan,
                     window_size,
@@ -1771,7 +1778,7 @@ impl ScriptThread {
                 NotifyVisibilityChange(id, ..) => Some(id),
                 NavigateIframe(id, ..) => Some(id),
                 PostMessage { target: id, .. } => Some(id),
-                UpdatePipelineId(_, _, _, id, _) => Some(id),
+                UpdatePipelineId(_, _, _, _, id, _) => Some(id),
                 UpdateHistoryState(id, ..) => Some(id),
                 RemoveHistoryStates(id, ..) => Some(id),
                 FocusIFrame(id, ..) => Some(id),
@@ -1938,27 +1945,35 @@ impl ScriptThread {
             ),
             ConstellationControlMsg::PostMessage {
                 target: target_pipeline_id,
+                source_parent,
+                ancestors,
                 source: source_pipeline_id,
                 source_browsing_context,
+                source_top_level_browsing_context,
                 target_origin: origin,
                 source_origin,
                 data,
             } => self.handle_post_message_msg(
                 target_pipeline_id,
+                source_parent,
+                ancestors,
                 source_pipeline_id,
                 source_browsing_context,
+                source_top_level_browsing_context,
                 origin,
                 source_origin,
                 data,
             ),
             ConstellationControlMsg::UpdatePipelineId(
-                parent_pipeline_id,
+                source_parent,
+                ancestors,
                 browsing_context_id,
                 top_level_browsing_context_id,
                 new_pipeline_id,
                 reason,
             ) => self.handle_update_pipeline_id(
-                parent_pipeline_id,
+                source_parent,
+                ancestors,
                 browsing_context_id,
                 top_level_browsing_context_id,
                 new_pipeline_id,
@@ -2439,6 +2454,7 @@ impl ScriptThread {
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
         let NewLayoutInfo {
             parent_info,
+            ancestors,
             new_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
@@ -2500,6 +2516,7 @@ impl ScriptThread {
             browsing_context_id,
             top_level_browsing_context_id,
             parent_info,
+            ancestors,
             opener,
             layout_chan,
             window_size,
@@ -2610,8 +2627,11 @@ impl ScriptThread {
     fn handle_post_message_msg(
         &self,
         pipeline_id: PipelineId,
+        _source_parent: Option<BrowsingContextId>,
+        ancestors: VecDeque<BrowsingContextId>,
         source_pipeline_id: PipelineId,
-        source_browsing_context: TopLevelBrowsingContextId,
+        source_browsing_context: BrowsingContextId,
+        source_top_level_browsing_context: TopLevelBrowsingContextId,
         origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
         data: StructuredSerializedData,
@@ -2620,12 +2640,11 @@ impl ScriptThread {
         match window {
             None => return warn!("postMessage after target pipeline {} closed.", pipeline_id),
             Some(window) => {
-                // FIXME: synchronously talks to constellation.
-                // send the required info as part of postmessage instead.
                 let source = match self.remote_window_proxy(
                     &*window.global(),
+                    source_top_level_browsing_context,
                     source_browsing_context,
-                    source_pipeline_id,
+                    ancestors,
                     None,
                 ) {
                     None => {
@@ -2665,6 +2684,7 @@ impl ScriptThread {
     fn handle_update_pipeline_id(
         &self,
         parent_pipeline_id: PipelineId,
+        ancestors: VecDeque<BrowsingContextId>,
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         new_pipeline_id: PipelineId,
@@ -2685,7 +2705,7 @@ impl ScriptThread {
                 &*window,
                 browsing_context_id,
                 top_level_browsing_context_id,
-                Some(parent_pipeline_id),
+                ancestors,
                 // Any local window proxy has already been created, so there
                 // is no need to pass along existing opener information that
                 // will be discarded.
@@ -3047,20 +3067,6 @@ impl ScriptThread {
         }
     }
 
-    fn ask_constellation_for_browsing_context_info(
-        &self,
-        pipeline_id: PipelineId,
-    ) -> Option<(BrowsingContextId, Option<PipelineId>)> {
-        let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ScriptMsg::GetBrowsingContextInfo(pipeline_id, result_sender);
-        self.script_sender
-            .send((pipeline_id, msg))
-            .expect("Failed to send to constellation.");
-        result_receiver
-            .recv()
-            .expect("Failed to get browsing context info from constellation.")
-    }
-
     fn ask_constellation_for_top_level_info(
         &self,
         sender_pipeline: PipelineId,
@@ -3086,20 +3092,22 @@ impl ScriptThread {
         &self,
         global_to_clone: &GlobalScope,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        pipeline_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+        mut ancestors: VecDeque<BrowsingContextId>,
         opener: Option<BrowsingContextId>,
     ) -> Option<DomRoot<WindowProxy>> {
-        let (browsing_context_id, parent_pipeline_id) =
-            self.ask_constellation_for_browsing_context_info(pipeline_id)?;
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             return Some(DomRoot::from_ref(window_proxy));
         }
 
-        let parent_browsing_context = parent_pipeline_id.and_then(|parent_id| {
+        let parent = ancestors.pop_front();
+
+        let parent_browsing_context = parent.and_then(|parent_bc| {
             self.remote_window_proxy(
                 global_to_clone,
                 top_level_browsing_context_id,
-                parent_id,
+                parent_bc,
+                ancestors,
                 opener,
             )
         });
@@ -3136,7 +3144,7 @@ impl ScriptThread {
         window: &Window,
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        parent_info: Option<PipelineId>,
+        mut ancestors: VecDeque<BrowsingContextId>,
         opener: Option<BrowsingContextId>,
     ) -> DomRoot<WindowProxy> {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
@@ -3144,17 +3152,22 @@ impl ScriptThread {
             // this will be done instead when the script-thread handles the `SetDocumentActivity` msg.
             return DomRoot::from_ref(window_proxy);
         }
-        let iframe = parent_info.and_then(|parent_id| {
-            self.documents
+
+        let parent_info = ancestors.pop_front();
+
+        let parent_window_proxy = parent_info.and_then(|parent_id| {
+            self.window_proxies
                 .borrow()
-                .find_iframe(parent_id, browsing_context_id)
+                .get(&parent_id)
+                .map(|proxy| DomRoot::from_ref(&**proxy))
         });
-        let parent_browsing_context = match (parent_info, iframe.as_ref()) {
-            (_, Some(iframe)) => Some(window_from_node(&**iframe).window_proxy()),
+        let parent_browsing_context = match (parent_info, parent_window_proxy) {
+            (_, Some(proxy)) => Some(proxy),
             (Some(parent_id), _) => self.remote_window_proxy(
                 window.upcast(),
                 top_level_browsing_context_id,
                 parent_id,
+                ancestors,
                 opener,
             ),
             _ => None,
@@ -3171,7 +3184,9 @@ impl ScriptThread {
             &window,
             browsing_context_id,
             top_level_browsing_context_id,
-            iframe.as_deref().map(Castable::upcast),
+            parent_browsing_context
+                .as_ref()
+                .and_then(|proxy| proxy.frame_element()),
             parent_browsing_context.as_deref(),
             opener,
             creator,
@@ -3251,7 +3266,7 @@ impl ScriptThread {
             self.scheduler_chan.clone(),
             incomplete.layout_chan,
             incomplete.pipeline_id,
-            incomplete.parent_info,
+            incomplete.ancestors.clone(),
             incomplete.window_size,
             origin.clone(),
             final_url.clone(),
@@ -3282,7 +3297,7 @@ impl ScriptThread {
             &window,
             incomplete.browsing_context_id,
             incomplete.top_level_browsing_context_id,
-            incomplete.parent_info,
+            incomplete.ancestors.clone(),
             incomplete.opener,
         );
         if window_proxy.parent().is_some() {
@@ -3368,6 +3383,7 @@ impl ScriptThread {
             let parent_pipeline = frame.global().pipeline_id();
             self.handle_update_pipeline_id(
                 parent_pipeline,
+                incomplete.ancestors,
                 window_proxy.browsing_context_id(),
                 window_proxy.top_level_browsing_context_id(),
                 incomplete.pipeline_id,
