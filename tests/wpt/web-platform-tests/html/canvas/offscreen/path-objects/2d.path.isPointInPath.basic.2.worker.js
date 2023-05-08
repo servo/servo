@@ -13,13 +13,12 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.rect(20, 0, 20, 20);
-_assertSame(ctx.isPointInPath(10, 10), false, "ctx.isPointInPath(10, 10)", "false");
-_assertSame(ctx.isPointInPath(30, 10), true, "ctx.isPointInPath(30, 10)", "true");
-t.done();
-
+  ctx.rect(20, 0, 20, 20);
+  _assertSame(ctx.isPointInPath(10, 10), false, "ctx.isPointInPath(10, 10)", "false");
+  _assertSame(ctx.isPointInPath(30, 10), true, "ctx.isPointInPath(30, 10)", "true");
+  t.done();
 });
 done();

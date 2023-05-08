@@ -9,22 +9,19 @@ idl_test(
   ['longtasks'],
   ['performance-timeline', 'hr-time'],
   (idl_array, t) => new Promise((resolve, reject) => {
-
-
     const longTask = () => {
       const begin = self.performance.now();
       while (self.performance.now() < begin + 100);
     }
     t.step_timeout(longTask, 0);
 
-    const observer = new PerformanceObserver(entryList => {
+    const observer = new PerformanceObserver((entryList, observer) => {
       const entries = Array.from(entryList.getEntries());
-      const attribution = entries.reduce(
-          (sum, e) => sum.concat(e.attribution || []), []);
       idl_array.add_objects({
-        PerformanceLongTaskTiming: entries,
-        TaskAttributionTiming: attribution,
+        PerformanceLongTaskTiming: entries.slice(0, 1),
+        TaskAttributionTiming: entries[0].attribution,
       });
+      observer.disconnect();
       resolve();
     });
     observer.observe({entryTypes: ['longtask']});

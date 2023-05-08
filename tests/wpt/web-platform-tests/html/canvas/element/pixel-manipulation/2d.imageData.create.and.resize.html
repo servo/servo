@@ -19,15 +19,14 @@
 var t = async_test("Verify no crash when resizing an image bitmap to zero.");
 _addTest(function(canvas, ctx) {
 
-var image = new Image();
-image.onload = t.step_func(function() {
-  var options = { resizeHeight: 0 };
-  var p1 = createImageBitmap(image, options);
-  p1.catch(function(error){});
-  t.done();
-});
-image.src = 'red.png';
-
+  var image = new Image();
+  image.onload = t.step_func(function() {
+    var options = { resizeHeight: 0 };
+    var p1 = createImageBitmap(image, options);
+    p1.catch(function(error){});
+    t.done();
+  });
+  image.src = 'red.png';
 
 });
 </script>

@@ -14,8 +14,9 @@
         width: 100px;
         height: 100px;
         background-color: lime;
-        /* The vertical movement is about sqrt(150^2 - 50^2) - 50 */
-        transform: translateY(91.42px);
+        /* ray length is sqrt(150^2 + 0^2); contain does -max(100, 100) / 2; */
+        /* the result length is 100. sin(90deg) * length = 100; */
+        transform: translateY(100px);
       }
     </style>
   </head>

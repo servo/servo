@@ -13,20 +13,19 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
-ctx.clearRect(0, 0, 50, 25);
-ctx.clearRect(100, 0, -50, 25);
-ctx.clearRect(0, 50, 50, -25);
-ctx.clearRect(100, 50, -50, -25);
-_assertPixel(canvas, 25,12, 0,0,0,0);
-_assertPixel(canvas, 75,12, 0,0,0,0);
-_assertPixel(canvas, 25,37, 0,0,0,0);
-_assertPixel(canvas, 75,37, 0,0,0,0);
-t.done();
-
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.clearRect(0, 0, 50, 25);
+  ctx.clearRect(100, 0, -50, 25);
+  ctx.clearRect(0, 50, 50, -25);
+  ctx.clearRect(100, 50, -50, -25);
+  _assertPixel(canvas, 25,12, 0,0,0,0);
+  _assertPixel(canvas, 75,12, 0,0,0,0);
+  _assertPixel(canvas, 25,37, 0,0,0,0);
+  _assertPixel(canvas, 75,37, 0,0,0,0);
+  t.done();
 });
 done();

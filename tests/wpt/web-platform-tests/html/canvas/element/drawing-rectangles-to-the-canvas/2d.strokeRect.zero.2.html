@@ -19,13 +19,12 @@
 var t = async_test("strokeRect of 0x0 pixels draws nothing, including caps and joins");
 _addTest(function(canvas, ctx) {
 
-ctx.strokeStyle = '#f00';
-ctx.lineWidth = 250;
-ctx.lineCap = 'round';
-ctx.lineJoin = 'round';
-ctx.strokeRect(50, 25, 0, 0);
-_assertPixel(canvas, 50,25, 0,0,0,0);
-
+  ctx.strokeStyle = '#f00';
+  ctx.lineWidth = 250;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeRect(50, 25, 0, 0);
+  _assertPixel(canvas, 50,25, 0,0,0,0);
 
 });
 </script>

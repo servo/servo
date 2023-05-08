@@ -19,12 +19,11 @@
 var t = async_test("strokeRect of Nx0 pixels draws a closed line with joins");
 _addTest(function(canvas, ctx) {
 
-ctx.strokeStyle = '#0f0';
-ctx.lineWidth = 250;
-ctx.lineJoin = 'round';
-ctx.strokeRect(100, 25, 100, 0);
-_assertPixel(canvas, 50,25, 0,255,0,255);
-
+  ctx.strokeStyle = '#0f0';
+  ctx.lineWidth = 250;
+  ctx.lineJoin = 'round';
+  ctx.strokeRect(100, 25, 100, 0);
+  _assertPixel(canvas, 50,25, 0,255,0,255);
 
 });
 </script>

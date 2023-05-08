@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1442522">
+<div id="container" style="overflow:auto; width:100px; height:100px;">
+  <div style="columns:5; gap:0; column-fill:auto; height:100px;">
+    <div style="transform:rotate(180deg); height:500px;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(container.scrollHeight, 100);
+    assert_equals(container.scrollWidth, 100);
+  }, "Rotating 180 degrees with transform origin at the center");
+</script>

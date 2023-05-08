@@ -19,16 +19,15 @@
 var t = async_test("ImageData has a usable constructor");
 _addTest(function(canvas, ctx) {
 
-_assertDifferent(window.ImageData, undefined, "window.ImageData", "undefined");
+  _assertDifferent(window.ImageData, undefined, "window.ImageData", "undefined");
 
-var imgdata = new window.ImageData(2, 3);
-_assertSame(imgdata.width, 2, "imgdata.width", "2");
-_assertSame(imgdata.height, 3, "imgdata.height", "3");
-_assertSame(imgdata.data.length, 2 * 3 * 4, "imgdata.data.length", "2 * 3 * 4");
-for (var i = 0; i < imgdata.data.length; ++i) {
-  _assertSame(imgdata.data[i], 0, "imgdata.data[\""+(i)+"\"]", "0");
-}
-
+  var imgdata = new window.ImageData(2, 3);
+  _assertSame(imgdata.width, 2, "imgdata.width", "2");
+  _assertSame(imgdata.height, 3, "imgdata.height", "3");
+  _assertSame(imgdata.data.length, 2 * 3 * 4, "imgdata.data.length", "2 * 3 * 4");
+  for (var i = 0; i < imgdata.data.length; ++i) {
+    _assertSame(imgdata.data[i], 0, "imgdata.data[\""+(i)+"\"]", "0");
+  }
 
 });
 </script>

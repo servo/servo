@@ -13,11 +13,10 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-_assertSame(ctx.globalCompositeOperation, 'source-over', "ctx.globalCompositeOperation", "'source-over'");
-t.done();
-
+  _assertSame(ctx.globalCompositeOperation, 'source-over', "ctx.globalCompositeOperation", "'source-over'");
+  t.done();
 });
 done();

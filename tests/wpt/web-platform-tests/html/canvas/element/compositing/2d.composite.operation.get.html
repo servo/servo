@@ -19,15 +19,14 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-var modes = ['source-atop', 'source-in', 'source-out', 'source-over',
-    'destination-atop', 'destination-in', 'destination-out', 'destination-over',
-    'lighter', 'copy', 'xor'];
-for (var i = 0; i < modes.length; ++i)
-{
-    ctx.globalCompositeOperation = modes[i];
-    _assertSame(ctx.globalCompositeOperation, modes[i], "ctx.globalCompositeOperation", "modes[\""+(i)+"\"]");
-}
-
+  var modes = ['source-atop', 'source-in', 'source-out', 'source-over',
+      'destination-atop', 'destination-in', 'destination-out', 'destination-over',
+      'lighter', 'copy', 'xor'];
+  for (var i = 0; i < modes.length; ++i)
+  {
+      ctx.globalCompositeOperation = modes[i];
+      _assertSame(ctx.globalCompositeOperation, modes[i], "ctx.globalCompositeOperation", "modes[\""+(i)+"\"]");
+  }
 
 });
 </script>

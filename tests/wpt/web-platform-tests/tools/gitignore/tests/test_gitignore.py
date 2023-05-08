@@ -1,17 +1,12 @@
 # mypy: allow-untyped-defs
+from typing import Iterable, Sequence, Tuple
 
 import pytest
 
 from ..gitignore import fnmatch_translate, PathFilter
 
-MYPY = False
-if MYPY:
-    # MYPY is set to True when run under Mypy.
-    from typing import Tuple
-    from typing import Iterable
-    from typing import Sequence
 
-match_data = [
+match_data: Sequence[Tuple[bytes, bool, Iterable[bytes]]] = [
     (b"foo", True, [b"a/foo", b"foo"]),
     (b"*.a", True, [b"foo.a", b"a/foo.a", b"a/b/foo.a", b"a.a/foo.a"]),
     (b"*.py[co]", True, [b"a.pyc", b"a.pyo", b"a/b/c.pyc"]),
@@ -29,9 +24,9 @@ match_data = [
     (b"a[^b]c", True, [b"acc"]),
     (b"a[b-c]c", True, [b"abc", b"acc"]),
     (b"a[]c", True, [b"ac"]),
-]  # type: Sequence[Tuple[bytes, bool, Iterable[bytes]]]
+]
 
-mismatch_data = [
+mismatch_data: Sequence[Tuple[bytes, bool, Iterable[bytes]]] = [
     (b"foo", True, [b"foob", b"afoo"]),
     (b"*.a", True, [b"a", b"foo:a", b"a.a/foo"]),
     (b"*.py[co]", True, [b"a.pyd", b"pyo", b"a.py"]),
@@ -39,7 +34,7 @@ mismatch_data = [
     (b"a?c", True, [b"ac", b"abbc"]),
     (b"a[^b]c", True, [b"abc"]),
     (b"a[b-c]c", True, [b"adc"]),
-]  # type: Sequence[Tuple[bytes, bool, Iterable[bytes]]]
+]
 
 invalid_data = [
     b"[a",
@@ -66,8 +61,7 @@ filter_data = [
 ]
 
 
-def expand_data(compact_data):
-    # type: (Sequence[Tuple[bytes, bool, Iterable[bytes]]]) -> Iterable[Tuple[bytes, bool, bytes]]
+def expand_data(compact_data: Sequence[Tuple[bytes, bool, Iterable[bytes]]]) -> Iterable[Tuple[bytes, bool, bytes]]:
     for pattern, name_only, inputs in compact_data:
         for input in inputs:
             yield pattern, name_only, input

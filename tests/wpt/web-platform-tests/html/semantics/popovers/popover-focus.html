@@ -13,7 +13,7 @@
 
 <div popover data-test='default behavior - popover is not focused' data-no-focus>
   <p>This is a popover</p>
-  <button>first button</button>
+  <button tabindex="0">first button</button>
 </div>
 
 <div popover data-test='autofocus popover' autofocus tabindex=-1 class=should-be-focused>
@@ -24,29 +24,29 @@
 
 <div popover data-test='autofocus popover with button' autofocus tabindex=-1 class=should-be-focused>
   <p>This is a popover</p>
-  <button>button</button>
+  <button tabindex="0">button</button>
 </div>
 
 <div popover data-test='autofocus child'>
   <p>This is a popover</p>
-  <button autofocus class=should-be-focused>autofocus button</button>
+  <button autofocus class=should-be-focused tabindex="0">autofocus button</button>
 </div>
 
 <div popover data-test='autofocus on tabindex=0 element'>
   <p autofocus tabindex=0 class=should-be-focused>This is a popover with autofocus on a tabindex=0 element</p>
-  <button>button</button>
+  <button tabindex="0">button</button>
 </div>
 
 <div popover data-test='autofocus multiple children'>
   <p>This is a popover</p>
-  <button autofocus class=should-be-focused>autofocus button</button>
-  <button autofocus>second autofocus button</button>
+  <button autofocus class=should-be-focused tabindex="0">autofocus button</button>
+  <button autofocus tabindex="0">second autofocus button</button>
 </div>
 
 <div popover autofocus tabindex=-1 data-test='autofocus popover and multiple autofocus children' class=should-be-focused>
   <p>This is a popover</p>
-  <button autofocus>autofocus button</button>
-  <button autofocus>second autofocus button</button>
+  <button autofocus tabindex="0">autofocus button</button>
+  <button autofocus tabindex="0">second autofocus button</button>
 </div>
 
 <style>
@@ -71,11 +71,13 @@
       button.remove();
     });
     popover.id = popoverId;
+    button.setAttribute('tabindex', '0');
     button.setAttribute('popovertarget', popoverId);
     return button;
   }
   function addPriorFocus(t) {
     const priorFocus = document.createElement('button');
+    priorFocus.setAttribute("tabindex", "0");
     priorFocus.id = 'priorFocus';
     document.body.appendChild(priorFocus);
     t.add_cleanup(() => priorFocus.remove());
@@ -218,6 +220,7 @@
 
       // Same thing, but the button is unrelated (no popovertarget)
       button = document.createElement('button');
+      button.setAttribute("tabindex", "0");
       document.body.appendChild(button);
       priorFocus.focus();
       popover.showPopover();

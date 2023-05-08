@@ -1,8 +1,8 @@
 import pytest
 from webdriver.bidi.modules.script import ContextTarget
 
-from . import assert_console_entry, create_console_api_message_for_primitive_value
-from ... import any_string, int_interval, recursive_compare
+from . import assert_console_entry, create_console_api_message_from_string
+from ... import any_string, int_interval
 
 
 @pytest.mark.asyncio
@@ -29,7 +29,7 @@ async def test_text_with_argument_variation(
     await bidi_session.session.subscribe(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
-    await create_console_api_message_for_primitive_value(
+    await create_console_api_message_from_string(
         bidi_session, top_context, "log", log_argument)
     event_data = await on_entry_added
 
@@ -59,10 +59,10 @@ async def test_level(
 
     if log_method == "assert":
         # assert has to be called with a first falsy argument to trigger a log.
-        await create_console_api_message_for_primitive_value(
+        await create_console_api_message_from_string(
             bidi_session, top_context, "assert", "false, 'foo'")
     else:
-        await create_console_api_message_for_primitive_value(
+        await create_console_api_message_from_string(
             bidi_session, top_context, log_method, "'foo'")
 
     event_data = await on_entry_added
@@ -105,7 +105,7 @@ async def test_new_context_with_new_window(bidi_session, top_context, wait_for_e
     await bidi_session.session.subscribe(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
-    await create_console_api_message_for_primitive_value(
+    await create_console_api_message_from_string(
         bidi_session, top_context, 'log', "'foo'")
     event_data = await on_entry_added
     assert_console_entry(event_data, text="foo", context=top_context["context"])
@@ -113,7 +113,7 @@ async def test_new_context_with_new_window(bidi_session, top_context, wait_for_e
     new_context = await bidi_session.browsing_context.create(type_hint="tab")
 
     on_entry_added = wait_for_event("log.entryAdded")
-    await create_console_api_message_for_primitive_value(
+    await create_console_api_message_from_string(
         bidi_session, new_context, 'log', "'foo_in_new_window'")
     event_data = await on_entry_added
     assert_console_entry(event_data, text="foo_in_new_window", context=new_context["context"])
@@ -124,7 +124,7 @@ async def test_new_context_with_refresh(bidi_session, top_context, wait_for_even
     await bidi_session.session.subscribe(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
-    await create_console_api_message_for_primitive_value(
+    await create_console_api_message_from_string(
         bidi_session, top_context, 'log', "'foo'")
     event_data = await on_entry_added
     assert_console_entry(event_data, text="foo", context=top_context["context"])
@@ -133,7 +133,7 @@ async def test_new_context_with_refresh(bidi_session, top_context, wait_for_even
         context=top_context["context"], url=top_context["url"], wait="complete"
     )
     on_entry_added = wait_for_event("log.entryAdded")
-    await create_console_api_message_for_primitive_value(
+    await create_console_api_message_from_string(
         bidi_session, top_context, 'log', "'foo_after_refresh'")
     event_data = await on_entry_added
     assert_console_entry(
@@ -158,13 +158,13 @@ async def test_different_contexts(
     await bidi_session.session.subscribe(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
-    await create_console_api_message_for_primitive_value(
+    await create_console_api_message_from_string(
         bidi_session, top_context, "log", "'foo'")
     event_data = await on_entry_added
     assert_console_entry(event_data, text="foo", context=top_context["context"])
 
     on_entry_added = wait_for_event("log.entryAdded")
-    await create_console_api_message_for_primitive_value(
+    await create_console_api_message_from_string(
         bidi_session, frame_context, "log", "'bar'")
     event_data = await on_entry_added
     assert_console_entry(event_data, text="bar", context=frame_context["context"])

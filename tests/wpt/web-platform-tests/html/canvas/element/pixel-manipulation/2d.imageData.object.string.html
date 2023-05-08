@@ -19,17 +19,16 @@
 var t = async_test("ImageData.data converts strings to numbers with ToNumber");
 _addTest(function(canvas, ctx) {
 
-var imgdata = ctx.getImageData(0, 0, 10, 10);
-imgdata.data[0] = 100;
-imgdata.data[0] = "110";
-_assertSame(imgdata.data[0], 110, "imgdata.data[\""+(0)+"\"]", "110");
-imgdata.data[0] = 100;
-imgdata.data[0] = "0x78";
-_assertSame(imgdata.data[0], 120, "imgdata.data[\""+(0)+"\"]", "120");
-imgdata.data[0] = 100;
-imgdata.data[0] = " +130e0 ";
-_assertSame(imgdata.data[0], 130, "imgdata.data[\""+(0)+"\"]", "130");
-
+  var imgdata = ctx.getImageData(0, 0, 10, 10);
+  imgdata.data[0] = 100;
+  imgdata.data[0] = "110";
+  _assertSame(imgdata.data[0], 110, "imgdata.data[\""+(0)+"\"]", "110");
+  imgdata.data[0] = 100;
+  imgdata.data[0] = "0x78";
+  _assertSame(imgdata.data[0], 120, "imgdata.data[\""+(0)+"\"]", "120");
+  imgdata.data[0] = 100;
+  imgdata.data[0] = " +130e0 ";
+  _assertSame(imgdata.data[0], 130, "imgdata.data[\""+(0)+"\"]", "130");
 
 });
 </script>

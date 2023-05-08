@@ -19,8 +19,7 @@
 var t = async_test("Check that roundRect throws an RangeError if radii is an empty array.");
 _addTest(function(canvas, ctx) {
 
-assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 100, 50, [])});
-
+  assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 100, 50, [])});
 
 });
 </script>

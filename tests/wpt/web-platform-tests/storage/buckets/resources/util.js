@@ -13,3 +13,45 @@ async function prepareForBucketTest(test) {
     }
   });
 }
+
+function indexedDbOpenRequest(t, idb, dbname, upgrade_func) {
+  return new Promise((resolve, reject) => {
+    const openRequest = idb.open(dbname);
+    t.add_cleanup(() => {
+      indexedDbDeleteRequest(idb, dbname);
+    });
+
+    openRequest.onerror = () => {
+      reject(openRequest.error);
+    };
+    openRequest.onsuccess = () => {
+      resolve(openRequest.result);
+    };
+    openRequest.onupgradeneeded = event => {
+      upgrade_func(openRequest.result);
+    };
+  });
+}
+
+function indexedDbDeleteRequest(idb, name) {
+  return new Promise((resolve, reject) => {
+    const deleteRequest = idb.deleteDatabase(name);
+    deleteRequest.onerror = () => {
+      reject(deleteRequest.error);
+    };
+    deleteRequest.onsuccess = () => {
+      resolve();
+    };
+  });
+}
+
+function transactionPromise(txn) {
+  return new Promise((resolve, reject) => {
+    txn.onabort = () => {
+      reject(txn.error);
+    };
+    txn.oncomplete = () => {
+      resolve();
+    };
+  });
+}

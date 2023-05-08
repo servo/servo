@@ -13,20 +13,19 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-var offscreenCanvas2 = new OffscreenCanvas(100, 50);
-var ctx2 = offscreenCanvas2.getContext('2d');
-ctx2.fillStyle = '#0f0';
-ctx2.fillRect(0, 0, 100, 50);
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
-ctx.globalCompositeOperation = 'copy'
-ctx.globalAlpha = 0.51;
-ctx.drawImage(offscreenCanvas2, 0, 0);
-_assertPixelApprox(canvas, 50,25, 0,255,0,130, 2);
-t.done();
-
+  var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+  var ctx2 = offscreenCanvas2.getContext('2d');
+  ctx2.fillStyle = '#0f0';
+  ctx2.fillRect(0, 0, 100, 50);
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.globalCompositeOperation = 'copy'
+  ctx.globalAlpha = 0.51;
+  ctx.drawImage(offscreenCanvas2, 0, 0);
+  _assertPixelApprox(canvas, 50,25, 0,255,0,130, 2);
+  t.done();
 });
 done();

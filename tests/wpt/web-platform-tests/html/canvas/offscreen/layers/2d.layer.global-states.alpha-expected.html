@@ -21,6 +21,7 @@
   canvas2 = document.createElement("canvas");
   ctx2 = canvas2.getContext("2d");
 
+  ctx2.globalCompositeOperation = 'screen';
   ctx2.fillStyle = 'rgba(225, 0, 0, 1)';
   ctx2.fillRect(50, 50, 75, 50);
   ctx2.fillStyle = 'rgba(0, 255, 0, 1)';

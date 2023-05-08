@@ -13,14 +13,13 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.strokeStyle = '#f00';
-ctx.lineWidth = 250;
-ctx.strokeRect(50, 25, 0, 0);
-_assertPixel(canvas, 50,25, 0,0,0,0);
-t.done();
-
+  ctx.strokeStyle = '#f00';
+  ctx.lineWidth = 250;
+  ctx.strokeRect(50, 25, 0, 0);
+  _assertPixel(canvas, 50,25, 0,0,0,0);
+  t.done();
 });
 done();

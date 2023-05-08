@@ -21,6 +21,10 @@
 
   ctx.beginLayer();
 
+  // Enable compositing in the layer to validate that draw calls in the layer
+  // won't individually composite with the background.
+  ctx.globalCompositeOperation = 'screen';
+
   ctx.fillStyle = 'rgba(225, 0, 0, 1)';
   ctx.fillRect(50, 50, 75, 50);
   ctx.fillStyle = 'rgba(0, 255, 0, 1)';

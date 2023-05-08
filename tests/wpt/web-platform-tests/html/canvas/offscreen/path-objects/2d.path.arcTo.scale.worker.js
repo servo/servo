@@ -13,29 +13,30 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
-ctx.fillStyle = '#0f0';
-ctx.beginPath();
-ctx.moveTo(0, 50);
-ctx.translate(100, 0);
-ctx.scale(0.1, 1);
-ctx.arcTo(50, 50, 50, 0, 50);
-ctx.lineTo(-1000, 0);
-ctx.fill();
-_assertPixel(canvas, 0,0, 0,255,0,255);
-_assertPixel(canvas, 50,0, 0,255,0,255);
-_assertPixel(canvas, 99,0, 0,255,0,255);
-_assertPixel(canvas, 0,25, 0,255,0,255);
-_assertPixel(canvas, 50,25, 0,255,0,255);
-_assertPixel(canvas, 99,25, 0,255,0,255);
-_assertPixel(canvas, 0,49, 0,255,0,255);
-_assertPixel(canvas, 50,49, 0,255,0,255);
-_assertPixel(canvas, 99,49, 0,255,0,255);
-t.done();
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
 
+  ctx.fillStyle = '#0f0';
+  ctx.beginPath();
+  ctx.moveTo(0, 50);
+  ctx.translate(100, 0);
+  ctx.scale(0.1, 1);
+  ctx.arcTo(50, 50, 50, 0, 50);
+  ctx.lineTo(-1000, 0);
+  ctx.fill();
+
+  _assertPixel(canvas, 0,0, 0,255,0,255);
+  _assertPixel(canvas, 50,0, 0,255,0,255);
+  _assertPixel(canvas, 99,0, 0,255,0,255);
+  _assertPixel(canvas, 0,25, 0,255,0,255);
+  _assertPixel(canvas, 50,25, 0,255,0,255);
+  _assertPixel(canvas, 99,25, 0,255,0,255);
+  _assertPixel(canvas, 0,49, 0,255,0,255);
+  _assertPixel(canvas, 50,49, 0,255,0,255);
+  _assertPixel(canvas, 99,49, 0,255,0,255);
+  t.done();
 });
 done();

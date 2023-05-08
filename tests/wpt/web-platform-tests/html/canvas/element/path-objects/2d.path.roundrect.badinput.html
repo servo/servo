@@ -19,15 +19,14 @@
 var t = async_test("roundRect() throws or does not throw errors given the strange inputs.");
 _addTest(function(canvas, ctx) {
 
-ctx.roundRect(0, 0, 100, 100, { foo: "bar" });  //=> DOMPointInit
-ctx.roundRect(0, 0, 100, 100, undefined);       //=> "missing" -> 0
-ctx.roundRect(0, 0, 100, 100, [[]]);            //=> « DOMPointInit »
-ctx.roundRect(0, 0, 100, 100, [[25]]);          //=> « DOMPointInit »
-ctx.roundRect(0, 0, 100, 100, [undefined]);     //=> « DOMPointInit »
-assert_throws_js(TypeError, function() { ctx.roundRect(0, 0, 100, 100, 0n); });
-assert_throws_js(TypeError, function() { ctx.roundRect(0, 0, 100, 100, { x: 0n }); });
-assert_throws_js(TypeError, function() { ctx.roundRect(0, 0, 100, 100, [{ x: 0n }]); });
-
+  ctx.roundRect(0, 0, 100, 100, { foo: "bar" });  //=> DOMPointInit
+  ctx.roundRect(0, 0, 100, 100, undefined);       //=> "missing" -> 0
+  ctx.roundRect(0, 0, 100, 100, [[]]);            //=> « DOMPointInit »
+  ctx.roundRect(0, 0, 100, 100, [[25]]);          //=> « DOMPointInit »
+  ctx.roundRect(0, 0, 100, 100, [undefined]);     //=> « DOMPointInit »
+  assert_throws_js(TypeError, function() { ctx.roundRect(0, 0, 100, 100, 0n); });
+  assert_throws_js(TypeError, function() { ctx.roundRect(0, 0, 100, 100, { x: 0n }); });
+  assert_throws_js(TypeError, function() { ctx.roundRect(0, 0, 100, 100, [{ x: 0n }]); });
 
 });
 </script>

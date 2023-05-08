@@ -13,18 +13,17 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.rect(-100, -50, 200, 100);
-_assertSame(ctx.isPointInPath(Infinity, 0), false, "ctx.isPointInPath(Infinity, 0)", "false");
-_assertSame(ctx.isPointInPath(-Infinity, 0), false, "ctx.isPointInPath(-Infinity, 0)", "false");
-_assertSame(ctx.isPointInPath(NaN, 0), false, "ctx.isPointInPath(NaN, 0)", "false");
-_assertSame(ctx.isPointInPath(0, Infinity), false, "ctx.isPointInPath(0, Infinity)", "false");
-_assertSame(ctx.isPointInPath(0, -Infinity), false, "ctx.isPointInPath(0, -Infinity)", "false");
-_assertSame(ctx.isPointInPath(0, NaN), false, "ctx.isPointInPath(0, NaN)", "false");
-_assertSame(ctx.isPointInPath(NaN, NaN), false, "ctx.isPointInPath(NaN, NaN)", "false");
-t.done();
-
+  ctx.rect(-100, -50, 200, 100);
+  _assertSame(ctx.isPointInPath(Infinity, 0), false, "ctx.isPointInPath(Infinity, 0)", "false");
+  _assertSame(ctx.isPointInPath(-Infinity, 0), false, "ctx.isPointInPath(-Infinity, 0)", "false");
+  _assertSame(ctx.isPointInPath(NaN, 0), false, "ctx.isPointInPath(NaN, 0)", "false");
+  _assertSame(ctx.isPointInPath(0, Infinity), false, "ctx.isPointInPath(0, Infinity)", "false");
+  _assertSame(ctx.isPointInPath(0, -Infinity), false, "ctx.isPointInPath(0, -Infinity)", "false");
+  _assertSame(ctx.isPointInPath(0, NaN), false, "ctx.isPointInPath(0, NaN)", "false");
+  _assertSame(ctx.isPointInPath(NaN, NaN), false, "ctx.isPointInPath(NaN, NaN)", "false");
+  t.done();
 });
 done();

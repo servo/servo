@@ -13,18 +13,19 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.globalAlpha = 0.5;
-var a = ctx.globalAlpha; // might not be exactly 0.5, if it is rounded/quantised, so remember for future comparisons
-ctx.globalAlpha = Infinity;
-_assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
-ctx.globalAlpha = -Infinity;
-_assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
-ctx.globalAlpha = NaN;
-_assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
-t.done();
-
+  ctx.globalAlpha = 0.5;
+  // This may not set it to exactly 0.5 if it is rounded/quantised, so
+  // remember for future comparisons.
+  var a = ctx.globalAlpha;
+  ctx.globalAlpha = Infinity;
+  _assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
+  ctx.globalAlpha = -Infinity;
+  _assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
+  ctx.globalAlpha = NaN;
+  _assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
+  t.done();
 });
 done();

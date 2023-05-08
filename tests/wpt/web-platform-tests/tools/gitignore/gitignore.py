@@ -2,32 +2,18 @@ import re
 import os
 import itertools
 from collections import defaultdict
+from typing import (Any, Dict, Iterable, List, MutableMapping, Optional, Pattern, Tuple, TypeVar,
+                    Union, cast)
 
-MYPY = False
-if MYPY:
-    # MYPY is set to True when run under Mypy.
-    from typing import Any
-    from typing import Dict
-    from typing import Iterable
-    from typing import List
-    from typing import MutableMapping
-    from typing import Optional
-    from typing import Pattern
-    from typing import Tuple
-    from typing import TypeVar
-    from typing import Union
-    from typing import cast
 
-    T = TypeVar('T')
-
+T = TypeVar('T')
 
 end_space = re.compile(r"([^\\]\s)*$")
 
 
-def fnmatch_translate(pat):
-    # type: (bytes) -> Tuple[bool, Pattern[bytes]]
+def fnmatch_translate(pat: bytes) -> Tuple[bool, Pattern[bytes]]:
     parts = []
-    seq = None  # type: Optional[int]
+    seq: Optional[int] = None
     i = 0
     any_char = b"[^/]"
     if pat[0:1] == b"/":
@@ -112,8 +98,7 @@ def fnmatch_translate(pat):
 pattern_re = re.compile(br".*[\*\[\?]")
 
 
-def parse_line(line):
-    # type: (bytes) -> Optional[Tuple[bool, bool, bool, Union[Tuple[bytes, ...], Tuple[bool, Pattern[bytes]]]]]
+def parse_line(line: bytes) -> Optional[Tuple[bool, bool, bool, Union[Tuple[bytes, ...], Tuple[bool, Pattern[bytes]]]]]:
     line = line.rstrip()
     if not line or line[0:1] == b"#":
         return None
@@ -130,7 +115,7 @@ def parse_line(line):
     # Could make a special case for **/foo, but we don't have any patterns like that
     if not invert and not pattern_re.match(line):
         literal = True
-        pattern = tuple(line.rsplit(b"/", 1))  # type: Union[Tuple[bytes, ...], Tuple[bool, Pattern[bytes]]]
+        pattern: Union[Tuple[bytes, ...], Tuple[bool, Pattern[bytes]]] = tuple(line.rsplit(b"/", 1))
     else:
         pattern = fnmatch_translate(line)
         literal = False
@@ -139,10 +124,9 @@ def parse_line(line):
 
 
 class PathFilter:
-    def __init__(self, root, extras=None, cache=None):
-        # type: (bytes, Optional[List[bytes]], Optional[MutableMapping[bytes, bool]]) -> None
+    def __init__(self, root: bytes, extras: Optional[List[bytes]] = None, cache: Optional[MutableMapping[bytes, bool]] = None) -> None:
         if root:
-            ignore_path = os.path.join(root, b".gitignore")  # type: Optional[bytes]
+            ignore_path: Optional[bytes] = os.path.join(root, b".gitignore")
         else:
             ignore_path = None
         if not ignore_path and not extras:
@@ -150,26 +134,25 @@ class PathFilter:
             return
         self.trivial = False
 
-        self.literals_file = defaultdict(dict)  # type: Dict[Optional[bytes], Dict[bytes, List[Tuple[bool, Pattern[bytes]]]]]
-        self.literals_dir = defaultdict(dict)  # type: Dict[Optional[bytes], Dict[bytes, List[Tuple[bool, Pattern[bytes]]]]]
-        self.patterns_file = []  # type: List[Tuple[Tuple[bool, Pattern[bytes]], List[Tuple[bool, Pattern[bytes]]]]]
-        self.patterns_dir = []  # type: List[Tuple[Tuple[bool, Pattern[bytes]], List[Tuple[bool, Pattern[bytes]]]]]
+        self.literals_file: Dict[Optional[bytes], Dict[bytes, List[Tuple[bool, Pattern[bytes]]]]] = defaultdict(dict)
+        self.literals_dir: Dict[Optional[bytes], Dict[bytes, List[Tuple[bool, Pattern[bytes]]]]] = defaultdict(dict)
+        self.patterns_file: List[Tuple[Tuple[bool, Pattern[bytes]], List[Tuple[bool, Pattern[bytes]]]]] = []
+        self.patterns_dir: List[Tuple[Tuple[bool, Pattern[bytes]], List[Tuple[bool, Pattern[bytes]]]]] = []
 
         if cache is None:
             cache = {}
-        self.cache = cache  # type: MutableMapping[bytes, bool]
+        self.cache: MutableMapping[bytes, bool] = cache
 
         if extras is None:
             extras = []
 
         if ignore_path and os.path.exists(ignore_path):
-            args = ignore_path, extras  # type: Tuple[Optional[bytes], List[bytes]]
+            args: Tuple[Optional[bytes], List[bytes]] = (ignore_path, extras)
         else:
             args = None, extras
         self._read_ignore(*args)
 
-    def _read_ignore(self, ignore_path, extras):
-        # type: (Optional[bytes], List[bytes]) -> None
+    def _read_ignore(self, ignore_path: Optional[bytes], extras: List[bytes]) -> None:
         if ignore_path is not None:
             with open(ignore_path, "rb") as f:
                 for line in f:
@@ -177,8 +160,7 @@ class PathFilter:
         for line in extras:
             self._read_line(line)
 
-    def _read_line(self, line):
-        # type: (bytes) -> None
+    def _read_line(self, line: bytes) -> None:
         parsed = parse_line(line)
         if not parsed:
             return
@@ -189,14 +171,13 @@ class PathFilter:
             # that we can match patterns out of order and check if they were later
             # overriden by an exclude rule
             assert not literal
-            if MYPY:
-                rule = cast(Tuple[bool, Pattern[bytes]], rule)
+            rule = cast(Tuple[bool, Pattern[bytes]], rule)
             if not dir_only:
-                rules_iter = itertools.chain(
+                rules_iter: Iterable[Tuple[Any, List[Tuple[bool, Pattern[bytes]]]]] = itertools.chain(
                     itertools.chain(*(item.items() for item in self.literals_dir.values())),
                     itertools.chain(*(item.items() for item in self.literals_file.values())),
                     self.patterns_dir,
-                    self.patterns_file)  # type: Iterable[Tuple[Any, List[Tuple[bool, Pattern[bytes]]]]]
+                    self.patterns_file)
             else:
                 rules_iter = itertools.chain(
                     itertools.chain(*(item.items() for item in self.literals_dir.values())),
@@ -206,8 +187,7 @@ class PathFilter:
                 rules[1].append(rule)
         else:
             if literal:
-                if MYPY:
-                    rule = cast(Tuple[bytes, ...], rule)
+                rule = cast(Tuple[bytes, ...], rule)
                 if len(rule) == 1:
                     dir_name, pattern = None, rule[0]  # type: Tuple[Optional[bytes], bytes]
                 else:
@@ -216,25 +196,23 @@ class PathFilter:
                 if not dir_only:
                     self.literals_file[dir_name][pattern] = []
             else:
-                if MYPY:
-                    rule = cast(Tuple[bool, Pattern[bytes]], rule)
+                rule = cast(Tuple[bool, Pattern[bytes]], rule)
                 self.patterns_dir.append((rule, []))
                 if not dir_only:
                     self.patterns_file.append((rule, []))
 
     def filter(self,
-               iterator  # type: Iterable[Tuple[bytes, List[Tuple[bytes, T]], List[Tuple[bytes, T]]]]
-               ):
-        # type: (...) -> Iterable[Tuple[bytes, List[Tuple[bytes, T]], List[Tuple[bytes, T]]]]
-        empty = {}  # type: Dict[Any, Any]
+               iterator: Iterable[Tuple[bytes, List[Tuple[bytes, T]], List[Tuple[bytes, T]]]]
+               ) -> Iterable[Tuple[bytes, List[Tuple[bytes, T]], List[Tuple[bytes, T]]]]:
+        empty: Dict[Any, Any] = {}
         for dirpath, dirnames, filenames in iterator:
             orig_dirpath = dirpath
             path_sep = os.path.sep.encode()
             if path_sep != b"/":
                 dirpath = dirpath.replace(path_sep, b"/")
 
-            keep_dirs = []  # type: List[Tuple[bytes, T]]
-            keep_files = []  # type: List[Tuple[bytes, T]]
+            keep_dirs: List[Tuple[bytes, T]] = []
+            keep_files: List[Tuple[bytes, T]] = []
 
             for iter_items, literals, patterns, target, suffix in [
                     (dirnames, self.literals_dir, self.patterns_dir, keep_dirs, b"/"),
@@ -278,15 +256,13 @@ class PathFilter:
             yield orig_dirpath, dirnames, keep_files
 
     def __call__(self,
-                 iterator  # type: Iterable[Tuple[bytes, List[Tuple[bytes, T]], List[Tuple[bytes, T]]]]
-                 ):
-        # type: (...) -> Iterable[Tuple[bytes, List[Tuple[bytes, T]], List[Tuple[bytes, T]]]]
+                 iterator: Iterable[Tuple[bytes, List[Tuple[bytes, T]], List[Tuple[bytes, T]]]]
+                 ) -> Iterable[Tuple[bytes, List[Tuple[bytes, T]], List[Tuple[bytes, T]]]]:
         if self.trivial:
             return iterator
 
         return self.filter(iterator)
 
 
-def has_ignore(dirpath):
-    # type: (bytes) -> bool
+def has_ignore(dirpath: bytes) -> bool:
     return os.path.exists(os.path.join(dirpath, b".gitignore"))

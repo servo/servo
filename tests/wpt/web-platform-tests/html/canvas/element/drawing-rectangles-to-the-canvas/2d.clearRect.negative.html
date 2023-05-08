@@ -19,17 +19,16 @@
 var t = async_test("clearRect of negative sizes works");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
-ctx.clearRect(0, 0, 50, 25);
-ctx.clearRect(100, 0, -50, 25);
-ctx.clearRect(0, 50, 50, -25);
-ctx.clearRect(100, 50, -50, -25);
-_assertPixel(canvas, 25,12, 0,0,0,0);
-_assertPixel(canvas, 75,12, 0,0,0,0);
-_assertPixel(canvas, 25,37, 0,0,0,0);
-_assertPixel(canvas, 75,37, 0,0,0,0);
-
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.clearRect(0, 0, 50, 25);
+  ctx.clearRect(100, 0, -50, 25);
+  ctx.clearRect(0, 50, 50, -25);
+  ctx.clearRect(100, 50, -50, -25);
+  _assertPixel(canvas, 25,12, 0,0,0,0);
+  _assertPixel(canvas, 75,12, 0,0,0,0);
+  _assertPixel(canvas, 25,37, 0,0,0,0);
+  _assertPixel(canvas, 75,37, 0,0,0,0);
 
 });
 </script>

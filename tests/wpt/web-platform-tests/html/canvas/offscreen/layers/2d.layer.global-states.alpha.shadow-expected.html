@@ -19,11 +19,12 @@
   ctx.globalAlpha = 0.5;
   ctx.shadowOffsetX = -10;
   ctx.shadowOffsetY = 10;
-  ctx.shadowColor = 'orange';
+  ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
 
   canvas2 = document.createElement("canvas");
   ctx2 = canvas2.getContext("2d");
 
+  ctx2.globalCompositeOperation = 'screen';
   ctx2.fillStyle = 'rgba(225, 0, 0, 1)';
   ctx2.fillRect(50, 50, 75, 50);
   ctx2.fillStyle = 'rgba(0, 255, 0, 1)';

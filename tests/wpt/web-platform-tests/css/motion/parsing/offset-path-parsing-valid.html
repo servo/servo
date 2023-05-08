@@ -48,7 +48,7 @@ test_valid_value("offset-path", 'path(" ")', ['none', 'path("")']);
 
 test_valid_value("offset-path", 'url("http://www.example.com/index.html#polyline1")');
 
-test_valid_value("offset-path", "circle(100px)");
+test_valid_value("offset-path", "circle(100px)", "circle(100px at 50% 50%)");
 test_valid_value("offset-path", "margin-box");
 test_valid_value("offset-path", "inset(10% 20% 30% 40%) border-box");
 test_valid_value("offset-path", "fill-box ellipse(50% 60%)", "ellipse(50% 60%) fill-box");

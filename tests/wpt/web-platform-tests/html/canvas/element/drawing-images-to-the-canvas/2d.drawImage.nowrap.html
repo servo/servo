@@ -16,25 +16,22 @@
 <p class="output expectedtext">Expected output:<p><img src="/images/green-100x50.png" class="output expected" id="expected" alt="">
 <ul id="d"></ul>
 <script>
-var t = async_test("Stretched images do not get pixels wrapping around the edges");
-_addTest(function(canvas, ctx) {
+promise_test(async t => {
 
-ctx.fillStyle = '#0f0';
-ctx.fillRect(0, 0, 100, 50);
-fetch('/images/redtransparent.png')
-  .then(response => response.blob())
-    .then(blob => {
-      createImageBitmap(blob)
-        .then(bitmap => {
-        ctx.drawImage(bitmap, -1950, 0, 2000, 50);
-        _assertPixelApprox(canvas, 45,25, 0,255,0,255, 2);
-        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-        _assertPixelApprox(canvas, 55,25, 0,255,0,255, 2);
-    });
-});
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
 
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(0, 0, 100, 50);
+  const response = await fetch('/images/redtransparent.png');
+  const blob = await response.blob();
+  const bitmap = await createImageBitmap(blob);
 
-});
+  ctx.drawImage(bitmap, -1950, 0, 2000, 50);
+  _assertPixelApprox(canvas, 45,25, 0,255,0,255, 2);
+  _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+  _assertPixelApprox(canvas, 55,25, 0,255,0,255, 2);
+
+}, "Stretched images do not get pixels wrapping around the edges");
 </script>
-<img src="/images/redtransparent.png" id="redtransparent.png" class="resource">
 

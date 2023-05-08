@@ -9,7 +9,7 @@ class BidiException(Exception):
     # The error_code class variable is used to map the JSON Error Code (see
     # https://w3c.github.io/webdriver/#errors) to a BidiException subclass.
     # TODO: Match on error and let it be a class variables only.
-    error_code = None  # type: ClassVar[str]
+    error_code: ClassVar[str]
 
     def __init__(self, message: str, stacktrace: Optional[str] = None):
         super()
@@ -82,5 +82,5 @@ def get(error_code: str) -> Type[BidiException]:
 
 _errors: DefaultDict[str, Type[BidiException]] = collections.defaultdict()
 for item in list(locals().values()):
-    if type(item) == type and issubclass(item, BidiException):
+    if type(item) == type and item != BidiException and issubclass(item, BidiException):
         _errors[item.error_code] = item

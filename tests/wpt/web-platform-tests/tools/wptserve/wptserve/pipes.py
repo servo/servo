@@ -21,7 +21,7 @@ def resolve_content(response):
 
 
 class Pipeline:
-    pipes = {}  # type: ClassVar[Dict[str, Callable[..., Any]]]
+    pipes: ClassVar[Dict[str, Callable[..., Any]]] = {}
 
     def __init__(self, pipe_string):
         self.pipe_functions = self.parse(pipe_string)

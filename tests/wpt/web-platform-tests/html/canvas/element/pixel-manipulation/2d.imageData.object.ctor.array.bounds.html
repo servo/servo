@@ -19,15 +19,14 @@
 var t = async_test("ImageData has a usable constructor");
 _addTest(function(canvas, ctx) {
 
-_assertDifferent(window.ImageData, undefined, "window.ImageData", "undefined");
+  _assertDifferent(window.ImageData, undefined, "window.ImageData", "undefined");
 
-assert_throws_dom("INVALID_STATE_ERR", function() { new ImageData(new Uint8ClampedArray(0), 1); });
-assert_throws_dom("INVALID_STATE_ERR", function() { new ImageData(new Uint8ClampedArray(3), 1); });
-assert_throws_dom("INDEX_SIZE_ERR", function() { new ImageData(new Uint8ClampedArray(4), 0); });
-assert_throws_dom("INDEX_SIZE_ERR", function() { new ImageData(new Uint8ClampedArray(4), 1, 2); });
-assert_throws_js(TypeError, function() { new ImageData(new Uint8Array(8), 1, 2); });
-assert_throws_js(TypeError, function() { new ImageData(new Int8Array(8), 1, 2); });
-
+  assert_throws_dom("INVALID_STATE_ERR", function() { new ImageData(new Uint8ClampedArray(0), 1); });
+  assert_throws_dom("INVALID_STATE_ERR", function() { new ImageData(new Uint8ClampedArray(3), 1); });
+  assert_throws_dom("INDEX_SIZE_ERR", function() { new ImageData(new Uint8ClampedArray(4), 0); });
+  assert_throws_dom("INDEX_SIZE_ERR", function() { new ImageData(new Uint8ClampedArray(4), 1, 2); });
+  assert_throws_js(TypeError, function() { new ImageData(new Uint8Array(8), 1, 2); });
+  assert_throws_js(TypeError, function() { new ImageData(new Int8Array(8), 1, 2); });
 
 });
 </script>

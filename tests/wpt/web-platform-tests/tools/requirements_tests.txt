@@ -2,4 +2,4 @@ httpx[http2]==0.24.0
 json-e==4.5.2
 jsonschema==4.17.3
 pyyaml==6.0
-taskcluster==49.1.2
+taskcluster==49.1.3

@@ -12,32 +12,32 @@
 <script>
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, true, get_host_info().ORIGIN);
+  await runDefaultEnabledFeaturesTest(t, true, get_host_info().ORIGIN,
+      generator_api="sharedstorage");
 }, 'Same-origin fenced frame loads when feature policies are self');
 
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, false, get_host_info().REMOTE_ORIGIN);
+  await runDefaultEnabledFeaturesTest(t, false, get_host_info().REMOTE_ORIGIN,
+      generator_api="sharedstorage");
 }, 'Cross-origin fenced frame does not load when feature policies are self');
 
 promise_test(async(t) => {
   const fencedframe = await attachFencedFrameContext({
-        generator_api: "sharedstorage",
         origin: get_host_info().ORIGIN});
 
   await fencedframe.execute(async () => {
-      assert_true(document.featurePolicy.allowsFeature('attribution-reporting'),
-          "Attribution reporting should be allowed in the outer fenced frame.");
-      const fencedframe_inner = await attachFencedFrameContext({
-        generator_api: "sharedstorage",
-        origin: get_host_info().REMOTE_ORIGIN});
-
-      await fencedframe_inner.execute(async () => {
-        assert_true(
-            document.featurePolicy.allowsFeature('attribution-reporting'),
-            "Attribution reporting should be allowed in the nested fenced " +
-            "frame that's cross origin to its embedder.");
-      }, []);
+    assert_false(
+        document.featurePolicy.allowsFeature('shared-storage'),
+        "Shared storage should be disallowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('attribution-reporting'),
+        "Attribution reporting should be disallowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('sync-xhr'),
+        "USB access should be disallowed in the fenced frame.");
   }, []);
-}, 'Fenced frames default feature policies are set to allow *');
+}, 'Fenced frames default feature policies are set to not allow anything.');
 
 promise_test(async(t) => {
   // We do this test the "old fashioned way" because a redirect in a fenced
@@ -46,8 +46,10 @@ promise_test(async(t) => {
   const page1_key = token();
   const redirect_key = token();
 
-  const urn = await generateURNFromFledge("resources/default-enabled-features-redirect.https.html", [page1_key, redirect_key]);
-  const fencedframe = attachFencedFrame(urn);
+  const fencedframe = attachFencedFrame(
+      await generateURNFromFledge(
+          "resources/default-enabled-features-redirect.https.html",
+          [page1_key, redirect_key]));
 
   // The fenced frame will send its attribution reporting result and then
   // attempt to redirect to a remote origin page.

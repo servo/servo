@@ -13,27 +13,26 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-assert_throws_js(TypeError, function() { ctx.createImageData(Infinity, 10); });
-assert_throws_js(TypeError, function() { ctx.createImageData(-Infinity, 10); });
-assert_throws_js(TypeError, function() { ctx.createImageData(NaN, 10); });
-assert_throws_js(TypeError, function() { ctx.createImageData(10, Infinity); });
-assert_throws_js(TypeError, function() { ctx.createImageData(10, -Infinity); });
-assert_throws_js(TypeError, function() { ctx.createImageData(10, NaN); });
-assert_throws_js(TypeError, function() { ctx.createImageData(Infinity, Infinity); });
-var posinfobj = { valueOf: function() { return Infinity; } },
-    neginfobj = { valueOf: function() { return -Infinity; } },
-    nanobj = { valueOf: function() { return -Infinity; } };
-assert_throws_js(TypeError, function() { ctx.createImageData(posinfobj, 10); });
-assert_throws_js(TypeError, function() { ctx.createImageData(neginfobj, 10); });
-assert_throws_js(TypeError, function() { ctx.createImageData(nanobj, 10); });
-assert_throws_js(TypeError, function() { ctx.createImageData(10, posinfobj); });
-assert_throws_js(TypeError, function() { ctx.createImageData(10, neginfobj); });
-assert_throws_js(TypeError, function() { ctx.createImageData(10, nanobj); });
-assert_throws_js(TypeError, function() { ctx.createImageData(posinfobj, posinfobj); });
-t.done();
-
+  assert_throws_js(TypeError, function() { ctx.createImageData(Infinity, 10); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(-Infinity, 10); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(NaN, 10); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(10, Infinity); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(10, -Infinity); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(10, NaN); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(Infinity, Infinity); });
+  var posinfobj = { valueOf: function() { return Infinity; } },
+      neginfobj = { valueOf: function() { return -Infinity; } },
+      nanobj = { valueOf: function() { return -Infinity; } };
+  assert_throws_js(TypeError, function() { ctx.createImageData(posinfobj, 10); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(neginfobj, 10); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(nanobj, 10); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(10, posinfobj); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(10, neginfobj); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(10, nanobj); });
+  assert_throws_js(TypeError, function() { ctx.createImageData(posinfobj, posinfobj); });
+  t.done();
 });
 done();

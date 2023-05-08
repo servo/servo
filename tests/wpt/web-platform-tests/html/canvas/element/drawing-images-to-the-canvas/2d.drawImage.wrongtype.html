@@ -19,10 +19,9 @@
 var t = async_test("Incorrect image types in drawImage do not match any defined overloads, so WebIDL throws a TypeError");
 _addTest(function(canvas, ctx) {
 
-assert_throws_js(TypeError, function() { ctx.drawImage(undefined, 0, 0); });
-assert_throws_js(TypeError, function() { ctx.drawImage(0, 0, 0); });
-assert_throws_js(TypeError, function() { ctx.drawImage("", 0, 0); });
-
+  assert_throws_js(TypeError, function() { ctx.drawImage(undefined, 0, 0); });
+  assert_throws_js(TypeError, function() { ctx.drawImage(0, 0, 0); });
+  assert_throws_js(TypeError, function() { ctx.drawImage("", 0, 0); });
 
 });
 </script>

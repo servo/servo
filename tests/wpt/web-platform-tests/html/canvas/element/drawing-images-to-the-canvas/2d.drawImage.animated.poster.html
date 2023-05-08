@@ -16,21 +16,18 @@
 <p class="output expectedtext">Expected output:<p><img src="/images/green-100x50.png" class="output expected" id="expected" alt="">
 <ul id="d"></ul>
 <script>
-var t = async_test("drawImage() of an APNG draws the poster frame");
-_addTest(function(canvas, ctx) {
+promise_test(async t => {
 
-fetch('anim-poster-gr.png')
-  .then(response => response.blob())
-    .then(blob => {
-      createImageBitmap(blob)
-        .then(bitmap => {
-        ctx.drawImage(bitmap, 0, 0);
-        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-    });
-});
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
 
+  const response = await fetch('/images/anim-poster-gr.png');
+  const blob = await response.blob();
+  const bitmap = await createImageBitmap(blob);
 
-});
+  ctx.drawImage(bitmap, 0, 0);
+  _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+
+}, "drawImage() of an APNG draws the poster frame");
 </script>
-<img src="/images/anim-poster-gr.png" id="anim-poster-gr.png" class="resource">
 

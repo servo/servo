@@ -19,9 +19,8 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-var img = document.getElementById('not-found-at-all.png');
-assert_throws_dom("INVALID_STATE_ERR", function() { ctx.drawImage(img, 0, 0); });
-
+  var img = document.getElementById('not-found-at-all.png');
+  assert_throws_dom("INVALID_STATE_ERR", function() { ctx.drawImage(img, 0, 0); });
 
 });
 </script>

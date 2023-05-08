@@ -13,21 +13,20 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.strokeStyle = 'rgb(0, 255, 0)';
-ctx.strokeStyle = 'nonsense';
-ctx.lineWidth = 200;
-ctx.moveTo(0,100);
-ctx.lineTo(200,100);
-ctx.stroke();
-var imageData = ctx.getImageData(0, 0, 200, 200);
-var imgdata = imageData.data;
-_assert(imgdata[4] == 0, "imgdata[\""+(4)+"\"] == 0");
-_assert(imgdata[5] == 255, "imgdata[\""+(5)+"\"] == 255");
-_assert(imgdata[6] == 0, "imgdata[\""+(6)+"\"] == 0");
-t.done();
-
+  ctx.strokeStyle = 'rgb(0, 255, 0)';
+  ctx.strokeStyle = 'nonsense';
+  ctx.lineWidth = 200;
+  ctx.moveTo(0,100);
+  ctx.lineTo(200,100);
+  ctx.stroke();
+  var imageData = ctx.getImageData(0, 0, 200, 200);
+  var imgdata = imageData.data;
+  _assert(imgdata[4] == 0, "imgdata[\""+(4)+"\"] == 0");
+  _assert(imgdata[5] == 255, "imgdata[\""+(5)+"\"] == 255");
+  _assert(imgdata[6] == 0, "imgdata[\""+(6)+"\"] == 0");
+  t.done();
 });
 done();

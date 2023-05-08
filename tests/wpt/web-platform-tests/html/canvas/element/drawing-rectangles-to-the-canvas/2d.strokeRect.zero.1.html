@@ -19,11 +19,10 @@
 var t = async_test("strokeRect of 0x0 pixels draws nothing");
 _addTest(function(canvas, ctx) {
 
-ctx.strokeStyle = '#f00';
-ctx.lineWidth = 250;
-ctx.strokeRect(50, 25, 0, 0);
-_assertPixel(canvas, 50,25, 0,0,0,0);
-
+  ctx.strokeStyle = '#f00';
+  ctx.lineWidth = 250;
+  ctx.strokeRect(50, 25, 0, 0);
+  _assertPixel(canvas, 50,25, 0,0,0,0);
 
 });
 </script>

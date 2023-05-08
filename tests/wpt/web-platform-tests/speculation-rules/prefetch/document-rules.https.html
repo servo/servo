@@ -21,6 +21,7 @@
 <meta name="variant" content="?include=selectorMatchesDisplayNone">
 <meta name="variant" content="?include=selectorMatchesDisplayLocked">
 <meta name="variant" content="?include=unslottedLink">
+<meta name="variant" content="?include=immediateMutation">
 
 <body>
 <script>
@@ -294,5 +295,23 @@
     await new Promise(resolve => t.step_timeout(resolve, 2000));
     assert_equals(await isUrlPrefetched(url), 0);
   }, 'test that unslotted link never matches document rule');
+
+  subsetTestByKey('immediateMutation', promise_test, async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'),
+      'Speculation Rules not supported');
+
+    // Add a link and allow it to get its style computed.
+    // (Double RAF lets this happen normally.)
+    const url = getPrefetchUrl();
+    const link = addLink(url, document.body);
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+    // Add a document rule and then immediately change the DOM to make it match.
+    insertDocumentRule({ selector_matches: '.late-class *' });
+    document.body.className = 'late-class';
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test that selector_matches predicates respect changes immediately');
 </script>
 </body>

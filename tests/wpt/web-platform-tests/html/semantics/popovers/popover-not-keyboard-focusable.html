@@ -10,11 +10,11 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 
-<button id=firstfocus>Button 1</button>
+<button id=firstfocus tabindex="0">Button 1</button>
 <div popover>
   <p>This is a popover without a focusable element</p>
 </div>
-<button id=secondfocus>Button 2</button>
+<button id=secondfocus tabindex="0">Button 2</button>
 
 <script>
 promise_test(async () => {
@@ -34,6 +34,7 @@ promise_test(async () => {
 
   // Add a focusable button to the popover and make sure we can focus that
   const button = document.createElement('button');
+  button.setAttribute("tabindex", "0");
   popover.appendChild(button);
   b1.focus();
   popover.showPopover();

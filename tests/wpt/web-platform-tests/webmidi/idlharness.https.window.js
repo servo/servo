@@ -1,5 +1,7 @@
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
+// META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
 // META: timeout=long
 
 // https://webaudio.github.io/web-midi-api/
@@ -17,6 +19,8 @@ idl_test(
       ],
       MIDIConnectionEvent: ['new MIDIConnectionEvent("type")'],
     })
+
+    await test_driver.set_permission({name: 'midi'}, 'granted');
 
     self.access = await navigator.requestMIDIAccess();
     self.inputs = access.inputs;

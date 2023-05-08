@@ -19,18 +19,17 @@
 var t = async_test("Verify correct behavior of canvas on an invalid strokeStyle()");
 _addTest(function(canvas, ctx) {
 
-ctx.strokeStyle = 'rgb(0, 255, 0)';
-ctx.strokeStyle = 'nonsense';
-ctx.lineWidth = 200;
-ctx.moveTo(0,100);
-ctx.lineTo(200,100);
-ctx.stroke();
-var imageData = ctx.getImageData(0, 0, 200, 200);
-var imgdata = imageData.data;
-_assert(imgdata[4] == 0, "imgdata[\""+(4)+"\"] == 0");
-_assert(imgdata[5] == 255, "imgdata[\""+(5)+"\"] == 255");
-_assert(imgdata[6] == 0, "imgdata[\""+(6)+"\"] == 0");
-
+  ctx.strokeStyle = 'rgb(0, 255, 0)';
+  ctx.strokeStyle = 'nonsense';
+  ctx.lineWidth = 200;
+  ctx.moveTo(0,100);
+  ctx.lineTo(200,100);
+  ctx.stroke();
+  var imageData = ctx.getImageData(0, 0, 200, 200);
+  var imgdata = imageData.data;
+  _assert(imgdata[4] == 0, "imgdata[\""+(4)+"\"] == 0");
+  _assert(imgdata[5] == 255, "imgdata[\""+(5)+"\"] == 255");
+  _assert(imgdata[6] == 0, "imgdata[\""+(6)+"\"] == 0");
 
 });
 </script>

@@ -8,9 +8,13 @@
     circle.arc(90, 90, 45, 0, 2 * Math.PI);
     ctx.fill(circle);
 
-    %(render_states)s
+    %(render-states)s
 
     ctx.beginLayer();
+
+    // Enable compositing in the layer to validate that draw calls in the layer
+    // won't individually composite with the background.
+    ctx.globalCompositeOperation = 'screen';
 
     ctx.fillStyle = 'rgba(225, 0, 0, 1)';
     ctx.fillRect(50, 50, 75, 50);
@@ -25,65 +29,140 @@
     circle.arc(90, 90, 45, 0, 2 * Math.PI);
     ctx.fill(circle);
 
-    %(render_states)s
+    %(render-states)s
 
     canvas2 = document.createElement("canvas");
     ctx2 = canvas2.getContext("2d");
 
+    ctx2.globalCompositeOperation = 'screen';
     ctx2.fillStyle = 'rgba(225, 0, 0, 1)';
     ctx2.fillRect(50, 50, 75, 50);
     ctx2.fillStyle = 'rgba(0, 255, 0, 1)';
     ctx2.fillRect(70, 70, 75, 50);
 
     ctx.drawImage(canvas2, 0, 0);
-  variants:
-    no_global_states:
-      render_states: // No global states.
+  variants: &global-state-variants
+    no-global-states:
+      render-states: // No global states.
     alpha:
-      render_states: ctx.globalAlpha = 0.6;
-    globalcompositeoperation:
-      render_states: ctx.globalCompositeOperation = 'source-in';
+      render-states: ctx.globalAlpha = 0.6;
+    blending:
+      render-states: ctx.globalCompositeOperation = 'multiply';
+    composite:
+      render-states: ctx.globalCompositeOperation = 'source-in';
     shadow:
-      render_states: |-
+      render-states: |-
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
-        ctx.shadowColor = 'orange';
-    filter:
-      render_states: ctx.filter = 'sepia(1) opacity(30%)';
+        ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+    alpha.blending:
+      render-states: |-
+        ctx.globalAlpha = 0.6;
+        ctx.globalCompositeOperation = 'multiply';
+    alpha.composite:
+      render-states: |-
+        ctx.globalAlpha = 0.6;
+        ctx.globalCompositeOperation = 'source-in';
     alpha.shadow:
-      render_states: |-
+      render-states: |-
         ctx.globalAlpha = 0.5;
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
-        ctx.shadowColor = 'orange';
-    alpha.filter:
-      render_states: |-
+        ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+    alpha.blending.shadow:
+      render-states: |-
         ctx.globalAlpha = 0.6;
-        ctx.filter = 'drop-shadow(-9px 9px 0px #e81)';
-    alpha.filter.shadow:
-      fuzzy: maxDifference=0-2; totalPixels=0-5824
-      render_states: |-
-        ctx.globalAlpha = 0.5;
-        ctx.filter = 'sepia(0.5) drop-shadow(5px 5px 0px #81e)';
+        ctx.globalCompositeOperation = 'multiply';
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
-        ctx.shadowColor = 'orange';
-    alpha.filter.globalcompositeoperation:
-      render_states: |-
+        ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+    alpha.composite.shadow:
+      render-states: |-
         ctx.globalAlpha = 0.6;
         ctx.globalCompositeOperation = 'source-in';
-        ctx.filter = 'drop-shadow(-9px 9px 0px #e81)';
-    filter.shadow:
-      fuzzy: maxDifference=0-1; totalPixels=0-49
-      render_states: |-
-        ctx.filter = 'sepia(1) opacity(70%)';
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
-        ctx.shadowColor = 'rgba(0,1,0,0.5)';
-    filter.globalcompositeoperation:
-      render_states: |-
+        ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+    blending.shadow:
+      render-states: |-
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.shadowOffsetX = -10;
+        ctx.shadowOffsetY = 10;
+        ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+    composite.shadow:
+      render-states: |-
         ctx.globalCompositeOperation = 'source-in';
-        ctx.filter = 'drop-shadow(-9px 9px 0px #e81)';
+        ctx.shadowOffsetX = -10;
+        ctx.shadowOffsetY = 10;
+        ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+
+
+- name: 2d.layer.global-states.filter
+  desc: Checks that layers with filters correctly use global render states.
+  size: 200, 200
+  code: |
+    ctx.fillStyle = 'rgba(0, 0, 255, 1)';
+
+    var circle = new Path2D();
+    circle.arc(90, 90, 45, 0, 2 * Math.PI);
+    ctx.fill(circle);
+
+    %(render-states)s
+
+    ctx.beginLayer([
+        {filter: 'colorMatrix', values: [0.393, 0.769, 0.189, 0, 0,
+                                         0.349, 0.686, 0.168, 0, 0,
+                                         0.272, 0.534, 0.131, 0, 0,
+                                         0, 0, 0, 1, 0]},
+        {filter: 'componentTransfer',
+            funcA: {type: "table", tableValues: [0, 0.7]}},
+        {filter: 'dropShadow', dx: 5, dy: 5, floodColor: '#81e'}]);
+
+    ctx.fillStyle = 'rgba(200, 0, 0, 1)';
+    ctx.fillRect(50, 50, 75, 50);
+    ctx.fillStyle = 'rgba(0, 200, 0, 1)';
+    ctx.fillRect(70, 70, 75, 50);
+
+    ctx.endLayer();
+  reference: |
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg"
+            width="200" height="200"
+            color-interpolation-filters="sRGB">
+        <filter id="filter" x="-100%%" y="-100%%" width="300%%" height="300%%">
+          <feColorMatrix
+              type="matrix"
+              values="0.393 0.769 0.189 0 0
+                      0.349 0.686 0.168 0 0
+                      0.272 0.534 0.131 0 0
+                      0 0 0 1 0" />
+          <feComponentTransfer>
+            <feFuncA type="table" tableValues="0 0.7"></feFuncA>
+          </feComponentTransfer>
+          <feDropShadow dx="5" dy="5" flood-color="#81e" />
+        </filter>
+        <g filter="url(#filter)">
+          <rect x="50" y="50" width="75" height="50" fill="rgba(200, 0, 0, 1)"/>
+          <rect x="70" y="70" width="75" height="50" fill="rgba(0, 200, 0, 1)"/>
+        </g>
+      </svg>`;
+
+    const img = new Image();
+    img.width = 200;
+    img.height = 200;
+    img.onload = () => {
+      ctx.fillStyle = 'rgba(0, 0, 255, 1)';
+
+      var circle = new Path2D();
+      circle.arc(90, 90, 45, 0, 2 * Math.PI);
+      ctx.fill(circle);
+
+      %(render-states)s
+
+      ctx.drawImage(img, 0, 0);
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(svg);
+  variants: *global-state-variants
 
 
 - name: 2d.layer.nested
@@ -179,7 +258,6 @@
     ctx.fillRect(50, 50, 95, 70);
 
     ctx.globalAlpha = 0.5;
-    ctx.filter = 'sepia(0.5)';
     ctx.shadowOffsetX = -10;
     ctx.shadowOffsetY = 10;
     ctx.shadowColor = 'orange';
@@ -200,7 +278,6 @@
     ctx.fillRect(50, 50, 95, 70);
 
     ctx.globalAlpha = 0.5;
-    ctx.filter = 'sepia(0.5)';
     ctx.shadowOffsetX = -10;
     ctx.shadowOffsetY = 10;
     ctx.shadowColor = 'orange';

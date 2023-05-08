@@ -19,8 +19,7 @@
 var t = async_test("Check that roundRect throws an IndeSizeError if radii has more than four items.");
 _addTest(function(canvas, ctx) {
 
-assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 100, 50, [0, 0, 0, 0, 0])});
-
+  assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 100, 50, [0, 0, 0, 0, 0])});
 
 });
 </script>

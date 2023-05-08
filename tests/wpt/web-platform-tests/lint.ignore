@@ -252,6 +252,7 @@ SET TIMEOUT: webvtt/*
 SET TIMEOUT: workers/*
 SET TIMEOUT: xhr/resources/init.htm
 SET TIMEOUT: xhr/resources/xmlhttprequest-timeout.js
+SET TIMEOUT: fenced-frame/resolve-to-config-promise.https.html
 
 # generate_tests implementation and sample usage
 GENERATE_TESTS: resources/test/tests/functional/generate-callback.html

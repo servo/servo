@@ -17,7 +17,9 @@ const REALLY_LARGE_NEGATIVE = -REALLY_LARGE;
 
 // For <length>
 test_computed_value("width", "calc(NaN * 1px)", "0px");
+test_computed_value("width", "calc(NaN * 1%)", "0px");
 testComputedValueGreaterOrLowerThan("width", "calc(infinity * 1px)", REALLY_LARGE);
+testComputedValueGreaterOrLowerThan("width", "calc(infinity * 1%)", REALLY_LARGE);
 testComputedValueGreaterOrLowerThan("width", "calc(infinity * 1cm)", REALLY_LARGE);
 test_computed_value("width", "calc(NaN * 1rem)", "0px");
 test_computed_value("width", "calc(10.135262721212548pc - 199pt / NaN)", "0px");

@@ -19,15 +19,16 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-ctx.globalAlpha = 0.5;
-var a = ctx.globalAlpha; // might not be exactly 0.5, if it is rounded/quantised, so remember for future comparisons
-ctx.globalAlpha = Infinity;
-_assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
-ctx.globalAlpha = -Infinity;
-_assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
-ctx.globalAlpha = NaN;
-_assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
-
+  ctx.globalAlpha = 0.5;
+  // This may not set it to exactly 0.5 if it is rounded/quantised, so
+  // remember for future comparisons.
+  var a = ctx.globalAlpha;
+  ctx.globalAlpha = Infinity;
+  _assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
+  ctx.globalAlpha = -Infinity;
+  _assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
+  ctx.globalAlpha = NaN;
+  _assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
 
 });
 </script>

@@ -1,6 +1,7 @@
 # mypy: allow-untyped-defs
 
 from .base import RefTestExecutor, RefTestImplementation, CrashtestExecutor, TestharnessExecutor
+from .executorchrome import make_sanitizer_mixin
 from .protocol import Protocol, ProtocolPart
 from time import time
 from queue import Empty
@@ -188,7 +189,25 @@ def _convert_exception(test, exception, errors):
     raise exception
 
 
-class ContentShellRefTestExecutor(RefTestExecutor):
+class ContentShellCrashtestExecutor(CrashtestExecutor):
+    def __init__(self, logger, browser, server_config, timeout_multiplier=1, debug_info=None,
+            **kwargs):
+        super().__init__(logger, browser, server_config, timeout_multiplier, debug_info, **kwargs)
+        self.protocol = ContentShellProtocol(self, browser)
+
+    def do_test(self, test):
+        try:
+            _ = self.protocol.content_shell_test.do_test(self.test_url(test), test.timeout * self.timeout_multiplier)
+            self.protocol.content_shell_errors.read_errors()
+            return self.convert_result(test, {"status": "PASS", "message": None})
+        except BaseException as exception:
+            return _convert_exception(test, exception, self.protocol.content_shell_errors.read_errors())
+
+
+_SanitizerMixin = make_sanitizer_mixin(ContentShellCrashtestExecutor)
+
+
+class ContentShellRefTestExecutor(RefTestExecutor, _SanitizerMixin):  # type: ignore
     def __init__(self, logger, browser, server_config, timeout_multiplier=1, screenshot_cache=None,
             debug_info=None, reftest_screenshot="unexpected", **kwargs):
         super().__init__(logger, browser, server_config, timeout_multiplier, screenshot_cache,
@@ -234,22 +253,7 @@ class ContentShellPrintRefTestExecutor(ContentShellRefTestExecutor):
     is_print = True
 
 
-class ContentShellCrashtestExecutor(CrashtestExecutor):
-    def __init__(self, logger, browser, server_config, timeout_multiplier=1, debug_info=None,
-            **kwargs):
-        super().__init__(logger, browser, server_config, timeout_multiplier, debug_info, **kwargs)
-        self.protocol = ContentShellProtocol(self, browser)
-
-    def do_test(self, test):
-        try:
-            _ = self.protocol.content_shell_test.do_test(self.test_url(test), test.timeout * self.timeout_multiplier)
-            self.protocol.content_shell_errors.read_errors()
-            return self.convert_result(test, {"status": "PASS", "message": None})
-        except BaseException as exception:
-            return _convert_exception(test, exception, self.protocol.content_shell_errors.read_errors())
-
-
-class ContentShellTestharnessExecutor(TestharnessExecutor):
+class ContentShellTestharnessExecutor(TestharnessExecutor, _SanitizerMixin):  # type: ignore
     def __init__(self, logger, browser, server_config, timeout_multiplier=1, debug_info=None,
             **kwargs):
         super().__init__(logger, browser, server_config, timeout_multiplier, debug_info, **kwargs)

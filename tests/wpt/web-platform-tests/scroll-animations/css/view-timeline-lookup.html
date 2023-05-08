@@ -57,9 +57,12 @@
 
 <template id=timeline_preceding_sibling>
   <style>
+    #scroller {
+      view-timeline: t1 defer;
+    }
     #timeline {
       height: 0px;
-      view-timeline: t1;
+      view-timeline: t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
@@ -118,9 +121,12 @@
 
 <template id=timeline_ancestor_sibling>
   <style>
+    #scroller {
+      view-timeline: t1 defer;
+    }
     #timeline {
       height: 0px;
-      view-timeline: t1;
+      view-timeline: t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
@@ -148,11 +154,14 @@
   }, 'view-timeline on ancestor sibling');
 </script>
 
-<template id=timeline_ancestor_sibling_closest>
+<template id=timeline_ancestor_sibling_conflict>
   <style>
+    #scroller {
+      view-timeline: t1 defer;
+    }
     #timeline1, #timeline2 {
       height: 0px;
-      view-timeline: t1;
+      view-timeline: t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
@@ -175,61 +184,23 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, timeline_ancestor_sibling_closest);
+    inflate(t, timeline_ancestor_sibling_conflict);
     await waitForNextFrame();
-    assert_equals(getComputedStyle(target).zIndex, '50');
-  }, 'view-timeline on ancestor sibling, closest wins');
+    assert_equals(getComputedStyle(target).zIndex, 'auto');
+  }, 'view-timeline on ancestor sibling, conflict remains unresolved');
 </script>
 
-<template id=timeline_ancestor_sibling_skips_nonmatching>
+<template id=timeline_ancestor_closer_timeline_wins>
   <style>
-    #timeline1 {
-      height: 0px;
-      view-timeline: t1;
+    #scroller {
+      view-timeline: t1 defer;
     }
-    #timeline2 {
-      height: 0px;
-      view-timeline: t2;
-    }
-    #target {
-      animation: anim 1s linear;
-      animation-timeline: t1;
-    }
-  </style>
-  <div id=scroller class=scroller>
-    <div></div>
-    <div id=timeline1></div>
-    <div></div>
-    <div id=timeline2></div>
-    <div>
-      <div>
-        <div id=target></div>
-      </div>
-    </div>
-    <div></div>
-    <div></div>
-  </div>
-</template>
-<script>
-  promise_test(async (t) => {
-    inflate(t, timeline_ancestor_sibling_skips_nonmatching);
-    await waitForNextFrame();
-    assert_equals(getComputedStyle(target).zIndex, '75');
-  }, 'view-timeline on ancestor sibling, skips nonmatching names');
-</script>
-
-<template id=timeline_ancestor_closer_scroll_timeline_wins>
-  <style>
     #timeline {
       height: 0px;
-      view-timeline: t1;
+      view-timeline: t1 ancestor;
     }
-    #scroll {
-      overflow: auto;
-      scroll-timeline: t1;
-    }
-    #scroll > div {
-      height: 50px;
+    #parent {
+      scroll-timeline: t1 defer;
     }
     #target {
       animation: anim 1s linear;
@@ -240,13 +211,8 @@
     <div></div>
     <div id=timeline></div>
     <div></div>
-    <div id=scroll>
-      <div></div>
-    </div>
-    <div>
-      <div>
-        <div id=target></div>
-      </div>
+    <div id=parent>
+      <div id=target></div>
     </div>
     <div></div>
     <div></div>
@@ -254,18 +220,22 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, timeline_ancestor_closer_scroll_timeline_wins);
+    inflate(t, timeline_ancestor_closer_timeline_wins);
     await waitForNextFrame();
-    assert_equals(getComputedStyle(target).zIndex, '0');
-  }, 'view-timeline on ancestor sibling, closer scroll-timeline wins');
+    assert_equals(getComputedStyle(target).zIndex, 'auto');
+  }, 'view-timeline on ancestor sibling, closer timeline wins');
 </script>
 
 <template id=timeline_ancestor_scroll_timeline_wins_on_same_element>
   <style>
+    #scroller {
+      view-timeline: t1 defer;
+      scroll-timeline: t1 defer;
+    }
     #timelines {
       height: 0px;
-      view-timeline: t1;
-      scroll-timeline: t1;
+      view-timeline: t1 ancestor;
+      scroll-timeline: t1 ancestor;
       overflow: auto;
     }
     #timelines > div {

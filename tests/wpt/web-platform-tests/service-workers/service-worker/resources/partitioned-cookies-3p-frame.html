@@ -46,7 +46,7 @@ promise_test(async t => {
   await wait_promise;
   assert_true(got.ok, 'Message passing');
 
-  // Test that the partitioned cookie is not available to this worker.
+  // Test that the partitioned cookie is not available to this worker via HTTP.
   wait_promise = new Promise(resolve => {
     resolve_wait_promise = resolve;
   });
@@ -54,7 +54,22 @@ promise_test(async t => {
     got = ev.data;
     resolve_wait_promise();
   };
-  filtered_registrations[0].active.postMessage({type: 'echo_cookies'});
+  filtered_registrations[0].active.postMessage({type: 'echo_cookies_http'});
+  await wait_promise;
+  assert_true(got.ok, 'Get cookies');
+  assert_false(
+      got.cookies.includes('__Host-partitioned'),
+      'Worker cannot access partitioned cookie');
+
+  // Test that the partitioned cookie is not available to this worker via CookieStore API.
+  wait_promise = new Promise(resolve => {
+    resolve_wait_promise = resolve;
+  });
+  on_message = ev => {
+    got = ev.data;
+    resolve_wait_promise();
+  };
+  filtered_registrations[0].active.postMessage({type: 'echo_cookies_js'});
   await wait_promise;
   assert_true(got.ok, 'Get cookies');
   assert_false(

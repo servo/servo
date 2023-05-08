@@ -19,8 +19,7 @@
 var t = async_test("createImageData(imgdata) exists and returns something");
 _addTest(function(canvas, ctx) {
 
-_assertDifferent(ctx.createImageData(ctx.createImageData(1, 1)), null, "ctx.createImageData(ctx.createImageData(1, 1))", "null");
-
+  _assertDifferent(ctx.createImageData(ctx.createImageData(1, 1)), null, "ctx.createImageData(ctx.createImageData(1, 1))", "null");
 
 });
 </script>

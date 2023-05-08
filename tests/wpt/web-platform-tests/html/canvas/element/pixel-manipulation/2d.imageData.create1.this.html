@@ -19,11 +19,10 @@
 var t = async_test("createImageData(imgdata) should throw when called with the wrong |this|");
 _addTest(function(canvas, ctx) {
 
-var imgdata = ctx.createImageData(1, 1);
-assert_throws_js(TypeError, function() { CanvasRenderingContext2D.prototype.createImageData.call(null, imgdata); });
-assert_throws_js(TypeError, function() { CanvasRenderingContext2D.prototype.createImageData.call(undefined, imgdata); });
-assert_throws_js(TypeError, function() { CanvasRenderingContext2D.prototype.createImageData.call({}, imgdata); });
-
+  var imgdata = ctx.createImageData(1, 1);
+  assert_throws_js(TypeError, function() { CanvasRenderingContext2D.prototype.createImageData.call(null, imgdata); });
+  assert_throws_js(TypeError, function() { CanvasRenderingContext2D.prototype.createImageData.call(undefined, imgdata); });
+  assert_throws_js(TypeError, function() { CanvasRenderingContext2D.prototype.createImageData.call({}, imgdata); });
 
 });
 </script>

@@ -19,9 +19,13 @@
 
   ctx.shadowOffsetX = -10;
   ctx.shadowOffsetY = 10;
-  ctx.shadowColor = 'orange';
+  ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
 
   ctx.beginLayer();
+
+  // Enable compositing in the layer to validate that draw calls in the layer
+  // won't individually composite with the background.
+  ctx.globalCompositeOperation = 'screen';
 
   ctx.fillStyle = 'rgba(225, 0, 0, 1)';
   ctx.fillRect(50, 50, 75, 50);

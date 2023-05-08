@@ -19,21 +19,20 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-var canvas2 = document.createElement('canvas');
-canvas2.width = 100;
-canvas2.height = 50;
-var ctx2 = canvas2.getContext('2d');
-ctx2.fillStyle = '#0f0';
-ctx2.fillRect(0, 0, 100, 50);
+  var canvas2 = document.createElement('canvas');
+  canvas2.width = 100;
+  canvas2.height = 50;
+  var ctx2 = canvas2.getContext('2d');
+  ctx2.fillStyle = '#0f0';
+  ctx2.fillRect(0, 0, 100, 50);
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
 
-ctx.globalCompositeOperation = 'copy'
-ctx.globalAlpha = 0.51;
-ctx.drawImage(canvas2, 0, 0);
-_assertPixelApprox(canvas, 50,25, 0,255,0,130, 2);
-
+  ctx.globalCompositeOperation = 'copy'
+  ctx.globalAlpha = 0.51;
+  ctx.drawImage(canvas2, 0, 0);
+  _assertPixelApprox(canvas, 50,25, 0,255,0,130, 2);
 
 });
 </script>

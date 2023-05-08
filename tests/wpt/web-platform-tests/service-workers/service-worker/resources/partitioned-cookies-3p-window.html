@@ -20,6 +20,14 @@ promise_test(async t => {
       first_party_origin + location.pathname).href;
   document.body.appendChild(iframe);
   fetch_tests_from_window(iframe.contentWindow);
+
+  const credentialless_frame = document.createElement('iframe');
+  credentialless_frame.credentialless = true;
+  credentialless_frame.src = new URL(
+      './partitioned-cookies-3p-credentialless-frame.html',
+      first_party_origin + location.pathname).href;
+  document.body.appendChild(credentialless_frame);
+  fetch_tests_from_window(credentialless_frame.contentWindow);
 });
 
 </script>

@@ -16,24 +16,21 @@
 <p class="output expectedtext">Expected output:<p><img src="/images/green-100x50.png" class="output expected" id="expected" alt="">
 <ul id="d"></ul>
 <script>
-var t = async_test("");
-_addTest(function(canvas, ctx) {
+promise_test(async t => {
 
-ctx.fillStyle = '#0f0';
-ctx.fillRect(0, 0, 100, 50);
-ctx.globalCompositeOperation = 'destination-over';
-fetch('/images/red.png')
-  .then(response => response.blob())
-    .then(blob => {
-      createImageBitmap(blob)
-        .then(bitmap => {
-        ctx.drawImage(bitmap, 0, 0);
-        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-    });
-});
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
 
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.globalCompositeOperation = 'destination-over';
+  const response = await fetch('/images/red.png');
+  const blob = await response.blob();
+  const bitmap = await createImageBitmap(blob);
 
-});
+  ctx.drawImage(bitmap, 0, 0);
+  _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+
+}, "");
 </script>
-<img src="/images/red.png" id="red.png" class="resource">
 

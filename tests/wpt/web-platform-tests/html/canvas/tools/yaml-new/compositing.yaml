@@ -1,7 +1,10 @@
 - name: 2d.composite.globalAlpha.range
   code: |
     ctx.globalAlpha = 0.5;
-    var a = ctx.globalAlpha; // might not be exactly 0.5, if it is rounded/quantised, so remember for future comparisons
+    // This may not set it to exactly 0.5 if it is rounded/quantised, so
+    // remember for future comparisons.
+    var a = ctx.globalAlpha;
+    @assert ctx.globalAlpha === a;
     ctx.globalAlpha = 1.1;
     @assert ctx.globalAlpha === a;
     ctx.globalAlpha = -0.1;
@@ -14,7 +17,9 @@
 - name: 2d.composite.globalAlpha.invalid
   code: |
     ctx.globalAlpha = 0.5;
-    var a = ctx.globalAlpha; // might not be exactly 0.5, if it is rounded/quantised, so remember for future comparisons
+    // This may not set it to exactly 0.5 if it is rounded/quantised, so
+    // remember for future comparisons.
+    var a = ctx.globalAlpha;
     ctx.globalAlpha = Infinity;
     @assert ctx.globalAlpha === a;
     ctx.globalAlpha = -Infinity;
@@ -30,7 +35,8 @@
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 50,25 ==~ 2,253,0,255;
@@ -48,7 +54,8 @@
 
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
     ctx.drawImage(canvas2, 0, 0);
     @assert pixel 50,25 ==~ 2,253,0,255;
   expected: green
@@ -66,7 +73,8 @@
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     ctx.fillStyle = ctx.createPattern(canvas2, 'no-repeat');
-    ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 50,25 ==~ 2,253,0,255;
   expected: green
@@ -150,21 +158,18 @@
 
 
 - name: 2d.composite.globalAlpha.image
-  canvasType: ['OffscreenCanvas']
+  test_type: promise
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
-    fetch('/images/red.png')
-      .then(response => response.blob())
-        .then(blob => {
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
 
-        createImageBitmap(blob)
-          .then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0);
-            @assert pixel 50,25 ==~ 2,253,0,255;
-        });
-    });
+    ctx.drawImage(bitmap, 0, 0);
+    @assert pixel 50,25 ==~ 2,253,0,255;
   expected: green
 
 - name: 2d.composite.globalAlpha.canvas
@@ -176,27 +181,25 @@
     ctx2.fillRect(0, 0, 100, 50);
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
     ctx.drawImage(offscreenCanvas2, 0, 0);
     @assert pixel 50,25 ==~ 2,253,0,255;
 
 - name: 2d.composite.globalAlpha.imagepattern
-  canvasType: ['OffscreenCanvas']
+  test_type: promise
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    fetch('/images/red.png')
-      .then(response => response.blob())
-        .then(blob => {
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
 
-        createImageBitmap(blob)
-          .then(bitmap => {
-            ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
-            ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
-            ctx.fillRect(0, 0, 100, 50);
-            @assert pixel 50,25 ==~ 2,253,0,255;
-        });
-    });
+    ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 2,253,0,255;
   expected: green
 
 - name: 2d.composite.globalAlpha.canvaspattern
@@ -209,7 +212,8 @@
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     ctx.fillStyle = ctx.createPattern(offscreenCanvas2, 'no-repeat');
-    ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 50,25 ==~ 2,253,0,255;
 

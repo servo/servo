@@ -13,12 +13,22 @@
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
       get_host_info().ORIGIN,
+      generator_api="fledge",
+      allow="shared-storage *; attribution-reporting *");
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
+      get_host_info().ORIGIN,
+      generator_api="sharedstorage",
       allow="shared-storage *; attribution-reporting *");
 }, 'Same-origin fenced frame with allow attribute enabling required features');
 
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
       get_host_info().REMOTE_ORIGIN,
+      generator_api="fledge",
+      allow="shared-storage *; attribution-reporting *");
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
+      get_host_info().REMOTE_ORIGIN,
+      generator_api="sharedstorage",
       allow="shared-storage *; attribution-reporting *");
 }, 'Cross-origin fenced frame with allow attribute enabling required features');
 

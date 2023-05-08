@@ -7,13 +7,11 @@
 <link rel="stylesheet" href="support/test-common.css">
 <style type="text/css">
   @counter-style a {
-    /* Values outside the range will fall back to decimal (and hence have no prefix) */
     system: extends upper-roman;
     prefix: "Chapter ";
     range: 1 5;
   }
   @counter-style b {
-    /* Values outside the range will fall back to decimal (and hence have no prefix) */
     system: extends a;
     prefix: "Section ";
     range: 1 6;

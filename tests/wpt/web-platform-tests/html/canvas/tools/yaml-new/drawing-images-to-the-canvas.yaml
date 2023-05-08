@@ -1,78 +1,3 @@
-- name: 2d.drawImage.3arg
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  - green.png
-  code: |
-    ctx.drawImage(document.getElementById('green.png'), 0, 0);
-    ctx.drawImage(document.getElementById('red.png'), -100, 0);
-    ctx.drawImage(document.getElementById('red.png'), 100, 0);
-    ctx.drawImage(document.getElementById('red.png'), 0, -50);
-    ctx.drawImage(document.getElementById('red.png'), 0, 50);
-
-    @assert pixel 0,0 ==~ 0,255,0,255;
-    @assert pixel 99,0 ==~ 0,255,0,255;
-    @assert pixel 0,49 ==~ 0,255,0,255;
-    @assert pixel 99,49 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.5arg
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  - green.png
-  code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('green.png'), 50, 0, 50, 50);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0, 50, 50);
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 50, 50);
-
-    @assert pixel 0,0 ==~ 0,255,0,255;
-    @assert pixel 99,0 ==~ 0,255,0,255;
-    @assert pixel 0,49 ==~ 0,255,0,255;
-    @assert pixel 99,49 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.9arg.destpos
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  - green.png
-  code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('green.png'), 0, 0, 100, 50, 0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, -100, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 100, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 0, -50, 100, 50);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 0, 50, 100, 50);
-    @assert pixel 0,0 ==~ 0,255,0,255;
-    @assert pixel 99,0 ==~ 0,255,0,255;
-    @assert pixel 0,49 ==~ 0,255,0,255;
-    @assert pixel 99,49 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.9arg.destsize
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  - green.png
-  code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('green.png'), 1, 1, 1, 1, 0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, -50, 0, 50, 50);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 100, 0, 50, 50);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 0, -25, 100, 25);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 0, 50, 100, 25);
-    @assert pixel 0,0 ==~ 0,255,0,255;
-    @assert pixel 99,0 ==~ 0,255,0,255;
-    @assert pixel 0,49 ==~ 0,255,0,255;
-    @assert pixel 99,49 ==~ 0,255,0,255;
-  expected: green
-
 - name: 2d.drawImage.canvas
   canvasType: ['HTMLCanvas']
   code: |
@@ -148,28 +73,6 @@
   canvasType: ['HTMLCanvas']
   code: |
     @assert throws TypeError ctx.drawImage(document.createElement('p'), 0, 0);
-
-- name: 2d.drawImage.outsidesource
-  DISABLED: fix this to match the current spec (transparent black outside source)
-  canvasType: ['HTMLCanvas']
-  mozilla: {throws: !!null ''}
-  images:
-  - green.png
-  - red.png
-  code: |
-    ctx.drawImage(document.getElementById('green.png'), 10.5, 10.5, 89.5, 39.5, 0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('green.png'), 5.5, 5.5, -5.5, -5.5, 0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('green.png'), 100, 50, -5, -5, 0, 0, 100, 50);
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), -0.001, 0, 100, 50, 0, 0, 100, 50);
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 0, -0.001, 100, 50, 0, 0, 100, 50);
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 0, 0, 100.001, 50, 0, 0, 100, 50);
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50.001, 0, 0, 100, 50);
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 50, 0, 50.001, 50, 0, 0, 100, 50); @moz-todo
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 0, 0, -5, 5, 0, 0, 100, 50);
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 0, 0, 5, -5, 0, 0, 100, 50);
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 110, 60, -20, -20, 0, 0, 100, 50);
-    @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
-  expected: green
 
 - name: 2d.drawImage.incomplete.nosrc
   canvasType: ['HTMLCanvas']
@@ -300,247 +203,147 @@
 # TODO: drawImage shadows
 
 - name: 2d.drawImage.3arg
-  canvasType: ['OffscreenCanvas']
-  timeout: long
-  images:
-  - red.png
-  - green.png
+  test_type: promise
   code: |
-    var promise1 = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    var promise2 = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/green.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    Promise.all([promise1, promise2]).then(function(response1, response2) {
-        var promise3 = createImageBitmap(response1);
-        var promise4 = createImageBitmap(response2);
-        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
-            ctx.drawImage(bitmap2, 0, 0);
-            ctx.drawImage(bitmap1, -100, 0);
-            ctx.drawImage(bitmap1, 100, 0);
-            ctx.drawImage(bitmap1, 0, -50);
-            ctx.drawImage(bitmap1, 0, 50);
-            @assert pixel 0,0 ==~ 0,255,0,255;
-            @assert pixel 99,0 ==~ 0,255,0,255;
-            @assert pixel 0,49 ==~ 0,255,0,255;
-            @assert pixel 99,49 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+    const response_red = await fetch('/images/red.png');
+    const blob_red = await response_red.blob();
+    const bitmap_red = await createImageBitmap(blob_red);
+
+    const response_green = await fetch('/images/green.png');
+    const blob_green = await response_green.blob();
+    const bitmap_green = await createImageBitmap(blob_green);
+
+    ctx.drawImage(bitmap_green, 0, 0);
+    ctx.drawImage(bitmap_red, -100, 0);
+    ctx.drawImage(bitmap_red, 100, 0);
+    ctx.drawImage(bitmap_red, 0, -50);
+    ctx.drawImage(bitmap_red, 0, 50);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
 
 - name: 2d.drawImage.5arg
-  images:
-  - red.png
-  - green.png
-  canvasType: ['OffscreenCanvas']
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    var promise1 = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    var promise2 = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/green.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    Promise.all([promise1, promise2]).then(function(response1, response2) {
-        var promise3 = createImageBitmap(response1);
-        var promise4 = createImageBitmap(response2);
-        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
-            ctx.drawImage(bitmap2, 50, 0, 50, 50);
-            ctx.drawImage(bitmap1, 0, 0, 50, 50);
-            ctx.fillStyle = '#0f0';
-            ctx.fillRect(0, 0, 50, 50);
-            @assert pixel 0,0 ==~ 0,255,0,255;
-            @assert pixel 99,0 ==~ 0,255,0,255;
-            @assert pixel 0,49 ==~ 0,255,0,255;
-            @assert pixel 99,49 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+    const response_red = await fetch('/images/red.png');
+    const blob_red = await response_red.blob();
+    const bitmap_red = await createImageBitmap(blob_red);
+
+    const response_green = await fetch('/images/green.png');
+    const blob_green = await response_green.blob();
+    const bitmap_green = await createImageBitmap(blob_green);
+
+    ctx.drawImage(bitmap_green, 50, 0, 50, 50);
+    ctx.drawImage(bitmap_red, 0, 0, 50, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 50);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
 
 - name: 2d.drawImage.9arg.basic
-  images:
-  - green.png
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    fetch('/images/green.png')
-      .then(response => response.blob())
-        .then(blob => {
-        createImageBitmap(blob)
-          .then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0, 100, 50, 0, 0, 100, 50);
-            @assert pixel 0,0 ==~ 0,255,0,255;
-            @assert pixel 99,0 ==~ 0,255,0,255;
-            @assert pixel 0,49 ==~ 0,255,0,255;
-            @assert pixel 99,49 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/green.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.drawImage(bitmap, 0, 0, 100, 50, 0, 0, 100, 50);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.9arg.sourcepos
-  images:
-  - rgrg-256x256.png
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    fetch('/images/rgrg-256x256.png')
-      .then(response => response.blob())
-        .then(blob => {
-        createImageBitmap(blob)
-          .then(bitmap => {
-            ctx.drawImage(bitmap, 140, 20, 100, 50, 0, 0, 100, 50);
-            @assert pixel 0,0 ==~ 0,255,0,255;
-            @assert pixel 99,0 ==~ 0,255,0,255;
-            @assert pixel 0,49 ==~ 0,255,0,255;
-            @assert pixel 99,49 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/rgrg-256x256.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 140, 20, 100, 50, 0, 0, 100, 50);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.9arg.sourcesize
-  images:
-  - rgrg-256x256.png
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    fetch('/images/rgrg-256x256.png')
-      .then(response => response.blob())
-        .then(blob => {
-        createImageBitmap(blob)
-          .then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0, 256, 256, 0, 0, 100, 50);
-            ctx.fillStyle = '#0f0';
-            ctx.fillRect(0, 0, 51, 26);
-            ctx.fillRect(49, 24, 51, 26);
-            @assert pixel 0,0 ==~ 0,255,0,255;
-            @assert pixel 99,0 ==~ 0,255,0,255;
-            @assert pixel 0,49 ==~ 0,255,0,255;
-            @assert pixel 99,49 ==~ 0,255,0,255;
-            @assert pixel 20,20 ==~ 0,255,0,255;
-            @assert pixel 80,20 ==~ 0,255,0,255;
-            @assert pixel 20,30 ==~ 0,255,0,255;
-            @assert pixel 80,30 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/rgrg-256x256.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 0, 0, 256, 256, 0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 51, 26);
+    ctx.fillRect(49, 24, 51, 26);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+    @assert pixel 20,20 ==~ 0,255,0,255;
+    @assert pixel 80,20 ==~ 0,255,0,255;
+    @assert pixel 20,30 ==~ 0,255,0,255;
+    @assert pixel 80,30 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.9arg.destpos
-  canvasType: ['OffscreenCanvas']
-  images:
-  - red.png
-  - green.png
-  timeout: long
+  test_type: promise
   code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    var promise1 = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    var promise2 = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/green.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    Promise.all([promise1, promise2]).then(function(response1, response2) {
-        var promise3 = createImageBitmap(response1);
-        var promise4 = createImageBitmap(response2);
-        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
-            ctx.drawImage(bitmap2, 0, 0, 100, 50, 0, 0, 100, 50);
-            ctx.drawImage(bitmap1, 0, 0, 100, 50, -100, 0, 100, 50);
-            ctx.drawImage(bitmap1, 0, 0, 100, 50, 100, 0, 100, 50);
-            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, -50, 100, 50);
-            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, 50, 100, 50);
-            @assert pixel 0,0 ==~ 0,255,0,255;
-            @assert pixel 99,0 ==~ 0,255,0,255;
-            @assert pixel 0,49 ==~ 0,255,0,255;
-            @assert pixel 99,49 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+    const response_red = await fetch('/images/red.png');
+    const blob_red = await response_red.blob();
+    const bitmap_red = await createImageBitmap(blob_red);
+
+    const response_green = await fetch('/images/green.png');
+    const blob_green = await response_green.blob();
+    const bitmap_green = await createImageBitmap(blob_green);
+
+    ctx.drawImage(bitmap_green, 0, 0, 100, 50, 0, 0, 100, 50);
+    ctx.drawImage(bitmap_green, 0, 0, 100, 50, -100, 0, 100, 50);
+    ctx.drawImage(bitmap_red, 0, 0, 100, 50, 100, 0, 100, 50);
+    ctx.drawImage(bitmap_red, 0, 0, 100, 50, 0, -50, 100, 50);
+    ctx.drawImage(bitmap_red, 0, 0, 100, 50, 0, 50, 100, 50);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
 
 - name: 2d.drawImage.9arg.destsize
-  canvasType: ['OffscreenCanvas']
-  images:
-  - red.png
-  - green.png
-  timeout: long
+  test_type: promise
   code: |
+    const response_red = await fetch('/images/red.png');
+    const blob_red = await response_red.blob();
+    const bitmap_red = await createImageBitmap(blob_red);
+
+    const response_green = await fetch('/images/green.png');
+    const blob_green = await response_green.blob();
+    const bitmap_green = await createImageBitmap(blob_green);
+
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    var promise1 = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    var promise2 = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/green.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    Promise.all([promise1, promise2]).then(function(response1, response2) {
-        var promise3 = createImageBitmap(response1);
-        var promise4 = createImageBitmap(response2);
-        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
-            ctx.drawImage(bitmap2, 1, 1, 1, 1, 0, 0, 100, 50);
-            ctx.drawImage(bitmap1, 0, 0, 100, 50, -50, 0, 50, 50);
-            ctx.drawImage(bitmap1, 0, 0, 100, 50, 100, 0, 50, 50);
-            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, -25, 100, 25);
-            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, 50, 100, 25);
-            @assert pixel 0,0 ==~ 0,255,0,255;
-            @assert pixel 99,0 ==~ 0,255,0,255;
-            @assert pixel 0,49 ==~ 0,255,0,255;
-            @assert pixel 99,49 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+    ctx.drawImage(bitmap_green, 1, 1, 1, 1, 0, 0, 100, 50);
+    ctx.drawImage(bitmap_red, 0, 0, 100, 50, -50, 0, 50, 50);
+    ctx.drawImage(bitmap_red, 0, 0, 100, 50, 100, 0, 50, 50);
+    ctx.drawImage(bitmap_red, 0, 0, 100, 50, 0, -25, 100, 25);
+    ctx.drawImage(bitmap_red, 0, 0, 100, 50, 0, 50, 100, 25);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
 
 - name: 2d.drawImage.canvas
   canvasType: ['OffscreenCanvas']
-  timeout: long
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');
@@ -555,7 +358,6 @@
 
 - name: 2d.drawImage.zerocanvas
   canvasType: ['OffscreenCanvas']
-  timeout: long
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(0, 10);
     @assert throws INVALID_STATE_ERR ctx.drawImage(offscreenCanvas2, 0, 0);
@@ -569,380 +371,341 @@
     @assert throws INVALID_STATE_ERR ctx.drawImage(offscreenCanvas2, 0, 0);
 
 - name: 2d.drawImage.floatsource
-  timeout: long
+  test_type: promise
   code: |
-    fetch('/images/red.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-              ctx.drawImage(bitmap, 10.1, 10.1, 0.1, 0.1, 0, 0, 100, 50);
-              @assert pixel 50,25 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/green.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 10.1, 10.1, 0.1, 0.1, 0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
   Expected: green
 
 - name: 2d.drawImage.zerosource
   desc: drawImage with zero-sized source rectangle draws nothing without exception
-  timeout: long
-  images:
-  - red.png
+  test_type: promise
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    const red = async () => await createImageBitmap(await (await fetch("/images/red.png")).blob());
-    fetch('/images/red.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-              ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
-              ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
-              ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
-              @assert pixel 50,25 ==~ 0,255,0,255;
-          });
-      });
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
+    ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
+    ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.zerosource.image
   desc: drawImage with zero-sized source rectangle from image draws nothing without exception
-  images:
-  - red-zerowidth.svg
-  - red-zeroheight.svg
-  - red-zerosize.svg
-  timeout: long
+  test_type: promise
+  canvasType: ['HTMLCanvas']
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    fetch('/images/red-zerowidth.svg')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-              ctx.drawImage(bitmap, 0, 0, 100, 50);
-              ctx.drawImage(bitmap, 0, 0, 100, 50);
-              ctx.drawImage(bitmap, 0, 0, 100, 50);
-              @assert pixel 50,25 == 0,255,0,255;
-          });
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = (err) => reject(err);
+        img.src = src;
+      });
+    }
+    const img1 = await loadImage('/images/red-zerowidth.svg');
+    const img2 = await loadImage('/images/red-zeroheight.svg');
+    const img3 = await loadImage('/images/red-zerosize.svg');
+
+    ctx.drawImage(img1, 0, 0, 100, 50);
+    ctx.drawImage(img2, 0, 0, 100, 50);
+    ctx.drawImage(img3, 0, 0, 100, 50);
+    _assertPixel(canvas, 50, 25, 0, 255, 0, 255);
+  expected: green
+
+- name: 2d.drawImage.zerosource.image
+  desc: drawImage with zero-sized source rectangle from image draws nothing without exception
+  test_type: promise
+  canvasType: ['OffscreenCanvas']
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", '/images/red-zerowidth.svg');
+      xhr.responseType = 'blob';
+      xhr.send();
+      xhr.onload = function() {
+        resolve(xhr.response);
+      };
+    });
+    promise.then(function(response) {
+      createImageBitmap(response).then(bitmap => {
+        ctx.drawImage(bitmap, 0, 0, 100, 50);
+        _assertPixel(canvas, 50,25, 0,255,0,255);
+      });
     });
   expected: green
 
 - name: 2d.drawImage.negativesource
   desc: Negative source width/height represents the correct rectangle
   mozilla: {throws: !!null ''}
-  images:
-  - ggrr-256x256.png
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    fetch('/images/ggrr-256x256.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.drawImage(bitmap, 100, 78, -100, 50, 0, 0, 50, 50);
-            ctx.drawImage(bitmap, 100, 128, -100, -50, 50, 0, 50, 50);
-            @assert pixel 1,1 ==~ 0,255,0,255;
-            @assert pixel 1,48 ==~ 0,255,0,255;
-            @assert pixel 98,1 ==~ 0,255,0,255;
-            @assert pixel 98,48 ==~ 0,255,0,255;
-            @assert pixel 48,1 ==~ 0,255,0,255;
-            @assert pixel 48,48 ==~ 0,255,0,255;
-            @assert pixel 51,1 ==~ 0,255,0,255;
-            @assert pixel 51,48 ==~ 0,255,0,255;
-            @assert pixel 25,25 ==~ 0,255,0,255;
-            @assert pixel 75,25 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/ggrr-256x256.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 100, 78, -100, 50, 0, 0, 50, 50);
+    ctx.drawImage(bitmap, 100, 128, -100, -50, 50, 0, 50, 50);
+    @assert pixel 1,1 ==~ 0,255,0,255;
+    @assert pixel 1,48 ==~ 0,255,0,255;
+    @assert pixel 98,1 ==~ 0,255,0,255;
+    @assert pixel 98,48 ==~ 0,255,0,255;
+    @assert pixel 48,1 ==~ 0,255,0,255;
+    @assert pixel 48,48 ==~ 0,255,0,255;
+    @assert pixel 51,1 ==~ 0,255,0,255;
+    @assert pixel 51,48 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.negativedest
   desc: Negative destination width/height represents the correct rectangle
   mozilla: {throws: !!null ''}
-  timeout: long
-  images:
-  - ggrr-256x256.png
+  test_type: promise
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    fetch('/images/ggrr-256x256.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.drawImage(bitmap, 100, 78, 50, 50, 0, 50, 50, -50);
-            ctx.drawImage(bitmap, 100, 128, 50, -50, 100, 50, -50, -50);
-            @assert pixel 1,1 ==~ 0,255,0,255;
-            @assert pixel 1,48 ==~ 0,255,0,255;
-            @assert pixel 98,1 ==~ 0,255,0,255;
-            @assert pixel 98,48 ==~ 0,255,0,255;
-            @assert pixel 48,1 ==~ 0,255,0,255;
-            @assert pixel 48,48 ==~ 0,255,0,255;
-            @assert pixel 51,1 ==~ 0,255,0,255;
-            @assert pixel 51,48 ==~ 0,255,0,255;
-            @assert pixel 25,25 ==~ 0,255,0,255;
-            @assert pixel 75,25 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/ggrr-256x256.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 100, 78, 50, 50, 0, 50, 50, -50);
+    ctx.drawImage(bitmap, 100, 128, 50, -50, 100, 50, -50, -50);
+    @assert pixel 1,1 ==~ 0,255,0,255;
+    @assert pixel 1,48 ==~ 0,255,0,255;
+    @assert pixel 98,1 ==~ 0,255,0,255;
+    @assert pixel 98,48 ==~ 0,255,0,255;
+    @assert pixel 48,1 ==~ 0,255,0,255;
+    @assert pixel 48,48 ==~ 0,255,0,255;
+    @assert pixel 51,1 ==~ 0,255,0,255;
+    @assert pixel 51,48 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.negativedir
   desc: Negative dimensions do not affect the direction of the image
   mozilla: {throws: !!null ''}
-  timeout: long
-  images:
-  - ggrr-256x256.png
+  test_type: promise
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    fetch('/images/ggrr-256x256.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.drawImage(bitmap, 0, 178, 50, -100, 0, 0, 50, 100);
-            ctx.drawImage(bitmap, 0, 78, 50, 100, 50, 100, 50, -100);
-            @assert pixel 1,1 ==~ 0,255,0,255;
-            @assert pixel 1,48 ==~ 0,255,0,255;
-            @assert pixel 98,1 ==~ 0,255,0,255;
-            @assert pixel 98,48 ==~ 0,255,0,255;
-            @assert pixel 48,1 ==~ 0,255,0,255;
-            @assert pixel 48,48 ==~ 0,255,0,255;
-            @assert pixel 51,1 ==~ 0,255,0,255;
-            @assert pixel 51,48 ==~ 0,255,0,255;
-            @assert pixel 25,25 ==~ 0,255,0,255;
-            @assert pixel 75,25 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/ggrr-256x256.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 0, 178, 50, -100, 0, 0, 50, 100);
+    ctx.drawImage(bitmap, 0, 78, 50, 100, 50, 100, 50, -100);
+    @assert pixel 1,1 ==~ 0,255,0,255;
+    @assert pixel 1,48 ==~ 0,255,0,255;
+    @assert pixel 98,1 ==~ 0,255,0,255;
+    @assert pixel 98,48 ==~ 0,255,0,255;
+    @assert pixel 48,1 ==~ 0,255,0,255;
+    @assert pixel 48,48 ==~ 0,255,0,255;
+    @assert pixel 51,1 ==~ 0,255,0,255;
+    @assert pixel 51,48 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.outsidesource
   DISABLED: fix this to match the current spec (transparent black outside source)
   canvasType: ['OffscreenCanvas']
   code: |
-    var promise1 = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    var promise2 = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/green.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    Promise.all([promise1, promise2]).then(function(response1, response2) {
-        var promise3 = createImageBitmap(response1);
-        var promise4 = createImageBitmap(response2);
-        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
-            ctx.drawImage(bitmap2, 10.5, 10.5, 89.5, 39.5, 0, 0, 100, 50);
-            ctx.drawImage(bitmap2, 5.5, 5.5, -5.5, -5.5, 0, 0, 100, 50);
-            ctx.drawImage(bitmap2, 100, 50, -5, -5, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, -0.001, 0, 100, 50, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, -0.001, 100, 50, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 100.001, 50, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 100, 50.001, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 50, 0, 50.001, 50, 0, 0, 100, 50); @moz-todo
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, -5, 5, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 5, -5, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 110, 60, -20, -20, 0, 0, 100, 50);
-            @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
-        });
-    });
+    const response_red = await fetch('/images/red.png');
+    const blob_red = await response_red.blob();
+    const bitmap_red = await createImageBitmap(blob_red);
+
+    const response_green = await fetch('/images/green.png');
+    const blob_green = await response_green.blob();
+    const bitmap_green = await createImageBitmap(blob_green);
+    ctx.drawImage(bitmap_green, 10.5, 10.5, 89.5, 39.5, 0, 0, 100, 50);
+    ctx.drawImage(bitmap_green, 5.5, 5.5, -5.5, -5.5, 0, 0, 100, 50);
+    ctx.drawImage(bitmap_green, 100, 50, -5, -5, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, -0.001, 0, 100, 50, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, -0.001, 100, 50, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 100.001, 50, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 100, 50.001, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 50, 0, 50.001, 50, 0, 0, 100, 50); @moz-todo
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, -5, 5, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 5, -5, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 110, 60, -20, -20, 0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
   expected: green
 
 - name: 2d.drawImage.broken
-  timeout: long
+  test_type: promise
   code: |
-    fetch('/images/broken.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.fillStyle = '#0f0';
-            ctx.fillRect(0, 0, 100, 50);
-            ctx.drawImage(bitmap, 0, 0);
-            @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
-        });
-    });
+    const response = await fetch('/images/broken.png');
+    const blob = await response.blob();
+
+    await promise_rejects_dom(t, 'InvalidStateError', createImageBitmap(blob), 'The source image could not be decoded.');
   expected: green
 
 - name: 2d.drawImage.svg
   desc: drawImage() of an SVG image
-  timeout: long
+  test_type: promise
+  canvasType: ['HTMLCanvas']
   code: |
-    fetch('/images/green.svg')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0);
-            @assert pixel 50,25 ==~ 0,255,0,255;
-        });
+    const img = new Image();
+    const imageLoadPromise = new Promise((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = (err) => reject(err);
+    });
+    img.src = '/images/green.svg';
+    await imageLoadPromise;
+
+    ctx.drawImage(img, 0, 0);
+    _assertPixelApprox(canvas, 50, 25, 0, 255, 0, 255, 2);
+  expected: green
+
+
+- name: 2d.drawImage.svg
+  desc: drawImage() of an SVG image
+  test_type: promise
+  canvasType: ['OffscreenCanvas']
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", '/images/green.svg');
+      xhr.responseType = 'blob';
+      xhr.send();
+      xhr.onload = function() {
+        resolve(xhr.response);
+      };
+    });
+    promise.then(function(response) {
+      createImageBitmap(response).then(bitmap => {
+        ctx.drawImage(bitmap, 0, 0);
+        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+      });
     });
   expected: green
 
 - name: 2d.drawImage.animated.poster
   desc: drawImage() of an APNG draws the poster frame
-  images:
-  - anim-poster-gr.png
-  timeout: long
+  test_type: promise
   code: |
-    fetch('anim-poster-gr.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0);
-            @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
-        });
-    });
+    const response = await fetch('/images/anim-poster-gr.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.drawImage(bitmap, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
   expected: green
 
 - name: 2d.drawImage.path
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#0f0';
     ctx.rect(0, 0, 100, 50);
-    fetch('/images/red.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0);
-            ctx.fill();
-            @assert pixel 50,25 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.drawImage(bitmap, 0, 0);
+    ctx.fill();
+    @assert pixel 50,25 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.transform
-  images:
-  - red.png
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     ctx.translate(100, 0);
-    fetch('red.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0);
-            @assert pixel 50,25 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.drawImage(bitmap, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.alpha
-  images:
-  - red.png
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalAlpha = 0;
-    fetch('/images/red.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0);
-            @assert pixel 50,25 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.drawImage(bitmap, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.clip
-  images:
-  - red.png
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     ctx.rect(-10, -10, 1, 1);
     ctx.clip();
-    fetch('/images/red.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.fillStyle = '#0f0';
-            ctx.fillRect(0, 0, 100, 50);
-            ctx.rect(-10, -10, 1, 1);
-            ctx.clip();
-            ctx.drawImage(document.getElementById('red.png'), 0, 0);
-            @assert pixel 50,25 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.rect(-10, -10, 1, 1);
+    ctx.clip();
+    ctx.drawImage(bitmap, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.composite
-  images:
-  - red.png
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = 'destination-over';
-    fetch('/images/red.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0);
-            @assert pixel 50,25 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.drawImage(bitmap, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.nowrap
   desc: Stretched images do not get pixels wrapping around the edges
-  images:
-  - redtransparent.png
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    fetch('/images/redtransparent.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            ctx.drawImage(bitmap, -1950, 0, 2000, 50);
-            @assert pixel 45,25 ==~ 0,255,0,255;
-            @assert pixel 50,25 ==~ 0,255,0,255;
-            @assert pixel 55,25 ==~ 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/redtransparent.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.drawImage(bitmap, -1950, 0, 2000, 50);
+    @assert pixel 45,25 ==~ 0,255,0,255;
+    @assert pixel 50,25 ==~ 0,255,0,255;
+    @assert pixel 55,25 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.nonfinite
   desc: drawImage() with Infinity/NaN is ignored
-  images:
-  - red.png
-  timeout: long
+  test_type: promise
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    fetch('/images/redtransparent.png')
-      .then(response => response.blob())
-        .then(blob => {
-          createImageBitmap(blob)
-            .then(bitmap => {
-            @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
-            @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
-            @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
-            @assert pixel 50,25 == 0,255,0,255;
-        });
-    });
+    const response = await fetch('/images/redtransparent.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
+    @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+    @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+    @assert pixel 50,25 == 0,255,0,255;
   expected: green

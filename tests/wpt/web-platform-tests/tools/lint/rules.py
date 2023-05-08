@@ -2,42 +2,30 @@ import abc
 import inspect
 import os
 import re
-
-MYPY = False
-if MYPY:
-    # MYPY is set to True when run under Mypy.
-    from typing import Any, List, Match, Optional, Pattern, Text, Tuple, cast
-    Error = Tuple[str, str, str, Optional[int]]
+from typing import Any, List, Match, Optional, Pattern, Text, Tuple, cast
 
 
-def collapse(text):
-    # type: (Text) -> Text
+Error = Tuple[str, str, str, Optional[int]]
+
+def collapse(text: Text) -> Text:
     return inspect.cleandoc(str(text)).replace("\n", " ")
 
 
 class Rule(metaclass=abc.ABCMeta):
     @abc.abstractproperty
-    def name(self):
-        # type: () -> Text
+    def name(self) -> Text:
         pass
 
     @abc.abstractproperty
-    def description(self):
-        # type: () -> Text
+    def description(self) -> Text:
         pass
 
-    to_fix = None  # type: Optional[Text]
+    to_fix: Optional[Text] = None
 
     @classmethod
-    def error(cls, path, context=(), line_no=None):
-        # type: (Text, Tuple[Any, ...], Optional[int]) -> Error
-        if MYPY:
-            name = cast(str, cls.name)
-            description = cast(str, cls.description)
-        else:
-            name = cls.name
-            description = cls.description
-        description = description % context
+    def error(cls, path: Text, context: Tuple[Any, ...] = (), line_no: Optional[int] = None) -> Error:
+        name = cast(str, cls.name)
+        description = cast(str, cls.description) % context
         return (name, description, path, line_no)
 
 
@@ -353,33 +341,27 @@ class TentativeDirectoryName(Rule):
 
 class Regexp(metaclass=abc.ABCMeta):
     @abc.abstractproperty
-    def pattern(self):
-        # type: () -> bytes
+    def pattern(self) -> bytes:
         pass
 
     @abc.abstractproperty
-    def name(self):
-        # type: () -> Text
+    def name(self) -> Text:
         pass
 
     @abc.abstractproperty
-    def description(self):
-        # type: () -> Text
+    def description(self) -> Text:
         pass
 
-    file_extensions = None  # type: Optional[List[Text]]
+    file_extensions: Optional[List[Text]] = None
 
-    def __init__(self):
-        # type: () -> None
-        self._re = re.compile(self.pattern)  # type: Pattern[bytes]
+    def __init__(self) -> None:
+        self._re: Pattern[bytes] = re.compile(self.pattern)
 
-    def applies(self, path):
-        # type: (Text) -> bool
+    def applies(self, path: Text) -> bool:
         return (self.file_extensions is None or
                 os.path.splitext(path)[1] in self.file_extensions)
 
-    def search(self, line):
-        # type: (bytes) -> Optional[Match[bytes]]
+    def search(self, line: bytes) -> Optional[Match[bytes]]:
         return self._re.search(line)
 
 
