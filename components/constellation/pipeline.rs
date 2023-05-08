@@ -145,7 +145,7 @@ pub struct InitialPipelineState {
     pub compositor_proxy: CompositorProxy,
 
     /// A channel to the developer tools, if applicable.
-    pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
@@ -249,29 +249,30 @@ impl Pipeline {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
 
                 // Route messages coming from content to devtools as appropriate.
-                let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
-                    let (script_to_devtools_chan, script_to_devtools_port) =
-                        ipc::channel().expect("Pipeline script to devtools chan");
-                    let devtools_chan = (*devtools_chan).clone();
-                    ROUTER.add_route(
-                        script_to_devtools_port.to_opaque(),
-                        Box::new(
-                            move |message| match message.to::<ScriptToDevtoolsControlMsg>() {
-                                Err(e) => {
-                                    error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e)
-                                },
-                                Ok(message) => {
-                                    if let Err(e) =
-                                        devtools_chan.send(DevtoolsControlMsg::FromScript(message))
-                                    {
-                                        warn!("Sending to devtools failed ({:?})", e)
-                                    }
-                                },
-                            },
-                        ),
-                    );
-                    script_to_devtools_chan
-                });
+                let script_to_devtools_ipc_sender =
+                    state.devtools_sender.as_ref().map(|devtools_sender| {
+                        let (script_to_devtools_ipc_sender, script_to_devtools_ipc_receiver) =
+                            ipc::channel().expect("Pipeline script to devtools chan");
+                        let devtools_sender = (*devtools_sender).clone();
+                        ROUTER.add_route(
+                            script_to_devtools_ipc_receiver.to_opaque(),
+                            Box::new(move |message| {
+                                match message.to::<ScriptToDevtoolsControlMsg>() {
+                                    Err(e) => {
+                                        error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e)
+                                    },
+                                    Ok(message) => {
+                                        if let Err(e) = devtools_sender
+                                            .send(DevtoolsControlMsg::FromScript(message))
+                                        {
+                                            warn!("Sending to devtools failed ({:?})", e)
+                                        }
+                                    },
+                                }
+                            }),
+                        );
+                        script_to_devtools_ipc_sender
+                    });
 
                 let mut unprivileged_pipeline_content = UnprivilegedPipelineContent {
                     id: state.id,
@@ -286,7 +287,7 @@ impl Pipeline {
                         .clone(),
                     bhm_control_port: None,
                     scheduler_chan: state.scheduler_chan,
-                    devtools_chan: script_to_devtools_chan,
+                    devtools_ipc_sender: script_to_devtools_ipc_sender,
                     bluetooth_thread: state.bluetooth_thread,
                     swmanager_thread: state.swmanager_thread,
                     font_cache_thread: state.font_cache_thread,
@@ -496,7 +497,7 @@ pub struct UnprivilegedPipelineContent {
     bhm_control_port: Option<IpcReceiver<BackgroundHangMonitorControlMsg>>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
-    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     bluetooth_thread: IpcSender<BluetoothRequest>,
     swmanager_thread: IpcSender<SWManagerMsg>,
     font_cache_thread: FontCacheThread,
@@ -562,7 +563,7 @@ impl UnprivilegedPipelineContent {
                 image_cache: image_cache.clone(),
                 time_profiler_chan: self.time_profiler_chan.clone(),
                 mem_profiler_chan: self.mem_profiler_chan.clone(),
-                devtools_chan: self.devtools_chan,
+                devtools_chan: self.devtools_ipc_sender,
                 window_size: self.window_size,
                 pipeline_namespace_id: self.pipeline_namespace_id,
                 content_process_shutdown_chan: content_process_shutdown_chan,
