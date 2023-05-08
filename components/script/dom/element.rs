@@ -87,6 +87,7 @@ use crate::task::TaskOnce;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use euclid::default::Rect;
+use euclid::default::Size2D;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
@@ -3292,7 +3293,25 @@ impl Element {
         {
             return rect;
         }
-        let rect = self.upcast::<Node>().client_rect();
+
+        let mut rect = self.upcast::<Node>().client_rect();
+        let in_quirks_mode = self.node.owner_doc().quirks_mode() == QuirksMode::Quirks;
+
+        if (in_quirks_mode &&
+            self.node.owner_doc().GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
+            (!in_quirks_mode && *self.root_element() == *self)
+        {
+            let viewport_dimensions = self
+                .node
+                .owner_doc()
+                .window()
+                .window_size()
+                .initial_viewport
+                .round()
+                .to_i32();
+            rect.size = Size2D::<i32>::new(viewport_dimensions.width, viewport_dimensions.height);
+        }
+
         self.ensure_rare_data().client_rect = Some(window_from_node(self).cache_layout_value(rect));
         rect
     }
