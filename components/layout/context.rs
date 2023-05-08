@@ -5,7 +5,6 @@
 //! Data needed by the layout thread.
 
 use crate::display_list::items::{OpaqueNode, WebRenderImageInfo};
-use crate::opaque_node::OpaqueNodeMethods;
 use fnv::FnvHasher;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
@@ -121,7 +120,7 @@ impl<'a> LayoutContext<'a> {
             ImageCacheResult::Pending(id) => {
                 let image = PendingImage {
                     state: PendingImageState::PendingResponse,
-                    node: node.to_untrusted_node_address(),
+                    node: node.into(),
                     id,
                     origin: self.origin.clone(),
                 };
@@ -132,7 +131,7 @@ impl<'a> LayoutContext<'a> {
             ImageCacheResult::ReadyForRequest(id) => {
                 let image = PendingImage {
                     state: PendingImageState::Unrequested(url),
-                    node: node.to_untrusted_node_address(),
+                    node: node.into(),
                     id,
                     origin: self.origin.clone(),
                 };

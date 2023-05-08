@@ -30,7 +30,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
 use layout::display_list::{DisplayListBuilder, WebRenderImageInfo};
-use layout::element_data::LayoutDataForElement;
+use layout::dom::DOMLayoutData;
 use layout::layout_debug;
 use layout::query::{
     process_content_box_request, process_content_boxes_request, process_resolved_font_style_query,
@@ -801,7 +801,7 @@ impl LayoutThread {
         data: &mut ScriptReflowResult,
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
     ) {
-        let document = unsafe { ServoLayoutNode::<LayoutDataForElement>::new(&data.document) };
+        let document = unsafe { ServoLayoutNode::<DOMLayoutData>::new(&data.document) };
         let document = document.as_document().unwrap();
 
         let mut rw_data = possibly_locked_rw_data.lock();
@@ -957,7 +957,7 @@ impl LayoutThread {
             .iter()
             .filter(|r| r.1.snapshot.is_some())
             .map(|r| unsafe {
-                ServoLayoutNode::<LayoutDataForElement>::new(&r.0)
+                ServoLayoutNode::<DOMLayoutData>::new(&r.0)
                     .as_element()
                     .unwrap()
             })
@@ -965,7 +965,7 @@ impl LayoutThread {
 
         for (el, restyle) in restyles {
             let el = unsafe {
-                ServoLayoutNode::<LayoutDataForElement>::new(&el)
+                ServoLayoutNode::<DOMLayoutData>::new(&el)
                     .as_element()
                     .unwrap()
             };
@@ -1004,16 +1004,15 @@ impl LayoutThread {
         );
 
         let dirty_root = unsafe {
-            ServoLayoutNode::<LayoutDataForElement>::new(&data.dirty_root.unwrap())
+            ServoLayoutNode::<DOMLayoutData>::new(&data.dirty_root.unwrap())
                 .as_element()
                 .unwrap()
         };
 
         let traversal = RecalcStyle::new(layout_context);
         let token = {
-            let shared = DomTraversal::<ServoLayoutElement<LayoutDataForElement>>::shared_context(
-                &traversal,
-            );
+            let shared =
+                DomTraversal::<ServoLayoutElement<DOMLayoutData>>::shared_context(&traversal);
             RecalcStyle::pre_traverse(dirty_root, shared)
         };
 
@@ -1021,7 +1020,7 @@ impl LayoutThread {
         let rayon_pool = rayon_pool.as_ref();
 
         if token.should_traverse() {
-            let dirty_root: ServoLayoutNode<LayoutDataForElement> =
+            let dirty_root: ServoLayoutNode<DOMLayoutData> =
                 driver::traverse_dom(&traversal, token, rayon_pool).as_node();
 
             let root_node = root_element.as_node();
@@ -1134,12 +1133,12 @@ impl LayoutThread {
                         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone());
                 },
                 &QueryMsg::NodeScrollIdQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::<LayoutDataForElement>::new(&node) };
+                    let node = unsafe { ServoLayoutNode::<DOMLayoutData>::new(&node) };
                     rw_data.scroll_id_response =
                         Some(process_node_scroll_id_request(self.id, node));
                 },
                 &QueryMsg::ResolvedStyleQuery(node, ref pseudo, ref property) => {
-                    let node = unsafe { ServoLayoutNode::<LayoutDataForElement>::new(&node) };
+                    let node = unsafe { ServoLayoutNode::<DOMLayoutData>::new(&node) };
                     let fragment_tree = self.fragment_tree.borrow().clone();
                     rw_data.resolved_style_response = process_resolved_style_request(
                         context,
@@ -1150,7 +1149,7 @@ impl LayoutThread {
                     );
                 },
                 &QueryMsg::ResolvedFontStyleQuery(node, ref property, ref value) => {
-                    let node = unsafe { ServoLayoutNode::<LayoutDataForElement>::new(&node) };
+                    let node = unsafe { ServoLayoutNode::<DOMLayoutData>::new(&node) };
                     rw_data.resolved_font_style_response =
                         process_resolved_font_style_query(node, property, value);
                 },
@@ -1180,7 +1179,7 @@ impl LayoutThread {
                         results.iter().map(|result| result.node).collect()
                 },
                 &QueryMsg::ElementInnerTextQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::<LayoutDataForElement>::new(&node) };
+                    let node = unsafe { ServoLayoutNode::<DOMLayoutData>::new(&node) };
                     rw_data.element_inner_text_response = process_element_inner_text_query(node);
                 },
                 &QueryMsg::InnerWindowDimensionsQuery(_browsing_context_id) => {
@@ -1240,7 +1239,7 @@ impl LayoutThread {
         &self,
         fragment_tree: Arc<FragmentTree>,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument<LayoutDataForElement>>,
+        document: Option<&ServoLayoutDocument<DOMLayoutData>>,
         context: &mut LayoutContext,
     ) {
         Self::cancel_animations_for_nodes_not_in_fragment_tree(

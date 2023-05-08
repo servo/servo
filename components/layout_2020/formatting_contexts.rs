@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
-use crate::dom_traversal::{Contents, NodeAndStyleInfo, NodeExt};
+use crate::dom::NodeExt;
+use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;

@@ -488,7 +488,8 @@ pub struct ServoThreadSafeLayoutNodeChildrenIterator<'dom, LayoutDataType: Layou
     parent_node: ServoThreadSafeLayoutNode<'dom, LayoutDataType>,
 }
 
-impl<'dom, LayoutDataType: LayoutDataTrait> ServoThreadSafeLayoutNodeChildrenIterator<'dom, LayoutDataType>
+impl<'dom, LayoutDataType: LayoutDataTrait>
+    ServoThreadSafeLayoutNodeChildrenIterator<'dom, LayoutDataType>
 {
     pub fn new(parent: ServoThreadSafeLayoutNode<'dom, LayoutDataType>) -> Self {
         let first_child = match parent.get_pseudo_element_type() {
@@ -508,7 +509,8 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoThreadSafeLayoutNodeChildrenIte
     }
 }
 
-impl<'dom, LayoutDataType: LayoutDataTrait> Iterator for ServoThreadSafeLayoutNodeChildrenIterator<'dom, LayoutDataType>
+impl<'dom, LayoutDataType: LayoutDataTrait> Iterator
+    for ServoThreadSafeLayoutNodeChildrenIterator<'dom, LayoutDataType>
 {
     type Item = ServoThreadSafeLayoutNode<'dom, LayoutDataType>;
     fn next(&mut self) -> Option<ServoThreadSafeLayoutNode<'dom, LayoutDataType>> {

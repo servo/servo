@@ -86,7 +86,12 @@ pub trait GetStyleAndOpaqueLayoutData<'dom> {
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutDom`.
-pub trait LayoutNode<'dom>: Debug + GetStyleAndOpaqueLayoutData<'dom> + TNode {
+/// FIXME(mrobinson): `Send + Sync` is required here for Layout 2020, but eventually it
+/// should stop sending LayoutNodes to other threads and rely on ThreadSafeLayoutNode
+/// or some other mechanism to ensure thread safety.
+pub trait LayoutNode<'dom>:
+    Copy + Debug + GetStyleAndOpaqueLayoutData<'dom> + TNode + Send + Sync
+{
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>;
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 

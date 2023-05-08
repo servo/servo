@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
-use crate::wrapper::GetStyleAndLayoutData;
+use crate::dom::NodeExt;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
@@ -33,7 +33,7 @@ impl<'a> RecalcStyle<'a> {
 impl<'a, 'dom, E> DomTraversal<E> for RecalcStyle<'a>
 where
     E: TElement,
-    E::ConcreteNode: LayoutNode<'dom>,
+    E::ConcreteNode: 'dom + LayoutNode<'dom>,
 {
     fn process_preorder<F>(
         &self,

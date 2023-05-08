@@ -5,10 +5,8 @@
 use super::{FlexContainer, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom_traversal::{
-    BoxSlot, Contents, NodeAndStyleInfo, NodeExt, NonReplacedContents, TraversalHandler,
-};
-use crate::element_data::LayoutBox;
+use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::DisplayGeneratingBox;

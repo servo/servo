@@ -11,7 +11,6 @@ use crate::display_list::IndexableText;
 use crate::flow::{Flow, GetBaseFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, FragmentFlags, SpecificFragmentInfo};
 use crate::inline::InlineFragmentNodeFlags;
-use crate::opaque_node::OpaqueNodeMethods;
 use crate::sequential;
 use crate::wrapper::LayoutNodeLayoutData;
 use app_units::Au;
@@ -1099,7 +1098,7 @@ pub fn process_offset_parent_query(
             let origin = node_offset_box.offset - parent_info.origin.to_vector();
             let size = node_offset_box.rectangle.size;
             OffsetParentResponse {
-                node_address: Some(parent_info.node_address.to_untrusted_node_address()),
+                node_address: Some(parent_info.node_address.into()),
                 rect: Rect::new(origin, size),
             }
         },

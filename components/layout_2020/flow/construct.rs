@@ -4,10 +4,8 @@
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom_traversal::{
-    BoxSlot, Contents, NodeAndStyleInfo, NodeExt, NonReplacedContents, TraversalHandler,
-};
-use crate::element_data::LayoutBox;
+use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
 use crate::flow::float::FloatBox;
 use crate::flow::inline::{InlineBox, InlineFormattingContext, InlineLevelBox, TextRun};
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};

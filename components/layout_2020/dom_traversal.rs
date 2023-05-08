@@ -2,27 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::element_data::{LayoutBox, LayoutDataForElement};
+use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags, Tag};
-use crate::geom::PhysicalSize;
-use crate::replaced::{CanvasInfo, CanvasSource, ReplacedContent};
+use crate::replaced::ReplacedContent;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
-use crate::wrapper::GetStyleAndLayoutData;
-use atomic_refcell::AtomicRefMut;
 use html5ever::LocalName;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use net_traits::image::base::Image as NetImage;
-use script_layout_interface::wrapper_traits::{
-    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
-};
-use script_layout_interface::HTMLCanvasDataSource;
+use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use std::borrow::Cow;
-use std::marker::PhantomData as marker;
-use std::sync::{Arc, Mutex};
-use style::dom::{OpaqueNode, TNode};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::generics::counters::Content;
@@ -149,9 +137,9 @@ fn traverse_children_of<'dom, Node>(
     traverse_pseudo_element(WhichPseudoElement::Before, parent_element, context, handler);
 
     for child in iter_child_nodes(parent_element) {
-        if let Some(contents) = child.as_text() {
+        if child.is_text_node() {
             let info = NodeAndStyleInfo::new(child, child.style(context));
-            handler.handle_text(&info, contents);
+            handler.handle_text(&info, child.to_threadsafe().node_text_content());
         } else if child.is_element() {
             traverse_element(child, context, handler);
         }
@@ -378,184 +366,6 @@ where
             vec
         },
         Content::Normal | Content::None => unreachable!(),
-    }
-}
-
-pub struct BoxSlot<'dom> {
-    slot: Option<ArcRefCell<Option<LayoutBox>>>,
-    marker: marker<&'dom ()>,
-}
-
-impl BoxSlot<'_> {
-    pub(crate) fn new(slot: ArcRefCell<Option<LayoutBox>>) -> Self {
-        *slot.borrow_mut() = None;
-        let slot = Some(slot);
-        Self { slot, marker }
-    }
-
-    pub(crate) fn dummy() -> Self {
-        let slot = None;
-        Self { slot, marker }
-    }
-
-    pub(crate) fn set(mut self, box_: LayoutBox) {
-        if let Some(slot) = &mut self.slot {
-            *slot.borrow_mut() = Some(box_);
-        }
-    }
-}
-
-impl Drop for BoxSlot<'_> {
-    fn drop(&mut self) {
-        if !std::thread::panicking() {
-            if let Some(slot) = &mut self.slot {
-                assert!(slot.borrow().is_some(), "failed to set a layout box");
-            }
-        }
-    }
-}
-
-pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode<'dom> + Send + Sync {
-    fn is_element(self) -> bool;
-    fn as_text(self) -> Option<Cow<'dom, str>>;
-
-    /// Returns the image if it’s loaded, and its size in image pixels
-    /// adjusted for `image_density`.
-    fn as_image(self) -> Option<(Option<Arc<NetImage>>, PhysicalSize<f64>)>;
-    fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
-    fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)>;
-    fn first_child(self) -> Option<Self>;
-    fn next_sibling(self) -> Option<Self>;
-    fn parent_node(self) -> Option<Self>;
-    fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
-
-    fn as_opaque(self) -> OpaqueNode;
-    fn layout_data_mut(self) -> AtomicRefMut<'dom, LayoutDataForElement>;
-    fn element_box_slot(&self) -> BoxSlot<'dom>;
-    fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom>;
-    fn unset_pseudo_element_box(self, which: WhichPseudoElement);
-
-    /// Remove boxes for the element itself, and its `:before` and `:after` if any.
-    fn unset_all_boxes(self);
-}
-
-impl<'dom, T> NodeExt<'dom> for T
-where
-    T: 'dom + Copy + LayoutNode<'dom> + Send + Sync,
-{
-    fn is_element(self) -> bool {
-        self.to_threadsafe().as_element().is_some()
-    }
-
-    fn as_text(self) -> Option<Cow<'dom, str>> {
-        if self.is_text_node() {
-            Some(self.to_threadsafe().node_text_content())
-        } else {
-            None
-        }
-    }
-
-    fn as_image(self) -> Option<(Option<Arc<NetImage>>, PhysicalSize<f64>)> {
-        let node = self.to_threadsafe();
-        let (resource, metadata) = node.image_data()?;
-        let (width, height) = resource
-            .as_ref()
-            .map(|image| (image.width, image.height))
-            .or_else(|| metadata.map(|metadata| (metadata.width, metadata.height)))
-            .unwrap_or((0, 0));
-        let (mut width, mut height) = (width as f64, height as f64);
-        if let Some(density) = node.image_density().filter(|density| *density != 1.) {
-            width = width / density;
-            height = height / density;
-        }
-        Some((resource, PhysicalSize::new(width, height)))
-    }
-
-    fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)> {
-        let node = self.to_threadsafe();
-        let canvas_data = node.canvas_data()?;
-        let source = match canvas_data.source {
-            HTMLCanvasDataSource::WebGL(texture_id) => CanvasSource::WebGL(texture_id),
-            HTMLCanvasDataSource::Image(ipc_sender) => {
-                CanvasSource::Image(ipc_sender.map(|renderer| Arc::new(Mutex::new(renderer))))
-            },
-            HTMLCanvasDataSource::WebGPU(image_key) => CanvasSource::WebGPU(image_key),
-        };
-        Some((
-            CanvasInfo {
-                source,
-                canvas_id: canvas_data.canvas_id,
-            },
-            PhysicalSize::new(canvas_data.width.into(), canvas_data.height.into()),
-        ))
-    }
-
-    fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)> {
-        let node = self.to_threadsafe();
-        match (node.iframe_pipeline_id(), node.iframe_browsing_context_id()) {
-            (Some(pipeline_id), Some(browsing_context_id)) => {
-                Some((pipeline_id, browsing_context_id))
-            },
-            _ => None,
-        }
-    }
-
-    fn first_child(self) -> Option<Self> {
-        TNode::first_child(&self)
-    }
-
-    fn next_sibling(self) -> Option<Self> {
-        TNode::next_sibling(&self)
-    }
-
-    fn parent_node(self) -> Option<Self> {
-        TNode::parent_node(&self)
-    }
-
-    fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues> {
-        self.to_threadsafe().style(context.shared_context())
-    }
-
-    fn as_opaque(self) -> OpaqueNode {
-        self.opaque()
-    }
-
-    #[allow(unsafe_code)]
-    fn layout_data_mut(self) -> AtomicRefMut<'dom, LayoutDataForElement> {
-        self.get_style_and_layout_data()
-            .map(|d| d.layout_data.borrow_mut())
-            .unwrap()
-    }
-
-    fn element_box_slot(&self) -> BoxSlot<'dom> {
-        BoxSlot::new(self.layout_data_mut().self_box.clone())
-    }
-
-    fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom> {
-        let data = self.layout_data_mut();
-        let cell = match which {
-            WhichPseudoElement::Before => &data.pseudo_before_box,
-            WhichPseudoElement::After => &data.pseudo_after_box,
-        };
-        BoxSlot::new(cell.clone())
-    }
-
-    fn unset_pseudo_element_box(self, which: WhichPseudoElement) {
-        let data = self.layout_data_mut();
-        let cell = match which {
-            WhichPseudoElement::Before => &data.pseudo_before_box,
-            WhichPseudoElement::After => &data.pseudo_after_box,
-        };
-        *cell.borrow_mut() = None;
-    }
-
-    fn unset_all_boxes(self) {
-        let data = self.layout_data_mut();
-        *data.self_box.borrow_mut() = None;
-        *data.pseudo_before_box.borrow_mut() = None;
-        *data.pseudo_after_box.borrow_mut() = None;
-        // Stylo already takes care of removing all layout data
-        // for DOM descendants of elements with `display: none`.
     }
 }
 
