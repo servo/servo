@@ -306,14 +306,6 @@ pub trait ThreadSafeLayoutNode<'dom>:
     }
 }
 
-// This trait is only public so that it can be implemented by the gecko wrapper.
-// It can be used to violate thread-safety, so don't use it elsewhere in layout!
-#[allow(unsafe_code)]
-pub trait DangerousThreadSafeLayoutNode<'dom>: ThreadSafeLayoutNode<'dom> {
-    unsafe fn dangerous_first_child(&self) -> Option<Self>;
-    unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
-}
-
 pub trait ThreadSafeLayoutElement<'dom>:
     Clone
     + Copy

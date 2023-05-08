@@ -21,8 +21,8 @@ use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use script_layout_interface::wrapper_traits::{
-    DangerousThreadSafeLayoutNode, GetStyleAndOpaqueLayoutData, LayoutDataTrait, LayoutNode,
-    PseudoElementType, ThreadSafeLayoutNode,
+    GetStyleAndOpaqueLayoutData, LayoutDataTrait, LayoutNode, PseudoElementType,
+    ThreadSafeLayoutNode,
 };
 use script_layout_interface::{
     HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData, StyleAndOpaqueLayoutData, StyleData,
@@ -280,23 +280,6 @@ impl<'lr, LayoutDataType: LayoutDataTrait> fmt::Debug
     }
 }
 
-impl<'dom, LayoutDataType: LayoutDataTrait> DangerousThreadSafeLayoutNode<'dom>
-    for ServoThreadSafeLayoutNode<'dom, LayoutDataType>
-{
-    unsafe fn dangerous_first_child(&self) -> Option<Self> {
-        self.get_jsmanaged()
-            .first_child_ref()
-            .map(ServoLayoutNode::from_layout_js)
-            .map(Self::new)
-    }
-    unsafe fn dangerous_next_sibling(&self) -> Option<Self> {
-        self.get_jsmanaged()
-            .next_sibling_ref()
-            .map(ServoLayoutNode::from_layout_js)
-            .map(Self::new)
-    }
-}
-
 impl<'dom, LayoutDataType: LayoutDataTrait> ServoThreadSafeLayoutNode<'dom, LayoutDataType> {
     /// Creates a new `ServoThreadSafeLayoutNode` from the given `ServoLayoutNode`.
     pub fn new(node: ServoLayoutNode<'dom, LayoutDataType>) -> Self {
@@ -310,6 +293,24 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoThreadSafeLayoutNode<'dom, Layo
     /// call and as such is marked `unsafe`.
     unsafe fn get_jsmanaged(&self) -> LayoutDom<'dom, Node> {
         self.node.get_jsmanaged()
+    }
+
+    /// Get the first child of this node. Important: this is not safe for
+    /// layout to call, so it should *never* be made public.
+    unsafe fn dangerous_first_child(&self) -> Option<Self> {
+        self.get_jsmanaged()
+            .first_child_ref()
+            .map(ServoLayoutNode::from_layout_js)
+            .map(Self::new)
+    }
+
+    /// Get the next sibling of this node. Important: this is not safe for
+    /// layout to call, so it should *never* be made public.
+    unsafe fn dangerous_next_sibling(&self) -> Option<Self> {
+        self.get_jsmanaged()
+            .next_sibling_ref()
+            .map(ServoLayoutNode::from_layout_js)
+            .map(Self::new)
     }
 }
 
@@ -331,7 +332,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutNode<'dom>
     type ConcreteNode = ServoLayoutNode<'dom, LayoutDataType>;
     type ConcreteThreadSafeLayoutElement = ServoThreadSafeLayoutElement<'dom, LayoutDataType>;
     type ConcreteElement = ServoLayoutElement<'dom, LayoutDataType>;
-    type ChildrenIterator = ThreadSafeLayoutNodeChildrenIterator<Self>;
+    type ChildrenIterator = ServoThreadSafeLayoutNodeChildrenIterator<'dom, LayoutDataType>;
 
     fn opaque(&self) -> style::dom::OpaqueNode {
         unsafe { self.get_jsmanaged().opaque() }
@@ -357,11 +358,11 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutNode<'dom>
 
     fn children(&self) -> style::dom::LayoutIterator<Self::ChildrenIterator> {
         if let Some(shadow) = self.node.as_element().and_then(|e| e.shadow_root()) {
-            return style::dom::LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(
+            return style::dom::LayoutIterator(ServoThreadSafeLayoutNodeChildrenIterator::new(
                 shadow.as_node().to_threadsafe(),
             ));
         }
-        style::dom::LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(*self))
+        style::dom::LayoutIterator(ServoThreadSafeLayoutNodeChildrenIterator::new(*self))
     }
 
     fn as_element(&self) -> Option<ServoThreadSafeLayoutElement<'dom, LayoutDataType>> {
@@ -482,17 +483,15 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutNode<'dom>
     }
 }
 
-pub struct ThreadSafeLayoutNodeChildrenIterator<ConcreteNode> {
-    current_node: Option<ConcreteNode>,
-    parent_node: ConcreteNode,
+pub struct ServoThreadSafeLayoutNodeChildrenIterator<'dom, LayoutDataType: LayoutDataTrait> {
+    current_node: Option<ServoThreadSafeLayoutNode<'dom, LayoutDataType>>,
+    parent_node: ServoThreadSafeLayoutNode<'dom, LayoutDataType>,
 }
 
-impl<'dom, ConcreteNode> ThreadSafeLayoutNodeChildrenIterator<ConcreteNode>
-where
-    ConcreteNode: DangerousThreadSafeLayoutNode<'dom>,
+impl<'dom, LayoutDataType: LayoutDataTrait> ServoThreadSafeLayoutNodeChildrenIterator<'dom, LayoutDataType>
 {
-    pub fn new(parent: ConcreteNode) -> Self {
-        let first_child: Option<ConcreteNode> = match parent.get_pseudo_element_type() {
+    pub fn new(parent: ServoThreadSafeLayoutNode<'dom, LayoutDataType>) -> Self {
+        let first_child = match parent.get_pseudo_element_type() {
             PseudoElementType::Normal => parent
                 .get_before_pseudo()
                 .or_else(|| parent.get_details_summary_pseudo())
@@ -502,19 +501,17 @@ where
             },
             _ => None,
         };
-        ThreadSafeLayoutNodeChildrenIterator {
+        ServoThreadSafeLayoutNodeChildrenIterator {
             current_node: first_child,
             parent_node: parent,
         }
     }
 }
 
-impl<'dom, ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNode>
-where
-    ConcreteNode: DangerousThreadSafeLayoutNode<'dom>,
+impl<'dom, LayoutDataType: LayoutDataTrait> Iterator for ServoThreadSafeLayoutNodeChildrenIterator<'dom, LayoutDataType>
 {
-    type Item = ConcreteNode;
-    fn next(&mut self) -> Option<ConcreteNode> {
+    type Item = ServoThreadSafeLayoutNode<'dom, LayoutDataType>;
+    fn next(&mut self) -> Option<ServoThreadSafeLayoutNode<'dom, LayoutDataType>> {
         use selectors::Element;
         match self.parent_node.get_pseudo_element_type() {
             PseudoElementType::Before | PseudoElementType::After => None,
