@@ -11,8 +11,6 @@
 #[macro_use]
 extern crate crossbeam_channel;
 #[macro_use]
-extern crate html5ever;
-#[macro_use]
 extern crate layout;
 #[macro_use]
 extern crate lazy_static;
@@ -21,9 +19,6 @@ extern crate log;
 #[macro_use]
 extern crate profile_traits;
 
-mod dom_wrapper;
-
-use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use app_units::Au;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
@@ -47,7 +42,6 @@ use layout::display_list::{IndexableText, ToLayout};
 use layout::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
-use layout::layout_debug;
 use layout::parallel;
 use layout::query::{
     process_client_rect_query, process_content_box_request, process_content_boxes_request,
@@ -62,6 +56,7 @@ use layout::traversal::{
     RecalcStyleAndConstructFlows,
 };
 use layout::wrapper::LayoutNodeLayoutData;
+use layout::{layout_debug, LayoutData};
 use layout_traits::LayoutThreadFactory;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
@@ -75,6 +70,7 @@ use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
+use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::message::{LayoutThreadInit, Msg, NodesFromPointQueryType, Reflow};
 use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::TextIndexResponse;
@@ -976,7 +972,7 @@ impl LayoutThread {
         &self,
         data: &Reflow,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument>,
+        document: Option<&ServoLayoutDocument<LayoutData>>,
         layout_root: &mut dyn Flow,
         layout_context: &mut LayoutContext,
         rw_data: &mut LayoutThreadData,
@@ -1302,11 +1298,16 @@ impl LayoutThread {
         let elements_with_snapshot: Vec<_> = restyles
             .iter()
             .filter(|r| r.1.snapshot.is_some())
-            .map(|r| unsafe { ServoLayoutNode::new(&r.0).as_element().unwrap() })
+            .map(|r| unsafe {
+                ServoLayoutNode::<LayoutData>::new(&r.0)
+                    .as_element()
+                    .unwrap()
+            })
             .collect();
 
         for (el, restyle) in restyles {
-            let el = unsafe { ServoLayoutNode::new(&el).as_element().unwrap() };
+            let el: ServoLayoutElement<LayoutData> =
+                unsafe { ServoLayoutNode::new(&el).as_element().unwrap() };
 
             // If we haven't styled this node yet, we don't need to track a
             // restyle.
@@ -1357,10 +1358,9 @@ impl LayoutThread {
 
         let traversal = RecalcStyleAndConstructFlows::new(layout_context);
         let token = {
-            let shared =
-                <RecalcStyleAndConstructFlows as DomTraversal<ServoLayoutElement>>::shared_context(
-                    &traversal,
-                );
+            let shared = <RecalcStyleAndConstructFlows as DomTraversal<
+                ServoLayoutElement<LayoutData>,
+            >>::shared_context(&traversal);
             RecalcStyleAndConstructFlows::pre_traverse(dirty_root, shared)
         };
 
@@ -1373,7 +1373,7 @@ impl LayoutThread {
                 || {
                     // Perform CSS selector matching and flow construction.
                     let root = driver::traverse_dom::<
-                        ServoLayoutElement,
+                        ServoLayoutElement<LayoutData>,
                         RecalcStyleAndConstructFlows,
                     >(&traversal, token, thread_pool);
                     unsafe {
@@ -1482,17 +1482,17 @@ impl LayoutThread {
                         process_node_scroll_area_request(node, root_flow);
                 },
                 &QueryMsg::NodeScrollIdQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node: ServoLayoutNode<LayoutData> = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.scroll_id_response =
                         Some(process_node_scroll_id_request(self.id, node));
                 },
                 &QueryMsg::ResolvedStyleQuery(node, ref pseudo, ref property) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node: ServoLayoutNode<LayoutData> = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.resolved_style_response =
                         process_resolved_style_request(context, node, pseudo, property, root_flow);
                 },
                 &QueryMsg::ResolvedFontStyleQuery(node, ref property, ref value) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node: ServoLayoutNode<LayoutData> = unsafe { ServoLayoutNode::new(&node) };
                     let url = self.url.clone();
                     rw_data.resolved_font_style_response = process_resolved_font_style_request(
                         context,
@@ -1528,7 +1528,7 @@ impl LayoutThread {
                         results.iter().map(|result| result.node).collect()
                 },
                 &QueryMsg::ElementInnerTextQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node: ServoLayoutNode<LayoutData> = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.element_inner_text_response =
                         process_element_inner_text_query(node, &rw_data.indexable_text);
                 },
@@ -1633,7 +1633,7 @@ impl LayoutThread {
         root_flow: &mut FlowRef,
         data: &Reflow,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument>,
+        document: Option<&ServoLayoutDocument<LayoutData>>,
         rw_data: &mut LayoutThreadData,
         context: &mut LayoutContext,
     ) {
@@ -1742,7 +1742,7 @@ impl LayoutThread {
         data: &Reflow,
         mut root_flow: &mut FlowRef,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument>,
+        document: Option<&ServoLayoutDocument<LayoutData>>,
         rw_data: &mut LayoutThreadData,
         layout_context: &mut LayoutContext,
     ) {

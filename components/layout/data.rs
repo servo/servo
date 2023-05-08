@@ -4,6 +4,7 @@
 
 use crate::construct::ConstructionResult;
 use atomic_refcell::AtomicRefCell;
+use script_layout_interface::wrapper_traits::LayoutDataTrait;
 use script_layout_interface::StyleData;
 
 pub struct StyleAndLayoutData<'dom> {
@@ -14,6 +15,7 @@ pub struct StyleAndLayoutData<'dom> {
 }
 
 /// Data that layout associates with a node.
+#[derive(Clone)]
 pub struct LayoutData {
     /// The current results of flow construction for this node. This is either a
     /// flow or a `ConstructionItem`. See comments in `construct.rs` for more
@@ -32,9 +34,11 @@ pub struct LayoutData {
     pub flags: LayoutDataFlags,
 }
 
-impl LayoutData {
+impl LayoutDataTrait for LayoutData {}
+
+impl Default for LayoutData {
     /// Creates new layout data.
-    pub fn new() -> LayoutData {
+    fn default() -> LayoutData {
         Self {
             flow_construction_result: ConstructionResult::None,
             before_flow_construction_result: ConstructionResult::None,
