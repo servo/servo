@@ -19,7 +19,6 @@ use crate::dom::gpudevice::{
 use crate::dom::gputextureview::GPUTextureView;
 use dom_struct::dom_struct;
 use std::cell::Cell;
-use std::num::NonZeroU32;
 use std::string::String;
 use webgpu::{
     identity::WebGPUOpResult, wgpu::resource, wgt, WebGPU, WebGPURequest, WebGPUTexture,
@@ -133,33 +132,23 @@ impl GPUTextureMethods for GPUTexture {
     fn CreateView(&self, descriptor: &GPUTextureViewDescriptor) -> DomRoot<GPUTextureView> {
         let scope_id = self.device.use_current_scope();
         let mut valid = true;
-        let level_count = descriptor.mipLevelCount.and_then(|count| {
-            if count == 0 {
-                valid = false;
-            }
-            NonZeroU32::new(count)
-        });
-        let array_layer_count = descriptor.arrayLayerCount.and_then(|count| {
-            if count == 0 {
-                valid = false;
-            }
-            NonZeroU32::new(count)
-        });
 
         let desc = if valid {
             Some(resource::TextureViewDescriptor {
                 label: convert_label(&descriptor.parent),
                 format: descriptor.format.map(convert_texture_format),
                 dimension: descriptor.dimension.map(convert_texture_view_dimension),
-                aspect: match descriptor.aspect {
-                    GPUTextureAspect::All => wgt::TextureAspect::All,
-                    GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
-                    GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
+                range: wgt::ImageSubresourceRange {
+                    aspect: match descriptor.aspect {
+                        GPUTextureAspect::All => wgt::TextureAspect::All,
+                        GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
+                        GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
+                    },
+                    base_mip_level: descriptor.baseMipLevel,
+                    mip_level_count: descriptor.mipLevelCount, // TODO(sagudev): nonzero
+                    base_array_layer: descriptor.baseArrayLayer,
+                    array_layer_count: descriptor.arrayLayerCount, // TODO(sagudev): nonzero
                 },
-                base_mip_level: descriptor.baseMipLevel,
-                level_count,
-                base_array_layer: descriptor.baseArrayLayer,
-                array_layer_count,
             })
         } else {
             self.device.handle_server_msg(

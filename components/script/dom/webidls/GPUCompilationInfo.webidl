@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// https://gpuweb.github.io/gpuweb/#namespacedef-gpumapmode
+// https://gpuweb.github.io/gpuweb/#gpucompilationinfo
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
-interface GPUMapMode {
-    const GPUMapModeFlags READ  = 0x0001;
-    const GPUMapModeFlags WRITE = 0x0002;
+interface GPUCompilationInfo {
+    // codegen hates it
+    //[Cached, Frozen, Pure]
+    readonly attribute /*sequence<GPUCompilationMessage>*/ any messages;
 };
-
-typedef [EnforceRange] unsigned long GPUMapModeFlags;

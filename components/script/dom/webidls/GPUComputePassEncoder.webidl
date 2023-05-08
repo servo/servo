@@ -6,15 +6,12 @@
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUComputePassEncoder {
     undefined setPipeline(GPUComputePipeline pipeline);
-    undefined dispatch(GPUSize32 x, optional GPUSize32 y = 1, optional GPUSize32 z = 1);
-    undefined dispatchIndirect(GPUBuffer indirectBuffer, GPUSize64 indirectOffset);
+    undefined dispatchWorkgroups(GPUSize32 x, optional GPUSize32 y = 1, optional GPUSize32 z = 1);
+    //[Pref="dom.webgpu.indirect-dispatch.enabled"]
+    undefined dispatchWorkgroupsIndirect(GPUBuffer indirectBuffer, GPUSize64 indirectOffset);
 
-    //void beginPipelineStatisticsQuery(GPUQuerySet querySet, GPUSize32 queryIndex);
-    //void endPipelineStatisticsQuery();
-
-    //void writeTimestamp(GPUQuerySet querySet, GPUSize32 queryIndex);
-
-    undefined endPass();
+    [Throws]
+    undefined end();
 };
 GPUComputePassEncoder includes GPUObjectBase;
 GPUComputePassEncoder includes GPUProgrammablePassEncoder;

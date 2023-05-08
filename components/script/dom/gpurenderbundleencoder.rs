@@ -20,6 +20,8 @@ use webgpu::{
     wgt, WebGPU, WebGPURenderBundle, WebGPURequest,
 };
 
+use super::bindings::codegen::Bindings::GPURenderPipelineBinding::GPUIndexFormat;
+
 #[dom_struct]
 pub struct GPURenderBundleEncoder {
     reflector_: Reflector,
@@ -103,11 +105,21 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setindexbuffer
-    fn SetIndexBuffer(&self, buffer: &GPUBuffer, offset: u64, size: u64) {
+    fn SetIndexBuffer(
+        &self,
+        buffer: &GPUBuffer,
+        index_format: GPUIndexFormat,
+        offset: u64,
+        size: u64,
+    ) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_set_index_buffer(
                 encoder,
                 buffer.id().0,
+                match index_format {
+                    GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
+                    GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
+                },
                 offset,
                 wgt::BufferSize::new(size),
             );
@@ -175,7 +187,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect
     fn DrawIndexedIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
-            wgpu_bundle::wgpu_render_pass_bundle_indexed_indirect(
+            wgpu_bundle::wgpu_render_bundle_draw_indexed_indirect(
                 encoder,
                 indirect_buffer.id().0,
                 indirect_offset,

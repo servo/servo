@@ -23,6 +23,8 @@ use std::rc::Rc;
 use webgpu::wgt::PowerPreference;
 use webgpu::{wgpu, WebGPUResponse, WebGPUResponseResult};
 
+use super::bindings::codegen::Bindings::GPUTextureBinding::GPUTextureFormat;
+
 #[dom_struct]
 pub struct GPU {
     reflector_: Reflector,
@@ -105,7 +107,7 @@ impl GPUMethods for GPU {
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
             Some(GPUPowerPreference::High_performance) => PowerPreference::HighPerformance,
-            None => PowerPreference::Default,
+            None => PowerPreference::default(),
         };
         let ids = global.wgpu_id_hub().lock().create_adapter_ids();
 
@@ -116,6 +118,7 @@ impl GPUMethods for GPU {
                 wgpu::instance::RequestAdapterOptions {
                     power_preference,
                     compatible_surface: None,
+                    force_fallback_adapter: false,
                 },
                 ids,
             ))
@@ -124,6 +127,12 @@ impl GPUMethods for GPU {
             promise.reject_error(Error::Operation);
         }
         promise
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpu-getpreferredcanvasformat
+    fn GetPreferredCanvasFormat(&self) -> GPUTextureFormat {
+        // TODO: real implementation
+        GPUTextureFormat::Rgba8unorm
     }
 }
 

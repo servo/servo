@@ -127,20 +127,20 @@ impl GPUBuffer {
 
 impl Drop for GPUBuffer {
     fn drop(&mut self) {
-        self.Destroy()
+        self.Destroy();
     }
 }
 
 impl GPUBufferMethods for GPUBuffer {
     #[allow(unsafe_code)]
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
-    fn Unmap(&self) {
+    fn Unmap(&self) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
         // Step 1
         match self.state.get() {
             GPUBufferState::Unmapped | GPUBufferState::Destroyed => {
                 // TODO: Record validation error on the current scope
-                return;
+                return Ok(());
             },
             // Step 3
             GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
@@ -176,16 +176,17 @@ impl GPUBufferMethods for GPUBuffer {
         // Step 4
         self.state.set(GPUBufferState::Unmapped);
         *self.map_info.borrow_mut() = None;
+        Ok(())
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
-    fn Destroy(&self) {
+    fn Destroy(&self) -> Fallible<()> {
         let state = self.state.get();
         match state {
             GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
                 self.Unmap();
             },
-            GPUBufferState::Destroyed => return,
+            GPUBufferState::Destroyed => return Ok(()),
             _ => {},
         };
         if let Err(e) = self
@@ -199,6 +200,7 @@ impl GPUBufferMethods for GPUBuffer {
             );
         };
         self.state.set(GPUBufferState::Destroyed);
+        Ok(())
     }
 
     #[allow(unsafe_code)]

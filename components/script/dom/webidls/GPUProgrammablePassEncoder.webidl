@@ -6,16 +6,11 @@
 [Exposed=(Window, DedicatedWorker)]
 interface mixin GPUProgrammablePassEncoder {
     undefined setBindGroup(GPUIndex32 index, GPUBindGroup bindGroup,
-                      optional sequence<GPUBufferDynamicOffset> dynamicOffsets = []);
+                           optional sequence<GPUBufferDynamicOffset> dynamicOffsets = []);
 
-    // void setBindGroup(GPUIndex32 index, GPUBindGroup bindGroup,
-    //                   Uint32Array dynamicOffsetsData,
-    //                   GPUSize64 dynamicOffsetsDataStart,
-    //                   GPUSize64 dynamicOffsetsDataLength);
-
-    // void pushDebugGroup(DOMString groupLabel);
-    // void popDebugGroup();
-    // void insertDebugMarker(DOMString markerLabel);
+    //undefined pushDebugGroup(USVString groupLabel);
+    //undefined popDebugGroup();
+    //undefined insertDebugMarker(USVString markerLabel);
 };
 
 typedef [EnforceRange] unsigned long GPUBufferDynamicOffset;

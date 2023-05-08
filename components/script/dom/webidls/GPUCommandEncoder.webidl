@@ -5,8 +5,10 @@
 // https://gpuweb.github.io/gpuweb/#gpucommandencoder
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUCommandEncoder {
-    GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
+    [NewObject]
     GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
+    [NewObject]
+    GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
 
     undefined copyBufferToBuffer(
         GPUBuffer source,
@@ -16,78 +18,116 @@ interface GPUCommandEncoder {
         GPUSize64 size);
 
     undefined copyBufferToTexture(
-        GPUBufferCopyView source,
-        GPUTextureCopyView destination,
+        GPUImageCopyBuffer source,
+        GPUImageCopyTexture destination,
         GPUExtent3D copySize);
 
     undefined copyTextureToBuffer(
-        GPUTextureCopyView source,
-        GPUBufferCopyView destination,
+        GPUImageCopyTexture source,
+        GPUImageCopyBuffer destination,
         GPUExtent3D copySize);
 
     undefined copyTextureToTexture(
-        GPUTextureCopyView source,
-        GPUTextureCopyView destination,
+        GPUImageCopyTexture source,
+        GPUImageCopyTexture destination,
         GPUExtent3D copySize);
 
-    //void pushDebugGroup(USVString groupLabel);
-    //void popDebugGroup();
-    //void insertDebugMarker(USVString markerLabel);
+    /*
+    undefined copyImageBitmapToTexture(
+        GPUImageBitmapCopyView source,
+        GPUImageCopyTexture destination,
+        GPUExtent3D copySize);
+    */
 
-    //void writeTimestamp(GPUQuerySet querySet, GPUSize32 queryIndex);
+    //undefined pushDebugGroup(USVString groupLabel);
+    //undefined popDebugGroup();
+    //undefined insertDebugMarker(USVString markerLabel);
 
-    //void resolveQuerySet(
-    //    GPUQuerySet querySet,
-    //    GPUSize32 firstQuery,
-    //    GPUSize32 queryCount,
-    //    GPUBuffer destination,
-    //    GPUSize64 destinationOffset);
-
+    [NewObject]
     GPUCommandBuffer finish(optional GPUCommandBufferDescriptor descriptor = {});
 };
 GPUCommandEncoder includes GPUObjectBase;
 
+dictionary GPUImageDataLayout {
+    GPUSize64 offset = 0;
+    GPUSize32 bytesPerRow;
+    GPUSize32 rowsPerImage;
+};
+
+dictionary GPUImageCopyBuffer : GPUImageDataLayout {
+    required GPUBuffer buffer;
+};
+
+dictionary GPUImageCopyExternalImage {
+    required (ImageBitmap or HTMLCanvasElement or OffscreenCanvas) source;
+    GPUOrigin2D origin = {};
+    boolean flipY = false;
+};
+
+dictionary GPUImageCopyTexture {
+    required GPUTexture texture;
+    GPUIntegerCoordinate mipLevel = 0;
+    GPUOrigin3D origin;
+    GPUTextureAspect aspect = "all";
+};
+
+dictionary GPUImageCopyTextureTagged : GPUImageCopyTexture {
+    //GPUPredefinedColorSpace colorSpace = "srgb"; //TODO
+    boolean premultipliedAlpha = false;
+};
+
+dictionary GPUImageBitmapCopyView {
+    //required ImageBitmap imageBitmap; //TODO
+    GPUOrigin2D origin;
+};
+
 dictionary GPUComputePassDescriptor : GPUObjectDescriptorBase {
 };
 
-dictionary GPUCommandBufferDescriptor : GPUObjectDescriptorBase {
-};
-
+//
 dictionary GPURenderPassDescriptor : GPUObjectDescriptorBase {
-    required sequence<GPURenderPassColorAttachmentDescriptor> colorAttachments;
-    GPURenderPassDepthStencilAttachmentDescriptor depthStencilAttachment;
-    //GPUQuerySet occlusionQuerySet;
+    required sequence<GPURenderPassColorAttachment> colorAttachments;
+    GPURenderPassDepthStencilAttachment depthStencilAttachment;
+    GPUQuerySet occlusionQuerySet;
 };
 
-dictionary GPURenderPassColorAttachmentDescriptor {
-    required GPUTextureView attachment;
+dictionary GPURenderPassColorAttachment {
+    required GPUTextureView view;
     GPUTextureView resolveTarget;
 
-    required (GPULoadOp or GPUColor) loadValue;
-    GPUStoreOp storeOp = "store";
+    GPUColor clearValue;
+    required GPULoadOp loadOp;
+    required GPUStoreOp storeOp;
 };
 
-dictionary GPURenderPassDepthStencilAttachmentDescriptor {
-    required GPUTextureView attachment;
+dictionary GPURenderPassDepthStencilAttachment {
+    required GPUTextureView view;
 
-    required (GPULoadOp or float) depthLoadValue;
-    required GPUStoreOp depthStoreOp;
+    float depthClearValue;
+    GPULoadOp depthLoadOp;
+    GPUStoreOp depthStoreOp;
     boolean depthReadOnly = false;
 
-    required GPUStencilLoadValue stencilLoadValue;
-    required GPUStoreOp stencilStoreOp;
+    GPUStencilValue stencilClearValue = 0;
+    GPULoadOp stencilLoadOp;
+    GPUStoreOp stencilStoreOp;
     boolean stencilReadOnly = false;
 };
 
-typedef (GPULoadOp or GPUStencilValue) GPUStencilLoadValue;
-
 enum GPULoadOp {
-    "load"
+    "load",
+    "clear"
 };
 
 enum GPUStoreOp {
     "store",
-    "clear"
+    "discard"
+};
+
+dictionary GPURenderPassLayout: GPUObjectDescriptorBase {
+    required sequence<GPUTextureFormat> colorFormats;
+    GPUTextureFormat depthStencilFormat;
+    GPUSize32 sampleCount = 1;
 };
 
 dictionary GPUColorDict {
@@ -98,21 +138,11 @@ dictionary GPUColorDict {
 };
 typedef (sequence<double> or GPUColorDict) GPUColor;
 
-dictionary GPUTextureDataLayout {
-    GPUSize64 offset = 0;
-    required GPUSize32 bytesPerRow;
-    GPUSize32 rowsPerImage = 0;
+dictionary GPUOrigin2DDict {
+    GPUIntegerCoordinate x = 0;
+    GPUIntegerCoordinate y = 0;
 };
-
-dictionary GPUBufferCopyView : GPUTextureDataLayout {
-    required GPUBuffer buffer;
-};
-
-dictionary GPUTextureCopyView {
-    required GPUTexture texture;
-    GPUIntegerCoordinate mipLevel = 0;
-    GPUOrigin3D origin = {};
-};
+typedef (sequence<GPUIntegerCoordinate> or GPUOrigin2DDict) GPUOrigin2D;
 
 dictionary GPUOrigin3DDict {
     GPUIntegerCoordinate x = 0;

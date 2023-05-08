@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// https://gpuweb.github.io/gpuweb/#gpucolorwrite
+// https://gpuweb.github.io/gpuweb/#namespacedef-gpucolorwrite
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUColorWrite {
     const GPUColorWriteFlags RED   = 0x1;
