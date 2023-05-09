@@ -3,5 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod base;
+mod containing_block;
 
 pub(crate) use base::*;
+pub(crate) use containing_block::*;

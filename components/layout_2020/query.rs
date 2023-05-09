@@ -306,7 +306,18 @@ pub fn process_resolved_style_request<'dom>(
                 _ => return None,
             };
 
-            let positioned = style.get_box().position != Position::Static;
+            if style.get_box().position != Position::Static {
+                let resolved_insets =
+                    || box_fragment.calculate_resolved_insets_if_positioned(containing_block);
+                match longhand_id {
+                    LonghandId::Top => return Some(resolved_insets().top.to_css_string()),
+                    LonghandId::Right => return Some(resolved_insets().right.to_css_string()),
+                    LonghandId::Bottom => return Some(resolved_insets().bottom.to_css_string()),
+                    LonghandId::Left => return Some(resolved_insets().left.to_css_string()),
+                    _ => {},
+                }
+            }
+
             let content_rect = box_fragment
                 .content_rect
                 .to_physical(box_fragment.style.writing_mode, &containing_block);
@@ -327,13 +338,6 @@ pub fn process_resolved_style_request<'dom>(
                 LonghandId::PaddingTop => Some(padding.top),
                 LonghandId::PaddingLeft => Some(padding.left),
                 LonghandId::PaddingRight => Some(padding.right),
-                // TODO(mrobinson): These following values are often wrong, because these are not
-                // exactly the "used value" for the positional properties. The real used values are
-                // lost by the time the Fragment tree is constructed, so we may need to record them in
-                // the tree to properly answer this query. That said, we can return an okayish value
-                // sometimes simply by using the calculated position in the containing block.
-                LonghandId::Top if positioned => Some(content_rect.origin.y),
-                LonghandId::Left if positioned => Some(content_rect.origin.x),
                 _ => None,
             }
             .map(|value| value.to_css_string())

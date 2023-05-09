@@ -15,7 +15,7 @@ use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineLevelBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::Tag;
+use crate::fragment_tree::{ContainingBlockManager, Tag};
 use crate::fragments::Fragment;
 use crate::geom::flow_relative::Vec2;
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
@@ -457,11 +457,14 @@ impl FragmentTree {
         &self,
         mut process_func: impl FnMut(&Fragment, usize, &PhysicalRect<Length>) -> Option<T>,
     ) -> Option<T> {
-        self.root_fragments.iter().find_map(|child| {
-            child
-                .borrow()
-                .find(&self.initial_containing_block, 0, &mut process_func)
-        })
+        let info = ContainingBlockManager {
+            for_non_absolute_descendants: &self.initial_containing_block,
+            for_absolute_descendants: None,
+            for_absolute_and_fixed_descendants: &self.initial_containing_block,
+        };
+        self.root_fragments
+            .iter()
+            .find_map(|child| child.borrow().find(&info, 0, &mut process_func))
     }
 
     pub fn remove_nodes_in_fragment_tree_from_set(&self, set: &mut FxHashSet<AnimationSetKey>) {
