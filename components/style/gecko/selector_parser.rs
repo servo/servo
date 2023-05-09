@@ -5,8 +5,6 @@
 //! Gecko-specific bits for selector-parsing.
 
 use crate::computed_value_flags::ComputedValueFlags;
-use crate::gecko_bindings::structs::RawServoSelectorList;
-use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
 use crate::properties::ComputedValues;
 use crate::selector_parser::{Direction, HorizontalDirection, SelectorParser};
@@ -17,7 +15,6 @@ use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
 use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
 use dom::{DocumentState, ElementState};
 use selectors::parser::SelectorParseErrorKind;
-use selectors::SelectorList;
 use std::fmt;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
 use thin_vec::ThinVec;
@@ -488,12 +485,6 @@ impl SelectorImpl {
         }
     }
 }
-
-unsafe impl HasFFI for SelectorList<SelectorImpl> {
-    type FFIType = RawServoSelectorList;
-}
-unsafe impl HasSimpleFFI for SelectorList<SelectorImpl> {}
-unsafe impl HasBoxFFI for SelectorList<SelectorImpl> {}
 
 // Selector and component sizes are important for matching performance.
 size_of_test!(selectors::parser::Selector<SelectorImpl>, 8);

@@ -56,26 +56,6 @@ pub unsafe trait HasSimpleFFI: HasFFI {
     }
 }
 
-/// Indicates that the given Servo type is passed over FFI
-/// as a Box
-pub unsafe trait HasBoxFFI: HasSimpleFFI {
-    #[inline]
-    /// Converts a borrowed Arc to a borrowed FFI reference.
-    ///
-    /// &Arc<ServoType> -> &GeckoType
-    fn into_ffi(self: Box<Self>) -> Owned<Self::FFIType> {
-        unsafe { transmute(self) }
-    }
-
-    /// Drops an owned FFI pointer. This conceptually takes the
-    /// Owned<Self::FFIType>, except it's a bit of a paint to do that without
-    /// much benefit.
-    #[inline]
-    unsafe fn drop_ffi(ptr: *mut Self::FFIType) {
-        let _ = Box::from_raw(ptr as *mut Self);
-    }
-}
-
 /// Helper trait for conversions between FFI Strong/Borrowed types and Arcs
 ///
 /// Should be implemented by types which are passed over FFI as Arcs via Strong
@@ -262,75 +242,6 @@ unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
     #[inline]
     fn as_borrowed(&self) -> &T::FFIType {
         unsafe { &*(&**self as *const T as *const T::FFIType) }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug)]
-/// Gecko-FFI-safe owned pointer.
-///
-/// Cannot be null, and leaks on drop, so needs to be converted into a rust-side
-/// `Box` before.
-pub struct Owned<GeckoType> {
-    ptr: *mut GeckoType,
-    _marker: PhantomData<GeckoType>,
-}
-
-impl<GeckoType> Owned<GeckoType> {
-    /// Converts this instance to a (non-null) instance of `OwnedOrNull`.
-    pub fn maybe(self) -> OwnedOrNull<GeckoType> {
-        unsafe { transmute(self) }
-    }
-}
-
-impl<GeckoType> Deref for Owned<GeckoType> {
-    type Target = GeckoType;
-    fn deref(&self) -> &GeckoType {
-        unsafe { &*self.ptr }
-    }
-}
-
-impl<GeckoType> DerefMut for Owned<GeckoType> {
-    fn deref_mut(&mut self) -> &mut GeckoType {
-        unsafe { &mut *self.ptr }
-    }
-}
-
-#[repr(C)]
-/// Gecko-FFI-safe owned pointer.
-///
-/// Can be null, and just as `Owned` leaks on `Drop`.
-pub struct OwnedOrNull<GeckoType> {
-    ptr: *mut GeckoType,
-    _marker: PhantomData<GeckoType>,
-}
-
-impl<GeckoType> OwnedOrNull<GeckoType> {
-    /// Returns a null pointer.
-    #[inline]
-    pub fn null() -> Self {
-        Self {
-            ptr: ptr::null_mut(),
-            _marker: PhantomData,
-        }
-    }
-
-    /// Returns whether this pointer is null.
-    #[inline]
-    pub fn is_null(&self) -> bool {
-        self.ptr.is_null()
-    }
-
-    /// Gets a immutable reference to the underlying Gecko type, or `None` if
-    /// null.
-    pub fn borrow(&self) -> Option<&GeckoType> {
-        unsafe { transmute(self) }
-    }
-
-    /// Gets a mutable reference to the underlying Gecko type, or `None` if
-    /// null.
-    pub fn borrow_mut(&self) -> Option<&mut GeckoType> {
-        unsafe { transmute(self) }
     }
 }
 
