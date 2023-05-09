@@ -19,43 +19,6 @@ pub unsafe trait HasFFI: Sized + 'static {
     type FFIType: Sized;
 }
 
-/// Indicates that a given Servo type has the same layout as the corresponding
-/// `HasFFI::FFIType` type.
-pub unsafe trait HasSimpleFFI: HasFFI {
-    #[inline]
-    /// Given a Servo-side reference, converts it to an FFI-safe reference which
-    /// can be passed to Gecko.
-    ///
-    /// &ServoType -> &GeckoType
-    fn as_ffi(&self) -> &Self::FFIType {
-        unsafe { transmute(self) }
-    }
-    #[inline]
-    /// Given a Servo-side mutable reference, converts it to an FFI-safe mutable
-    /// reference which can be passed to Gecko.
-    ///
-    /// &mut ServoType -> &mut GeckoType
-    fn as_ffi_mut(&mut self) -> &mut Self::FFIType {
-        unsafe { transmute(self) }
-    }
-    #[inline]
-    /// Given an FFI-safe reference obtained from Gecko converts it to a
-    /// Servo-side reference.
-    ///
-    /// &GeckoType -> &ServoType
-    fn from_ffi(ffi: &Self::FFIType) -> &Self {
-        unsafe { transmute(ffi) }
-    }
-    #[inline]
-    /// Given an FFI-safe mutable reference obtained from Gecko converts it to a
-    /// Servo-side mutable reference.
-    ///
-    /// &mut GeckoType -> &mut ServoType
-    fn from_ffi_mut(ffi: &mut Self::FFIType) -> &mut Self {
-        unsafe { transmute(ffi) }
-    }
-}
-
 /// Helper trait for conversions between FFI Strong/Borrowed types and Arcs
 ///
 /// Should be implemented by types which are passed over FFI as Arcs via Strong
