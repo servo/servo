@@ -6,9 +6,8 @@
 
 use crate::dom::TElement;
 use crate::gecko_bindings::bindings;
-use crate::gecko_bindings::structs::{self, RawServoStyleSet, ServoStyleSetSizes};
-use crate::gecko_bindings::structs::{StyleSheet as DomStyleSheet, StyleSheetInfo};
-use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::gecko_bindings::structs::{self, ServoStyleSetSizes, StyleSheet as DomStyleSheet, StyleSheetInfo};
+use crate::gecko_bindings::sugar::ownership::HasArcFFI;
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use crate::media_queries::{Device, MediaList};
 use crate::properties::ComputedValues;
@@ -201,8 +200,5 @@ impl PerDocumentStyleDataImpl {
     }
 }
 
-unsafe impl HasFFI for PerDocumentStyleData {
-    type FFIType = RawServoStyleSet;
-}
-unsafe impl HasSimpleFFI for PerDocumentStyleData {}
-unsafe impl HasBoxFFI for PerDocumentStyleData {}
+/// The gecko-specific AuthorStyles instantiation.
+pub type AuthorStyles = crate::author_styles::AuthorStyles<GeckoStyleSheet>;
