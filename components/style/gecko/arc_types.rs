@@ -17,7 +17,7 @@ use crate::gecko_bindings::structs::{
     RawServoMozDocumentRule, RawServoNamespaceRule, RawServoPageRule, RawServoStyleRule,
     RawServoStyleSheetContents, RawServoSupportsRule, ServoCssRules,
 };
-use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
+use crate::gecko_bindings::sugar::ownership::{HasArcFFI, Strong};
 use crate::media_queries::MediaList;
 use crate::properties::animated_properties::AnimationValue;
 use crate::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -33,10 +33,9 @@ use std::{mem, ptr};
 
 macro_rules! impl_arc_ffi {
     ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {
-        unsafe impl HasFFI for $servo_type {
+        unsafe impl HasArcFFI for $servo_type {
             type FFIType = $gecko_type;
         }
-        unsafe impl HasArcFFI for $servo_type {}
 
         #[no_mangle]
         pub unsafe extern "C" fn $addref(obj: &$gecko_type) {
