@@ -22,8 +22,7 @@ impl Animate for AbsoluteColor {
             other,
             right_weight as f32,
             /* normalize_weights = */ false,
-        )
-        .into())
+        ))
     }
 }
 
@@ -60,7 +59,7 @@ impl Animate for Color {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let (left_weight, right_weight) = procedure.weights();
-        let mut color = Color::ColorMix(Box::new(ColorMix {
+        Ok(Self::from_color_mix(ColorMix {
             interpolation: ColorInterpolationMethod::srgb(),
             left: self.clone(),
             left_percentage: Percentage(left_weight as f32),
@@ -68,9 +67,7 @@ impl Animate for Color {
             right_percentage: Percentage(right_weight as f32),
             // See https://github.com/w3c/csswg-drafts/issues/7324
             normalize_weights: false,
-        }));
-        color.simplify(None);
-        Ok(color)
+        }))
     }
 }
 
@@ -78,9 +75,8 @@ impl ComputeSquaredDistance for Color {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         let current_color = AbsoluteColor::transparent();
-        self.clone()
-            .resolve_into_absolute(&current_color)
-            .compute_squared_distance(&other.clone().resolve_into_absolute(&current_color))
+        self.resolve_to_absolute(&current_color)
+            .compute_squared_distance(&other.resolve_to_absolute(&current_color))
     }
 }
 
