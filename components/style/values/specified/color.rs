@@ -883,16 +883,15 @@ impl Color {
 
                 let left = mix.left.to_computed_color(context)?;
                 let right = mix.right.to_computed_color(context)?;
-                let mut color = ComputedColor::ColorMix(Box::new(GenericColorMix {
+
+                ComputedColor::from_color_mix(GenericColorMix {
                     interpolation: mix.interpolation,
                     left,
                     left_percentage: Percentage(mix.left_percentage.get()),
                     right,
                     right_percentage: Percentage(mix.right_percentage.get()),
                     normalize_weights: mix.normalize_weights,
-                }));
-                color.simplify(None);
-                color
+                })
             },
             #[cfg(feature = "gecko")]
             Color::System(system) => system.compute(context?),
@@ -946,7 +945,7 @@ impl ToComputedValue for MozFontSmoothingBackgroundColor {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         self.0
             .to_computed_value(context)
-            .resolve_into_absolute(&AbsoluteColor::transparent())
+            .resolve_to_absolute(&AbsoluteColor::transparent())
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
@@ -995,7 +994,7 @@ impl ToComputedValue for ColorPropertyValue {
         let current_color = context.builder.get_parent_inherited_text().clone_color();
         self.0
             .to_computed_value(context)
-            .resolve_into_absolute(&current_color)
+            .resolve_to_absolute(&current_color)
     }
 
     #[inline]

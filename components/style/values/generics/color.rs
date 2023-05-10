@@ -6,7 +6,6 @@
 
 use crate::color::mix::ColorInterpolationMethod;
 use crate::color::AbsoluteColor;
-use crate::values::animated::ToAnimatedValue;
 use crate::values::specified::percentage::ToPercentage;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
@@ -94,23 +93,21 @@ impl<Color: ToCss, Percentage: ToCss + ToPercentage> ToCss for ColorMix<Color, P
 impl<Percentage> ColorMix<GenericColor<Percentage>, Percentage> {
     /// Mix the colors so that we get a single color. If any of the 2 colors are
     /// not mixable (perhaps not absolute?), then return None.
-    fn mix_into_absolute(&self) -> Option<AbsoluteColor>
+    pub fn mix_to_absolute(&self) -> Option<AbsoluteColor>
     where
         Percentage: ToPercentage,
     {
-        let left = self.left.as_absolute()?.to_animated_value();
-        let right = self.right.as_absolute()?.to_animated_value();
+        let left = self.left.as_absolute()?;
+        let right = self.right.as_absolute()?;
 
-        let mixed = crate::color::mix::mix(
+        Some(crate::color::mix::mix(
             self.interpolation,
             &left,
             self.left_percentage.to_percentage(),
             &right,
             self.right_percentage.to_percentage(),
             self.normalize_weights,
-        );
-
-        Some(ToAnimatedValue::from_animated_value(mixed.into()))
+        ))
     }
 }
 
@@ -122,30 +119,6 @@ impl<Percentage> Color<Percentage> {
         match *self {
             Self::Absolute(ref absolute) => Some(absolute),
             _ => None,
-        }
-    }
-
-    /// Simplifies the color-mix()es to the extent possible given a current
-    /// color (or not).
-    pub fn simplify(&mut self, current_color: Option<&AbsoluteColor>)
-    where
-        Percentage: ToPercentage,
-    {
-        match *self {
-            Self::Absolute(..) => {},
-            Self::CurrentColor => {
-                if let Some(c) = current_color {
-                    *self = Self::Absolute(c.clone());
-                }
-            },
-            Self::ColorMix(ref mut mix) => {
-                mix.left.simplify(current_color);
-                mix.right.simplify(current_color);
-
-                if let Some(mix) = mix.mix_into_absolute() {
-                    *self = Self::Absolute(mix);
-                }
-            },
         }
     }
 

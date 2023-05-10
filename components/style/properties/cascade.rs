@@ -443,10 +443,10 @@ fn tweak_when_ignoring_colors(
 
     fn alpha_channel(color: &Color, context: &computed::Context) -> f32 {
         // We assume here currentColor is opaque.
-        let color = color
+        color
             .to_computed_value(context)
-            .resolve_into_absolute(&AbsoluteColor::black());
-        color.alpha
+            .resolve_to_absolute(&AbsoluteColor::black())
+            .alpha
     }
 
     // A few special-cases ahead.
