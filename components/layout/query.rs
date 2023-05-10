@@ -856,7 +856,7 @@ where
         if element.has_data() {
             node.to_threadsafe().as_element().unwrap().resolved_style()
         } else {
-            let mut tlc = ThreadLocalStyleContext::new(&context.style_context);
+            let mut tlc = ThreadLocalStyleContext::new();
             let mut context = StyleContext {
                 shared: &context.style_context,
                 thread_local: &mut tlc,
@@ -911,7 +911,7 @@ pub fn process_resolved_style_request<'dom>(
         return String::new();
     }
 
-    let mut tlc = ThreadLocalStyleContext::new(&context.style_context);
+    let mut tlc = ThreadLocalStyleContext::new();
     let mut context = StyleContext {
         shared: &context.style_context,
         thread_local: &mut tlc,

@@ -14,13 +14,15 @@ use super::generics::transform::IsParallelTo;
 use super::generics::{self, GreaterThanOrEqualToOne, NonNegative, ZeroToOne};
 use super::specified;
 use super::{CSSFloat, CSSInteger};
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::QuirksMode;
-use crate::font_metrics::{get_metrics_provider_for_product, FontMetricsProvider};
+use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
 use crate::media_queries::Device;
 #[cfg(feature = "gecko")]
 use crate::properties;
 use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
+use crate::values::specified::length::FontBaseSize;
 use crate::{ArcSlice, Atom, One};
 use euclid::{default, Point2D, Rect, Size2D};
 use servo_arc::Arc;
@@ -155,10 +157,6 @@ pub struct Context<'a> {
     #[cfg(feature = "servo")]
     pub cached_system_font: Option<()>,
 
-    /// A font metrics provider, used to access font metrics to implement
-    /// font-relative units.
-    pub font_metrics_provider: &'a dyn FontMetricsProvider,
-
     /// Whether or not we are computing the media list in a media query
     pub in_media_query: bool,
 
@@ -192,11 +190,9 @@ impl<'a> Context<'a> {
         F: FnOnce(&Context) -> R,
     {
         let mut conditions = RuleCacheConditions::default();
-        let provider = get_metrics_provider_for_product();
 
         let context = Context {
             builder: StyleBuilder::for_inheritance(device, None, None),
-            font_metrics_provider: &provider,
             cached_system_font: None,
             in_media_query: true,
             quirks_mode,
@@ -211,6 +207,49 @@ impl<'a> Context<'a> {
     /// The current device.
     pub fn device(&self) -> &Device {
         self.builder.device
+    }
+
+    /// Queries font metrics.
+    pub fn query_font_metrics(
+        &self,
+        base_size: FontBaseSize,
+        orientation: FontMetricsOrientation,
+        retrieve_math_scales: bool,
+    ) -> FontMetrics {
+        if self.for_non_inherited_property.is_some() {
+            self.rule_cache_conditions.borrow_mut().set_uncacheable();
+        }
+        self.builder.add_flags(match base_size {
+            FontBaseSize::CurrentStyle => ComputedValueFlags::DEPENDS_ON_SELF_FONT_METRICS,
+            FontBaseSize::InheritedStyle => ComputedValueFlags::DEPENDS_ON_INHERITED_FONT_METRICS,
+        });
+        let size = base_size.resolve(self);
+        let style = self.style();
+
+        let (wm, font) = match base_size {
+            FontBaseSize::CurrentStyle => (style.writing_mode, style.get_font()),
+            // This is only used for font-size computation.
+            FontBaseSize::InheritedStyle => {
+                (*style.inherited_writing_mode(), style.get_parent_font())
+            },
+        };
+
+        let vertical = match orientation {
+            FontMetricsOrientation::MatchContextPreferHorizontal => {
+                wm.is_vertical() && wm.is_upright()
+            },
+            FontMetricsOrientation::MatchContextPreferVertical => {
+                wm.is_vertical() && !wm.is_sideways()
+            },
+            FontMetricsOrientation::Horizontal => false,
+        };
+        self.device().query_font_metrics(
+            vertical,
+            font,
+            size,
+            self.in_media_query,
+            retrieve_math_scales,
+        )
     }
 
     /// The current viewport size, used to resolve viewport units.

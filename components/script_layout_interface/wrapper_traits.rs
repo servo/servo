@@ -25,7 +25,6 @@ use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::OpaqueNode;
 use style::dom::{LayoutIterator, NodeInfo, TElement, TNode};
-use style::font_metrics::ServoMetricsProvider;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
 use style::stylist::RuleInclusion;
@@ -439,7 +438,6 @@ pub trait ThreadSafeLayoutElement<'dom>:
                             &context.guards,
                             &style_pseudo,
                             Some(data.styles.primary()),
-                            &ServoMetricsProvider,
                         ),
                     PseudoElementCascadeType::Lazy => {
                         context
@@ -451,7 +449,6 @@ pub trait ThreadSafeLayoutElement<'dom>:
                                 RuleInclusion::All,
                                 data.styles.primary(),
                                 /* is_probe = */ false,
-                                &ServoMetricsProvider,
                                 /* matching_func = */ None,
                             )
                             .unwrap()

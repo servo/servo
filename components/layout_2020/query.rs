@@ -356,7 +356,7 @@ pub fn process_resolved_style_request_for_unstyled_node<'dom>(
         return String::new();
     }
 
-    let mut tlc = ThreadLocalStyleContext::new(&context.style_context);
+    let mut tlc = ThreadLocalStyleContext::new();
     let mut context = StyleContext {
         shared: &context.style_context,
         thread_local: &mut tlc,
