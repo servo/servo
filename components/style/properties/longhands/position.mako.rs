@@ -134,7 +134,8 @@ ${helpers.single_keyword(
     ${helpers.single_keyword(
         "align-content",
         "stretch flex-start flex-end center space-between space-around",
-        engines="servo-2013",
+        engines="servo-2013 servo-2020",
+        servo_2020_pref="layout.flexbox.enabled",
         extra_prefixes="webkit",
         spec="https://drafts.csswg.org/css-align/#propdef-align-content",
         animation_value_type="discrete",
