@@ -285,8 +285,10 @@ impl Display {
     /// participant, which means it may lay its children on the same
     /// line as itself.
     pub fn is_line_participant(&self) -> bool {
+        if self.is_inline_flow() {
+            return true;
+        }
         match *self {
-            Display::Inline => true,
             #[cfg(feature = "gecko")]
             Display::Contents | Display::Ruby | Display::RubyBaseContainer => true,
             _ => false,
