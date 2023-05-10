@@ -73,23 +73,25 @@ fn console_message(global: &GlobalScope, message: DOMString, level: LogLevel) {
     })
 }
 
-///Generates matrix of table elements, and then converts matrix into a properly formatted DOMString
-///TODO: Implement generate_table for objects and arrays of objects
+/// Generates matrix of table elements, and then converts matrix into a properly formatted DOMString
+// TODO: Implement generate_table for objects and arrays of objects
 #[allow(unsafe_code)]
-unsafe fn generate_table(cx: *mut JSContext, tabular_data: &HandleValue) -> Option<DOMString> {
-    if !tabular_data.get().is_object() || !is_array_like(cx, *tabular_data) {
+fn generate_table(cx: *mut JSContext, tabular_data: &HandleValue) -> Option<DOMString> {
+    let arr_like: bool = unsafe { is_array_like(cx, *tabular_data) };
+    if !tabular_data.get().is_object() || !arr_like {
         return None;
     }
 
-    let vec: Vec<DOMString> =
+    let vec: Vec<DOMString> = unsafe {
         Vec::<DOMString>::from_jsval(cx, *tabular_data, StringificationBehavior::Empty)
             .expect("Unable to convert Array object to Vec<DOMString>")
             .get_success_value()
             .unwrap_or(&Vec::new())
-            .to_vec();
+            .to_vec()
+    };
 
     let mut table_matrix: Vec<Vec<DOMString>> = Vec::new();
-    //Only two columns because we don't expect objects as input yet
+    // Only two columns because we don't expect objects as input yet
     table_matrix.push(vec!["(index)".into(), "Values".into()]);
     for (index, word) in vec.into_iter().enumerate() {
         table_matrix.push(vec![index.to_string().into(), word]);
@@ -134,8 +136,7 @@ impl Console {
     ) {
         let cx_ptr: *mut JSContext = *cx as *mut JSContext;
 
-        #[allow(unsafe_code)]
-        let table: Option<DOMString> = unsafe { generate_table(cx_ptr, &tabular_data) };
+        let table: Option<DOMString> = generate_table(cx_ptr, &tabular_data);
 
         match table {
             Some(table_string) => console_messages(global, &[table_string], LogLevel::Log),
