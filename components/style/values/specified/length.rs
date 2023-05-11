@@ -784,6 +784,9 @@ impl ContainerRelativeLength {
 
     /// Computes the given container-relative length.
     pub fn to_computed_value(&self, context: &Context) -> CSSPixelLength {
+        if context.for_non_inherited_property.is_some() {
+            context.rule_cache_conditions.borrow_mut().set_uncacheable();
+        }
         let size = context.get_container_size_query();
         let (factor, container_length) = match *self {
             Self::Cqw(v) => (v, size.get_container_width(context)),
