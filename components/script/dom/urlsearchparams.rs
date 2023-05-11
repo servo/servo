@@ -105,9 +105,14 @@ impl URLSearchParamsMethods for URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-delete
-    fn Delete(&self, name: USVString) {
+    fn Delete(&self, name: USVString, value: Option<USVString>) {
         // Step 1.
-        self.list.borrow_mut().retain(|&(ref k, _)| k != &name.0);
+        self.list
+            .borrow_mut()
+            .retain(|&(ref k, ref v)| match &value {
+                Some(value) => !(k == &name.0 && v == &value.0),
+                None => k != &name.0,
+            });
         // Step 2.
         self.update_steps();
     }
@@ -135,9 +140,12 @@ impl URLSearchParamsMethods for URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has
-    fn Has(&self, name: USVString) -> bool {
+    fn Has(&self, name: USVString, value: Option<USVString>) -> bool {
         let list = self.list.borrow();
-        list.iter().any(|&(ref k, _)| k == &name.0)
+        list.iter().any(|&(ref k, ref v)| match &value {
+            Some(value) => k == &name.0 && v == &value.0,
+            None => k == &name.0,
+        })
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-set

@@ -11,10 +11,10 @@ interface URLSearchParams {
   [Throws] constructor(optional (sequence<sequence<USVString>> or record<USVString, USVString> or USVString) init = "");
   readonly attribute unsigned long size;
   undefined append(USVString name, USVString value);
-  undefined delete(USVString name);
+  undefined delete(USVString name, optional USVString value);
   USVString? get(USVString name);
   sequence<USVString> getAll(USVString name);
-  boolean has(USVString name);
+  boolean has(USVString name, optional USVString value);
   undefined set(USVString name, USVString value);
 
   undefined sort();
