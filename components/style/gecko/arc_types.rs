@@ -10,12 +10,12 @@
 
 use crate::gecko::url::CssUrlData;
 use crate::gecko_bindings::structs::{
-    RawServoAnimationValue, RawServoContainerRule, RawServoCounterStyleRule,
-    RawServoDeclarationBlock, RawServoFontFaceRule, RawServoFontFeatureValuesRule,
-    RawServoFontPaletteValuesRule, RawServoImportRule, RawServoKeyframe, RawServoKeyframesRule,
-    RawServoLayerBlockRule, RawServoLayerStatementRule, RawServoMediaList, RawServoMediaRule,
-    RawServoMozDocumentRule, RawServoNamespaceRule, RawServoPageRule, RawServoStyleRule,
-    RawServoSupportsRule, ServoCssRules,
+    RawServoContainerRule, RawServoCounterStyleRule, RawServoDeclarationBlock,
+    RawServoFontFaceRule, RawServoFontFeatureValuesRule, RawServoFontPaletteValuesRule,
+    RawServoImportRule, RawServoKeyframe, RawServoKeyframesRule, RawServoLayerBlockRule,
+    RawServoLayerStatementRule, RawServoMediaList, RawServoMediaRule, RawServoMozDocumentRule,
+    RawServoNamespaceRule, RawServoPageRule, RawServoStyleRule, RawServoSupportsRule,
+    ServoCssRules,
 };
 use crate::gecko_bindings::sugar::ownership::HasArcFFI;
 use crate::media_queries::MediaList;
@@ -59,9 +59,6 @@ impl_arc_ffi!(Locked<StyleRule> => RawServoStyleRule
 
 impl_arc_ffi!(Locked<ImportRule> => RawServoImportRule
               [Servo_ImportRule_AddRef, Servo_ImportRule_Release]);
-
-impl_arc_ffi!(AnimationValue => RawServoAnimationValue
-              [Servo_AnimationValue_AddRef, Servo_AnimationValue_Release]);
 
 impl_arc_ffi!(Locked<Keyframe> => RawServoKeyframe
               [Servo_Keyframe_AddRef, Servo_Keyframe_Release]);
@@ -136,4 +133,9 @@ impl_simple_arc_ffi!(
     ComputedValues,
     Servo_ComputedStyle_AddRef,
     Servo_ComputedStyle_Release
+);
+impl_simple_arc_ffi!(
+    AnimationValue,
+    Servo_AnimationValue_AddRef,
+    Servo_AnimationValue_Release
 );
