@@ -79,8 +79,8 @@ impl FontBaseSize {
     /// Calculate the actual size for a given context
     pub fn resolve(&self, context: &Context) -> computed::FontSize {
         match *self {
-            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size(),
-            FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size(),
+            Self::CurrentStyle => context.style().get_font().clone_font_size(),
+            Self::InheritedStyle => context.style().get_parent_font().clone_font_size(),
         }
     }
 }
@@ -89,24 +89,24 @@ impl FontRelativeLength {
     /// Return the unitless, raw value.
     fn unitless_value(&self) -> CSSFloat {
         match *self {
-            FontRelativeLength::Em(v) |
-            FontRelativeLength::Ex(v) |
-            FontRelativeLength::Ch(v) |
-            FontRelativeLength::Cap(v) |
-            FontRelativeLength::Ic(v) |
-            FontRelativeLength::Rem(v) => v,
+            Self::Em(v) |
+            Self::Ex(v) |
+            Self::Ch(v) |
+            Self::Cap(v) |
+            Self::Ic(v) |
+            Self::Rem(v) => v,
         }
     }
 
     // Return the unit, as a string.
     fn unit(&self) -> &'static str {
         match *self {
-            FontRelativeLength::Em(_) => "em",
-            FontRelativeLength::Ex(_) => "ex",
-            FontRelativeLength::Ch(_) => "ch",
-            FontRelativeLength::Cap(_) => "cap",
-            FontRelativeLength::Ic(_) => "ic",
-            FontRelativeLength::Rem(_) => "rem",
+            Self::Em(_) => "em",
+            Self::Ex(_) => "ex",
+            Self::Ch(_) => "ch",
+            Self::Cap(_) => "cap",
+            Self::Ic(_) => "ic",
+            Self::Rem(_) => "rem",
         }
     }
 
@@ -182,7 +182,7 @@ impl FontRelativeLength {
 
         let reference_font_size = base_size.resolve(context);
         match *self {
-            FontRelativeLength::Em(length) => {
+            Self::Em(length) => {
                 if context.for_non_inherited_property.is_some() {
                     if base_size == FontBaseSize::CurrentStyle {
                         context
@@ -194,7 +194,7 @@ impl FontRelativeLength {
 
                 (reference_font_size.computed_size(), length)
             },
-            FontRelativeLength::Ex(length) => {
+            Self::Ex(length) => {
                 // The x-height is an intrinsically horizontal metric.
                 let metrics =
                     query_font_metrics(context, base_size, FontMetricsOrientation::Horizontal);
@@ -211,7 +211,7 @@ impl FontRelativeLength {
                 });
                 (reference_size, length)
             },
-            FontRelativeLength::Ch(length) => {
+            Self::Ch(length) => {
                 // https://drafts.csswg.org/css-values/#ch:
                 //
                 //     Equal to the used advance measure of the “0” (ZERO,
@@ -246,7 +246,7 @@ impl FontRelativeLength {
                 });
                 (reference_size, length)
             },
-            FontRelativeLength::Cap(length) => {
+            Self::Cap(length) => {
                 let metrics =
                     query_font_metrics(context, base_size, FontMetricsOrientation::Horizontal);
                 let reference_size = metrics.cap_height.unwrap_or_else(|| {
@@ -260,7 +260,7 @@ impl FontRelativeLength {
                 });
                 (reference_size, length)
             },
-            FontRelativeLength::Ic(length) => {
+            Self::Ic(length) => {
                 let metrics = query_font_metrics(
                     context,
                     base_size,
@@ -279,7 +279,7 @@ impl FontRelativeLength {
                 });
                 (reference_size, length)
             },
-            FontRelativeLength::Rem(length) => {
+            Self::Rem(length) => {
                 // https://drafts.csswg.org/css-values/#rem:
                 //
                 //     When specified on the font-size property of the root
@@ -414,63 +414,59 @@ impl ViewportPercentageLength {
     // Return the unit, as a string.
     fn unit(&self) -> &'static str {
         match *self {
-            ViewportPercentageLength::Vw(_) => "vw",
-            ViewportPercentageLength::Lvw(_) => "lvw",
-            ViewportPercentageLength::Svw(_) => "svw",
-            ViewportPercentageLength::Dvw(_) => "dvw",
-            ViewportPercentageLength::Vh(_) => "vh",
-            ViewportPercentageLength::Svh(_) => "svh",
-            ViewportPercentageLength::Lvh(_) => "lvh",
-            ViewportPercentageLength::Dvh(_) => "dvh",
-            ViewportPercentageLength::Vmin(_) => "vmin",
-            ViewportPercentageLength::Svmin(_) => "svmin",
-            ViewportPercentageLength::Lvmin(_) => "lvmin",
-            ViewportPercentageLength::Dvmin(_) => "dvmin",
-            ViewportPercentageLength::Vmax(_) => "vmax",
-            ViewportPercentageLength::Svmax(_) => "svmax",
-            ViewportPercentageLength::Lvmax(_) => "lvmax",
-            ViewportPercentageLength::Dvmax(_) => "dvmax",
-            ViewportPercentageLength::Vb(_) => "vb",
-            ViewportPercentageLength::Svb(_) => "svb",
-            ViewportPercentageLength::Lvb(_) => "lvb",
-            ViewportPercentageLength::Dvb(_) => "dvb",
-            ViewportPercentageLength::Vi(_) => "vi",
-            ViewportPercentageLength::Svi(_) => "svi",
-            ViewportPercentageLength::Lvi(_) => "lvi",
-            ViewportPercentageLength::Dvi(_) => "dvi",
+            Self::Vw(_) => "vw",
+            Self::Lvw(_) => "lvw",
+            Self::Svw(_) => "svw",
+            Self::Dvw(_) => "dvw",
+            Self::Vh(_) => "vh",
+            Self::Svh(_) => "svh",
+            Self::Lvh(_) => "lvh",
+            Self::Dvh(_) => "dvh",
+            Self::Vmin(_) => "vmin",
+            Self::Svmin(_) => "svmin",
+            Self::Lvmin(_) => "lvmin",
+            Self::Dvmin(_) => "dvmin",
+            Self::Vmax(_) => "vmax",
+            Self::Svmax(_) => "svmax",
+            Self::Lvmax(_) => "lvmax",
+            Self::Dvmax(_) => "dvmax",
+            Self::Vb(_) => "vb",
+            Self::Svb(_) => "svb",
+            Self::Lvb(_) => "lvb",
+            Self::Dvb(_) => "dvb",
+            Self::Vi(_) => "vi",
+            Self::Svi(_) => "svi",
+            Self::Lvi(_) => "lvi",
+            Self::Dvi(_) => "dvi",
         }
     }
 
     fn unpack(&self) -> (ViewportVariant, ViewportUnit, CSSFloat) {
         match *self {
-            ViewportPercentageLength::Vw(v) => (ViewportVariant::UADefault, ViewportUnit::Vw, v),
-            ViewportPercentageLength::Svw(v) => (ViewportVariant::Small, ViewportUnit::Vw, v),
-            ViewportPercentageLength::Lvw(v) => (ViewportVariant::Large, ViewportUnit::Vw, v),
-            ViewportPercentageLength::Dvw(v) => (ViewportVariant::Dynamic, ViewportUnit::Vw, v),
-            ViewportPercentageLength::Vh(v) => (ViewportVariant::UADefault, ViewportUnit::Vh, v),
-            ViewportPercentageLength::Svh(v) => (ViewportVariant::Small, ViewportUnit::Vh, v),
-            ViewportPercentageLength::Lvh(v) => (ViewportVariant::Large, ViewportUnit::Vh, v),
-            ViewportPercentageLength::Dvh(v) => (ViewportVariant::Dynamic, ViewportUnit::Vh, v),
-            ViewportPercentageLength::Vmin(v) => {
-                (ViewportVariant::UADefault, ViewportUnit::Vmin, v)
-            },
-            ViewportPercentageLength::Svmin(v) => (ViewportVariant::Small, ViewportUnit::Vmin, v),
-            ViewportPercentageLength::Lvmin(v) => (ViewportVariant::Large, ViewportUnit::Vmin, v),
-            ViewportPercentageLength::Dvmin(v) => (ViewportVariant::Dynamic, ViewportUnit::Vmin, v),
-            ViewportPercentageLength::Vmax(v) => {
-                (ViewportVariant::UADefault, ViewportUnit::Vmax, v)
-            },
-            ViewportPercentageLength::Svmax(v) => (ViewportVariant::Small, ViewportUnit::Vmax, v),
-            ViewportPercentageLength::Lvmax(v) => (ViewportVariant::Large, ViewportUnit::Vmax, v),
-            ViewportPercentageLength::Dvmax(v) => (ViewportVariant::Dynamic, ViewportUnit::Vmax, v),
-            ViewportPercentageLength::Vb(v) => (ViewportVariant::UADefault, ViewportUnit::Vb, v),
-            ViewportPercentageLength::Svb(v) => (ViewportVariant::Small, ViewportUnit::Vb, v),
-            ViewportPercentageLength::Lvb(v) => (ViewportVariant::Large, ViewportUnit::Vb, v),
-            ViewportPercentageLength::Dvb(v) => (ViewportVariant::Dynamic, ViewportUnit::Vb, v),
-            ViewportPercentageLength::Vi(v) => (ViewportVariant::UADefault, ViewportUnit::Vi, v),
-            ViewportPercentageLength::Svi(v) => (ViewportVariant::Small, ViewportUnit::Vi, v),
-            ViewportPercentageLength::Lvi(v) => (ViewportVariant::Large, ViewportUnit::Vi, v),
-            ViewportPercentageLength::Dvi(v) => (ViewportVariant::Dynamic, ViewportUnit::Vi, v),
+            Self::Vw(v) => (ViewportVariant::UADefault, ViewportUnit::Vw, v),
+            Self::Svw(v) => (ViewportVariant::Small, ViewportUnit::Vw, v),
+            Self::Lvw(v) => (ViewportVariant::Large, ViewportUnit::Vw, v),
+            Self::Dvw(v) => (ViewportVariant::Dynamic, ViewportUnit::Vw, v),
+            Self::Vh(v) => (ViewportVariant::UADefault, ViewportUnit::Vh, v),
+            Self::Svh(v) => (ViewportVariant::Small, ViewportUnit::Vh, v),
+            Self::Lvh(v) => (ViewportVariant::Large, ViewportUnit::Vh, v),
+            Self::Dvh(v) => (ViewportVariant::Dynamic, ViewportUnit::Vh, v),
+            Self::Vmin(v) => (ViewportVariant::UADefault, ViewportUnit::Vmin, v),
+            Self::Svmin(v) => (ViewportVariant::Small, ViewportUnit::Vmin, v),
+            Self::Lvmin(v) => (ViewportVariant::Large, ViewportUnit::Vmin, v),
+            Self::Dvmin(v) => (ViewportVariant::Dynamic, ViewportUnit::Vmin, v),
+            Self::Vmax(v) => (ViewportVariant::UADefault, ViewportUnit::Vmax, v),
+            Self::Svmax(v) => (ViewportVariant::Small, ViewportUnit::Vmax, v),
+            Self::Lvmax(v) => (ViewportVariant::Large, ViewportUnit::Vmax, v),
+            Self::Dvmax(v) => (ViewportVariant::Dynamic, ViewportUnit::Vmax, v),
+            Self::Vb(v) => (ViewportVariant::UADefault, ViewportUnit::Vb, v),
+            Self::Svb(v) => (ViewportVariant::Small, ViewportUnit::Vb, v),
+            Self::Lvb(v) => (ViewportVariant::Large, ViewportUnit::Vb, v),
+            Self::Dvb(v) => (ViewportVariant::Dynamic, ViewportUnit::Vb, v),
+            Self::Vi(v) => (ViewportVariant::UADefault, ViewportUnit::Vi, v),
+            Self::Svi(v) => (ViewportVariant::Small, ViewportUnit::Vi, v),
+            Self::Lvi(v) => (ViewportVariant::Large, ViewportUnit::Vi, v),
+            Self::Dvi(v) => (ViewportVariant::Dynamic, ViewportUnit::Vi, v),
         }
     }
 
@@ -629,26 +625,26 @@ impl AbsoluteLength {
     /// Return the unitless, raw value.
     fn unitless_value(&self) -> CSSFloat {
         match *self {
-            AbsoluteLength::Px(v) |
-            AbsoluteLength::In(v) |
-            AbsoluteLength::Cm(v) |
-            AbsoluteLength::Mm(v) |
-            AbsoluteLength::Q(v) |
-            AbsoluteLength::Pt(v) |
-            AbsoluteLength::Pc(v) => v,
+            Self::Px(v) |
+            Self::In(v) |
+            Self::Cm(v) |
+            Self::Mm(v) |
+            Self::Q(v) |
+            Self::Pt(v) |
+            Self::Pc(v) => v,
         }
     }
 
     // Return the unit, as a string.
     fn unit(&self) -> &'static str {
         match *self {
-            AbsoluteLength::Px(_) => "px",
-            AbsoluteLength::In(_) => "in",
-            AbsoluteLength::Cm(_) => "cm",
-            AbsoluteLength::Mm(_) => "mm",
-            AbsoluteLength::Q(_) => "q",
-            AbsoluteLength::Pt(_) => "pt",
-            AbsoluteLength::Pc(_) => "pc",
+            Self::Px(_) => "px",
+            Self::In(_) => "in",
+            Self::Cm(_) => "cm",
+            Self::Mm(_) => "mm",
+            Self::Q(_) => "q",
+            Self::Pt(_) => "pt",
+            Self::Pc(_) => "pc",
         }
     }
 
@@ -656,13 +652,13 @@ impl AbsoluteLength {
     #[inline]
     pub fn to_px(&self) -> CSSFloat {
         match *self {
-            AbsoluteLength::Px(value) => value,
-            AbsoluteLength::In(value) => value * PX_PER_IN,
-            AbsoluteLength::Cm(value) => value * PX_PER_CM,
-            AbsoluteLength::Mm(value) => value * PX_PER_MM,
-            AbsoluteLength::Q(value) => value * PX_PER_Q,
-            AbsoluteLength::Pt(value) => value * PX_PER_PT,
-            AbsoluteLength::Pc(value) => value * PX_PER_PC,
+            Self::Px(value) => value,
+            Self::In(value) => value * PX_PER_IN,
+            Self::Cm(value) => value * PX_PER_CM,
+            Self::Mm(value) => value * PX_PER_MM,
+            Self::Q(value) => value * PX_PER_Q,
+            Self::Pt(value) => value * PX_PER_PT,
+            Self::Pc(value) => value * PX_PER_PC,
         }
     }
 
@@ -724,24 +720,24 @@ pub enum ContainerRelativeLength {
 impl ContainerRelativeLength {
     fn unitless_value(&self) -> CSSFloat {
         match *self {
-            ContainerRelativeLength::Cqw(v) |
-            ContainerRelativeLength::Cqh(v) |
-            ContainerRelativeLength::Cqi(v) |
-            ContainerRelativeLength::Cqb(v) |
-            ContainerRelativeLength::Cqmin(v) |
-            ContainerRelativeLength::Cqmax(v) => v,
+            Self::Cqw(v) |
+            Self::Cqh(v) |
+            Self::Cqi(v) |
+            Self::Cqb(v) |
+            Self::Cqmin(v) |
+            Self::Cqmax(v) => v,
         }
     }
 
     // Return the unit, as a string.
     fn unit(&self) -> &'static str {
         match *self {
-            ContainerRelativeLength::Cqw(_) => "cqw",
-            ContainerRelativeLength::Cqh(_) => "cqh",
-            ContainerRelativeLength::Cqi(_) => "cqi",
-            ContainerRelativeLength::Cqb(_) => "cqb",
-            ContainerRelativeLength::Cqmin(_) => "cqmin",
-            ContainerRelativeLength::Cqmax(_) => "cqmax",
+            Self::Cqw(_) => "cqw",
+            Self::Cqh(_) => "cqh",
+            Self::Cqi(_) => "cqi",
+            Self::Cqb(_) => "cqb",
+            Self::Cqmin(_) => "cqmin",
+            Self::Cqmax(_) => "cqmax",
         }
     }
 
@@ -790,18 +786,18 @@ impl ContainerRelativeLength {
     pub fn to_computed_value(&self, context: &Context) -> CSSPixelLength {
         let size = context.get_container_size_query();
         let (factor, container_length) = match *self {
-            ContainerRelativeLength::Cqw(v) => (v, size.get_container_width(context)),
-            ContainerRelativeLength::Cqh(v) => (v, size.get_container_height(context)),
-            ContainerRelativeLength::Cqi(v) => (v, size.get_container_inline_size(context)),
-            ContainerRelativeLength::Cqb(v) => (v, size.get_container_block_size(context)),
-            ContainerRelativeLength::Cqmin(v) => (
+            Self::Cqw(v) => (v, size.get_container_width(context)),
+            Self::Cqh(v) => (v, size.get_container_height(context)),
+            Self::Cqi(v) => (v, size.get_container_inline_size(context)),
+            Self::Cqb(v) => (v, size.get_container_block_size(context)),
+            Self::Cqmin(v) => (
                 v,
                 cmp::min(
                     size.get_container_inline_size(context),
                     size.get_container_block_size(context),
                 ),
             ),
-            ContainerRelativeLength::Cqmax(v) => (
+            Self::Cqmax(v) => (
                 v,
                 cmp::max(
                     size.get_container_inline_size(context),
@@ -857,22 +853,22 @@ impl NoCalcLength {
     /// Return the unitless, raw value.
     pub fn unitless_value(&self) -> CSSFloat {
         match *self {
-            NoCalcLength::Absolute(v) => v.unitless_value(),
-            NoCalcLength::FontRelative(v) => v.unitless_value(),
-            NoCalcLength::ViewportPercentage(v) => v.unitless_value(),
-            NoCalcLength::ContainerRelative(v) => v.unitless_value(),
-            NoCalcLength::ServoCharacterWidth(c) => c.0 as f32,
+            Self::Absolute(v) => v.unitless_value(),
+            Self::FontRelative(v) => v.unitless_value(),
+            Self::ViewportPercentage(v) => v.unitless_value(),
+            Self::ContainerRelative(v) => v.unitless_value(),
+            Self::ServoCharacterWidth(c) => c.0 as f32,
         }
     }
 
     // Return the unit, as a string.
     fn unit(&self) -> &'static str {
         match *self {
-            NoCalcLength::Absolute(v) => v.unit(),
-            NoCalcLength::FontRelative(v) => v.unit(),
-            NoCalcLength::ViewportPercentage(v) => v.unit(),
-            NoCalcLength::ContainerRelative(v) => v.unit(),
-            NoCalcLength::ServoCharacterWidth(_) => "",
+            Self::Absolute(v) => v.unit(),
+            Self::FontRelative(v) => v.unit(),
+            Self::ViewportPercentage(v) => v.unit(),
+            Self::ContainerRelative(v) => v.unit(),
+            Self::ServoCharacterWidth(_) => "",
         }
     }
 
@@ -917,112 +913,112 @@ impl NoCalcLength {
         unit: &str,
     ) -> Result<Self, ()> {
         Ok(match_ignore_ascii_case! { unit,
-            "px" => NoCalcLength::Absolute(AbsoluteLength::Px(value)),
-            "in" => NoCalcLength::Absolute(AbsoluteLength::In(value)),
-            "cm" => NoCalcLength::Absolute(AbsoluteLength::Cm(value)),
-            "mm" => NoCalcLength::Absolute(AbsoluteLength::Mm(value)),
-            "q" => NoCalcLength::Absolute(AbsoluteLength::Q(value)),
-            "pt" => NoCalcLength::Absolute(AbsoluteLength::Pt(value)),
-            "pc" => NoCalcLength::Absolute(AbsoluteLength::Pc(value)),
+            "px" => Self::Absolute(AbsoluteLength::Px(value)),
+            "in" => Self::Absolute(AbsoluteLength::In(value)),
+            "cm" => Self::Absolute(AbsoluteLength::Cm(value)),
+            "mm" => Self::Absolute(AbsoluteLength::Mm(value)),
+            "q" => Self::Absolute(AbsoluteLength::Q(value)),
+            "pt" => Self::Absolute(AbsoluteLength::Pt(value)),
+            "pc" => Self::Absolute(AbsoluteLength::Pc(value)),
             // font-relative
-            "em" => NoCalcLength::FontRelative(FontRelativeLength::Em(value)),
-            "ex" => NoCalcLength::FontRelative(FontRelativeLength::Ex(value)),
-            "ch" => NoCalcLength::FontRelative(FontRelativeLength::Ch(value)),
-            "cap" => NoCalcLength::FontRelative(FontRelativeLength::Cap(value)),
-            "ic" => NoCalcLength::FontRelative(FontRelativeLength::Ic(value)),
-            "rem" => NoCalcLength::FontRelative(FontRelativeLength::Rem(value)),
+            "em" => Self::FontRelative(FontRelativeLength::Em(value)),
+            "ex" => Self::FontRelative(FontRelativeLength::Ex(value)),
+            "ch" => Self::FontRelative(FontRelativeLength::Ch(value)),
+            "cap" => Self::FontRelative(FontRelativeLength::Cap(value)),
+            "ic" => Self::FontRelative(FontRelativeLength::Ic(value)),
+            "rem" => Self::FontRelative(FontRelativeLength::Rem(value)),
             // viewport percentages
             "vw" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Vw(value))
             },
             "svw" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Svw(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Svw(value))
             },
             "lvw" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Lvw(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Lvw(value))
             },
             "dvw" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Dvw(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Dvw(value))
             },
             "vh" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Vh(value))
             },
             "svh" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Svh(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Svh(value))
             },
             "lvh" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Lvh(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Lvh(value))
             },
             "dvh" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Dvh(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Dvh(value))
             },
             "vmin" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmin(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Vmin(value))
             },
             "svmin" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Svmin(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Svmin(value))
             },
             "lvmin" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Lvmin(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Lvmin(value))
             },
             "dvmin" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Dvmin(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Dvmin(value))
             },
             "vmax" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Vmax(value))
             },
             "svmax" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Svmax(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Svmax(value))
             },
             "lvmax" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Lvmax(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Lvmax(value))
             },
             "dvmax" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Dvmax(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Dvmax(value))
             },
             "vb" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vb(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Vb(value))
             },
             "svb" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Svb(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Svb(value))
             },
             "lvb" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Lvb(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Lvb(value))
             },
             "dvb" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Dvb(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Dvb(value))
             },
             "vi" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vi(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Vi(value))
             },
             "svi" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Svi(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Svi(value))
             },
             "lvi" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Lvi(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Lvi(value))
             },
             "dvi" if !context.in_page_rule() => {
-                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Dvi(value))
+                Self::ViewportPercentage(ViewportPercentageLength::Dvi(value))
             },
             // Container query lengths. Inherit the limitation from viewport units since
             // we may fall back to them.
             "cqw" if !context.in_page_rule() && are_container_queries_enabled() => {
-                NoCalcLength::ContainerRelative(ContainerRelativeLength::Cqw(value))
+                Self::ContainerRelative(ContainerRelativeLength::Cqw(value))
             },
             "cqh" if !context.in_page_rule() && are_container_queries_enabled() => {
-                NoCalcLength::ContainerRelative(ContainerRelativeLength::Cqh(value))
+                Self::ContainerRelative(ContainerRelativeLength::Cqh(value))
             },
             "cqi" if !context.in_page_rule() && are_container_queries_enabled() => {
-                NoCalcLength::ContainerRelative(ContainerRelativeLength::Cqi(value))
+                Self::ContainerRelative(ContainerRelativeLength::Cqi(value))
             },
             "cqb" if !context.in_page_rule() && are_container_queries_enabled() => {
-                NoCalcLength::ContainerRelative(ContainerRelativeLength::Cqb(value))
+                Self::ContainerRelative(ContainerRelativeLength::Cqb(value))
             },
             "cqmin" if !context.in_page_rule() && are_container_queries_enabled() => {
-                NoCalcLength::ContainerRelative(ContainerRelativeLength::Cqmin(value))
+                Self::ContainerRelative(ContainerRelativeLength::Cqmin(value))
             },
             "cqmax" if !context.in_page_rule() && are_container_queries_enabled() => {
-                NoCalcLength::ContainerRelative(ContainerRelativeLength::Cqmax(value))
+                Self::ContainerRelative(ContainerRelativeLength::Cqmax(value))
             },
             _ => return Err(()),
         })

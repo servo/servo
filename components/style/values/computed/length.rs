@@ -35,7 +35,7 @@ impl ToComputedValue for specified::NoCalcLength {
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        specified::NoCalcLength::Absolute(AbsoluteLength::Px(computed.px()))
+        Self::Absolute(AbsoluteLength::Px(computed.px()))
     }
 }
 
@@ -47,17 +47,17 @@ impl specified::NoCalcLength {
         base_size: FontBaseSize,
     ) -> Length {
         match *self {
-            specified::NoCalcLength::Absolute(length) => length.to_computed_value(context),
-            specified::NoCalcLength::FontRelative(length) => {
+            Self::Absolute(length) => length.to_computed_value(context),
+            Self::FontRelative(length) => {
                 length.to_computed_value(context, base_size)
             },
-            specified::NoCalcLength::ViewportPercentage(length) => {
+            Self::ViewportPercentage(length) => {
                 length.to_computed_value(context)
             },
-            specified::NoCalcLength::ContainerRelative(length) => {
+            Self::ContainerRelative(length) => {
                 length.to_computed_value(context)
             },
-            specified::NoCalcLength::ServoCharacterWidth(length) => {
+            Self::ServoCharacterWidth(length) => {
                 length.to_computed_value(context.style().get_font().clone_font_size().computed_size())
             },
         }
@@ -70,8 +70,8 @@ impl ToComputedValue for specified::Length {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            specified::Length::NoCalc(l) => l.to_computed_value(context),
-            specified::Length::Calc(ref calc) => {
+            Self::NoCalc(l) => l.to_computed_value(context),
+            Self::Calc(ref calc) => {
                 calc.to_computed_value(context).to_length().unwrap()
             },
         }
@@ -79,7 +79,7 @@ impl ToComputedValue for specified::Length {
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        specified::Length::NoCalc(specified::NoCalcLength::from_computed_value(computed))
+        Self::NoCalc(specified::NoCalcLength::from_computed_value(computed))
     }
 }
 
@@ -91,8 +91,8 @@ macro_rules! computed_length_percentage_or_auto {
         #[inline]
         pub fn to_used_value(&self, percentage_basis: Au) -> Option<Au> {
             match *self {
-                generics::GenericLengthPercentageOrAuto::Auto => None,
-                generics::GenericLengthPercentageOrAuto::LengthPercentage(ref lp) => {
+                Self::Auto => None,
+                Self::LengthPercentage(ref lp) => {
                     Some(lp.to_used_value(percentage_basis))
                 },
             }
@@ -196,14 +196,14 @@ impl Size {
     #[inline]
     pub fn is_definitely_zero(&self) -> bool {
         match *self {
-            GenericSize::Auto => false,
-            GenericSize::LengthPercentage(ref lp) => lp.is_definitely_zero(),
+            Self::Auto => false,
+            Self::LengthPercentage(ref lp) => lp.is_definitely_zero(),
             #[cfg(feature = "gecko")]
-            GenericSize::MinContent |
-            GenericSize::MaxContent |
-            GenericSize::FitContent |
-            GenericSize::MozAvailable |
-            GenericSize::FitContentFunction(_) => false,
+            Self::MinContent |
+            Self::MaxContent |
+            Self::FitContent |
+            Self::MozAvailable |
+            Self::FitContentFunction(_) => false,
         }
     }
 }
