@@ -6,12 +6,14 @@
 
 use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
+use crate::font_metrics::FontMetrics;
 use crate::gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
+use crate::values::computed::font::GenericFontFamily;
 use crate::values::computed::Length;
 use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::{CustomIdent, KeyframesName};
@@ -50,6 +52,8 @@ pub struct Device {
     /// Whether any styles computed in the document relied on the root font-size
     /// by using rem units.
     used_root_font_size: AtomicBool,
+    /// Whether any styles computed in the document relied on font metrics.
+    used_font_metrics: AtomicBool,
     /// Whether any styles computed in the document relied on the viewport size
     /// by using vw/vh/vmin/vmax units.
     used_viewport_size: AtomicBool,
@@ -91,6 +95,7 @@ impl Device {
             root_font_size: AtomicU32::new(FONT_MEDIUM_PX.to_bits()),
             body_text_color: AtomicUsize::new(prefs.mDefaultColor as usize),
             used_root_font_size: AtomicBool::new(false),
+            used_font_metrics: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
             environment: CssEnvironment,
         }
@@ -157,6 +162,67 @@ impl Device {
             .store(convert_rgba_to_nscolor(&color) as usize, Ordering::Relaxed)
     }
 
+    /// Gets the base size given a generic font family and a language.
+    pub fn base_size_for_generic(&self, language: &Atom, generic: GenericFontFamily) -> Length {
+        unsafe { bindings::Gecko_GetBaseSize(self.document(), language.as_ptr(), generic) }
+    }
+
+    /// Queries font metrics
+    pub fn query_font_metrics(
+        &self,
+        vertical: bool,
+        font: &crate::properties::style_structs::Font,
+        base_size: Length,
+        in_media_query: bool,
+        retrieve_math_scales: bool,
+    ) -> FontMetrics {
+        self.used_font_metrics.store(true, Ordering::Relaxed);
+        let pc = match self.pres_context() {
+            Some(pc) => pc,
+            None => return Default::default(),
+        };
+        let gecko_metrics = unsafe {
+            bindings::Gecko_GetFontMetrics(
+                pc,
+                vertical,
+                font.gecko(),
+                base_size,
+                // we don't use the user font set in a media query
+                !in_media_query,
+                retrieve_math_scales,
+            )
+        };
+        FontMetrics {
+            x_height: Some(gecko_metrics.mXSize),
+            zero_advance_measure: if gecko_metrics.mChSize.px() >= 0. {
+                Some(gecko_metrics.mChSize)
+            } else {
+                None
+            },
+            cap_height: if gecko_metrics.mCapHeight.px() >= 0. {
+                Some(gecko_metrics.mCapHeight)
+            } else {
+                None
+            },
+            ic_width: if gecko_metrics.mIcWidth.px() >= 0. {
+                Some(gecko_metrics.mIcWidth)
+            } else {
+                None
+            },
+            ascent: gecko_metrics.mAscent,
+            script_percent_scale_down: if gecko_metrics.mScriptPercentScaleDown > 0. {
+                Some(gecko_metrics.mScriptPercentScaleDown)
+            } else {
+                None
+            },
+            script_script_percent_scale_down: if gecko_metrics.mScriptScriptPercentScaleDown > 0. {
+                Some(gecko_metrics.mScriptScriptPercentScaleDown)
+            } else {
+                None
+            },
+        }
+    }
+
     /// Returns the body text color.
     pub fn body_text_color(&self) -> RGBA {
         convert_nscolor_to_rgba(self.body_text_color.load(Ordering::Relaxed) as u32)
@@ -196,6 +262,7 @@ impl Device {
     pub fn rebuild_cached_data(&mut self) {
         self.reset_computed_values();
         self.used_root_font_size.store(false, Ordering::Relaxed);
+        self.used_font_metrics.store(false, Ordering::Relaxed);
         self.used_viewport_size.store(false, Ordering::Relaxed);
     }
 
@@ -285,6 +352,11 @@ impl Device {
     /// Returns whether we ever looked up the viewport size of the Device.
     pub fn used_viewport_size(&self) -> bool {
         self.used_viewport_size.load(Ordering::Relaxed)
+    }
+
+    /// Returns whether font metrics have been queried.
+    pub fn used_font_metrics(&self) -> bool {
+        self.used_font_metrics.load(Ordering::Relaxed)
     }
 
     /// Returns the device pixel ratio.

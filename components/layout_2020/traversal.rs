@@ -34,7 +34,6 @@ impl<'a, 'dom, E> DomTraversal<E> for RecalcStyle<'a>
 where
     E: TElement,
     E::ConcreteNode: LayoutNode<'dom>,
-    E::FontMetricsProvider: Send,
 {
     fn process_preorder<F>(
         &self,

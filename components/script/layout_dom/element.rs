@@ -33,7 +33,6 @@ use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, TDocument, TElement, TNode, TShadowRoot};
 use style::element_state::*;
-use style::font_metrics::ServoMetricsProvider;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{
     extended_filtering, AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement,
@@ -168,8 +167,6 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
 {
     type ConcreteNode = ServoLayoutNode<'dom, LayoutDataType>;
     type TraversalChildrenIterator = DomChildren<Self::ConcreteNode>;
-
-    type FontMetricsProvider = ServoMetricsProvider;
 
     fn as_node(&self) -> ServoLayoutNode<'dom, LayoutDataType> {
         ServoLayoutNode::from_layout_js(self.element.upcast())

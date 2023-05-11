@@ -75,14 +75,11 @@ type WorkUnit<N> = ArrayVec<SendNode<N>, WORK_UNIT_MAX>;
 /// out of line so we don't allocate stack space for the entire struct
 /// in the caller.
 #[inline(never)]
-fn create_thread_local_context<'scope, E, D>(
-    traversal: &'scope D,
-    slot: &mut Option<ThreadLocalStyleContext<E>>,
-) where
+fn create_thread_local_context<'scope, E>(slot: &mut Option<ThreadLocalStyleContext<E>>)
+where
     E: TElement + 'scope,
-    D: DomTraversal<E>,
 {
-    *slot = Some(ThreadLocalStyleContext::new(traversal.shared_context()));
+    *slot = Some(ThreadLocalStyleContext::new());
 }
 
 /// A parallel top-down DOM traversal.
@@ -127,7 +124,7 @@ fn top_down_dom<'a, 'scope, E, D>(
         // Scope the borrow of the TLS so that the borrow is dropped before
         // a potential recursive call when we pass TailCall.
         let mut tlc = tls.ensure(|slot: &mut Option<ThreadLocalStyleContext<E>>| {
-            create_thread_local_context(traversal, slot)
+            create_thread_local_context(slot)
         });
 
         // Check that we're not in danger of running out of stack.

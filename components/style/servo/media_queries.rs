@@ -6,6 +6,7 @@
 
 use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
+use crate::font_metrics::FontMetrics;
 use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
 use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
 use crate::media_queries::media_feature_expression::RangeOrOperator;
@@ -154,6 +155,22 @@ impl Device {
     /// Returns the device pixel ratio.
     pub fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.device_pixel_ratio
+    }
+
+    /// Queries dummy font metrics for Servo. Knows nothing about fonts and does not provide
+    /// any metrics.
+    /// TODO: Servo's font metrics provider will probably not live in this crate, so this will
+    /// have to be replaced with something else (perhaps a trait method on TElement)
+    /// when we get there
+    pub fn query_font_metrics(
+        &self,
+        _vertical: bool,
+        _font: &crate::properties::style_structs::Font,
+        _base_size: CSSPixelLength,
+        _in_media_query: bool,
+        _retrieve_math_scales: bool,
+    ) -> FontMetrics {
+        Default::default()
     }
 
     /// Take into account a viewport rule taken from the stylesheets.

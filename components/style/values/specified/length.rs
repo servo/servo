@@ -7,7 +7,6 @@
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
 use super::{AllowQuirks, Number, Percentage, ToComputedValue};
-use crate::computed_value_flags::ComputedValueFlags;
 use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{self, CSSPixelLength, Context};
@@ -159,16 +158,11 @@ impl FontRelativeLength {
             base_size: FontBaseSize,
             orientation: FontMetricsOrientation,
         ) -> FontMetrics {
-            context
-                .font_metrics_provider
-                .query(context, base_size, orientation)
+            let retrieve_math_scales = false;
+            context.query_font_metrics(base_size, orientation, retrieve_math_scales)
         }
 
         let reference_font_size = base_size.resolve(context);
-        let font_metrics_flag = match base_size {
-            FontBaseSize::CurrentStyle => ComputedValueFlags::DEPENDS_ON_SELF_FONT_METRICS,
-            FontBaseSize::InheritedStyle => ComputedValueFlags::DEPENDS_ON_INHERITED_FONT_METRICS,
-        };
         match *self {
             FontRelativeLength::Em(length) => {
                 if context.for_non_inherited_property.is_some() {
@@ -183,10 +177,6 @@ impl FontRelativeLength {
                 (reference_font_size, length)
             },
             FontRelativeLength::Ex(length) => {
-                if context.for_non_inherited_property.is_some() {
-                    context.rule_cache_conditions.borrow_mut().set_uncacheable();
-                }
-                context.builder.add_flags(font_metrics_flag);
                 // The x-height is an intrinsically horizontal metric.
                 let metrics =
                     query_font_metrics(context, base_size, FontMetricsOrientation::Horizontal);
@@ -202,10 +192,6 @@ impl FontRelativeLength {
                 (reference_size, length)
             },
             FontRelativeLength::Ch(length) => {
-                if context.for_non_inherited_property.is_some() {
-                    context.rule_cache_conditions.borrow_mut().set_uncacheable();
-                }
-                context.builder.add_flags(font_metrics_flag);
                 // https://drafts.csswg.org/css-values/#ch:
                 //
                 //     Equal to the used advance measure of the “0” (ZERO,
@@ -239,10 +225,6 @@ impl FontRelativeLength {
                 (reference_size, length)
             },
             FontRelativeLength::Cap(length) => {
-                if context.for_non_inherited_property.is_some() {
-                    context.rule_cache_conditions.borrow_mut().set_uncacheable();
-                }
-                context.builder.add_flags(font_metrics_flag);
                 let metrics =
                     query_font_metrics(context, base_size, FontMetricsOrientation::Horizontal);
                 let reference_size = metrics.cap_height.unwrap_or_else(|| {

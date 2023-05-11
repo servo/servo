@@ -91,7 +91,7 @@ where
     //     ThreadLocalStyleContext has not released its TLS borrow by that point,
     //     we'll panic on double-borrow.
     let mut tls_slots = None;
-    let mut tlc = ThreadLocalStyleContext::new(traversal.shared_context());
+    let mut tlc = ThreadLocalStyleContext::new();
     let mut context = StyleContext {
         shared: traversal.shared_context(),
         thread_local: &mut tlc,

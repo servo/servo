@@ -13,7 +13,6 @@ use crate::context::SharedStyleContext;
 use crate::context::{PostAnimationTasks, UpdateAnimationsTasks};
 use crate::data::ElementData;
 use crate::element_state::ElementState;
-use crate::font_metrics::FontMetricsProvider;
 use crate::media_queries::Device;
 use crate::properties::{AnimationDeclarations, ComputedValues, PropertyDeclarationBlock};
 use crate::selector_parser::{AttrValue, Lang, PseudoElement, SelectorImpl};
@@ -362,12 +361,6 @@ pub trait TElement:
     /// TODO(emilio): We should eventually replace this with the `impl Trait`
     /// syntax.
     type TraversalChildrenIterator: Iterator<Item = Self::ConcreteNode>;
-
-    /// Type of the font metrics provider
-    ///
-    /// XXXManishearth It would be better to make this a type parameter on
-    /// ThreadLocalStyleContext and StyleContext
-    type FontMetricsProvider: FontMetricsProvider + Send;
 
     /// Get this element as a node.
     fn as_node(&self) -> Self::ConcreteNode;

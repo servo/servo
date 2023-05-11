@@ -8,7 +8,6 @@ use crate::applicable_declarations::{ApplicableDeclarationBlock, ApplicableDecla
 use crate::context::{CascadeInputs, QuirksMode};
 use crate::dom::{TElement, TShadowRoot};
 use crate::element_state::{DocumentState, ElementState};
-use crate::font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
 use crate::invalidation::element::invalidation_map::InvalidationMap;
@@ -662,7 +661,6 @@ impl Stylist {
         guards: &StylesheetGuards,
         pseudo: &PseudoElement,
         parent: Option<&ComputedValues>,
-        font_metrics: &dyn FontMetricsProvider,
     ) -> Arc<ComputedValues>
     where
         E: TElement,
@@ -671,13 +669,7 @@ impl Stylist {
 
         let rule_node = self.rule_node_for_precomputed_pseudo(guards, pseudo, vec![]);
 
-        self.precomputed_values_for_pseudo_with_rule_node::<E>(
-            guards,
-            pseudo,
-            parent,
-            font_metrics,
-            rule_node,
-        )
+        self.precomputed_values_for_pseudo_with_rule_node::<E>(guards, pseudo, parent, rule_node)
     }
 
     /// Computes the style for a given "precomputed" pseudo-element with
@@ -690,7 +682,6 @@ impl Stylist {
         guards: &StylesheetGuards,
         pseudo: &PseudoElement,
         parent: Option<&ComputedValues>,
-        font_metrics: &dyn FontMetricsProvider,
         rules: StrongRuleNode,
     ) -> Arc<ComputedValues>
     where
@@ -704,7 +695,6 @@ impl Stylist {
             pseudo,
             guards,
             parent,
-            font_metrics,
             None,
         )
     }
@@ -759,13 +749,7 @@ impl Stylist {
     where
         E: TElement,
     {
-        use crate::font_metrics::ServoMetricsProvider;
-        self.precomputed_values_for_pseudo::<E>(
-            guards,
-            &pseudo,
-            Some(parent_style),
-            &ServoMetricsProvider,
-        )
+        self.precomputed_values_for_pseudo::<E>(guards, &pseudo, Some(parent_style))
     }
 
     /// Computes a pseudo-element style lazily during layout.
@@ -783,7 +767,6 @@ impl Stylist {
         rule_inclusion: RuleInclusion,
         parent_style: &ComputedValues,
         is_probe: bool,
-        font_metrics: &dyn FontMetricsProvider,
         matching_fn: Option<&dyn Fn(&PseudoElement) -> bool>,
     ) -> Option<Arc<ComputedValues>>
     where
@@ -804,7 +787,6 @@ impl Stylist {
             pseudo,
             guards,
             Some(parent_style),
-            font_metrics,
             Some(element),
         ))
     }
@@ -819,7 +801,6 @@ impl Stylist {
         pseudo: &PseudoElement,
         guards: &StylesheetGuards,
         parent_style: Option<&ComputedValues>,
-        font_metrics: &dyn FontMetricsProvider,
         element: Option<E>,
     ) -> Arc<ComputedValues>
     where
@@ -845,7 +826,6 @@ impl Stylist {
             parent_style,
             parent_style,
             parent_style,
-            font_metrics,
             /* rule_cache = */ None,
             &mut RuleCacheConditions::default(),
         )
@@ -872,7 +852,6 @@ impl Stylist {
         parent_style: Option<&ComputedValues>,
         parent_style_ignoring_first_line: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValues>,
-        font_metrics: &dyn FontMetricsProvider,
         rule_cache: Option<&RuleCache>,
         rule_cache_conditions: &mut RuleCacheConditions,
     ) -> Arc<ComputedValues>
@@ -909,7 +888,6 @@ impl Stylist {
             parent_style_ignoring_first_line,
             layout_parent_style,
             visited_rules,
-            font_metrics,
             self.quirks_mode,
             rule_cache,
             rule_cache_conditions,
@@ -1326,10 +1304,7 @@ impl Stylist {
     where
         E: TElement,
     {
-        use crate::font_metrics::get_metrics_provider_for_product;
-
         let block = declarations.read_with(guards.author);
-        let metrics = get_metrics_provider_for_product();
 
         // We don't bother inserting these declarations in the rule tree, since
         // it'd be quite useless and slow.
@@ -1348,7 +1323,6 @@ impl Stylist {
             Some(parent_style),
             Some(parent_style),
             Some(parent_style),
-            &metrics,
             CascadeMode::Unvisited {
                 visited_rules: None,
             },
