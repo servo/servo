@@ -12,20 +12,38 @@ use crate::Atom;
 
 /// Represents the font metrics that style needs from a font to compute the
 /// value of certain CSS units like `ex`.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FontMetrics {
     /// The x-height of the font.
     pub x_height: Option<Length>,
     /// The zero advance. This is usually writing mode dependent
     pub zero_advance_measure: Option<Length>,
+    /// The cap-height of the font.
+    pub cap_height: Option<Length>,
+    /// The ascent of the font (a value is always available for this).
+    pub ascent: Length,
+}
+
+impl Default for FontMetrics {
+    fn default() -> Self {
+        FontMetrics {
+            x_height: None,
+            zero_advance_measure: None,
+            cap_height: None,
+            ascent: Length::new(0.0),
+        }
+    }
 }
 
 /// Type of font metrics to retrieve.
 #[derive(Clone, Debug, PartialEq)]
 pub enum FontMetricsOrientation {
     /// Get metrics for horizontal or vertical according to the Context's
-    /// writing mode.
-    MatchContext,
+    /// writing mode, using horizontal metrics for vertical/mixed
+    MatchContextPreferHorizontal,
+    /// Get metrics for horizontal or vertical according to the Context's
+    /// writing mode, using vertical metrics for vertical/mixed
+    MatchContextPreferVertical,
     /// Force getting horizontal metrics.
     Horizontal,
 }
