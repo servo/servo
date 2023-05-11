@@ -698,7 +698,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 68] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 67] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -1014,7 +1014,6 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 68] = [
     ),
     lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
     lnf_int_feature!(atom!("-moz-panel-animations"), PanelAnimations),
-    bool_pref_feature!(atom!("-moz-gtk-non-native-menus"), "widget.gtk.non-native-menu-styling"),
     // media query for MathML Core's implementation of maction/semantics
     bool_pref_feature!(
         atom!("-moz-mathml-core-maction-and-semantics"),
