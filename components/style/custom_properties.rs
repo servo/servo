@@ -124,13 +124,12 @@ macro_rules! lnf_int_variable {
     }};
 }
 
-static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 7] = [
+static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 6] = [
     lnf_int_variable!(
         atom!("-moz-gtk-csd-titlebar-radius"),
         TitlebarRadius,
         int_pixels
     ),
-    lnf_int_variable!(atom!("-moz-gtk-csd-menu-radius"), GtkMenuRadius, int_pixels),
     lnf_int_variable!(
         atom!("-moz-gtk-csd-close-button-position"),
         GTKCSDCloseButtonPosition,
