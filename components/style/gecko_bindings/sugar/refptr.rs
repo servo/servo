@@ -9,7 +9,7 @@ use crate::gecko_bindings::{bindings, structs};
 use crate::Atom;
 use servo_arc::Arc;
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::{fmt, mem, ptr};
 use std::fmt::Write;
 
@@ -40,18 +40,6 @@ impl<T: RefCounted> fmt::Debug for RefPtr<T> {
     }
 }
 
-/// A RefPtr that we know is uniquely owned.
-///
-/// This is basically Box<T>, with the additional guarantee that the box can be
-/// safely interpreted as a RefPtr<T> (with refcount 1)
-///
-/// This is useful when you wish to create a refptr and mutate it temporarily,
-/// while it is still uniquely owned.
-pub struct UniqueRefPtr<T: RefCounted>(RefPtr<T>);
-
-// There is no safe conversion from &T to RefPtr<T> (like Gecko has)
-// because this lets you break UniqueRefPtr's guarantee
-
 impl<T: RefCounted> RefPtr<T> {
     /// Create a new RefPtr from an already addrefed pointer obtained from FFI.
     ///
@@ -59,7 +47,7 @@ impl<T: RefCounted> RefPtr<T> {
     pub unsafe fn from_addrefed(ptr: *mut T) -> Self {
         debug_assert!(!ptr.is_null());
         RefPtr {
-            ptr: ptr,
+            ptr,
             _marker: PhantomData,
         }
     }
@@ -125,41 +113,11 @@ impl<T: RefCounted> RefPtr<T> {
     }
 }
 
-impl<T: RefCounted> UniqueRefPtr<T> {
-    /// Create a unique refptr from an already addrefed pointer obtained from
-    /// FFI.
-    ///
-    /// The refcount must be one.
-    ///
-    /// The pointer must be valid and non null
-    pub unsafe fn from_addrefed(ptr: *mut T) -> Self {
-        UniqueRefPtr(RefPtr::from_addrefed(ptr))
-    }
-
-    /// Convert to a RefPtr so that it can be used.
-    pub fn get(self) -> RefPtr<T> {
-        self.0
-    }
-}
-
 impl<T: RefCounted> Deref for RefPtr<T> {
     type Target = T;
     fn deref(&self) -> &T {
         debug_assert!(!self.ptr.is_null());
         unsafe { &*self.ptr }
-    }
-}
-
-impl<T: RefCounted> Deref for UniqueRefPtr<T> {
-    type Target = T;
-    fn deref(&self) -> &T {
-        unsafe { &*self.0.ptr }
-    }
-}
-
-impl<T: RefCounted> DerefMut for UniqueRefPtr<T> {
-    fn deref_mut(&mut self) -> &mut T {
-        unsafe { &mut *self.0.ptr }
     }
 }
 
@@ -226,24 +184,51 @@ impl<T: RefCounted> structs::RefPtr<T> {
 }
 
 impl<T> structs::RefPtr<T> {
-    /// Sets the contents to an `Arc<T>`, releasing the old value in `self` if
-    /// necessary.
-    pub fn set_arc<U>(&mut self, other: Arc<U>)
+    /// Returns a new, null refptr.
+    pub fn null() -> Self {
+        Self {
+            mRawPtr: ptr::null_mut(),
+            _phantom_0: PhantomData,
+        }
+    }
+
+    /// Create a new RefPtr from an arc.
+    pub fn from_arc(s: Arc<T>) -> Self {
+        Self {
+            mRawPtr: Arc::into_raw(s) as *mut _,
+            _phantom_0: PhantomData,
+        }
+    }
+
+    /// Create a new RefPtr from an arc.
+    pub fn from_arc_ffi<U>(s: Arc<U>) -> Self
+    where
+        U: HasArcFFI<FFIType = T>,
+    {
+        Self {
+            mRawPtr: unsafe { mem::transmute(Arc::into_raw_offset(s)) },
+            _phantom_0: PhantomData,
+        }
+    }
+
+    /// Sets the contents to an Arc<T>.
+    pub fn set_arc(&mut self, other: Arc<T>) {
+        unsafe {
+            if !self.mRawPtr.is_null() {
+                let _ = Arc::from_raw(self.mRawPtr);
+            }
+            self.mRawPtr = Arc::into_raw(other) as *mut _;
+        }
+    }
+
+    /// Sets the contents to an Arc<U>.
+    pub fn set_arc_ffi<U>(&mut self, other: Arc<U>)
     where
         U: HasArcFFI<FFIType = T>,
     {
         unsafe {
             U::release_opt(self.mRawPtr.as_ref());
         }
-        self.set_arc_leaky(other);
-    }
-
-    /// Sets the contents to an Arc<T>
-    /// will leak existing contents
-    pub fn set_arc_leaky<U>(&mut self, other: Arc<U>)
-    where
-        U: HasArcFFI<FFIType = T>,
-    {
         *self = unsafe { mem::transmute(Arc::into_raw_offset(other)) };
     }
 }

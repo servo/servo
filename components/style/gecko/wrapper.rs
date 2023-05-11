@@ -825,14 +825,12 @@ impl<'le> GeckoElement<'le> {
         let mut map = FxHashMap::with_capacity_and_hasher(collection_length, Default::default());
 
         for i in 0..collection_length {
-            let raw_end_value = unsafe { Gecko_ElementTransitions_EndValueAt(self.0, i).as_ref() };
-
-            let end_value = AnimationValue::arc_from_borrowed(&raw_end_value)
-                .expect("AnimationValue not found in ElementTransitions");
-
+            let end_value = unsafe {
+                Arc::from_raw_addrefed(Gecko_ElementTransitions_EndValueAt(self.0, i))
+            };
             let property = end_value.id();
             debug_assert!(!property.is_logical());
-            map.insert(property, end_value.clone_arc());
+            map.insert(property, end_value);
         }
         map
     }
