@@ -221,7 +221,7 @@ impl<T> Arc<T> {
     ///
     /// It is recommended to use RawOffsetArc for this.
     #[inline]
-    fn into_raw(this: Self) -> *const T {
+    pub fn into_raw(this: Self) -> *const T {
         let ptr = unsafe { &((*this.ptr()).data) as *const _ };
         mem::forget(this);
         ptr
@@ -231,10 +231,8 @@ impl<T> Arc<T> {
     ///
     /// Note: This raw pointer will be offset in the allocation and must be preceded
     /// by the atomic count.
-    ///
-    /// It is recommended to use RawOffsetArc for this
     #[inline]
-    unsafe fn from_raw(ptr: *const T) -> Self {
+    pub unsafe fn from_raw(ptr: *const T) -> Self {
         // To find the corresponding pointer to the `ArcInner` we need
         // to subtract the offset of the `data` field from the pointer.
         let ptr = (ptr as *const u8).sub(data_offset::<T>());

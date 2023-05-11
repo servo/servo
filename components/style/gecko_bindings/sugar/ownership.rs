@@ -95,6 +95,15 @@ pub struct Strong<GeckoType> {
     _marker: PhantomData<GeckoType>,
 }
 
+impl<T> From<Arc<T>> for Strong<T> {
+    fn from(arc: Arc<T>) -> Self {
+        Self {
+            ptr: Arc::into_raw(arc),
+            _marker: PhantomData,
+        }
+    }
+}
+
 impl<GeckoType> Strong<GeckoType> {
     #[inline]
     /// Returns whether this reference is null.

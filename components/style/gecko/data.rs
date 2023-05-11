@@ -125,11 +125,7 @@ impl StylesheetInDocument for GeckoStyleSheet {
     #[inline]
     fn contents(&self) -> &StylesheetContents {
         debug_assert!(!self.inner().mContents.mRawPtr.is_null());
-        unsafe {
-            let contents =
-                (&**StylesheetContents::as_arc(&&*self.inner().mContents.mRawPtr)) as *const _;
-            &*contents
-        }
+        unsafe { &*self.inner().mContents.mRawPtr }
     }
 }
 

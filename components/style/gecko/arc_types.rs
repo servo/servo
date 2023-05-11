@@ -10,14 +10,14 @@
 
 use crate::gecko::url::CssUrlData;
 use crate::gecko_bindings::structs::{
-    RawServoAnimationValue, RawServoContainerRule, RawServoCounterStyleRule, RawServoCssUrlData,
+    RawServoAnimationValue, RawServoContainerRule, RawServoCounterStyleRule,
     RawServoDeclarationBlock, RawServoFontFaceRule, RawServoFontFeatureValuesRule,
     RawServoFontPaletteValuesRule, RawServoImportRule, RawServoKeyframe, RawServoKeyframesRule,
     RawServoLayerBlockRule, RawServoLayerStatementRule, RawServoMediaList, RawServoMediaRule,
     RawServoMozDocumentRule, RawServoNamespaceRule, RawServoPageRule, RawServoStyleRule,
-    RawServoStyleSheetContents, RawServoSupportsRule, ServoCssRules,
+    RawServoSupportsRule, ServoCssRules,
 };
-use crate::gecko_bindings::sugar::ownership::{HasArcFFI, Strong};
+use crate::gecko_bindings::sugar::ownership::HasArcFFI;
 use crate::media_queries::MediaList;
 use crate::properties::animated_properties::AnimationValue;
 use crate::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -28,8 +28,7 @@ use crate::stylesheets::{
     FontPaletteValuesRule, ImportRule, KeyframesRule, LayerBlockRule, LayerStatementRule,
     MediaRule, NamespaceRule, PageRule, StyleRule, StylesheetContents, SupportsRule,
 };
-use servo_arc::{Arc, ArcBorrow};
-use std::{mem, ptr};
+use servo_arc::Arc;
 
 macro_rules! impl_arc_ffi {
     ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {
@@ -51,9 +50,6 @@ macro_rules! impl_arc_ffi {
 
 impl_arc_ffi!(Locked<CssRules> => ServoCssRules
               [Servo_CssRules_AddRef, Servo_CssRules_Release]);
-
-impl_arc_ffi!(StylesheetContents => RawServoStyleSheetContents
-              [Servo_StyleSheetContents_AddRef, Servo_StyleSheetContents_Release]);
 
 impl_arc_ffi!(Locked<PropertyDeclarationBlock> => RawServoDeclarationBlock
               [Servo_DeclarationBlock_AddRef, Servo_DeclarationBlock_Release]);
@@ -112,29 +108,32 @@ impl_arc_ffi!(Locked<FontFaceRule> => RawServoFontFaceRule
 impl_arc_ffi!(Locked<CounterStyleRule> => RawServoCounterStyleRule
               [Servo_CounterStyleRule_AddRef, Servo_CounterStyleRule_Release]);
 
-impl_arc_ffi!(CssUrlData => RawServoCssUrlData
-              [Servo_CssUrlData_AddRef, Servo_CssUrlData_Release]);
+macro_rules! impl_simple_arc_ffi {
+    ($ty:ty, $addref:ident, $release:ident) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $addref(obj: &$ty) {
+            std::mem::forget(Arc::from_raw_addrefed(obj));
+        }
 
-// ComputedStyle is not an opaque type on any side of FFI.
-// This means that doing the HasArcFFI type trick is actually unsound,
-// since it gives us a way to construct an Arc<ComputedStyle> from
-// an &ComputedStyle, which in general is not allowed. So we
-// implement the restricted set of arc type functionality we need.
-
-#[no_mangle]
-pub unsafe extern "C" fn Servo_ComputedStyle_AddRef(obj: &ComputedValues) {
-    mem::forget(ArcBorrow::from_ref(obj).clone_arc());
+        #[no_mangle]
+        pub unsafe extern "C" fn $release(obj: &$ty) {
+            let _ = Arc::from_raw(obj);
+        }
+    };
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Servo_ComputedStyle_Release(obj: &ComputedValues) {
-    ArcBorrow::from_ref(obj).with_arc(|a: &Arc<ComputedValues>| {
-        let _: Arc<ComputedValues> = ptr::read(a);
-    });
-}
-
-impl From<Arc<ComputedValues>> for Strong<ComputedValues> {
-    fn from(arc: Arc<ComputedValues>) -> Self {
-        unsafe { mem::transmute(Arc::into_raw_offset(arc)) }
-    }
-}
+impl_simple_arc_ffi!(
+    StylesheetContents,
+    Servo_StyleSheetContents_AddRef,
+    Servo_StyleSheetContents_Release
+);
+impl_simple_arc_ffi!(
+    CssUrlData,
+    Servo_CssUrlData_AddRef,
+    Servo_CssUrlData_Release
+);
+impl_simple_arc_ffi!(
+    ComputedValues,
+    Servo_ComputedStyle_AddRef,
+    Servo_ComputedStyle_Release
+);
