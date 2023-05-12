@@ -21,7 +21,6 @@ use crate::dom::node::{
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
-use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_config::pref;
 use std::sync::atomic::AtomicBool;
@@ -112,15 +111,12 @@ impl HTMLMetaElement {
                     let shared_lock = document.style_shared_lock();
                     let rule = CssRule::Viewport(Arc::new(shared_lock.wrap(translated_rule)));
                     let sheet = Arc::new(Stylesheet {
-                        contents: StylesheetContents {
-                            rules: CssRules::new(vec![rule], shared_lock),
-                            origin: Origin::Author,
-                            namespaces: Default::default(),
-                            quirks_mode: document.quirks_mode(),
-                            url_data: RwLock::new(window_from_node(self).get_url()),
-                            source_map_url: RwLock::new(None),
-                            source_url: RwLock::new(None),
-                        },
+                        contents: StylesheetContents::from_shared_data(
+                            CssRules::new(vec![rule], shared_lock),
+                            Origin::Author,
+                            window_from_node(self).get_url(),
+                            document.quirks_mode(),
+                        ),
                         media: Arc::new(shared_lock.wrap(MediaList::empty())),
                         shared_lock: shared_lock.clone(),
                         disabled: AtomicBool::new(false),
