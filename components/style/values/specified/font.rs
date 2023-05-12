@@ -775,13 +775,13 @@ impl FontSizeKeyword {
     #[cfg(feature = "gecko")]
     #[inline]
     fn to_length(&self, cx: &Context) -> NonNegativeLength {
-        let gecko_font = cx.style().get_font().gecko();
-        let family = &gecko_font.mFont.family.families;
+        let font = cx.style().get_font();
+        let family = &font.mFont.family.families;
         let generic = family
             .single_generic()
             .unwrap_or(computed::GenericFontFamily::None);
         let base_size = unsafe {
-            Atom::with(gecko_font.mLanguage.mRawPtr, |language| {
+            Atom::with(font.mLanguage.mRawPtr, |language| {
                 cx.device().base_size_for_generic(language, generic)
             })
         };

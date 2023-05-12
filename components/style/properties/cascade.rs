@@ -900,7 +900,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         let builder = &mut self.context.builder;
         let default_font_type = {
-            let font = builder.get_font().gecko();
+            let font = builder.get_font();
 
             if !font.mFont.family.is_initial {
                 return;
@@ -922,9 +922,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             default_font_type
         };
 
-        let font = builder.mutate_font().gecko_mut();
         // NOTE: Leaves is_initial untouched.
-        font.mFont.family.families = FontFamily::generic(default_font_type).families.clone();
+        builder.mutate_font().mFont.family.families = FontFamily::generic(default_font_type).families.clone();
     }
 
     /// Prioritize user fonts if needed by pref.
@@ -943,7 +942,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         let builder = &mut self.context.builder;
         let default_font_type = {
-            let font = builder.get_font().gecko();
+            let font = builder.get_font();
 
             if font.mFont.family.is_system_font {
                 return;
@@ -961,7 +960,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             }
         };
 
-        let font = builder.mutate_font().gecko_mut();
+        let font = builder.mutate_font();
         font.mFont.family.families.prioritize_first_generic_or_prepend(default_font_type);
     }
 
@@ -986,7 +985,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 },
             };
 
-            if font.gecko().mScriptUnconstrainedSize == new_size.computed_size {
+            if font.mScriptUnconstrainedSize == new_size.computed_size {
                 return;
             }
 
@@ -1013,9 +1012,9 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         let builder = &mut self.context.builder;
         let min_font_size = {
-            let font = builder.get_font().gecko();
+            let font = builder.get_font();
             let min_font_size = unsafe {
-                bindings::Gecko_nsStyleFont_ComputeMinSize(font, builder.device.document())
+                bindings::Gecko_nsStyleFont_ComputeMinSize(&**font, builder.device.document())
             };
 
             if font.mFont.size.0 >= min_font_size {
@@ -1025,7 +1024,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             NonNegative(min_font_size)
         };
 
-        builder.mutate_font().gecko_mut().mFont.size = min_font_size;
+        builder.mutate_font().mFont.size = min_font_size;
     }
 
     /// <svg:text> is not affected by text zoom, and it uses a preshint to disable it. We fix up
@@ -1133,8 +1132,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         let (new_size, new_unconstrained_size) = {
             let builder = &self.context.builder;
-            let font = builder.get_font().gecko();
-            let parent_font = builder.get_parent_font().gecko();
+            let font = builder.get_font();
+            let parent_font = builder.get_parent_font();
 
             let delta = font.mMathDepth.saturating_sub(parent_font.mMathDepth);
 
@@ -1195,7 +1194,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 )
             }
         };
-        let font = self.context.builder.mutate_font().gecko_mut();
+        let font = self.context.builder.mutate_font();
         font.mFont.size = NonNegative(new_size);
         font.mSize = NonNegative(new_size);
         font.mScriptUnconstrainedSize = NonNegative(new_unconstrained_size);
