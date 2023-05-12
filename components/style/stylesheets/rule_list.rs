@@ -13,7 +13,7 @@ use crate::stylesheets::stylesheet::StylesheetContents;
 use crate::stylesheets::{AllowImportRules, CssRule, RulesMutateError};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOfOps};
-use servo_arc::{Arc, RawOffsetArc};
+use servo_arc::Arc;
 use std::fmt::{self, Write};
 
 /// A list of CSS rules.
@@ -141,7 +141,7 @@ pub trait CssRulesHelpers {
     ) -> Result<CssRule, RulesMutateError>;
 }
 
-impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
+impl CssRulesHelpers for Locked<CssRules> {
     fn insert_rule(
         &self,
         lock: &SharedRwLock,

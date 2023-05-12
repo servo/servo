@@ -7,12 +7,11 @@
 use crate::dom::TElement;
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::{self, ServoStyleSetSizes, StyleSheet as DomStyleSheet, StyleSheetInfo};
-use crate::gecko_bindings::sugar::ownership::HasArcFFI;
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use crate::media_queries::{Device, MediaList};
 use crate::properties::ComputedValues;
 use crate::selector_parser::SnapshotMap;
-use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
+use crate::shared_lock::{SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheets::{StylesheetContents, StylesheetInDocument};
 use crate::stylist::Stylist;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
@@ -102,15 +101,12 @@ impl Clone for GeckoStyleSheet {
 impl StylesheetInDocument for GeckoStyleSheet {
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
         use crate::gecko_bindings::structs::mozilla::dom::MediaList as DomMediaList;
-        use std::mem;
-
         unsafe {
             let dom_media_list = self.raw().mMedia.mRawPtr as *const DomMediaList;
             if dom_media_list.is_null() {
                 return None;
             }
-            let raw_list = &*(*dom_media_list).mRawList.mRawPtr;
-            let list = Locked::<MediaList>::as_arc(mem::transmute(&raw_list));
+            let list = &*(*dom_media_list).mRawList.mRawPtr;
             Some(list.read_with(guard))
         }
     }
