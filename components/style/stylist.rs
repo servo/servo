@@ -60,7 +60,7 @@ pub type StylistSheet = crate::stylesheets::DocumentStyleSheet;
 #[cfg(feature = "gecko")]
 pub type StylistSheet = crate::gecko::data::GeckoStyleSheet;
 
-trait CascadeDataCacheEntry : Sized {
+trait CascadeDataCacheEntry: Sized {
     /// Returns a reference to the cascade data.
     fn cascade_data(&self) -> &CascadeData;
     /// Rebuilds the cascade data for the new stylesheet collection. The
@@ -129,13 +129,7 @@ where
 
         debug!("> Picking the slow path");
 
-        let new_entry = Entry::rebuild(
-            device,
-            quirks_mode,
-            collection,
-            guard,
-            old_entry,
-        )?;
+        let new_entry = Entry::rebuild(device, quirks_mode, collection, guard, old_entry)?;
 
         self.entries.push(new_entry.clone());
         Ok(Some(new_entry))
@@ -205,7 +199,7 @@ impl CascadeDataCacheEntry for UserAgentCascadeData {
         _old: &Self,
     ) -> Result<Arc<Self>, FailedAllocationError>
     where
-        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static
+        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
     {
         // TODO: Maybe we should support incremental rebuilds, though they seem
         // uncommon and rebuild() doesn't deal with
