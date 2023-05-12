@@ -6,12 +6,11 @@
 //!
 //! [import]: https://drafts.csswg.org/css-cascade-3/#at-import
 
-use crate::context::QuirksMode;
 use crate::media_queries::MediaList;
 use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
-use crate::stylesheets::{CssRule, Origin, StylesheetInDocument};
+use crate::stylesheets::{CssRule, StylesheetInDocument};
 use crate::values::CssUrl;
 use cssparser::SourceLocation;
 use std::fmt::{self, Write};
@@ -112,7 +111,7 @@ impl ImportSheet {
 
     /// Returns the rules for this import rule.
     pub fn rules<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a [CssRule] {
-        self.0.rules()
+        self.0.rules(guard)
     }
 }
 
