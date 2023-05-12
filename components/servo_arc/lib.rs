@@ -218,8 +218,6 @@ impl<T> Arc<T> {
     /// Convert the Arc<T> to a raw pointer, suitable for use across FFI
     ///
     /// Note: This returns a pointer to the data T, which is offset in the allocation.
-    ///
-    /// It is recommended to use RawOffsetArc for this.
     #[inline]
     pub fn into_raw(this: Self) -> *const T {
         let ptr = unsafe { &((*this.ptr()).data) as *const _ };
@@ -284,26 +282,6 @@ impl<T> Arc<T> {
     #[inline]
     pub fn borrow_arc<'a>(&'a self) -> ArcBorrow<'a, T> {
         ArcBorrow(&**self)
-    }
-
-    /// Temporarily converts |self| into a bonafide RawOffsetArc and exposes it to the
-    /// provided callback. The refcount is not modified.
-    #[inline(always)]
-    pub fn with_raw_offset_arc<F, U>(&self, f: F) -> U
-    where
-        F: FnOnce(&RawOffsetArc<T>) -> U,
-    {
-        // Synthesize transient Arc, which never touches the refcount of the ArcInner.
-        let transient = unsafe { NoDrop::new(Arc::into_raw_offset(ptr::read(self))) };
-
-        // Expose the transient Arc to the callback, which may clone it if it wants.
-        let result = f(&transient);
-
-        // Forget the transient Arc to leave the refcount untouched.
-        mem::forget(transient);
-
-        // Forward the result.
-        result
     }
 
     /// Returns the address on the heap of the Arc itself -- not the T within it -- for memory
@@ -1100,149 +1078,6 @@ impl<H: PartialEq, T: PartialEq> PartialEq for ThinArc<H, T> {
 
 impl<H: Eq, T: Eq> Eq for ThinArc<H, T> {}
 
-/// An `Arc`, except it holds a pointer to the T instead of to the
-/// entire ArcInner. This struct is FFI-compatible.
-///
-/// ```text
-///  Arc<T>    RawOffsetArc<T>
-///   |          |
-///   v          v
-///  ---------------------
-/// | RefCount | T (data) | [ArcInner<T>]
-///  ---------------------
-/// ```
-///
-/// This means that this is a direct pointer to
-/// its contained data (and can be read from by both C++ and Rust),
-/// but we can also convert it to a "regular" Arc<T> by removing the offset.
-///
-/// This is very useful if you have an Arc-containing struct shared between Rust and C++,
-/// and wish for C++ to be able to read the data behind the `Arc` without incurring
-/// an FFI call overhead.
-#[derive(Eq)]
-#[repr(C)]
-pub struct RawOffsetArc<T> {
-    ptr: ptr::NonNull<T>,
-}
-
-unsafe impl<T: Sync + Send> Send for RawOffsetArc<T> {}
-unsafe impl<T: Sync + Send> Sync for RawOffsetArc<T> {}
-
-impl<T> Deref for RawOffsetArc<T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*self.ptr.as_ptr() }
-    }
-}
-
-impl<T> Clone for RawOffsetArc<T> {
-    #[inline]
-    fn clone(&self) -> Self {
-        Arc::into_raw_offset(self.clone_arc())
-    }
-}
-
-impl<T> Drop for RawOffsetArc<T> {
-    fn drop(&mut self) {
-        let _ = Arc::from_raw_offset(RawOffsetArc { ptr: self.ptr });
-    }
-}
-
-impl<T: fmt::Debug> fmt::Debug for RawOffsetArc<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(&**self, f)
-    }
-}
-
-impl<T: PartialEq> PartialEq for RawOffsetArc<T> {
-    fn eq(&self, other: &RawOffsetArc<T>) -> bool {
-        *(*self) == *(*other)
-    }
-}
-
-impl<T> RawOffsetArc<T> {
-    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
-    /// provided callback. The refcount is not modified.
-    #[inline]
-    pub fn with_arc<F, U>(&self, f: F) -> U
-    where
-        F: FnOnce(&Arc<T>) -> U,
-    {
-        // Synthesize transient Arc, which never touches the refcount of the ArcInner.
-        let transient = unsafe { NoDrop::new(Arc::from_raw(self.ptr.as_ptr())) };
-
-        // Expose the transient Arc to the callback, which may clone it if it wants.
-        let result = f(&transient);
-
-        // Forget the transient Arc to leave the refcount untouched.
-        // XXXManishearth this can be removed when unions stabilize,
-        // since then NoDrop becomes zero overhead
-        mem::forget(transient);
-
-        // Forward the result.
-        result
-    }
-
-    /// If uniquely owned, provide a mutable reference
-    /// Else create a copy, and mutate that
-    ///
-    /// This is functionally the same thing as `Arc::make_mut`
-    #[inline]
-    pub fn make_mut(&mut self) -> &mut T
-    where
-        T: Clone,
-    {
-        unsafe {
-            // extract the RawOffsetArc as an owned variable
-            let this = ptr::read(self);
-            // treat it as a real Arc
-            let mut arc = Arc::from_raw_offset(this);
-            // obtain the mutable reference. Cast away the lifetime
-            // This may mutate `arc`
-            let ret = Arc::make_mut(&mut arc) as *mut _;
-            // Store the possibly-mutated arc back inside, after converting
-            // it to a RawOffsetArc again
-            ptr::write(self, Arc::into_raw_offset(arc));
-            &mut *ret
-        }
-    }
-
-    /// Clone it as an `Arc`
-    #[inline]
-    pub fn clone_arc(&self) -> Arc<T> {
-        RawOffsetArc::with_arc(self, |a| a.clone())
-    }
-
-    /// Produce a pointer to the data that can be converted back
-    /// to an `Arc`
-    #[inline]
-    pub fn borrow_arc<'a>(&'a self) -> ArcBorrow<'a, T> {
-        ArcBorrow(&**self)
-    }
-}
-
-impl<T> Arc<T> {
-    /// Converts an `Arc` into a `RawOffsetArc`. This consumes the `Arc`, so the refcount
-    /// is not modified.
-    #[inline]
-    pub fn into_raw_offset(a: Self) -> RawOffsetArc<T> {
-        unsafe {
-            RawOffsetArc {
-                ptr: ptr::NonNull::new_unchecked(Arc::into_raw(a) as *mut T),
-            }
-        }
-    }
-
-    /// Converts a `RawOffsetArc` into an `Arc`. This consumes the `RawOffsetArc`, so the refcount
-    /// is not modified.
-    #[inline]
-    pub fn from_raw_offset(a: RawOffsetArc<T>) -> Self {
-        let ptr = a.ptr.as_ptr();
-        mem::forget(a);
-        unsafe { Arc::from_raw(ptr) }
-    }
-}
-
 /// A "borrowed `Arc`". This is a pointer to
 /// a T that is known to have been allocated within an
 /// `Arc`.
@@ -1253,8 +1088,7 @@ impl<T> Arc<T> {
 /// It's also a direct pointer to `T`, so using this involves less pointer-chasing
 ///
 /// However, C++ code may hand us refcounted things as pointers to T directly,
-/// so we have to conjure up a temporary `Arc` on the stack each time. The
-/// same happens for when the object is managed by a `RawOffsetArc`.
+/// so we have to conjure up a temporary `Arc` on the stack each time.
 ///
 /// `ArcBorrow` lets us deal with borrows of known-refcounted objects
 /// without needing to worry about where the `Arc<T>` is.

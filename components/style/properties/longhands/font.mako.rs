@@ -401,7 +401,7 @@ pub mod system_font {
                 bindings::Gecko_nsFont_InitSystem(
                     system.as_mut_ptr(),
                     *self,
-                    cx.style().get_font().gecko(),
+                    &**cx.style().get_font(),
                     cx.device().document()
                 );
                 &mut *system.as_mut_ptr()

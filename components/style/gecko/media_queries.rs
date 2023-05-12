@@ -131,7 +131,7 @@ impl Device {
                 line_height,
                 pres_context.map_or(std::ptr::null(), |pc| pc),
                 vertical,
-                font.gecko(),
+                &**font,
                 element.map_or(std::ptr::null(), |e| e.0)
             )
         });
@@ -231,7 +231,7 @@ impl Device {
             bindings::Gecko_GetFontMetrics(
                 pc,
                 vertical,
-                font.gecko(),
+                &**font,
                 base_size,
                 // we don't use the user font set in a media query
                 !in_media_query,
