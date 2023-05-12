@@ -34,7 +34,7 @@ from mach.registrar import Registrar
 
 from mach_bootstrap import _get_exec_path
 from servo.command_base import CommandBase, cd, call, check_call, append_to_path_env, gstreamer_root
-from servo.gstreamer import windows_dlls, windows_plugins, macos_dylibs, macos_plugins
+from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
 from servo.util import host_triple
 
 
@@ -625,13 +625,20 @@ class MachCommands(CommandBase):
                     status = 1
 
             elif sys.platform == "darwin":
-                servo_exe_dir = os.path.dirname(
-                    self.get_binary_path(release, dev, target=target, simpleservo=libsimpleservo)
-                )
-                assert os.path.exists(servo_exe_dir)
+                servo_path = self.get_binary_path(release, dev, target=target, simpleservo=libsimpleservo)
+                servo_bin_dir = os.path.dirname(servo_path)
+                assert os.path.exists(servo_bin_dir)
 
-                if has_media_stack and not package_gstreamer_dylibs(servo_exe_dir):
-                    return 1
+                if has_media_stack:
+                    gst_root = gstreamer_root(target, env)
+                    if not package_gstreamer_dylibs(gst_root, servo_path):
+                        return 1
+
+                    # On Mac we use the relocatable dylibs from offical gstreamer
+                    # .pkg distribution. We need to add an LC_RPATH to the servo binary
+                    # to allow the dynamic linker to be able to locate these dylibs
+                    # See `man dyld` for more info
+                    add_rpath_to_binary(servo_path, "@executable_path/lib/")
 
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
                 # like Instruments.app.
@@ -791,22 +798,102 @@ def angle_root(target, nuget_env):
     return angle_default_path
 
 
-def package_gstreamer_dylibs(servo_exe_dir):
-    missing = []
-    gst_dylibs = macos_dylibs() + macos_plugins()
-    for gst_lib in gst_dylibs:
-        try:
-            dest_path = os.path.join(servo_exe_dir, os.path.basename(gst_lib))
-            if os.path.isfile(dest_path):
-                os.remove(dest_path)
-            shutil.copy(gst_lib, servo_exe_dir)
-        except Exception as e:
-            print(e)
-            missing += [str(gst_lib)]
+def otool(s):
+    o = subprocess.Popen(['/usr/bin/otool', '-L', s], stdout=subprocess.PIPE)
+    for line in map(lambda s: s.decode('ascii'), o.stdout):
+        if line[0] == '\t':
+            yield line.split(' ', 1)[0][1:]
 
-    for gst_lib in missing:
-        print("ERROR: could not find required GStreamer DLL: " + gst_lib)
-    return not missing
+
+def install_name_tool(binary, *args):
+    try:
+        subprocess.check_call(['install_name_tool', *args, binary])
+    except subprocess.CalledProcessError as e:
+        print("install_name_tool exited with return value %d" % e.returncode)
+
+
+def change_link_name(binary, old, new):
+    install_name_tool(binary, '-change', old, f"@executable_path/{new}")
+
+
+def add_rpath_to_binary(binary, relative_path):
+    install_name_tool(binary, "-add_rpath", relative_path)
+
+
+def change_rpath_in_binary(binary, old, new):
+    install_name_tool(binary, "-rpath", old, new)
+
+
+def is_system_library(lib):
+    return lib.startswith("/System/Library") or lib.startswith("/usr/lib")
+
+
+def is_relocatable_library(lib):
+    return lib.startswith("@rpath/")
+
+
+def change_non_system_libraries_path(libraries, relative_path, binary):
+    for lib in libraries:
+        if is_system_library(lib) or is_relocatable_library(lib):
+            continue
+        new_path = path.join(relative_path, path.basename(lib))
+        change_link_name(binary, lib, new_path)
+
+
+def resolve_rpath(lib, rpath_root):
+    if not is_relocatable_library(lib):
+        return lib
+
+    rpaths = ['', '../', 'gstreamer-1.0/']
+    for rpath in rpaths:
+        full_path = rpath_root + lib.replace('@rpath/', rpath)
+        if path.exists(full_path):
+            return path.normpath(full_path)
+
+    raise Exception("Unable to satisfy rpath dependency: " + lib)
+
+
+def copy_dependencies(binary_path, lib_path, gst_root):
+    relative_path = path.relpath(lib_path, path.dirname(binary_path)) + "/"
+
+    # Update binary libraries
+    binary_dependencies = set(otool(binary_path))
+    binary_dependencies = binary_dependencies.union(macos_plugins())
+    change_non_system_libraries_path(binary_dependencies, relative_path, binary_path)
+
+    # Update dependencies libraries
+    need_checked = binary_dependencies
+    checked = set()
+    while need_checked:
+        checking = set(need_checked)
+        need_checked = set()
+        for f in checking:
+            # No need to check these for their dylibs
+            if is_system_library(f):
+                continue
+            full_path = resolve_rpath(f, gst_root)
+            need_relinked = set(otool(full_path))
+            new_path = path.join(lib_path, path.basename(full_path))
+            if not path.exists(new_path):
+                shutil.copyfile(full_path, new_path)
+            change_non_system_libraries_path(need_relinked, relative_path, new_path)
+            need_checked.update(need_relinked)
+        checked.update(checking)
+        need_checked.difference_update(checked)
+
+
+def package_gstreamer_dylibs(gst_root, servo_bin):
+    lib_dir = path.join(path.dirname(servo_bin), "lib")
+    if os.path.exists(lib_dir):
+        shutil.rmtree(lib_dir)
+    os.mkdir(lib_dir)
+    try:
+        copy_dependencies(servo_bin, lib_dir, path.join(gst_root, 'lib', ''))
+    except Exception as e:
+        print("ERROR: could not package required dylibs")
+        print(e)
+        return False
+    return True
 
 
 def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):

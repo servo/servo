@@ -177,6 +177,11 @@ mod media_platform {
         } else {
             let mut plugin_dir = std::env::current_exe().unwrap();
             plugin_dir.pop();
+
+            if cfg!(target_os = "macos") {
+                plugin_dir.push("lib");
+            }
+
             plugin_dir
         };
 
