@@ -61,6 +61,19 @@ impl ImportSheet {
             ImportSheet::Pending(_) => None,
         }
     }
+
+    /// Returns the media list for this import rule.
+    pub fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+        self.as_sheet().and_then(|s| s.media(guard))
+    }
+
+    /// Returns the rule list for this import rule.
+    pub fn rules<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a [CssRule] {
+        match self.as_sheet() {
+            Some(s) => s.rules(guard),
+            None => &[],
+        }
+    }
 }
 
 #[cfg(feature = "gecko")]
@@ -85,69 +98,21 @@ impl DeepCloneWithLock for ImportSheet {
     }
 }
 
-#[cfg(feature = "gecko")]
-impl StylesheetInDocument for ImportSheet {
-    fn origin(&self, _guard: &SharedRwLockReadGuard) -> Origin {
-        match *self {
-            ImportSheet::Sheet(ref s) => s.contents().origin,
-            ImportSheet::Pending(ref p) => p.origin,
-        }
-    }
-
-    fn quirks_mode(&self, _guard: &SharedRwLockReadGuard) -> QuirksMode {
-        match *self {
-            ImportSheet::Sheet(ref s) => s.contents().quirks_mode,
-            ImportSheet::Pending(ref p) => p.quirks_mode,
-        }
-    }
-
-    fn enabled(&self) -> bool {
-        match *self {
-            ImportSheet::Sheet(ref s) => s.enabled(),
-            ImportSheet::Pending(_) => true,
-        }
-    }
-
-    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
-        match *self {
-            ImportSheet::Sheet(ref s) => s.media(guard),
-            ImportSheet::Pending(_) => None,
-        }
-    }
-
-    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
-        match *self {
-            ImportSheet::Sheet(ref s) => s.contents().rules(guard),
-            ImportSheet::Pending(_) => &[],
-        }
-    }
-}
-
 /// A sheet that is held from an import rule.
 #[cfg(feature = "servo")]
 #[derive(Debug)]
 pub struct ImportSheet(pub ::servo_arc::Arc<crate::stylesheets::Stylesheet>);
 
 #[cfg(feature = "servo")]
-impl StylesheetInDocument for ImportSheet {
-    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
-        self.0.origin(guard)
-    }
-
-    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
-        self.0.quirks_mode(guard)
-    }
-
-    fn enabled(&self) -> bool {
-        self.0.enabled()
-    }
-
-    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+impl ImportSheet {
+    /// Returns the media list for this import rule.
+    pub fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
         self.0.media(guard)
     }
 
-    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
-        self.0.rules(guard)
+    /// Returns the rules for this import rule.
+    pub fn rules<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.0.rules()
     }
 }
 
