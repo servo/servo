@@ -4,14 +4,13 @@
 
 //! A rust helper to ease the use of Gecko's refcounted types.
 
-use crate::gecko_bindings::sugar::ownership::HasArcFFI;
 use crate::gecko_bindings::{bindings, structs};
 use crate::Atom;
 use servo_arc::Arc;
+use std::fmt::Write;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::{fmt, mem, ptr};
-use std::fmt::Write;
 
 /// Trait for all objects that have Addref() and Release
 /// methods and can be placed inside RefPtr<T>
@@ -200,17 +199,6 @@ impl<T> structs::RefPtr<T> {
         }
     }
 
-    /// Create a new RefPtr from an arc.
-    pub fn from_arc_ffi<U>(s: Arc<U>) -> Self
-    where
-        U: HasArcFFI<FFIType = T>,
-    {
-        Self {
-            mRawPtr: unsafe { mem::transmute(Arc::into_raw_offset(s)) },
-            _phantom_0: PhantomData,
-        }
-    }
-
     /// Sets the contents to an Arc<T>.
     pub fn set_arc(&mut self, other: Arc<T>) {
         unsafe {
@@ -219,17 +207,6 @@ impl<T> structs::RefPtr<T> {
             }
             self.mRawPtr = Arc::into_raw(other) as *mut _;
         }
-    }
-
-    /// Sets the contents to an Arc<U>.
-    pub fn set_arc_ffi<U>(&mut self, other: Arc<U>)
-    where
-        U: HasArcFFI<FFIType = T>,
-    {
-        unsafe {
-            U::release_opt(self.mRawPtr.as_ref());
-        }
-        *self = unsafe { mem::transmute(Arc::into_raw_offset(other)) };
     }
 }
 

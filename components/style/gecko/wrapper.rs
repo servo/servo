@@ -48,7 +48,6 @@ use crate::gecko_bindings::structs::NODE_DESCENDANTS_NEED_FRAMES;
 use crate::gecko_bindings::structs::NODE_NEEDS_FRAME;
 use crate::gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
 use crate::gecko_bindings::structs::{nsINode as RawGeckoNode, Element as RawGeckoElement};
-use crate::gecko_bindings::sugar::ownership::HasArcFFI;
 use crate::global_style_data::GLOBAL_STYLE_DATA;
 use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::media_queries::Device;
@@ -75,7 +74,7 @@ use selectors::matching::VisitedHandlingMode;
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
 use selectors::{Element, OpaqueElement};
-use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
+use servo_arc::{Arc, ArcBorrow};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
@@ -1139,10 +1138,10 @@ impl<'le> TElement for GeckoElement<'le> {
             return None;
         }
 
-        let declarations = unsafe { Gecko_GetStyleAttrDeclarationBlock(self.0).as_ref() };
-        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
-            declarations.and_then(|s| s.as_arc_opt());
-        declarations.map(|s| s.borrow_arc())
+        unsafe {
+            let declarations = Gecko_GetStyleAttrDeclarationBlock(self.0).as_ref()?;
+            Some(ArcBorrow::from_ref(declarations))
+        }
     }
 
     fn unset_dirty_style_attribute(&self) {
@@ -1160,14 +1159,8 @@ impl<'le> TElement for GeckoElement<'le> {
             let declaration: &structs::DeclarationBlock =
                 slots.mSMILOverrideStyleDeclaration.mRawPtr.as_ref()?;
 
-            let raw: &structs::RawServoDeclarationBlock = declaration.mRaw.mRawPtr.as_ref()?;
-
-            Some(
-                Locked::<PropertyDeclarationBlock>::as_arc(
-                    &*(&raw as *const &structs::RawServoDeclarationBlock),
-                )
-                .borrow_arc(),
-            )
+            let raw: &structs::StyleLockedDeclarationBlock = declaration.mRaw.mRawPtr.as_ref()?;
+            Some(ArcBorrow::from_ref(raw))
         }
     }
 
@@ -1652,21 +1645,17 @@ impl<'le> TElement for GeckoElement<'le> {
         }
         let declarations =
             unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0).as_ref() };
-        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
-            declarations.and_then(|s| s.as_arc_opt());
         if let Some(decl) = declarations {
             hints.push(ApplicableDeclarationBlock::from_declarations(
-                decl.clone_arc(),
+                unsafe { Arc::from_raw_addrefed(decl) },
                 ServoCascadeLevel::PresHints,
                 LayerOrder::root(),
             ));
         }
         let declarations = unsafe { Gecko_GetExtraContentStyleDeclarations(self.0).as_ref() };
-        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
-            declarations.and_then(|s| s.as_arc_opt());
         if let Some(decl) = declarations {
             hints.push(ApplicableDeclarationBlock::from_declarations(
-                decl.clone_arc(),
+                unsafe { Arc::from_raw_addrefed(decl) },
                 ServoCascadeLevel::PresHints,
                 LayerOrder::root(),
             ));
@@ -1690,11 +1679,9 @@ impl<'le> TElement for GeckoElement<'le> {
                     Gecko_GetVisitedLinkAttrDeclarationBlock(self.0).as_ref()
                 },
             };
-            let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
-                declarations.and_then(|s| s.as_arc_opt());
             if let Some(decl) = declarations {
                 hints.push(ApplicableDeclarationBlock::from_declarations(
-                    decl.clone_arc(),
+                    unsafe { Arc::from_raw_addrefed(decl) },
                     ServoCascadeLevel::PresHints,
                     LayerOrder::root(),
                 ));
@@ -1706,11 +1693,9 @@ impl<'le> TElement for GeckoElement<'le> {
             if active {
                 let declarations =
                     unsafe { Gecko_GetActiveLinkAttrDeclarationBlock(self.0).as_ref() };
-                let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
-                    declarations.and_then(|s| s.as_arc_opt());
                 if let Some(decl) = declarations {
                     hints.push(ApplicableDeclarationBlock::from_declarations(
-                        decl.clone_arc(),
+                        unsafe { Arc::from_raw_addrefed(decl) },
                         ServoCascadeLevel::PresHints,
                         LayerOrder::root(),
                     ));

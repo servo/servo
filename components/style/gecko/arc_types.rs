@@ -2,22 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! This file lists all arc FFI types and defines corresponding addref
-//! and release functions. This list corresponds to ServoArcTypeList.h
-//! file in Gecko.
+//! This file lists all arc FFI types and defines corresponding addref and release functions. This
+//! list loosely corresponds to ServoLockedArcTypeList.h file in Gecko.
 
 #![allow(non_snake_case, missing_docs)]
 
 use crate::gecko::url::CssUrlData;
-use crate::gecko_bindings::structs::{
-    RawServoContainerRule, RawServoCounterStyleRule, RawServoDeclarationBlock,
-    RawServoFontFaceRule, RawServoFontFeatureValuesRule, RawServoFontPaletteValuesRule,
-    RawServoImportRule, RawServoKeyframe, RawServoKeyframesRule, RawServoLayerBlockRule,
-    RawServoLayerStatementRule, RawServoMediaList, RawServoMediaRule, RawServoMozDocumentRule,
-    RawServoNamespaceRule, RawServoPageRule, RawServoStyleRule, RawServoSupportsRule,
-    ServoCssRules,
-};
-use crate::gecko_bindings::sugar::ownership::HasArcFFI;
 use crate::media_queries::MediaList;
 use crate::properties::animated_properties::AnimationValue;
 use crate::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -29,81 +19,6 @@ use crate::stylesheets::{
     MediaRule, NamespaceRule, PageRule, StyleRule, StylesheetContents, SupportsRule,
 };
 use servo_arc::Arc;
-
-macro_rules! impl_arc_ffi {
-    ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {
-        unsafe impl HasArcFFI for $servo_type {
-            type FFIType = $gecko_type;
-        }
-
-        #[no_mangle]
-        pub unsafe extern "C" fn $addref(obj: &$gecko_type) {
-            <$servo_type>::addref(obj);
-        }
-
-        #[no_mangle]
-        pub unsafe extern "C" fn $release(obj: &$gecko_type) {
-            <$servo_type>::release(obj);
-        }
-    };
-}
-
-impl_arc_ffi!(Locked<CssRules> => ServoCssRules
-              [Servo_CssRules_AddRef, Servo_CssRules_Release]);
-
-impl_arc_ffi!(Locked<PropertyDeclarationBlock> => RawServoDeclarationBlock
-              [Servo_DeclarationBlock_AddRef, Servo_DeclarationBlock_Release]);
-
-impl_arc_ffi!(Locked<StyleRule> => RawServoStyleRule
-              [Servo_StyleRule_AddRef, Servo_StyleRule_Release]);
-
-impl_arc_ffi!(Locked<ImportRule> => RawServoImportRule
-              [Servo_ImportRule_AddRef, Servo_ImportRule_Release]);
-
-impl_arc_ffi!(Locked<Keyframe> => RawServoKeyframe
-              [Servo_Keyframe_AddRef, Servo_Keyframe_Release]);
-
-impl_arc_ffi!(Locked<KeyframesRule> => RawServoKeyframesRule
-              [Servo_KeyframesRule_AddRef, Servo_KeyframesRule_Release]);
-
-impl_arc_ffi!(Locked<LayerBlockRule> => RawServoLayerBlockRule
-              [Servo_LayerBlockRule_AddRef, Servo_LayerBlockRule_Release]);
-
-impl_arc_ffi!(Locked<LayerStatementRule> => RawServoLayerStatementRule
-              [Servo_LayerStatementRule_AddRef, Servo_LayerStatementRule_Release]);
-
-impl_arc_ffi!(Locked<MediaList> => RawServoMediaList
-              [Servo_MediaList_AddRef, Servo_MediaList_Release]);
-
-impl_arc_ffi!(Locked<MediaRule> => RawServoMediaRule
-              [Servo_MediaRule_AddRef, Servo_MediaRule_Release]);
-
-impl_arc_ffi!(Locked<NamespaceRule> => RawServoNamespaceRule
-              [Servo_NamespaceRule_AddRef, Servo_NamespaceRule_Release]);
-
-impl_arc_ffi!(Locked<PageRule> => RawServoPageRule
-              [Servo_PageRule_AddRef, Servo_PageRule_Release]);
-
-impl_arc_ffi!(Locked<SupportsRule> => RawServoSupportsRule
-              [Servo_SupportsRule_AddRef, Servo_SupportsRule_Release]);
-
-impl_arc_ffi!(Locked<ContainerRule> => RawServoContainerRule
-              [Servo_ContainerRule_AddRef, Servo_ContainerRule_Release]);
-
-impl_arc_ffi!(Locked<DocumentRule> => RawServoMozDocumentRule
-              [Servo_DocumentRule_AddRef, Servo_DocumentRule_Release]);
-
-impl_arc_ffi!(Locked<FontFeatureValuesRule> => RawServoFontFeatureValuesRule
-              [Servo_FontFeatureValuesRule_AddRef, Servo_FontFeatureValuesRule_Release]);
-
-impl_arc_ffi!(Locked<FontPaletteValuesRule> => RawServoFontPaletteValuesRule
-              [Servo_FontPaletteValuesRule_AddRef, Servo_FontPaletteValuesRule_Release]);
-
-impl_arc_ffi!(Locked<FontFaceRule> => RawServoFontFaceRule
-              [Servo_FontFaceRule_AddRef, Servo_FontFaceRule_Release]);
-
-impl_arc_ffi!(Locked<CounterStyleRule> => RawServoCounterStyleRule
-              [Servo_CounterStyleRule_AddRef, Servo_CounterStyleRule_Release]);
 
 macro_rules! impl_simple_arc_ffi {
     ($ty:ty, $addref:ident, $release:ident) => {
@@ -118,6 +33,129 @@ macro_rules! impl_simple_arc_ffi {
         }
     };
 }
+
+macro_rules! impl_locked_arc_ffi {
+    ($servo_type:ty, $alias:ident, $addref:ident, $release:ident) => {
+        /// A simple alias for a locked type.
+        pub type $alias = Locked<$servo_type>;
+        impl_simple_arc_ffi!($alias, $addref, $release);
+    };
+}
+
+impl_locked_arc_ffi!(
+    CssRules,
+    LockedCssRules,
+    Servo_CssRules_AddRef,
+    Servo_CssRules_Release
+);
+impl_locked_arc_ffi!(
+    PropertyDeclarationBlock,
+    LockedDeclarationBlock,
+    Servo_DeclarationBlock_AddRef,
+    Servo_DeclarationBlock_Release
+);
+impl_locked_arc_ffi!(
+    StyleRule,
+    LockedStyleRule,
+    Servo_StyleRule_AddRef,
+    Servo_StyleRule_Release
+);
+impl_locked_arc_ffi!(
+    ImportRule,
+    LockedImportRule,
+    Servo_ImportRule_AddRef,
+    Servo_ImportRule_Release
+);
+impl_locked_arc_ffi!(
+    Keyframe,
+    LockedKeyframe,
+    Servo_Keyframe_AddRef,
+    Servo_Keyframe_Release
+);
+impl_locked_arc_ffi!(
+    KeyframesRule,
+    LockedKeyframesRule,
+    Servo_KeyframesRule_AddRef,
+    Servo_KeyframesRule_Release
+);
+impl_locked_arc_ffi!(
+    LayerBlockRule,
+    LockedLayerBlockRule,
+    Servo_LayerBlockRule_AddRef,
+    Servo_LayerBlockRule_Release
+);
+impl_locked_arc_ffi!(
+    LayerStatementRule,
+    LockedLayerStatementRule,
+    Servo_LayerStatementRule_AddRef,
+    Servo_LayerStatementRule_Release
+);
+impl_locked_arc_ffi!(
+    MediaList,
+    LockedMediaList,
+    Servo_MediaList_AddRef,
+    Servo_MediaList_Release
+);
+impl_locked_arc_ffi!(
+    MediaRule,
+    LockedMediaRule,
+    Servo_MediaRule_AddRef,
+    Servo_MediaRule_Release
+);
+impl_locked_arc_ffi!(
+    NamespaceRule,
+    LockedNamespaceRule,
+    Servo_NamespaceRule_AddRef,
+    Servo_NamespaceRule_Release
+);
+impl_locked_arc_ffi!(
+    PageRule,
+    LockedPageRule,
+    Servo_PageRule_AddRef,
+    Servo_PageRule_Release
+);
+impl_locked_arc_ffi!(
+    SupportsRule,
+    LockedSupportsRule,
+    Servo_SupportsRule_AddRef,
+    Servo_SupportsRule_Release
+);
+impl_locked_arc_ffi!(
+    ContainerRule,
+    LockedContainerRule,
+    Servo_ContainerRule_AddRef,
+    Servo_ContainerRule_Release
+);
+impl_locked_arc_ffi!(
+    DocumentRule,
+    LockedDocumentRule,
+    Servo_DocumentRule_AddRef,
+    Servo_DocumentRule_Release
+);
+impl_locked_arc_ffi!(
+    FontFeatureValuesRule,
+    LockedFontFeatureValuesRule,
+    Servo_FontFeatureValuesRule_AddRef,
+    Servo_FontFeatureValuesRule_Release
+);
+impl_locked_arc_ffi!(
+    FontPaletteValuesRule,
+    LockedFontPaletteValuesRule,
+    Servo_FontPaletteValuesRule_AddRef,
+    Servo_FontPaletteValuesRule_Release
+);
+impl_locked_arc_ffi!(
+    FontFaceRule,
+    LockedFontFaceRule,
+    Servo_FontFaceRule_AddRef,
+    Servo_FontFaceRule_Release
+);
+impl_locked_arc_ffi!(
+    CounterStyleRule,
+    LockedCounterStyleRule,
+    Servo_CounterStyleRule_AddRef,
+    Servo_CounterStyleRule_Release
+);
 
 impl_simple_arc_ffi!(
     StylesheetContents,
