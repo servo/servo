@@ -20,11 +20,10 @@ use servo_arc::Arc;
 use servo_atoms::Atom;
 use std::collections::HashMap;
 use std::fmt;
-use style::context::QuirksMode;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
-use style::stylesheets::{CssRule, Origin, Stylesheet};
+use style::stylesheets::{Stylesheet, StylesheetContents};
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]
@@ -48,19 +47,11 @@ impl PartialEq for StyleSheetInDocument {
 
 impl ToMediaListKey for StyleSheetInDocument {
     fn to_media_list_key(&self) -> MediaListKey {
-        self.sheet.to_media_list_key()
+        self.sheet.contents.to_media_list_key()
     }
 }
 
 impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
-    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
-        self.sheet.origin(guard)
-    }
-
-    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
-        self.sheet.quirks_mode(guard)
-    }
-
     fn enabled(&self) -> bool {
         self.sheet.enabled()
     }
@@ -69,8 +60,8 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
         self.sheet.media(guard)
     }
 
-    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
-        self.sheet.rules(guard)
+    fn contents(&self) -> &StylesheetContents {
+        self.sheet.contents()
     }
 }
 

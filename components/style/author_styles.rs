@@ -10,10 +10,10 @@ use crate::dom::TElement;
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::media_queries::ToMediaListKey;
 use crate::shared_lock::SharedRwLockReadGuard;
-use crate::stylist::Stylist;
 use crate::stylesheet_set::AuthorStylesheetSet;
 use crate::stylesheets::StylesheetInDocument;
 use crate::stylist::CascadeData;
+use crate::stylist::Stylist;
 use servo_arc::Arc;
 
 /// A set of author stylesheets and their computed representation, such as the
@@ -32,9 +32,7 @@ where
 }
 
 lazy_static! {
-    static ref EMPTY_CASCADE_DATA: Arc<CascadeData> = {
-        Arc::new_leaked(CascadeData::new())
-    };
+    static ref EMPTY_CASCADE_DATA: Arc<CascadeData> = Arc::new_leaked(CascadeData::new());
 }
 
 impl<S> AuthorStyles<S>
@@ -55,11 +53,8 @@ where
     /// TODO(emilio): Need a host element and a snapshot map to do invalidation
     /// properly.
     #[inline]
-    pub fn flush<E>(
-        &mut self,
-        stylist: &mut Stylist,
-        guard: &SharedRwLockReadGuard,
-    ) where
+    pub fn flush<E>(&mut self, stylist: &mut Stylist, guard: &SharedRwLockReadGuard)
+    where
         E: TElement,
         S: ToMediaListKey,
     {

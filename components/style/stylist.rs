@@ -213,7 +213,7 @@ impl CascadeDataCacheEntry for UserAgentCascadeData {
         _old: &Self,
     ) -> Result<Arc<Self>, FailedAllocationError>
     where
-        S: StylesheetInDocument + PartialEq + 'static
+        S: StylesheetInDocument + PartialEq + 'static,
     {
         // TODO: Maybe we should support incremental rebuilds, though they seem
         // uncommon and rebuild() doesn't deal with
@@ -447,6 +447,7 @@ pub struct Stylist {
     stylesheets: StylistStylesheetSet,
 
     /// A cache of CascadeDatas for AuthorStylesheetSets (i.e., shadow DOM).
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "XXX: how to handle this?")]
     author_data_cache: CascadeDataCache<CascadeData>,
 
     /// If true, the quirks-mode stylesheet is applied.
@@ -542,13 +543,8 @@ impl Stylist {
     where
         S: StylesheetInDocument + PartialEq + 'static,
     {
-        self.author_data_cache.lookup(
-            &self.device,
-            self.quirks_mode,
-            collection,
-            guard,
-            old_data,
-        )
+        self.author_data_cache
+            .lookup(&self.device, self.quirks_mode, collection, guard, old_data)
     }
 
     /// Iterate over the extra data in origin order.
@@ -1812,7 +1808,7 @@ impl PartElementAndPseudoRules {
 ///
 /// FIXME(emilio): Consider renaming and splitting in `CascadeData` and
 /// `InvalidationData`? That'd make `clear_cascade_data()` clearer.
-#[derive(Debug, Clone, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct CascadeData {
     /// The data coming from normal style rules that apply to elements at this
     /// cascade level.
@@ -2253,7 +2249,9 @@ impl CascadeData {
 
         let effective_now = stylesheet.is_effective_for_device(device, guard);
 
-        let effective_then = self.effective_media_query_results.was_effective(stylesheet.contents());
+        let effective_then = self
+            .effective_media_query_results
+            .was_effective(stylesheet.contents());
 
         if effective_now != effective_then {
             debug!(
@@ -2378,7 +2376,7 @@ impl CascadeDataCacheEntry for CascadeData {
         old: &Self,
     ) -> Result<Arc<Self>, FailedAllocationError>
     where
-        S: StylesheetInDocument + PartialEq + 'static
+        S: StylesheetInDocument + PartialEq + 'static,
     {
         debug_assert!(collection.dirty(), "We surely need to do something?");
         // If we're doing a full rebuild anyways, don't bother cloning the data.
