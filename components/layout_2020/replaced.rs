@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
-use crate::dom_traversal::NodeExt;
+use crate::dom::NodeExt;
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::fragments::{Fragment, IFrameFragment, ImageFragment};
 use crate::geom::flow_relative::{Rect, Vec2};
@@ -142,7 +142,7 @@ impl ReplacedContent {
             },
         );
 
-        let base_fragment_info = BaseFragmentInfo::new_for_node(element.as_opaque());
+        let base_fragment_info = BaseFragmentInfo::new_for_node(element.opaque());
         return Some(Self {
             kind,
             intrinsic,
@@ -157,7 +157,7 @@ impl ReplacedContent {
     ) -> Option<Self> {
         if let ComputedUrl::Valid(image_url) = image_url {
             let (image, width, height) = match context.get_or_request_image_or_meta(
-                element.as_opaque(),
+                element.opaque(),
                 image_url.clone(),
                 UsePlaceholder::No,
             ) {
@@ -178,7 +178,7 @@ impl ReplacedContent {
                     // FIXME https://github.com/w3c/csswg-drafts/issues/4572
                     ratio: Some(width / height),
                 },
-                base_fragment_info: BaseFragmentInfo::new_for_node(element.as_opaque()),
+                base_fragment_info: BaseFragmentInfo::new_for_node(element.opaque()),
             });
         }
         None

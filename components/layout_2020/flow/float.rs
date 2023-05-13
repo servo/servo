@@ -7,7 +7,8 @@
 //! See CSS 2.1 § 9.5.1: https://www.w3.org/TR/CSS2/visuren.html#float-position
 
 use crate::context::LayoutContext;
-use crate::dom_traversal::{Contents, NodeAndStyleInfo, NodeExt};
+use crate::dom::NodeExt;
+use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::geom::flow_relative::{Rect, Vec2};
 use crate::style_ext::DisplayInside;

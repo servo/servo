@@ -11,10 +11,9 @@ extern crate serde;
 
 mod cell;
 pub mod context;
-pub mod data;
 pub mod display_list;
+pub mod dom;
 mod dom_traversal;
-pub mod element_data;
 mod flexbox;
 pub mod flow;
 mod formatting_contexts;
@@ -24,14 +23,12 @@ pub mod geom;
 #[macro_use]
 pub mod layout_debug;
 mod lists;
-mod opaque_node;
 mod positioned;
 pub mod query;
 mod replaced;
 mod sizing;
 mod style_ext;
 pub mod traversal;
-pub mod wrapper;
 
 pub use flow::{BoxTree, FragmentTree};
 

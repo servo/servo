@@ -86,7 +86,12 @@ pub trait GetStyleAndOpaqueLayoutData<'dom> {
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutDom`.
-pub trait LayoutNode<'dom>: Debug + GetStyleAndOpaqueLayoutData<'dom> + TNode {
+/// FIXME(mrobinson): `Send + Sync` is required here for Layout 2020, but eventually it
+/// should stop sending LayoutNodes to other threads and rely on ThreadSafeLayoutNode
+/// or some other mechanism to ensure thread safety.
+pub trait LayoutNode<'dom>:
+    Copy + Debug + GetStyleAndOpaqueLayoutData<'dom> + TNode + Send + Sync
+{
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>;
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
@@ -304,14 +309,6 @@ pub trait ThreadSafeLayoutNode<'dom>:
         let id = combine_id_with_fragment_type(self.opaque().id(), self.fragment_type());
         ExternalScrollId(id as u64, pipeline_id.to_webrender())
     }
-}
-
-// This trait is only public so that it can be implemented by the gecko wrapper.
-// It can be used to violate thread-safety, so don't use it elsewhere in layout!
-#[allow(unsafe_code)]
-pub trait DangerousThreadSafeLayoutNode<'dom>: ThreadSafeLayoutNode<'dom> {
-    unsafe fn dangerous_first_child(&self) -> Option<Self>;
-    unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
 }
 
 pub trait ThreadSafeLayoutElement<'dom>:

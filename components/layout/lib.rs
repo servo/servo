@@ -38,7 +38,6 @@ mod linked_list;
 mod list_item;
 mod model;
 mod multicol;
-pub mod opaque_node;
 pub mod parallel;
 mod persistent_list;
 pub mod query;

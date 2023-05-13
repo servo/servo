@@ -7,8 +7,8 @@ use crate::context::LayoutContext;
 use crate::display_list::stacking_context::{
     ContainingBlock, ContainingBlockInfo, StackingContext, StackingContextBuildMode,
 };
-use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo, NodeExt};
-use crate::element_data::LayoutBox;
+use crate::dom::{LayoutBox, NodeExt};
+use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexLevelBox;
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
@@ -24,7 +24,6 @@ use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::style_ext::ComputedValuesExt;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
-use crate::wrapper::GetStyleAndLayoutData;
 use crate::DefiniteContainingBlock;
 use app_units::Au;
 use atomic_refcell::AtomicRef;

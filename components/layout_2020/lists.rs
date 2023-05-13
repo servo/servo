@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
-use crate::dom_traversal::{NodeAndStyleInfo, NodeExt, PseudoElementContentItem};
+use crate::dom::NodeExt;
+use crate::dom_traversal::{NodeAndStyleInfo, PseudoElementContentItem};
 use crate::replaced::ReplacedContent;
 use style::properties::longhands::list_style_type::computed_value::T as ListStyleType;
 use style::properties::style_structs;
