@@ -872,6 +872,17 @@ def copy_dependencies(binary_path, lib_path, gst_root):
             if is_system_library(f):
                 continue
             full_path = resolve_rpath(f, gst_root)
+            # fixme(mukilan): this is a temporary solution to a bug
+            # in the official gstreamer packages. Few gstreamer dylibs
+            # like 'libavcodec.59.dylib' have absolute paths to liblzma
+            # instead of @rpath based to be relocatable. The homebrew
+            # prefix is configurable in general and is /opt/homebrew
+            # on Apple Silicon
+            if full_path == "/usr/local/opt/xz/lib/liblzma.5.dylib" and (
+                    not path.exists("/usr/local/opt/xz")
+                    and path.exists("/opt/homebrew/")):
+                full_path = "/opt/homebrew/lib/liblzma.5.dylib"
+
             need_relinked = set(otool(full_path))
             new_path = path.join(lib_path, path.basename(full_path))
             if not path.exists(new_path):
