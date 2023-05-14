@@ -10,6 +10,8 @@ from . test_update import tree_and_sourcefile_mocks
 from .. import manifestexpected, manifestupdate, wpttest
 
 
+TestharnessTest.__test__ = False
+
 dir_ini_0 = b"""\
 prefs: [a:b]
 """

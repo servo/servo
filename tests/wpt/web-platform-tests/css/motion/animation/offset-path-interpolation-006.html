@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>offset-distance basic-shape interpolation</title>
+    <link rel="author" title="Daniil Sakhapov" href="mailto:sakhapov@chromium.org">
+    <link rel="help" href="https://drafts.fxtf.org/motion/#valdef-offset-path-basic-shape">
+    <meta name="assert" content="offset-path basic shape supports animation.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/css/support/interpolation-testcommon.js"></script>
+  </head>
+  <style>
+    .parent {
+      offset-path: ellipse(10% 10%);
+    }
+    .target {
+      offset-path: circle(10px);
+    }
+  </style>
+  <body>
+    <script>
+      'use strict';
+
+      test_no_interpolation({
+        property: 'offset-path',
+        from: "circle(10px)",
+        to: "inset(20px)",
+      });
+
+      test_no_interpolation({
+        property: 'offset-path',
+        from: "ellipse(at center)",
+        to: "none",
+      });
+
+      // Neutral keyframes use the inline style.
+      test_interpolation({
+        property: 'offset-path',
+        from: neutralKeyframe,
+        to: 'circle(20px)',
+      }, [
+        {at: -0.3, expect: 'circle(7px)'},
+        {at: 0, expect: 'circle(10px)'},
+        {at: 0.3, expect: 'circle(13px)'},
+        {at: 0.6, expect: 'circle(16px)'},
+        {at: 1, expect: 'circle(20px)'},
+        {at: 1.5, expect: 'circle(25px)'},
+      ]);
+
+      // No interpolation to an ellipse from the initial value 'none'.
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'initial',
+        to: 'ellipse()',
+      });
+
+      // 'inherit' keyframes use the parent style.
+      test_interpolation({
+        property: 'offset-path',
+        from: 'inherit',
+        to: 'ellipse(40% 50% at 25% 25%)',
+      }, [
+        {at: -0.3, expect: 'ellipse(1% 0% at 57.5% 57.5%)'},
+        {at: 0, expect: 'ellipse(10% 10% at 50% 50%)'},
+        {at: 0.3, expect: 'ellipse(19% 22% at 42.5% 42.5%)'},
+        {at: 0.6, expect: 'ellipse(28% 34% at 35% 35%)'},
+        {at: 1, expect: 'ellipse(40% 50% at 25% 25%)'},
+        {at: 1.5, expect: 'ellipse(55% 70% at 12.5% 12.5%)'},
+      ]);
+
+      // No interpolation to an inset from the initial value 'none'.
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'unset',
+        to: 'inset(10%)',
+      });
+
+      // No interpolation to a rect from the initial value 'none'.
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'none',
+        to: 'rect(10px 10px 10px 10px)',
+      });
+
+      // Interpolation between shapes.
+      test_interpolation({
+        property: 'offset-path',
+        from: 'inset(10px)',
+        to: 'inset(20px round 50%)'
+      }, [
+        {at: -1, expect: 'inset(0px round 0%)'},
+        {at: 0, expect: 'inset(10px round 0%)'},
+        {at: 0.125, expect: 'inset(11.25px round 6.25%)'},
+        {at: 0.875, expect: 'inset(18.75px round 43.75%)'},
+        {at: 1, expect: 'inset(20px round 50%)'},
+        {at: 2, expect: 'inset(30px round 100%)'},
+      ]);
+
+      test_interpolation({
+        property: 'offset-path',
+        from: 'xywh(5px 5px 150% 150%)',
+        to: 'xywh(10px 10px 100% 100%)'
+      }, [
+        {at: -1, expect: 'xywh(0px 0px 200% 200%)'},
+        {at: 0, expect: 'xywh(5px 5px 150% 150%)'},
+        {at: 0.125, expect: 'xywh(5.63px 5.63px 143.75% 143.75% )'},
+        {at: 0.875, expect: 'xywh(9.38px 9.38px 106.25% 106.25%)'},
+        {at: 1, expect: 'xywh(10px 10px 100% 100%)'},
+        {at: 2, expect: 'xywh(15px 15px 50% 50%)'},
+      ]);
+
+      // No interpolation between different radius keywords.
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'circle(farthest-side)',
+        to: 'circle(closest-side)'
+      });
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'ellipse(closest-side farthest-side)',
+        to: 'ellipse(closest-side closest-side)'
+      });
+    </script>
+  </body>
+</html>

@@ -79,3 +79,18 @@ promise_test(async function () {
     }
   )
 }, "Check static json() propagates JSON serializer errors");
+
+const encodingChecks = [
+  ["𝌆", [34, 240, 157, 140, 134, 34]],
+  ["\uDF06\uD834", [34, 92, 117, 100, 102, 48, 54, 92, 117, 100, 56, 51, 52, 34]],
+  ["\uDEAD", [34, 92, 117, 100, 101, 97, 100, 34]],
+];
+
+for (const [input, expected] of encodingChecks) {
+  promise_test(async function () {
+    const response = Response.json(input);
+    const buffer = await response.arrayBuffer();
+    const data = new Uint8Array(buffer);
+    assert_array_equals(data, expected);
+  }, `Check response returned by static json() with input ${input}`);
+}

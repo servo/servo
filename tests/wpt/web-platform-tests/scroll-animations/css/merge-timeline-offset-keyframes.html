@@ -62,6 +62,7 @@
     promise_test(async t => {
       target.classList.add('anim-1');
       const anim = target.getAnimations()[0];
+      await anim.ready;
       t.add_cleanup(() => {
         target.classList.remove('anim-1');
       });
@@ -92,6 +93,8 @@
     promise_test(async t => {
       target.classList.add('anim-2');
       const anim = target.getAnimations()[0];
+      await anim.ready;
+
       t.add_cleanup(() => {
         target.classList.remove('anim-2');
       });

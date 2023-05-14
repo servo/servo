@@ -52,3 +52,4 @@ def test_serve():
                 break
     finally:
         os.killpg(p.pid, 15)
+        p.wait(10)

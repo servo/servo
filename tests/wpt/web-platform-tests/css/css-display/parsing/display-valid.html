@@ -36,9 +36,15 @@ test_valid_value("display", "table-cell");
 test_valid_value("display", "table-caption");
 test_valid_value("display", "none");
 
+// https://drafts.csswg.org/css-flexbox-1/#flex-containers
+test_valid_value("display", "flex");
+test_valid_value("display", "inline-flex");
+
+test_valid_value("display", "contents");
+
 // https://drafts.csswg.org/css-display/#the-display-properties
 test_valid_value("display", "run-in");
-test_valid_value("display", "flow", "block");
+test_valid_value("display", "flow");
 test_valid_value("display", "flow-root");
 test_valid_value("display", "ruby");
 
@@ -76,14 +82,14 @@ test_valid_value("display", "list-item flow-root block", "flow-root list-item");
 
 test_valid_value("display", "inline flow", "inline");
 test_valid_value("display", "flow inline", "inline");
-test_valid_value("display", "flow-root inline", "inline-block");
-test_valid_value("display", "inline flow-root", "inline-block");
-test_valid_value("display", "flex inline", "inline-flex");
-test_valid_value("display", "inline flex", "inline-flex");
-test_valid_value("display", "grid inline", "inline-grid");
-test_valid_value("display", "inline grid", "inline-grid");
-test_valid_value("display", "table inline", "inline-table");
-test_valid_value("display", "inline table", "inline-table");
+test_valid_value("display", "flow-root inline", "inline flow-root");
+test_valid_value("display", "inline flow-root");
+test_valid_value("display", "flex inline", "inline flex");
+test_valid_value("display", "inline flex");
+test_valid_value("display", "grid inline", "inline grid");
+test_valid_value("display", "inline grid");
+test_valid_value("display", "table inline", "inline table");
+test_valid_value("display", "inline table");
 test_valid_value("display", "inline ruby", "ruby");
 test_valid_value("display", "ruby inline", "ruby");
 test_valid_value("display", "inline list-item", "inline list-item");

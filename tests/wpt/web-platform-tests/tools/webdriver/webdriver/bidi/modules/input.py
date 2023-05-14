@@ -372,3 +372,7 @@ class Input(BidiModule):
     def release_actions(self, context: str) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"context": context}
         return params
+
+
+def get_element_origin(element: Any) -> Mapping[str, Any]:
+    return {"type": "element", "element": {"sharedId": element["sharedId"]}}

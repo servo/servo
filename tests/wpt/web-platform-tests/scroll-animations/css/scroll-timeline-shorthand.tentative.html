@@ -23,6 +23,8 @@ test_valid_value('scroll-timeline', 'horizontal block', 'horizontal');
 test_valid_value('scroll-timeline', 'a, b, c');
 test_valid_value('scroll-timeline', 'a inline, b block, c vertical', 'a inline, b, c vertical');
 test_valid_value('scroll-timeline', 'auto');
+test_valid_value('scroll-timeline', 'abc defer vertical', 'abc vertical defer');
+test_valid_value('scroll-timeline', 'abc vertical defer');
 
 test_invalid_value('scroll-timeline', '');
 test_invalid_value('scroll-timeline', 'abc abc');
@@ -44,6 +46,8 @@ test_computed_value('scroll-timeline', 'vertical block', 'vertical');
 test_computed_value('scroll-timeline', 'horizontal block', 'horizontal');
 test_computed_value('scroll-timeline', 'a, b, c');
 test_computed_value('scroll-timeline', 'a inline, b block, c vertical', 'a inline, b, c vertical');
+test_computed_value('scroll-timeline', 'abc defer vertical', 'abc vertical defer');
+test_computed_value('scroll-timeline', 'abc vertical defer');
 
 test_shorthand_value('scroll-timeline', 'abc vertical local',
 {

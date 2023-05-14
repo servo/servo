@@ -132,8 +132,7 @@ def create_complete_parser():
     for command in commands:
         props = commands[command]
 
-        for path in props.get("requirements", []):
-            venv.install_requirements(path)
+        venv.install_requirements(*props.get("requirements", []))
 
         subparser = import_command('wpt', command, props)[1]
         if not subparser:
@@ -160,16 +159,17 @@ def setup_virtualenv(path, skip_venv_setup, props):
     venv = virtualenv.Virtualenv(path, should_skip_setup)
     if not should_skip_setup:
         venv.start()
-        for path in props["requirements"]:
-            venv.install_requirements(path)
+        venv.install_requirements(*props.get("requirements", []))
     return venv
 
 
-def install_command_flag_requirements(venv, kwargs, requirements):
+def install_command_flag_requirements(venv, props, kwargs):
+    requirements = props["conditional_requirements"].get("commandline_flag", {})
+    install_paths = []
     for command_flag_name, requirement_paths in requirements.items():
         if command_flag_name in kwargs:
-            for path in requirement_paths:
-                venv.install_requirements(path)
+            install_paths.extend(requirement_paths)
+    venv.install_requirements(*install_paths)
 
 
 def main(prog=None, argv=None):
@@ -215,9 +215,8 @@ def main(prog=None, argv=None):
         kwargs = {}
 
     if venv is not None:
-        requirements = props["conditional_requirements"].get("commandline_flag")
-        if requirements is not None and not main_args.skip_venv_setup:
-            install_command_flag_requirements(venv, kwargs, requirements)
+        if not main_args.skip_venv_setup:
+            install_command_flag_requirements(venv, props, kwargs)
         args = (venv,) + extras
     else:
         args = extras

@@ -4,9 +4,9 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<dialog autofocus id=autofocusdialog data-description="dialog element with autofocus should get initial focus.">
+<dialog autofocus id=autofocusdialog data-description="dialog element with autofocus should get initial focus." class=target>
   <button>focusable button</button>
-  <button autofocus class=target>autofocusable button</button>
+  <button autofocus>autofocusable button</button>
 </dialog>
 
 <dialog id=keyboardfocusdialog data-description="Only keyboard-focusable elements should get dialog initial focus.">
@@ -37,21 +37,23 @@
 <script>
 document.querySelectorAll('dialog').forEach(dialog => {
   test(t => {
-    const target = dialog.querySelector('.target');
-    t.add_cleanup
+    let target = dialog.querySelector('.target');
+    if (dialog.classList.contains('target')) {
+      target = dialog;
+    }
     t.add_cleanup(() => {
       if (dialog.open)
         dialog.close();
     });
 
     dialog.showModal();
-    assert_equals(document.activeElement,
-      dialog.hasAttribute('autofocus') ? dialog : target,
+    assert_equals(document.activeElement, target,
       'showModal: the target element did not receive initial focus.');
     dialog.close();
 
     dialog.show();
-    assert_equals(document.activeElement, target, 'show: the target element did not receive initial focus.');
+    assert_equals(document.activeElement, target,
+      'show: the target element did not receive initial focus.');
     dialog.close();
   }, dialog.dataset.description);
 });

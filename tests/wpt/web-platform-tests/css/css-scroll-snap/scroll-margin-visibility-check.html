@@ -35,7 +35,7 @@ let target = document.getElementById("target");
 promise_test(async function() {
   scroller.scrollTo(0, 0);
   await new Promise(resolve => {
-      scroller.addEventListener("scroll", () => step_timeout(resolve, 0));
+      scroller.addEventListener("scroll", resolve, { once: true });
       document.getElementById("target").focus();
   });
   assert_true(scroller.scrollTop > 0, "Visibility check should not account for margin");

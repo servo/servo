@@ -1,10 +1,11 @@
 import pytest
 
-from webdriver.bidi.modules.input import Actions
+from webdriver.bidi.modules.input import Actions, get_element_origin
 from webdriver.bidi.error import (
     InvalidArgumentException,
     MoveTargetOutOfBoundsException,
     NoSuchFrameException,
+    NoSuchNodeException,
 )
 
 
@@ -89,8 +90,83 @@ async def test_params_actions_origin_element_outside_viewport(
     elem = await get_element("#inner")
 
     actions = Actions()
-    actions.add_pointer().pointer_move(x=0, y=0, origin=elem)
+    actions.add_pointer().pointer_move(x=0, y=0, origin=get_element_origin(elem))
     with pytest.raises(MoveTargetOutOfBoundsException):
+        await bidi_session.input.perform_actions(
+            actions=actions, context=top_context["context"]
+        )
+
+
+@pytest.mark.parametrize("value", [True, 42, []])
+async def test_params_actions_origin_invalid_type(bidi_session, top_context, value):
+    actions = Actions()
+    actions.add_pointer().pointer_move(x=0, y=0, origin=value)
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.input.perform_actions(
+            actions=actions, context=top_context["context"]
+        )
+
+
+@pytest.mark.parametrize("value", [None, True, 42, {}, [], "foo"])
+async def test_params_actions_origin_invalid_value_type(
+    bidi_session, top_context, get_actions_origin_page, get_element, value
+):
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=get_actions_origin_page(""),
+        wait="complete",
+    )
+
+    elem = await get_element("#inner")
+    actions = Actions()
+    actions.add_pointer().pointer_move(
+        x=0, y=0, origin={"type": value, "element": {"sharedId": elem["sharedId"]}}
+    )
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.input.perform_actions(
+            actions=actions, context=top_context["context"]
+        )
+
+
+@pytest.mark.parametrize("value", [None, True, 42, {}, [], "foo"])
+async def test_params_actions_origin_invalid_value_element(
+    bidi_session, top_context, value
+):
+    actions = Actions()
+    actions.add_pointer().pointer_move(
+        x=0, y=0, origin={"type": "element", "element": value}
+    )
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.input.perform_actions(
+            actions=actions, context=top_context["context"]
+        )
+
+
+async def test_params_actions_origin_invalid_value_serialized_element(
+    bidi_session, top_context, get_actions_origin_page, get_element
+):
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=get_actions_origin_page(""),
+        wait="complete",
+    )
+
+    elem = await get_element("#inner")
+
+    actions = Actions()
+    actions.add_pointer().pointer_move(x=0, y=0, origin=elem)
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.input.perform_actions(
+            actions=actions, context=top_context["context"]
+        )
+
+
+async def test_params_actions_origin_no_such_node(bidi_session, top_context):
+    actions = Actions()
+    actions.add_pointer().pointer_move(
+        x=0, y=0, origin={"type": "element", "element": {"sharedId": "foo"}}
+    )
+    with pytest.raises(NoSuchNodeException):
         await bidi_session.input.perform_actions(
             actions=actions, context=top_context["context"]
         )

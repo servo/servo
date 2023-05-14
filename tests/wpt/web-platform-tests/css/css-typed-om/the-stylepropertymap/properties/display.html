@@ -37,8 +37,23 @@ runPropertyTests('display', [
   { syntax: 'inline-grid' },
 ]);
 
+// We can not set 'inline math' or 'math inline' via Typed OM.
+// On the other hand, we might get a CSSKeywordValue instance for them instead
+// of a CSSStyleValue because they can be represented as just 'math' in
+// internal representations.
+for (let value of ['inline math', 'math inline']) {
+  test(t => {
+    let element = createDivWithStyle(t);
+    element.style.display = value;
+    const result = element.attributeStyleMap.get('display');
+    assert_not_equals(result, null);
+    assert_in_array({}.toString.call(result),
+                    ['[object CSSStyleValue]', '[object CSSKeywordValue]']);
+  }, `'display' does not support setting '${value}'`);
+}
+
 runUnsupportedPropertyTests('display', [
-  'block math', 'math block', 'inline math', 'math inline'
+  'block math', 'math block'
 ]);
 
 </script>

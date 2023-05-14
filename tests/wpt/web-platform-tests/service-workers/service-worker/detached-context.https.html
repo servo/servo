@@ -119,23 +119,6 @@ test(t => {
     }
     assert_not_equals(get_navigator().serviceWorker, null);
     iframe.remove();
-    assert_throws_js(TypeError, () => get_navigator());
-  }, 'accessing navigator on a removed frame');
-
-// It seems weird that about:blank and blank.html (the test above) have
-// different behavior. These expectations are based on Chromium behavior, which
-// might not be right.
-test(t => {
-    const iframe = document.createElement('iframe');
-    iframe.src = 'about:blank';
-    document.body.appendChild(iframe);
-    const f = iframe.contentWindow.Function;
-    function get_navigator() {
-      return f('return navigator')();
-    }
     assert_not_equals(get_navigator().serviceWorker, null);
-    iframe.remove();
-    assert_equals(get_navigator().serviceWorker, null);
-  }, 'accessing navigator.serviceWorker on a removed about:blank frame');
-
+  }, 'accessing navigator on a removed frame');
 </script>

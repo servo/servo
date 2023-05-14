@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.bidi.modules.input import Actions
+from webdriver.bidi.modules.input import Actions, get_element_origin
 
 from tests.support.asserts import assert_move_to_coordinates
 from tests.support.helpers import filter_dict
@@ -96,7 +96,7 @@ async def test_click_element_center(
     actions = Actions()
     (
         actions.add_pointer()
-        .pointer_move(x=0, y=0, origin=outer)
+        .pointer_move(x=0, y=0, origin=get_element_origin(outer))
         .pointer_down(button=0)
         .pointer_up(button=0)
     )
@@ -137,7 +137,7 @@ async def test_click_navigation(
         actions = Actions()
         (
             actions.add_pointer()
-            .pointer_move(x=0, y=0, origin=link)
+            .pointer_move(x=0, y=0, origin=get_element_origin(link))
             .pointer_down(button=0)
             .pointer_up(button=0)
         )
@@ -185,7 +185,7 @@ async def test_drag_and_drop(
     actions = Actions()
     (
         actions.add_pointer()
-        .pointer_move(x=0, y=0, origin=drag_target)
+        .pointer_move(x=0, y=0, origin=get_element_origin(drag_target))
         .pointer_down(button=0)
         .pointer_move(dx, dy, duration=drag_duration, origin="pointer")
         .pointer_up(button=0)
@@ -224,9 +224,11 @@ async def test_drag_and_drop_with_draggable_element(
     actions = Actions()
     (
         actions.add_pointer()
-        .pointer_move(x=0, y=0, origin=drag_target)
+        .pointer_move(x=0, y=0, origin=get_element_origin(drag_target))
         .pointer_down(button=0)
-        .pointer_move(x=50, y=25, duration=drag_duration, origin=drop_target)
+        .pointer_move(
+            x=50, y=25, duration=drag_duration, origin=get_element_origin(drop_target)
+        )
         .pointer_up(button=0)
         .pointer_move(80, 50, duration=100, origin="pointer")
     )

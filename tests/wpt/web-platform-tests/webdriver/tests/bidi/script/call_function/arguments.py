@@ -136,94 +136,124 @@ async def test_local_value(bidi_session, top_context, argument, expected_type):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "setup_expression, function_declaration, expected",
+    "setup_expression, function_declaration, await_promise, expected",
     [
         (
             "Symbol('foo')",
             "(symbol) => symbol.toString()",
+            False,
             {"type": "string", "value": "Symbol(foo)"},
         ),
-        ("[1,2]", "(array) => array[0]", {"type": "number", "value": 1}),
+        (
+            "[1,2]",
+            "(array) => array[0]",
+            False,
+            {"type": "number", "value": 1}),
         (
             "new RegExp('foo')",
             "(regexp) => regexp.source",
+            False,
             {"type": "string", "value": "foo"},
         ),
         (
             "new Date(1654004849000)",
             "(date) => date.toISOString()",
+            False,
             {"type": "string", "value": "2022-05-31T13:47:29.000Z"},
         ),
         (
             "new Map([['foo', 'bar']])",
             "(map) => map.get('foo')",
+            False,
             {"type": "string", "value": "bar"},
         ),
         (
             "new Set(['foo'])",
             "(set) => set.has('foo')",
+            False,
             {"type": "boolean", "value": True},
         ),
         (
             "{const weakMap = new WeakMap(); weakMap.set(weakMap, 'foo')}",
             "(weakMap)=> weakMap.get(weakMap)",
+            False,
             {"type": "string", "value": "foo"},
         ),
         (
             "{const weakSet = new WeakSet(); weakSet.add(weakSet)}",
             "(weakSet)=> weakSet.has(weakSet)",
+            False,
             {"type": "boolean", "value": True},
         ),
         (
             "new Error('error message')",
             "(error) => error.message",
+            False,
             {"type": "string", "value": "error message"},
         ),
         (
             "new SyntaxError('syntax error message')",
             "(error) => error.message",
+            False,
             {"type": "string", "value": "syntax error message"},
         ),
         (
             "new Promise((resolve) => resolve(3))",
             "(promise) => promise",
+            True,
             {"type": "number", "value": 3},
+        ),
+        (
+            "new Promise(() => {})",
+            "(promise) => promise",
+            False,
+            {"type": "promise"},
         ),
         (
             "new Int8Array(2)",
             "(int8Array) => int8Array.length",
+            False,
             {"type": "number", "value": 2},
         ),
         (
             "new ArrayBuffer(8)",
             "(arrayBuffer) => arrayBuffer.byteLength",
+            False,
             {"type": "number", "value": 8},
         ),
-        ("() => true", "(func) => func()", {"type": "boolean", "value": True}),
+        (
+            "() => true",
+            "(func) => func()",
+            False,
+            {"type": "boolean", "value": True}),
         (
             "(function() {return false;})",
             "(func) => func()",
+            False,
             {"type": "boolean", "value": False},
         ),
         (
             "window.foo = 3; window",
             "(window) => window.foo",
+            False,
             {"type": "number", "value": 3},
         ),
         (
             "window.url = new URL('https://example.com'); window.url",
             "(url) => url.hostname",
+            False,
             {"type": "string", "value": "example.com"},
         ),
         (
             "({SOME_PROPERTY:'SOME_VALUE'})",
             "(obj) => obj.SOME_PROPERTY",
+            False,
             {"type": "string", "value": "SOME_VALUE"},
         ),
     ],
 )
 async def test_remote_reference_argument(
-    bidi_session, top_context, setup_expression, function_declaration, expected
+    bidi_session, top_context, setup_expression, function_declaration, await_promise, expected
 ):
     remote_value_result = await bidi_session.script.evaluate(
         expression=setup_expression,
@@ -238,7 +268,7 @@ async def test_remote_reference_argument(
     result = await bidi_session.script.call_function(
         function_declaration=function_declaration,
         arguments=[{"handle": remote_value_handle}],
-        await_promise=True if remote_value_result["type"] == "promise" else False,
+        await_promise=await_promise,
         target=ContextTarget(top_context["context"]),
     )
 

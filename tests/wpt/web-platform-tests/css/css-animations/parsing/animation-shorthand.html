@@ -26,7 +26,7 @@ test_shorthand_value('animation', 'anim paused both reverse 4 1s -3s cubic-bezie
 });
 
 test_shorthand_value('animation', 'anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)', {
-  'animation-duration': '0s, 1s',
+  'animation-duration': 'auto, 1s',
   'animation-timing-function': 'ease, cubic-bezier(0, -2, 1, 3)',
   'animation-delay': '0s, -3s',
   'animation-iteration-count': '1, 4',
@@ -40,7 +40,7 @@ test_shorthand_value('animation', 'anim paused both reverse, 4 1s -3s cubic-bezi
 });
 
 test_shorthand_value('animation', '4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse', {
-  'animation-duration': '1s, 0s',
+  'animation-duration': '1s, auto',
   'animation-timing-function': 'cubic-bezier(0, -2, 1, 3), ease',
   'animation-delay': '-3s, 0s',
   'animation-iteration-count': '4, 1',

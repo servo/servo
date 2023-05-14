@@ -87,9 +87,12 @@
       container.scrollTop = 400;
       await waitForNextFrame();
       assert_equals(getComputedStyle(subject).opacity, '1',
-                    'Effect at entry 100% (post resize)');
+                    'Effect at entry 100%');
 
+      // Reducing the viewport by 100px, shifts the keyframe offsets.
+      // The entry range shifts from [200px, 400px] to [300px, 500px].
       container.style.height = '300px';
+
       await waitForNextFrame();
       assert_equals(getComputedStyle(subject).opacity, '0.5',
                     'Effect at entry 50% (post resize)');

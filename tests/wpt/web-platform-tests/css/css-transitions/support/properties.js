@@ -267,7 +267,6 @@ var unspecified_properties = {
     'column-width': ['length'],
     'transform': ['transform'],
     'transform-origin': ['horizontal'],
-    'zoom': ['number'],
     'display': ['display'],
     'position': ['position'],
     'object-view-box': ['object-view-box']

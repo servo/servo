@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.bidi.modules.input import Actions
+from webdriver.bidi.modules.input import Actions, get_element_origin
 from .. import get_events
 
 pytestmark = pytest.mark.asyncio
@@ -13,7 +13,9 @@ async def test_wheel_scroll(
     actions = Actions()
 
     outer = await get_element("#outer")
-    actions.add_wheel().scroll(x=0, y=0, delta_x=delta_x, delta_y=delta_y, origin=outer)
+    actions.add_wheel().scroll(
+        x=0, y=0, delta_x=delta_x, delta_y=delta_y, origin=get_element_origin(outer)
+    )
 
     await bidi_session.input.perform_actions(
         actions=actions, context=top_context["context"]
@@ -36,7 +38,7 @@ async def test_wheel_scroll_iframe(
 
     subframe = await get_element("#subframe")
     actions.add_wheel().scroll(
-        x=0, y=0, delta_x=delta_x, delta_y=delta_y, origin=subframe
+        x=0, y=0, delta_x=delta_x, delta_y=delta_y, origin=get_element_origin(subframe)
     )
 
     await bidi_session.input.perform_actions(
@@ -60,7 +62,11 @@ async def test_wheel_scroll_overflow(
     scrollable = await get_element("#scrollable")
 
     actions.add_wheel().scroll(
-        x=0, y=0, delta_x=delta_x, delta_y=delta_y, origin=scrollable
+        x=0,
+        y=0,
+        delta_x=delta_x,
+        delta_y=delta_y,
+        origin=get_element_origin(scrollable),
     )
 
     await bidi_session.input.perform_actions(

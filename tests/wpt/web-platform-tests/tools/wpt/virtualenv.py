@@ -121,17 +121,22 @@ class Virtualenv:
         # occurs while packages are in the process of being published.
         call(self.pip_path, "install", "--prefer-binary", *requirements)
 
-    def install_requirements(self, requirements_path):
-        with open(requirements_path) as f:
-            try:
-                self.working_set.require(f.read())
-            except Exception:
-                pass
-            else:
-                return
+    def install_requirements(self, *requirements_paths):
+        install = []
+        # Check which requirements are already satisfied, to skip calling pip
+        # at all in the case that we've already installed everything, and to
+        # minimise the installs in other cases.
+        for requirements_path in requirements_paths:
+            with open(requirements_path) as f:
+                try:
+                    self.working_set.require(f.read())
+                except Exception:
+                    install.append(requirements_path)
 
-        # `--prefer-binary` guards against race conditions when installation
-        # occurs while packages are in the process of being published.
-        call(
-            self.pip_path, "install", "--prefer-binary", "-r", requirements_path
-        )
+        if install:
+            # `--prefer-binary` guards against race conditions when installation
+            # occurs while packages are in the process of being published.
+            cmd = [self.pip_path, "install", "--prefer-binary"]
+            for path in install:
+                cmd.extend(["-r", path])
+            call(*cmd)

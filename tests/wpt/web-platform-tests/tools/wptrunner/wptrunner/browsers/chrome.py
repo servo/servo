@@ -49,7 +49,6 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     executor_kwargs = base_executor_kwargs(test_type, test_environment, run_info_data,
                                            **kwargs)
     executor_kwargs["close_after_done"] = True
-    executor_kwargs["supports_eager_pageload"] = False
     executor_kwargs["sanitizer_enabled"] = sanitizer_enabled
 
     capabilities = {
@@ -65,9 +64,6 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
             "w3c": True
         }
     }
-
-    if test_type == "testharness":
-        capabilities["pageLoadStrategy"] = "none"
 
     chrome_options = capabilities["goog:chromeOptions"]
     if kwargs["binary"] is not None:

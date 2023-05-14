@@ -17,6 +17,9 @@ from manifest.manifest import Manifest as WPTManifest
 
 structured.set_default_logger(structured.structuredlog.StructuredLogger("TestLoader"))
 
+TestFilter.__test__ = False
+TestLoader.__test__ = False
+
 include_ini = """\
 skip: true
 [test_\u53F0]

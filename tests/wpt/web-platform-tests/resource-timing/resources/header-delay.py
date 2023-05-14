@@ -5,16 +5,18 @@ def main(request, response):
 
     # TODO: make this exported from ResponseWriter
     handler = response.writer._handler
-    sleep(delay)
-    handler.send_response(100)
-    handler.end_headers()
-    sleep(delay)
+    if b"with100" in request.GET:
+        sleep(delay)
+        handler.send_response(100)
+        handler.end_headers()
 
     if b"with103" in request.GET:
+        sleep(delay)
         handler.send_response(103)
         handler.send_header("Link", "<resources/empty.js>;rel=preload;as=script")
         handler.end_headers()
-        sleep(delay)
+
+    sleep(delay)
 
     handler.send_response(200)
 

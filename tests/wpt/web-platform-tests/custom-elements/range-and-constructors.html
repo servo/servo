@@ -5,22 +5,22 @@
 <meta name="author" title="Edgar Chen" href="mailto:echen@mozilla.com">
 <link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#concept-upgrade-an-element">
 <link rel="help" href="https://dom.spec.whatwg.org/#concept-create-element">
-<line rel="help" href="https://dom.spec.whatwg.org/#concept-range-extract">
-<line rel="help" href="https://dom.spec.whatwg.org/#concept-range-clone">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-range-extract">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-range-clone">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
 <div id="log"></div>
 
-<c-e data-index="root">
-  <c-e data-index="root-0">
-    <c-e data-index="root-0-0">
-      <c-e data-index="root-0-0-0"></c-e>
+<c-e id="root">
+  <c-e id="root-0">
+    <c-e id="root-0-0">
+      <c-e id="root-0-0-0"></c-e>
       <span id="start"></span>
     </c-e>
   </c-e>
-  <c-e data-index="root-1"></c-e>
+  <c-e id="root-1"></c-e>
   <span id="end"></span>
 </c-e>
 
@@ -30,7 +30,7 @@ var logs = [];
 class CE extends HTMLElement {
   constructor() {
     super();
-    logs.push(this.dataset.index);
+    logs.push(this.id);
   }
 }
 customElements.define('c-e', CE);

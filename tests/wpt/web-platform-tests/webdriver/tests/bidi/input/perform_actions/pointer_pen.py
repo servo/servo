@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.bidi.modules.input import Actions
+from webdriver.bidi.modules.input import Actions, get_element_origin
 
 from .. import get_events
 from . import get_inview_center_bidi
@@ -21,11 +21,11 @@ async def test_pen_pointer_properties(
     actions = Actions()
     (
         actions.add_pointer(pointer_type="pen")
-        .pointer_move(x=0, y=0, origin=pointerArea)
+        .pointer_move(x=0, y=0, origin=get_element_origin(pointerArea))
         .pointer_down(button=0, pressure=0.36, tilt_x=-72, tilt_y=9, twist=86)
-        .pointer_move(x=10, y=10, origin=pointerArea)
+        .pointer_move(x=10, y=10, origin=get_element_origin(pointerArea))
         .pointer_up(button=0)
-        .pointer_move(x=80, y=50, origin=pointerArea)
+        .pointer_move(x=80, y=50, origin=get_element_origin(pointerArea))
     )
 
     await bidi_session.input.perform_actions(

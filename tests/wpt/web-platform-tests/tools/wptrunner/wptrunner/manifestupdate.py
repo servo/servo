@@ -560,21 +560,33 @@ class PropertyUpdate:
             # current existing node
             nodes = [node_by_run_info[run_info] for run_info in run_infos
                      if run_info in node_by_run_info]
-            # If all the values are the same, update the value
-            if nodes and all(set(node.result_values.keys()) == set(nodes[0].result_values.keys()) for node in nodes):
+
+            updated_value = None
+            current_values = set(condition.value)
+            if all(set(result).issubset(current_values)
+                   for node in nodes
+                   for result in node.result_values.keys()):
+                # If all the values are subsets of the current value, retain the condition as-is
+                updated_value = self.from_ini_value(condition.value)
+            elif nodes and all(set(node.result_values.keys()) ==
+                               set(nodes[0].result_values.keys()) for node in nodes):
+                # If the condition doesn't need to change, update the value
                 current_value = self.from_ini_value(condition.value)
                 try:
-                    new_value = self.updated_value(current_value,
-                                                   nodes[0].result_values)
+                    updated_value = self.updated_value(current_value,
+                                                       nodes[0].result_values)
                 except ConditionError as e:
                     errors.append(e)
                     continue
-                if new_value != current_value:
+                if updated_value != current_value:
                     self.node.modified = True
-                conditions.append((condition.condition_node, new_value))
+
+            if updated_value is not None:
+                # Reuse the existing condition with an updated value
+                conditions.append((condition.condition_node, updated_value))
                 run_info_with_condition |= set(run_infos)
             else:
-                # Don't append this condition
+                # Don't reuse this condition
                 self.node.modified = True
 
         new_conditions, new_errors = self.build_tree_conditions(property_tree,
@@ -741,8 +753,13 @@ class ExpectedUpdate(PropertyUpdate):
         # If the new intermittent is a subset of the existing one, just use the existing one
         # This prevents frequent flip-flopping of results between e.g. [OK, TIMEOUT] and
         # [TIMEOUT, OK]
-        if current and set(expected).issubset(set(current)):
-            return current
+        if current is not None:
+            if not isinstance(current, list):
+                current_set = {current}
+            else:
+                current_set = set(current)
+            if set(expected).issubset(current_set):
+                return current
 
         if self.update_intermittent:
             if len(expected) == 1:

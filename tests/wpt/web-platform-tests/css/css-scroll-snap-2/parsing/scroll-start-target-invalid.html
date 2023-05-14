@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-target-* with invalid values</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <script>
+    test_invalid_value("scroll-start-target", "invalid_keyword");
+    test_invalid_value("scroll-start-target", "100px");
+    test_invalid_value("scroll-start-target", "none none none");
+    test_invalid_value("scroll-start-target", "invalid_keyword1 invalid_keyword2");
+    test_invalid_value("scroll-start-target", "100px 100px");
+
+    test_invalid_value("scroll-start-target-block", "invalid_keyword");
+    test_invalid_value("scroll-start-target-block", "100px");
+    test_invalid_value("scroll-start-target-block", "none none");
+
+    test_invalid_value("scroll-start-target-inline", "invalid_keyword");
+    test_invalid_value("scroll-start-target-inline", "100px");
+    test_invalid_value("scroll-start-target-inline", "none none");
+
+    test_invalid_value("scroll-start-target-x", "invalid_keyword");
+    test_invalid_value("scroll-start-target-x", "100px");
+    test_invalid_value("scroll-start-target-x", "none none");
+
+    test_invalid_value("scroll-start-target-y", "invalid_keyword");
+    test_invalid_value("scroll-start-target-y", "100px");
+    test_invalid_value("scroll-start-target-y", "none none");
+  </script>
+</body>
+</html>

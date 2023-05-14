@@ -180,11 +180,10 @@ class BrowserSetup:
         if self.prompt_install(self.name):
             return self.browser.install(self.venv.path, channel)
 
-    def install_requirements(self):
-        if not self.venv.skip_virtualenv_setup and self.browser.requirements:
-            self.venv.install_requirements(os.path.join(
-                wpt_root, "tools", "wptrunner", self.browser.requirements))
-
+    def requirements(self):
+        if self.browser.requirements:
+            return [os.path.join(wpt_root, "tools", "wptrunner", self.browser.requirements)]
+        return []
 
     def setup(self, kwargs):
         self.setup_kwargs(kwargs)
@@ -813,7 +812,10 @@ def setup_wptrunner(venv, **kwargs):
         raise WptrunError("Unsupported product %s" % kwargs["product"])
 
     setup_cls = product_setup[kwargs["product"]](venv, kwargs["prompt"])
-    setup_cls.install_requirements()
+    if not venv.skip_virtualenv_setup:
+        requirements = [os.path.join(wpt_root, "tools", "wptrunner", "requirements.txt")]
+        requirements.extend(setup_cls.requirements())
+        venv.install_requirements(*requirements)
 
     affected_revish = kwargs.get("affected")
     if affected_revish is not None:
@@ -862,11 +864,6 @@ def setup_wptrunner(venv, **kwargs):
         del wptrunner_kwargs[kwarg]
 
     wptcommandline.check_args(wptrunner_kwargs)
-
-    wptrunner_path = os.path.join(wpt_root, "tools", "wptrunner")
-
-    if not venv.skip_virtualenv_setup:
-        venv.install_requirements(os.path.join(wptrunner_path, "requirements.txt"))
 
     # Only update browser_version if it was not given as a command line
     # argument, so that it can be overridden on the command line.

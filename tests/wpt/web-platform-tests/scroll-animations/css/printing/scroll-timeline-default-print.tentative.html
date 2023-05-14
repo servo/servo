@@ -4,7 +4,7 @@
 <link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-notation">
 <link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-timeline">
 <meta name="assert" content="CSS animation correctly updates values when using the default scroll() timeline">
-<link rel="match" href="../scroll-timeline-default-ref.html">
+<link rel="match" href="scroll-timeline-default-print-ref.html">
 
 <style>
   @keyframes update {
@@ -25,12 +25,6 @@
     animation-timeline: scroll();
   }
 
-  #covered {
-    width: 100px;
-    height: 100px;
-    background-color: red;
-  }
-
   * {
     margin-top: 0px;
     margin-bottom: 0px;
@@ -38,7 +32,6 @@
 </style>
 
 <div id="box"></div>
-<div id="covered"></div>
 <script src="/web-animations/testcommon.js"></script>
 <script>
   document.documentElement.addEventListener('TestRendered', async () => {
@@ -51,6 +44,10 @@
     await waitForCompositorReady();
 
     // Move the scroller to the halfway point.
+    // When printing, a timeline associated with the document's scrolling
+    // element will become inactive. The root scroller is considered to be
+    // fully in view with a scroll range of zero.
+    // https://github.com/w3c/csswg-drafts/issues/8226
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
     scroller.scrollTop = 0.5 * maxScroll;
 

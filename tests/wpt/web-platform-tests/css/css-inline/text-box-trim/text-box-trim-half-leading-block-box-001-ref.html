@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Reference for trimming block-boxes at their first/last formatted lines</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#leading-trim">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="match" href="text-box-trim-half-leading-inline-box-001-ref.html">
+
+<style>
+.div-parent {
+  outline: 1px solid orange;
+  font-family: Ahem;
+  font-size: 20px;
+  line-height: 1;
+  text-box-trim: both;
+}
+</style>
+
+<div class ="div-parent"">
+  <div id="d1"></div>
+  <div id="d2">Testline1<br><br><br>Testline2<br><br><br>Testline3</div>
+</div>

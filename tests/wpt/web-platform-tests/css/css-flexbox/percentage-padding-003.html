@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://crbug.com/1440908">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert"
+  content="vertical-rl block's auto height should encompass its children, and the percentage padding should resolve based on that." />
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div id=reference-overlapped-red></div>
+
+<div id="container" style="writing-mode:vertical-rl; width:101px;">
+  <div style="display:flex; padding-right:5%;">
+    <div style="writing-mode:horizontal-tb; padding-right:10%;">
+      <div
+        style="width:100px; height:100px; background:green; position:relative; left:15px;">
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  container.style.width = "100px";
+</script>
