@@ -119,6 +119,9 @@ bitflags! {
 
         /// Whether we explicitly disallow pseudo-element-like things.
         const DISALLOW_PSEUDOS = 1 << 6;
+
+        /// Whether we explicitly disallow relative selectors (i.e. `:has()`).
+        const DISALLOW_RELATIVE_SELECTOR = 1 << 7;
     }
 }
 
@@ -2942,12 +2945,20 @@ where
     Impl: SelectorImpl,
 {
     debug_assert!(parser.parse_has());
+    if state.intersects(SelectorParsingState::DISALLOW_RELATIVE_SELECTOR) {
+        return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
+    }
+    // Nested `:has()` is disallowed, mark it as such.
+    // Note: The spec defines ":has-allowed pseudo-element," but there's no
+    // pseudo-element defined as such at the moment.
+    // https://w3c.github.io/csswg-drafts/selectors-4/#has-allowed-pseudo-element
     let inner = SelectorList::parse_with_state(
         parser,
         input,
         state |
             SelectorParsingState::SKIP_DEFAULT_NAMESPACE |
-            SelectorParsingState::DISALLOW_PSEUDOS,
+            SelectorParsingState::DISALLOW_PSEUDOS |
+            SelectorParsingState::DISALLOW_RELATIVE_SELECTOR,
         ForgivingParsing::No,
         ParseRelative::Yes,
     )?;
