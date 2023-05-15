@@ -6,23 +6,26 @@
 
 use crate::applicable_declarations::CascadePriority;
 use crate::color::AbsoluteColor;
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::QuirksMode;
 use crate::custom_properties::CustomPropertiesBuilder;
 use crate::dom::TElement;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
-use crate::properties::{
-    CSSWideKeyword, ComputedValueFlags, ComputedValues, DeclarationImportanceIterator, Importance,
-    LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationId, PropertyFlags,
-    ShorthandsWithPropertyReferencesCache, StyleBuilder, CASCADE_PROPERTY,
+use crate::properties::declaration_block::{DeclarationImportanceIterator, Importance};
+use crate::properties::generated::{
+    CSSWideKeyword, ComputedValues, LonghandId, LonghandIdSet, PropertyDeclaration,
+    PropertyDeclarationId, PropertyFlags, ShorthandsWithPropertyReferencesCache, StyleBuilder,
+    CASCADE_PROPERTY,
 };
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
-use crate::rule_tree::{StrongRuleNode, CascadeLevel};
+use crate::rule_tree::{CascadeLevel, StrongRuleNode};
 use crate::selector_parser::PseudoElement;
 use crate::shared_lock::StylesheetGuards;
 use crate::style_adjuster::StyleAdjuster;
-use crate::stylesheets::{Origin, layer_rule::LayerOrder};
 use crate::stylesheets::container_rule::ContainerSizeQuery;
+use crate::stylesheets::{layer_rule::LayerOrder, Origin};
+use crate::values::specified::length::FontBaseSize;
 use crate::values::{computed, specified};
 use fxhash::FxHashMap;
 use servo_arc::Arc;
@@ -596,7 +599,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         declaration.value.substitute_variables(
             declaration.id,
             self.context.builder.writing_mode,
-            self.context.builder.custom_properties.as_ref(),
+            self.context.builder.custom_properties(),
             self.context.quirks_mode,
             self.context.device(),
             cache,
@@ -961,14 +964,16 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         };
 
         let font = builder.mutate_font();
-        font.mFont.family.families.prioritize_first_generic_or_prepend(default_font_type);
+        font.mFont
+            .family
+            .families
+            .prioritize_first_generic_or_prepend(default_font_type);
     }
 
     /// Some keyword sizes depend on the font family and language.
     #[cfg(feature = "gecko")]
     fn recompute_keyword_font_size_if_needed(&mut self) {
         use crate::values::computed::ToComputedValue;
-        use crate::values::specified;
 
         if !self.seen.contains(LonghandId::XLang) && !self.seen.contains(LonghandId::FontFamily) {
             return;
@@ -1080,7 +1085,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             return;
         }
 
-        const SCALE_FACTOR_WHEN_INCREMENTING_MATH_DEPTH_BY_ONE : f32 = 0.71;
+        const SCALE_FACTOR_WHEN_INCREMENTING_MATH_DEPTH_BY_ONE: f32 = 0.71;
 
         // Helper function that calculates the scale factor applied to font-size
         // when math-depth goes from parent_math_depth to computed_math_depth.
@@ -1163,7 +1168,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                     parent_font.mMathDepth as i32,
                     font.mMathDepth as i32,
                     font_metrics.script_percent_scale_down,
-                    font_metrics.script_script_percent_scale_down
+                    font_metrics.script_script_percent_scale_down,
                 )
             };
 
