@@ -6,11 +6,16 @@
 
 #![deny(missing_docs)]
 
-use super::*;
+use super::generated::{
+    shorthands, AllShorthand, ComputedValues, LogicalGroupSet, LonghandIdSet,
+    NonCustomPropertyIdSet, PropertyDeclaration, PropertyDeclarationId, PropertyId, ShorthandId,
+    SourcePropertyDeclaration, SourcePropertyDeclarationDrain, SubpropertiesVec,
+};
 use crate::applicable_declarations::CascadePriority;
 use crate::context::QuirksMode;
 use crate::custom_properties::{self, CustomPropertiesBuilder};
 use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
+use crate::media_queries::Device;
 use crate::parser::ParserContext;
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
 use crate::rule_tree::CascadeLevel;
@@ -26,6 +31,7 @@ use cssparser::{
 };
 use itertools::Itertools;
 use selectors::SelectorList;
+use servo_arc::Arc;
 use smallbitvec::{self, SmallBitVec};
 use smallvec::SmallVec;
 use std::fmt::{self, Write};
