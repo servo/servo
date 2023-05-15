@@ -39,7 +39,6 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
                                            run_info_data,
                                            **kwargs)
     executor_kwargs["close_after_done"] = True
-    executor_kwargs["supports_eager_pageload"] = False
 
     capabilities = {
         "ms:edgeOptions": {
@@ -55,9 +54,6 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
             "w3c": True
         }
     }
-
-    if test_type == "testharness":
-        capabilities["pageLoadStrategy"] = "none"
 
     for (kwarg, capability) in [("binary", "binary"), ("binary_args", "args")]:
         if kwargs[kwarg] is not None:

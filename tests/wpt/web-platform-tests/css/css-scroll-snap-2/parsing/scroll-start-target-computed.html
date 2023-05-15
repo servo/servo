@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-target-* computed values</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/computed-testcommon.js"></script>
+</head>
+
+<body>
+  <div id="target"></div>
+  <script>
+    test_computed_value("scroll-start-target-block", "auto");
+    test_computed_value("scroll-start-target-block", "none");
+
+    test_computed_value("scroll-start-target-inline", "auto");
+    test_computed_value("scroll-start-target-inline", "none");
+
+    test_computed_value("scroll-start-target-x", "auto");
+    test_computed_value("scroll-start-target-x", "none");
+
+    test_computed_value("scroll-start-target-y", "auto");
+    test_computed_value("scroll-start-target-y", "none");
+
+    target.style = "";
+
+    // Test logical-physical mapping.
+    test((t) => {
+      t.add_cleanup(() => { target.style = ""; });
+      target.style.scrollStartTargetBlock = "auto";
+      assert_equals(getComputedStyle(target).scrollStartTargetX, "none");
+      assert_equals(getComputedStyle(target).scrollStartTargetY, "auto");
+    }, "scroll-start-block maps to scroll-start-y in horizontal writing mode.");
+    test((t) => {
+      t.add_cleanup(() => { target.style = ""; });
+      target.style.scrollStartTargetInline = "auto";
+      assert_equals(getComputedStyle(target).scrollStartTargetX, "auto");
+      assert_equals(getComputedStyle(target).scrollStartTargetY, "none");
+    }, "scroll-start-inline maps to scroll-start-x in horizontal writing mode.");
+    test((t) => {
+      t.add_cleanup(() => { target.style = ""; });
+      target.style.scrollStartTargetX = "auto";
+      assert_equals(getComputedStyle(target).scrollStartTargetBlock, "none");
+      assert_equals(getComputedStyle(target).scrollStartTargetInline, "auto");
+    }, "scroll-start-x maps to scroll-start-inline in horizontal writing mode.");
+    test((t) => {
+      t.add_cleanup(() => { target.style = ""; });
+      target.style.scrollStartTargetY = "auto";
+      assert_equals(getComputedStyle(target).scrollStartTargetBlock, "auto");
+      assert_equals(getComputedStyle(target).scrollStartTargetInline, "none");
+    }, "scroll-start-y maps to scroll-start-block in horizontal writing mode.");
+    test((t) => {
+      t.add_cleanup(() => { target.style = ""; });
+      target.style.scrollStartTargetBlock = "auto";
+      target.style.writingMode = "vertical-lr";
+      assert_equals(getComputedStyle(target).scrollStartTargetX, "auto");
+      assert_equals(getComputedStyle(target).scrollStartTargetY, "none");
+    }, "scroll-start-block maps to scroll-start-x in vertical writing mode.");
+    test((t) => {
+      t.add_cleanup(() => { target.style = ""; });
+      target.style.scrollStartTargetInline = "auto";
+      target.style.writingMode = "vertical-lr";
+      assert_equals(getComputedStyle(target).scrollStartTargetX, "none");
+      assert_equals(getComputedStyle(target).scrollStartTargetY, "auto");
+    }, "scroll-start-inline maps to scroll-start-y in vertical writing mode.");
+    test((t) => {
+      t.add_cleanup(() => { target.style = ""; });
+      target.style.scrollStartTargetX = "auto";
+      target.style.writingMode = "vertical-lr";
+      assert_equals(getComputedStyle(target).scrollStartTargetBlock, "auto");
+      assert_equals(getComputedStyle(target).scrollStartTargetInline, "none");
+    }, "scroll-start-x maps to scroll-start-block in vertical writing mode.");
+    test((t) => {
+      t.add_cleanup(() => { target.style = ""; });
+      target.style.scrollStartTargetY = "auto";
+      target.style.writingMode = "vertical-lr";
+      assert_equals(getComputedStyle(target).scrollStartTargetBlock, "none");
+      assert_equals(getComputedStyle(target).scrollStartTargetInline, "auto");
+    }, "scroll-start-y maps to scroll-start-inline in vertical writing mode.");
+    </script>
+</body>
+
+</html>

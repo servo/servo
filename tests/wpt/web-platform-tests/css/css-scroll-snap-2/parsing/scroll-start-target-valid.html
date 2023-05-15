@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-target-* with valid values</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+
+<body>
+  <script>
+    test_valid_value("scroll-start-target", "none");
+    test_valid_value("scroll-start-target", "auto");
+    test_valid_value("scroll-start-target", "none auto");
+    test_valid_value("scroll-start-target", "auto none", "auto");
+
+    test_valid_value("scroll-start-target-block", "none");
+    test_valid_value("scroll-start-target-block", "auto");
+
+    test_valid_value("scroll-start-target-inline", "none");
+    test_valid_value("scroll-start-target-inline", "auto");
+
+    test_valid_value("scroll-start-target-x", "none");
+    test_valid_value("scroll-start-target-x", "auto");
+
+    test_valid_value("scroll-start-target-y", "none");
+    test_valid_value("scroll-start-target-y", "auto");
+  </script>
+</body>
+
+</html>

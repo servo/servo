@@ -8,5 +8,6 @@
 <pre id=target contenteditable>ABC
 <br></pre>
 <script>
+  target.focus();
   getSelection().collapse(target.childNodes[0], 4);
 </script>

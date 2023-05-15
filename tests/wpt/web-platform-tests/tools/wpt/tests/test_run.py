@@ -33,7 +33,7 @@ def venv():
         def install(self, *requirements):
             return
 
-        def install_requirements(self, requirements_path):
+        def install_requirements(self, *requirements):
             return
 
     venv = Virtualenv()

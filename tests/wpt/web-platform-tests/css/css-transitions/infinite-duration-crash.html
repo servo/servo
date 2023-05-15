@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<style>
+  * {
+    transition: all ease-out, linear 2733ms background, all calc(2s / 0) steps(706573049);
+  }
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const style = document.createElement("style")
+    document.head.appendChild(style)
+    const selection = window.getSelection()
+    style.sheet.insertRule(`* { background-clip: padding-box, padding-box, border-box, content-box; }`, 0)
+    selection.selectAllChildren(style)
+    style.sheet.disabled = true
+  })
+</script>

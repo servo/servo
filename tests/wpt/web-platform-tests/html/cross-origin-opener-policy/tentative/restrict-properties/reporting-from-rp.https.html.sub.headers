@@ -1,0 +1,2 @@
+Cross-Origin-Opener-Policy: restrict-properties; report-to="coop-report-endpoint"
+Reporting-Endpoints: coop-report-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=d9fe7e0e1a72f4ff2c4ea6d9dd44b5f1", coop-report-only-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=b4ea2bc3c537541b4fd408dc8f2b5c39"

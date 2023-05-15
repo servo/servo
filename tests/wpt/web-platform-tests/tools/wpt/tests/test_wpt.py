@@ -399,6 +399,7 @@ def test_serve():
                 break
     finally:
         os.killpg(p.pid, 15)
+        p.wait(10)
 
 # The following commands are slow running and used implicitly in other CI
 # jobs, so we skip them here:

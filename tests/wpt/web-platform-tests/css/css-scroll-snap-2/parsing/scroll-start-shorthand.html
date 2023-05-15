@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Scroll Snap 2 Test: scroll-start sets longhands</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+
+<body>
+  <script>
+    test_shorthand_value('scroll-start', '100px', {
+      'scroll-start-block': '100px',
+      'scroll-start-inline': 'start',
+    });
+    test_shorthand_value('scroll-start', '50%', {
+      'scroll-start-block': '50%',
+      'scroll-start-inline': 'start',
+    });
+    test_shorthand_value('scroll-start', 'center', {
+      'scroll-start-block': 'center',
+      'scroll-start-inline': 'start',
+    });
+    test_shorthand_value('scroll-start', '100px 200px', {
+      'scroll-start-block': '100px',
+      'scroll-start-inline': '200px',
+    });
+    test_shorthand_value('scroll-start', '100px 50%', {
+      'scroll-start-block': '100px',
+      'scroll-start-inline': '50%',
+    });
+    test_shorthand_value('scroll-start', '100px center', {
+      'scroll-start-block': '100px',
+      'scroll-start-inline': 'center',
+    });
+    test_shorthand_value('scroll-start', '50% 200px', {
+      'scroll-start-block': '50%',
+      'scroll-start-inline': '200px',
+    });
+    test_shorthand_value('scroll-start', '50% 25%', {
+      'scroll-start-block': '50%',
+      'scroll-start-inline': '25%',
+    });
+    test_shorthand_value('scroll-start', '50% center', {
+      'scroll-start-block': '50%',
+      'scroll-start-inline': 'center',
+    });
+    test_shorthand_value('scroll-start', 'center 200px', {
+      'scroll-start-block': 'center',
+      'scroll-start-inline': '200px',
+    });
+    test_shorthand_value('scroll-start', 'center 25%', {
+      'scroll-start-block': 'center',
+      'scroll-start-inline': '25%',
+    });
+    test_shorthand_value('scroll-start', 'center end', {
+      'scroll-start-block': 'center',
+      'scroll-start-inline': 'end',
+    });
+  </script>
+</body>

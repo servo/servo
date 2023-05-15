@@ -18,6 +18,7 @@
   main {
     height: 0px;
     overflow: hidden;
+    scroll-timeline: timeline1 defer, timeline2 defer;
   }
   .scroller {
     height: 100px;
@@ -49,7 +50,7 @@
     function insertScroller(timeline_name) {
       let scroller = document.createElement('div');
       scroller.classList.add('scroller');
-      scroller.style.scrollTimeline = timeline_name;
+      scroller.style.scrollTimeline = `${timeline_name} ancestor`;
       scroller.append(document.createElement('div'));
       main.insertBefore(scroller, element1);
     }

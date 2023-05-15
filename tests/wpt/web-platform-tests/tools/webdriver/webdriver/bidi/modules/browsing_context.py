@@ -7,9 +7,7 @@ from ._module import BidiModule, command
 class BrowsingContext(BidiModule):
     @command
     def capture_screenshot(self, context: str) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {
-            "context": context
-        }
+        params: MutableMapping[str, Any] = {"context": context}
 
         return params
 
@@ -28,7 +26,9 @@ class BrowsingContext(BidiModule):
         return params
 
     @command
-    def create(self, type_hint: str, reference_context: Optional[str] = None) -> Mapping[str, Any]:
+    def create(self,
+               type_hint: str,
+               reference_context: Optional[str] = None) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"type": type_hint}
 
         if reference_context is not None:
@@ -63,9 +63,10 @@ class BrowsingContext(BidiModule):
         return result["contexts"]
 
     @command
-    def navigate(
-        self, context: str, url: str, wait: Optional[str] = None
-    ) -> Mapping[str, Any]:
+    def navigate(self,
+                 context: str,
+                 url: str,
+                 wait: Optional[str] = None) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"context": context, "url": url}
         if wait is not None:
             params["wait"] = wait
@@ -82,20 +83,28 @@ class BrowsingContext(BidiModule):
         return result
 
     @command
-    def print(
-        self,
-        context: str,
-        background: Optional[bool] = None,
-        margin: Optional[Mapping[str, Any]] = None,
-        orientation: Optional[str] = None,
-        page: Optional[Mapping[str, Any]] = None,
-        page_ranges: Optional[List[str]] = None,
-        scale: Optional[float] = None,
-        shrink_to_fit: Optional[bool] = None
-    ) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {
-            "context": context
-        }
+    def reload(self,
+               context: str,
+               ignore_cache: Optional[bool] = None,
+               wait: Optional[str] = None) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {"context": context}
+        if ignore_cache is not None:
+            params["ignoreCache"] = ignore_cache
+        if wait is not None:
+            params["wait"] = wait
+        return params
+
+    @command
+    def print(self,
+              context: str,
+              background: Optional[bool] = None,
+              margin: Optional[Mapping[str, Any]] = None,
+              orientation: Optional[str] = None,
+              page: Optional[Mapping[str, Any]] = None,
+              page_ranges: Optional[List[str]] = None,
+              scale: Optional[float] = None,
+              shrink_to_fit: Optional[bool] = None) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {"context": context}
 
         if background is not None:
             params["background"] = background

@@ -25,7 +25,7 @@
 promise_test(async function() {
    document.scrollingElement.scrollTo(0, 20000);
    await new Promise(resolve => {
-     document.addEventListener("scroll", () => step_timeout(resolve, 0));
+     document.addEventListener("scroll", resolve, { once: true });
      document.getElementById("target").focus();
    });
   // Should be around 4900 (5000 - 200px of margin). Give some leeway to account for line height / borders / input padding / etc.

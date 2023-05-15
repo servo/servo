@@ -5,6 +5,8 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<body></body>
 <script>
     promise_test(async (t) => {
         await test_driver.set_permission(
@@ -12,16 +14,16 @@
             "granted"
         );
 
+        let screenGetterInvoked = false;
         const options = {
             get screen() {
+                screenGetterInvoked = true;
                 return undefined;
             },
         };
 
-        await promise_rejects_js(
-            t,
-            TypeError,
-            document.body.requestFullscreen(options)
-        );
+        await trusted_click(document.body);
+        await document.body.requestFullscreen(options);
+        assert_equals(screenGetterInvoked, true);
     }, "fullscreenOptions.screen getter is invoked on requestFullscreen");
 </script>

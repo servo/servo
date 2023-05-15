@@ -14,7 +14,7 @@ promise_test(async t => {
 
   const close_info = await wt.closed;
 
-  assert_equals(close_info.closeCode, 0 , 'code');
+  assert_equals(close_info.closeCode, 0, 'code');
   assert_equals(close_info.reason, '', 'reason');
 
   await wait(10);
@@ -129,3 +129,25 @@ promise_test(async t => {
   assert_equals(e.source, 'session', 'source');
   assert_equals(e.streamErrorCode, null, 'streamErrorCode');
 }, 'server initiated connection closure');
+
+promise_test(async t => {
+  const wt = new WebTransport(webtransport_url('echo.py'));
+  const stream = await wt.createUnidirectionalStream();
+  await wt.ready;
+}, 'opening unidirectional stream before ready');
+
+promise_test(async t => {
+  const wt = new WebTransport(webtransport_url('echo.py'));
+  const stream = await wt.createBidirectionalStream();
+  await wt.ready;
+}, 'opening bidirectional stream before ready');
+
+promise_test(async t => {
+  const wt = new WebTransport(webtransport_url('server-close.py'));
+  promise_rejects_dom(t, "InvalidStateError", wt.createUnidirectionalStream());
+}, 'server initiated closure while opening unidirectional stream before ready');
+
+promise_test(async t => {
+  const wt = new WebTransport(webtransport_url('server-close.py'));
+  promise_rejects_dom(t, "InvalidStateError", wt.createBidirectionalStream());
+}, 'server initiated closure while opening bidirectional stream before ready');

@@ -100,6 +100,8 @@ promise_test(async t => {
    'size changes.');
 
 promise_test(async t => {
+  await waitForNextFrame();
+
   const timeline = createScrollTimeline(t);
   const scroller = timeline.source;
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
@@ -117,12 +119,35 @@ promise_test(async t => {
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
-  assert_times_equal(timeline.currentTime.value, 20,
+
+  // Let s = scroll position
+  //     p = fractional progress
+  //     v = viewport height
+  //     c = scroll height
+  // c[i] = c[i-1] * (1 + p[i-1])
+  // p[i] = s / (c[i-1] - v)
+
+  // c[0] = 1000
+  // p[0] = 0.2 ==> s = 180
+  // c[1] = 1000 * 1.2  = 1200
+  assert_percents_equal(timeline.currentTime, 20,
     'Timeline current time is updated after animation frame.');
+  assert_equals(scroller.scrollHeight, 1200);
   await waitForNextFrame();
-  assert_times_equal(timeline.currentTime.value, 16.3636,
+
+  // Applying the animation effect alters the height of the scroll content and
+  // makes the scroll timeline stale.
+  // https://github.com/w3c/csswg-drafts/issues/8694
+
+  // p[1] = 180 / (1200 - 100) = 0.16363636363
+  // c[2] = 1000 * 1.16363636363 = 1163.6363 => 1164
+  // p[2] = 180 / (1164 - 100) = 0.1692
+  // c[3] = 1169
+
+  assert_percents_equal(timeline.currentTime, 16.92,
     'Timeline current time is updated after two animation frames and ' +
     'reflects single layout run.');
+  assert_approx_equals(scroller.scrollHeight, 1169, 1);
 }, 'If scroll animation resizes its scroll timeline scroller, ' +
-   'layout runs only once to reflect the initial update.');
+   'layout reruns once per frame.');
 </script>

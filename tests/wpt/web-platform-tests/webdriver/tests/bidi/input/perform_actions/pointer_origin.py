@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.bidi.modules.input import Actions
+from webdriver.bidi.modules.input import Actions, get_element_origin
 from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.asserts import assert_move_to_coordinates
@@ -106,7 +106,7 @@ async def test_element_center_point_with_offset(
     center = await get_inview_center_bidi(bidi_session, context=top_context, element=elem)
 
     actions = Actions()
-    actions.add_pointer().pointer_move(x=offset_x, y=offset_y, origin=elem)
+    actions.add_pointer().pointer_move(x=offset_x, y=offset_y, origin=get_element_origin(elem))
     await bidi_session.input.perform_actions(
         actions=actions, context=top_context["context"]
     )
@@ -130,7 +130,7 @@ async def test_element_larger_than_viewport(
     center = await get_inview_center_bidi(bidi_session, context=top_context, element=elem)
 
     actions = Actions()
-    actions.add_pointer().pointer_move(x=0, y=0, origin=elem)
+    actions.add_pointer().pointer_move(x=0, y=0, origin=get_element_origin(elem))
     await bidi_session.input.perform_actions(
         actions=actions, context=top_context["context"]
     )

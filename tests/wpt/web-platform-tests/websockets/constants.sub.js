@@ -32,18 +32,6 @@ function IsWebSocket() {
   }
 }
 
-function CreateWebSocketNonAbsolute() {
-  IsWebSocket();
-  const url = __SERVER__NAME;
-  return new WebSocket(url);
-}
-
-function CreateWebSocketNonWsScheme() {
-  IsWebSocket();
-  const url = "http://" + __SERVER__NAME + ":" + __PORT + "/" + __PATH;
-  return new WebSocket(url);
-}
-
 function CreateWebSocketNonAsciiProtocol(nonAsciiProtocol) {
   IsWebSocket();
   const url = SCHEME_DOMAIN_PORT + "/" + __PATH;

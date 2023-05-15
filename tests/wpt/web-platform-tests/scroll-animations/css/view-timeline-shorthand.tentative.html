@@ -22,6 +22,8 @@ test_valid_value('view-timeline', 'horizontal block', 'horizontal');
 test_valid_value('view-timeline', 'a, b, c');
 test_valid_value('view-timeline', 'a inline, b block, c vertical', 'a inline, b, c vertical');
 test_valid_value('view-timeline', 'auto');
+test_valid_value('view-timeline', 'abc defer vertical', 'abc vertical defer');
+test_valid_value('view-timeline', 'abc vertical defer');
 
 test_invalid_value('view-timeline', 'abc abc');
 test_invalid_value('view-timeline', 'block none');
@@ -39,6 +41,8 @@ test_computed_value('view-timeline', 'vertical block', 'vertical');
 test_computed_value('view-timeline', 'horizontal block', 'horizontal');
 test_computed_value('view-timeline', 'a, b, c');
 test_computed_value('view-timeline', 'a inline, b block, c vertical', 'a inline, b, c vertical');
+test_computed_value('view-timeline', 'abc defer vertical', 'abc vertical defer');
+test_computed_value('view-timeline', 'abc vertical defer');
 
 test_shorthand_value('view-timeline', 'abc vertical',
 {

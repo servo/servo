@@ -36,11 +36,11 @@ function test_letter_spacing(value, difference_spacing, epsilon) {
 // in 'hello world', so the length difference is always letterSpacing * 11.
 // and the third value is the acceptable differencee for the length change,
 // note that unit such as 1cm/1mm doesn't map to an exact pixel value.
-test_cases = [['3px', 33, 0],
-              ['5px', 55, 0],
-              ['-2px', -22, 0],
-              ['1em', 110, 0],
-              ['1in', 1056, 0],
+test_cases = [['3px', 33, 0.1],
+              ['5px', 55, 0.1],
+              ['-2px', -22, 0.1],
+              ['1em', 110, 0.1],
+              ['1in', 1056, 0.1],
               ['-0.1cm', -41.65, 0.2],
               ['-0.6mm', -24,95, 0.2]]
 

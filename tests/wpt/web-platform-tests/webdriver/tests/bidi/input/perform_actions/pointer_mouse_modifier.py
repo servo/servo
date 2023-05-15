@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.bidi.modules.input import Actions
+from webdriver.bidi.modules.input import Actions, get_element_origin
 from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.helpers import filter_dict
@@ -42,7 +42,7 @@ async def test_control_click(
     )
     mouse_sources = (
         actions.add_pointer()
-        .pointer_move(x=0, y=0, origin=outer)
+        .pointer_move(x=0, y=0, origin=get_element_origin(outer))
         .pointer_down(button=0)
         .pointer_up(button=0)
     )
@@ -101,7 +101,7 @@ async def test_control_click_release(
     key_sources = actions.add_key().pause(duration=0).key_down(Keys.CONTROL)
     mouse_sources = (
         actions.add_pointer()
-        .pointer_move(x=0, y=0, origin=key_reporter)
+        .pointer_move(x=0, y=0, origin=get_element_origin(key_reporter))
         .pointer_down(button=0)
     )
     await bidi_session.input.perform_actions(
@@ -148,7 +148,7 @@ async def test_many_modifiers_click(
     )
     mouse_sources = (
         actions.add_pointer()
-        .pointer_move(x=0, y=0, origin=outer)
+        .pointer_move(x=0, y=0, origin=get_element_origin(outer))
         .pause(duration=0)
         .pointer_down(button=0)
         .pointer_up(button=0)
@@ -212,7 +212,7 @@ async def test_modifier_click(
     )
     mouse_sources = (
         actions.add_pointer()
-        .pointer_move(x=0, y=0, origin=outer)
+        .pointer_move(x=0, y=0, origin=get_element_origin(outer))
         .pointer_down(button=0)
         .pointer_up(button=0)
     )

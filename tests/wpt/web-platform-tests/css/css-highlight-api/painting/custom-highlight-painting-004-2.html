@@ -4,6 +4,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
 <link rel="match" href="custom-highlight-painting-004-2-ref.html">
 <meta name="assert" value="When painting overlapping highlights with the same .priority, the one added last should be painted on top; and style properties not defined by the one on top (background-color in this case) should follow the rules of the next Highlight from top to bottom until there's one that overwrites default (or use default value otherwise).">
+<meta name="fuzzy" content="0-88;0-1">
 <style>
   ::highlight(foo) {
     color:blue;

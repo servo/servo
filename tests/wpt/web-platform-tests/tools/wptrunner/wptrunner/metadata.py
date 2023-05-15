@@ -491,7 +491,9 @@ class ExpectedUpdater:
         result = pack_result(data)
 
         test_data.set(test_id, subtest, "status", self.run_info, result)
-        if data.get("expected") and data["expected"] != data["status"]:
+        status = data["status"]
+        expected = data.get("expected")
+        if expected and expected != status and status not in data.get("known_intermittent", []):
             test_data.set_requires_update()
 
     def test_end(self, data):
@@ -506,7 +508,9 @@ class ExpectedUpdater:
         result = pack_result(data)
 
         test_data.set(test_id, None, "status", self.run_info, result)
-        if data.get("expected") and data["expected"] != data["status"]:
+        status = data["status"]
+        expected = data.get("expected")
+        if expected and expected != status and status not in data.get("known_intermittent", []):
             test_data.set_requires_update()
         del self.tests_visited[test_id]
 

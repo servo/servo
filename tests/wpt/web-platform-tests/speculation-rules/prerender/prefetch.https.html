@@ -15,7 +15,7 @@ promise_test(async t => {
       await create_prerendered_page(t, {}, {prefetch: true}, {});
 
   assert_equals(await tryToActivate(), 'activated');
-  assert_equals(await getNetworkRequestCount(), '2', 'Network request count');
-}, "Prerender navigation requests don't use prefetched results (for now)");
+  assert_equals(await getNetworkRequestCount(), '1', 'Network request count');
+}, "Prerender navigation requests should use prefetched results");
 </script>
 </body>

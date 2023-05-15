@@ -22,7 +22,9 @@
       margin-right: 0px;
     }
   }
+
   #scroller {
+    scroll-timeline-attachment: defer t1;
     border:  10px solid lightgray;
     overflow-y: scroll;
     overflow-x: hidden;
@@ -30,6 +32,7 @@
     height: 200px;
   }
   #block {
+    scroll-timeline-attachment: ancestor;
     margin-top:  800px;
     margin-left:  10px;
     margin-right:  10px;
@@ -64,7 +67,7 @@
       await waitForNextFrame();
       const anims = document.getAnimations();
       assert_equals(anims.length, 1,
-                    "Should have one animation attatched to the view-timeline");
+                    "Should have one animation attached to the view-timeline");
       const anim = anims[0];
       await anim.ready;
       await waitForNextFrame();
@@ -88,7 +91,7 @@
                                'Initial keyframes with active view-timeline');
 
       block.style.display = 'none';
-      // View-timeline becomes invalid. Keyframes with timeline offsets must be
+      // View-timeline becomes inactive. Keyframes with timeline offsets must be
       // ignored.
       frames = anim.effect.getKeyframes();
       let expected_unresolved_offsets = [
@@ -109,6 +112,9 @@
                                'Keyframes with invalid view timeline');
 
       block.style.display = 'block';
+      // Timeline remains inactive until next frame.
+      await waitForNextFrame();
+
       // Ensure that keyframes with timeline-offsets are restored.
       frames = anim.effect.getKeyframes();
 

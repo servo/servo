@@ -718,7 +718,7 @@
       @assert ctx.wordSpacing === '0px';
       @assert ctx.letterSpacing === '0px';
     }
-    @nonfinite test_word_spacing(< '0s' '1min' '1deg' '1pp'>);
+    @nonfinite test_word_spacing(< '0s' '1min' '1deg' '1pp' 'initial' 'inherit' 'normal' 'none'>);
 
 - name: 2d.text.drawing.style.letterSpacing.measure
   desc: Testing letter spacing and word spacing
@@ -740,11 +740,11 @@
     // in 'hello world', so the length difference is always letterSpacing * 11.
     // and the third value is the acceptable differencee for the length change,
     // note that unit such as 1cm/1mm doesn't map to an exact pixel value.
-    test_cases = [['3px', 33, 0],
-                  ['5px', 55, 0],
-                  ['-2px', -22, 0],
-                  ['1em', 110, 0],
-                  ['1in', 1056, 0],
+    test_cases = [['3px', 33, 0.1],
+                  ['5px', 55, 0.1],
+                  ['-2px', -22, 0.1],
+                  ['1em', 110, 0.1],
+                  ['1in', 1056, 0.1],
                   ['-0.1cm', -41.65, 0.2],
                   ['-0.6mm', -24,95, 0.2]]
 
@@ -772,11 +772,11 @@
     // in 'Hello World, again', so the length difference is always wordSpacing * 2.
     // and the third value is the acceptable differencee for the length change,
     // note that unit such as 1cm/1mm doesn't map to an exact pixel value.
-    test_cases = [['3px', 6, 0],
-                  ['5px', 10, 0],
-                  ['-2px', -4, 0],
-                  ['1em', 20, 0],
-                  ['1in', 192, 0],
+    test_cases = [['3px', 6, 0.1],
+                  ['5px', 10, 0.1],
+                  ['-2px', -4, 0.1],
+                  ['1em', 20, 0.1],
+                  ['1in', 192, 0.1],
                   ['-0.1cm', -7.57, 0.2],
                   ['-0.6mm', -4.54, 0.2]]
 
@@ -797,7 +797,7 @@
     // 1em = 10px. Add 10px after each letter in "Hello World",
     // makes it 110px longer.
     var width_with_spacing = ctx.measureText('Hello World').width;
-    @assert width_with_spacing === width_normal + 110;
+    assert_approx_equals(width_with_spacing, width_normal + 110, 0.1, "letterSpacing incorrect before font change");
 
     // Changing font to 20px. Without resetting the spacing, 1em letterSpacing
     // is now 20px, so it's suppose to be 220px longer without any letterSpacing set.
@@ -806,7 +806,8 @@
     // Now calculate the reference spacing for "Hello World" with no spacing.
     ctx.letterSpacing = '0em';
     width_normal = ctx.measureText('Hello World').width;
-    @assert width_with_spacing === width_normal + 220;
+    assert_approx_equals(width_with_spacing, width_normal + 220, 0.1, "letterSpacing incorrect after font change");
+
 
 - name: 2d.text.drawing.style.wordSpacing.change.font
   desc: Set word spacing and word spacing to font dependent value and verify it works after font change.

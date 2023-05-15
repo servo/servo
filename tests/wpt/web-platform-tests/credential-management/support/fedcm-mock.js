@@ -105,6 +105,9 @@ export class MockFederatedAuthRequest {
   async unregisterIdP(configURL) {
   }
 
+  async resolveTokenRequest(token) {
+  }
+
   async closeModalDialogView() {
   }
 

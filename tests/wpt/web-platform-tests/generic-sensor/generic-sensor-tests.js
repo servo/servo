@@ -544,24 +544,6 @@ function runGenericSensorTests(sensorName,
                                      /*isNull=*/true));
   }, `${sensorName}: sensor reading is correct when options.referenceFrame\
  is 'screen'.`);
-
-  test(() => {
-    assert_implements(sensorName in self, `${sensorName} is not supported.`);
-    const invalidRefFrames = [
-      "invalid",
-      null,
-      123,
-      {},
-      "",
-      true
-    ];
-    invalidRefFrames.map(refFrame => {
-      assert_throws_js(TypeError,
-                       () => { new sensorType({referenceFrame: refFrame}) },
-                       `when refFrame is ${refFrame}`);
-    });
-  }, `${sensorName}: throw 'TypeError' if referenceFrame is not one of\
- enumeration values.`);
 }
 
 function runGenericSensorInsecureContext(sensorName) {

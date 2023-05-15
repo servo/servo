@@ -49,6 +49,14 @@
   <button autofocus tabindex="0">second autofocus button</button>
 </div>
 
+<dialog popover=auto data-test='Opening dialogs as popovers should use dialog initial focus algorithm.'>
+  <button class=should-be-focused>button</button>
+</dialog>
+
+<dialog popover=auto autofocus class=should-be-focused data-test='Opening dialogs as popovers which have autofocus should focus the dialog.'>
+  <button>button</button>
+</dialog>
+
 <style>
   [popover] {
     border: 2px solid black;
@@ -178,7 +186,7 @@
       assert_true(popover.matches(':popover-open'));
       assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by button.click()`);
       popover.focus();
-      assert_equals(document.activeElement, popover.hasAttribute('tabindex') ? popover : expectedFocusedElement, `${testName} directly focus with popover.focus()`);
+      assert_equals(document.activeElement, popover.hasAttribute('tabindex') || popover.tagName === 'DIALOG' ? popover : expectedFocusedElement, `${testName} directly focus with popover.focus()`);
       button.click(); // Button is set to toggle the popover
       assert_false(popover.matches(':popover-open'));
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus on button-toggled hide');

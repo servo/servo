@@ -7,7 +7,12 @@ const origin = [
 ];
 let escapeComma = url => url.replace(/,/g, '\\,');
 
-let testAccessProperty = (property, op, expectReport = true) => {
+let testAccessProperty = (
+  property,
+  op,
+  expectReport = true,
+  use_restrict_properties = false,
+) => {
   origin.forEach(([origin_name, origin]) => {
     promise_test(async t => {
       const this_window_token = token();
@@ -21,9 +26,12 @@ let testAccessProperty = (property, op, expectReport = true) => {
       const openee_token = token();
       const openee_report_token = token();
       const openee_report_to = reportToHeaders(openee_report_token);
+      const coop_ro_header =
+        use_restrict_properties
+          ? openee_report_to.coopReportOnlyRestrictPropertiesHeader
+          : openee_report_to.coopReportOnlySameOriginHeader;
       const openee_url = origin + executor_path + openee_report_to.header +
-        openee_report_to.coopReportOnlySameOriginHeader + coep_header +
-        `&uuid=${openee_token}`;
+        coop_ro_header + coep_header + `&uuid=${openee_token}`;
 
       t.add_cleanup(() => {
         send(opener_token, "window.close()")

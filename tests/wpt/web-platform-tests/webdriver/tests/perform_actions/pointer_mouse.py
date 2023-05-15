@@ -192,3 +192,12 @@ def test_missing_coordinates(session, test_actions_page, mouse_chain, missing):
     del actions._actions[-1][missing]
     with pytest.raises(InvalidArgumentException):
         actions.perform()
+
+
+def test_invalid_element_origin(session, test_actions_page, mouse_chain):
+    outer = session.find.css("#outer", all=False)
+    actions = mouse_chain.pointer_move(
+        x=0, y=0, origin={"type": "element", "element": {"sharedId": outer.id}}
+    )
+    with pytest.raises(InvalidArgumentException):
+        actions.perform()
