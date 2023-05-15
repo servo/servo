@@ -17,6 +17,7 @@ use canvas::canvas_paint_thread::ImageUpdate;
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Vector2D};
+use fnv::{FnvHashMap, FnvHashSet};
 use gfx_traits::{Epoch, FontData};
 #[cfg(feature = "gl")]
 use image::{DynamicImage, ImageFormat};
@@ -31,7 +32,7 @@ use net_traits::image_cache::CorsStatus;
 #[cfg(feature = "gl")]
 use pixels::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_traits::compositor::HitTestInfo;
+use script_traits::compositor::{HitTestInfo, ScrollTree};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{
     AnimationState, AnimationTickType, CompositorHitTestResult, LayoutControlMsg, MouseButton,
@@ -49,9 +50,9 @@ use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D, WorldPoint,
+    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutVector2D, WorldPoint,
 };
-use webrender_api::{self, HitTestFlags, ScrollLocation};
+use webrender_api::{self, ExternalScrollId, HitTestFlags, ScrollClamping, ScrollLocation};
 use webrender_surfman::WebrenderSurfman;
 
 #[derive(Debug, PartialEq)]
@@ -269,6 +270,10 @@ struct PipelineDetails {
     /// Hit test items for this pipeline. This is used to map WebRender hit test
     /// information to the full information necessary for Servo.
     hit_test_items: Vec<HitTestInfo>,
+
+    /// The compositor-side [ScrollTree]. This is used to allow finding and scrolling
+    /// nodes in the compositor before forwarding new offsets to WebRender.
+    scroll_tree: ScrollTree,
 }
 
 impl PipelineDetails {
@@ -279,6 +284,30 @@ impl PipelineDetails {
             animation_callbacks_running: false,
             visible: true,
             hit_test_items: Vec::new(),
+            scroll_tree: ScrollTree::default(),
+        }
+    }
+
+    fn install_new_scroll_tree(&mut self, new_scroll_tree: ScrollTree) {
+        let old_scroll_offsets: FnvHashMap<ExternalScrollId, LayoutVector2D> = self
+            .scroll_tree
+            .nodes
+            .drain(..)
+            .filter_map(|node| match (node.external_id(), node.offset()) {
+                (Some(external_id), Some(offset)) => Some((external_id, offset)),
+                _ => None,
+            })
+            .collect();
+
+        self.scroll_tree = new_scroll_tree;
+        for node in self.scroll_tree.nodes.iter_mut() {
+            match node.external_id() {
+                Some(external_id) => match old_scroll_offsets.get(&external_id) {
+                    Some(new_offset) => node.set_offset(*new_offset),
+                    None => continue,
+                },
+                _ => continue,
+            };
         }
     }
 }
@@ -647,6 +676,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
                     let details = self.pipeline_details(PipelineId::from_webrender(pipeline));
                     details.hit_test_items = compositor_display_list_info.hit_test_info;
+                    details.install_new_scroll_tree(compositor_display_list_info.scroll_tree);
 
                     let mut txn = webrender_api::Transaction::new();
                     txn.set_display_list(
@@ -850,8 +880,36 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             .send_transaction(self.webrender_document, txn);
 
         self.create_pipeline_details_for_frame_tree(&frame_tree);
+        self.reset_scroll_tree_for_unattached_pipelines(&frame_tree);
 
         self.frame_tree_id.next();
+    }
+
+    fn reset_scroll_tree_for_unattached_pipelines(&mut self, frame_tree: &SendableFrameTree) {
+        // TODO(mrobinson): Eventually this can selectively preserve the scroll trees
+        // state for some unattached pipelines in order to preserve scroll position when
+        // navigating backward and forward.
+        fn collect_pipelines(
+            pipelines: &mut FnvHashSet<PipelineId>,
+            frame_tree: &SendableFrameTree,
+        ) {
+            pipelines.insert(frame_tree.pipeline.id);
+            for kid in &frame_tree.children {
+                collect_pipelines(pipelines, kid);
+            }
+        }
+
+        let mut attached_pipelines: FnvHashSet<PipelineId> = FnvHashSet::default();
+        collect_pipelines(&mut attached_pipelines, frame_tree);
+
+        self.pipeline_details
+            .iter_mut()
+            .filter(|(id, _)| !attached_pipelines.contains(id))
+            .for_each(|(_, details)| {
+                details.scroll_tree.nodes.iter_mut().for_each(|node| {
+                    node.set_offset(LayoutVector2D::zero());
+                })
+            })
     }
 
     fn create_pipeline_details_for_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
@@ -1005,6 +1063,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     point_relative_to_item: item.point_relative_to_item.to_untyped(),
                     node: UntrustedNodeAddress(info.node as *const c_void),
                     cursor: info.cursor,
+                    scroll_tree_node: info.scroll_tree_node,
                 })
             })
             .collect()
@@ -1220,7 +1279,29 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = WorldPoint::from_untyped(cursor);
             let mut txn = webrender_api::Transaction::new();
-            txn.scroll(scroll_location, cursor);
+
+            let result = match self.hit_test_at_point(cursor) {
+                Some(result) => result,
+                None => return,
+            };
+
+            if let Some(details) = self.pipeline_details.get_mut(&result.pipeline_id) {
+                match details
+                    .scroll_tree
+                    .scroll_node_or_ancestor(&result.scroll_tree_node, scroll_location)
+                {
+                    Some((external_id, offset)) => {
+                        let scroll_origin = LayoutPoint::new(-offset.x, -offset.y);
+                        txn.scroll_node_with_id(
+                            scroll_origin,
+                            external_id,
+                            ScrollClamping::NoClamping,
+                        );
+                    },
+                    None => {},
+                }
+            }
+
             if combined_event.magnification != 1.0 {
                 let old_zoom = self.pinch_zoom_level();
                 self.set_pinch_zoom_level(old_zoom * combined_event.magnification);

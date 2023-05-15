@@ -225,6 +225,7 @@ class MachCommands(CommandBase):
             "net",
             "net_traits",
             "selectors",
+            "script_traits",
             "servo_config",
             "servo_remutex",
         ]
