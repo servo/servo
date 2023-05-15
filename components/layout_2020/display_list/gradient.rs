@@ -144,9 +144,9 @@ pub(super) fn build_linear(
 
     let stops = fixup_stops(style, items, Length::new(gradient_line_length));
     let linear_gradient = builder
-        .wr
+        .wr()
         .create_gradient(start_point, end_point, stops, extend_mode);
-    builder.wr.push_gradient(
+    builder.wr().push_gradient(
         &layer.common,
         layer.bounds,
         linear_gradient,
@@ -244,9 +244,9 @@ pub(super) fn build_radial(
 
     let stops = fixup_stops(style, items, Length::new(gradient_line_length));
     let radial_gradient = builder
-        .wr
+        .wr()
         .create_radial_gradient(center, radii, stops, extend_mode);
-    builder.wr.push_radial_gradient(
+    builder.wr().push_radial_gradient(
         &layer.common,
         layer.bounds,
         radial_gradient,
