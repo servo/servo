@@ -1978,6 +1978,7 @@ async fn cors_preflight_fetch(
         .destination(request.destination.clone())
         .referrer_policy(request.referrer_policy)
         .mode(RequestMode::CorsMode)
+        .response_tainting(ResponseTainting::CorsTainting)
         .build();
 
     // Step 2
