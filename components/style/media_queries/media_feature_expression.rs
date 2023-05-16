@@ -221,7 +221,11 @@ fn disabled_by_pref(feature: &Atom, context: &ParserContext) -> bool {
     #[cfg(feature = "gecko")]
     {
         if *feature == atom!("forced-colors") {
-            return !static_prefs::pref!("layout.css.forced-colors.enabled");
+            // forced-colors is always enabled in the ua and chrome. On
+            // the web it is hidden behind a preference, which is defaulted
+            // to 'true' as of bug 1659511.
+            return !context.in_ua_or_chrome_sheet() &&
+                !static_prefs::pref!("layout.css.forced-colors.enabled");
         }
         // prefers-contrast is always enabled in the ua and chrome. On
         // the web it is hidden behind a preference.
