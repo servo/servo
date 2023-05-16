@@ -406,6 +406,21 @@ fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorSc
     }
 }
 
+/// The color-scheme of the toolbar in the current Firefox theme. This is based
+/// on a pref managed by the front-end.
+fn eval_toolbar_prefers_color_scheme(_: &Device, query_value: Option<PrefersColorScheme>) -> bool {
+    let prefers_color_scheme = if static_prefs::pref!("browser.theme.dark-toolbar-theme") {
+        PrefersColorScheme::Dark
+    } else {
+        PrefersColorScheme::Light
+    };
+
+    match query_value {
+        Some(v) => prefers_color_scheme == v,
+        None => true,
+    }
+}
+
 bitflags! {
     /// https://drafts.csswg.org/mediaqueries-4/#mf-interaction
     struct PointerCapabilities: u8 {
@@ -624,7 +639,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [MediaFeatureDescription; 61] = [
+pub static MEDIA_FEATURES: [MediaFeatureDescription; 62] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -832,6 +847,12 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 61] = [
         atom!("-moz-non-native-content-theme"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_moz_non_native_content_theme),
+        ParsingRequirements::CHROME_AND_UA_ONLY,
+    ),
+    feature!(
+        atom!("-moz-toolbar-prefers-color-scheme"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_toolbar_prefers_color_scheme, PrefersColorScheme),
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
 
