@@ -138,6 +138,9 @@ where
                     debug!(" > {:?}", sheet);
                 }
             }
+            // The line below ensures the "committed" bit is updated properly
+            // below.
+            collection.each(|_, _| true);
             return Ok(Some(entry.clone()));
         }
 
