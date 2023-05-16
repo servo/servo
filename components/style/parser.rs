@@ -9,6 +9,7 @@ use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
 use crate::stylesheets::{CssRuleType, Namespaces, Origin, UrlExtraData};
 use crate::use_counters::UseCounters;
 use cssparser::{Parser, SourceLocation, UnicodeRange};
+use std::borrow::Cow;
 use style_traits::{OneOrMoreSeparated, ParseError, ParsingMode, Separator};
 
 /// Asserts that all ParsingMode flags have a matching ParsingMode value in gecko.
@@ -53,7 +54,7 @@ pub struct ParserContext<'a> {
     /// The active error reporter, or none if error reporting is disabled.
     error_reporter: Option<&'a dyn ParseErrorReporter>,
     /// The currently active namespaces.
-    pub namespaces: Option<&'a Namespaces>,
+    pub namespaces: Cow<'a, Namespaces>,
     /// The use counters we want to record while parsing style rules, if any.
     pub use_counters: Option<&'a UseCounters>,
 }
@@ -67,6 +68,7 @@ impl<'a> ParserContext<'a> {
         rule_type: Option<CssRuleType>,
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
+        namespaces: Cow<'a, Namespaces>,
         error_reporter: Option<&'a dyn ParseErrorReporter>,
         use_counters: Option<&'a UseCounters>,
     ) -> Self {
@@ -77,29 +79,17 @@ impl<'a> ParserContext<'a> {
             parsing_mode,
             quirks_mode,
             error_reporter,
-            namespaces: None,
+            namespaces,
             use_counters,
         }
     }
 
-    /// Create a parser context based on a previous context, but with a modified
-    /// rule type.
-    #[inline]
-    pub fn new_with_rule_type(
-        context: &'a ParserContext,
-        rule_type: CssRuleType,
-        namespaces: &'a Namespaces,
-    ) -> ParserContext<'a> {
-        Self {
-            stylesheet_origin: context.stylesheet_origin,
-            url_data: context.url_data,
-            rule_type: Some(rule_type),
-            parsing_mode: context.parsing_mode,
-            quirks_mode: context.quirks_mode,
-            namespaces: Some(namespaces),
-            error_reporter: context.error_reporter,
-            use_counters: context.use_counters,
-        }
+    /// Temporarily sets the rule_type and executes the callback function, returning its result.
+    pub fn nest_for_rule<R>(&mut self, rule_type: CssRuleType, cb: impl FnOnce(&mut Self) -> R) -> R {
+        let old_rule_type = std::mem::replace(&mut self.rule_type, Some(rule_type));
+        let r = cb(self);
+        self.rule_type = old_rule_type;
+        r
     }
 
     /// Whether we're in a @page rule.

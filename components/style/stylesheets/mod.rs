@@ -39,6 +39,7 @@ use cssparser::{parse_one_rule, Parser, ParserInput};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use servo_arc::Arc;
+use std::borrow::Cow;
 use std::fmt;
 #[cfg(feature = "gecko")]
 use std::mem::{self, ManuallyDrop};
@@ -401,20 +402,20 @@ impl CssRule {
         allow_import_rules: AllowImportRules,
     ) -> Result<Self, RulesMutateError> {
         let url_data = parent_stylesheet_contents.url_data.read();
+        let namespaces = parent_stylesheet_contents.namespaces.read();
         let context = ParserContext::new(
             parent_stylesheet_contents.origin,
             &url_data,
             None,
             ParsingMode::DEFAULT,
             parent_stylesheet_contents.quirks_mode,
+            Cow::Borrowed(&*namespaces),
             None,
             None,
         );
 
         let mut input = ParserInput::new(css);
         let mut input = Parser::new(&mut input);
-
-        let mut guard = parent_stylesheet_contents.namespaces.write();
 
         // nested rules are in the body state
         let mut rule_parser = TopLevelRuleParser {
@@ -423,7 +424,6 @@ impl CssRule {
             loader,
             state,
             dom_error: None,
-            namespaces: &mut *guard,
             insert_rule_context: Some(insert_rule_context),
             allow_import_rules,
         };
