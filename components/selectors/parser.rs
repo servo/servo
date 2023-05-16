@@ -488,12 +488,18 @@ where
             Component::Class(ref class) if quirks_mode != QuirksMode::Quirks => {
                 class.precomputed_hash()
             },
-            Component::AttributeInNoNamespace { ref local_name, .. } if Impl::should_collect_attr_hash(local_name) => {
+            Component::AttributeInNoNamespace { ref local_name, .. }
+                if Impl::should_collect_attr_hash(local_name) =>
+            {
                 // AttributeInNoNamespace is only used when local_name ==
                 // local_name_lower.
                 local_name.precomputed_hash()
             },
-            Component::AttributeInNoNamespaceExists { ref local_name, ref local_name_lower, .. } => {
+            Component::AttributeInNoNamespaceExists {
+                ref local_name,
+                ref local_name_lower,
+                ..
+            } => {
                 // Only insert the local-name into the filter if it's all
                 // lowercase.  Otherwise we would need to test both hashes, and
                 // our data structures aren't really set up for that.
@@ -503,7 +509,9 @@ where
                 local_name.precomputed_hash()
             },
             Component::AttributeOther(ref selector) => {
-                if selector.local_name != selector.local_name_lower || !Impl::should_collect_attr_hash(&selector.local_name) {
+                if selector.local_name != selector.local_name_lower ||
+                    !Impl::should_collect_attr_hash(&selector.local_name)
+                {
                     continue;
                 }
                 selector.local_name.precomputed_hash()

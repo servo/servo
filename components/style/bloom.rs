@@ -107,6 +107,7 @@ impl<E: TElement> PushedElement<E> {
 /// We do this for attributes that are very common but not commonly used in
 /// selectors.
 #[inline]
+#[cfg(feature = "gecko")]
 pub fn is_attr_name_excluded_from_filter(atom: &crate::Atom) -> bool {
     *atom == atom!("class") || *atom == atom!("id") || *atom == atom!("style")
 }
@@ -125,6 +126,7 @@ where
 
     element.each_class(|class| f(class.get_hash()));
 
+    #[cfg(feature = "gecko")]
     if static_prefs::pref!("layout.css.bloom-filter-attribute-names.enabled") {
         element.each_attr_name(|name| {
             if !is_attr_name_excluded_from_filter(name) {
