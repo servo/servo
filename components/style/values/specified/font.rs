@@ -19,7 +19,7 @@ use crate::values::generics::font::{self as generics, FeatureTagValue, FontSetti
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, PX_PER_PT};
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
-use crate::values::specified::{NoCalcLength, NonNegativeNumber, Number, Percentage};
+use crate::values::specified::{NoCalcLength, NonNegativeNumber, Number, NonNegativePercentage};
 use crate::values::CustomIdent;
 use crate::Atom;
 use cssparser::{Parser, Token};
@@ -359,13 +359,11 @@ impl ToComputedValue for FontStyle {
 /// A value for the `font-stretch` property.
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
-///
-/// TODO(emilio): We could derive Parse if we had NonNegativePercentage.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 #[repr(u8)]
 pub enum FontStretch {
-    Stretch(Percentage),
+    Stretch(NonNegativePercentage),
     Keyword(FontStretchKeyword),
     #[css(skip)]
     System(SystemFont),
@@ -452,32 +450,13 @@ impl FontStretch {
     system_font_methods!(FontStretch, font_stretch);
 }
 
-impl Parse for FontStretch {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        // From https://drafts.csswg.org/css-fonts-4/#font-stretch-prop:
-        //
-        //    Values less than 0% are not allowed and are treated as parse
-        //    errors.
-        if let Ok(percentage) =
-            input.try_parse(|input| Percentage::parse_non_negative(context, input))
-        {
-            return Ok(FontStretch::Stretch(percentage));
-        }
-
-        Ok(FontStretch::Keyword(FontStretchKeyword::parse(input)?))
-    }
-}
-
 impl ToComputedValue for FontStretch {
     type ComputedValue = computed::FontStretch;
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             FontStretch::Stretch(ref percentage) => {
-                computed::FontStretch(NonNegative(percentage.to_computed_value(context)))
+                computed::FontStretch(percentage.to_computed_value(context))
             },
             FontStretch::Keyword(ref kw) => computed::FontStretch(NonNegative(kw.compute())),
             FontStretch::System(_) => self.compute_system(context),
@@ -485,7 +464,7 @@ impl ToComputedValue for FontStretch {
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        FontStretch::Stretch(Percentage::from_computed_value(&(computed.0).0))
+        FontStretch::Stretch(NonNegativePercentage::from_computed_value(&NonNegative((computed.0).0)))
     }
 }
 

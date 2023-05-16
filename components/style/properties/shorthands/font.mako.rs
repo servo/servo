@@ -197,7 +197,7 @@
             let font_stretch = match *self.font_stretch {
                 FontStretch::Keyword(kw) => kw,
                 FontStretch::Stretch(percentage) => {
-                    match FontStretchKeyword::from_percentage(percentage.get()) {
+                    match FontStretchKeyword::from_percentage(percentage.0.get()) {
                         Some(kw) => kw,
                         None => return Ok(()),
                     }

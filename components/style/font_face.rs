@@ -194,7 +194,7 @@ impl FontStretchRange {
         fn compute_stretch(s: &FontStretch) -> f32 {
             match *s {
                 FontStretch::Keyword(ref kw) => kw.compute().0,
-                FontStretch::Stretch(ref p) => p.get(),
+                FontStretch::Stretch(ref p) => p.0.get(),
                 FontStretch::System(..) => unreachable!(),
             }
         }
