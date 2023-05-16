@@ -7,6 +7,7 @@
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::percentage::Percentage as ComputedPercentage;
 use crate::values::computed::{Context, ToComputedValue};
+use crate::values::generics::NonNegative;
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::Number;
 use crate::values::{serialize_percentage, CSSFloat};
@@ -172,3 +173,16 @@ impl ToComputedValue for Percentage {
 }
 
 impl SpecifiedValueInfo for Percentage {}
+
+/// A wrapper of Percentage, whose value must be >= 0.
+pub type NonNegativePercentage = NonNegative<Percentage>;
+
+impl Parse for NonNegativePercentage {
+    #[inline]
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(NonNegative(Percentage::parse_non_negative(context, input)?))
+    }
+}
