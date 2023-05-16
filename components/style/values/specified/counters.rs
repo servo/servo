@@ -11,7 +11,7 @@ use crate::values::generics::counters as generics;
 use crate::values::generics::counters::CounterPair;
 #[cfg(feature = "gecko")]
 use crate::values::generics::CounterStyle;
-use crate::values::specified::url::SpecifiedImageUrl;
+use crate::values::specified::image::Image;
 #[cfg(any(feature = "gecko", feature = "servo-layout-2020"))]
 use crate::values::specified::Attr;
 use crate::values::specified::Integer;
@@ -19,7 +19,7 @@ use crate::values::CustomIdent;
 use cssparser::{Parser, Token};
 #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
 use selectors::parser::SelectorParseErrorKind;
-use style_traits::{ParseError, StyleParseErrorKind};
+use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 
 /// A specified value for the `counter-increment` property.
 pub type CounterIncrement = generics::GenericCounterIncrement<Integer>;
@@ -83,10 +83,10 @@ fn parse_counters<'i, 't>(
 }
 
 /// The specified value for the `content` property.
-pub type Content = generics::GenericContent<SpecifiedImageUrl>;
+pub type Content = generics::GenericContent<Image>;
 
 /// The specified value for a content item in the `content` property.
-pub type ContentItem = generics::GenericContentItem<SpecifiedImageUrl>;
+pub type ContentItem = generics::GenericContentItem<Image>;
 
 impl Content {
     #[cfg(feature = "servo-layout-2013")]
@@ -137,8 +137,8 @@ impl Parse for Content {
         loop {
             #[cfg(any(feature = "gecko", feature = "servo-layout-2020"))]
             {
-                if let Ok(url) = input.try_parse(|i| SpecifiedImageUrl::parse(context, i)) {
-                    content.push(generics::ContentItem::Url(url));
+                if let Ok(image) = input.try_parse(|i| Image::parse_only_url(context, i)) {
+                    content.push(generics::ContentItem::Image(image));
                     continue;
                 }
             }
@@ -212,5 +212,22 @@ impl Parse for Content {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         Ok(generics::Content::Items(content.into()))
+    }
+}
+
+impl<Image> SpecifiedValueInfo for generics::GenericContentItem<Image> {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        f(&[
+            "url",
+            "image-set",
+            "counter",
+            "counters",
+            "attr",
+            "open-quote",
+            "close-quote",
+            "no-open-quote",
+            "no-close-quote",
+            "-moz-alt-content",
+        ]);
     }
 }
