@@ -5,7 +5,6 @@
 //! Generic types for CSS values related to length.
 
 use crate::parser::{Parse, ParserContext};
-#[cfg(feature = "gecko")]
 use crate::Zero;
 use cssparser::Parser;
 use style_traits::ParseError;
@@ -150,12 +149,16 @@ impl<LengthPercentage: Parse> Parse for LengthPercentageOrAuto<LengthPercentage>
 pub enum GenericSize<LengthPercent> {
     LengthPercentage(LengthPercent),
     Auto,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     MaxContent,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     MinContent,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     MozFitContent,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     MozAvailable,
 }
@@ -198,14 +201,18 @@ impl<LengthPercentage> Size<LengthPercentage> {
 pub enum GenericMaxSize<LengthPercent> {
     LengthPercentage(LengthPercent),
     None,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     #[parse(aliases = "-moz-max-content")]
     MaxContent,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     #[parse(aliases = "-moz-min-content")]
     MinContent,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     MozFitContent,
+    #[cfg(feature = "gecko")]
     #[animation(error)]
     MozAvailable,
 }
