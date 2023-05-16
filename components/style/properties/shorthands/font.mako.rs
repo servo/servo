@@ -34,11 +34,11 @@
     use crate::parser::Parse;
     use crate::properties::longhands::{font_family, font_style, font_weight, font_stretch};
     use crate::properties::longhands::font_variant_caps;
-    #[cfg(feature = "gecko")]
-    use crate::properties::longhands::system_font::SystemFont;
     use crate::values::specified::text::LineHeight;
     use crate::values::specified::FontSize;
     use crate::values::specified::font::{FontStretch, FontStretchKeyword};
+    #[cfg(feature = "gecko")]
+    use crate::values::specified::font::SystemFont;
 
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
@@ -289,7 +289,7 @@
             % for p in subprops_for_value_info:
             ${p}::collect_completion_keywords(f);
             % endfor
-            <longhands::system_font::SystemFont as SpecifiedValueInfo>::collect_completion_keywords(f);
+            <SystemFont as SpecifiedValueInfo>::collect_completion_keywords(f);
         }
     }
 </%helpers:shorthand>

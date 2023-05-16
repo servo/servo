@@ -9,7 +9,6 @@ use crate::context::QuirksMode;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::bindings;
 use crate::parser::{Parse, ParserContext};
-use crate::properties::longhands::system_font::SystemFont;
 use crate::values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
 use crate::values::computed::{font as computed, Length, NonNegativeLength};
 use crate::values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
@@ -63,6 +62,33 @@ macro_rules! system_font_methods {
             }
         }
     };
+}
+
+/// System fonts.
+#[repr(u8)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem
+)]
+#[allow(missing_docs)]
+pub enum SystemFont {
+    Caption,
+    Icon,
+    Menu,
+    MessageBox,
+    SmallCaption,
+    StatusBar,
+    MozWindow,
+    MozDocument,
+    MozWorkspace,
+    MozDesktop,
+    MozInfo,
+    MozDialog,
+    MozButton,
+    MozPullDownMenu,
+    MozList,
+    MozField,
+    #[css(skip)]
+    End, // Just for indexing purposes.
 }
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;

@@ -554,7 +554,7 @@
         keyword = keyword=Keyword(name, values, **keyword_kwargs)
     %>
     <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
-        use crate::properties::longhands::system_font::SystemFont;
+        use crate::values::specified::font::SystemFont;
 
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
