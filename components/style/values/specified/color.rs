@@ -32,6 +32,18 @@ pub struct ColorMix {
     pub percentage: Percentage,
 }
 
+#[cfg(feature = "gecko")]
+#[inline]
+fn allow_color_mix() -> bool {
+    static_prefs::pref!("layout.css.color-mix.enabled")
+}
+
+#[cfg(feature = "servo")]
+#[inline]
+fn allow_color_mix() -> bool {
+    false
+}
+
 // NOTE(emilio): Syntax is still a bit in-flux, since [1] doesn't seem
 // particularly complete, and disagrees with the examples.
 //
@@ -42,7 +54,7 @@ impl Parse for ColorMix {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let enabled =
-            context.chrome_rules_enabled() || static_prefs::pref!("layout.css.color-mix.enabled");
+            context.chrome_rules_enabled() || allow_color_mix();
 
         if !enabled {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
