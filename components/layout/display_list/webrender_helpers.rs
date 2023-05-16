@@ -13,7 +13,7 @@ use msg::constellation_msg::PipelineId;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId, ScrollableNodeInfo};
 use webrender_api::units::{LayoutPoint, LayoutSize, LayoutVector2D};
 use webrender_api::{
-    self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder,
+    self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder, Epoch,
     PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem, RasterSpace,
     ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
 };
@@ -25,20 +25,11 @@ struct ClipScrollState {
 }
 
 impl ClipScrollState {
-    fn new(
-        size: usize,
-        content_size: LayoutSize,
-        viewport_size: LayoutSize,
-        pipeline_id: webrender_api::PipelineId,
-    ) -> Self {
+    fn new(size: usize, compositor_info: CompositorDisplayListInfo) -> Self {
         let mut state = ClipScrollState {
             clip_ids: vec![None; size],
             scroll_node_ids: vec![None; size],
-            compositor_info: CompositorDisplayListInfo::new(
-                viewport_size,
-                content_size,
-                pipeline_id,
-            ),
+            compositor_info,
         };
 
         // We need to register the WebRender root reference frame and root scroll node ids
@@ -49,7 +40,7 @@ impl ClipScrollState {
         state.scroll_node_ids[0] = Some(state.compositor_info.root_reference_frame_id);
         state.scroll_node_ids[1] = Some(state.compositor_info.root_scroll_node_id);
 
-        let root_clip_id = ClipId::root(pipeline_id);
+        let root_clip_id = ClipId::root(state.compositor_info.pipeline_id);
         state.add_clip_node_mapping(0, root_clip_id);
         state.add_clip_node_mapping(1, root_clip_id);
 
@@ -106,13 +97,17 @@ impl DisplayList {
         &mut self,
         pipeline_id: PipelineId,
         viewport_size: LayoutSize,
+        epoch: Epoch,
     ) -> (DisplayListBuilder, CompositorDisplayListInfo, IsContentful) {
         let webrender_pipeline = pipeline_id.to_webrender();
         let mut state = ClipScrollState::new(
             self.clip_scroll_nodes.len(),
-            self.bounds().size,
-            viewport_size,
-            webrender_pipeline,
+            CompositorDisplayListInfo::new(
+                viewport_size,
+                self.bounds().size,
+                webrender_pipeline,
+                epoch,
+            ),
         );
 
         let mut builder = DisplayListBuilder::with_capacity(

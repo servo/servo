@@ -1132,15 +1132,16 @@ pub enum WebrenderMsg {
     /// Perform a scroll operation.
     SendScrollNode(LayoutPoint, ExternalScrollId, ScrollClamping),
     /// Inform WebRender of a new display list for the given pipeline.
-    SendDisplayList(
-        webrender_api::Epoch,
-        LayoutSize,
-        webrender_api::PipelineId,
-        LayoutSize,
-        ipc::IpcBytesReceiver,
-        BuiltDisplayListDescriptor,
-        CompositorDisplayListInfo,
-    ),
+    SendDisplayList {
+        /// The [CompositorDisplayListInfo] that describes the display list being sent.
+        display_list_info: CompositorDisplayListInfo,
+        /// The content size of this display list as calculated by WebRender.
+        content_size: LayoutSize,
+        /// A descriptor of this display list used to construct this display list from raw data.
+        display_list_descriptor: BuiltDisplayListDescriptor,
+        /// An [ipc::IpcBytesReceiver] used to send the raw data of the display list.
+        display_list_receiver: ipc::IpcBytesReceiver,
+    },
     /// Perform a hit test operation. The result will be returned via
     /// the provided channel sender.
     HitTest(
@@ -1191,26 +1192,21 @@ impl WebrenderIpcSender {
     /// Inform WebRender of a new display list for the given pipeline.
     pub fn send_display_list(
         &self,
-        epoch: Epoch,
-        size: LayoutSize,
         display_list_info: CompositorDisplayListInfo,
-        (pipeline, size2, list): (webrender_api::PipelineId, LayoutSize, BuiltDisplayList),
+        (_, content_size, list): (webrender_api::PipelineId, LayoutSize, BuiltDisplayList),
     ) {
-        let (data, descriptor) = list.into_data();
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        if let Err(e) = self.0.send(WebrenderMsg::SendDisplayList(
-            webrender_api::Epoch(epoch.0),
-            size,
-            pipeline,
-            size2,
-            receiver,
-            descriptor,
+        let (display_list_data, display_list_descriptor) = list.into_data();
+        let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
+        if let Err(e) = self.0.send(WebrenderMsg::SendDisplayList {
             display_list_info,
-        )) {
+            content_size,
+            display_list_descriptor,
+            display_list_receiver,
+        }) {
             warn!("Error sending display list: {}", e);
         }
 
-        if let Err(e) = sender.send(&data) {
+        if let Err(e) = display_list_sender.send(&display_list_data) {
             warn!("Error sending display data: {}", e);
         }
     }

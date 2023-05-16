@@ -662,31 +662,32 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList(
-                epoch,
-                size,
-                pipeline,
-                size2,
-                receiver,
-                descriptor,
-                compositor_display_list_info,
-            )) => match receiver.recv() {
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList {
+                display_list_info,
+                content_size,
+                display_list_descriptor,
+                display_list_receiver,
+            }) => match display_list_receiver.recv() {
                 Ok(data) => {
                     self.waiting_on_pending_frame = true;
 
-                    let details = self.pipeline_details(PipelineId::from_webrender(pipeline));
-                    details.hit_test_items = compositor_display_list_info.hit_test_info;
-                    details.install_new_scroll_tree(compositor_display_list_info.scroll_tree);
+                    let pipeline_id = display_list_info.pipeline_id;
+                    let details = self.pipeline_details(PipelineId::from_webrender(pipeline_id));
+                    details.hit_test_items = display_list_info.hit_test_info;
+                    details.install_new_scroll_tree(display_list_info.scroll_tree);
 
                     let mut txn = webrender_api::Transaction::new();
                     txn.set_display_list(
-                        epoch,
+                        display_list_info.epoch,
                         None,
-                        size,
+                        display_list_info.viewport_size,
                         (
-                            pipeline,
-                            size2,
-                            webrender_api::BuiltDisplayList::from_data(data, descriptor),
+                            pipeline_id,
+                            content_size,
+                            webrender_api::BuiltDisplayList::from_data(
+                                data,
+                                display_list_descriptor,
+                            ),
                         ),
                         true,
                     );
@@ -694,7 +695,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     self.webrender_api
                         .send_transaction(self.webrender_document, txn);
                 },
-                Err(e) => warn!("error receiving display data: {:?}", e),
+                Err(e) => warn!("error receiving display list data: {e:?}"),
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(

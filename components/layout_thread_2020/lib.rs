@@ -1264,6 +1264,10 @@ impl LayoutThread {
             document.will_paint();
         }
 
+        let mut epoch = self.epoch.get();
+        epoch.next();
+        self.epoch.set(epoch);
+
         let viewport_size = webrender_api::units::LayoutSize::from_untyped(Size2D::new(
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
@@ -1272,6 +1276,7 @@ impl LayoutThread {
             viewport_size,
             fragment_tree.scrollable_overflow(),
             self.id.to_webrender(),
+            epoch.into(),
         );
 
         // `dump_serialized_display_list` doesn't actually print anything. It sets up
@@ -1296,22 +1301,14 @@ impl LayoutThread {
         }
         debug!("Layout done!");
 
-        let mut epoch = self.epoch.get();
-        epoch.next();
-        self.epoch.set(epoch);
-
         // Observe notifications about rendered frames if needed right before
         // sending the display list to WebRender in order to set time related
         // Progressive Web Metrics.
         self.paint_time_metrics
             .maybe_observe_paint_time(self, epoch, is_contentful);
 
-        self.webrender_api.send_display_list(
-            epoch,
-            viewport_size,
-            display_list.compositor_info,
-            display_list.wr.finalize(),
-        );
+        self.webrender_api
+            .send_display_list(display_list.compositor_info, display_list.wr.finalize());
 
         self.update_iframe_sizes(iframe_sizes);
 

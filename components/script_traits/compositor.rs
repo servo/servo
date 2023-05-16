@@ -7,7 +7,7 @@
 use embedder_traits::Cursor;
 use webrender_api::{
     units::{LayoutSize, LayoutVector2D},
-    ExternalScrollId, ScrollLocation, ScrollSensitivity, SpatialId,
+    Epoch, ExternalScrollId, PipelineId, ScrollLocation, ScrollSensitivity, SpatialId,
 };
 
 /// Information that Servo keeps alongside WebRender display items
@@ -213,6 +213,15 @@ impl ScrollTree {
 /// display lists sent to the compositor.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CompositorDisplayListInfo {
+    /// The WebRender [PipelineId] of this display list.
+    pub pipeline_id: PipelineId,
+
+    /// The size of the viewport that this display list renders into.
+    pub viewport_size: LayoutSize,
+
+    /// The epoch of the display list.
+    pub epoch: Epoch,
+
     /// An array of `HitTestInfo` which is used to store information
     /// to assist the compositor to take various actions (set the cursor,
     /// scroll without layout) using a WebRender hit test result.
@@ -237,7 +246,8 @@ impl CompositorDisplayListInfo {
     pub fn new(
         viewport_size: LayoutSize,
         content_size: LayoutSize,
-        pipeline_id: webrender_api::PipelineId,
+        pipeline_id: PipelineId,
+        epoch: Epoch,
     ) -> Self {
         let mut scroll_tree = ScrollTree::default();
         let root_reference_frame_id = scroll_tree.add_scroll_tree_node(
@@ -257,6 +267,9 @@ impl CompositorDisplayListInfo {
         );
 
         CompositorDisplayListInfo {
+            pipeline_id,
+            viewport_size,
+            epoch,
             hit_test_info: Default::default(),
             scroll_tree,
             root_reference_frame_id,
