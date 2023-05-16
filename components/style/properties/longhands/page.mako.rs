@@ -25,7 +25,6 @@ ${helpers.predefined_type(
     "PageName",
     "computed::PageName::auto()",
     engines="gecko",
-    gecko_pref="layout.css.named-pages.enabled",
     spec="https://drafts.csswg.org/css-page-3/#using-named-pages",
     animation_value_type="discrete",
 )}
