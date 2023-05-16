@@ -377,6 +377,13 @@ impl ImageSet {
 }
 
 impl ImageSetItem {
+    fn parse_type<'i>(p: &mut Parser<'i, '_>) -> Result<crate::OwnedStr, ParseError<'i>> {
+        p.expect_function_matching("type")?;
+        p.parse_nested_block(|input| {
+            Ok(input.expect_string()?.as_ref().to_owned().into())
+        })
+    }
+
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -393,10 +400,20 @@ impl ImageSetItem {
                 context, input, cors_mode, /* allow_none = */ false,  /* only_url = */ only_url
             )?,
         };
-        let resolution = input
-            .try_parse(|input| Resolution::parse(context, input))
-            .unwrap_or(Resolution::X(1.0));
-        Ok(Self { image, resolution })
+
+        let mut resolution = input.try_parse(|input| Resolution::parse(context, input)).ok();
+        let mime_type = input.try_parse(Self::parse_type).ok();
+
+        // Try to parse resolution after type().
+        if mime_type.is_some() && resolution.is_none() {
+            resolution = input.try_parse(|input| Resolution::parse(context, input)).ok();
+        }
+
+        let resolution = resolution.unwrap_or(Resolution::X(1.0));
+        let has_mime_type = mime_type.is_some();
+        let mime_type = mime_type.unwrap_or_default();
+
+        Ok(Self { image, resolution, has_mime_type, mime_type })
     }
 }
 
