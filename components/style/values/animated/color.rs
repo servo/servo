@@ -105,8 +105,44 @@ impl Color {
     }
 
     /// Mix two colors into one.
-    pub fn mix(left: &Color, right: &Color, progress: f32) -> Self {
-        left.animate(right, Procedure::Interpolate { progress: progress as f64 }).unwrap()
+    pub fn mix(
+        left_color: &Color,
+        left_weight: f32,
+        right_color: &Color,
+        right_weight: f32,
+    ) -> Self {
+        let left_bg = left_color.scaled_rgba();
+        let right_bg = right_color.scaled_rgba();
+        let alpha = (left_bg.alpha * left_weight +
+            right_bg.alpha * right_weight)
+            .min(1.);
+
+        let mut fg = 0.;
+        let mut red = 0.;
+        let mut green = 0.;
+        let mut blue = 0.;
+
+        let colors = [
+            (left_color, &left_bg, left_weight),
+            (right_color, &right_bg, right_weight),
+        ];
+
+        for &(color, bg, weight) in &colors {
+            fg += color.ratios.fg * weight;
+
+            red += bg.red * bg.alpha * weight;
+            green += bg.green * bg.alpha * weight;
+            blue += bg.blue * bg.alpha * weight;
+        }
+
+        let color = if alpha <= 0. {
+            RGBA::transparent()
+        } else {
+            let inv = 1. / alpha;
+            RGBA::new(red * inv, green * inv, blue * inv, alpha)
+        };
+
+        Self::new(color, ComplexColorRatios { bg: 1., fg })
     }
 
     fn scaled_rgba(&self) -> RGBA {

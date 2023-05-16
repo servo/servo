@@ -28,8 +28,9 @@ use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
 #[allow(missing_docs)]
 pub struct ColorMix {
     pub left: Color,
+    pub left_percentage: Percentage,
     pub right: Color,
-    pub percentage: Percentage,
+    pub right_percentage: Percentage,
 }
 
 #[cfg(feature = "gecko")]
@@ -71,14 +72,27 @@ impl Parse for ColorMix {
             // TODO: support multiple interpolation spaces.
             input.expect_ident_matching("srgb")?;
             input.expect_comma()?;
-            let left = Color::parse(context, input)?;
-            let percentage = input.try_parse(|input| {
-                Percentage::parse(context, input)
-            }).unwrap_or_else(|_| Percentage::new(0.5));
-            input.expect_comma()?;
-            let right = Color::parse(context, input)?;
 
-            Ok(ColorMix { left, right, percentage })
+            let left = Color::parse(context, input)?;
+            let left_percentage = input.try_parse(|input| Percentage::parse(context, input)).ok();
+
+            input.expect_comma()?;
+
+            let right = Color::parse(context, input)?;
+            let right_percentage = input
+                .try_parse(|input| Percentage::parse(context, input))
+                .unwrap_or_else(|_| {
+                    Percentage::new(1.0 - left_percentage.map_or(0.5, |p| p.get()))
+                });
+
+            let left_percentage =
+                left_percentage.unwrap_or_else(|| Percentage::new(1.0 - right_percentage.get()));
+            Ok(ColorMix {
+                left,
+                left_percentage,
+                right,
+                right_percentage,
+            })
         })
     }
 }
@@ -88,14 +102,31 @@ impl ToCss for ColorMix {
     where
         W: Write,
     {
+        fn can_omit(percent: &Percentage, other: &Percentage, is_left: bool) -> bool {
+            if percent.is_calc() {
+                return false;
+            }
+            if percent.get() == 0.5 {
+                return other.get() == 0.5;
+            }
+            if is_left {
+                return false;
+            }
+            (1.0 - percent.get() - other.get()).abs() <= f32::EPSILON
+        }
+
         dest.write_str("color-mix(in srgb, ")?;
         self.left.to_css(dest)?;
-        if self.percentage.get() != 0.5 || self.percentage.is_calc() {
+        if !can_omit(&self.left_percentage, &self.right_percentage, true) {
             dest.write_str(" ")?;
-            self.percentage.to_css(dest)?;
+            self.left_percentage.to_css(dest)?;
         }
         dest.write_str(", ")?;
         self.right.to_css(dest)?;
+        if !can_omit(&self.right_percentage, &self.left_percentage, false) {
+            dest.write_str(" ")?;
+            self.right_percentage.to_css(dest)?;
+        }
         dest.write_str(")")
     }
 }
@@ -660,7 +691,12 @@ impl Color {
 
                 let left = mix.left.to_computed_color(context)?.to_animated_value();
                 let right = mix.right.to_computed_color(context)?.to_animated_value();
-                ToAnimatedValue::from_animated_value(AnimatedColor::mix(&left, &right, mix.percentage.get()))
+                ToAnimatedValue::from_animated_value(AnimatedColor::mix(
+                    &left,
+                    mix.left_percentage.get(),
+                    &right,
+                    mix.right_percentage.get(),
+                ))
             },
             #[cfg(feature = "gecko")]
             Color::System(system) => system.compute(context?),
