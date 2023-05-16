@@ -186,8 +186,6 @@ pub enum SystemColor {
     #[css(skip)]
     TextSelectForeground,
     #[css(skip)]
-    TextSelectForegroundCustom,
-    #[css(skip)]
     TextSelectBackgroundDisabled,
     #[css(skip)]
     TextSelectBackgroundAttention,
