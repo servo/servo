@@ -18,11 +18,11 @@ layout-2013 = ["simpleservo/layout-2013"]
 layout-2020 = ["simpleservo/layout-2020"]
 
 [dependencies]
-libc = "0.2"
+libc = { workspace = true }
 libservo = { path = "../../components/servo", features = ["no_static_freetype"] }
-log = "0.4"
+log = { workspace = true }
 servo-egl = "0.2"
 simpleservo = { path = "../libsimpleservo/api", features = ["no_static_freetype"] }
-smallvec = "1.9"
+smallvec = { workspace = true }
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "magicleap"] }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

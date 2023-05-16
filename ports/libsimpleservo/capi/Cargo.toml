@@ -13,17 +13,17 @@ test = false
 bench = false
 
 [dependencies]
-backtrace = "0.3"
-env_logger = "0.8"
-lazy_static = "1"
-log = "0.4"
+backtrace = { workspace = true }
+env_logger = { workspace = true }
+lazy_static = { workspace = true }
+log = { workspace = true }
 simpleservo = { path = "../api" }
-surfman = "0.6"
-keyboard-types = "0.6"
+surfman = { workspace = true }
+keyboard-types = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-libc = "0.2"
-winapi = { version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"] }
+libc = { workspace = true }
+winapi = { workspace = true, features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"] }
 
 [build-dependencies]
 cbindgen = "0.20"

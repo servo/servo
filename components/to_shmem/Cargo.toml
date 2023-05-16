@@ -15,9 +15,9 @@ servo = ["cssparser/serde", "string_cache"]
 gecko = []
 
 [dependencies]
-cssparser = "0.29"
+cssparser = { workspace = true }
 servo_arc = { path = "../servo_arc" }
-smallbitvec = "2.1.1"
-smallvec = "1.0"
-string_cache = { version = "0.8", optional = true }
-thin-slice = "0.1.0"
+smallbitvec = { workspace = true }
+smallvec = { workspace = true }
+string_cache = { workspace = true, optional = true }
+thin-slice = { workspace = true }

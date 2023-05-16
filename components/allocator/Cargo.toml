@@ -13,4 +13,4 @@ path = "lib.rs"
 jemalloc-sys = { version = "0.3.2" }
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["heapapi"] }
+winapi = { workspace = true, features = ["heapapi"] }

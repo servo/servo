@@ -15,19 +15,19 @@ webgl_backtrace = []
 xr-profile = ["webxr-api/profile", "time"]
 
 [dependencies]
-crossbeam-channel = "0.4"
-cssparser = "0.29"
-euclid = "0.22"
-ipc-channel = "0.14"
-lazy_static = "1"
+crossbeam-channel = { workspace = true }
+cssparser = { workspace = true }
+euclid = { workspace = true }
+ipc-channel = { workspace = true }
+lazy_static = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = "0.1"
+malloc_size_of_derive = { workspace = true }
 pixels = { path = "../pixels" }
-serde = "1.0"
-serde_bytes = "0.11"
+serde = { workspace = true }
+serde_bytes = { workspace = true }
 servo_config = { path = "../config" }
-sparkle = "0.1"
+sparkle = { workspace = true }
 style = { path = "../style" }
-time = { version = "0.1.41", optional = true }
+time = { workspace = true, optional = true }
 webrender_api = { git = "https://github.com/servo/webrender" }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
