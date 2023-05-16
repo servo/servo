@@ -329,8 +329,6 @@ pub enum SystemColor {
 
     /// Font smoothing background colors needed by the Mac OS X theme, based on
     /// -moz-appearance names.
-    MozMacVibrancyLight,
-    MozMacVibrancyDark,
     MozMacVibrantTitlebarLight,
     MozMacVibrantTitlebarDark,
     MozMacMenupopup,
