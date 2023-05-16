@@ -1110,6 +1110,7 @@ bitflags! {
     }
 }
 
+#[cfg(feature = "gecko")]
 fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
     match longhand {
         LonghandId::Opacity => WillChangeBits::OPACITY,
@@ -1136,6 +1137,7 @@ fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
     }
 }
 
+#[cfg(feature = "gecko")]
 fn change_bits_for_maybe_property(ident: &str, context: &ParserContext) -> WillChangeBits {
     let id = match PropertyId::parse_ignoring_rule_type(ident, context) {
         Ok(id) => id,
@@ -1153,6 +1155,7 @@ fn change_bits_for_maybe_property(ident: &str, context: &ParserContext) -> WillC
     }
 }
 
+#[cfg(feature = "gecko")]
 impl Parse for WillChange {
     /// auto | <animateable-feature>#
     fn parse<'i, 't>(
