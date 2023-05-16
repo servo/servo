@@ -96,6 +96,7 @@ impl<RGBA> From<RGBA> for Color<RGBA> {
     ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
+    ToResolvedValue,
     ToCss,
     ToShmem,
 )]
@@ -108,3 +109,32 @@ pub enum GenericColorOrAuto<C> {
 }
 
 pub use self::GenericColorOrAuto as ColorOrAuto;
+
+/// Caret color is effectively a ColorOrAuto, but resolves `auto` to
+/// currentColor.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToShmem,
+)]
+#[repr(transparent)]
+pub struct GenericCaretColor<C>(pub GenericColorOrAuto<C>);
+
+impl<C> GenericCaretColor<C> {
+    /// Returns the `auto` value.
+    pub fn auto() -> Self {
+        GenericCaretColor(GenericColorOrAuto::Auto)
+    }
+}
+
+pub use self::GenericCaretColor as CaretColor;

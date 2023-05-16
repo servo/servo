@@ -6,7 +6,7 @@
 
 use crate::values::animated::color::RGBA as AnimatedRGBA;
 use crate::values::animated::ToAnimatedValue;
-use crate::values::generics::color::{Color as GenericColor, ColorOrAuto as GenericColorOrAuto};
+use crate::values::generics::color::{GenericColor, GenericColorOrAuto, GenericCaretColor};
 use cssparser::{Color as CSSParserColor, RGBA};
 use std::fmt;
 use style_traits::{CssWriter, ToCss};
@@ -112,3 +112,6 @@ impl ToAnimatedValue for RGBA {
 
 /// auto | <color>
 pub type ColorOrAuto = GenericColorOrAuto<Color>;
+
+/// caret-color
+pub type CaretColor = GenericCaretColor<Color>;

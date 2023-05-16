@@ -9,7 +9,7 @@ use super::AllowQuirks;
 use crate::gecko_bindings::structs::nscolor;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
-use crate::values::generics::color::ColorOrAuto as GenericColorOrAuto;
+use crate::values::generics::color::{GenericColorOrAuto, GenericCaretColor};
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::Percentage;
 use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
@@ -808,3 +808,15 @@ impl Parse for ColorPropertyValue {
 
 /// auto | <color>
 pub type ColorOrAuto = GenericColorOrAuto<Color>;
+
+/// caret-color
+pub type CaretColor = GenericCaretColor<Color>;
+
+impl Parse for CaretColor {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        ColorOrAuto::parse(context, input).map(GenericCaretColor)
+    }
+}
