@@ -504,13 +504,10 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 let name = KeyframesName::parse(self.context, input)?;
                 AtRulePrelude::Keyframes(name, prefix)
             },
-            #[cfg(feature = "gecko")]
-            "page" => {
-                AtRulePrelude::Page(if static_prefs::pref!("layout.css.named-pages.enabled") {
+            "page" if cfg!(feature = "gecko") => {
+                AtRulePrelude::Page(
                     input.try_parse(|i| PageSelectors::parse(self.context, i)).unwrap_or_default()
-                } else {
-                    PageSelectors::default()
-                })
+                )
             },
             "-moz-document" if cfg!(feature = "gecko") => {
                 let cond = DocumentCondition::parse(self.context, input)?;
