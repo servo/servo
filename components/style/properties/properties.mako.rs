@@ -1769,6 +1769,7 @@ impl UnparsedValue {
             None,
             ParsingMode::DEFAULT,
             quirks_mode,
+            /* namespaces = */ Default::default(),
             None,
             None,
         );

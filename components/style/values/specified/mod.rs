@@ -879,12 +879,7 @@ impl Parse for Attr {
 
 /// Get the Namespace for a given prefix from the namespace map.
 fn get_namespace_for_prefix(prefix: &Prefix, context: &ParserContext) -> Option<Namespace> {
-    context
-        .namespaces
-        .as_ref()?
-        .prefixes
-        .get(prefix)
-        .map(|x| x.clone())
+    context.namespaces.prefixes.get(prefix).cloned()
 }
 
 impl Attr {

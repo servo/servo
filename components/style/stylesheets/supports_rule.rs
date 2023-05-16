@@ -11,7 +11,7 @@ use crate::selector_parser::{SelectorImpl, SelectorParser};
 use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
-use crate::stylesheets::{CssRuleType, CssRules, Namespaces};
+use crate::stylesheets::{CssRuleType, CssRules};
 use cssparser::parse_important;
 use cssparser::{Delimiter, Parser, SourceLocation, Token};
 use cssparser::{ParseError as CssParseError, ParserInput};
@@ -228,15 +228,15 @@ impl SupportsCondition {
     }
 
     /// Evaluate a supports condition
-    pub fn eval(&self, cx: &ParserContext, namespaces: &Namespaces) -> bool {
+    pub fn eval(&self, cx: &ParserContext) -> bool {
         match *self {
-            SupportsCondition::Not(ref cond) => !cond.eval(cx, namespaces),
-            SupportsCondition::Parenthesized(ref cond) => cond.eval(cx, namespaces),
-            SupportsCondition::And(ref vec) => vec.iter().all(|c| c.eval(cx, namespaces)),
-            SupportsCondition::Or(ref vec) => vec.iter().any(|c| c.eval(cx, namespaces)),
+            SupportsCondition::Not(ref cond) => !cond.eval(cx),
+            SupportsCondition::Parenthesized(ref cond) => cond.eval(cx),
+            SupportsCondition::And(ref vec) => vec.iter().all(|c| c.eval(cx)),
+            SupportsCondition::Or(ref vec) => vec.iter().any(|c| c.eval(cx)),
             SupportsCondition::Declaration(ref decl) => decl.eval(cx),
             SupportsCondition::MozBoolPref(ref name) => eval_moz_bool_pref(name, cx),
-            SupportsCondition::Selector(ref selector) => selector.eval(cx, namespaces),
+            SupportsCondition::Selector(ref selector) => selector.eval(cx),
             SupportsCondition::FontFormat(ref format) => eval_font_format(format),
             SupportsCondition::FontTech(ref tech) => eval_font_tech(tech),
             SupportsCondition::FutureSyntax(_) => false,
@@ -374,13 +374,13 @@ impl ToCss for RawSelector {
 
 impl RawSelector {
     /// Tries to evaluate a `selector()` function.
-    pub fn eval(&self, context: &ParserContext, namespaces: &Namespaces) -> bool {
+    pub fn eval(&self, context: &ParserContext) -> bool {
         let mut input = ParserInput::new(&self.0);
         let mut input = Parser::new(&mut input);
         input
             .parse_entirely(|input| -> Result<(), CssParseError<()>> {
                 let parser = SelectorParser {
-                    namespaces,
+                    namespaces: &context.namespaces,
                     stylesheet_origin: context.stylesheet_origin,
                     url_data: context.url_data,
                     for_supports_rule: true,
