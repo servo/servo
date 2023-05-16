@@ -272,8 +272,8 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                         self.traversal.quote -= 1
                     }
                 },
-                GeneratedContentInfo::ContentItem(ContentItem::Url(..)) => {
-                    unreachable!("Servo doesn't parse content: url(..) yet")
+                GeneratedContentInfo::ContentItem(ContentItem::Image(..)) => {
+                    unreachable!("Servo doesn't parse content: url(..) nor image-set(..) yet")
                 },
             }
         };

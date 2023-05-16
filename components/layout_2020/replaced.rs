@@ -21,6 +21,7 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
+use style::values::computed::image::Image as ComputedImage;
 use style::values::computed::{Length, LengthOrAuto};
 use style::values::CSSFloat;
 use style::Zero;
@@ -182,6 +183,17 @@ impl ReplacedContent {
             });
         }
         None
+    }
+
+    pub fn from_image<'dom>(
+        element: impl NodeExt<'dom>,
+        context: &LayoutContext,
+        image: &ComputedImage,
+    ) -> Option<Self> {
+        match image {
+            ComputedImage::Url(image_url) => Self::from_image_url(element, context, image_url),
+            _ => None, // TODO
+        }
     }
 
     fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> Vec2<Option<Length>> {

@@ -354,9 +354,9 @@ where
                             attr_val.map_or("".to_string(), |s| s.to_string()),
                         ));
                     },
-                    ContentItem::Url(image_url) => {
+                    ContentItem::Image(image) => {
                         if let Some(replaced_content) =
-                            ReplacedContent::from_image_url(element, context, image_url)
+                            ReplacedContent::from_image(element, context, image)
                         {
                             vec.push(PseudoElementContentItem::Replaced(replaced_content));
                         }
