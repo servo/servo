@@ -83,6 +83,7 @@
 <%helpers:shorthand
     name="-moz-outline-radius"
     engines="gecko"
+    gecko_pref="layout.css.moz-outline-radius.enabled"
     sub_properties="${' '.join(
         '-moz-outline-radius-%s' % corner
         for corner in ['topleft', 'topright', 'bottomright', 'bottomleft']

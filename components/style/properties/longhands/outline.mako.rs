@@ -51,6 +51,7 @@ ${helpers.predefined_type(
         engines="gecko",
         boxed=True,
         animation_value_type="BorderCornerRadius",
+        gecko_pref="layout.css.moz-outline-radius.enabled",
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)",
     )}
 % endfor
