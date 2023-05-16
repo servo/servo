@@ -590,6 +590,31 @@ macro_rules! system_metric_feature {
             Evaluator::BoolInteger(__eval),
             ParsingRequirements::CHROME_AND_UA_ONLY,
         )
+    }}
+}
+
+/// bool pref-based features are an slightly less convenient to start using
+/// version of @supports -moz-bool-pref, but with some benefits, mainly that
+/// they can support dynamic changes, and don't require a pref lookup every time
+/// they're used.
+///
+/// In order to use them you need to make sure that the pref defined as a static
+/// pref, with `rust: true`. The feature name needs to be defined in
+/// `StaticAtoms.py` just like the others. In order to support dynamic changes,
+/// you also need to add them to kBoolMediaQueryPrefs in nsXPLookAndFeel.cpp
+macro_rules! bool_pref_feature {
+    ($feature_name:expr, $pref:tt) => {{
+        fn __eval(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
+            let value = static_prefs::pref!($pref);
+            query_value.map_or(value, |v| v == value)
+        }
+
+        feature!(
+            $feature_name,
+            AllowsRanges::No,
+            Evaluator::BoolInteger(__eval),
+            ParsingRequirements::CHROME_AND_UA_ONLY,
+        )
     }};
 }
 
@@ -598,7 +623,7 @@ macro_rules! system_metric_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [MediaFeatureDescription; 56] = [
+pub static MEDIA_FEATURES: [MediaFeatureDescription; 63] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -831,4 +856,12 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 56] = [
     system_metric_feature!(atom!("-moz-gtk-csd-close-button")),
     system_metric_feature!(atom!("-moz-gtk-csd-reversed-placement")),
     system_metric_feature!(atom!("-moz-system-dark-theme")),
+
+    bool_pref_feature!(atom!("-moz-proton"), "browser.proton.enabled"),
+    bool_pref_feature!(atom!("-moz-proton-urlbar"), "browser.proton.urlbar.enabled"),
+    bool_pref_feature!(atom!("-moz-proton-modals"), "browser.proton.modals.enabled"),
+    bool_pref_feature!(atom!("-moz-proton-contextmenus"), "browser.proton.contextmenus.enabled"),
+    bool_pref_feature!(atom!("-moz-proton-doorhangers"), "browser.proton.doorhangers.enabled"),
+    bool_pref_feature!(atom!("-moz-proton-infobars"), "browser.proton.infobars.enabled"),
+    bool_pref_feature!(atom!("-moz-proton-places-tooltip"), "browser.proton.places-tooltip.enabled"),
 ];
