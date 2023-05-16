@@ -48,7 +48,6 @@ ${helpers.single_keyword(
     engines="gecko servo-2013 servo-2020"
     animation_value_type="discrete"
     gecko_enum_prefix="StylePositionProperty"
-    flags="CREATES_STACKING_CONTEXT ABSPOS_CB"
     spec="https://drafts.csswg.org/css-position/#position-property"
     servo_restyle_damage="rebuild_and_reflow"
 >
@@ -330,7 +329,7 @@ ${helpers.predefined_type(
     engines="gecko servo-2013 servo-2020",
     extra_prefixes=transform_extra_prefixes,
     animation_value_type="ComputedValue",
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB CAN_ANIMATE_ON_COMPOSITOR",
+    flags="CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.csswg.org/css-transforms/#propdef-transform",
     servo_restyle_damage="reflow_out_of_flow",
 )}
@@ -342,7 +341,7 @@ ${helpers.predefined_type(
     engines="gecko servo-2013",
     animation_value_type="ComputedValue",
     boxed=True,
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB CAN_ANIMATE_ON_COMPOSITOR",
+    flags="CAN_ANIMATE_ON_COMPOSITOR",
     gecko_pref="layout.css.individual-transform.enabled",
     spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
     servo_restyle_damage = "reflow_out_of_flow",
@@ -355,7 +354,7 @@ ${helpers.predefined_type(
     engines="gecko servo-2013",
     animation_value_type="ComputedValue",
     boxed=True,
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB CAN_ANIMATE_ON_COMPOSITOR",
+    flags="CAN_ANIMATE_ON_COMPOSITOR",
     gecko_pref="layout.css.individual-transform.enabled",
     spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
     servo_restyle_damage = "reflow_out_of_flow",
@@ -368,7 +367,7 @@ ${helpers.predefined_type(
     engines="gecko servo-2013",
     animation_value_type="ComputedValue",
     boxed=True,
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB CAN_ANIMATE_ON_COMPOSITOR",
+    flags="CAN_ANIMATE_ON_COMPOSITOR",
     gecko_pref="layout.css.individual-transform.enabled",
     spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
     servo_restyle_damage="reflow_out_of_flow",
@@ -382,7 +381,7 @@ ${helpers.predefined_type(
     engines="gecko",
     animation_value_type="ComputedValue",
     gecko_pref="layout.css.motion-path.enabled",
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB CAN_ANIMATE_ON_COMPOSITOR",
+    flags="CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.fxtf.org/motion-1/#offset-path-property",
     servo_restyle_damage="reflow_out_of_flow"
 )}
@@ -477,7 +476,6 @@ ${helpers.single_keyword(
     "auto isolate",
     engines="gecko",
     spec="https://drafts.fxtf.org/compositing/#isolation",
-    flags="CREATES_STACKING_CONTEXT",
     gecko_enum_prefix="StyleIsolation",
     animation_value_type="discrete",
 )}
@@ -530,7 +528,6 @@ ${helpers.predefined_type(
     gecko_ffi_name="mChildPerspective",
     spec="https://drafts.csswg.org/css-transforms/#perspective",
     extra_prefixes=transform_extra_prefixes,
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     animation_value_type="AnimatedPerspective",
     servo_restyle_damage = "reflow_out_of_flow",
 )}
@@ -574,7 +571,6 @@ ${helpers.predefined_type(
     engines="gecko servo-2013 servo-2020",
     spec="https://drafts.csswg.org/css-transforms-2/#transform-style-property",
     extra_prefixes=transform_extra_prefixes,
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     animation_value_type="discrete",
     servo_restyle_damage = "reflow_out_of_flow",
 )}
@@ -598,7 +594,6 @@ ${helpers.predefined_type(
     "specified::Contain::empty()",
     engines="gecko",
     animation_value_type="none",
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     spec="https://drafts.csswg.org/css-contain/#contain-property",
 )}
 

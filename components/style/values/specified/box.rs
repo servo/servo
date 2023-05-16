@@ -6,7 +6,7 @@
 
 use crate::custom_properties::Name as CustomPropertyName;
 use crate::parser::{Parse, ParserContext};
-use crate::properties::{LonghandId, PropertyDeclarationId, PropertyFlags};
+use crate::properties::{LonghandId, PropertyDeclarationId};
 use crate::properties::{PropertyId, ShorthandId};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
@@ -1086,44 +1086,54 @@ bitflags! {
     /// The change bits that we care about.
     #[derive(Default, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
     #[repr(C)]
-    pub struct WillChangeBits: u8 {
-        /// Whether the stacking context will change.
-        const STACKING_CONTEXT = 1 << 0;
-        /// Whether `transform` will change.
+    pub struct WillChangeBits: u16 {
+        /// Whether a property which can create a stacking context **on any
+        /// box** will change.
+        const STACKING_CONTEXT_UNCONDITIONAL = 1 << 0;
+        /// Whether `transform` or related properties will change.
         const TRANSFORM = 1 << 1;
         /// Whether `scroll-position` will change.
         const SCROLL = 1 << 2;
+        /// Whether `contain` will change.
+        const CONTAIN = 1 << 3;
         /// Whether `opacity` will change.
-        const OPACITY = 1 << 3;
-        /// Fixed pos containing block.
-        const FIXPOS_CB = 1 << 4;
-        /// Abs pos containing block.
-        const ABSPOS_CB = 1 << 5;
+        const OPACITY = 1 << 4;
+        /// Whether `perspective` will change.
+        const PERSPECTIVE = 1 << 5;
+        /// Whether `z-index` will change.
+        const Z_INDEX = 1 << 6;
+        /// Whether any property which creates a containing block for non-svg
+        /// text frames will change.
+        const FIXPOS_CB_NON_SVG = 1 << 7;
+        /// Whether the position property will change.
+        const POSITION = 1 << 8;
     }
 }
 
 fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
-    let mut flags = match longhand {
+    match longhand {
         LonghandId::Opacity => WillChangeBits::OPACITY,
-        LonghandId::Transform => WillChangeBits::TRANSFORM,
-        #[cfg(feature = "gecko")]
-        LonghandId::Translate | LonghandId::Rotate | LonghandId::Scale | LonghandId::OffsetPath => {
-            WillChangeBits::TRANSFORM
+        LonghandId::Contain => WillChangeBits::CONTAIN,
+        LonghandId::Perspective => WillChangeBits::PERSPECTIVE,
+        LonghandId::Position => {
+            WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL | WillChangeBits::POSITION
         },
+        LonghandId::ZIndex => WillChangeBits::Z_INDEX,
+        LonghandId::Transform |
+        LonghandId::TransformStyle |
+        LonghandId::Translate |
+        LonghandId::Rotate |
+        LonghandId::Scale |
+        LonghandId::OffsetPath => WillChangeBits::TRANSFORM,
+        LonghandId::BackdropFilter | LonghandId::Filter => {
+            WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL | WillChangeBits::FIXPOS_CB_NON_SVG
+        },
+        LonghandId::MixBlendMode |
+        LonghandId::Isolation |
+        LonghandId::MaskImage |
+        LonghandId::ClipPath => WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL,
         _ => WillChangeBits::empty(),
-    };
-
-    let property_flags = longhand.flags();
-    if property_flags.contains(PropertyFlags::CREATES_STACKING_CONTEXT) {
-        flags |= WillChangeBits::STACKING_CONTEXT;
     }
-    if property_flags.contains(PropertyFlags::FIXPOS_CB) {
-        flags |= WillChangeBits::FIXPOS_CB;
-    }
-    if property_flags.contains(PropertyFlags::ABSPOS_CB) {
-        flags |= WillChangeBits::ABSPOS_CB;
-    }
-    flags
 }
 
 fn change_bits_for_maybe_property(ident: &str, context: &ParserContext) -> WillChangeBits {

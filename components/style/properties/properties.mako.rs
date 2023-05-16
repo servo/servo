@@ -1068,28 +1068,20 @@ impl CSSWideKeyword {
 bitflags! {
     /// A set of flags for properties.
     pub struct PropertyFlags: u16 {
-        /// This property requires a stacking context.
-        const CREATES_STACKING_CONTEXT = 1 << 0;
-        /// This property has values that can establish a containing block for
-        /// fixed positioned and absolutely positioned elements.
-        const FIXPOS_CB = 1 << 1;
-        /// This property has values that can establish a containing block for
-        /// absolutely positioned elements.
-        const ABSPOS_CB = 1 << 2;
         /// This longhand property applies to ::first-letter.
-        const APPLIES_TO_FIRST_LETTER = 1 << 3;
+        const APPLIES_TO_FIRST_LETTER = 1 << 1;
         /// This longhand property applies to ::first-line.
-        const APPLIES_TO_FIRST_LINE = 1 << 4;
+        const APPLIES_TO_FIRST_LINE = 1 << 2;
         /// This longhand property applies to ::placeholder.
-        const APPLIES_TO_PLACEHOLDER = 1 << 5;
+        const APPLIES_TO_PLACEHOLDER = 1 << 3;
         ///  This longhand property applies to ::cue.
-        const APPLIES_TO_CUE = 1 << 6;
+        const APPLIES_TO_CUE = 1 << 4;
         /// This longhand property applies to ::marker.
-        const APPLIES_TO_MARKER = 1 << 7;
+        const APPLIES_TO_MARKER = 1 << 5;
         /// This property is a legacy shorthand.
         ///
         /// https://drafts.csswg.org/css-cascade/#legacy-shorthand
-        const IS_LEGACY_SHORTHAND = 1 << 8;
+        const IS_LEGACY_SHORTHAND = 1 << 6;
 
         /* The following flags are currently not used in Rust code, they
          * only need to be listed in corresponding properties so that

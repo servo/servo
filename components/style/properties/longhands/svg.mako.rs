@@ -81,7 +81,6 @@ ${helpers.predefined_type(
     "generics::basic_shape::ClipPath::None",
     engines="gecko",
     animation_value_type="basic_shape::ClipPath",
-    flags="CREATES_STACKING_CONTEXT",
     spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path",
 )}
 
@@ -183,7 +182,6 @@ ${helpers.predefined_type(
     vector=True,
     extra_prefixes="webkit",
     animation_value_type="discrete",
-    flags="CREATES_STACKING_CONTEXT",
 )}
 
 ${helpers.predefined_type(
