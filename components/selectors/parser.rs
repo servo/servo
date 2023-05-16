@@ -212,6 +212,12 @@ macro_rules! with_all_bounds {
 
             /// pseudo-elements
             type PseudoElement: $($CommonBounds)* + PseudoElement<Impl = Self>;
+
+            /// Whether attribute hashes should be collected for filtering
+            /// purposes.
+            fn should_collect_attr_hash(_name: &Self::LocalName) -> bool {
+                false
+            }
         }
     }
 }
@@ -481,6 +487,26 @@ where
             Component::ID(ref id) if quirks_mode != QuirksMode::Quirks => id.precomputed_hash(),
             Component::Class(ref class) if quirks_mode != QuirksMode::Quirks => {
                 class.precomputed_hash()
+            },
+            Component::AttributeInNoNamespace { ref local_name, .. } if Impl::should_collect_attr_hash(local_name) => {
+                // AttributeInNoNamespace is only used when local_name ==
+                // local_name_lower.
+                local_name.precomputed_hash()
+            },
+            Component::AttributeInNoNamespaceExists { ref local_name, ref local_name_lower, .. } => {
+                // Only insert the local-name into the filter if it's all
+                // lowercase.  Otherwise we would need to test both hashes, and
+                // our data structures aren't really set up for that.
+                if local_name != local_name_lower || !Impl::should_collect_attr_hash(local_name) {
+                    continue;
+                }
+                local_name.precomputed_hash()
+            },
+            Component::AttributeOther(ref selector) => {
+                if selector.local_name != selector.local_name_lower || !Impl::should_collect_attr_hash(&selector.local_name) {
+                    continue;
+                }
+                selector.local_name.precomputed_hash()
             },
             Component::Is(ref list) | Component::Where(ref list) => {
                 // :where and :is OR their selectors, so we can't put any hash

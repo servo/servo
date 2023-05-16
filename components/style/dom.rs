@@ -519,6 +519,11 @@ pub trait TElement:
     {
     }
 
+    /// Internal iterator for the attribute names of this element.
+    fn each_attr_name<F>(&self, callback: F)
+    where
+        F: FnMut(&AtomIdent);
+
     /// Internal iterator for the part names that this element exports for a
     /// given part name.
     fn each_exported_part<F>(&self, _name: &AtomIdent, _callback: F)

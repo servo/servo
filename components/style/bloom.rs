@@ -102,6 +102,15 @@ impl<E: TElement> PushedElement<E> {
     }
 }
 
+/// Returns whether the attribute name is excluded from the bloom filter.
+///
+/// We do this for attributes that are very common but not commonly used in
+/// selectors.
+#[inline]
+pub fn is_attr_name_excluded_from_filter(atom: &crate::Atom) -> bool {
+    *atom == atom!("class") || *atom == atom!("id") || *atom == atom!("style")
+}
+
 fn each_relevant_element_hash<E, F>(element: E, mut f: F)
 where
     E: TElement,
@@ -115,6 +124,14 @@ where
     }
 
     element.each_class(|class| f(class.get_hash()));
+
+    if static_prefs::pref!("layout.css.bloom-filter-attribute-names.enabled") {
+        element.each_attr_name(|name| {
+            if !is_attr_name_excluded_from_filter(name) {
+                f(name.get_hash())
+            }
+        });
+    }
 }
 
 impl<E: TElement> Drop for StyleBloom<E> {
