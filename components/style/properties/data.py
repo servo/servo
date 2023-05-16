@@ -261,6 +261,11 @@ class Property(object):
         self.extra_prefixes = parse_property_aliases(extra_prefixes)
         self.flags = flags.split() if flags else []
 
+    def rule_types_allowed_names(self):
+        for name in RULE_VALUES:
+            if self.rule_types_allowed & RULE_VALUES[name] != 0:
+                yield name
+
     def experimental(self, engine):
         if engine == "gecko":
             return bool(self.gecko_pref)
@@ -597,6 +602,11 @@ class Alias(object):
     @staticmethod
     def type():
         return "alias"
+
+    def rule_types_allowed_names(self):
+        for name in RULE_VALUES:
+            if self.rule_types_allowed & RULE_VALUES[name] != 0:
+                yield name
 
     def experimental(self, engine):
         if engine == "gecko":
