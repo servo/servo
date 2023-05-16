@@ -541,22 +541,6 @@ fn eval_moz_is_resource_document(
     query_value.map_or(is_resource_doc, |v| v == is_resource_doc)
 }
 
-fn eval_system_metric(
-    device: &Device,
-    query_value: Option<bool>,
-    metric: Atom,
-    accessible_from_content: bool,
-) -> bool {
-    let supports_metric = unsafe {
-        bindings::Gecko_MediaFeatures_HasSystemMetric(
-            device.document(),
-            metric.as_ptr(),
-            accessible_from_content,
-        )
-    };
-    query_value.map_or(supports_metric, |v| v == supports_metric)
-}
-
 fn eval_moz_os_version(
     device: &Device,
     query_value: Option<Atom>,
@@ -573,15 +557,35 @@ fn eval_moz_os_version(
     query_value.as_ptr() == os_version
 }
 
-macro_rules! system_metric_feature {
-    ($feature_name:expr) => {{
-        fn __eval(device: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
-            eval_system_metric(
-                device,
-                query_value,
-                $feature_name,
-                /* accessible_from_content = */ false,
-            )
+fn get_lnf_int(int_id: i32) -> i32 {
+    unsafe { bindings::Gecko_GetLookAndFeelInt(int_id) }
+}
+
+fn get_lnf_int_as_bool(int_id: i32) -> bool {
+    get_lnf_int(int_id) != 0
+}
+
+fn get_scrollbar_start_backward(int_id: i32) -> bool {
+    (get_lnf_int(int_id) & bindings::LookAndFeel_eScrollArrow_StartBackward as i32) != 0
+}
+
+fn get_scrollbar_start_forward(int_id: i32) -> bool {
+    (get_lnf_int(int_id) & bindings::LookAndFeel_eScrollArrow_StartForward as i32) != 0
+}
+
+fn get_scrollbar_end_backward(int_id: i32) -> bool {
+    (get_lnf_int(int_id) & bindings::LookAndFeel_eScrollArrow_EndBackward as i32) != 0
+}
+
+fn get_scrollbar_end_forward(int_id: i32) -> bool {
+    (get_lnf_int(int_id) & bindings::LookAndFeel_eScrollArrow_EndForward as i32) != 0
+}
+
+macro_rules! lnf_int_feature {
+    ($feature_name:expr, $int_id:ident, $get_value:ident) => {{
+        fn __eval(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
+            let value = $get_value(bindings::LookAndFeel_IntID::$int_id as i32);
+            query_value.map_or(value, |v| v == value)
         }
 
         feature!(
@@ -590,7 +594,10 @@ macro_rules! system_metric_feature {
             Evaluator::BoolInteger(__eval),
             ParsingRequirements::CHROME_AND_UA_ONLY,
         )
-    }}
+    }};
+    ($feature_name:expr, $int_id:ident) => {{
+        lnf_int_feature!($feature_name, $int_id, get_lnf_int_as_bool)
+    }};
 }
 
 /// bool pref-based features are an slightly less convenient to start using
@@ -833,29 +840,30 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 63] = [
         Evaluator::BoolInteger(eval_moz_non_native_content_theme),
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
-    system_metric_feature!(atom!("-moz-scrollbar-start-backward")),
-    system_metric_feature!(atom!("-moz-scrollbar-start-forward")),
-    system_metric_feature!(atom!("-moz-scrollbar-end-backward")),
-    system_metric_feature!(atom!("-moz-scrollbar-end-forward")),
-    system_metric_feature!(atom!("-moz-scrollbar-thumb-proportional")),
-    system_metric_feature!(atom!("-moz-overlay-scrollbars")),
-    system_metric_feature!(atom!("-moz-windows-default-theme")),
-    system_metric_feature!(atom!("-moz-mac-graphite-theme")),
-    system_metric_feature!(atom!("-moz-mac-big-sur-theme")),
-    system_metric_feature!(atom!("-moz-windows-accent-color-in-titlebar")),
-    system_metric_feature!(atom!("-moz-windows-compositor")),
-    system_metric_feature!(atom!("-moz-windows-classic")),
-    system_metric_feature!(atom!("-moz-windows-glass")),
-    system_metric_feature!(atom!("-moz-menubar-drag")),
-    system_metric_feature!(atom!("-moz-swipe-animation-enabled")),
-    system_metric_feature!(atom!("-moz-gtk-csd-available")),
-    system_metric_feature!(atom!("-moz-gtk-csd-hide-titlebar-by-default")),
-    system_metric_feature!(atom!("-moz-gtk-csd-transparent-background")),
-    system_metric_feature!(atom!("-moz-gtk-csd-minimize-button")),
-    system_metric_feature!(atom!("-moz-gtk-csd-maximize-button")),
-    system_metric_feature!(atom!("-moz-gtk-csd-close-button")),
-    system_metric_feature!(atom!("-moz-gtk-csd-reversed-placement")),
-    system_metric_feature!(atom!("-moz-system-dark-theme")),
+
+    lnf_int_feature!(atom!("-moz-scrollbar-start-backward"), ScrollArrowStyle, get_scrollbar_start_backward),
+    lnf_int_feature!(atom!("-moz-scrollbar-start-forward"), ScrollArrowStyle, get_scrollbar_start_forward),
+    lnf_int_feature!(atom!("-moz-scrollbar-end-backward"), ScrollArrowStyle, get_scrollbar_end_backward),
+    lnf_int_feature!(atom!("-moz-scrollbar-end-forward"), ScrollArrowStyle, get_scrollbar_end_forward),
+    lnf_int_feature!(atom!("-moz-scrollbar-thumb-proportional"), ScrollSliderStyle),
+    lnf_int_feature!(atom!("-moz-overlay-scrollbars"), UseOverlayScrollbars),
+    lnf_int_feature!(atom!("-moz-menubar-drag"), MenuBarDrag),
+    lnf_int_feature!(atom!("-moz-windows-default-theme"), WindowsDefaultTheme),
+    lnf_int_feature!(atom!("-moz-mac-graphite-theme"), MacGraphiteTheme),
+    lnf_int_feature!(atom!("-moz-mac-big-sur-theme"), MacBigSurTheme),
+    lnf_int_feature!(atom!("-moz-windows-accent-color-in-titlebar"), WindowsAccentColorInTitlebar),
+    lnf_int_feature!(atom!("-moz-windows-compositor"), DWMCompositor),
+    lnf_int_feature!(atom!("-moz-windows-classic"), WindowsClassic),
+    lnf_int_feature!(atom!("-moz-windows-glass"), WindowsGlass),
+    lnf_int_feature!(atom!("-moz-swipe-animation-enabled"), SwipeAnimationEnabled),
+    lnf_int_feature!(atom!("-moz-gtk-csd-available"), GTKCSDAvailable),
+    lnf_int_feature!(atom!("-moz-gtk-csd-hide-titlebar-by-default"), GTKCSDHideTitlebarByDefault),
+    lnf_int_feature!(atom!("-moz-gtk-csd-transparent-background"), GTKCSDTransparentBackground),
+    lnf_int_feature!(atom!("-moz-gtk-csd-minimize-button"), GTKCSDMinimizeButton),
+    lnf_int_feature!(atom!("-moz-gtk-csd-maximize-button"), GTKCSDMaximizeButton),
+    lnf_int_feature!(atom!("-moz-gtk-csd-close-button"), GTKCSDCloseButton),
+    lnf_int_feature!(atom!("-moz-gtk-csd-reversed-placement"), GTKCSDReversedPlacement),
+    lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
 
     bool_pref_feature!(atom!("-moz-proton"), "browser.proton.enabled"),
     bool_pref_feature!(atom!("-moz-proton-urlbar"), "browser.proton.urlbar.enabled"),
