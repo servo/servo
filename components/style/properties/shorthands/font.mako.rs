@@ -289,7 +289,9 @@
             % for p in subprops_for_value_info:
             ${p}::collect_completion_keywords(f);
             % endfor
+            % if engine == "gecko":
             <SystemFont as SpecifiedValueInfo>::collect_completion_keywords(f);
+            % endif
         }
     }
 </%helpers:shorthand>
