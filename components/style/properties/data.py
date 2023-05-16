@@ -495,6 +495,7 @@ class Longhand(Property):
                 "Percentage",
                 "PositiveIntegerOrNone",
                 "Resize",
+                "RubyPosition",
                 "SVGOpacity",
                 "SVGPaintOrder",
                 "ScrollSnapAlign",

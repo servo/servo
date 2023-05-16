@@ -22,6 +22,7 @@ use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{KeywordsCollectFn, SpecifiedValueInfo};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A specified type for the `initial-letter` property.
@@ -1191,5 +1192,87 @@ impl ToCss for TextUnderlinePosition {
         debug_assert!(any);
 
         Ok(())
+    }
+}
+
+/// Values for `ruby-position` property
+#[repr(u8)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[allow(missing_docs)]
+pub enum RubyPosition {
+    AlternateOver,
+    AlternateUnder,
+    Over,
+    Under,
+}
+
+impl Default for RubyPosition {
+    fn default() -> Self {
+        if static_prefs::pref!("layout.css.ruby.position-alternate.enabled") {
+            RubyPosition::AlternateOver
+        } else {
+            RubyPosition::Over
+        }
+    }
+}
+
+impl Parse for RubyPosition {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<RubyPosition, ParseError<'i>> {
+        // Parse alternate before
+        let alternate_enabled = static_prefs::pref!("layout.css.ruby.position-alternate.enabled");
+        let alternate = alternate_enabled &&
+            input.try_parse(|i| i.expect_ident_matching("alternate")).is_ok();
+        if alternate && input.is_exhausted() {
+            return Ok(RubyPosition::AlternateOver);
+        }
+        // Parse over / under
+        let over = try_match_ident_ignore_ascii_case! { input,
+            "over" => true,
+            "under" => false,
+        };
+        // Parse alternate after
+        let alternate = alternate ||
+            (alternate_enabled &&
+             input.try_parse(|i| i.expect_ident_matching("alternate")).is_ok());
+
+        Ok(match (over, alternate) {
+            (true, true) => RubyPosition::AlternateOver,
+            (false, true) => RubyPosition::AlternateUnder,
+            (true, false) => RubyPosition::Over,
+            (false, false) => RubyPosition::Under,
+        })
+    }
+}
+
+impl ToCss for RubyPosition {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str(match self {
+            RubyPosition::AlternateOver => "alternate",
+            RubyPosition::AlternateUnder => "alternate under",
+            RubyPosition::Over => "over",
+            RubyPosition::Under => "under",
+        })
+    }
+}
+
+impl SpecifiedValueInfo for RubyPosition {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        f(&["alternate", "over", "under"])
     }
 }

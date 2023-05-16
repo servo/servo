@@ -329,13 +329,13 @@ ${helpers.single_keyword(
     spec="https://drafts.csswg.org/css-ruby/#ruby-align-property",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "ruby-position",
-    "over under",
+    "RubyPosition",
+    "Default::default()",
     engines="gecko",
-    animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-ruby/#ruby-position-property",
-    gecko_enum_prefix="StyleRubyPosition",
+    animation_value_type="discrete",
 )}
 
 // CSS Writing Modes Module Level 3
