@@ -19,7 +19,9 @@ use crate::values::specified::font::SpecifiedFontFeatureSettings;
 use crate::values::specified::font::SpecifiedFontStyle;
 #[cfg(feature = "gecko")]
 use crate::values::specified::font::SpecifiedFontVariationSettings;
-use crate::values::specified::font::{AbsoluteFontWeight, FontStretch, MetricsOverride};
+use crate::values::specified::font::{AbsoluteFontWeight, FontStretch};
+#[cfg(feature = "gecko")]
+use crate::values::specified::font::MetricsOverride;
 use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::Angle;
 #[cfg(feature = "gecko")]
