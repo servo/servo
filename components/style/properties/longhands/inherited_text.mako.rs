@@ -332,7 +332,7 @@ ${helpers.single_keyword(
 ${helpers.predefined_type(
     "ruby-position",
     "RubyPosition",
-    "Default::default()",
+    "computed::RubyPosition::AlternateOver",
     engines="gecko",
     spec="https://drafts.csswg.org/css-ruby/#ruby-position-property",
     animation_value_type="discrete",

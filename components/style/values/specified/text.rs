@@ -1216,25 +1216,13 @@ pub enum RubyPosition {
     Under,
 }
 
-impl Default for RubyPosition {
-    fn default() -> Self {
-        if static_prefs::pref!("layout.css.ruby.position-alternate.enabled") {
-            RubyPosition::AlternateOver
-        } else {
-            RubyPosition::Over
-        }
-    }
-}
-
 impl Parse for RubyPosition {
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<RubyPosition, ParseError<'i>> {
         // Parse alternate before
-        let alternate_enabled = static_prefs::pref!("layout.css.ruby.position-alternate.enabled");
-        let alternate = alternate_enabled &&
-            input.try_parse(|i| i.expect_ident_matching("alternate")).is_ok();
+        let alternate = input.try_parse(|i| i.expect_ident_matching("alternate")).is_ok();
         if alternate && input.is_exhausted() {
             return Ok(RubyPosition::AlternateOver);
         }
@@ -1245,8 +1233,7 @@ impl Parse for RubyPosition {
         };
         // Parse alternate after
         let alternate = alternate ||
-            (alternate_enabled &&
-             input.try_parse(|i| i.expect_ident_matching("alternate")).is_ok());
+             input.try_parse(|i| i.expect_ident_matching("alternate")).is_ok();
 
         Ok(match (over, alternate) {
             (true, true) => RubyPosition::AlternateOver,
