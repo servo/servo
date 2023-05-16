@@ -132,8 +132,6 @@ bitflags! {
         const IN_MOZINERT_STATE = 1 << 54;
         /// State for the topmost dialog element in top layer
         const IN_TOPMOST_MODAL_DIALOG_STATE = 1 << 55;
-        /// Non-standard & undocumented.
-        const IN_HANDLER_NOPLUGINS = 1 << 56;
     }
 }
 
