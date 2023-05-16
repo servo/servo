@@ -1757,7 +1757,21 @@ impl UnparsedValue {
             shorthand_cache.insert((shorthand, longhand), declaration);
         }
 
-        Cow::Borrowed(&shorthand_cache[&(shorthand, longhand_id)])
+        let key = (shorthand, longhand_id);
+        match shorthand_cache.get(&key) {
+            Some(decl) => Cow::Borrowed(decl),
+            None => {
+                // FIXME: We should always have the key here but it seems
+                // sometimes we don't, see bug 1696409.
+                #[cfg(feature = "gecko")]
+                {
+                    if structs::GECKO_IS_NIGHTLY {
+                        panic!("Expected {:?} to be in the cache but it was not!", key);
+                    }
+                }
+                invalid_at_computed_value_time()
+            }
+        }
     }
 }
 
