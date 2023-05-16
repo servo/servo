@@ -11,7 +11,7 @@ use crate::values::specified::image::Image;
 use crate::values::specified::Number;
 use cssparser::Parser;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 /// A specified value for the `cursor` property.
 pub type Cursor = generics::GenericCursor<CursorImage>;
@@ -69,8 +69,11 @@ impl Parse for CursorImage {
 
 // This trait is manually implemented because we don't support the whole <image>
 // syntax for cursors
-impl SpecifiedValueInfo for CursorImage {}
-
+impl SpecifiedValueInfo for CursorImage {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        f(&["url", "image-set"]);
+    }
+}
 /// Specified value of `-moz-force-broken-image-icon`
 #[derive(
     Clone,
