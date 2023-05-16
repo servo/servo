@@ -406,18 +406,42 @@ fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorSc
     }
 }
 
+/// Values for the -moz-toolbar-prefers-color-scheme media feature.
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
+#[repr(u8)]
+enum ToolbarPrefersColorScheme {
+    Dark,
+    Light,
+    System,
+}
+
 /// The color-scheme of the toolbar in the current Firefox theme. This is based
 /// on a pref managed by the front-end.
-fn eval_toolbar_prefers_color_scheme(_: &Device, query_value: Option<PrefersColorScheme>) -> bool {
-    let prefers_color_scheme = if static_prefs::pref!("browser.theme.dark-toolbar-theme") {
-        PrefersColorScheme::Dark
-    } else {
-        PrefersColorScheme::Light
+fn eval_toolbar_prefers_color_scheme(d: &Device, query_value: Option<ToolbarPrefersColorScheme>) -> bool {
+    let toolbar_value = match static_prefs::pref!("browser.theme.toolbar-theme") {
+        0 => ToolbarPrefersColorScheme::Dark,
+        1 => ToolbarPrefersColorScheme::Light,
+        _ => ToolbarPrefersColorScheme::System,
     };
 
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return true,
+    };
+
+    if query_value == toolbar_value {
+        return true;
+    }
+
+    if toolbar_value != ToolbarPrefersColorScheme::System {
+        return false;
+    }
+
+    // System might match light and dark as well.
     match query_value {
-        Some(v) => prefers_color_scheme == v,
-        None => true,
+        ToolbarPrefersColorScheme::Dark => eval_prefers_color_scheme(d, Some(PrefersColorScheme::Dark)),
+        ToolbarPrefersColorScheme::Light => eval_prefers_color_scheme(d, Some(PrefersColorScheme::Light)),
+        ToolbarPrefersColorScheme::System => true,
     }
 }
 
@@ -617,7 +641,7 @@ macro_rules! lnf_int_feature {
 /// In order to use them you need to make sure that the pref defined as a static
 /// pref, with `rust: true`. The feature name needs to be defined in
 /// `StaticAtoms.py` just like the others. In order to support dynamic changes,
-/// you also need to add them to kBoolMediaQueryPrefs in nsXPLookAndFeel.cpp
+/// you also need to add them to kMediaQueryPrefs in nsXPLookAndFeel.cpp
 macro_rules! bool_pref_feature {
     ($feature_name:expr, $pref:tt) => {{
         fn __eval(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
@@ -852,7 +876,7 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 62] = [
     feature!(
         atom!("-moz-toolbar-prefers-color-scheme"),
         AllowsRanges::No,
-        keyword_evaluator!(eval_toolbar_prefers_color_scheme, PrefersColorScheme),
+        keyword_evaluator!(eval_toolbar_prefers_color_scheme, ToolbarPrefersColorScheme),
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
 
