@@ -379,13 +379,15 @@ where
 type DeclarationsToApplyUnlessOverriden = SmallVec<[PropertyDeclaration; 2]>;
 
 fn tweak_when_ignoring_colors(
-    builder: &StyleBuilder,
+    context: &computed::Context,
     longhand_id: LonghandId,
     origin: Origin,
     declaration: &mut Cow<PropertyDeclaration>,
     declarations_to_apply_unless_overriden: &mut DeclarationsToApplyUnlessOverriden,
 ) {
     use crate::values::specified::Color;
+    use crate::values::computed::ToComputedValue;
+    use cssparser::RGBA;
 
     if !longhand_id.ignored_when_document_colors_disabled() {
         return;
@@ -399,34 +401,16 @@ fn tweak_when_ignoring_colors(
     // Don't override background-color on ::-moz-color-swatch. It is set as an
     // author style (via the style attribute), but it's pretty important for it
     // to show up for obvious reasons :)
-    if builder.pseudo.map_or(false, |p| p.is_color_swatch()) &&
+    if context.builder.pseudo.map_or(false, |p| p.is_color_swatch()) &&
         longhand_id == LonghandId::BackgroundColor
     {
         return;
     }
 
-    fn alpha_channel(color: &Color) -> u8 {
-        match *color {
-            // Seems safe enough to assume that the default color and system
-            // colors are opaque in HCM, though maybe we shouldn't asume the
-            // later?
-            #[cfg(feature = "gecko")]
-            Color::InheritFromBodyQuirk | Color::System(..) => 255,
-            // We don't have the actual color here, but since except for color:
-            // transparent we force opaque text colors, it seems sane to do
-            // this. You can technically fool this bit of code with:
-            //
-            //   color: transparent; background-color: currentcolor;
-            //
-            // but this is best-effort, and that seems unlikely to happen in
-            // practice.
-            Color::CurrentColor => 255,
-            // Complex colors are results of interpolation only and probably
-            // shouldn't show up around here in HCM, but we've always treated
-            // them as opaque effectively so keep doing it.
-            Color::Complex { .. } => 255,
-            Color::Numeric { ref parsed, .. } => parsed.alpha,
-        }
+    fn alpha_channel(color: &Color, context: &computed::Context) -> u8 {
+        // We assume here currentColor is opaque.
+        let color = color.to_computed_value(context).to_rgba(RGBA::new(0, 0, 0, 255));
+        color.alpha
     }
 
     // A few special-cases ahead.
@@ -440,9 +424,9 @@ fn tweak_when_ignoring_colors(
             // should consider not doing that even if it causes some issues like
             // bug 1625036, or finding a performant way to preserve the original
             // widget background color's rgb channels but not alpha...
-            let alpha = alpha_channel(color);
+            let alpha = alpha_channel(color, context);
             if alpha != 0 {
-                let mut color = builder.device.default_background_color();
+                let mut color = context.builder.device.default_background_color();
                 color.alpha = alpha;
                 declarations_to_apply_unless_overriden
                     .push(PropertyDeclaration::BackgroundColor(color.into()))
@@ -450,14 +434,14 @@ fn tweak_when_ignoring_colors(
         },
         PropertyDeclaration::Color(ref color) => {
             // We honor color: transparent, and "revert-or-initial" otherwise.
-            if alpha_channel(&color.0) == 0 {
+            if alpha_channel(&color.0, context) == 0 {
                 return;
             }
             // If the inherited color would be transparent, but we would
             // override this with a non-transparent color, then override it with
             // the default color. Otherwise just let it inherit through.
-            if builder.get_parent_inherited_text().clone_color().alpha == 0 {
-                let color = builder.device.default_color();
+            if context.builder.get_parent_inherited_text().clone_color().alpha == 0 {
+                let color = context.builder.device.default_color();
                 declarations_to_apply_unless_overriden.push(PropertyDeclaration::Color(
                     specified::ColorPropertyValue(color.into()),
                 ))
@@ -631,7 +615,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             // properties that are marked as ignored in that mode.
             if ignore_colors {
                 tweak_when_ignoring_colors(
-                    &self.context.builder,
+                    &self.context,
                     longhand_id,
                     origin,
                     &mut declaration,

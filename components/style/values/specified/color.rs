@@ -9,8 +9,9 @@ use super::AllowQuirks;
 use crate::gecko_bindings::structs::nscolor;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
-use crate::values::generics::color::{ColorOrAuto as GenericColorOrAuto};
+use crate::values::generics::color::ColorOrAuto as GenericColorOrAuto;
 use crate::values::specified::calc::CalcNode;
+use crate::values::specified::Percentage;
 use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
 use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
 use itoa;
@@ -18,6 +19,74 @@ use std::fmt::{self, Write};
 use std::io::Write as IoWrite;
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind};
 use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
+
+/// A restricted version of the css `color-mix()` function, which only supports
+/// percentages and sRGB color-space interpolation.
+///
+/// https://drafts.csswg.org/css-color-5/#color-mix
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[allow(missing_docs)]
+pub struct ColorMix {
+    pub left: Color,
+    pub right: Color,
+    pub percentage: Percentage,
+}
+
+// NOTE(emilio): Syntax is still a bit in-flux, since [1] doesn't seem
+// particularly complete, and disagrees with the examples.
+//
+// [1]: https://github.com/w3c/csswg-drafts/commit/a4316446112f9e814668c2caff7f826f512f8fed
+impl Parse for ColorMix {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let enabled =
+            context.chrome_rules_enabled() || static_prefs::pref!("layout.css.color-mix.enabled");
+
+        if !enabled {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        input.expect_function_matching("color-mix")?;
+
+        // NOTE(emilio): This implements the syntax described here for now,
+        // might need to get updated in the future.
+        //
+        // https://github.com/w3c/csswg-drafts/issues/6066#issuecomment-789836765
+        input.parse_nested_block(|input| {
+            input.expect_ident_matching("in")?;
+            // TODO: support multiple interpolation spaces.
+            input.expect_ident_matching("srgb")?;
+            input.expect_comma()?;
+            let left = Color::parse(context, input)?;
+            let percentage = input.try_parse(|input| {
+                Percentage::parse(context, input)
+            }).unwrap_or_else(|_| Percentage::new(0.5));
+            input.expect_comma()?;
+            let right = Color::parse(context, input)?;
+
+            Ok(ColorMix { left, right, percentage })
+        })
+    }
+}
+
+impl ToCss for ColorMix {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str("color-mix(in srgb, ")?;
+        self.left.to_css(dest)?;
+        if self.percentage.get() != 0.5 || self.percentage.is_calc() {
+            dest.write_str(" ")?;
+            self.percentage.to_css(dest)?;
+        }
+        dest.write_str(", ")?;
+        self.right.to_css(dest)?;
+        dest.write_str(")")
+    }
+}
 
 /// Specified color value
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
@@ -36,6 +105,8 @@ pub enum Color {
     /// A system color
     #[cfg(feature = "gecko")]
     System(SystemColor),
+    /// A color mix.
+    ColorMix(Box<ColorMix>),
     /// Quirksmode-only rule for inheriting color from the body
     #[cfg(feature = "gecko")]
     InheritFromBodyQuirk,
@@ -338,8 +409,6 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
     }
 
     fn parse_percentage<'t>(&self, input: &mut Parser<'i, 't>) -> Result<f32, ParseError<'i>> {
-        use crate::values::specified::Percentage;
-
         Ok(Percentage::parse(self.0, input)?.get())
     }
 
@@ -398,6 +467,10 @@ impl Parse for Color {
                     }
                 }
 
+                if let Ok(mix) = input.try_parse(|i| ColorMix::parse(context, i)) {
+                    return Ok(Color::ColorMix(Box::new(mix)));
+                }
+
                 match e.kind {
                     ParseErrorKind::Basic(BasicParseErrorKind::UnexpectedToken(t)) => {
                         Err(e.location.new_custom_error(StyleParseErrorKind::ValueError(
@@ -425,7 +498,9 @@ impl ToCss for Color {
             Color::Numeric {
                 parsed: ref rgba, ..
             } => rgba.to_css(dest),
+            // TODO: Could represent this as a color-mix() instead.
             Color::Complex(_) => Ok(()),
+            Color::ColorMix(ref mix) => mix.to_css(dest),
             #[cfg(feature = "gecko")]
             Color::System(system) => system.to_css(dest),
             #[cfg(feature = "gecko")]
@@ -562,17 +637,23 @@ impl Color {
     ///
     /// If `context` is `None`, and the specified color requires data from
     /// the context to resolve, then `None` is returned.
-    pub fn to_computed_color(&self, _context: Option<&Context>) -> Option<ComputedColor> {
+    pub fn to_computed_color(&self, context: Option<&Context>) -> Option<ComputedColor> {
         Some(match *self {
             Color::CurrentColor => ComputedColor::currentcolor(),
             Color::Numeric { ref parsed, .. } => ComputedColor::rgba(*parsed),
             Color::Complex(ref complex) => *complex,
-            #[cfg(feature = "gecko")]
-            Color::System(system) => system.compute(_context?),
-            #[cfg(feature = "gecko")]
-            Color::InheritFromBodyQuirk => {
-                ComputedColor::rgba(_context?.device().body_text_color())
+            Color::ColorMix(ref mix) => {
+                use crate::values::animated::color::Color as AnimatedColor;
+                use crate::values::animated::ToAnimatedValue;
+
+                let left = mix.left.to_computed_color(context)?.to_animated_value();
+                let right = mix.right.to_computed_color(context)?.to_animated_value();
+                ToAnimatedValue::from_animated_value(AnimatedColor::mix(&left, &right, mix.percentage.get()))
             },
+            #[cfg(feature = "gecko")]
+            Color::System(system) => system.compute(context?),
+            #[cfg(feature = "gecko")]
+            Color::InheritFromBodyQuirk => ComputedColor::rgba(context?.device().body_text_color()),
         })
     }
 }

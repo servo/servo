@@ -104,6 +104,11 @@ impl Color {
         }
     }
 
+    /// Mix two colors into one.
+    pub fn mix(left: &Color, right: &Color, progress: f32) -> Self {
+        left.animate(right, Procedure::Interpolate { progress: progress as f64 }).unwrap()
+    }
+
     fn scaled_rgba(&self) -> RGBA {
         if self.ratios.bg == 0. {
             return RGBA::transparent();
