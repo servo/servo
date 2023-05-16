@@ -50,6 +50,7 @@ lazy_static = "1"
 log = { version = "0.4", features = ["std"] }
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"
+mime = "0.3.13"
 new_debug_unreachable = "1.0"
 num-derive = "0.3"
 num-integer = "0.1"
