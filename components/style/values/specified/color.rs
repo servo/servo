@@ -349,10 +349,6 @@ pub enum SystemColor {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozAccentColorForeground,
 
-    /// Accent color for title bar.
-    MozWinAccentcolor,
-    /// Color from drawing text over the accent color.
-    MozWinAccentcolortext,
     /// Media rebar text.
     MozWinMediatext,
     /// Communications rebar text.
