@@ -707,8 +707,8 @@
 </%def>
 
 <%def name="single_keyword(name, values, vector=False,
-            extra_specified=None, needs_conversion=False,
-            gecko_pref_controlled_initial_value=None, **kwargs)">
+            needs_conversion=False, gecko_pref_controlled_initial_value=None,
+            **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix',
@@ -725,11 +725,10 @@
         ]}
     %>
 
-    <%def name="inner_body(keyword, extra_specified=None, needs_conversion=False,
+    <%def name="inner_body(keyword, needs_conversion=False,
                            gecko_pref_controlled_initial_value=None)">
-        <%def name="variants(variants, include_aliases)">
+        <%def name="variants(variants)">
             % for variant in variants:
-            % if include_aliases:
             <%
                 aliases = []
                 for alias, v in keyword.aliases_for(engine).items():
@@ -739,38 +738,15 @@
             % if aliases:
             #[parse(aliases = "${','.join(sorted(aliases))}")]
             % endif
-            % endif
             ${to_camel_case(variant)},
             % endfor
         </%def>
-        % if extra_specified:
-            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(
-                Clone,
-                Copy,
-                Debug,
-                Eq,
-                MallocSizeOf,
-                Parse,
-                PartialEq,
-                SpecifiedValueInfo,
-                ToCss,
-                ToShmem,
-            )]
-            pub enum SpecifiedValue {
-                ${variants(keyword.values_for(engine) + extra_specified.split(), bool(extra_specified))}
-            }
-        % else:
-            pub use self::computed_value::T as SpecifiedValue;
-        % endif
+        pub use self::computed_value::T as SpecifiedValue;
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
-            % if not extra_specified:
-            #[derive(Parse, SpecifiedValueInfo, ToComputedValue, ToShmem)]
-            % endif
+            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
             pub enum T {
-                ${variants(data.longhands_by_name[name].keyword.values_for(engine), not extra_specified)}
+                ${variants(data.longhands_by_name[name].keyword.values_for(engine))}
             }
         }
         #[inline]
@@ -799,10 +775,7 @@
 
         % if needs_conversion:
             <%
-                conversion_values = keyword.values_for(engine)
-                if extra_specified:
-                    conversion_values += extra_specified.split()
-                conversion_values += keyword.aliases_for(engine).keys()
+                conversion_values = keyword.values_for(engine) + list(keyword.aliases_for(engine).keys())
             %>
             ${gecko_keyword_conversion(keyword, values=conversion_values)}
         % endif
@@ -817,7 +790,7 @@
     % else:
         <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
             ${inner_body(Keyword(name, values, **keyword_kwargs),
-                         extra_specified=extra_specified, needs_conversion=needs_conversion,
+                         needs_conversion=needs_conversion,
                          gecko_pref_controlled_initial_value=gecko_pref_controlled_initial_value)}
             % if caller:
             ${caller.body()}

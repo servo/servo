@@ -511,6 +511,7 @@ class Longhand(Property):
                 "TextAlignLast",
                 "TextDecorationLine",
                 "TextEmphasisPosition",
+                "TextJustify",
                 "TextTransform",
                 "TextUnderlinePosition",
                 "TouchAction",
