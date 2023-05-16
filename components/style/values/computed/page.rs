@@ -11,4 +11,4 @@ use crate::values::generics::size::Size2D;
 pub use generics::page::Orientation;
 pub use generics::page::PaperSize;
 /// Computed value of the @page size descriptor
-pub type PageSize = generics::page::PageSize<Size2D<NonNegativeLength>>;
+pub type PageSize = generics::page::GenericPageSize<Size2D<NonNegativeLength>>;

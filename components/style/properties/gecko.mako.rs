@@ -781,6 +781,9 @@ fn static_assert() {
     % endfor
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Page">
+</%self:impl_trait>
+
 <% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
 <%self:impl_trait style_struct_name="Position"
                   skip_longhands="${skip_position_longhands}
