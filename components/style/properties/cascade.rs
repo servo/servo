@@ -416,6 +416,10 @@ fn tweak_when_ignoring_colors(
     // A few special-cases ahead.
     match **declaration {
         PropertyDeclaration::BackgroundColor(ref color) => {
+            // We honor system colors.
+            if color.is_system() {
+                return;
+            }
             // For background-color, we revert or initial-with-preserved-alpha
             // otherwise, this is needed to preserve semi-transparent
             // backgrounds.
@@ -433,7 +437,10 @@ fn tweak_when_ignoring_colors(
             }
         },
         PropertyDeclaration::Color(ref color) => {
-            // We honor color: transparent, and "revert-or-initial" otherwise.
+            // We honor color: transparent and system colors.
+            if color.0.is_system() {
+                return;
+            }
             if alpha_channel(&color.0, context) == 0 {
                 return;
             }

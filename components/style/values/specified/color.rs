@@ -561,6 +561,11 @@ fn parse_hash_color(value: &[u8]) -> Result<RGBA, ()> {
 }
 
 impl Color {
+    /// Returns whether this color is a system color.
+    pub fn is_system(&self) -> bool {
+        matches!(self, Color::System(..))
+    }
+
     /// Returns currentcolor value.
     #[inline]
     pub fn currentcolor() -> Color {
