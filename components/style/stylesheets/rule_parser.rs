@@ -53,7 +53,7 @@ pub struct TopLevelRuleParser<'a> {
     /// This won't contain any namespaces, and only nested parsers created with
     /// `ParserContext::new_with_rule_type` will.
     pub context: ParserContext<'a>,
-    /// The current stajkj/te of the parser.
+    /// The current state of the parser.
     pub state: State,
     /// Whether we have tried to parse was invalid due to being in the wrong
     /// place (e.g. an @import rule was found while in the `Body` state). Reset
@@ -587,6 +587,38 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
     }
 }
 
+#[inline(never)]
+fn check_for_useless_selector(
+    input: &mut Parser,
+    context: &ParserContext,
+    selectors: &SelectorList<SelectorImpl>,
+) {
+    use cssparser::ToCss;
+
+    'selector_loop: for selector in selectors.0.iter() {
+        let mut current = selector.iter();
+        loop {
+            let mut found_host = false;
+            let mut found_non_host = false;
+            for component in &mut current {
+                if component.is_host() {
+                    found_host = true;
+                } else {
+                    found_non_host = true;
+                }
+                if found_host && found_non_host {
+                    let location = input.current_source_location();
+                    context.log_css_error(location, ContextualParseError::NeverMatchingHostSelector(selector.to_css_string()));
+                    continue 'selector_loop;
+                }
+            }
+            if current.next_sequence().is_none() {
+                break;
+            }
+        }
+    }
+}
+
 impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
     type Prelude = SelectorList<SelectorImpl>;
     type QualifiedRule = CssRule;
@@ -601,7 +633,11 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
             namespaces: self.namespaces,
             url_data: Some(self.context.url_data),
         };
-        SelectorList::parse(&selector_parser, input)
+        let selectors = SelectorList::parse(&selector_parser, input)?;
+        if self.context.error_reporting_enabled() {
+            check_for_useless_selector(input, &self.context, &selectors);
+        }
+        Ok(selectors)
     }
 
     fn parse_block<'t>(

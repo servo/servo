@@ -859,7 +859,7 @@ impl<'a, Impl: 'a + SelectorImpl> SelectorIter<'a, Impl> {
     #[inline]
     pub(crate) fn is_featureless_host_selector(&mut self) -> bool {
         self.selector_length() > 0 &&
-            self.all(|component| matches!(*component, Component::Host(..))) &&
+            self.all(|component| component.is_host()) &&
             self.next_sequence().is_none()
     }
 
@@ -1123,8 +1123,15 @@ pub enum Component<Impl: SelectorImpl> {
 
 impl<Impl: SelectorImpl> Component<Impl> {
     /// Returns true if this is a combinator.
+    #[inline]
     pub fn is_combinator(&self) -> bool {
         matches!(*self, Component::Combinator(_))
+    }
+
+    /// Returns true if this is a :host() selector.
+    #[inline]
+    pub fn is_host(&self) -> bool {
+        matches!(*self, Component::Host(..))
     }
 
     /// Returns the value as a combinator if applicable, None otherwise.

@@ -54,6 +54,8 @@ pub enum ContextualParseError<'a> {
     InvalidMediaRule(&'a str, ParseError<'a>),
     /// A value was not recognized.
     UnsupportedValue(&'a str, ParseError<'a>),
+    /// A never-matching `:host` selector was found.
+    NeverMatchingHostSelector(String),
 }
 
 impl<'a> fmt::Display for ContextualParseError<'a> {
@@ -210,6 +212,9 @@ impl<'a> fmt::Display for ContextualParseError<'a> {
                 parse_error_to_str(err, f)
             },
             ContextualParseError::UnsupportedValue(_value, ref err) => parse_error_to_str(err, f),
+            ContextualParseError::NeverMatchingHostSelector(ref selector) => {
+                write!(f, ":host selector is not featureless: {}", selector)
+            }
         }
     }
 }
