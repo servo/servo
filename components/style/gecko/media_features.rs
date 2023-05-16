@@ -275,10 +275,6 @@ enum PrefersReducedMotion {
     Reduce,
 }
 
-fn color_scheme_no_preference_enabled(_: &crate::parser::ParserContext) -> bool {
-    static_prefs::pref!("layout.css.prefers-color-scheme-no-preference.enabled")
-}
-
 /// Values for the prefers-color-scheme media feature.
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
 #[repr(u8)]
@@ -286,8 +282,6 @@ fn color_scheme_no_preference_enabled(_: &crate::parser::ParserContext) -> bool 
 pub enum PrefersColorScheme {
     Light,
     Dark,
-    #[parse(condition = "color_scheme_no_preference_enabled")]
-    NoPreference,
 }
 
 /// https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-motion
@@ -408,7 +402,7 @@ fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorSc
         unsafe { bindings::Gecko_MediaFeatures_PrefersColorScheme(device.document()) };
     match query_value {
         Some(v) => prefers_color_scheme == v,
-        None => prefers_color_scheme != PrefersColorScheme::NoPreference,
+        None => true,
     }
 }
 
