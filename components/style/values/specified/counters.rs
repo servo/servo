@@ -17,7 +17,7 @@ use crate::values::specified::Attr;
 use crate::values::specified::Integer;
 use crate::values::CustomIdent;
 use cssparser::{Parser, Token};
-#[cfg(feature = "servo-layout-2013")]
+#[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
 
@@ -171,6 +171,7 @@ impl Parse for Content {
                             Ok(generics::ContentItem::Attr(Attr::parse_function(context, input)?))
                         }),
                         _ => {
+                            use style_traits::StyleParseErrorKind;
                             let name = name.clone();
                             return Err(input.new_custom_error(
                                 StyleParseErrorKind::UnexpectedFunction(name),
