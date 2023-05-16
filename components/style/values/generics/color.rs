@@ -6,6 +6,11 @@
 
 /// Ratios representing the contribution of color and currentcolor to
 /// the final color value.
+///
+/// NOTE(emilio): For animated colors, the sum of these two might be more than
+/// one (because the background color would've been scaled down already). So
+/// beware that it is not generally safe to assume that if bg is 1 then fg is 0,
+/// for example.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
 #[repr(C)]
 pub struct ComplexColorRatios {
@@ -22,59 +27,52 @@ impl ComplexColorRatios {
     pub const CURRENT_COLOR: ComplexColorRatios = ComplexColorRatios { bg: 0., fg: 1. };
 }
 
-/// This enum represents a combined color from a numeric color and
+/// This struct represents a combined color from a numeric color and
 /// the current foreground color (currentcolor keyword).
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
-#[repr(C, u8)]
-pub enum GenericColor<RGBA> {
-    ///  Numeric RGBA color.
-    Numeric(RGBA),
-
-    /// The current foreground color.
-    CurrentColor,
-
-    /// A linear combination of numeric color and currentcolor.
+#[repr(C)]
+pub struct GenericColor<RGBA> {
+    /// The actual numeric color.
+    pub color: RGBA,
+    /// The ratios of mixing between numeric and currentcolor.
     /// The formula is: `color * ratios.bg + currentcolor * ratios.fg`.
-    Complex {
-        /// The actual numeric color.
-        color: RGBA,
-        /// The ratios of mixing between numeric and currentcolor.
-        ratios: ComplexColorRatios,
-    },
+    pub ratios: ComplexColorRatios,
 }
 
 pub use self::GenericColor as Color;
 
+impl Color<cssparser::RGBA> {
+    /// Returns a color value representing currentcolor.
+    pub fn currentcolor() -> Self {
+        Color {
+            color: cssparser::RGBA::transparent(),
+            ratios: ComplexColorRatios::CURRENT_COLOR,
+        }
+    }
+}
+
 impl<RGBA> Color<RGBA> {
     /// Create a color based upon the specified ratios.
-    pub fn with_ratios(color: RGBA, ratios: ComplexColorRatios) -> Self {
-        if ratios == ComplexColorRatios::NUMERIC {
-            Color::Numeric(color)
-        } else if ratios == ComplexColorRatios::CURRENT_COLOR {
-            Color::CurrentColor
-        } else {
-            Color::Complex { color, ratios }
-        }
+    pub fn new(color: RGBA, ratios: ComplexColorRatios) -> Self {
+        Self { color, ratios }
     }
 
     /// Returns a numeric color representing the given RGBA value.
     pub fn rgba(color: RGBA) -> Self {
-        Color::Numeric(color)
-    }
-
-    /// Returns a complex color value representing currentcolor.
-    pub fn currentcolor() -> Self {
-        Color::CurrentColor
+        Self {
+            color,
+            ratios: ComplexColorRatios::NUMERIC,
+        }
     }
 
     /// Whether it is a numeric color (no currentcolor component).
     pub fn is_numeric(&self) -> bool {
-        matches!(*self, Color::Numeric(..))
+        self.ratios == ComplexColorRatios::NUMERIC
     }
 
     /// Whether it is a currentcolor value (no numeric color component).
     pub fn is_currentcolor(&self) -> bool {
-        matches!(*self, Color::CurrentColor)
+        self.ratios == ComplexColorRatios::CURRENT_COLOR
     }
 }
 

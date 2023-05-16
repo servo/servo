@@ -9,7 +9,7 @@ use super::AllowQuirks;
 use crate::gecko_bindings::structs::nscolor;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
-use crate::values::generics::color::{Color as GenericColor, ColorOrAuto as GenericColorOrAuto};
+use crate::values::generics::color::{ColorOrAuto as GenericColorOrAuto};
 use crate::values::specified::calc::CalcNode;
 use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
 use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
@@ -585,11 +585,13 @@ impl ToComputedValue for Color {
     }
 
     fn from_computed_value(computed: &ComputedColor) -> Self {
-        match *computed {
-            GenericColor::Numeric(color) => Color::rgba(color),
-            GenericColor::CurrentColor => Color::currentcolor(),
-            GenericColor::Complex { .. } => Color::Complex(*computed),
+        if computed.is_numeric() {
+            return Color::rgba(computed.color);
         }
+        if computed.is_currentcolor() {
+            return Color::currentcolor();
+        }
+        Color::Complex(*computed)
     }
 }
 

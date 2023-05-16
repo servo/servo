@@ -20,7 +20,7 @@ impl ToResolvedValue for computed::Color {
 
     #[inline]
     fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
-        generics::Color::Numeric(resolved)
+        generics::Color::rgba(resolved)
     }
 }
 
@@ -33,7 +33,7 @@ impl ToResolvedValue for computed::ColorOrAuto {
     fn to_resolved_value(self, context: &Context) -> Self::ResolvedValue {
         let color = match self {
             generics::ColorOrAuto::Color(color) => color,
-            generics::ColorOrAuto::Auto => generics::Color::CurrentColor,
+            generics::ColorOrAuto::Auto => generics::Color::currentcolor(),
         };
         color.to_resolved_value(context)
     }
