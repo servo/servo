@@ -879,6 +879,7 @@ class PropertyRestrictions:
     def marker(data):
         return set(
             [
+                "white-space",
                 "color",
                 "text-combine-upright",
                 "text-transform",
