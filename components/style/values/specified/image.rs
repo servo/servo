@@ -181,7 +181,7 @@ impl Parse for Image {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Image, ParseError<'i>> {
-        Image::parse_with_cors_mode(context, input, CorsMode::None, /* allow_none = */ true)
+        Image::parse_with_cors_mode(context, input, CorsMode::None, /* allow_none = */ true, /* only_url = */ false)
     }
 }
 
@@ -191,23 +191,32 @@ impl Image {
         input: &mut Parser<'i, 't>,
         cors_mode: CorsMode,
         allow_none: bool,
+        only_url: bool,
     ) -> Result<Image, ParseError<'i>> {
         if allow_none && input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(generic::Image::None);
         }
+
         if let Ok(url) = input
             .try_parse(|input| SpecifiedImageUrl::parse_with_cors_mode(context, input, cors_mode))
         {
             return Ok(generic::Image::Url(url));
         }
-        if let Ok(gradient) = input.try_parse(|i| Gradient::parse(context, i)) {
-            return Ok(generic::Image::Gradient(Box::new(gradient)));
-        }
+
         if image_set_enabled() {
-            if let Ok(is) = input.try_parse(|input| ImageSet::parse(context, input, cors_mode)) {
+            if let Ok(is) = input.try_parse(|input| ImageSet::parse(context, input, cors_mode, only_url)) {
                 return Ok(generic::Image::ImageSet(Box::new(is)));
             }
         }
+
+        if only_url {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        if let Ok(gradient) = input.try_parse(|i| Gradient::parse(context, i)) {
+            return Ok(generic::Image::Gradient(Box::new(gradient)));
+        }
+
         if cross_fade_enabled() {
             if let Ok(cf) = input.try_parse(|input| CrossFade::parse(context, input, cors_mode)) {
                 return Ok(generic::Image::CrossFade(Box::new(cf)));
@@ -264,6 +273,21 @@ impl Image {
             input,
             CorsMode::Anonymous,
             /* allow_none = */ true,
+            /* only_url = */ false,
+        )
+    }
+
+    /// Provides an alternate method for parsing, but only for urls.
+    pub fn parse_only_url<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Image, ParseError<'i>> {
+        Self::parse_with_cors_mode(
+            context,
+            input,
+            CorsMode::None,
+            /* allow_none = */ false,
+            /* only_url = */ true,
         )
     }
 }
@@ -310,7 +334,7 @@ impl CrossFadeImage {
         cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(image) = input.try_parse(|input| {
-            Image::parse_with_cors_mode(context, input, cors_mode, /* allow_none = */ false)
+            Image::parse_with_cors_mode(context, input, cors_mode, /* allow_none = */ false, /* only_url = */ false)
         }) {
             return Ok(Self::Image(image));
         }
@@ -339,10 +363,11 @@ impl ImageSet {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         cors_mode: CorsMode,
+        only_url: bool,
     ) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("image-set")?;
         let items = input.parse_nested_block(|input| {
-            input.parse_comma_separated(|input| ImageSetItem::parse(context, input, cors_mode))
+            input.parse_comma_separated(|input| ImageSetItem::parse(context, input, cors_mode, only_url))
         })?;
         Ok(Self {
             selected_index: 0,
@@ -356,6 +381,7 @@ impl ImageSetItem {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         cors_mode: CorsMode,
+        only_url: bool,
     ) -> Result<Self, ParseError<'i>> {
         let image = match input.try_parse(|i| i.expect_url_or_string()) {
             Ok(url) => Image::Url(SpecifiedImageUrl::parse_from_string(
@@ -364,7 +390,7 @@ impl ImageSetItem {
                 cors_mode,
             )),
             Err(..) => Image::parse_with_cors_mode(
-                context, input, cors_mode, /* allow_none = */ false,
+                context, input, cors_mode, /* allow_none = */ false,  /* only_url = */ only_url
             )?,
         };
         let resolution = input

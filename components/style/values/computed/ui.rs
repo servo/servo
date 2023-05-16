@@ -5,7 +5,7 @@
 //! Computed values for UI properties
 
 use crate::values::computed::color::Color;
-use crate::values::computed::url::ComputedImageUrl;
+use crate::values::computed::image::Image;
 use crate::values::computed::Number;
 use crate::values::generics::ui as generics;
 
@@ -16,7 +16,7 @@ pub use crate::values::specified::ui::{MozForceBrokenImageIcon, UserSelect};
 pub type Cursor = generics::GenericCursor<CursorImage>;
 
 /// A computed value for item of `image cursors`.
-pub type CursorImage = generics::GenericCursorImage<ComputedImageUrl, Number>;
+pub type CursorImage = generics::GenericCursorImage<Image, Number>;
 
 /// A computed value for `scrollbar-color` property.
 pub type ScrollbarColor = generics::GenericScrollbarColor<Color>;
