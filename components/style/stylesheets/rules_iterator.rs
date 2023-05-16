@@ -7,7 +7,6 @@
 use crate::context::QuirksMode;
 use crate::media_queries::Device;
 use crate::shared_lock::SharedRwLockReadGuard;
-use crate::stylesheets::StylesheetInDocument;
 use crate::stylesheets::{CssRule, DocumentRule, ImportRule, MediaRule, SupportsRule};
 use smallvec::SmallVec;
 use std::slice;
@@ -227,10 +226,13 @@ impl NestedRuleIterationCondition for EffectiveRules {
     fn process_import(
         guard: &SharedRwLockReadGuard,
         device: &Device,
-        _quirks_mode: QuirksMode,
+        quirks_mode: QuirksMode,
         rule: &ImportRule,
     ) -> bool {
-        rule.stylesheet.is_effective_for_device(device, guard)
+        match rule.stylesheet.media(guard) {
+            Some(m) => m.evaluate(device, quirks_mode),
+            None => true,
+        }
     }
 
     fn process_media(

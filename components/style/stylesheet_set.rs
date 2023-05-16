@@ -420,7 +420,7 @@ macro_rules! sheet_set_methods {
         ) {
             debug!(concat!($set_name, "::append_stylesheet"));
             self.collect_invalidations_for(device, &sheet, guard);
-            let collection = self.collection_for(&sheet, guard);
+            let collection = self.collection_for(&sheet);
             collection.append(sheet);
         }
 
@@ -435,7 +435,7 @@ macro_rules! sheet_set_methods {
             debug!(concat!($set_name, "::insert_stylesheet_before"));
             self.collect_invalidations_for(device, &sheet, guard);
 
-            let collection = self.collection_for(&sheet, guard);
+            let collection = self.collection_for(&sheet);
             collection.insert_before(sheet, &before_sheet);
         }
 
@@ -449,7 +449,7 @@ macro_rules! sheet_set_methods {
             debug!(concat!($set_name, "::remove_stylesheet"));
             self.collect_invalidations_for(device, &sheet, guard);
 
-            let collection = self.collection_for(&sheet, guard);
+            let collection = self.collection_for(&sheet);
             collection.remove(&sheet)
         }
 
@@ -499,7 +499,7 @@ macro_rules! sheet_set_methods {
                 RuleChangeKind::StyleRuleDeclarations => DataValidity::FullyInvalid,
             };
 
-            let collection = self.collection_for(&sheet, guard);
+            let collection = self.collection_for(&sheet);
             collection.set_data_validity_at_least(validity);
         }
     };
@@ -517,12 +517,8 @@ where
         }
     }
 
-    fn collection_for(
-        &mut self,
-        sheet: &S,
-        guard: &SharedRwLockReadGuard,
-    ) -> &mut SheetCollection<S> {
-        let origin = sheet.origin(guard);
+    fn collection_for(&mut self, sheet: &S) -> &mut SheetCollection<S> {
+        let origin = sheet.contents().origin;
         self.collections.borrow_mut_for_origin(&origin)
     }
 
@@ -670,11 +666,7 @@ where
         self.collection.len()
     }
 
-    fn collection_for(
-        &mut self,
-        _sheet: &S,
-        _guard: &SharedRwLockReadGuard,
-    ) -> &mut SheetCollection<S> {
+    fn collection_for(&mut self, _sheet: &S) -> &mut SheetCollection<S> {
         &mut self.collection
     }
 

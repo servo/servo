@@ -185,7 +185,7 @@ pub struct DocumentStateDependency {
 /// In particular, we want to lookup as few things as possible to get the fewer
 /// selectors the better, so this looks up by id, class, or looks at the list of
 /// state/other attribute affecting selectors.
-#[derive(Debug, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct InvalidationMap {
     /// A map from a given class name to all the selectors with that class
     /// selector.
