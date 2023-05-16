@@ -20,10 +20,10 @@ pub trait InvalidationProcessor<'a, E>
 where
     E: TElement,
 {
-    /// Whether an invalidation that contains only an eager pseudo-element
-    /// selector like ::before or ::after triggers invalidation of the element
-    /// that would originate it.
-    fn invalidates_on_eager_pseudo_element(&self) -> bool {
+    /// Whether an invalidation that contains only a pseudo-element selector
+    /// like ::before or ::after triggers invalidation of the element that would
+    /// originate it.
+    fn invalidates_on_pseudo_element(&self) -> bool {
         false
     }
 
@@ -878,76 +878,32 @@ where
             .selector
             .combinator_at_parse_order(next_invalidation.offset - 1);
 
-        if matches!(next_combinator, Combinator::PseudoElement) {
-            // This will usually be the very next component, except for
-            // the fact that we store compound selectors the other way
-            // around, so there could also be state pseudo-classes.
-            let pseudo = next_invalidation
-                .dependency
-                .selector
-                .iter_raw_parse_order_from(next_invalidation.offset)
-                .flat_map(|c| {
-                    if let Component::PseudoElement(ref pseudo) = *c {
-                        return Some(pseudo);
-                    }
-
-                    // TODO: Would be nice to make this a diagnostic_assert! of
-                    // sorts.
-                    debug_assert!(
-                        c.maybe_allowed_after_pseudo_element(),
-                        "Someone seriously messed up selector parsing: \
-                         {:?} at offset {:?}: {:?}",
-                        next_invalidation.dependency,
-                        next_invalidation.offset,
-                        c,
-                    );
-
-                    None
-                })
-                .next()
-                .unwrap();
-
-            // FIXME(emilio): This is not ideal, and could not be
-            // accurate if we ever have stateful element-backed eager
-            // pseudos.
+        if matches!(next_combinator, Combinator::PseudoElement) &&
+            self.processor.invalidates_on_pseudo_element()
+        {
+            // We need to invalidate the element whenever pseudos change, for
+            // two reasons:
             //
-            // Ideally, we'd just remove element-backed eager pseudos
-            // altogether, given they work fine without it. Only gotcha
-            // is that we wouldn't style them in parallel, which may or
-            // may not be an issue.
+            //  * Eager pseudo styles are stored as part of the originating
+            //    element's computed style.
             //
-            // Also, this could be more fine grained now (perhaps a
-            // RESTYLE_PSEUDOS hint?).
+            //  * Lazy pseudo-styles might be cached on the originating
+            //    element's pseudo-style cache.
             //
-            // Note that we'll also restyle the pseudo-element because
-            // it would match this invalidation.
-            if self.processor.invalidates_on_eager_pseudo_element() {
-                if pseudo.is_eager() {
-                    invalidated_self = true;
-                }
-                // If we start or stop matching some marker rules, and
-                // don't have a marker, then we need to restyle the
-                // element to potentially create one.
-                //
-                // Same caveats as for other eager pseudos apply, this
-                // could be more fine-grained.
-                if pseudo.is_marker() && self.element.marker_pseudo_element().is_none() {
-                    invalidated_self = true;
-                }
-
-                // FIXME: ::selection doesn't generate elements, so the
-                // regular invalidation doesn't work for it. We store
-                // the cached selection style holding off the originating
-                // element, so we need to restyle it in order to invalidate
-                // it. This is still not quite correct, since nothing
-                // triggers a repaint necessarily, but matches old Gecko
-                // behavior, and the ::selection implementation needs to
-                // change significantly anyway to implement
-                // https://github.com/w3c/csswg-drafts/issues/2474.
-                if pseudo.is_selection() {
-                    invalidated_self = true;
-                }
-            }
+            // This could be more fine-grained (perhaps with a RESTYLE_PSEUDOS
+            // hint?).
+            //
+            // Note that we'll also restyle the pseudo-element because it would
+            // match this invalidation.
+            //
+            // FIXME: For non-element-backed pseudos this is still not quite
+            // correct. For example for ::selection even though we invalidate
+            // the style properly there's nothing that triggers a repaint
+            // necessarily. Though this matches old Gecko behavior, and the
+            // ::selection implementation needs to change significantly anyway
+            // to implement https://github.com/w3c/csswg-drafts/issues/2474 for
+            // example.
+            invalidated_self = true;
         }
 
         debug!(
