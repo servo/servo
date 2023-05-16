@@ -2205,6 +2205,37 @@ impl Parse for VariationValue<Number> {
     }
 }
 
+/// A metrics override value for a @font-face descriptor
+///
+/// https://drafts.csswg.org/css-fonts/#font-metrics-override-desc
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+pub enum MetricsOverride {
+    /// A non-negative `<percentage>` of the computed font size
+    Override(NonNegativePercentage),
+    /// Normal metrics from the font.
+    Normal,
+}
+
+impl MetricsOverride {
+    #[inline]
+    /// Get default value with `normal`
+    pub fn normal() -> MetricsOverride {
+        MetricsOverride::Normal
+    }
+
+    /// The ToComputedValue implementation, used for @font-face descriptors.
+    ///
+    /// Valid override percentages must be non-negative; we return -1.0 to indicate
+    /// the absence of an override (i.e. 'normal').
+    #[inline]
+    pub fn compute(&self) -> ComputedPercentage {
+        match *self {
+            MetricsOverride::Normal => ComputedPercentage(-1.0),
+            MetricsOverride::Override(percent) => ComputedPercentage(percent.0.get()),
+        }
+    }
+}
+
 #[derive(
     Clone,
     Copy,
