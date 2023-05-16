@@ -331,15 +331,13 @@ ${helpers.single_keyword(
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "-moz-control-character-visibility",
-    "hidden visible",
+    "text::MozControlCharacterVisibility",
+    "Default::default()",
     engines="gecko",
-    gecko_enum_prefix="StyleControlCharacterVisibility",
-    gecko_pref_controlled_initial_value="layout.css.control-characters.visible=visible",
     animation_value_type="none",
-    gecko_ffi_name="mControlCharacterVisibility",
-    spec="Nonstandard",
+    spec="Nonstandard"
 )}
 
 // text underline offset

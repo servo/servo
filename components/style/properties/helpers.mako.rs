@@ -707,8 +707,7 @@
 </%def>
 
 <%def name="single_keyword(name, values, vector=False,
-            needs_conversion=False, gecko_pref_controlled_initial_value=None,
-            **kwargs)">
+            needs_conversion=False, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix',
@@ -725,10 +724,13 @@
         ]}
     %>
 
-    <%def name="inner_body(keyword, needs_conversion=False,
-                           gecko_pref_controlled_initial_value=None)">
-        <%def name="variants(variants)">
-            % for variant in variants:
+    <%def name="inner_body(keyword, needs_conversion=False)">
+        pub use self::computed_value::T as SpecifiedValue;
+        pub mod computed_value {
+            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+            pub enum T {
+            % for variant in keyword.values_for(engine):
             <%
                 aliases = []
                 for alias, v in keyword.aliases_for(engine).items():
@@ -740,31 +742,14 @@
             % endif
             ${to_camel_case(variant)},
             % endfor
-        </%def>
-        pub use self::computed_value::T as SpecifiedValue;
-        pub mod computed_value {
-            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
-            pub enum T {
-                ${variants(data.longhands_by_name[name].keyword.values_for(engine))}
             }
         }
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            % if engine == "gecko" and gecko_pref_controlled_initial_value:
-            if static_prefs::pref!("${gecko_pref_controlled_initial_value.split('=')[0]}") {
-                return computed_value::T::${to_camel_case(gecko_pref_controlled_initial_value.split('=')[1])};
-            }
-            % endif
             computed_value::T::${to_camel_case(values.split()[0])}
         }
         #[inline]
         pub fn get_initial_specified_value() -> SpecifiedValue {
-            % if engine == "gecko" and gecko_pref_controlled_initial_value:
-            if static_prefs::pref!("${gecko_pref_controlled_initial_value.split('=')[0]}") {
-                return SpecifiedValue::${to_camel_case(gecko_pref_controlled_initial_value.split('=')[1])};
-            }
-            % endif
             SpecifiedValue::${to_camel_case(values.split()[0])}
         }
         #[inline]
@@ -790,8 +775,7 @@
     % else:
         <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
             ${inner_body(Keyword(name, values, **keyword_kwargs),
-                         needs_conversion=needs_conversion,
-                         gecko_pref_controlled_initial_value=gecko_pref_controlled_initial_value)}
+                         needs_conversion=needs_conversion)}
             % if caller:
             ${caller.body()}
             % endif
