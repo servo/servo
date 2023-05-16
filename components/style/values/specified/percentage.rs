@@ -186,3 +186,11 @@ impl Parse for NonNegativePercentage {
         Ok(NonNegative(Percentage::parse_non_negative(context, input)?))
     }
 }
+
+impl NonNegativePercentage {
+    /// Convert to ComputedPercentage, for FontFaceRule size-adjust getter.
+    #[inline]
+    pub fn compute(&self) -> ComputedPercentage {
+        ComputedPercentage(self.0.get())
+    }
+}
