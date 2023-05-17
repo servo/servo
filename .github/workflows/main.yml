@@ -59,6 +59,7 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       layout: '2020'
+      wpt: 'test'
 
   build_result:
     name: homu build finished
