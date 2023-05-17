@@ -385,7 +385,7 @@ impl Parse for DProperty {
 
         // Parse possible functions.
         input.expect_function_matching("path")?;
-        let path_data = input.parse_nested_block(|i| SVGPathData::parse(context, i))?;
+        let path_data = input.parse_nested_block(|i| Parse::parse(context, i))?;
         Ok(DProperty::Path(path_data))
     }
 }
