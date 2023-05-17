@@ -427,7 +427,7 @@ impl Declaration {
     ///
     /// <https://drafts.csswg.org/css-conditional-3/#support-definition>
     pub fn eval(&self, context: &ParserContext) -> bool {
-        debug_assert_eq!(context.rule_type(), CssRuleType::Style);
+        debug_assert!(context.rule_types().contains(CssRuleType::Style));
 
         let mut input = ParserInput::new(&self.0);
         let mut input = Parser::new(&mut input);
@@ -439,7 +439,7 @@ impl Declaration {
                 let id =
                     PropertyId::parse(&prop, context).map_err(|_| input.new_custom_error(()))?;
 
-                let mut declarations = SourcePropertyDeclaration::new();
+                let mut declarations = SourcePropertyDeclaration::default();
                 input.parse_until_before(Delimiter::Bang, |input| {
                     PropertyDeclaration::parse_into(&mut declarations, id, &context, input)
                         .map_err(|_| input.new_custom_error(()))

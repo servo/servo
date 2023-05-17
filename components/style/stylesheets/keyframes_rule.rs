@@ -225,7 +225,7 @@ impl Keyframe {
         let mut input = ParserInput::new(css);
         let mut input = Parser::new(&mut input);
 
-        let mut declarations = SourcePropertyDeclaration::new();
+        let mut declarations = SourcePropertyDeclaration::default();
         let mut rule_parser = KeyframeListParser {
             context: &mut context,
             shared_lock: &lock,
@@ -539,7 +539,7 @@ pub fn parse_keyframe_list<'a>(
     input: &mut Parser,
     shared_lock: &SharedRwLock,
 ) -> Vec<Arc<Locked<Keyframe>>> {
-    let mut declarations = SourcePropertyDeclaration::new();
+    let mut declarations = SourcePropertyDeclaration::default();
     let mut parser = KeyframeListParser {
         context,
         shared_lock,

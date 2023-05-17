@@ -92,12 +92,18 @@ pub enum Importance {
     Important,
 }
 
+impl Default for Importance {
+    fn default() -> Self {
+        Self::Normal
+    }
+}
+
 impl Importance {
     /// Return whether this is an important declaration.
     pub fn important(self) -> bool {
         match self {
-            Importance::Normal => false,
-            Importance::Important => true,
+            Self::Normal => false,
+            Self::Important => true,
         }
     }
 }
@@ -146,7 +152,7 @@ impl PropertyDeclarationIdSet {
 
 /// Overridden declarations are skipped.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, ToShmem)]
+#[derive(Clone, ToShmem, Default)]
 pub struct PropertyDeclarationBlock {
     /// The group of declarations, along with their importance.
     ///
@@ -282,6 +288,12 @@ impl PropertyDeclarationBlock {
     #[inline]
     pub fn len(&self) -> usize {
         self.declarations.len()
+    }
+
+    /// Returns whether the block is empty.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.declarations.is_empty()
     }
 
     /// Create an empty block
@@ -1357,24 +1369,127 @@ pub fn parse_one_declaration_into(
 }
 
 /// A struct to parse property declarations.
-struct PropertyDeclarationParser<'a, 'b: 'a> {
+struct PropertyDeclarationParser<'a, 'b: 'a, 'i> {
     context: &'a ParserContext<'b>,
-    declarations: &'a mut SourcePropertyDeclaration,
-    /// The last parsed property id if any.
+    state: &'a mut DeclarationParserState<'i>,
+}
+
+/// The state needed to parse a declaration block.
+///
+/// It stores declarations in output_block.
+#[derive(Default)]
+pub struct DeclarationParserState<'i> {
+    /// The output block where results are stored.
+    output_block: PropertyDeclarationBlock,
+    /// Declarations from the last declaration parsed. (note that a shorthand might expand to
+    /// multiple declarations).
+    declarations: SourcePropertyDeclaration,
+    /// The importance from the last declaration parsed.
+    importance: Importance,
+    /// A list of errors that have happened so far. Not all of them might be reported.
+    errors: SmallParseErrorVec<'i>,
+    /// The last parsed property id, if any.
     last_parsed_property_id: Option<PropertyId>,
 }
 
+impl<'i> DeclarationParserState<'i> {
+    /// Returns whether any parsed declarations have been parsed so far.
+    pub fn has_parsed_declarations(&self) -> bool {
+        !self.output_block.is_empty()
+    }
+
+    /// Takes the parsed declarations.
+    pub fn take_declarations(&mut self) -> PropertyDeclarationBlock {
+        std::mem::take(&mut self.output_block)
+    }
+
+    /// Parse a single declaration value.
+    pub fn parse_value<'t>(
+        &mut self,
+        context: &ParserContext,
+        name: CowRcStr<'i>,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<(), ParseError<'i>> {
+        let id = match PropertyId::parse(&name, context) {
+            Ok(id) => id,
+            Err(..) => {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnknownProperty(name)));
+            },
+        };
+        if context.error_reporting_enabled() {
+            self.last_parsed_property_id = Some(id.clone());
+        }
+        input.parse_until_before(Delimiter::Bang, |input| {
+            PropertyDeclaration::parse_into(&mut self.declarations, id, context, input)
+        })?;
+        self.importance = match input.try_parse(parse_important) {
+            Ok(()) => Importance::Important,
+            Err(_) => Importance::Normal,
+        };
+        // In case there is still unparsed text in the declaration, we should roll back.
+        input.expect_exhausted()?;
+        self.output_block.extend(self.declarations.drain(), self.importance);
+        // We've successfully parsed a declaration, so forget about
+        // `last_parsed_property_id`. It'd be wrong to associate any
+        // following error with this property.
+        self.last_parsed_property_id = None;
+        Ok(())
+    }
+
+    /// Reports any CSS errors that have ocurred if needed.
+    #[inline]
+    pub fn report_errors_if_needed(
+        &mut self,
+        context: &ParserContext,
+        selectors: Option<&SelectorList<SelectorImpl>>,
+    ) {
+        if self.errors.is_empty() {
+            return;
+        }
+        self.do_report_css_errors(context, selectors);
+    }
+
+    #[cold]
+    fn do_report_css_errors(
+        &mut self,
+        context: &ParserContext,
+        selectors: Option<&SelectorList<SelectorImpl>>,
+    ) {
+        for (error, slice, property) in self.errors.drain(..) {
+            report_one_css_error(
+                context,
+                Some(&self.output_block),
+                selectors,
+                error,
+                slice,
+                property,
+            )
+        }
+    }
+
+    /// Resets the declaration parser state, and reports the error if needed.
+    #[inline]
+    pub fn did_error(&mut self, context: &ParserContext, error: ParseError<'i>, slice: &'i str) {
+        self.declarations.clear();
+        if !context.error_reporting_enabled() {
+            return;
+        }
+        let property = self.last_parsed_property_id.take();
+        self.errors.push((error, slice, property));
+    }
+}
+
 /// Default methods reject all at rules.
-impl<'a, 'b, 'i> AtRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for PropertyDeclarationParser<'a, 'b, 'i> {
     type Prelude = ();
-    type AtRule = Importance;
+    type AtRule = ();
     type Error = StyleParseErrorKind<'i>;
 }
 
 /// Default methods reject all rules.
-impl<'a, 'b, 'i> QualifiedRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for PropertyDeclarationParser<'a, 'b, 'i> {
     type Prelude = ();
-    type QualifiedRule = Importance;
+    type QualifiedRule = ();
     type Error = StyleParseErrorKind<'i>;
 }
 
@@ -1383,41 +1498,29 @@ fn is_non_mozilla_vendor_identifier(name: &str) -> bool {
     (name.starts_with("-") && !name.starts_with("-moz-")) || name.starts_with("_")
 }
 
-impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
-    type Declaration = Importance;
+impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b, 'i> {
+    type Declaration = ();
     type Error = StyleParseErrorKind<'i>;
 
     fn parse_value<'t>(
         &mut self,
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>,
-    ) -> Result<Importance, ParseError<'i>> {
-        let id = match PropertyId::parse(&name, self.context) {
-            Ok(id) => id,
-            Err(..) => {
-                return Err(input.new_custom_error(StyleParseErrorKind::UnknownProperty(name)));
-            },
-        };
-        if self.context.error_reporting_enabled() {
-            self.last_parsed_property_id = Some(id.clone());
-        }
-        input.parse_until_before(Delimiter::Bang, |input| {
-            PropertyDeclaration::parse_into(self.declarations, id, self.context, input)
-        })?;
-        let importance = match input.try_parse(parse_important) {
-            Ok(()) => Importance::Important,
-            Err(_) => Importance::Normal,
-        };
-        // In case there is still unparsed text in the declaration, we should roll back.
-        input.expect_exhausted()?;
-        Ok(importance)
+    ) -> Result<(), ParseError<'i>> {
+        self.state.parse_value(self.context, name, input)
     }
 }
 
-impl<'a, 'b, 'i> RuleBodyItemParser<'i, Importance, StyleParseErrorKind<'i>> for PropertyDeclarationParser<'a, 'b> {
-    fn parse_declarations(&self) -> bool { true }
+impl<'a, 'b, 'i> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>>
+    for PropertyDeclarationParser<'a, 'b, 'i>
+{
+    fn parse_declarations(&self) -> bool {
+        true
+    }
     // TODO(emilio): Nesting.
-    fn parse_qualified(&self) -> bool { false }
+    fn parse_qualified(&self) -> bool {
+        false
+    }
 }
 
 type SmallParseErrorVec<'i> = SmallVec<[(ParseError<'i>, &'i str, Option<PropertyId>); 2]>;
@@ -1486,18 +1589,6 @@ fn report_one_css_error<'i>(
     context.log_css_error(location, error);
 }
 
-#[cold]
-fn report_css_errors(
-    context: &ParserContext,
-    block: &PropertyDeclarationBlock,
-    selectors: Option<&SelectorList<SelectorImpl>>,
-    errors: &mut SmallParseErrorVec,
-) {
-    for (error, slice, property) in errors.drain(..) {
-        report_one_css_error(context, Some(block), selectors, error, slice, property)
-    }
-}
-
 /// Parse a list of property declarations and return a property declaration
 /// block.
 pub fn parse_property_declaration_list(
@@ -1505,38 +1596,18 @@ pub fn parse_property_declaration_list(
     input: &mut Parser,
     selectors: Option<&SelectorList<SelectorImpl>>,
 ) -> PropertyDeclarationBlock {
-    let mut declarations = SourcePropertyDeclaration::new();
-    let mut block = PropertyDeclarationBlock::new();
+    let mut state = DeclarationParserState::default();
     let mut parser = PropertyDeclarationParser {
         context,
-        last_parsed_property_id: None,
-        declarations: &mut declarations,
+        state: &mut state,
     };
     let mut iter = RuleBodyParser::new(input, &mut parser);
-    let mut errors = SmallParseErrorVec::new();
     while let Some(declaration) = iter.next() {
         match declaration {
-            Ok(importance) => {
-                block.extend(iter.parser.declarations.drain(), importance);
-                // We've successfully parsed a declaration, so forget about
-                // `last_parsed_property_id`. It'd be wrong to associate any
-                // following error with this property.
-                iter.parser.last_parsed_property_id = None;
-            },
-            Err((error, slice)) => {
-                iter.parser.declarations.clear();
-
-                if context.error_reporting_enabled() {
-                    let property = iter.parser.last_parsed_property_id.take();
-                    errors.push((error, slice, property));
-                }
-            },
+            Ok(()) => {},
+            Err((error, slice)) => iter.parser.state.did_error(context, error, slice),
         }
     }
-
-    if !errors.is_empty() {
-        report_css_errors(context, &block, selectors, &mut errors)
-    }
-
-    block
+    parser.state.report_errors_if_needed(context, selectors);
+    state.output_block
 }

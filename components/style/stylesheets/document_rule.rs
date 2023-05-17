@@ -13,7 +13,7 @@ use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::CssRules;
 use crate::values::CssUrl;
-use cssparser::{Parser, SourceLocation};
+use cssparser::{Parser, SourceLocation, BasicParseErrorKind};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use servo_arc::Arc;
@@ -260,11 +260,9 @@ impl DocumentCondition {
 
         let condition = DocumentCondition(conditions);
         if !condition.allowed_in(context) {
-            return Err(
-                input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(
-                    "-moz-document".into(),
-                )),
-            );
+            return Err(input.new_error(BasicParseErrorKind::AtRuleInvalid(
+                "-moz-document".into(),
+            )));
         }
         Ok(condition)
     }
