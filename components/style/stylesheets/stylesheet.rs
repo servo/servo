@@ -461,7 +461,6 @@ impl Stylesheet {
         allow_import_rules: AllowImportRules,
         mut sanitization_data: Option<&mut SanitizationData>,
     ) -> (Namespaces, Vec<CssRule>, Option<String>, Option<String>) {
-        let mut rules = Vec::new();
         let mut input = ParserInput::new_with_line_number_offset(css, line_number_offset);
         let mut input = Parser::new(&mut input);
 
@@ -484,32 +483,26 @@ impl Stylesheet {
             dom_error: None,
             insert_rule_context: None,
             allow_import_rules,
+            declaration_parser_state: Default::default(),
+            rules: Vec::new(),
         };
 
         {
             let mut iter = StyleSheetParser::new(&mut input, &mut rule_parser);
-
-            loop {
-                let result = match iter.next() {
-                    Some(result) => result,
-                    None => break,
-                };
+            while let Some(result) = iter.next() {
                 match result {
-                    Ok((rule_start, rule)) => {
+                    Ok(rule_start) => {
+                        // TODO(emilio, nesting): sanitize nested CSS rules, probably?
                         if let Some(ref mut data) = sanitization_data {
-                            if !data.kind.allows(&rule) {
-                                continue;
+                            if let Some(ref rule) = iter.parser.rules.last() {
+                                if !data.kind.allows(rule) {
+                                    iter.parser.rules.pop();
+                                    continue;
+                                }
                             }
                             let end = iter.input.position().byte_index();
                             data.output.push_str(&css[rule_start.byte_index()..end]);
                         }
-                        // Use a fallible push here, and if it fails, just fall
-                        // out of the loop.  This will cause the page to be
-                        // shown incorrectly, but it's better than OOMing.
-                        if rules.try_reserve(1).is_err() {
-                            break;
-                        }
-                        rules.push(rule);
                     },
                     Err((error, slice)) => {
                         let location = error.location;
@@ -522,7 +515,7 @@ impl Stylesheet {
 
         let source_map_url = input.current_source_map_url().map(String::from);
         let source_url = input.current_source_url().map(String::from);
-        (rule_parser.context.namespaces.into_owned(), rules, source_map_url, source_url)
+        (rule_parser.context.namespaces.into_owned(), rule_parser.rules, source_map_url, source_url)
     }
 
     /// Creates an empty stylesheet and parses it with a given base url, origin
@@ -601,7 +594,7 @@ impl Clone for Stylesheet {
 
         Stylesheet {
             contents,
-            media: media,
+            media,
             shared_lock: lock,
             disabled: AtomicBool::new(self.disabled.load(Ordering::SeqCst)),
         }

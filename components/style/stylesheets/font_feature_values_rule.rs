@@ -410,7 +410,7 @@ macro_rules! font_feature_values_blocks {
                 _: &ParserState,
                 input: &mut Parser<'i, 't>
             ) -> Result<Self::AtRule, ParseError<'i>> {
-                debug_assert_eq!(self.context.rule_type(), CssRuleType::FontFeatureValues);
+                debug_assert!(self.context.rule_types().contains(CssRuleType::FontFeatureValues));
                 match prelude {
                     $(
                         BlockType::$ident_camel => {

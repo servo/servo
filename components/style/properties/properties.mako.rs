@@ -37,7 +37,7 @@ use crate::selector_parser::PseudoElement;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError, ParsingMode};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use to_shmem::impl_trivial_to_shmem;
-use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use crate::stylesheets::{CssRuleType, CssRuleTypes, Origin, UrlExtraData};
 use crate::use_counters::UseCounters;
 use crate::values::generics::text::LineHeight;
 use crate::values::{computed, resolved};
@@ -572,30 +572,29 @@ impl NonCustomPropertyId {
 
     /// Returns whether a given rule allows a given property.
     #[inline]
-    pub fn allowed_in_rule(self, rule_type: CssRuleType) -> bool {
+    pub fn allowed_in_rule(self, rule_types: CssRuleTypes) -> bool {
         debug_assert!(
-            matches!(
-                rule_type,
-                CssRuleType::Keyframe | CssRuleType::Page | CssRuleType::Style
-            ),
+            rule_types.contains(CssRuleType::Keyframe) ||
+            rule_types.contains(CssRuleType::Page) ||
+            rule_types.contains(CssRuleType::Style),
             "Declarations are only expected inside a keyframe, page, or style rule."
         );
 
-        static MAP: [u8; NON_CUSTOM_PROPERTY_ID_COUNT] = [
+        static MAP: [u32; NON_CUSTOM_PROPERTY_ID_COUNT] = [
             % for property in data.longhands + data.shorthands + data.all_aliases():
-            ${property.rule_types_allowed},
+            % for name in RULE_VALUES:
+            % if property.rule_types_allowed & RULE_VALUES[name] != 0:
+            CssRuleType::${name}.bit() |
+            % endif
+            % endfor
+            0,
             % endfor
         ];
-        match rule_type {
-            % for name in RULE_VALUES:
-                CssRuleType::${name} => MAP[self.0] & ${RULE_VALUES[name]} != 0,
-            % endfor
-            _ => true
-        }
+        MAP[self.0] & rule_types.bits() != 0
     }
 
     fn allowed_in(self, context: &ParserContext) -> bool {
-        if !self.allowed_in_rule(context.rule_type()) {
+        if !self.allowed_in_rule(context.rule_types()) {
             return false;
         }
 
@@ -728,7 +727,7 @@ impl From<AliasId> for NonCustomPropertyId {
 }
 
 /// A set of all properties
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct NonCustomPropertyIdSet {
     storage: [u32; (NON_CUSTOM_PROPERTY_ID_COUNT - 1 + 32) / 32]
 }
@@ -1792,7 +1791,7 @@ impl UnparsedValue {
             Some(shorthand) => shorthand,
         };
 
-        let mut decls = SourcePropertyDeclaration::new();
+        let mut decls = SourcePropertyDeclaration::default();
         // parse_into takes care of doing `parse_entirely` for us.
         if shorthand.parse_into(&mut decls, &context, &mut input).is_err() {
             return invalid_at_computed_value_time();
@@ -2606,6 +2605,7 @@ pub type SubpropertiesVec<T> = ArrayVec<T, SUB_PROPERTIES_ARRAY_CAP>;
 /// A stack-allocated vector of `PropertyDeclaration`
 /// large enough to parse one CSS `key: value` declaration.
 /// (Shorthands expand to multiple `PropertyDeclaration`s.)
+#[derive(Default)]
 pub struct SourcePropertyDeclaration {
     /// The storage for the actual declarations (except for all).
     pub declarations: SubpropertiesVec<PropertyDeclaration>,
@@ -2618,19 +2618,10 @@ pub struct SourcePropertyDeclaration {
 size_of_test!(SourcePropertyDeclaration, 568);
 
 impl SourcePropertyDeclaration {
-    /// Create one. It’s big, try not to move it around.
-    #[inline]
-    pub fn new() -> Self {
-        SourcePropertyDeclaration {
-            declarations: ::arrayvec::ArrayVec::new(),
-            all_shorthand: AllShorthand::NotSet,
-        }
-    }
-
     /// Create one with a single PropertyDeclaration.
     #[inline]
     pub fn with_one(decl: PropertyDeclaration) -> Self {
-        let mut result = Self::new();
+        let mut result = Self::default();
         result.declarations.push(decl);
         result
     }
@@ -2675,6 +2666,12 @@ pub enum AllShorthand {
     CSSWideKeyword(CSSWideKeyword),
     /// An all shorthand with var() references that we can't resolve right now.
     WithVariables(Arc<UnparsedValue>)
+}
+
+impl Default for AllShorthand {
+    fn default() -> Self {
+        Self::NotSet
+    }
 }
 
 impl AllShorthand {

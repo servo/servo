@@ -392,6 +392,11 @@ enum ParseRelative {
 }
 
 impl<Impl: SelectorImpl> SelectorList<Impl> {
+    /// Returns a selector list with a single `&`
+    pub fn ampersand() -> Self {
+        Self(smallvec::smallvec![Selector::ampersand()])
+    }
+
     /// Parse a comma-separated list of Selectors.
     /// <https://drafts.csswg.org/selectors/#grouping>
     ///
@@ -647,6 +652,18 @@ pub struct Selector<Impl: SelectorImpl>(
 );
 
 impl<Impl: SelectorImpl> Selector<Impl> {
+    /// See Arc::mark_as_intentionally_leaked
+    pub fn mark_as_intentionally_leaked(&self) {
+        self.0.with_arc(|a| a.mark_as_intentionally_leaked())
+    }
+
+    fn ampersand() -> Self {
+        Self(ThinArc::from_header_and_iter(SpecificityAndFlags {
+            specificity: 0,
+            flags: SelectorFlags::HAS_PARENT,
+        }, std::iter::once(Component::ParentSelector)))
+    }
+
     #[inline]
     pub fn specificity(&self) -> u32 {
         self.0.header.header.specificity()

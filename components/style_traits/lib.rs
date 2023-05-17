@@ -121,8 +121,6 @@ pub enum StyleParseErrorKind<'i> {
     DisallowedImportRule,
     /// Unexpected @charset rule encountered.
     UnexpectedCharsetRule,
-    /// Unsupported @ rule
-    UnsupportedAtRule(CowRcStr<'i>),
     /// A placeholder for many sources of errors that require more specific variants.
     UnspecifiedError,
     /// An unexpected token was found within a namespace rule.

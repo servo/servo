@@ -311,6 +311,10 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseErrorKind<'i>;
 
+    fn parse_parent_selector(&self) -> bool {
+        static_prefs::pref!("layout.css.nesting.enabled")
+    }
+
     #[inline]
     fn parse_slotted(&self) -> bool {
         true
