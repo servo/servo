@@ -74,7 +74,7 @@ impl fmt::Debug for Device {
         let mut doc_uri = nsCString::new();
         unsafe {
             bindings::Gecko_nsIURI_Debug(
-                (*self.document()).mDocumentURI.raw::<structs::nsIURI>(),
+                (*self.document()).mDocumentURI.raw(),
                 &mut doc_uri,
             )
         };

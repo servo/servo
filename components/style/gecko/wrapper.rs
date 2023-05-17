@@ -413,7 +413,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unsafe {
             self.0
                 .mFirstChild
-                .raw::<nsIContent>()
+                .raw()
                 .as_ref()
                 .map(GeckoNode::from_content)
         }
@@ -428,7 +428,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     fn prev_sibling(&self) -> Option<Self> {
         unsafe {
             let prev_or_last = GeckoNode::from_content(self.0.mPreviousOrLastSibling.as_ref()?);
-            if prev_or_last.0.mNextSibling.raw::<nsIContent>().is_null() {
+            if prev_or_last.0.mNextSibling.raw().is_null() {
                 return None;
             }
             Some(prev_or_last)
@@ -440,7 +440,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unsafe {
             self.0
                 .mNextSibling
-                .raw::<nsIContent>()
+                .raw()
                 .as_ref()
                 .map(GeckoNode::from_content)
         }
