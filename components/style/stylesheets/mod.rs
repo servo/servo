@@ -225,15 +225,11 @@ impl fmt::Debug for UrlExtraData {
             .field("chrome_rules_enabled", &self.chrome_rules_enabled())
             .field(
                 "base",
-                &DebugURI(self.as_ref().mBaseURI.raw::<structs::nsIURI>()),
+                &DebugURI(self.as_ref().mBaseURI.raw()),
             )
             .field(
                 "referrer",
-                &DebugReferrerInfo(
-                    self.as_ref()
-                        .mReferrerInfo
-                        .raw::<structs::nsIReferrerInfo>(),
-                ),
+                &DebugReferrerInfo(self.as_ref().mReferrerInfo.raw()),
             )
             .finish()
     }
