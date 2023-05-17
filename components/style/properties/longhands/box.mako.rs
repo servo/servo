@@ -94,6 +94,16 @@ ${helpers.predefined_type(
     servo_restyle_damage = "reflow",
 )}
 
+${helpers.predefined_type(
+    "baseline-source",
+    "BaselineSource",
+    "computed::BaselineSource::Auto",
+    engines="gecko servo-2013",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-inline-3/#baseline-source",
+    servo_restyle_damage = "reflow",
+)}
+
 // CSS 2.1, Section 11 - Visual effects
 
 ${helpers.single_keyword(

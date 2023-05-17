@@ -57,7 +57,7 @@ pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, S
 pub use self::box_::{
     ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop, ScrollSnapStrictness, ScrollSnapType,
 };
-pub use self::box_::{TouchAction, VerticalAlign, WillChange};
+pub use self::box_::{BaselineSource, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{
     Color, ColorOrAuto, ColorPropertyValue, ColorScheme, ForcedColorAdjust, PrintColorAdjust,
 };
