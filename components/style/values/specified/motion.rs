@@ -78,6 +78,8 @@ impl Parse for OffsetPath {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        use crate::values::specified::svg_path::AllowEmpty;
+
         // Parse none.
         if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(OffsetPath::none());
@@ -90,8 +92,8 @@ impl Parse for OffsetPath {
             match_ignore_ascii_case! { &function,
                 // Bug 1186329: Implement the parser for <basic-shape>, <geometry-box>,
                 // and <url>.
-                "path" => SVGPathData::parse(context, i).map(GenericOffsetPath::Path),
-                "ray" => RayFunction::parse(context, i).map(GenericOffsetPath::Ray),
+                "path" => SVGPathData::parse(i, AllowEmpty::No).map(OffsetPath::Path),
+                "ray" => RayFunction::parse(context, i).map(OffsetPath::Ray),
                 _ => {
                     Err(location.new_custom_error(
                         StyleParseErrorKind::UnexpectedFunction(function.clone())
