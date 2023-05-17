@@ -8,7 +8,7 @@ use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use crate::properties::{LonghandId, PropertyDeclarationId, PropertyId};
 use crate::values::generics::box_::{
-    GenericLineClamp, GenericPerspective, GenericContainIntrinsicSize, GenericVerticalAlign,
+    GenericContainIntrinsicSize, GenericLineClamp, GenericPerspective, GenericVerticalAlign,
     VerticalAlignKeyword,
 };
 use crate::values::specified::length::{LengthPercentage, NonNegativeLength};
@@ -606,6 +606,33 @@ impl Parse for VerticalAlign {
     }
 }
 
+/// A specified value for the `baseline-source` property.
+/// https://drafts.csswg.org/css-inline-3/#baseline-source
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToShmem,
+    ToComputedValue,
+    ToResolvedValue,
+)]
+#[repr(u8)]
+pub enum BaselineSource {
+    /// `Last` for `inline-block`, `First` otherwise.
+    Auto,
+    /// Use first baseline for alignment.
+    First,
+    /// Use last baseline for alignment.
+    Last,
+}
+
 /// https://drafts.csswg.org/css-scroll-snap-1/#snap-axis
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
@@ -1176,7 +1203,20 @@ pub enum ContentVisibility {
     Visible,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToCss, Parse, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    MallocSizeOf,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    Parse,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(u8)]
 #[allow(missing_docs)]
 /// https://drafts.csswg.org/css-contain-3/#container-type
@@ -1237,8 +1277,7 @@ impl ContainerName {
         if !for_query && first.eq_ignore_ascii_case("none") {
             return Ok(Self::none());
         }
-        const DISALLOWED_CONTAINER_NAMES: &'static [&'static str] =
-            &["none", "not", "or", "and"];
+        const DISALLOWED_CONTAINER_NAMES: &'static [&'static str] = &["none", "not", "or", "and"];
         idents.push(CustomIdent::from_ident(
             location,
             first,

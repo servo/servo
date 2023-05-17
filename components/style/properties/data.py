@@ -428,6 +428,7 @@ class Longhand(Property):
                 "AlignSelf",
                 "Appearance",
                 "AspectRatio",
+                "BaselineSource",
                 "BreakBetween",
                 "BreakWithin",
                 "BackgroundRepeat",
@@ -785,6 +786,8 @@ class PropertyRestrictions:
                 "-webkit-text-fill-color",
                 "-webkit-text-stroke-color",
                 "vertical-align",
+                # Will become shorthand of vertical-align (Bug 1830771)
+                "baseline-source",
                 "line-height",
                 # Kinda like css-backgrounds?
                 "background-blend-mode",
@@ -818,6 +821,8 @@ class PropertyRestrictions:
                 "-webkit-text-fill-color",
                 "-webkit-text-stroke-color",
                 "vertical-align",
+                # Will become shorthand of vertical-align (Bug 1830771)
+                "baseline-source",
                 "line-height",
                 # Kinda like css-backgrounds?
                 "background-blend-mode",

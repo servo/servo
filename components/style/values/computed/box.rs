@@ -13,10 +13,10 @@ use crate::values::generics::box_::{
 use crate::values::specified::box_ as specified;
 
 pub use crate::values::specified::box_::{
-    Appearance, BreakBetween, BreakWithin, Clear as SpecifiedClear, Contain, ContainerName,
-    ContainerType, ContentVisibility, Display, Float as SpecifiedFloat, Overflow, OverflowAnchor,
-    OverflowClipBox, OverscrollBehavior, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop,
-    ScrollSnapStrictness, ScrollSnapType, ScrollbarGutter, TouchAction, WillChange,
+    Appearance, BaselineSource, BreakBetween, BreakWithin, Clear as SpecifiedClear, Contain,
+    ContainerName, ContainerType, ContentVisibility, Display, Float as SpecifiedFloat, Overflow,
+    OverflowAnchor, OverflowClipBox, OverscrollBehavior, ScrollSnapAlign, ScrollSnapAxis,
+    ScrollSnapStop, ScrollSnapStrictness, ScrollSnapType, ScrollbarGutter, TouchAction, WillChange,
 };
 
 /// A computed value for the `vertical-align` property.
