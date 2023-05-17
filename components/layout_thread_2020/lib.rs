@@ -29,7 +29,7 @@ use gfx_traits::{node_id_from_scroll_id, Epoch};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
-use layout::display_list::{DisplayListBuilder, WebRenderImageInfo};
+use layout::display_list::{DisplayList, WebRenderImageInfo};
 use layout::dom::DOMLayoutData;
 use layout::layout_debug;
 use layout::query::{
@@ -1268,8 +1268,15 @@ impl LayoutThread {
             document.will_paint();
         }
 
-        let mut display_list =
-            DisplayListBuilder::new(self.id.to_webrender(), context, &fragment_tree);
+        let viewport_size = webrender_api::units::LayoutSize::from_untyped(Size2D::new(
+            self.viewport_size.width.to_f32_px(),
+            self.viewport_size.height.to_f32_px(),
+        ));
+        let mut display_list = DisplayList::new(
+            viewport_size,
+            fragment_tree.scrollable_overflow(),
+            self.id.to_webrender(),
+        );
 
         // `dump_serialized_display_list` doesn't actually print anything. It sets up
         // the display list for printing the serialized version when `finalize()` is called.
@@ -1279,7 +1286,14 @@ impl LayoutThread {
             display_list.wr.dump_serialized_display_list();
         }
 
-        fragment_tree.build_display_list(&mut display_list);
+        // Build the root stacking context. This turns the `FragmentTree` into a
+        // tree of fragments in CSS painting order and also creates all
+        // applicable spatial and clip nodes.
+        let root_stacking_context = display_list.build_stacking_context_tree(&fragment_tree);
+
+        // Build the rest of the display list which inclues all of the WebRender primitives.
+        let (iframe_sizes, is_contentful) =
+            display_list.build(context, &fragment_tree, &root_stacking_context);
 
         if self.debug.dump_flow_tree {
             fragment_tree.print();
@@ -1294,12 +1308,8 @@ impl LayoutThread {
         // sending the display list to WebRender in order to set time related
         // Progressive Web Metrics.
         self.paint_time_metrics
-            .maybe_observe_paint_time(self, epoch, display_list.is_contentful);
+            .maybe_observe_paint_time(self, epoch, is_contentful);
 
-        let viewport_size = webrender_api::units::LayoutSize::from_untyped(Size2D::new(
-            self.viewport_size.width.to_f32_px(),
-            self.viewport_size.height.to_f32_px(),
-        ));
         self.webrender_api.send_display_list(
             epoch,
             viewport_size,
@@ -1307,7 +1317,7 @@ impl LayoutThread {
             display_list.wr.finalize(),
         );
 
-        self.update_iframe_sizes(display_list.iframe_sizes);
+        self.update_iframe_sizes(iframe_sizes);
 
         if self.debug.trace_layout {
             layout_debug::end_trace(self.generation.get());

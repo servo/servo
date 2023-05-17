@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use super::DisplayList;
 use crate::cell::ArcRefCell;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::DisplayListBuilder;
@@ -9,6 +10,7 @@ use crate::fragment_tree::ContainingBlockManager;
 use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
 use crate::geom::PhysicalRect;
 use crate::style_ext::ComputedValuesExt;
+use crate::FragmentTree;
 use euclid::default::Rect;
 use servo_arc::Arc as ServoArc;
 use std::cmp::Ordering;
@@ -24,30 +26,39 @@ use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
 use webrender_api as wr;
-use webrender_api::units::{LayoutPoint, LayoutTransform, LayoutVector2D};
+use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
-    /// The SpaceAndClipInfo that contains the children of the fragment that
-    /// established this containing block.
-    space_and_clip: wr::SpaceAndClipInfo,
+    /// The SpatialId of the spatial node that contains the children
+    /// of this containing block.
+    spatial_id: wr::SpatialId,
+
+    /// The WebRender ClipId to use for this children of this containing
+    /// block.
+    clip_id: wr::ClipId,
 
     /// The physical rect of this containing block.
     rect: PhysicalRect<Length>,
 }
 
 impl ContainingBlock {
-    pub(crate) fn new(rect: &PhysicalRect<Length>, space_and_clip: wr::SpaceAndClipInfo) -> Self {
+    pub(crate) fn new(
+        rect: &PhysicalRect<Length>,
+        spatial_id: wr::SpatialId,
+        clip_id: wr::ClipId,
+    ) -> Self {
         ContainingBlock {
-            space_and_clip,
+            spatial_id,
+            clip_id,
             rect: *rect,
         }
     }
 
     pub(crate) fn new_replacing_rect(&self, rect: &PhysicalRect<Length>) -> Self {
         ContainingBlock {
-            space_and_clip: self.space_and_clip,
             rect: *rect,
+            ..*self
         }
     }
 }
@@ -62,8 +73,89 @@ pub(crate) enum StackingContextSection {
     Outline,
 }
 
+impl DisplayList {
+    pub fn build_stacking_context_tree(&mut self, fragment_tree: &FragmentTree) -> StackingContext {
+        let cb_for_non_fixed_descendants = ContainingBlock::new(
+            &fragment_tree.initial_containing_block,
+            wr::SpatialId::root_scroll_node(self.wr.pipeline_id),
+            wr::ClipId::root(self.wr.pipeline_id),
+        );
+        let cb_for_fixed_descendants = ContainingBlock::new(
+            &fragment_tree.initial_containing_block,
+            wr::SpatialId::root_reference_frame(self.wr.pipeline_id),
+            wr::ClipId::root(self.wr.pipeline_id),
+        );
+
+        // We need to specify all three containing blocks here, because absolute
+        // descdendants of the root cannot share the containing block we specify
+        // for fixed descendants. In this case, they need to have the spatial
+        // id of the root scroll frame, whereas fixed descendants need the
+        // spatial id of the root reference frame so that they do not scroll with
+        // page content.
+        let containing_block_info = ContainingBlockInfo {
+            for_non_absolute_descendants: &cb_for_non_fixed_descendants,
+            for_absolute_descendants: Some(&cb_for_non_fixed_descendants),
+            for_absolute_and_fixed_descendants: &cb_for_fixed_descendants,
+        };
+
+        let mut root_stacking_context = StackingContext::create_root(&self.wr);
+        for fragment in &fragment_tree.root_fragments {
+            fragment.borrow().build_stacking_context_tree(
+                fragment,
+                self,
+                &containing_block_info,
+                &mut root_stacking_context,
+                StackingContextBuildMode::SkipHoisted,
+            );
+        }
+        root_stacking_context.sort();
+        root_stacking_context
+    }
+
+    fn push_reference_frame(
+        &mut self,
+        origin: LayoutPoint,
+        parent_spatial_id: &wr::SpatialId,
+        transform_style: wr::TransformStyle,
+        transform: wr::PropertyBinding<LayoutTransform>,
+        kind: wr::ReferenceFrameKind,
+    ) -> wr::SpatialId {
+        self.wr
+            .push_reference_frame(origin, *parent_spatial_id, transform_style, transform, kind)
+    }
+
+    fn pop_reference_frame(&mut self) {
+        self.wr.pop_reference_frame();
+    }
+
+    fn define_scroll_frame(
+        &mut self,
+        parent_spatial_id: &wr::SpatialId,
+        parent_clip_id: &wr::ClipId,
+        external_id: Option<wr::ExternalScrollId>,
+        content_rect: LayoutRect,
+        clip_rect: LayoutRect,
+        scroll_sensitivity: wr::ScrollSensitivity,
+        external_scroll_offset: LayoutVector2D,
+    ) -> (wr::SpatialId, wr::ClipId) {
+        let new_space_and_clip = self.wr.define_scroll_frame(
+            &wr::SpaceAndClipInfo {
+                spatial_id: *parent_spatial_id,
+                clip_id: *parent_clip_id,
+            },
+            external_id,
+            content_rect,
+            clip_rect,
+            scroll_sensitivity,
+            external_scroll_offset,
+        );
+        (new_space_and_clip.spatial_id, new_space_and_clip.clip_id)
+    }
+}
+
 pub(crate) struct StackingContextFragment {
-    space_and_clip: wr::SpaceAndClipInfo,
+    spatial_id: wr::SpatialId,
+    clip_id: wr::ClipId,
     section: StackingContextSection,
     containing_block: PhysicalRect<Length>,
     fragment: ArcRefCell<Fragment>,
@@ -71,7 +163,8 @@ pub(crate) struct StackingContextFragment {
 
 impl StackingContextFragment {
     fn build_display_list(&self, builder: &mut DisplayListBuilder) {
-        builder.current_space_and_clip = self.space_and_clip;
+        builder.current_spatial_id = self.spatial_id;
+        builder.current_clip_id = self.clip_id;
         self.fragment
             .borrow()
             .build_display_list(builder, &self.containing_block, self.section);
@@ -86,7 +179,7 @@ pub(crate) enum StackingContextType {
     PseudoAtomicInline,
 }
 
-pub(crate) struct StackingContext {
+pub struct StackingContext {
     /// The spatial id of this fragment. This is used to properly handle
     /// things like preserve-3d.
     spatial_id: wr::SpatialId,
@@ -162,9 +255,9 @@ impl StackingContext {
         });
     }
 
-    fn push_webrender_stacking_context_if_necessary<'a>(
+    fn push_webrender_stacking_context_if_necessary(
         &self,
-        builder: &'a mut DisplayListBuilder,
+        builder: &mut DisplayListBuilder,
     ) -> bool {
         let style = match self.initializing_fragment_style.as_ref() {
             Some(style) => style,
@@ -202,7 +295,7 @@ impl StackingContext {
         //            This will require additional tracking during layout
         //            before we start collecting stacking contexts so that
         //            information will be available when we reach this point.
-        builder.wr.push_stacking_context(
+        builder.wr().push_stacking_context(
             LayoutPoint::zero(), // origin
             self.spatial_id,
             style.get_webrender_primitive_flags(),
@@ -251,7 +344,10 @@ impl StackingContext {
         if background_color.alpha > 0 {
             let common = builder.common_properties(painting_area, &style);
             let color = super::rgba(background_color);
-            builder.wr.push_rect(&common, painting_area, color)
+            builder
+                .display_list
+                .wr
+                .push_rect(&common, painting_area, color)
         }
 
         // `background-color` was comparatively easy,
@@ -299,11 +395,10 @@ impl StackingContext {
             Some(fragment_tree.canvas_background.root_element),
         );
 
-        // The root element may have a CSS transform,
-        // and we want the canvas’ background image to be transformed.
-        // To do so, take its `SpatialId` (but not its `ClipId`)
-        builder.current_space_and_clip.spatial_id =
-            first_stacking_context_fragment.space_and_clip.spatial_id;
+        // The root element may have a CSS transform, and we want the canvas’
+        // background image to be transformed. To do so, take its `SpatialId`
+        // (but not its `ClipId`)
+        builder.current_spatial_id = first_stacking_context_fragment.spatial_id;
 
         // Now we need express the painting area rectangle in the local coordinate system,
         // which differs from the top-level coordinate system based on…
@@ -393,7 +488,7 @@ impl StackingContext {
         }
 
         if pushed_context {
-            builder.wr.pop_stacking_context();
+            builder.display_list.wr.pop_stacking_context();
         }
     }
 }
@@ -408,7 +503,7 @@ impl Fragment {
     pub(crate) fn build_stacking_context_tree(
         &self,
         fragment_ref: &ArcRefCell<Fragment>,
-        wr: &mut wr::DisplayListBuilder,
+        display_list: &mut DisplayList,
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
         mode: StackingContextBuildMode,
@@ -432,7 +527,7 @@ impl Fragment {
 
                 fragment.build_stacking_context_tree(
                     fragment_ref,
-                    wr,
+                    display_list,
                     containing_block,
                     containing_block_info,
                     stacking_context,
@@ -447,7 +542,7 @@ impl Fragment {
 
                 fragment_ref.borrow().build_stacking_context_tree(
                     fragment_ref,
-                    wr,
+                    display_list,
                     containing_block_info,
                     stacking_context,
                     StackingContextBuildMode::IncludeHoisted,
@@ -455,7 +550,7 @@ impl Fragment {
             },
             Fragment::Anonymous(fragment) => {
                 fragment.build_stacking_context_tree(
-                    wr,
+                    display_list,
                     containing_block,
                     containing_block_info,
                     stacking_context,
@@ -464,7 +559,8 @@ impl Fragment {
             Fragment::Text(_) | Fragment::Image(_) | Fragment::IFrame(_) => {
                 stacking_context.fragments.push(StackingContextFragment {
                     section: StackingContextSection::Content,
-                    space_and_clip: containing_block.space_and_clip,
+                    spatial_id: containing_block.spatial_id,
+                    clip_id: containing_block.clip_id,
                     containing_block: containing_block.rect,
                     fragment: fragment_ref.clone(),
                 });
@@ -516,14 +612,14 @@ impl BoxFragment {
     fn build_stacking_context_tree(
         &self,
         fragment: &ArcRefCell<Fragment>,
-        wr: &mut wr::DisplayListBuilder,
+        display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
     ) {
         self.build_stacking_context_tree_maybe_creating_reference_frame(
             fragment,
-            wr,
+            display_list,
             containing_block,
             containing_block_info,
             parent_stacking_context,
@@ -533,7 +629,7 @@ impl BoxFragment {
     fn build_stacking_context_tree_maybe_creating_reference_frame(
         &self,
         fragment: &ArcRefCell<Fragment>,
-        wr: &mut wr::DisplayListBuilder,
+        display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
@@ -544,7 +640,7 @@ impl BoxFragment {
                 None => {
                     return self.build_stacking_context_tree_maybe_creating_stacking_context(
                         fragment,
-                        wr,
+                        display_list,
                         containing_block,
                         containing_block_info,
                         parent_stacking_context,
@@ -552,9 +648,9 @@ impl BoxFragment {
                 },
             };
 
-        let new_spatial_id = wr.push_reference_frame(
+        let new_spatial_id = display_list.push_reference_frame(
             reference_frame_data.origin.to_webrender(),
-            containing_block.space_and_clip.spatial_id,
+            &containing_block.spatial_id,
             self.style.get_box().transform_style.to_webrender(),
             wr::PropertyBinding::Value(reference_frame_data.transform),
             reference_frame_data.kind,
@@ -576,29 +672,27 @@ impl BoxFragment {
             &containing_block
                 .rect
                 .translate(-reference_frame_data.origin.to_vector()),
-            wr::SpaceAndClipInfo {
-                spatial_id: new_spatial_id,
-                clip_id: containing_block.space_and_clip.clip_id,
-            },
+            new_spatial_id,
+            containing_block.clip_id,
         );
         let new_containing_block_info =
             containing_block_info.new_for_non_absolute_descendants(&adjusted_containing_block);
 
         self.build_stacking_context_tree_maybe_creating_stacking_context(
             fragment,
-            wr,
+            display_list,
             &adjusted_containing_block,
             &new_containing_block_info,
             parent_stacking_context,
         );
 
-        wr.pop_reference_frame();
+        display_list.pop_reference_frame();
     }
 
     fn build_stacking_context_tree_maybe_creating_stacking_context(
         &self,
         fragment: &ArcRefCell<Fragment>,
-        wr: &mut wr::DisplayListBuilder,
+        display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
@@ -608,7 +702,7 @@ impl BoxFragment {
             None => {
                 self.build_stacking_context_tree_for_children(
                     fragment,
-                    wr,
+                    display_list,
                     containing_block,
                     containing_block_info,
                     parent_stacking_context,
@@ -618,13 +712,13 @@ impl BoxFragment {
         };
 
         let mut child_stacking_context = StackingContext::new(
-            containing_block.space_and_clip.spatial_id,
+            containing_block.spatial_id,
             self.style.clone(),
             context_type,
         );
         self.build_stacking_context_tree_for_children(
             fragment,
-            wr,
+            display_list,
             containing_block,
             containing_block_info,
             &mut child_stacking_context,
@@ -647,30 +741,36 @@ impl BoxFragment {
             .append(&mut stolen_children);
     }
 
-    fn build_stacking_context_tree_for_children<'a>(
-        &'a self,
+    fn build_stacking_context_tree_for_children(
+        &self,
         fragment: &ArcRefCell<Fragment>,
-        wr: &mut wr::DisplayListBuilder,
+        display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
     ) {
-        let mut new_space_and_clip = containing_block.space_and_clip;
-        if let Some(new_clip_id) =
-            self.build_clip_frame_if_necessary(wr, new_space_and_clip, &containing_block.rect)
-        {
-            new_space_and_clip.clip_id = new_clip_id;
+        let mut new_spatial_id = containing_block.spatial_id;
+        let mut new_clip_id = containing_block.clip_id;
+        if let Some(clip_id) = self.build_clip_frame_if_necessary(
+            display_list,
+            &new_spatial_id,
+            &new_clip_id,
+            &containing_block.rect,
+        ) {
+            new_clip_id = clip_id;
         }
 
         stacking_context.fragments.push(StackingContextFragment {
-            space_and_clip: new_space_and_clip,
+            spatial_id: new_spatial_id,
+            clip_id: new_clip_id,
             section: self.get_stacking_context_section(),
             containing_block: containing_block.rect,
             fragment: fragment.clone(),
         });
         if self.style.get_outline().outline_width.px() > 0.0 {
             stacking_context.fragments.push(StackingContextFragment {
-                space_and_clip: new_space_and_clip,
+                spatial_id: new_spatial_id,
+                clip_id: new_clip_id,
                 section: StackingContextSection::Outline,
                 containing_block: containing_block.rect,
                 fragment: fragment.clone(),
@@ -679,10 +779,14 @@ impl BoxFragment {
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
-        if let Some(scroll_space_and_clip) =
-            self.build_scroll_frame_if_necessary(wr, new_space_and_clip, &containing_block.rect)
-        {
-            new_space_and_clip = scroll_space_and_clip;
+        if let Some((spatial_id, clip_id)) = self.build_scroll_frame_if_necessary(
+            display_list,
+            &new_spatial_id,
+            &new_clip_id,
+            &containing_block.rect,
+        ) {
+            new_spatial_id = spatial_id;
+            new_clip_id = clip_id;
         }
 
         let padding_rect = self
@@ -694,14 +798,10 @@ impl BoxFragment {
             .to_physical(self.style.writing_mode, &containing_block.rect)
             .translate(containing_block.rect.origin.to_vector());
 
-        let for_absolute_descendants = ContainingBlock {
-            rect: padding_rect,
-            space_and_clip: new_space_and_clip,
-        };
-        let for_non_absolute_descendants = ContainingBlock {
-            rect: content_rect,
-            space_and_clip: new_space_and_clip,
-        };
+        let for_absolute_descendants =
+            ContainingBlock::new(&padding_rect, new_spatial_id, new_clip_id);
+        let for_non_absolute_descendants =
+            ContainingBlock::new(&content_rect, new_spatial_id, new_clip_id);
 
         // Create a new `ContainingBlockInfo` for descendants depending on
         // whether or not this fragment establishes a containing block for
@@ -729,7 +829,7 @@ impl BoxFragment {
         for child in &self.children {
             child.borrow().build_stacking_context_tree(
                 child,
-                wr,
+                display_list,
                 &new_containing_block_info,
                 stacking_context,
                 StackingContextBuildMode::SkipHoisted,
@@ -739,8 +839,9 @@ impl BoxFragment {
 
     fn build_clip_frame_if_necessary(
         &self,
-        wr: &mut wr::DisplayListBuilder,
-        current_space_and_clip: wr::SpaceAndClipInfo,
+        display_list: &mut DisplayList,
+        parent_spatial_id: &wr::SpatialId,
+        parent_clip_id: &wr::ClipId,
         containing_block_rect: &PhysicalRect<Length>,
     ) -> Option<wr::ClipId> {
         let position = self.style.get_box().position;
@@ -764,15 +865,22 @@ impl BoxFragment {
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
 
-        Some(wr.define_clip_rect(&current_space_and_clip, clip_rect))
+        Some(display_list.wr.define_clip_rect(
+            &wr::SpaceAndClipInfo {
+                spatial_id: *parent_spatial_id,
+                clip_id: *parent_clip_id,
+            },
+            clip_rect,
+        ))
     }
 
-    fn build_scroll_frame_if_necessary<'a>(
+    fn build_scroll_frame_if_necessary(
         &self,
-        wr: &mut wr::DisplayListBuilder,
-        current_space_and_clip: wr::SpaceAndClipInfo,
+        display_list: &mut DisplayList,
+        parent_spatial_id: &wr::SpatialId,
+        parent_clip_id: &wr::ClipId,
         containing_block_rect: &PhysicalRect<Length>,
-    ) -> Option<wr::SpaceAndClipInfo> {
+    ) -> Option<(wr::SpatialId, wr::ClipId)> {
         let overflow_x = self.style.get_box().overflow_x;
         let overflow_y = self.style.get_box().overflow_y;
         if overflow_x == ComputedOverflow::Visible && overflow_y == ComputedOverflow::Visible {
@@ -780,7 +888,10 @@ impl BoxFragment {
         }
 
         let tag = self.base.tag?;
-        let external_id = wr::ExternalScrollId(tag.to_display_list_fragment_id(), wr.pipeline_id);
+        let external_id = wr::ExternalScrollId(
+            tag.to_display_list_fragment_id(),
+            display_list.wr.pipeline_id,
+        );
 
         let sensitivity =
             if ComputedOverflow::Hidden == overflow_x && ComputedOverflow::Hidden == overflow_y {
@@ -794,9 +905,11 @@ impl BoxFragment {
             .to_physical(self.style.writing_mode, &containing_block_rect)
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
+
         Some(
-            wr.define_scroll_frame(
-                &current_space_and_clip,
+            display_list.define_scroll_frame(
+                parent_spatial_id,
+                parent_clip_id,
                 Some(external_id),
                 self.scrollable_overflow(&containing_block_rect)
                     .to_webrender(),
@@ -937,7 +1050,7 @@ impl BoxFragment {
 impl AnonymousFragment {
     fn build_stacking_context_tree(
         &self,
-        wr: &mut wr::DisplayListBuilder,
+        display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
@@ -953,7 +1066,7 @@ impl AnonymousFragment {
         for child in &self.children {
             child.borrow().build_stacking_context_tree(
                 child,
-                wr,
+                display_list,
                 &new_containing_block_info,
                 stacking_context,
                 StackingContextBuildMode::SkipHoisted,
