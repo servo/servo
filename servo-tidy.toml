@@ -32,7 +32,6 @@ packages = [
   "crossbeam-utils",
   "fixedbitset",
   "getrandom",
-  # "h2",
   "half",
   "image",
   "itoa",
@@ -63,14 +62,9 @@ packages = [
   "tokio",
   "tokio-macros",
   "tokio-util",
-  # "http-body",
   "httpdate",
-  # "hyper",
   "bytes",
-  # "pin-project",
   "pin-project-lite",
-  # "pin-project-internal",
-  # "socket2",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gl_generator",
