@@ -115,8 +115,9 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
         .spawn(move || {
             let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
             match server::start(
-                "localhost".to_owned(),
                 SocketAddr::V4(address),
+                vec![],
+                vec![],
                 handler,
                 extension_routes(),
             ) {
@@ -1510,15 +1511,22 @@ impl Handler {
                     let pointer_move_action = PointerMoveAction {
                         duration: None,
                         origin: PointerOrigin::Element(WebElement(element_id)),
-                        x: Some(0),
-                        y: Some(0),
+                        x: 0,
+                        y: 0,
+                        ..Default::default()
                     };
 
                     // Steps 8.7 - 8.8
-                    let pointer_down_action = PointerDownAction { button: 1 };
+                    let pointer_down_action = PointerDownAction {
+                        button: 1,
+                        ..Default::default()
+                    };
 
                     // Steps 8.9 - 8.10
-                    let pointer_up_action = PointerUpAction { button: 1 };
+                    let pointer_up_action = PointerUpAction {
+                        button: 1,
+                        ..Default::default()
+                    };
 
                     // Step 8.11
                     if let Err(error) =

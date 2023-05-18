@@ -78,7 +78,7 @@ unicode-bidi = "0.3.4"
 unicode-script = "0.5"
 url = "2.0"
 uuid = { version = "0.8", features = ["v4"] }
-webdriver = "0.44"
+webdriver = "0.48.0"
 winapi = "0.3"
 xi-unicode = "0.1.0"
 xml5ever = "0.17"
