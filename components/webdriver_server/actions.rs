@@ -77,6 +77,7 @@ fn compute_tick_duration(tick_actions: &ActionSequence) -> u64 {
             }
         },
         ActionsType::Key { actions: _ } => (),
+        ActionsType::Wheel { actions } => todo!("Not implemented."),
     }
     duration
 }
@@ -188,6 +189,7 @@ impl Handler {
                     }
                 }
             },
+            ActionsType::Wheel { actions } => todo!("Not implemented."),
         }
 
         Ok(())
@@ -282,6 +284,7 @@ impl Handler {
                 actions: vec![PointerActionItem::Pointer(PointerAction::Up(
                     PointerUpAction {
                         button: action.button,
+                        ..Default::default()
                     },
                 ))],
             },
@@ -328,6 +331,7 @@ impl Handler {
                 actions: vec![PointerActionItem::Pointer(PointerAction::Down(
                     PointerDownAction {
                         button: action.button,
+                        ..Default::default()
                     },
                 ))],
             },
@@ -356,8 +360,8 @@ impl Handler {
         let tick_start = Instant::now();
 
         // Steps 1 - 2
-        let x_offset = action.x.unwrap_or(0);
-        let y_offset = action.y.unwrap_or(0);
+        let x_offset = action.x;
+        let y_offset = action.y;
 
         // Steps 3 - 4
         let (start_x, start_y) = match self
