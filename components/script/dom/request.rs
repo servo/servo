@@ -79,11 +79,6 @@ impl Request {
         // Step 2
         let mut fallback_mode: Option<NetTraitsRequestMode> = None;
 
-        // FIXME(cybai): As the spec changed in https://github.com/whatwg/fetch/pull/1153,
-        //               we will need to change the default value of credentials for
-        //               NetTraitsRequest and then remove fallback here.
-        let mut fallback_credentials: Option<NetTraitsRequestCredentials> = None;
-
         // Step 3
         let base_url = global.api_base_url();
 
@@ -107,8 +102,6 @@ impl Request {
                 temporary_request = net_request_from_global(global, url);
                 // Step 5.5
                 fallback_mode = Some(NetTraitsRequestMode::CorsMode);
-                // FIXME(cybai): remove this line when we can remove the fallback of credentials
-                fallback_credentials = Some(NetTraitsRequestCredentials::CredentialsSameOrigin);
             },
             // Step 6
             RequestInfo::Request(ref input_request) => {
@@ -239,14 +232,9 @@ impl Request {
         }
 
         // Step 19
-        let credentials = init
-            .credentials
-            .as_ref()
-            .map(|m| m.clone().into())
-            .or(fallback_credentials);
-
-        if let Some(c) = credentials {
-            request.credentials_mode = c;
+        if let Some(init_credentials) = init.credentials.as_ref() {
+            let credentials = init_credentials.clone().into();
+            request.credentials_mode = credentials;
         }
 
         // Step 20
