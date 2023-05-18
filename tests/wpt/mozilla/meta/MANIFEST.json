@@ -10494,7 +10494,13 @@
      "cross-origin-postMessage-child2.html": [
       "a1395ad2b51415b251fb7e27ef6fdfe3d87ae3ef",
       []
-     ]
+     ],
+     "support": {
+      "frame.html": [
+       "3fc532e5a005f3d557e912249f6a74bf6337b6a0",
+       []
+      ]
+     }
     },
     "details_ui_closed_ref.html": [
      "b7db1ce810c09c9169142db4333f2648ed098239",
@@ -12872,6 +12878,13 @@
      ],
      "cross-origin-postMessage.html": [
       "143240c97aa60b52c8d2e0067c25e4509bf6481d",
+      [
+       null,
+       {}
+      ]
+     ],
+     "cross-origin-properties-holders.html": [
+      "4987cb56a7dbff9712b72d879bb07d6fe9fa628a",
       [
        null,
        {}

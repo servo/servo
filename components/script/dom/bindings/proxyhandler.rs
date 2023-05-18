@@ -28,6 +28,7 @@ use js::jsapi::JSAutoRealm;
 use js::jsapi::JS_AtomizeAndPinString;
 use js::jsapi::JS_DefinePropertyById;
 use js::jsapi::JS_GetOwnPropertyDescriptorById;
+use js::jsapi::JS_HasOwnPropertyById;
 use js::jsapi::JS_IsExceptionPending;
 use js::jsapi::MutableHandle as RawMutableHandle;
 use js::jsapi::MutableHandleIdVector as RawMutableHandleIdVector;
@@ -35,7 +36,7 @@ use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::MutableHandleValue as RawMutableHandleValue;
 use js::jsapi::ObjectOpResult;
 use js::jsapi::{jsid, GetObjectRealmOrNull, GetRealmPrincipals, JSFunctionSpec, JSPropertySpec};
-use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor};
+use js::jsapi::{DOMProxyShadowsResult, Heap, JSContext, JSObject, PropertyDescriptor};
 use js::jsapi::{GetWellKnownSymbol, SymbolCode};
 use js::jsapi::{JSErrNum, SetDOMProxyInformation};
 use js::jsid::SymbolId;
@@ -49,7 +50,7 @@ use js::rust::wrappers::{
 use js::rust::{
     get_context_realm, Handle, HandleObject, HandleValue, MutableHandle, MutableHandleObject,
 };
-use std::{ffi::CStr, os::raw::c_char, ptr};
+use std::{os::raw::c_char, ptr};
 
 /// Determine if this id shadows any existing properties for this proxy.
 pub unsafe extern "C" fn shadow_check_callback(
@@ -277,34 +278,26 @@ pub struct CrossOriginProperties {
     pub methods: &'static [JSFunctionSpec],
 }
 
-impl CrossOriginProperties {
-    /// Enumerate the property keys defined by `self`.
-    fn keys(&self) -> impl Iterator<Item = *const c_char> + '_ {
-        // Safety: All cross-origin property keys are strings, not symbols
-        self.attributes
-            .iter()
-            .map(|spec| unsafe { spec.name.string_ })
-            .chain(self.methods.iter().map(|spec| unsafe { spec.name.string_ }))
-            .filter(|ptr| !ptr.is_null())
-    }
-}
-
 /// Implementation of [`CrossOriginOwnPropertyKeys`].
+///
+/// `holder` should point to a cross-origin properties holder returned by
+/// `ensure_cross_origin_property_holder`.
 ///
 /// [`CrossOriginOwnPropertyKeys`]: https://html.spec.whatwg.org/multipage/#crossoriginownpropertykeys-(-o-)
 pub unsafe fn cross_origin_own_property_keys(
     cx: SafeJSContext,
-    _proxy: RawHandleObject,
-    cross_origin_properties: &'static CrossOriginProperties,
+    holder: RawHandleObject,
     props: RawMutableHandleIdVector,
 ) -> bool {
     // > 2. For each `e` of `! CrossOriginProperties(O)`, append
     // >    `e.[[Property]]` to `keys`.
-    for key in cross_origin_properties.keys() {
-        rooted!(in(*cx) let rooted = JS_AtomizeAndPinString(*cx, key));
-        rooted!(in(*cx) let mut rooted_jsid: jsid);
-        RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), rooted_jsid.handle_mut());
-        AppendToIdVector(props, rooted_jsid.handle());
+    if !jsapi::GetPropertyKeys(
+        *cx,
+        holder,
+        jsapi::JSITER_OWNONLY | jsapi::JSITER_HIDDEN | jsapi::JSITER_SYMBOLS,
+        props,
+    ) {
+        return false;
     }
 
     // > 3. Return the concatenation of `keys` and `« "then", @@toStringTag,
@@ -592,51 +585,32 @@ fn is_data_descriptor(d: &PropertyDescriptor) -> bool {
 /// SpiderMonkey-specific.
 ///
 /// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
-/// for a maybe-cross-origin object.
+/// for a maybe-cross-origin object. `holder` should point to a cross-origin
+/// properties holder returned by `ensure_cross_origin_property_holder`.
 pub unsafe fn cross_origin_has_own(
     cx: SafeJSContext,
-    _proxy: RawHandleObject,
-    cross_origin_properties: &'static CrossOriginProperties,
+    holder: RawHandleObject,
     id: RawHandleId,
     bp: *mut bool,
 ) -> bool {
-    // TODO: Once we have the slot for the holder, it'd be more efficient to
-    //       use `ensure_cross_origin_property_holder`. We'll need `_proxy` to
-    //       do that.
-    *bp = jsid_to_string(*cx, Handle::from_raw(id)).map_or(false, |key| {
-        cross_origin_properties.keys().any(|defined_key| {
-            let defined_key = CStr::from_ptr(defined_key);
-            defined_key.to_bytes() == key.as_bytes()
-        })
-    });
-
-    true
+    JS_HasOwnPropertyById(*cx, holder, id, bp)
 }
 
 /// Implementation of [`CrossOriginGetOwnPropertyHelper`].
 ///
 /// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
-/// for a maybe-cross-origin object.
+/// for a maybe-cross-origin object. `holder` should point to a cross-origin
+/// properties holder returned by `ensure_cross_origin_property_holder`.
 ///
 /// [`CrossOriginGetOwnPropertyHelper`]: https://html.spec.whatwg.org/multipage/#crossorigingetownpropertyhelper-(-o,-p-)
 pub unsafe fn cross_origin_get_own_property_helper(
     cx: SafeJSContext,
-    proxy: RawHandleObject,
-    cross_origin_properties: &'static CrossOriginProperties,
+    holder: RawHandleObject,
     id: RawHandleId,
     desc: RawMutableHandle<PropertyDescriptor>,
     is_none: &mut bool,
 ) -> bool {
-    rooted!(in(*cx) let mut holder = ptr::null_mut::<JSObject>());
-
-    ensure_cross_origin_property_holder(
-        cx,
-        proxy,
-        cross_origin_properties,
-        holder.handle_mut().into(),
-    );
-
-    return JS_GetOwnPropertyDescriptorById(*cx, holder.handle().into(), id, desc, is_none);
+    JS_GetOwnPropertyDescriptorById(*cx, holder.into(), id, desc, is_none)
 }
 
 /// Implementation of [`CrossOriginPropertyFallback`].
@@ -713,30 +687,94 @@ unsafe fn append_cross_origin_allowlisted_prop_keys(
     }
 }
 
-/// Get the holder for cross-origin properties for the current global of the
-/// `JSContext`, creating one and storing it in a slot of the proxy object if it
-/// doesn't exist yet.
+/// Provides access to the cross-origin property holder map associated with a
+/// maybe-cross-origin DOM object.
+pub trait CrossOriginPropertiesHolderMapAccess {
+    /// Get the cross-origin property holder map.
+    fn holder_map(&self) -> &CrossOriginPropertiesHolderMap;
+}
+
+/// A cross-origin property holder map.
 ///
-/// This essentially creates a cache of [`CrossOriginGetOwnPropertyHelper`]'s
-/// results for all property keys.
+/// This is our representation of [`[[CrossOriginPropertyDescriptorMap]]`].
+///
+/// [`[[CrossOriginPropertyDescriptorMap]]`]: https://html.spec.whatwg.org/multipage/#crossoriginpropertydescriptormap
+#[allow(unrooted_must_root)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
+#[unrooted_must_root_lint::must_root]
+pub struct CrossOriginPropertiesHolderMap {
+    /// The slot to hold the inner holder map, which is a weak map.
+    /// Initialized lazily.
+    #[ignore_malloc_size_of = "mozjs"]
+    inner_holder_map_slot: Heap<*mut JSObject>,
+}
+
+/// Get the holder for cross-origin properties for the current global of the
+/// `JSContext`, creating one and storing it in the given holder map if it
+/// hasn't been created yet.
+///
+/// This essentially precalculates [`CrossOriginGetOwnPropertyHelper`]'s
+/// results for all property keys at once.
 ///
 /// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
 /// for a maybe-cross-origin object. The `out_holder` return value will always
 /// be in the Realm of `cx`.
 ///
 /// [`CrossOriginGetOwnPropertyHelper`]: https://html.spec.whatwg.org/multipage/#crossorigingetownpropertyhelper-(-o,-p-)
-unsafe fn ensure_cross_origin_property_holder(
+pub unsafe fn ensure_cross_origin_property_holder(
     cx: SafeJSContext,
-    _proxy: RawHandleObject,
+    proxy: RawHandleObject,
+    holder_map: &CrossOriginPropertiesHolderMap,
     cross_origin_properties: &'static CrossOriginProperties,
     out_holder: RawMutableHandleObject,
 ) -> bool {
-    // TODO: We don't have the slot to store the holder yet. For now,
-    //       the holder is constructed every time this function is called,
-    //       which is not only inefficient but also deviates from the
-    //       specification in a subtle yet observable way.
+    let inner_holder_map_slot = &holder_map.inner_holder_map_slot;
 
-    // Create a holder for the current Realm
+    // Create an inner holder map if it doesn't exist yet.
+    if inner_holder_map_slot.get().is_null() {
+        let _ac = JSAutoRealm::new(*cx, proxy.get());
+        inner_holder_map_slot.set(jsapi::NewWeakMapObject(*cx));
+        if inner_holder_map_slot.get().is_null() {
+            return false;
+        }
+    }
+
+    // Get the inner holder map.
+    rooted!(in(*cx) let inner_holder_map = inner_holder_map_slot.get());
+
+    assert!(jsapi::IsWeakMapObject(inner_holder_map.get()));
+
+    // Per spec, the key for this map is supposed to be `(current settings,
+    // O's relevant settings)` where `current settings` corresponds to the
+    // current Realm of `cx`, and `O's relevant settings` corresponds to the
+    // Realm of the owner of `holder_map`. But since all of our objects are
+    // per-Realm singletons, we are basically using `holder_map` as part of
+    // the key.
+    //
+    // To represent the current settings, we use the current global object.
+    rooted!(in(*cx) let key = jsapi::CurrentGlobalOrNull(*cx));
+    if key.get().is_null() {
+        return false;
+    }
+
+    rooted!(in(*cx) let mut holder_val = UndefinedValue());
+
+    if !jsapi::GetWeakMapEntry(
+        *cx,
+        inner_holder_map.handle().into(),
+        key.handle().into(),
+        holder_val.handle_mut().into(),
+    ) {
+        return false;
+    }
+
+    // Did we get a holder?
+    if holder_val.get().is_object() {
+        out_holder.set(holder_val.to_object());
+        return true;
+    }
+
+    // We didn't. Create a holder for the current Realm
     out_holder.set(jsapi::JS_NewObjectWithGivenProto(
         *cx,
         ptr::null_mut(),
@@ -758,7 +796,16 @@ unsafe fn ensure_cross_origin_property_holder(
         return false;
     }
 
-    // TODO: Store the holder in the slot that we don't have yet.
+    // Store the holder in the inner holder map
+    out_holder.get().to_jsval(*cx, holder_val.handle_mut());
+    if !jsapi::SetWeakMapEntry(
+        *cx,
+        inner_holder_map.handle().into(),
+        key.handle().into(),
+        holder_val.handle().into(),
+    ) {
+        return false;
+    }
 
     true
 }
