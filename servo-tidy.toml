@@ -2,12 +2,8 @@
 skip-check-length = false
 skip-check-licenses = false
 check-alphabetical-order = true
-check-ordered-json-keys = [
-  "./resources/prefs.json",
-]
-lint-scripts = [
-  "./python/servo/lints/wpt_lint.py",
-]
+check-ordered-json-keys = ["./resources/prefs.json"]
+lint-scripts = ["./python/servo/lints/wpt_lint.py"]
 
 # Packages which we avoid using in Servo.
 # For each blocked package, we can list the exceptions,
@@ -15,10 +11,10 @@ lint-scripts = [
 [blocked-packages]
 num = []
 rand = [
-  "hashglobe", # Only used in tests
+  "hashglobe",     # Only used in tests
   "ipc-channel",
   "phf_generator",
-  "quickcheck", # Only used in tests
+  "quickcheck",    # Only used in tests
   "servo_rand",
   "tungstenite",
   "ws",
@@ -27,6 +23,8 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
+  "time",
+  "cookie",
   "arrayvec",
   "base64",
   "cfg-if",
@@ -34,7 +32,7 @@ packages = [
   "crossbeam-utils",
   "fixedbitset",
   "getrandom",
-  "h2",
+  # "h2",
   "half",
   "image",
   "itoa",
@@ -65,14 +63,14 @@ packages = [
   "tokio",
   "tokio-macros",
   "tokio-util",
-  "http-body",
+  # "http-body",
   "httpdate",
-  "hyper",
+  # "hyper",
   "bytes",
-  "pin-project",
+  # "pin-project",
   "pin-project-lite",
-  "pin-project-internal",
-  "socket2",
+  # "pin-project-internal",
+  # "socket2",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gl_generator",
