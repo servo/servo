@@ -11,15 +11,15 @@ name = "bluetooth"
 path = "lib.rs"
 
 [dependencies]
-bitflags = "1.0"
+bitflags = { workspace = true }
 bluetooth_traits = { path = "../bluetooth_traits" }
 device = { git = "https://github.com/servo/devices", features = ["bluetooth-test"], rev = "cb28c4725ffbfece99dab842d17d3e8c50774778" }
 embedder_traits = { path = "../embedder_traits" }
-ipc-channel = "0.14"
-log = "0.4"
+ipc-channel = { workspace = true }
+log = { workspace = true }
 servo_config = { path = "../config" }
 servo_rand = { path = "../rand" }
-uuid = { version = "0.8", features = ["v4"] }
+uuid = { workspace = true }
 
 [features]
 native-bluetooth = ["device/bluetooth"]

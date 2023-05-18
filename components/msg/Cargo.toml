@@ -13,12 +13,12 @@ test = false
 doctest = false
 
 [dependencies]
-ipc-channel = "0.14"
-lazy_static = "1"
+ipc-channel = { workspace = true }
+lazy_static = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = "0.1"
-parking_lot = "0.11"
-serde = "1.0.60"
+malloc_size_of_derive = { workspace = true }
+parking_lot = { workspace = true }
+serde = { workspace = true }
 webrender_api = { git = "https://github.com/servo/webrender" }
 
 [dev-dependencies]

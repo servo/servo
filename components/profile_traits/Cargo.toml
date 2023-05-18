@@ -11,10 +11,10 @@ name = "profile_traits"
 path = "lib.rs"
 
 [dependencies]
-crossbeam-channel = "0.4"
-ipc-channel = "0.14"
-log = "0.4"
-serde = "1.0"
+crossbeam-channel = { workspace = true }
+ipc-channel = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true }
 servo_config = { path = "../config" }
 signpost = { git = "https://github.com/pcwalton/signpost.git" }
-time = "0.1.41"
+time = { workspace = true }

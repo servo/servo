@@ -11,7 +11,7 @@ build = "build.rs"
 path = "lib.rs"
 
 [dependencies]
-string_cache = "0.8"
+string_cache = { workspace = true }
 
 [build-dependencies]
-string_cache_codegen = "0.5"
+string_cache_codegen = { workspace = true }

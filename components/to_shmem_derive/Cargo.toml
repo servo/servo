@@ -11,9 +11,9 @@ path = "lib.rs"
 proc-macro = true
 
 [dependencies]
-darling = { version = "0.10", default-features = false }
+darling = { workspace = true }
 derive_common = { path = "../derive_common" }
-proc-macro2 = "1"
-quote = "1"
-syn = { version = "1", default-features = false, features = ["derive", "parsing"] }
-synstructure = "0.12"
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
+synstructure = { workspace = true }

@@ -12,9 +12,9 @@ path = "lib.rs"
 
 [dependencies]
 malloc_size_of = { path = "../malloc_size_of", features = ["servo"] }
-malloc_size_of_derive = "0.1"
-serde = { version = "1.0", features = ["derive"] }
+malloc_size_of_derive = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 servo_rand = { path = "../rand" }
 to_shmem = { path = "../to_shmem" }
-url = { version = "2.0", features = ["serde"] }
-uuid = { version = "0.8", features = ["serde", "v4"] }
+url = { workspace = true, features = ["serde"] }
+uuid = { workspace = true, features = ["serde"] }

@@ -11,9 +11,9 @@ name = "layout_traits"
 path = "lib.rs"
 
 [dependencies]
-crossbeam-channel = "0.4"
+crossbeam-channel = { workspace = true }
 gfx = { path = "../gfx" }
-ipc-channel = "0.14"
+ipc-channel = { workspace = true }
 metrics = { path = "../metrics" }
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }

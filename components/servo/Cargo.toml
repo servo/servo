@@ -45,21 +45,21 @@ canvas = { path = "../canvas", default-features = false }
 canvas_traits = { path = "../canvas_traits" }
 compositing = { path = "../compositing", features = ["gl"] }
 constellation = { path = "../constellation" }
-crossbeam-channel = "0.4"
+crossbeam-channel = { workspace = true }
 devtools = { path = "../devtools" }
 devtools_traits = { path = "../devtools_traits" }
 embedder_traits = { path = "../embedder_traits" }
-env_logger = "0.8"
-euclid = "0.22"
+env_logger = { workspace = true }
+euclid = { workspace = true }
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
-gleam = "0.12"
+gleam = { workspace = true }
 gstreamer = { version = "0.15", features = ["v1_16"], optional = true }
-ipc-channel = "0.14"
-keyboard-types = "0.6"
+ipc-channel = { workspace = true }
+keyboard-types = { workspace = true }
 layout_thread_2013 = { path = "../layout_thread", optional = true }
 layout_thread_2020 = { path = "../layout_thread_2020", optional = true }
-log = "0.4"
+log = { workspace = true }
 media = { path = "../media" }
 msg = { path = "../msg" }
 net = { path = "../net" }
@@ -75,10 +75,10 @@ servo-media-gstreamer = { git = "https://github.com/servo/media", optional = tru
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
-sparkle = "0.1"
+sparkle = { workspace = true }
 style = { path = "../style", features = ["servo"] }
 style_traits = { path = "../style_traits", features = ["servo"] }
-surfman = "0.6"
+surfman = { workspace = true }
 webdriver_server = { path = "../webdriver_server", optional = true }
 webgpu = { path = "../webgpu" }
 webrender = { git = "https://github.com/servo/webrender" }

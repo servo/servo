@@ -13,39 +13,39 @@ test = false
 doctest = false
 
 [dependencies]
-app_units = "0.7"
-atomic_refcell = "0.1.6"
+app_units = { workspace = true }
+atomic_refcell = { workspace = true }
 canvas_traits = { path = "../canvas_traits" }
-bitflags = "1.0"
-cssparser = "0.29"
+bitflags = { workspace = true }
+cssparser = { workspace = true }
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.22"
-fnv = "1.0"
-fxhash = "0.2"
+euclid = { workspace = true }
+fnv = { workspace = true }
+fxhash = { workspace = true }
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
-html5ever = "0.26"
-ipc-channel = "0.14"
-libc = "0.2"
-log = "0.4"
-mitochondria = "1.1.2"
+html5ever = { workspace = true }
+ipc-channel = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
+mitochondria = { workspace = true }
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
-parking_lot = "0.11"
+parking_lot = { workspace = true }
 range = { path = "../range" }
-rayon = "1"
+rayon = { workspace = true }
 rayon_croissant = "0.2.0"
 script_layout_interface = { path = "../script_layout_interface" }
 script_traits = { path = "../script_traits" }
-serde = "1.0"
-serde_json = "1.0"
+serde = { workspace = true }
+serde_json = { workspace = true }
 servo_arc = { path = "../servo_arc" }
 servo_url = { path = "../url" }
 style = { path = "../style", features = ["servo", "servo-layout-2020"] }
 style_traits = { path = "../style_traits" }
-unicode-script = "0.5"
+unicode-script = { workspace = true }
 webrender_api = { git = "https://github.com/servo/webrender" }
 
 [dev-dependencies]
-lazy_static = "1"
+lazy_static = { workspace = true }
 quickcheck = "1"

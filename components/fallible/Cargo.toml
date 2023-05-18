@@ -12,7 +12,7 @@ path = "lib.rs"
 
 [dependencies]
 hashglobe = { path = "../hashglobe" }
-smallvec = "1.0"
+smallvec = { workspace = true }
 
 # This crate effectively does nothing except if the `known_system_malloc`
 # feature is specified.

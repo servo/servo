@@ -14,35 +14,35 @@ test = false
 doctest = false
 
 [dependencies]
-app_units = "0.7"
-bitflags = "1.0"
-euclid = "0.22"
-fnv = "1.0"
+app_units = { workspace = true }
+bitflags = { workspace = true }
+euclid = { workspace = true }
+fnv = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }
 gfx_traits = { path = "../gfx_traits" }
 harfbuzz-sys = "0.5"
-ipc-channel = "0.14"
-lazy_static = "1"
-libc = "0.2"
-log = "0.4"
+ipc-channel = { workspace = true }
+lazy_static = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
 net_traits = { path = "../net_traits" }
 range = { path = "../range" }
-serde = "1.0"
+serde = { workspace = true }
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms" }
 servo_url = { path = "../url" }
-smallvec = { version = "1.9", features = ["union"] }
+smallvec = { workspace = true, features = ["union"] }
 style = { path = "../style", features = ["servo"] }
-time = "0.1.41"
+time = { workspace = true }
 ucd = "0.1.1"
-unicode-bidi = { version = "0.3", features = ["with_serde"] }
-unicode-script = "0.5"
+unicode-bidi = { workspace = true, features = ["with_serde"] }
+unicode-script = { workspace = true }
 webrender_api = { git = "https://github.com/servo/webrender" }
-xi-unicode = "0.1.0"
+xi-unicode = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-byteorder = "1.0"
+byteorder = { workspace = true }
 core-foundation = "0.9"
 core-graphics = "0.22"
 core-text = "19.0"
