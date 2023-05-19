@@ -7,9 +7,10 @@ from __future__ import print_function, unicode_literals
 import os
 import platform
 import sys
+import shutil
+
 from distutils.spawn import find_executable
 from subprocess import Popen
-import shutil
 from tempfile import TemporaryFile
 
 SEARCH_PATHS = [
@@ -228,10 +229,6 @@ def _is_windows():
     return sys.platform == 'win32'
 
 
-class DummyContext(object):
-    pass
-
-
 def is_firefox_checkout(topdir):
     parentdir = os.path.normpath(os.path.join(topdir, '..'))
     is_firefox = os.path.isfile(os.path.join(parentdir,
@@ -244,14 +241,24 @@ def bootstrap_command_only(topdir):
     # because the module requires non-standard python packages
     _activate_virtualenv(topdir, is_firefox_checkout(topdir))
 
-    from servo.bootstrap import bootstrap
+    # We cannot import these modules until the virtual environment
+    # is active because they depend on modules installed via the
+    # virtual environment.
+    # pylint: disable=import-outside-toplevel
+    import servo.platform
+    import servo.util
 
-    context = DummyContext()
-    context.topdir = topdir
-    force = False
-    if len(sys.argv) == 3 and sys.argv[2] == "-f":
-        force = True
-    bootstrap(context, force)
+    # We are not set up yet, so we always use the default cache directory
+    # for the initial bootstrap.
+    # TODO(mrobinson): Why not just run the bootstrap command in this case?
+
+    try:
+        servo.platform.get().bootstrap(
+            servo.util.get_default_cache_dir(topdir), '-f' in sys.argv)
+    except NotImplementedError as exception:
+        print(exception)
+        return 1
+
     return 0
 
 
@@ -259,8 +266,6 @@ def bootstrap(topdir):
     _ensure_case_insensitive_if_windows()
 
     topdir = os.path.abspath(topdir)
-
-    len(sys.argv) > 1 and sys.argv[1] == "bootstrap"
 
     # We don't support paths with Unicode characters for now
     # https://github.com/servo/servo/issues/10002

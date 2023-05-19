@@ -77,7 +77,7 @@ import os
 import os.path as path
 import re
 import uuid
-from servo.command_base import host_triple
+from servo.platform import host_triple
 
 def make_id(s):
     s = s.replace("-", "_").replace("/", "_").replace("\\", "_")

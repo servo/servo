@@ -40,7 +40,7 @@ from servo.command_base import (
     call, check_call, check_output,
 )
 from servo_tidy_tests import test_tidy
-from servo.util import host_triple
+from servo.platform import host_triple
 
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))

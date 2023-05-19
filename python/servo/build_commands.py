@@ -35,7 +35,7 @@ from mach.registrar import Registrar
 from mach_bootstrap import _get_exec_path
 from servo.command_base import CommandBase, cd, call, check_call, append_to_path_env, gstreamer_root
 from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
-from servo.util import host_triple
+from servo.platform import host_triple
 
 
 @CommandProvider

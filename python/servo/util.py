@@ -12,7 +12,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 import hashlib
 import os
 import os.path
-import platform
 import shutil
 import stat
 import sys
@@ -57,40 +56,6 @@ def delete(path):
         shutil.rmtree(path, onerror=remove_readonly)
     else:
         os.remove(path)
-
-
-def host_platform():
-    os_type = platform.system().lower()
-    if os_type == "linux":
-        os_type = "unknown-linux-gnu"
-    elif os_type == "darwin":
-        os_type = "apple-darwin"
-    elif os_type == "android":
-        os_type = "linux-androideabi"
-    elif os_type == "windows":
-        os_type = "pc-windows-msvc"
-    elif os_type == "freebsd":
-        os_type = "unknown-freebsd"
-    else:
-        os_type = "unknown"
-    return os_type
-
-
-def host_triple():
-    os_type = host_platform()
-    cpu_type = platform.machine().lower()
-    if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
-        cpu_type = "i686"
-    elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
-        cpu_type = "x86_64"
-    elif cpu_type == "arm":
-        cpu_type = "arm"
-    elif cpu_type == "aarch64":
-        cpu_type = "aarch64"
-    else:
-        cpu_type = "unknown"
-
-    return "{}-{}".format(cpu_type, os_type)
 
 
 def download(desc, src, writer, start_byte=0):
@@ -229,3 +194,7 @@ def check_hash(filename, expected, algorithm):
     if hasher.hexdigest() != expected:
         print("Incorrect {} hash for {}".format(algorithm, filename))
         sys.exit(1)
+
+
+def get_default_cache_dir(topdir):
+    return os.environ.get("SERVO_CACHE_DIR", os.path.join(topdir, ".servo"))

@@ -33,14 +33,12 @@ from os import path
 from subprocess import PIPE
 
 import toml
+import servo.platform
 
 from xml.etree.ElementTree import XML
-from servo.util import download_file
-from .bootstrap import check_gstreamer_lib, check_macos_gstreamer_lib
+from servo.util import download_file, get_default_cache_dir
 from mach.decorators import CommandArgument
 from mach.registrar import Registrar
-from servo.packages import WINDOWS_MSVC as msvc_deps
-from servo.util import host_triple
 from servo.gstreamer import macos_gst_root
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
@@ -287,9 +285,7 @@ class CommandBase(object):
 
         # Handle missing/default items
         self.config.setdefault("tools", {})
-        default_cache_dir = os.environ.get("SERVO_CACHE_DIR",
-                                           path.join(context.topdir, ".servo"))
-        self.config["tools"].setdefault("cache-dir", default_cache_dir)
+        self.config["tools"].setdefault("cache-dir", get_default_cache_dir(context.topdir))
         resolverelative("tools", "cache-dir")
 
         default_cargo_home = os.environ.get("CARGO_HOME",
@@ -545,23 +541,23 @@ class CommandBase(object):
         if "media-dummy" in features:
             return False
 
+        # MacOS always needs the GStreamer environment variable, but should
+        # also check that the Servo-specific version is downloaded and available.
         if is_macosx():
-            if check_macos_gstreamer_lib():
-                # We override homebrew gstreamer if installed and
-                # always use pkgconfig from official gstreamer framework
+            if servo.platform.get().is_gstreamer_installed():
                 return True
             else:
                 raise Exception("Official GStreamer framework not found (we need at least 1.21)."
                                 "Please see installation instructions in README.md")
 
         try:
-            if check_gstreamer_lib():
+            if servo.platform.get().is_gstreamer_installed():
                 return False
         except Exception:
             # Some systems don't have pkg-config; we can't probe in this case
             # and must hope for the best
             return False
-        effective_target = target or host_triple()
+        effective_target = target or servo.platform.host_triple()
         if "x86_64" not in effective_target or "android" in effective_target:
             # We don't build gstreamer for non-x86_64 / android yet
             return False
@@ -581,7 +577,7 @@ install them, let us know by filing a bug!")
         """Some commands, like test-wpt, don't use a full build env,
            but may still need dynamic search paths. This command sets that up"""
         if not android and self.needs_gstreamer_env(None, os.environ):
-            gstpath = gstreamer_root(host_triple(), os.environ, self.get_top_dir())
+            gstpath = gstreamer_root(servo.platform.host_triple(), os.environ, self.get_top_dir())
             if gstpath is None:
                 return
             os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib")
@@ -590,10 +586,11 @@ install them, let us know by filing a bug!")
             os.environ["GST_PLUGIN_SCANNER"] = path.join(gstpath, "libexec", "gstreamer-1.0", "gst-plugin-scanner")
 
     def msvc_package_dir(self, package):
-        return path.join(self.context.sharedir, "msvc-dependencies", package, msvc_deps[package])
+        return path.join(self.context.sharedir, "msvc-dependencies", package,
+                         servo.platform.windows.DEPENDENCIES[package])
 
     def vs_dirs(self):
-        assert 'windows' in host_triple()
+        assert 'windows' in servo.platform.host_triple()
         vsinstalldir = os.environ.get('VSINSTALLDIR')
         vs_version = os.environ.get('VisualStudioVersion')
         if vsinstalldir and vs_version:
@@ -622,7 +619,7 @@ install them, let us know by filing a bug!")
             env['PATH'] = env['PATH'].encode('ascii', 'ignore')
         extra_path = []
         extra_lib = []
-        if "msvc" in (target or host_triple()):
+        if "msvc" in (target or servo.platform.host_triple()):
             extra_path += [path.join(self.msvc_package_dir("cmake"), "bin")]
             extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
             extra_path += [path.join(self.msvc_package_dir("ninja"), "bin")]
@@ -636,7 +633,7 @@ install them, let us know by filing a bug!")
                 env["TARGET_CFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
                 env["TARGET_CXXFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
 
-            arch = (target or host_triple()).split('-')[0]
+            arch = (target or servo.platform.host_triple()).split('-')[0]
             vcpkg_arch = {
                 "x86_64": "x64-windows",
                 "i686": "x86-windows",
@@ -672,8 +669,8 @@ install them, let us know by filing a bug!")
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if is_build and self.needs_gstreamer_env(target or host_triple(), env, uwp, features):
-            gst_root = gstreamer_root(target or host_triple(), env, self.get_top_dir())
+        if is_build and self.needs_gstreamer_env(target or servo.platform.host_triple(), env, uwp, features):
+            gst_root = gstreamer_root(target or servo.platform.host_triple(), env, self.get_top_dir())
             bin_path = path.join(gst_root, "bin")
             lib_path = path.join(gst_root, "lib")
             pkg_config_path = path.join(lib_path, "pkgconfig")
@@ -1018,7 +1015,7 @@ install them, let us know by filing a bug!")
         if self.context.bootstrapped:
             return
 
-        target_platform = target or host_triple()
+        target_platform = target or servo.platform.host_triple()
 
         # Always check if all needed MSVC dependencies are installed
         if "msvc" in target_platform:
