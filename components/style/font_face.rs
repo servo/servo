@@ -20,8 +20,12 @@ use crate::values::specified::font::SpecifiedFontStyle;
 #[cfg(feature = "gecko")]
 use crate::values::specified::font::SpecifiedFontVariationSettings;
 use crate::values::specified::font::{AbsoluteFontWeight, FontStretch};
+#[cfg(feature = "gecko")]
+use crate::values::specified::font::MetricsOverride;
 use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::Angle;
+#[cfg(feature = "gecko")]
+use crate::values::specified::NonNegativePercentage;
 #[cfg(feature = "gecko")]
 use cssparser::UnicodeRange;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
@@ -194,7 +198,7 @@ impl FontStretchRange {
         fn compute_stretch(s: &FontStretch) -> f32 {
             match *s {
                 FontStretch::Keyword(ref kw) => kw.compute().0,
-                FontStretch::Stretch(ref p) => p.get(),
+                FontStretch::Stretch(ref p) => p.0.get(),
                 FontStretch::System(..) => unreachable!(),
             }
         }
@@ -418,6 +422,18 @@ macro_rules! is_descriptor_enabled {
     ("font-variation-settings") => {
         static_prefs::pref!("layout.css.font-variations.enabled")
     };
+    ("ascent-override") => {
+        static_prefs::pref!("layout.css.font-metrics-overrides.enabled")
+    };
+    ("descent-override") => {
+        static_prefs::pref!("layout.css.font-metrics-overrides.enabled")
+    };
+    ("line-gap-override") => {
+        static_prefs::pref!("layout.css.font-metrics-overrides.enabled")
+    };
+    ("size-adjust") => {
+        static_prefs::pref!("layout.css.size-adjust.enabled")
+    };
     ($name:tt) => {
         true
     };
@@ -576,6 +592,18 @@ font_face_descriptors! {
 
         /// The language override of this font face.
         "font-language-override" language_override / mFontLanguageOverride: font_language_override::SpecifiedValue,
+
+        /// The ascent override for this font face.
+        "ascent-override" ascent_override / mAscentOverride: MetricsOverride,
+
+        /// The descent override for this font face.
+        "descent-override" descent_override / mDescentOverride: MetricsOverride,
+
+        /// The line-gap override for this font face.
+        "line-gap-override" line_gap_override / mLineGapOverride: MetricsOverride,
+
+        /// The size adjustment for this font face.
+        "size-adjust" size_adjust / mSizeAdjust: NonNegativePercentage,
     ]
 }
 

@@ -3525,11 +3525,11 @@ impl Element {
     }
 
     pub fn read_write_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_READ_WRITE_STATE)
+        self.state.get().contains(ElementState::IN_READWRITE_STATE)
     }
 
     pub fn set_read_write_state(&self, value: bool) {
-        self.set_state(ElementState::IN_READ_WRITE_STATE, value)
+        self.set_state(ElementState::IN_READWRITE_STATE, value)
     }
 
     pub fn placeholder_shown_state(&self) -> bool {

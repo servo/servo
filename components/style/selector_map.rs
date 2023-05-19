@@ -94,7 +94,7 @@ pub trait SelectorMapEntry: Sized + Clone {
 /// * https://bugzilla.mozilla.org/show_bug.cgi?id=681755
 ///
 /// TODO: Tune the initial capacity of the HashMap
-#[derive(Debug, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct SelectorMap<T: 'static> {
     /// Rules that have `:root` selectors.
     pub root: SmallVec<[T; 1]>,
@@ -615,7 +615,7 @@ fn find_bucket<'a>(
 }
 
 /// Wrapper for PrecomputedHashMap that does ASCII-case-insensitive lookup in quirks mode.
-#[derive(Debug, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V: 'static>(
     PrecomputedHashMap<K, V>,
 );

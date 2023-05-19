@@ -148,7 +148,7 @@ impl HTMLTextAreaElement {
             .clone();
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::IN_ENABLED_STATE | ElementState::IN_READ_WRITE_STATE,
+                ElementState::IN_ENABLED_STATE | ElementState::IN_READWRITE_STATE,
                 local_name,
                 prefix,
                 document,

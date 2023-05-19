@@ -96,45 +96,16 @@ ${helpers.predefined_type(
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
-// TODO(pcwalton): Support `text-justify: distribute`.
-<%helpers:single_keyword
-    name="text-justify"
-    values="auto none inter-word"
+${helpers.predefined_type(
+    "text-justify",
+    "TextJustify",
+    "computed::TextJustify::Auto",
     engines="gecko servo-2013 servo-2020",
     servo_2020_pref="layout.2020.unimplemented",
-    extra_gecko_values="inter-character"
-    extra_specified="${'distribute' if engine == 'gecko' else ''}"
-    gecko_enum_prefix="StyleTextJustify"
-    animation_value_type="discrete"
-    spec="https://drafts.csswg.org/css-text/#propdef-text-justify"
-    servo_restyle_damage="rebuild_and_reflow"
->
-    % if engine == 'gecko':
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, _: &Context) -> computed_value::T {
-            match *self {
-                % for value in "Auto None InterCharacter InterWord".split():
-                SpecifiedValue::${value} => computed_value::T::${value},
-                % endfor
-                // https://drafts.csswg.org/css-text-3/#valdef-text-justify-distribute
-                SpecifiedValue::Distribute => computed_value::T::InterCharacter,
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
-            match *computed {
-                % for value in "Auto None InterCharacter InterWord".split():
-                computed_value::T::${value} => SpecifiedValue::${value},
-                % endfor
-            }
-        }
-    }
-    % endif
-</%helpers:single_keyword>
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text/#propdef-text-justify",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
 ${helpers.predefined_type(
     "text-align-last",
@@ -329,13 +300,13 @@ ${helpers.single_keyword(
     spec="https://drafts.csswg.org/css-ruby/#ruby-align-property",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "ruby-position",
-    "over under",
+    "RubyPosition",
+    "computed::RubyPosition::AlternateOver",
     engines="gecko",
-    animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-ruby/#ruby-position-property",
-    gecko_enum_prefix="StyleRubyPosition",
+    animation_value_type="discrete",
 )}
 
 // CSS Writing Modes Module Level 3
@@ -360,15 +331,13 @@ ${helpers.single_keyword(
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "-moz-control-character-visibility",
-    "hidden visible",
+    "text::MozControlCharacterVisibility",
+    "Default::default()",
     engines="gecko",
-    gecko_enum_prefix="StyleControlCharacterVisibility",
-    gecko_pref_controlled_initial_value="layout.css.control-characters.visible=visible",
     animation_value_type="none",
-    gecko_ffi_name="mControlCharacterVisibility",
-    spec="Nonstandard",
+    spec="Nonstandard"
 )}
 
 // text underline offset

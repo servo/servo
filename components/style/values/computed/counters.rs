@@ -4,7 +4,7 @@
 
 //! Computed values for counter properties
 
-use crate::values::computed::url::ComputedImageUrl;
+use crate::values::computed::image::Image;
 use crate::values::generics::counters as generics;
 use crate::values::generics::counters::CounterIncrement as GenericCounterIncrement;
 use crate::values::generics::counters::CounterSetOrReset as GenericCounterSetOrReset;
@@ -16,7 +16,7 @@ pub type CounterIncrement = GenericCounterIncrement<i32>;
 pub type CounterSetOrReset = GenericCounterSetOrReset<i32>;
 
 /// A computed value for the `content` property.
-pub type Content = generics::GenericContent<ComputedImageUrl>;
+pub type Content = generics::GenericContent<Image>;
 
 /// A computed content item.
-pub type ContentItem = generics::GenericContentItem<ComputedImageUrl>;
+pub type ContentItem = generics::GenericContentItem<Image>;

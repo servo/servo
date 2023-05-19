@@ -18,10 +18,10 @@ use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
-pub use crate::values::specified::text::{TextAlignLast, TextUnderlinePosition};
-pub use crate::values::specified::{LineBreak, OverflowWrap, WordBreak};
+pub use crate::values::specified::text::{TextAlignLast, TextUnderlinePosition, MozControlCharacterVisibility};
+pub use crate::values::specified::{LineBreak, OverflowWrap, RubyPosition, WordBreak};
 pub use crate::values::specified::{TextDecorationLine, TextEmphasisPosition};
-pub use crate::values::specified::{TextDecorationSkipInk, TextTransform};
+pub use crate::values::specified::{TextDecorationSkipInk, TextJustify, TextTransform};
 
 /// A computed value for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;

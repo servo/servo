@@ -91,6 +91,11 @@ packages = [
 # Files that are ignored for all tidy and lint checks.
 files = [
   "./components/net/tests/parsable_mime/text",
+  # These are ignored to avoid diverging from Gecko
+  "./components/style/properties/helpers.mako.rs",
+  "./components/style/stylesheets/rule_parser.rs",
+  "./components/style/stylist.rs",
+  "./components/style/values/computed/image.rs",
   # Mako does not lend itself easily to splitting long lines
   "./components/style/properties/helpers/animated_properties.mako.rs",
   "./components/style/properties/shorthands/text.mako.rs",

@@ -71,7 +71,7 @@ pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::page::{Orientation, PageSize, PaperSize};
-pub use self::percentage::Percentage;
+pub use self::percentage::{Percentage, NonNegativePercentage};
 pub use self::position::AspectRatio;
 pub use self::position::{
     GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto,
@@ -86,10 +86,11 @@ pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg_path::SVGPathData;
 pub use self::text::TextAlignLast;
 pub use self::text::TextUnderlinePosition;
+pub use self::text::RubyPosition;
 pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight, TextAlign};
 pub use self::text::{OverflowWrap, TextEmphasisPosition, TextEmphasisStyle, WordBreak};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};
-pub use self::text::{TextDecorationLength, TextDecorationSkipInk, TextTransform};
+pub use self::text::{TextDecorationLength, TextDecorationSkipInk, TextJustify, TextTransform};
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};

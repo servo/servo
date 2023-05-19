@@ -432,4 +432,11 @@ impl Device {
         };
         SideOffsets2D::new(top, right, bottom, left)
     }
+
+    /// Returns true if the given MIME type is supported
+    pub fn is_supported_mime_type(&self, mime_type: &str) -> bool {
+        unsafe {
+            bindings::Gecko_IsSupportedImageMimeType(mime_type.as_ptr(), mime_type.len() as u32)
+        }
+    }
 }

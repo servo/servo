@@ -12,10 +12,10 @@ use script_layout_interface::wrapper_traits::LayoutDataTrait;
 use selectors::matching::QuirksMode;
 use std::marker::PhantomData;
 use style::dom::{TDocument, TNode};
-use style::media_queries::Device;
 use style::shared_lock::{
     SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard as StyleSharedRwLockReadGuard,
 };
+use style::stylist::Stylist;
 
 // A wrapper around documents that ensures ayout can only ever access safe properties.
 pub struct ServoLayoutDocument<'dom, LayoutDataType: LayoutDataTrait> {
@@ -90,8 +90,7 @@ impl<'ld, LayoutDataType: LayoutDataTrait> ServoLayoutDocument<'ld, LayoutDataTy
 
     pub fn flush_shadow_roots_stylesheets(
         &self,
-        device: &Device,
-        quirks_mode: QuirksMode,
+        stylist: &mut Stylist,
         guard: &StyleSharedRwLockReadGuard,
     ) {
         unsafe {
@@ -100,7 +99,7 @@ impl<'ld, LayoutDataType: LayoutDataTrait> ServoLayoutDocument<'ld, LayoutDataTy
             }
             self.document.flush_shadow_roots_stylesheets();
             for shadow_root in self.shadow_roots() {
-                shadow_root.flush_stylesheets(device, quirks_mode, guard);
+                shadow_root.flush_stylesheets(stylist, guard);
             }
         }
     }

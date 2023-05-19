@@ -11,7 +11,7 @@ use crate::element_state::{DocumentState, ElementState};
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
 use crate::invalidation::element::invalidation_map::InvalidationMap;
-use crate::invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
+use crate::invalidation::media_queries::EffectiveMediaQueryResults;
 use crate::invalidation::stylesheets::RuleChangeKind;
 use crate::media_queries::Device;
 use crate::properties::{self, CascadeMode, ComputedValues};
@@ -60,17 +60,33 @@ pub type StylistSheet = crate::stylesheets::DocumentStyleSheet;
 #[cfg(feature = "gecko")]
 pub type StylistSheet = crate::gecko::data::GeckoStyleSheet;
 
-lazy_static! {
-    /// A cache of computed user-agent data, to be shared across documents.
-    static ref UA_CASCADE_DATA_CACHE: Mutex<UserAgentCascadeDataCache> =
-        Mutex::new(UserAgentCascadeDataCache::new());
+trait CascadeDataCacheEntry : Sized {
+    /// Returns a reference to the cascade data.
+    fn cascade_data(&self) -> &CascadeData;
+    /// Rebuilds the cascade data for the new stylesheet collection. The
+    /// collection is guaranteed to be dirty.
+    fn rebuild<S>(
+        device: &Device,
+        quirks_mode: QuirksMode,
+        collection: SheetCollectionFlusher<S>,
+        guard: &SharedRwLockReadGuard,
+        old_entry: &Self,
+    ) -> Result<Arc<Self>, FailedAllocationError>
+    where
+        S: StylesheetInDocument + PartialEq + 'static;
+    /// Measures heap memory usage.
+    #[cfg(feature = "gecko")]
+    fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes);
 }
 
-struct UserAgentCascadeDataCache {
-    entries: Vec<Arc<UserAgentCascadeData>>,
+struct CascadeDataCache<Entry> {
+    entries: Vec<Arc<Entry>>,
 }
 
-impl UserAgentCascadeDataCache {
+impl<Entry> CascadeDataCache<Entry>
+where
+    Entry: CascadeDataCacheEntry,
+{
     fn new() -> Self {
         Self { entries: vec![] }
     }
@@ -79,53 +95,67 @@ impl UserAgentCascadeDataCache {
         self.entries.len()
     }
 
-    // FIXME(emilio): This may need to be keyed on quirks-mode too, though there
-    // aren't class / id selectors on those sheets, usually, so it's probably
-    // ok...
-    fn lookup<'a, I, S>(
+    // FIXME(emilio): This may need to be keyed on quirks-mode too, though for
+    // UA sheets there aren't class / id selectors on those sheets, usually, so
+    // it's probably ok... For the other cache the quirks mode shouldn't differ
+    // so also should be fine.
+    fn lookup<'a, S>(
         &'a mut self,
-        sheets: I,
         device: &Device,
         quirks_mode: QuirksMode,
+        collection: SheetCollectionFlusher<S>,
         guard: &SharedRwLockReadGuard,
-    ) -> Result<Arc<UserAgentCascadeData>, FailedAllocationError>
+        old_entry: &Entry,
+    ) -> Result<Option<Arc<Entry>>, FailedAllocationError>
     where
-        I: Iterator<Item = &'a S> + Clone,
-        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
+        S: StylesheetInDocument + PartialEq + 'static,
     {
+        debug!("StyleSheetCache::lookup({})", self.len());
+
+        if !collection.dirty() {
+            return Ok(None);
+        }
+
         let mut key = EffectiveMediaQueryResults::new();
-        debug!("UserAgentCascadeDataCache::lookup({:?})", device);
-        for sheet in sheets.clone() {
+        for sheet in collection.sheets() {
             CascadeData::collect_applicable_media_query_results_into(device, sheet, guard, &mut key)
         }
 
         for entry in &self.entries {
-            if entry.cascade_data.effective_media_query_results == key {
-                return Ok(entry.clone());
+            if std::ptr::eq(&**entry, old_entry) {
+                // Avoid reusing our old entry (this can happen if we get
+                // invalidated due to CSSOM mutations and our old stylesheet
+                // contents were already unique, for example). This old entry
+                // will be pruned from the cache with take_unused() afterwards.
+                continue;
             }
+            if entry.cascade_data().effective_media_query_results != key {
+                continue;
+            }
+            if log_enabled!(log::Level::Debug) {
+                debug!("cache hit for:");
+                for sheet in collection.sheets() {
+                    debug!(" > {:?}", sheet);
+                }
+            }
+            // The line below ensures the "committed" bit is updated properly
+            // below.
+            collection.each(|_, _| true);
+            return Ok(Some(entry.clone()));
         }
-
-        let mut new_data = UserAgentCascadeData {
-            cascade_data: CascadeData::new(),
-            precomputed_pseudo_element_decls: PrecomputedPseudoElementDeclarations::default(),
-        };
 
         debug!("> Picking the slow path");
 
-        for sheet in sheets {
-            new_data.cascade_data.add_stylesheet(
-                device,
-                quirks_mode,
-                sheet,
-                guard,
-                SheetRebuildKind::Full,
-                Some(&mut new_data.precomputed_pseudo_element_decls),
-            )?;
-        }
+        let new_entry = Entry::rebuild(
+            device,
+            quirks_mode,
+            collection,
+            guard,
+            old_entry,
+        )?;
 
-        let new_data = Arc::new(new_data);
-        self.entries.push(new_data.clone());
-        Ok(new_data)
+        self.entries.push(new_entry.clone());
+        Ok(Some(new_entry))
     }
 
     /// Returns all the cascade datas that are not being used (that is, that are
@@ -135,7 +165,7 @@ impl UserAgentCascadeDataCache {
     /// keep alive some other documents (like the SVG documents kept alive by
     /// URL references), and thus we don't want to drop them while locking the
     /// cache to not deadlock.
-    fn take_unused(&mut self) -> SmallVec<[Arc<UserAgentCascadeData>; 3]> {
+    fn take_unused(&mut self) -> SmallVec<[Arc<Entry>; 3]> {
         let mut unused = SmallVec::new();
         for i in (0..self.entries.len()).rev() {
             // is_unique() returns false for static references, but we never
@@ -148,7 +178,7 @@ impl UserAgentCascadeDataCache {
         unused
     }
 
-    fn take_all(&mut self) -> Vec<Arc<UserAgentCascadeData>> {
+    fn take_all(&mut self) -> Vec<Arc<Entry>> {
         mem::replace(&mut self.entries, Vec::new())
     }
 
@@ -173,6 +203,58 @@ pub fn add_size_of_ua_cache(ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSet
         .add_size_of(ops, sizes);
 }
 
+lazy_static! {
+    /// A cache of computed user-agent data, to be shared across documents.
+    static ref UA_CASCADE_DATA_CACHE: Mutex<UserAgentCascadeDataCache> =
+        Mutex::new(UserAgentCascadeDataCache::new());
+}
+
+impl CascadeDataCacheEntry for UserAgentCascadeData {
+    fn cascade_data(&self) -> &CascadeData {
+        &self.cascade_data
+    }
+
+    fn rebuild<S>(
+        device: &Device,
+        quirks_mode: QuirksMode,
+        collection: SheetCollectionFlusher<S>,
+        guard: &SharedRwLockReadGuard,
+        _old: &Self,
+    ) -> Result<Arc<Self>, FailedAllocationError>
+    where
+        S: StylesheetInDocument + PartialEq + 'static
+    {
+        // TODO: Maybe we should support incremental rebuilds, though they seem
+        // uncommon and rebuild() doesn't deal with
+        // precomputed_pseudo_element_decls for now so...
+        let mut new_data = Self {
+            cascade_data: CascadeData::new(),
+            precomputed_pseudo_element_decls: PrecomputedPseudoElementDeclarations::default(),
+        };
+
+        for sheet in collection.sheets() {
+            new_data.cascade_data.add_stylesheet(
+                device,
+                quirks_mode,
+                sheet,
+                guard,
+                SheetRebuildKind::Full,
+                Some(&mut new_data.precomputed_pseudo_element_decls),
+            )?;
+        }
+
+        Ok(Arc::new(new_data))
+    }
+
+    #[cfg(feature = "gecko")]
+    fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
+        self.cascade_data.add_size_of(ops, sizes);
+        sizes.mPrecomputedPseudos += self.precomputed_pseudo_element_decls.size_of(ops);
+    }
+}
+
+type UserAgentCascadeDataCache = CascadeDataCache<UserAgentCascadeData>;
+
 type PrecomputedPseudoElementDeclarations = PerPseudoElementMap<Vec<ApplicableDeclarationBlock>>;
 
 #[derive(Default)]
@@ -186,14 +268,6 @@ struct UserAgentCascadeData {
     ///
     /// These are only filled from UA stylesheets.
     precomputed_pseudo_element_decls: PrecomputedPseudoElementDeclarations,
-}
-
-impl UserAgentCascadeData {
-    #[cfg(feature = "gecko")]
-    fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
-        self.cascade_data.add_size_of(ops, sizes);
-        sizes.mPrecomputedPseudos += self.precomputed_pseudo_element_decls.size_of(ops);
-    }
 }
 
 /// All the computed information for all the stylesheets that apply to the
@@ -262,19 +336,29 @@ impl DocumentCascadeData {
         guards: &StylesheetGuards,
     ) -> Result<(), FailedAllocationError>
     where
-        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
+        S: StylesheetInDocument + PartialEq + 'static,
     {
         // First do UA sheets.
         {
-            if flusher.flush_origin(Origin::UserAgent).dirty() {
-                let origin_sheets = flusher.origin_sheets(Origin::UserAgent);
-                let _unused_cascade_datas = {
-                    let mut ua_cache = UA_CASCADE_DATA_CACHE.lock().unwrap();
-                    self.user_agent =
-                        ua_cache.lookup(origin_sheets, device, quirks_mode, guards.ua_or_user)?;
-                    debug!("User agent data cache size {:?}", ua_cache.len());
-                    ua_cache.take_unused()
-                };
+            let origin_flusher = flusher.flush_origin(Origin::UserAgent);
+            // Dirty check is just a minor optimization (no need to grab the
+            // lock if nothing has changed).
+            if origin_flusher.dirty() {
+                let mut ua_cache = UA_CASCADE_DATA_CACHE.lock().unwrap();
+                let new_data = ua_cache.lookup(
+                    device,
+                    quirks_mode,
+                    origin_flusher,
+                    guards.ua_or_user,
+                    &self.user_agent,
+                )?;
+                if let Some(new_data) = new_data {
+                    self.user_agent = new_data;
+                }
+                let _unused_entries = ua_cache.take_unused();
+                // See the comments in take_unused() as for why the following
+                // line.
+                std::mem::drop(ua_cache);
             }
         }
 
@@ -371,6 +455,10 @@ pub struct Stylist {
     /// The list of stylesheets.
     stylesheets: StylistStylesheetSet,
 
+    /// A cache of CascadeDatas for AuthorStylesheetSets (i.e., shadow DOM).
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "XXX: how to handle this?")]
+    author_data_cache: CascadeDataCache<CascadeData>,
+
     /// If true, the quirks-mode stylesheet is applied.
     #[cfg_attr(feature = "servo", ignore_malloc_size_of = "defined in selectors")]
     quirks_mode: QuirksMode,
@@ -422,6 +510,7 @@ impl Stylist {
             device,
             quirks_mode,
             stylesheets: StylistStylesheetSet::new(),
+            author_data_cache: CascadeDataCache::new(),
             cascade_data: Default::default(),
             author_styles_enabled: AuthorStylesEnabled::Yes,
             rule_tree: RuleTree::new(),
@@ -445,6 +534,31 @@ impl Stylist {
     #[inline]
     pub fn iter_origins(&self) -> DocumentCascadeDataIter {
         self.cascade_data.iter_origins()
+    }
+
+    /// Does what the name says, to prevent author_data_cache to grow without
+    /// bound.
+    pub fn remove_unique_author_data_cache_entries(&mut self) {
+        self.author_data_cache.take_unused();
+    }
+
+    /// Rebuilds (if needed) the CascadeData given a sheet collection.
+    pub fn rebuild_author_data<S>(
+        &mut self,
+        old_data: &CascadeData,
+        collection: SheetCollectionFlusher<S>,
+        guard: &SharedRwLockReadGuard,
+    ) -> Result<Option<Arc<CascadeData>>, FailedAllocationError>
+    where
+        S: StylesheetInDocument + PartialEq + 'static,
+    {
+        self.author_data_cache.lookup(
+            &self.device,
+            self.quirks_mode,
+            collection,
+            guard,
+            old_data,
+        )
     }
 
     /// Iterate over the extra data in origin order.
@@ -1355,6 +1469,7 @@ impl Stylist {
     #[cfg(feature = "gecko")]
     pub fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
         self.cascade_data.add_size_of(ops, sizes);
+        self.author_data_cache.add_size_of(ops, sizes);
         sizes.mRuleTree += self.rule_tree.size_of(ops);
 
         // We may measure other fields in the future if DMD says it's worth it.
@@ -1368,7 +1483,7 @@ impl Stylist {
 
 /// This struct holds data which users of Stylist may want to extract
 /// from stylesheets which can be done at the same time as updating.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct ExtraStyleData {
     /// A list of effective font-face rules and their origin.
@@ -1387,11 +1502,6 @@ pub struct ExtraStyleData {
     #[cfg(feature = "gecko")]
     pub pages: Vec<Arc<Locked<PageRule>>>,
 }
-
-#[cfg(feature = "gecko")]
-unsafe impl Sync for ExtraStyleData {}
-#[cfg(feature = "gecko")]
-unsafe impl Send for ExtraStyleData {}
 
 #[cfg(feature = "gecko")]
 impl ExtraStyleData {
@@ -1633,7 +1743,7 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
 }
 
 /// A set of rules for element and pseudo-elements.
-#[derive(Debug, Default, MallocSizeOf)]
+#[derive(Clone, Debug, Default, MallocSizeOf)]
 struct GenericElementAndPseudoRules<Map> {
     /// Rules from stylesheets at this `CascadeData`'s origin.
     element_map: Map,
@@ -1712,7 +1822,7 @@ impl PartElementAndPseudoRules {
 ///
 /// FIXME(emilio): Consider renaming and splitting in `CascadeData` and
 /// `InvalidationData`? That'd make `clear_cascade_data()` clearer.
-#[derive(Debug, MallocSizeOf)]
+#[derive(Debug, Clone, MallocSizeOf)]
 pub struct CascadeData {
     /// The data coming from normal style rules that apply to elements at this
     /// cascade level.
@@ -1822,7 +1932,7 @@ impl CascadeData {
         guard: &SharedRwLockReadGuard,
     ) -> Result<(), FailedAllocationError>
     where
-        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
+        S: StylesheetInDocument + PartialEq + 'static,
     {
         if !collection.dirty() {
             return Ok(());
@@ -1836,18 +1946,21 @@ impl CascadeData {
             DataValidity::FullyInvalid => self.clear(),
         }
 
-        for (stylesheet, rebuild_kind) in collection {
-            self.add_stylesheet(
+        let mut result = Ok(());
+
+        collection.each(|stylesheet, rebuild_kind| {
+            result = self.add_stylesheet(
                 device,
                 quirks_mode,
                 stylesheet,
                 guard,
                 rebuild_kind,
                 /* precomputed_pseudo_element_decls = */ None,
-            )?;
-        }
+            );
+            result.is_ok()
+        });
 
-        Ok(())
+        result
     }
 
     /// Returns the invalidation map.
@@ -1922,14 +2035,14 @@ impl CascadeData {
         guard: &SharedRwLockReadGuard,
         results: &mut EffectiveMediaQueryResults,
     ) where
-        S: StylesheetInDocument + ToMediaListKey + 'static,
+        S: StylesheetInDocument + 'static,
     {
         if !stylesheet.enabled() || !stylesheet.is_effective_for_device(device, guard) {
             return;
         }
 
         debug!(" + {:?}", stylesheet);
-        results.saw_effective(stylesheet);
+        results.saw_effective(stylesheet.contents());
 
         for rule in stylesheet.effective_rules(device, guard) {
             match *rule {
@@ -1959,16 +2072,17 @@ impl CascadeData {
         mut precomputed_pseudo_element_decls: Option<&mut PrecomputedPseudoElementDeclarations>,
     ) -> Result<(), FailedAllocationError>
     where
-        S: StylesheetInDocument + ToMediaListKey + 'static,
+        S: StylesheetInDocument + 'static,
     {
         if !stylesheet.enabled() || !stylesheet.is_effective_for_device(device, guard) {
             return Ok(());
         }
 
-        let origin = stylesheet.origin(guard);
+        let contents = stylesheet.contents();
+        let origin = contents.origin;
 
         if rebuild_kind.should_rebuild_invalidation() {
-            self.effective_media_query_results.saw_effective(stylesheet);
+            self.effective_media_query_results.saw_effective(contents);
         }
 
         for rule in stylesheet.effective_rules(device, guard) {
@@ -2143,13 +2257,13 @@ impl CascadeData {
         quirks_mode: QuirksMode,
     ) -> bool
     where
-        S: StylesheetInDocument + ToMediaListKey + 'static,
+        S: StylesheetInDocument + 'static,
     {
         use crate::invalidation::media_queries::PotentiallyEffectiveMediaRules;
 
         let effective_now = stylesheet.is_effective_for_device(device, guard);
 
-        let effective_then = self.effective_media_query_results.was_effective(stylesheet);
+        let effective_then = self.effective_media_query_results.was_effective(stylesheet.contents());
 
         if effective_now != effective_then {
             debug!(
@@ -2184,9 +2298,10 @@ impl CascadeData {
                 },
                 CssRule::Import(ref lock) => {
                     let import_rule = lock.read_with(guard);
-                    let effective_now = import_rule
-                        .stylesheet
-                        .is_effective_for_device(&device, guard);
+                    let effective_now = match import_rule.stylesheet.media(guard) {
+                        Some(m) => m.evaluate(device, quirks_mode),
+                        None => true,
+                    };
                     let effective_then = self
                         .effective_media_query_results
                         .was_effective(import_rule);
@@ -2258,8 +2373,33 @@ impl CascadeData {
         self.selectors_for_cache_revalidation.clear();
         self.effective_media_query_results.clear();
     }
+}
 
-    /// Measures heap usage.
+impl CascadeDataCacheEntry for CascadeData {
+    fn cascade_data(&self) -> &CascadeData {
+        self
+    }
+
+    fn rebuild<S>(
+        device: &Device,
+        quirks_mode: QuirksMode,
+        collection: SheetCollectionFlusher<S>,
+        guard: &SharedRwLockReadGuard,
+        old: &Self,
+    ) -> Result<Arc<Self>, FailedAllocationError>
+    where
+        S: StylesheetInDocument + PartialEq + 'static
+    {
+        debug_assert!(collection.dirty(), "We surely need to do something?");
+        // If we're doing a full rebuild anyways, don't bother cloning the data.
+        let mut updatable_entry = match collection.data_validity() {
+            DataValidity::Valid | DataValidity::CascadeInvalid => old.clone(),
+            DataValidity::FullyInvalid => Self::new(),
+        };
+        updatable_entry.rebuild(device, quirks_mode, collection, guard)?;
+        Ok(Arc::new(updatable_entry))
+    }
+
     #[cfg(feature = "gecko")]
     fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
         self.normal_rules.add_size_of(ops, sizes);

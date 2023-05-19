@@ -32,7 +32,6 @@ use crate::computed_value_flags::*;
 use crate::hash::FxHashMap;
 use crate::media_queries::Device;
 use crate::parser::ParserContext;
-use crate::properties::longhands::system_font::SystemFont;
 use crate::selector_parser::PseudoElement;
 #[cfg(feature = "servo")] use servo_config::prefs;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError, ParsingMode};
@@ -44,6 +43,7 @@ use crate::values::generics::text::LineHeight;
 use crate::values::{computed, resolved};
 use crate::values::computed::NonNegativeLength;
 use crate::values::serialize_atom_name;
+use crate::values::specified::font::SystemFont;
 use crate::rule_tree::StrongRuleNode;
 use crate::Zero;
 use crate::str::{CssString, CssStringWriter};
@@ -1068,28 +1068,20 @@ impl CSSWideKeyword {
 bitflags! {
     /// A set of flags for properties.
     pub struct PropertyFlags: u16 {
-        /// This property requires a stacking context.
-        const CREATES_STACKING_CONTEXT = 1 << 0;
-        /// This property has values that can establish a containing block for
-        /// fixed positioned and absolutely positioned elements.
-        const FIXPOS_CB = 1 << 1;
-        /// This property has values that can establish a containing block for
-        /// absolutely positioned elements.
-        const ABSPOS_CB = 1 << 2;
         /// This longhand property applies to ::first-letter.
-        const APPLIES_TO_FIRST_LETTER = 1 << 3;
+        const APPLIES_TO_FIRST_LETTER = 1 << 1;
         /// This longhand property applies to ::first-line.
-        const APPLIES_TO_FIRST_LINE = 1 << 4;
+        const APPLIES_TO_FIRST_LINE = 1 << 2;
         /// This longhand property applies to ::placeholder.
-        const APPLIES_TO_PLACEHOLDER = 1 << 5;
+        const APPLIES_TO_PLACEHOLDER = 1 << 3;
         ///  This longhand property applies to ::cue.
-        const APPLIES_TO_CUE = 1 << 6;
+        const APPLIES_TO_CUE = 1 << 4;
         /// This longhand property applies to ::marker.
-        const APPLIES_TO_MARKER = 1 << 7;
+        const APPLIES_TO_MARKER = 1 << 5;
         /// This property is a legacy shorthand.
         ///
         /// https://drafts.csswg.org/css-cascade/#legacy-shorthand
-        const IS_LEGACY_SHORTHAND = 1 << 8;
+        const IS_LEGACY_SHORTHAND = 1 << 6;
 
         /* The following flags are currently not used in Rust code, they
          * only need to be listed in corresponding properties so that
@@ -1757,7 +1749,21 @@ impl UnparsedValue {
             shorthand_cache.insert((shorthand, longhand), declaration);
         }
 
-        Cow::Borrowed(&shorthand_cache[&(shorthand, longhand_id)])
+        let key = (shorthand, longhand_id);
+        match shorthand_cache.get(&key) {
+            Some(decl) => Cow::Borrowed(decl),
+            None => {
+                // FIXME: We should always have the key here but it seems
+                // sometimes we don't, see bug 1696409.
+                #[cfg(feature = "gecko")]
+                {
+                    if structs::GECKO_IS_NIGHTLY {
+                        panic!("Expected {:?} to be in the cache but it was not!", key);
+                    }
+                }
+                invalid_at_computed_value_time()
+            }
+        }
     }
 }
 

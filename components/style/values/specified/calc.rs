@@ -374,9 +374,9 @@ impl CalcNode {
                             rhs.negate();
                             sum.push(rhs);
                         },
-                        ref t => {
-                            let t = t.clone();
-                            return Err(input.new_unexpected_token_error(t));
+                        _ => {
+                            input.reset(&start);
+                            break;
                         },
                     }
                 },

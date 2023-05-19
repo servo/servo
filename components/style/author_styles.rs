@@ -5,16 +5,16 @@
 //! A set of author stylesheets and their computed representation, such as the
 //! ones used for ShadowRoot.
 
-use crate::context::QuirksMode;
 use crate::dom::TElement;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::media_queries::ToMediaListKey;
-use crate::media_queries::Device;
 use crate::shared_lock::SharedRwLockReadGuard;
+use crate::stylist::Stylist;
 use crate::stylesheet_set::AuthorStylesheetSet;
 use crate::stylesheets::StylesheetInDocument;
 use crate::stylist::CascadeData;
+use servo_arc::Arc;
 
 /// A set of author stylesheets and their computed representation, such as the
 /// ones used for ShadowRoot.
@@ -27,7 +27,14 @@ where
     /// and all that stuff.
     pub stylesheets: AuthorStylesheetSet<S>,
     /// The actual cascade data computed from the stylesheets.
-    pub data: CascadeData,
+    #[ignore_malloc_size_of = "Measured as part of the stylist"]
+    pub data: Arc<CascadeData>,
+}
+
+lazy_static! {
+    static ref EMPTY_CASCADE_DATA: Arc<CascadeData> = {
+        Arc::new_leaked(CascadeData::new())
+    };
 }
 
 impl<S> AuthorStyles<S>
@@ -39,7 +46,7 @@ where
     pub fn new() -> Self {
         Self {
             stylesheets: AuthorStylesheetSet::new(),
-            data: CascadeData::new(),
+            data: EMPTY_CASCADE_DATA.clone(),
         }
     }
 
@@ -50,8 +57,7 @@ where
     #[inline]
     pub fn flush<E>(
         &mut self,
-        device: &Device,
-        quirks_mode: QuirksMode,
+        stylist: &mut Stylist,
         guard: &SharedRwLockReadGuard,
     ) where
         E: TElement,
@@ -61,10 +67,10 @@ where
             .stylesheets
             .flush::<E>(/* host = */ None, /* snapshot_map = */ None);
 
-        // Ignore OOM.
-        let _ = self
-            .data
-            .rebuild(device, quirks_mode, flusher.sheets, guard);
+        let result = stylist.rebuild_author_data(&self.data, flusher.sheets, guard);
+        if let Ok(Some(new_data)) = result {
+            self.data = new_data;
+        }
     }
 }
 

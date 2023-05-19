@@ -828,14 +828,14 @@ impl ToComputedValue for specified::MathDepth {
                 let parent = cx.builder.get_parent_font().clone_math_depth() as i32;
                 let style = cx.builder.get_parent_font().clone_math_style();
                 if style == MathStyleValue::Compact {
-                    parent + 1
+                    parent.saturating_add(1)
                 } else {
                     parent
                 }
             },
             specified::MathDepth::Add(rel) => {
                 let parent = cx.builder.get_parent_font().clone_math_depth();
-                parent as i32 + rel.to_computed_value(cx)
+                (parent as i32).saturating_add(rel.to_computed_value(cx))
             },
             specified::MathDepth::Absolute(abs) => abs.to_computed_value(cx),
         };

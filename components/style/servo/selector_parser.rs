@@ -372,7 +372,7 @@ impl NonTSPseudoClass {
             Disabled => ElementState::IN_DISABLED_STATE,
             Checked => ElementState::IN_CHECKED_STATE,
             Indeterminate => ElementState::IN_INDETERMINATE_STATE,
-            ReadOnly | ReadWrite => ElementState::IN_READ_WRITE_STATE,
+            ReadOnly | ReadWrite => ElementState::IN_READWRITE_STATE,
             PlaceholderShown => ElementState::IN_PLACEHOLDER_SHOWN_STATE,
             Target => ElementState::IN_TARGET_STATE,
 

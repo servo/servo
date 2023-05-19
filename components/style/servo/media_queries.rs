@@ -19,6 +19,7 @@ use app_units::Au;
 use cssparser::RGBA;
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Scale, SideOffsets2D, Size2D};
+use mime::Mime;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
@@ -201,6 +202,23 @@ impl Device {
     /// Returns safe area insets
     pub fn safe_area_insets(&self) -> SideOffsets2D<f32, CSSPixel> {
         SideOffsets2D::zero()
+    }
+
+    /// Returns true if the given MIME type is supported
+    pub fn is_supported_mime_type(&self, mime_type: &str) -> bool {
+        match mime_type.parse::<Mime>() {
+            Ok(m) => {
+                // Keep this in sync with 'image_classifer' from
+                // components/net/mime_classifier.rs
+                m == mime::IMAGE_BMP
+                    || m == mime::IMAGE_GIF
+                    || m == mime::IMAGE_PNG
+                    || m == mime::IMAGE_JPEG
+                    || m == "image/x-icon"
+                    || m == "image/webp"
+            }
+            _ => false,
+        }
     }
 }
 

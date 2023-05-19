@@ -461,6 +461,8 @@ impl GroupedClassifier {
     fn image_classifer() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
+                // Keep this in sync with 'is_supported_mime_type' from
+                // components/style/servo/media_queries.rs
                 Box::new(ByteMatcher::image_x_icon()),
                 Box::new(ByteMatcher::image_x_icon_cursor()),
                 Box::new(ByteMatcher::image_bmp()),

@@ -132,7 +132,7 @@ pub struct GenericImageSet<Image, Resolution> {
 
 /// An optional percent and a cross fade image.
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
+    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
 )]
 #[repr(C)]
 pub struct GenericImageSetItem<Image, Resolution> {
@@ -142,7 +142,33 @@ pub struct GenericImageSetItem<Image, Resolution> {
     ///
     /// TODO: Skip serialization if it is 1x.
     pub resolution: Resolution,
-    // TODO: type() function.
+
+    /// The `type(<string>)`
+    /// (Optional) Specify the image's MIME type
+    pub mime_type: crate::OwnedStr,
+
+    /// True if mime_type has been specified
+    pub has_mime_type: bool,
+}
+
+impl<I: style_traits::ToCss, R: style_traits::ToCss> ToCss for GenericImageSetItem<I, R>
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        self.image.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.resolution.to_css(dest)?;
+
+        if self.has_mime_type {
+            dest.write_str(" ")?;
+            dest.write_str("type(")?;
+            self.mime_type.to_css(dest)?;
+            dest.write_str(")")?;
+        }
+        Ok(())
+    }
 }
 
 pub use self::GenericImageSet as ImageSet;
