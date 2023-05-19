@@ -9,12 +9,12 @@
 
 import os
 import subprocess
-
-from typing import Tuple
+import tempfile
+from typing import Optional, Tuple
 
 import distro
 import six
-
+from .. import util
 from .base import Base
 
 # Please keep these in sync with the packages in README.md
@@ -48,10 +48,20 @@ XBPS_PKGS = ['libtool', 'gcc', 'libXi-devel', 'freetype-devel',
              'clang', 'gstreamer1-devel', 'autoconf213',
              'gst-plugins-base1-devel', 'gst-plugins-bad1-devel']
 
+GSTREAMER_URL = \
+    "https://github.com/servo/servo-build-deps/releases/download/linux/gstreamer-1.16-x86_64-linux-gnu.20190515.tar.gz"
+PREPACKAGED_GSTREAMER_ROOT = \
+    os.path.join(util.get_target_dir(), "dependencies", "gstreamer")
+
 
 class Linux(Base):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.is_linux = True
         (self.distro, self.version) = Linux.get_distro_and_version()
+
+    def library_path_variable_name(self):
+        return "LD_LIBRARY_PATH"
 
     @staticmethod
     def get_distro_and_version() -> Tuple[str, str]:
@@ -116,7 +126,7 @@ class Linux(Base):
                                       f"{self.distro}, please file a bug")
 
         installed_something = self.install_non_gstreamer_dependencies(force)
-        installed_something |= self._platform_bootstrap_gstreamer(_cache_dir, force)
+        installed_something |= self._platform_bootstrap_gstreamer(force)
         return installed_something
 
     def install_non_gstreamer_dependencies(self, force: bool) -> bool:
@@ -157,15 +167,34 @@ class Linux(Base):
 
         print("Installing missing dependencies...")
         if run_as_root(command + pkgs, force) != 0:
-            raise Exception("Installation of dependencies failed.")
+            raise EnvironmentError("Installation of dependencies failed.")
         return True
 
-    def _platform_bootstrap_gstreamer(self, _cache_dir: str, _force: bool) -> bool:
-        if self.is_gstreamer_installed():
+    def gstreamer_root(self, cross_compilation_target: Optional[str]) -> Optional[str]:
+        if cross_compilation_target:
+            return None
+        if os.path.exists(PREPACKAGED_GSTREAMER_ROOT):
+            return PREPACKAGED_GSTREAMER_ROOT
+        # GStreamer might be installed system-wide, but we do not return a root in this
+        # case because we don't have to update environment variables.
+        return None
+
+    def _platform_bootstrap_gstreamer(self, force: bool) -> bool:
+        if not force and self.is_gstreamer_installed(cross_compilation_target=None):
             return False
 
-        gstdir = os.path.join(os.curdir, "support", "linux", "gstreamer")
-        if not os.path.isdir(os.path.join(gstdir, "gst", "lib")):
-            subprocess.check_call(["bash", "gstreamer.sh"], cwd=gstdir)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_name = os.path.join(temp_dir, GSTREAMER_URL.rsplit('/', maxsplit=1)[-1])
+            util.download_file("Pre-packaged GStreamer binaries", GSTREAMER_URL, file_name)
+
+            print(f"Installing GStreamer packages to {PREPACKAGED_GSTREAMER_ROOT}...")
+            os.makedirs(PREPACKAGED_GSTREAMER_ROOT, exist_ok=True)
+
+            # Extract, but strip one component from the output, because the package includes
+            # a toplevel directory called "./gst/" and we'd like to have the same directory
+            # structure on all platforms.
+            subprocess.check_call(["tar", "xf", file_name, "-C", PREPACKAGED_GSTREAMER_ROOT,
+                                   "--strip-components=2"])
+
+            assert self.is_gstreamer_installed(cross_compilation_target=None)
             return True
-        return False

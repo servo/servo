@@ -15,6 +15,8 @@ import os.path as path
 import subprocess
 from shutil import copytree, rmtree, copy2
 
+import servo.util
+
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -79,9 +81,15 @@ class PostBuildCommands(CommandBase):
         help="Command-line arguments to be passed through to Servo")
     def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None,
             headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None):
-        self.set_run_env(android is not None)
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
+        if software:
+            if not is_linux():
+                print("Software rendering is only supported on Linux at the moment.")
+                return
+
+            env['LIBGL_ALWAYS_SOFTWARE'] = "1"
+        os.environ.update(env)
 
         # Make --debugger imply --debug
         if debugger:
@@ -128,13 +136,6 @@ class PostBuildCommands(CommandBase):
 
         if headless:
             args.append('-z')
-
-        if software:
-            if not is_linux():
-                print("Software rendering is only supported on Linux at the moment.")
-                return
-
-            env['LIBGL_ALWAYS_SOFTWARE'] = "1"
 
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
@@ -251,7 +252,7 @@ class PostBuildCommands(CommandBase):
         toolchain_path = path.dirname(path.dirname(rustc_path))
         rust_docs = path.join(toolchain_path, "share", "doc", "rust", "html")
 
-        docs = path.join(self.get_target_dir(), "doc")
+        docs = path.join(servo.util.get_target_dir(), "doc")
         if not path.exists(docs):
             os.makedirs(docs)
 
@@ -293,4 +294,4 @@ class PostBuildCommands(CommandBase):
         self.doc([])
         import webbrowser
         webbrowser.open("file://" + path.abspath(path.join(
-            self.get_target_dir(), "doc", "servo", "index.html")))
+            servo.util.get_target_dir(), "doc", "servo", "index.html")))

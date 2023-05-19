@@ -40,7 +40,6 @@ from servo.command_base import (
     call, check_call, check_output,
 )
 from servo_tidy_tests import test_tidy
-from servo.platform import host_triple
 
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
@@ -247,16 +246,6 @@ class MachCommands(CommandBase):
 
         packages.discard('stylo')
 
-        env = self.build_env(test_unit=True)
-        # FIXME: https://github.com/servo/servo/issues/26192
-        if "apple-darwin" not in host_triple():
-            env["RUST_BACKTRACE"] = "1"
-
-        if "msvc" in host_triple():
-            # on MSVC, we need some DLLs in the path. They were copied
-            # in to the servo.exe build dir, so just point PATH to that.
-            env["PATH"] = "%s%s%s" % (path.dirname(self.get_binary_path(False, False)), os.pathsep, env["PATH"])
-
         if len(packages) > 0 or len(in_crate_packages) > 0:
             args = []
             for crate in packages:
@@ -270,7 +259,7 @@ class MachCommands(CommandBase):
 
             err = self.run_cargo_build_like_command("bench" if bench else "test",
                                                     args,
-                                                    env=env,
+                                                    env=self.build_env(test_unit=True),
                                                     with_layout_2020=with_layout_2020,
                                                     **kwargs)
             if err:
@@ -393,7 +382,8 @@ class MachCommands(CommandBase):
         return self._test_wpt(android=True, **kwargs)
 
     def _test_wpt(self, android=False, **kwargs):
-        self.set_run_env(android)
+        if not android:
+            os.environ.update(self.build_env())
         return wpt.run.run_tests(**kwargs)
 
     # Helper to ensure all specified paths are handled, otherwise dispatch to appropriate test suite.
