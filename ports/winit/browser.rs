@@ -23,7 +23,7 @@ use servo::webrender_api::ScrollLocation;
 use std::env;
 use std::fs::File;
 use std::io::Write;
-use std::mem;
+
 use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
@@ -59,7 +59,7 @@ where
             current_url: None,
             browser_id: None,
             browsers: Vec::new(),
-            window: window,
+            window,
             clipboard_ctx: match ClipboardContext::new() {
                 Ok(c) => Some(c),
                 Err(e) => {
@@ -73,7 +73,7 @@ where
     }
 
     pub fn get_events(&mut self) -> Vec<WindowEvent> {
-        mem::replace(&mut self.event_queue, Vec::new())
+        std::mem::take(&mut self.event_queue)
     }
 
     pub fn handle_window_events(&mut self, events: Vec<WindowEvent>) {
@@ -279,7 +279,7 @@ where
                         String::from("Untitled")
                     };
                     let title = match self.title {
-                        Some(ref title) if title.len() > 0 => &**title,
+                        Some(ref title) if !title.is_empty() => &**title,
                         _ => &fallback_title,
                     };
                     let title = format!("{} - Servo", title);
@@ -563,7 +563,7 @@ fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
             match tinyfiledialogs::list_dialog("Choose a device", &["Id", "Name"], dialog_rows) {
                 Some(device) => {
                     // The device string format will be "Address|Name". We need the first part of it.
-                    device.split("|").next().map(|s| s.to_string())
+                    device.split('|').next().map(|s| s.to_string())
                 },
                 None => None,
             }
@@ -598,7 +598,7 @@ fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Opt
                 filters.push(tiny_dialog_escape(&s))
             }
             let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
-            let filter_opt = if filters.len() > 0 {
+            let filter_opt = if !filters.is_empty() {
                 Some((filter_ref, ""))
             } else {
                 None
@@ -618,7 +618,7 @@ fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Opt
 
 fn sanitize_url(request: &str) -> Option<ServoUrl> {
     let request = request.trim();
-    ServoUrl::parse(&request)
+    ServoUrl::parse(request)
         .ok()
         .or_else(|| {
             if request.contains('/') || is_reg_domain(request) {
@@ -650,7 +650,7 @@ fn tiny_dialog_escape(raw: &str) -> String {
             _ => Some(c),
         })
         .collect();
-    return shellwords::escape(&s);
+    shellwords::escape(&s)
 }
 
 #[cfg(not(target_os = "linux"))]

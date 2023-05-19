@@ -20,7 +20,7 @@ use surfman::Connection;
 use surfman::Context;
 use surfman::Device;
 use surfman::SurfaceType;
-use winit;
+
 
 pub struct Window {
     webrender_surfman: WebrenderSurfman,
@@ -91,7 +91,7 @@ impl WindowPortsMethods for Window {
     }
 
     fn get_fullscreen(&self) -> bool {
-        return self.fullscreen.get();
+        self.fullscreen.get()
     }
 
     fn is_animating(&self) -> bool {
