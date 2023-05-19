@@ -835,6 +835,9 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Servo")
     def smoketest(self, params):
-        params = params + ['tests/html/close-on-load.html']
+        # We pass `-f` here so that any thread panic will cause Servo to exit,
+        # preventing a panic from hanging execution. This means that these kind
+        # of panics won't cause timeouts on CI.
+        params = params + ['-f', 'tests/html/close-on-load.html']
         return self.context.commands.dispatch(
             'run', self.context, params=params)
