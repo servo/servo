@@ -49,9 +49,8 @@ class MachCommands(CommandBase):
 
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
-        env = self.build_env()
 
-        status = self.run_cargo_build_like_command("check", params, env=env, features=features, **kwargs)
+        status = self.run_cargo_build_like_command("check", params, features=features, **kwargs)
         if status == 0:
             print('Finished checking, binary NOT updated. Consider ./mach build before ./mach run')
 
@@ -191,9 +190,8 @@ class MachCommands(CommandBase):
 
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
-        env = self.build_env()
 
-        return self.run_cargo_build_like_command("fix", params, env=env, features=features, **kwargs)
+        return self.run_cargo_build_like_command("fix", params, features=features, **kwargs)
 
     @Command('cargo-clippy',
              description='Run "cargo clippy"',
@@ -215,9 +213,8 @@ class MachCommands(CommandBase):
 
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
-        env = self.build_env()
 
-        return self.run_cargo_build_like_command("clippy", params, env=env, features=features, **kwargs)
+        return self.run_cargo_build_like_command("clippy", params, features=features, **kwargs)
 
     @Command('grep',
              description='`git grep` for selected directories.',

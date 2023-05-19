@@ -33,9 +33,6 @@ DEPENDENCIES = {
 
 
 class Windows(Base):
-    def __init__(self):
-        pass
-
     @staticmethod
     def cmake_already_installed(required_version: str) -> bool:
         cmake_path = shutil.which("cmake")

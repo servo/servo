@@ -13,6 +13,9 @@ from .base import Base
 from .windows import Windows
 
 
+__platform__ = None
+
+
 def host_platform():
     os_type = platform.system().lower()
     if os_type == "linux":
@@ -47,6 +50,11 @@ def host_triple():
 
 
 def get():
+    # pylint: disable=global-statement
+    global __platform__
+    if __platform__:
+        return __platform__
+
     # We import the concrete platforms in if-statements here, because
     # each one might have platform-specific imports which might not
     # resolve on all platforms.
@@ -54,11 +62,13 @@ def get():
     # stop relying on platform-specific code outside of this module.
     # pylint: disable=import-outside-toplevel
     if "windows-msvc" in host_triple():
-        return Windows()
-    if "linux-gnu" in host_triple():
+        __platform__ = Windows()
+    elif "linux-gnu" in host_triple():
         from .linux import Linux
-        return Linux()
-    if "apple-darwin" in host_triple():
+        __platform__ = Linux()
+    elif "apple-darwin" in host_triple():
         from .macos import MacOS
-        return MacOS()
-    return Base()
+        __platform__ = MacOS()
+    else:
+        __platform__ = Base()
+    return __platform__

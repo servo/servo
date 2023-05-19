@@ -25,6 +25,8 @@ import sys
 import tempfile
 import xml
 
+import servo.util
+
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -42,7 +44,6 @@ from servo.command_base import (
 )
 from servo.build_commands import copy_dependencies, change_rpath_in_binary
 from servo.gstreamer import macos_gst_root
-from servo.util import delete
 
 # Note: mako cannot be imported at the top level because it breaks mach bootstrap
 sys.path.append(path.join(path.dirname(__file__), "..", "..",
@@ -131,7 +132,7 @@ def change_prefs(resources_path, platform, vr=False):
                     prefs[pref] = pref_set[pref]
         with open(prefs_path, "w") as out:
             json.dump(prefs, out, sort_keys=True, indent=2)
-    delete(package_prefs_path)
+    servo.util.delete(package_prefs_path)
 
 
 @CommandProvider
@@ -201,7 +202,7 @@ class PackageCommands(CommandBase):
                 raise Exception("Magic Leap builds need the MLCERT environment variable")
             # GStreamer configuration
             env.setdefault("GSTREAMER_DIR", path.join(
-                self.get_target_dir(), "magicleap", target, "native", "gstreamer-1.16.0"
+                servo.util.get_target_dir(), "magicleap", target, "native", "gstreamer-1.16.0"
             ))
 
             mabu = path.join(env.get("MAGICLEAP_SDK"), "mabu")
@@ -250,7 +251,7 @@ class PackageCommands(CommandBase):
 
             dir_to_resources = path.join(self.get_top_dir(), 'target', 'android', 'resources')
             if path.exists(dir_to_resources):
-                delete(dir_to_resources)
+                servo.util.delete(dir_to_resources)
 
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
             change_prefs(dir_to_resources, "android", vr=vr)
@@ -275,7 +276,7 @@ class PackageCommands(CommandBase):
             dir_to_resources = path.join(dir_to_app, 'Contents', 'Resources')
             if path.exists(dir_to_dmg):
                 print("Cleaning up from previous packaging")
-                delete(dir_to_dmg)
+                servo.util.delete(dir_to_dmg)
 
             print("Copying files")
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
@@ -311,7 +312,7 @@ class PackageCommands(CommandBase):
                 template = mako.template.Template(template_file.read())
                 with open(credits_path, "w") as credits_file:
                     credits_file.write(template.render(version=version))
-            delete(template_path)
+            servo.util.delete(template_path)
 
             print("Creating dmg")
             os.symlink('/Applications', path.join(dir_to_dmg, 'Applications'))
@@ -331,7 +332,7 @@ class PackageCommands(CommandBase):
                 print("Packaging MacOS dmg exited with return value %d" % e.returncode)
                 return e.returncode
             print("Cleaning up")
-            delete(dir_to_dmg)
+            servo.util.delete(dir_to_dmg)
             print("Packaged Servo into " + dmg_path)
 
             print("Creating brew package")
@@ -342,7 +343,7 @@ class PackageCommands(CommandBase):
             tar_path = path.join(dir_to_tar, "servo.tar.gz")
             if path.exists(dir_to_brew):
                 print("Cleaning up from previous packaging")
-                delete(dir_to_brew)
+                servo.util.delete(dir_to_brew)
             if path.exists(tar_path):
                 print("Deleting existing package")
                 os.remove(tar_path)
@@ -360,13 +361,13 @@ class PackageCommands(CommandBase):
             os.makedirs(dir_to_lib)
             copy_dependencies(brew_servo_bin, dir_to_lib, dir_to_gst_lib)
             archive_deterministically(dir_to_brew, tar_path, prepend_path='servo/')
-            delete(dir_to_brew)
+            servo.util.delete(dir_to_brew)
             print("Packaged Servo into " + tar_path)
         elif is_windows():
             dir_to_msi = path.join(target_dir, 'msi')
             if path.exists(dir_to_msi):
                 print("Cleaning up from previous packaging")
-                delete(dir_to_msi)
+                servo.util.delete(dir_to_msi)
             os.makedirs(dir_to_msi)
 
             print("Copying files")
@@ -431,14 +432,14 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + zip_path)
 
             print("Cleaning up")
-            delete(dir_to_temp)
-            delete(dir_to_installer)
+            servo.util.delete(dir_to_temp)
+            servo.util.delete(dir_to_installer)
         else:
             dir_to_temp = path.join(target_dir, 'packaging-temp')
             if path.exists(dir_to_temp):
                 # TODO(aneeshusa): lock dir_to_temp to prevent simultaneous builds
                 print("Cleaning up from previous packaging")
-                delete(dir_to_temp)
+                servo.util.delete(dir_to_temp)
 
             print("Copying files")
             dir_to_resources = path.join(dir_to_temp, 'resources')
@@ -453,7 +454,7 @@ class PackageCommands(CommandBase):
             archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 
             print("Cleaning up")
-            delete(dir_to_temp)
+            servo.util.delete(dir_to_temp)
             print("Packaged Servo into " + tar_path)
 
     @Command('install',

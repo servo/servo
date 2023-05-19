@@ -24,6 +24,7 @@ import zipfile
 from time import time
 
 import notifypy
+import servo.util
 
 from mach.decorators import (
     CommandArgument,
@@ -33,7 +34,7 @@ from mach.decorators import (
 from mach.registrar import Registrar
 
 from mach_bootstrap import _get_exec_path
-from servo.command_base import CommandBase, cd, call, check_call, append_to_path_env, gstreamer_root
+from servo.command_base import CommandBase, cd, call, check_call, gstreamer_root
 from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
 from servo.platform import host_triple
 
@@ -92,7 +93,7 @@ class MachCommands(CommandBase):
         features += media_stack
         has_media_stack = media_stack[0] == "media-gstreamer"
 
-        target_path = base_path = self.get_target_dir()
+        target_path = base_path = servo.util.get_target_dir()
         if android:
             target_path = path.join(target_path, "android")
             base_path = path.join(target_path, target)
@@ -193,7 +194,7 @@ class MachCommands(CommandBase):
 
             # Ensure that the NuGet ANGLE package containing libEGL is accessible
             # to the Rust linker.
-            append_to_path_env(angle_root(target_triple, env), env, "LIB")
+            servo.util.append_paths_to_env(env, "LIB", angle_root(target_triple, env))
 
             # Don't want to mix non-UWP libraries with vendored UWP libraries.
             if "gstreamer" in env['LIB']:
@@ -230,7 +231,7 @@ class MachCommands(CommandBase):
         if 'windows' in target_triple:
             gst_root = gstreamer_root(target_triple, env)
             if gst_root:
-                append_to_path_env(os.path.join(gst_root, "lib"), env, "LIB")
+                servo.util.append_paths_to_env(env, "LIB", os.path.join(gst_root, "lib"))
 
         if android:
             if "ANDROID_NDK" not in env:

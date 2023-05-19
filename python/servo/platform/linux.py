@@ -9,12 +9,15 @@
 
 import os
 import subprocess
+import tempfile
 
 from typing import Tuple
 
 import distro
 import six
 
+
+from .. import util
 from .base import Base
 
 # Please keep these in sync with the packages in README.md
@@ -48,10 +51,30 @@ XBPS_PKGS = ['libtool', 'gcc', 'libXi-devel', 'freetype-devel',
              'clang', 'gstreamer1-devel', 'autoconf213',
              'gst-plugins-base1-devel', 'gst-plugins-bad1-devel']
 
+PREPACKAGED_GSTREAMER_URL = \
+    "https://github.com/servo/servo-build-deps/releases/download/linux/gstreamer-1.16-x86_64-linux-gnu.20190515.tar.gz"
+PREPACKAGED_GSTREAMER_DIR = \
+    os.path.join(util.get_target_dir(), "target", "dependencies", "gstreamer")
+
 
 class Linux(Base):
     def __init__(self):
+        super().__init__()
         (self.distro, self.version) = Linux.get_distro_and_version()
+        self.setup_environment()
+
+    def setup_environment(self):
+        # If the prepackaged GStreamer exists, then let that take precedance
+        # over the system version of GStreamer.
+        self.environ = os.environ.copy()
+        gstreamer_root = os.path.join(PREPACKAGED_GSTREAMER_DIR, "gst")
+        gstreamer_libdir = os.path.join(PREPACKAGED_GSTREAMER_DIR, gstreamer_root, "lib")
+        if os.path.isdir(gstreamer_libdir):
+            util.prepend_paths_to_env(self.environ, "LD_LIBRARY_PATH", gstreamer_libdir)
+            util.prepend_paths_to_env(self.environ, "PKG_CONFIG_PATH", os.path.join(gstreamer_libdir, "pkgconfig"))
+            self.environ["GST_PLUGIN_SCANNER"] = os.path.join(
+                gstreamer_root, "libexec", "gstreamer-1.0", "gst-plugin-scanner")
+            self.environ["GST_PLUGIN_SYSTEM_PATH"] = os.path.join(gstreamer_libdir, "gstreamer-1.0")
 
     @staticmethod
     def get_distro_and_version() -> Tuple[str, str]:
@@ -164,8 +187,21 @@ class Linux(Base):
         if self.is_gstreamer_installed():
             return False
 
-        gstdir = os.path.join(os.curdir, "support", "linux", "gstreamer")
-        if not os.path.isdir(os.path.join(gstdir, "gst", "lib")):
-            subprocess.check_call(["bash", "gstreamer.sh"], cwd=gstdir)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_name = os.path.join(
+                temp_dir,
+                PREPACKAGED_GSTREAMER_URL.rsplit('/', maxsplit=1)[-1]
+            )
+            util.download_file(
+                "Pre-packaged GStreamer binaries",
+                PREPACKAGED_GSTREAMER_URL, file_name
+            )
+
+            print(f"Unpacking GStreamer to {PREPACKAGED_GSTREAMER_DIR}...")
+            os.makedirs(PREPACKAGED_GSTREAMER_DIR, exist_ok=True)
+            subprocess.check_call(["tar", "xf", file_name, "-C", PREPACKAGED_GSTREAMER_DIR])
+
+            self.setup_environment()
+            assert self.is_gstreamer_installed()
+
             return True
-        return False

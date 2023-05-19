@@ -15,9 +15,6 @@ from ..gstreamer import macos_gst_root
 
 
 class MacOS(Base):
-    def __init__(self):
-        pass
-
     def _platform_is_gstreamer_installed(self) -> bool:
         # We override homebrew gstreamer if installed and always use pkgconfig
         # from official gstreamer framework.

@@ -7,10 +7,14 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import os
 import subprocess
 
 
 class Base:
+    def __init__(self):
+        self.environ = os.environ.copy()
+
     def _platform_bootstrap(self, _cache_dir: str, _force: bool) -> bool:
         raise NotImplementedError("Bootstrap installation detection not yet available.")
 
