@@ -52,8 +52,16 @@ impl BlockFormattingContext {
         runs: impl Iterator<Item = TextRun>,
         text_decoration_line: TextDecorationLine,
     ) -> Self {
-        // FIXME: do white space collapsing
         let inline_level_boxes = runs
+            .map(|run| {
+                let white_space = run.parent_style.get_inherited_text().white_space;
+                let output = collapse_white_space(&run.text, white_space);
+                TextRun {
+                    text: output,
+                    parent_style: run.parent_style,
+                    base_fragment_info: run.base_fragment_info,
+                }
+            })
             .map(|run| ArcRefCell::new(InlineLevelBox::TextRun(run)))
             .collect();
 
@@ -387,6 +395,58 @@ where
             })))
         }
     }
+}
+
+fn collapse_white_space(input: &str, white_space: WhiteSpace) -> String {
+    let mut input = input.trim_start_matches(|c: char| c.is_ascii_whitespace());
+    let mut output = String::new();
+
+    match (
+        white_space.preserve_spaces(),
+        white_space.preserve_newlines(),
+    ) {
+        // All whitespace is significant, so we don't need to transform
+        // the input at all.
+        (true, true) => {
+            output.push_str(input);
+        },
+
+        // There are no cases in CSS where where need to preserve spaces
+        // but not newlines.
+        (true, false) => unreachable!(),
+
+        // Spaces are not significant, but newlines might be. We need
+        // to collapse non-significant whitespace as appropriate.
+        (false, preserve_newlines) => loop {
+            // If there are any spaces that need preserving, split the string
+            // that precedes them, collapse them into a single whitespace,
+            // then process the remainder of the string independently.
+            if let Some(i) = input
+                .bytes()
+                .position(|b| b.is_ascii_whitespace() && (!preserve_newlines || b != b'\n'))
+            {
+                let (non_whitespace, rest) = input.split_at(i);
+                output.push_str(non_whitespace);
+                output.push(' ');
+
+                // Find the first byte that is either significant whitespace or
+                // non-whitespace to continue processing it.
+                if let Some(i) = rest
+                    .bytes()
+                    .position(|b| !b.is_ascii_whitespace() || (preserve_newlines && b == b'\n'))
+                {
+                    input = &rest[i..];
+                } else {
+                    break;
+                }
+            } else {
+                // No whitespace found, so no transformation is required.
+                output.push_str(input);
+                break;
+            }
+        },
+    }
+    output
 }
 
 impl<'dom, Node> BlockContainerBuilder<'dom, '_, Node>
