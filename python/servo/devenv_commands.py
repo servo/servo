@@ -10,7 +10,6 @@
 from __future__ import print_function, unicode_literals
 from os import path, listdir, getcwd
 
-import json
 import signal
 import subprocess
 import sys
@@ -96,67 +95,19 @@ class MachCommands(CommandBase):
         if not params:
             params = []
 
-        if dry_run:
-            import toml
-            import httplib
-            import colorama
-
-            cargo_file = open(path.join(self.context.topdir, "Cargo.lock"))
-            content = toml.load(cargo_file)
-
-            packages = {}
-            outdated_packages = 0
-            conn = httplib.HTTPSConnection("crates.io")
-            for package in content.get("package", []):
-                if "replace" in package:
-                    continue
-                source = package.get("source", "")
-                if source == r"registry+https://github.com/rust-lang/crates.io-index":
-                    version = package["version"]
-                    name = package["name"]
-                    if not packages.get(name, "") or packages[name] > version:
-                        packages[name] = package["version"]
-                        conn.request('GET', '/api/v1/crates/{}/versions'.format(package["name"]))
-                        r = conn.getresponse()
-                        json_content = json.load(r)
-                        for v in json_content.get("versions"):
-                            if not v.get("yanked"):
-                                max_version = v.get("num")
-                                break
-
-                        if version != max_version:
-                            outdated_packages += 1
-                            version_major, version_minor = (version.split("."))[:2]
-                            max_major, max_minor = (max_version.split("."))[:2]
-
-                            if version_major == max_major and version_minor == max_minor and "alpha" not in version:
-                                msg = "minor update"
-                                msg_color = "\033[93m"
-                            else:
-                                msg = "update, which may contain breaking changes"
-                                msg_color = "\033[91m"
-
-                            colorama.init()
-                            print("{}Outdated package `{}`, available {}\033[0m".format(msg_color, name, msg),
-                                  "\n\tCurrent version: {}".format(version),
-                                  "\n\t Latest version: {}".format(max_version))
-            conn.close()
-
-            print("\nFound {} outdated packages from crates.io".format(outdated_packages))
-        elif package:
-            params += ["-p", package]
-        elif all_packages:
-            params = []
-        else:
+        if not package and not all_packages:
             print("Please choose package to update with the --package (-p) ")
             print("flag or update all packages with --all-packages (-a) flag")
             sys.exit(1)
 
-        if params or all_packages:
-            self.ensure_bootstrapped()
+        if package:
+            params += ["-p", package]
+        if dry_run:
+            params.append("--dry-run")
 
-            with cd(self.context.topdir):
-                self.call_rustup_run(["cargo", "update"] + params, env=self.build_env())
+        self.ensure_bootstrapped()
+        with cd(self.context.topdir):
+            self.call_rustup_run(["cargo", "update"] + params, env=self.build_env())
 
     @Command('rustc',
              description='Run the Rust compiler',
