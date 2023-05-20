@@ -77,7 +77,7 @@ fn compute_tick_duration(tick_actions: &ActionSequence) -> u64 {
             }
         },
         ActionsType::Key { actions: _ } => (),
-        ActionsType::Wheel { actions } => todo!("Not implemented."),
+        ActionsType::Wheel { .. } => todo!("Not implemented."),
     }
     duration
 }
@@ -189,7 +189,7 @@ impl Handler {
                     }
                 }
             },
-            ActionsType::Wheel { actions } => todo!("Not implemented."),
+            ActionsType::Wheel { .. } => todo!("Not implemented."),
         }
 
         Ok(())
