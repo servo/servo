@@ -1473,6 +1473,12 @@ impl ScriptThread {
         let mut mouse_move_event_index = None;
         let mut animation_ticks = HashSet::new();
         loop {
+            let pipeline_id = self.message_to_pipeline(&event);
+            let _realm = pipeline_id.map(|id| {
+                let global = self.documents.borrow().find_global(id);
+                global.map(|global| enter_realm(&*global))
+            });
+
             // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7
             match event {
                 // This has to be handled before the ResizeMsg below,
@@ -1764,7 +1770,9 @@ impl ScriptThread {
             MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
                 StopDelayingLoadEventsMode(id) => Some(id),
                 NavigationResponse(id, _) => Some(id),
-                AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
+                AttachLayout(ref new_layout_info) => new_layout_info
+                    .parent_info
+                    .or(Some(new_layout_info.new_pipeline_id)),
                 Resize(id, ..) => Some(id),
                 ResizeInactive(id, ..) => Some(id),
                 UnloadDocument(id) => Some(id),
