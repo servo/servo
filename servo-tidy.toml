@@ -23,11 +23,10 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
-  "time",
-  "cookie",
   "arrayvec",
   "base64",
   "cfg-if",
+  "cookie",
   "crossbeam-channel",
   "crossbeam-utils",
   "fixedbitset",
@@ -52,19 +51,18 @@ packages = [
   "rand_core",
   "redox_syscall",
   "ron",
+  "time",
   "wasi",
   "wayland-sys",
 
   # https://github.com/servo/servo/issues/26933
+  "bytes",
   "futures",
   "mio",
-  "tokio-openssl",
+  "pin-project-lite",
   "tokio",
   "tokio-macros",
-  "tokio-util",
-  "httpdate",
-  "bytes",
-  "pin-project-lite",
+  "tokio-openssl",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gl_generator",
@@ -78,11 +76,11 @@ packages = [
   "nix",
 
   # Duplicated by webrender debugger via ws
+  "block-buffer",
   "digest",
   "generic-array",
   "opaque-debug",
   "sha-1",
-  "block-buffer",
 
   # Duplicated by winit/surfman update.
   "raw-window-handle",
