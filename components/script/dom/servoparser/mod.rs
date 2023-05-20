@@ -919,6 +919,7 @@ impl FetchResponseListener for ParserContext {
         if parser.aborted.get() {
             return;
         }
+        let _realm = enter_realm(&*parser);
         parser.parse_bytes_chunk(payload);
     }
 
@@ -933,6 +934,8 @@ impl FetchResponseListener for ParserContext {
         if parser.aborted.get() {
             return;
         }
+
+        let _realm = enter_realm(&*parser);
 
         match status {
             // are we throwing this away or can we use it?

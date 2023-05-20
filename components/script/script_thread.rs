@@ -1649,6 +1649,7 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#the-end step 6
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
             for document in docs.iter() {
+                let _realm = enter_realm(&**document);
                 document.maybe_queue_document_completion();
             }
             docs.clear();
