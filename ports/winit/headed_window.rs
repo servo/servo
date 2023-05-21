@@ -14,9 +14,8 @@ use euclid::{
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
-#[cfg(any(target_os = "linux", target_os = "windows"))]
-use image;
-use keyboard_types::{Key, KeyState, KeyboardEvent};
+
+use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::Cursor;
@@ -31,7 +30,7 @@ use servo::webrender_surfman::WebrenderSurfman;
 use servo_media::player::context::{GlApi, GlContext as PlayerGLContext, NativeDisplay};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::mem;
+
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
 use surfman::platform::generic::multi::connection::NativeConnection;
@@ -120,10 +119,10 @@ impl Window {
         let PhysicalSize {
             width: screen_width,
             height: screen_height,
-        } = primary_monitor.clone().size();
-        let screen_size = Size2D::new(screen_width as u32, screen_height as u32);
+        } = primary_monitor.size();
+        let screen_size = Size2D::new(screen_width, screen_height);
         let PhysicalSize { width, height } = winit_window.inner_size();
-        let inner_size = Size2D::new(width as u32, height as u32);
+        let inner_size = Size2D::new(width, height);
 
         // Initialize surfman
         let connection =
@@ -298,7 +297,7 @@ impl Window {
 
 impl WindowPortsMethods for Window {
     fn get_events(&self) -> Vec<WindowEvent> {
-        mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
+        std::mem::take(&mut *self.event_queue.borrow_mut())
     }
 
     fn has_events(&self) -> bool {
@@ -319,12 +318,12 @@ impl WindowPortsMethods for Window {
 
     fn set_inner_size(&self, size: DeviceIntSize) {
         self.winit_window
-            .set_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(size.width.into(), size.height.into()))
+            .set_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(size.width, size.height))
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
         self.winit_window
-            .set_outer_position::<PhysicalPosition<i32>>(PhysicalPosition::new(point.x.into(), point.y.into()))
+            .set_outer_position::<PhysicalPosition<i32>>(PhysicalPosition::new(point.x, point.y))
     }
 
     fn set_fullscreen(&self, state: bool) {
@@ -340,7 +339,7 @@ impl WindowPortsMethods for Window {
     }
 
     fn get_fullscreen(&self) -> bool {
-        return self.fullscreen.get();
+        self.fullscreen.get()
     }
 
     fn set_cursor(&self, cursor: Cursor) {
@@ -532,7 +531,7 @@ impl WindowMethods for Window {
             viewport,
             framebuffer,
             window: (win_size, win_origin),
-            screen: screen,
+            screen,
             // FIXME: Winit doesn't have API for available size. Fallback to screen size
             screen_avail: screen,
             hidpi_factor: self.servo_hidpi_factor(),
@@ -672,11 +671,11 @@ impl webxr::glwindow::GlWindow for XRWindow {
     }
 
     fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
-        self.pose.xr_rotation.get().clone()
+        self.pose.xr_rotation.get()
     }
 
     fn get_translation(&self) -> Vector3D<f32, UnknownUnit> {
-        self.pose.xr_translation.get().clone()
+        self.pose.xr_translation.get()
     }
 
     fn get_mode(&self) -> webxr::glwindow::GlWindowMode {
@@ -736,8 +735,8 @@ impl XRWindowPose {
             _ => return,
         };
         if modifiers.shift() {
-            x = 10.0 * x;
-            y = 10.0 * y;
+            x *= 10.0;
+            y *= 10.0;
         }
         let x: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_x(Angle::degrees(x));
         let y: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_y(Angle::degrees(y));

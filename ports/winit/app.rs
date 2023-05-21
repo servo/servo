@@ -19,7 +19,7 @@ use servo::Servo;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::env;
-use std::mem;
+
 use std::rc::Rc;
 use webxr::glwindow::GlWindowDiscovery;
 
@@ -138,7 +138,7 @@ impl App {
     }
 
     fn get_events(&self) -> Vec<WindowEvent> {
-        mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
+        std::mem::take(&mut *self.event_queue.borrow_mut())
     }
 
     // This function decides whether the event should be handled during `run_forever`.

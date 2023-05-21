@@ -17,12 +17,12 @@ pub fn register_user_prefs(opts_matches: &Matches) {
     let user_prefs_path = opts::get()
         .config_dir
         .clone()
-        .or_else(|| basedir::default_config_dir())
+        .or_else(basedir::default_config_dir)
         .map(|path| path.join("prefs.json"))
         .filter(|path| path.exists());
 
     let mut userprefs = if let Some(path) = user_prefs_path {
-        let mut file = File::open(&path).expect("Error opening user prefs");
+        let mut file = File::open(path).expect("Error opening user prefs");
         let mut txt = String::new();
         file.read_to_string(&mut txt)
             .expect("Can't read user prefs file");
@@ -41,9 +41,9 @@ pub fn register_user_prefs(opts_matches: &Matches) {
                 Some("true") | None => PrefValue::Bool(true),
                 Some("false") => PrefValue::Bool(false),
                 Some(string) => {
-                    if let Some(int) = string.parse::<i64>().ok() {
+                    if let Ok(int) = string.parse::<i64>() {
                         PrefValue::Int(int)
-                    } else if let Some(float) = string.parse::<f64>().ok() {
+                    } else if let Ok(float) = string.parse::<f64>() {
                         PrefValue::Float(float)
                     } else {
                         PrefValue::from(string)
@@ -83,14 +83,14 @@ fn test_parse_pref_from_command_line() {
         prefs::pref_map().get("dom.bluetooth.enabled"),
         PrefValue::Bool(true)
     );
-    assert_eq!(pref!(dom.bluetooth.enabled), true);
+    assert!(pref!(dom.bluetooth.enabled));
 
     test_parse_pref("dom.bluetooth.enabled=false");
     assert_eq!(
         prefs::pref_map().get("dom.bluetooth.enabled"),
         PrefValue::Bool(false)
     );
-    assert_eq!(pref!(dom.bluetooth.enabled), false);
+    assert!(pref!(dom.bluetooth.enabled));
 
     // Test with numbers
     test_parse_pref("layout.threads=42");
@@ -105,7 +105,7 @@ fn test_parse_pref_from_command_line() {
         .set("dom.bluetooth.enabled", false)
         .unwrap();
     test_parse_pref("dom.bluetooth.enabled");
-    assert_eq!(pref!(dom.bluetooth.enabled), true);
+    assert!(pref!(dom.bluetooth.enabled));
 }
 
 #[test]

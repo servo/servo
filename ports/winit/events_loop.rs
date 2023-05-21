@@ -7,7 +7,7 @@
 use servo::embedder_traits::EventLoopWaker;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time;
-use winit;
+
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
@@ -66,7 +66,7 @@ impl EventsLoop {
                 let events_loop = events_loop
                     .as_ref()
                     .expect("Can't create waker for unavailable event loop.");
-                Box::new(HeadedEventLoopWaker::new(&events_loop))
+                Box::new(HeadedEventLoopWaker::new(events_loop))
             },
             EventLoop::Headless(ref data) => Box::new(HeadlessEventLoopWaker(data.clone())),
         }
@@ -95,7 +95,7 @@ impl EventsLoop {
                 });
             }
             EventLoop::Headless(ref data) => {
-                let &(ref flag, ref condvar) = &**data;
+                let (flag, condvar) = &**data;
                 let mut event = winit::event::Event::NewEvents(winit::event::StartCause::Init);
                 loop {
                     self.sleep(flag, condvar);

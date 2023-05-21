@@ -9,7 +9,7 @@ use crate::events_loop::ServoEvent;
 use servo::compositing::windowing::{WindowEvent, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
-use winit;
+
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;
