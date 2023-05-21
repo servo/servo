@@ -557,8 +557,6 @@ class MachCommands(CommandBase):
             features=features, **kwargs
         )
 
-        elapsed = time() - build_start
-
         # Do some additional things if the build succeeded
         if status == 0:
             if android and not no_package:
@@ -656,6 +654,7 @@ class MachCommands(CommandBase):
 
         # Generate Desktop Notification if elapsed-time > some threshold value
 
+        elapsed = time() - build_start
         elapsed_delta = datetime.timedelta(seconds=int(elapsed))
         build_message = f"{'Succeeded' if status == 0 else 'Failed'} in {elapsed_delta}"
         self.notify("Servo build", build_message)
