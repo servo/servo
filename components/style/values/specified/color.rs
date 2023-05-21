@@ -369,8 +369,6 @@ pub enum SystemColor {
     MozComboboxtext,
     MozCombobox,
 
-    MozGtkInfoBarText,
-
     /// Color of tree column headers
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozColheadertext,

@@ -1839,8 +1839,6 @@ pub enum Appearance {
     MozWindowTitlebarMaximized,
 
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozGtkInfoBar,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozMacActiveSourceListSelection,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozMacDisclosureButtonClosed,
