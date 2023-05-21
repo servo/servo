@@ -858,8 +858,8 @@ def copy_dependencies(binary_path, lib_path, gst_root):
 
     # Update binary libraries
     binary_dependencies = set(otool(binary_path))
-    binary_dependencies = binary_dependencies.union(macos_plugins())
     change_non_system_libraries_path(binary_dependencies, relative_path, binary_path)
+    binary_dependencies = binary_dependencies.union(macos_plugins())
 
     # Update dependencies libraries
     need_checked = binary_dependencies
