@@ -196,13 +196,13 @@ pub enum SystemColor {
     TextBackground,
     #[css(skip)]
     TextForeground,
-    #[css(skip)]
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectBackground,
-    #[css(skip)]
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectForeground,
-    #[css(skip)]
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectBackgroundDisabled,
-    #[css(skip)]
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectBackgroundAttention,
     #[css(skip)]
     TextHighlightBackground,
@@ -417,9 +417,15 @@ impl SystemColor {
             SystemColor::Activetext => prefs.mActiveLinkColor,
             SystemColor::Visitedtext => prefs.mVisitedLinkColor,
 
-            _ => unsafe {
-                bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document(), scheme)
-            },
+            _ => {
+                let color = unsafe {
+                    bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document(), scheme)
+                };
+                if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
+                    return ComputedColor::currentcolor();
+                }
+                color
+            }
         })
     }
 }
