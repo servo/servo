@@ -147,7 +147,7 @@ impl<L> BorderSpacing<L> {
     }
 }
 
-/// A generic value for `border-radius`, `outline-radius` and `inset()`.
+/// A generic value for `border-radius` and `inset()`.
 ///
 /// <https://drafts.csswg.org/css-backgrounds-3/#border-radius>
 #[derive(

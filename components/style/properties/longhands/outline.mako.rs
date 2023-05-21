@@ -42,20 +42,6 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-width",
 )}
 
-// The -moz-outline-radius-* properties are non-standard and not on a standards track.
-% for corner in ["topleft", "topright", "bottomright", "bottomleft"]:
-    ${helpers.predefined_type(
-        "-moz-outline-radius-" + corner,
-        "BorderCornerRadius",
-        "computed::BorderCornerRadius::zero()",
-        engines="gecko",
-        boxed=True,
-        animation_value_type="BorderCornerRadius",
-        gecko_pref="layout.css.moz-outline-radius.enabled",
-        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)",
-    )}
-% endfor
-
 ${helpers.predefined_type(
     "outline-offset",
     "Length",
