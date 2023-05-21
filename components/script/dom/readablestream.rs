@@ -120,7 +120,7 @@ impl ReadableStream {
     ) -> DomRoot<ReadableStream> {
         let _ar = enter_realm(global);
         let _ais = AutoIncumbentScript::new(global);
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
 
         let source = Rc::new(ExternalUnderlyingSourceController::new(source));
 
@@ -157,7 +157,7 @@ impl ReadableStream {
     pub fn enqueue_native(&self, bytes: Vec<u8>) {
         let global = self.global();
         let _ar = enter_realm(&*global);
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
 
         let handle = unsafe { self.js_stream.handle() };
 
@@ -171,7 +171,7 @@ impl ReadableStream {
     pub fn error_native(&self, error: Error) {
         let global = self.global();
         let _ar = enter_realm(&*global);
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
 
         unsafe {
             rooted!(in(*cx) let mut js_error = UndefinedValue());
@@ -188,7 +188,7 @@ impl ReadableStream {
     pub fn close_native(&self) {
         let global = self.global();
         let _ar = enter_realm(&*global);
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
 
         let handle = unsafe { self.js_stream.handle() };
 
@@ -223,7 +223,7 @@ impl ReadableStream {
 
         let global = self.global();
         let _ar = enter_realm(&*global);
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
 
         unsafe {
             rooted!(in(*cx) let reader = ReadableStreamGetReader(
@@ -253,7 +253,7 @@ impl ReadableStream {
         let _ar = enter_realm(&*global);
         let _aes = AutoEntryScript::new(&*global);
 
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
 
         unsafe {
             rooted!(in(*cx) let promise_obj = ReadableStreamDefaultReaderRead(
@@ -276,7 +276,7 @@ impl ReadableStream {
 
         let global = self.global();
         let _ar = enter_realm(&*global);
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
 
         unsafe {
             ReadableStreamReaderReleaseLock(*cx, self.js_reader.handle());
@@ -293,7 +293,7 @@ impl ReadableStream {
         }
 
         // Otherwise, still double-check that script didn't lock the stream.
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         let mut locked_or_disturbed = false;
 
         unsafe {
@@ -306,7 +306,7 @@ impl ReadableStream {
     #[allow(unsafe_code)]
     pub fn is_disturbed(&self) -> bool {
         // Check that script didn't disturb the stream.
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         let mut locked_or_disturbed = false;
 
         unsafe {

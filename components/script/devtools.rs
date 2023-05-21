@@ -33,7 +33,7 @@ use uuid::Uuid;
 pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<EvaluateJSReply>) {
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
     let result = unsafe {
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         let _ac = enter_realm(global);
         rooted!(in(*cx) let mut rval = UndefinedValue());
         let source_code = SourceCode::Text(Rc::new(DOMString::from_string(eval)));

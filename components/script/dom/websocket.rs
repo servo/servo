@@ -554,9 +554,9 @@ impl TaskOnce for MessageReceivedTask {
 
         // Step 2-5.
         let global = ws.global();
-        // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
+        // GlobalScope::get_cx() returns a valid `JSContext` pointer, so this is safe.
         unsafe {
-            let cx = global.get_cx();
+            let cx = GlobalScope::get_cx();
             let _ac = JSAutoRealm::new(*cx, ws.reflector().get_jsobject().get());
             rooted!(in(*cx) let mut message = UndefinedValue());
             match self.message {

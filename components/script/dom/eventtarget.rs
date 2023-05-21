@@ -184,7 +184,7 @@ impl CompiledEventListener {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             if object.is::<Window>() || object.is::<WorkerGlobalScope>() {
-                                let cx = object.global().get_cx();
+                                let cx = GlobalScope::get_cx();
                                 rooted!(in(*cx) let error = event.Error(cx));
                                 let return_value = handler.Call_(
                                     object,
@@ -242,7 +242,7 @@ impl CompiledEventListener {
 
                     CommonEventHandler::EventHandler(ref handler) => {
                         if let Ok(value) = handler.Call_(object, event, exception_handle) {
-                            let cx = object.global().get_cx();
+                            let cx = GlobalScope::get_cx();
                             rooted!(in(*cx) let value = value);
                             let value = value.handle();
 
@@ -525,7 +525,7 @@ impl EventTarget {
         let is_error = ty == &atom!("error") && self.is::<Window>();
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
 
-        let cx = window.get_cx();
+        let cx = GlobalScope::get_cx();
         let options = unsafe {
             CompileOptionsWrapper::new(*cx, &handler.url.to_string(), handler.line as u32)
         };
@@ -592,7 +592,7 @@ impl EventTarget {
     where
         T: CallbackContainer,
     {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::EventHandler(unsafe {
@@ -607,7 +607,7 @@ impl EventTarget {
     where
         T: CallbackContainer,
     {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(unsafe {
@@ -625,7 +625,7 @@ impl EventTarget {
     ) where
         T: CallbackContainer,
     {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
@@ -637,7 +637,7 @@ impl EventTarget {
 
     #[allow(unsafe_code)]
     pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         let listener = self.get_inline_event_listener(&Atom::from(ty));
         unsafe {
             listener.map(|listener| {

@@ -85,14 +85,14 @@ impl WorkletGlobalScope {
     }
 
     /// Get the JS context.
-    pub fn get_cx(&self) -> JSContext {
-        self.globalscope.get_cx()
+    pub fn get_cx() -> JSContext {
+        GlobalScope::get_cx()
     }
 
     /// Evaluate a JS script in this global.
     pub fn evaluate_js(&self, script: &str) -> bool {
         debug!("Evaluating Dom in a worklet.");
-        rooted!(in (*self.globalscope.get_cx()) let mut rval = UndefinedValue());
+        rooted!(in (*GlobalScope::get_cx()) let mut rval = UndefinedValue());
         self.globalscope.evaluate_js_on_global_with_result(
             &*script,
             rval.handle_mut(),

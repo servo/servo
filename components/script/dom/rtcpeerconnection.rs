@@ -548,7 +548,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addicecandidate
     fn AddIceCandidate(&self, candidate: &RTCIceCandidateInit, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(&self.global(), comp);
+        let p = Promise::new_in_current_realm(comp);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
             p.reject_error(Error::Type(format!(
                 "one of sdpMid and sdpMLineIndex must be set"
@@ -583,7 +583,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer
     fn CreateOffer(&self, _options: &RTCOfferOptions, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(&self.global(), comp);
+        let p = Promise::new_in_current_realm(comp);
         if self.closed.get() {
             p.reject_error(Error::InvalidState);
             return p;
@@ -595,7 +595,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
 
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer
     fn CreateAnswer(&self, _options: &RTCAnswerOptions, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(&self.global(), comp);
+        let p = Promise::new_in_current_realm(comp);
         if self.closed.get() {
             p.reject_error(Error::InvalidState);
             return p;
@@ -618,7 +618,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-setlocaldescription
     fn SetLocalDescription(&self, desc: &RTCSessionDescriptionInit, comp: InRealm) -> Rc<Promise> {
         // XXXManishearth validate the current state
-        let p = Promise::new_in_current_realm(&self.global(), comp);
+        let p = Promise::new_in_current_realm(comp);
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.into();
         let trusted_promise = TrustedPromise::new(p.clone());
@@ -651,7 +651,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-setremotedescription
     fn SetRemoteDescription(&self, desc: &RTCSessionDescriptionInit, comp: InRealm) -> Rc<Promise> {
         // XXXManishearth validate the current state
-        let p = Promise::new_in_current_realm(&self.global(), comp);
+        let p = Promise::new_in_current_realm(comp);
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.into();
         let trusted_promise = TrustedPromise::new(p.clone());

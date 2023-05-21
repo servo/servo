@@ -78,7 +78,7 @@ impl GPUAdapterMethods for GPUAdapter {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice
     fn RequestDevice(&self, descriptor: &GPUDeviceDescriptor, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
         let sender = response_async(&promise, self);
         let mut features = wgt::Features::empty();
         for &ext in descriptor.extensions.iter() {

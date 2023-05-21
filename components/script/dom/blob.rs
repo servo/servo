@@ -238,8 +238,8 @@ impl BlobMethods for Blob {
     // https://w3c.github.io/FileAPI/#text-method-algo
     fn Text(&self) -> Rc<Promise> {
         let global = self.global();
-        let in_realm_proof = AlreadyInRealm::assert(&global);
-        let p = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+        let in_realm_proof = AlreadyInRealm::assert();
+        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
         let id = self.get_blob_url_id();
         global.read_file_async(
             id,
@@ -261,8 +261,8 @@ impl BlobMethods for Blob {
     // https://w3c.github.io/FileAPI/#arraybuffer-method-algo
     fn ArrayBuffer(&self) -> Rc<Promise> {
         let global = self.global();
-        let in_realm_proof = AlreadyInRealm::assert(&global);
-        let p = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+        let in_realm_proof = AlreadyInRealm::assert();
+        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
         let id = self.get_blob_url_id();
 
@@ -272,7 +272,7 @@ impl BlobMethods for Blob {
             Box::new(|promise, bytes| {
                 match bytes {
                     Ok(b) => {
-                        let cx = promise.global().get_cx();
+                        let cx = GlobalScope::get_cx();
                         let result = run_array_buffer_data_algorithm(cx, b);
 
                         match result {

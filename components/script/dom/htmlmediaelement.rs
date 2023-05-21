@@ -62,7 +62,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
-use crate::realms::InRealm;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
@@ -74,6 +74,7 @@ use html5ever::{LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js::jsapi::JSAutoRealm;
 use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::image::base::Image;
 use net_traits::request::Destination;
@@ -2112,7 +2113,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-play
     fn Play(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
         // Step 1.
         // FIXME(nox): Reject promise if not allowed to play.
 
@@ -2504,6 +2505,14 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                     elem.seek_end();
                 }
             },
+        }
+    }
+
+    fn enter_realm(&self) -> JSAutoRealm {
+        match self {
+            &MediaElementMicrotask::ResourceSelectionTask { ref elem, .. } |
+            &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } |
+            &MediaElementMicrotask::SeekedTask { ref elem, .. } => enter_realm(&**elem),
         }
     }
 }

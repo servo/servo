@@ -9,8 +9,9 @@ use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
@@ -172,7 +173,7 @@ impl AudioBuffer {
             self.length as usize,
             self.sample_rate,
         );
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             // Step 1.
             if channel.get().is_null() {
@@ -271,7 +272,7 @@ impl AudioBufferMethods for AudioBuffer {
         }
 
         let bytes_to_copy = min(self.length - start_in_channel, destination.len() as u32) as usize;
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         let channel_number = channel_number as usize;
         let offset = start_in_channel as usize;
         let mut dest = Vec::with_capacity(destination.len());
@@ -313,7 +314,7 @@ impl AudioBufferMethods for AudioBuffer {
             return Err(Error::IndexSize);
         }
 
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         if !self.restore_js_channel_data(cx) {
             return Err(Error::JSFailed);
         }

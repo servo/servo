@@ -252,7 +252,7 @@ impl PaintWorkletGlobalScope {
             name, size_in_px.width, size_in_px.height, device_pixel_ratio
         );
 
-        let cx = self.worklet_global.get_cx();
+        let cx = WorkletGlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, self.worklet_global.reflector().get_jsobject().get());
 
         // TODO: Steps 1-2.1.
@@ -517,7 +517,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
     /// <https://drafts.css-houdini.org/css-paint-api/#dom-paintworkletglobalscope-registerpaint>
     fn RegisterPaint(&self, name: DOMString, paint_ctor: Rc<VoidFunction>) -> Fallible<()> {
         let name = Atom::from(name);
-        let cx = self.worklet_global.get_cx();
+        let cx = WorkletGlobalScope::get_cx();
         rooted!(in(*cx) let paint_obj = paint_ctor.callback_holder().get());
         rooted!(in(*cx) let paint_val = ObjectValue(paint_obj.get()));
 

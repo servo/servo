@@ -100,7 +100,7 @@ impl GPUMethods for GPU {
     // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter
     fn RequestAdapter(&self, options: &GPURequestAdapterOptions, comp: InRealm) -> Rc<Promise> {
         let global = &self.global();
-        let promise = Promise::new_in_current_realm(global, comp);
+        let promise = Promise::new_in_current_realm(comp);
         let sender = response_async(&promise, self);
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,

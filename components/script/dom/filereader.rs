@@ -258,7 +258,7 @@ impl FileReader {
                 let _ac = enter_realm(&*fr);
                 FileReader::perform_readasarraybuffer(
                     &fr.result,
-                    fr.global().get_cx(),
+                    GlobalScope::get_cx(),
                     data,
                     &blob_contents,
                 )

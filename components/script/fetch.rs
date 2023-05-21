@@ -142,7 +142,7 @@ pub fn Fetch(
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
-    let promise = Promise::new_in_current_realm(global, comp);
+    let promise = Promise::new_in_current_realm(comp);
     let response = Response::new(global);
 
     // Step 2

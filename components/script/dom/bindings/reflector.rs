@@ -9,6 +9,7 @@ use crate::dom::bindings::iterable::{Iterable, IterableIterator};
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
+use crate::realms::AlreadyInRealm;
 use crate::script_runtime::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::rust::HandleObject;
@@ -22,7 +23,7 @@ where
     U: DerivedFrom<GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { T::WRAP(global_scope.get_cx(), global_scope, obj) }
+    unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, obj) }
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
@@ -82,7 +83,8 @@ pub trait DomObject: JSTraceable + 'static {
     where
         Self: Sized,
     {
-        GlobalScope::from_reflector(self)
+        let realm = AlreadyInRealm::assert_for_cx(GlobalScope::get_cx());
+        GlobalScope::from_reflector(self, &realm)
     }
 }
 

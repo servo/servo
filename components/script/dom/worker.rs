@@ -169,7 +169,7 @@ impl Worker {
         let global = worker.global();
         let target = worker.upcast();
         let _ac = enter_realm(target);
-        rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
+        rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
         if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
             MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None, ports);
         } else {
@@ -247,7 +247,7 @@ impl WorkerMethods for Worker {
         self.terminated.set(true);
 
         // Step 3
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         unsafe { JS_RequestInterruptCallback(*cx) };
     }
 

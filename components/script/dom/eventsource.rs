@@ -222,10 +222,10 @@ impl EventSourceContext {
         // Steps 4-5
         let event = {
             let _ac = enter_realm(&*event_source);
-            rooted!(in(*event_source.global().get_cx()) let mut data = UndefinedValue());
+            rooted!(in(*GlobalScope::get_cx()) let mut data = UndefinedValue());
             unsafe {
                 self.data
-                    .to_jsval(*event_source.global().get_cx(), data.handle_mut())
+                    .to_jsval(*GlobalScope::get_cx(), data.handle_mut())
             };
             MessageEvent::new(
                 &*event_source.global(),

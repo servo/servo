@@ -132,7 +132,7 @@ impl AudioContextMethods for AudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend
     fn Suspend(&self, comp: InRealm) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
@@ -193,7 +193,7 @@ impl AudioContextMethods for AudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-audiocontext-close
     fn Close(&self, comp: InRealm) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {

@@ -135,7 +135,7 @@ impl RTCDataChannel {
 
     pub fn on_error(&self, error: WebRtcError) {
         let global = self.global();
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
         let init = RTCErrorInit {
             errorDetail: RTCErrorDetailType::Data_channel_failure,
@@ -157,7 +157,7 @@ impl RTCDataChannel {
     pub fn on_message(&self, channel_message: DataChannelMessage) {
         unsafe {
             let global = self.global();
-            let cx = global.get_cx();
+            let cx = GlobalScope::get_cx();
             let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
             rooted!(in(*cx) let mut message = UndefinedValue());
 

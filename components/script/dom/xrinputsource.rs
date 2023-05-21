@@ -57,7 +57,7 @@ impl XRInputSource {
         );
 
         let _ac = enter_realm(&*global);
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         unsafe {
             rooted!(in(*cx) let mut profiles = UndefinedValue());
             source.info.profiles.to_jsval(*cx, profiles.handle_mut());
