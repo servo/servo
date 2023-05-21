@@ -79,7 +79,6 @@ uluru = "2"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
 void = "1.0.2"
-gecko-profiler = { path = "../../../tools/profiler/rust-api" }
 
 [build-dependencies]
 bindgen = { version = "0.62", optional = true, default-features = false }

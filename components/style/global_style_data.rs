@@ -10,6 +10,7 @@ use crate::gecko_bindings::bindings;
 use crate::parallel::STYLE_THREAD_STACK_SIZE_KB;
 use crate::shared_lock::SharedRwLock;
 use crate::thread_state;
+#[cfg(feature = "gecko")]
 use gecko_profiler;
 use parking_lot::{RwLock, RwLockReadGuard};
 use rayon;
