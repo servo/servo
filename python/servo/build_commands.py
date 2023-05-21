@@ -631,6 +631,7 @@ class MachCommands(CommandBase):
 
                 if has_media_stack:
                     gst_root = gstreamer_root(target, env)
+                    print("Packaging gstreamer dylibs")
                     if not package_gstreamer_dylibs(gst_root, servo_path):
                         return 1
 
