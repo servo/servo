@@ -494,6 +494,7 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
     }
 }
 
+#[cfg(feature = "gecko")]
 fn parse_moz_system_color<'i, 't>(
     context: &ParserContext,
     input: &mut Parser<'i, 't>,
