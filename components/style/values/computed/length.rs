@@ -188,7 +188,8 @@ impl Size {
             GenericSize::MinContent |
             GenericSize::MaxContent |
             GenericSize::MozFitContent |
-            GenericSize::MozAvailable => false
+            GenericSize::MozAvailable |
+            GenericSize::FitContentFunction(_) => false
         }
     }
 }

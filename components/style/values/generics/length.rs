@@ -161,6 +161,9 @@ pub enum GenericSize<LengthPercent> {
     #[cfg(feature = "gecko")]
     #[animation(error)]
     MozAvailable,
+    #[animation(error)]
+    #[css(function = "fit-content")]
+    FitContentFunction(LengthPercent)
 }
 
 pub use self::GenericSize as Size;
@@ -215,6 +218,9 @@ pub enum GenericMaxSize<LengthPercent> {
     #[cfg(feature = "gecko")]
     #[animation(error)]
     MozAvailable,
+    #[animation(error)]
+    #[css(function = "fit-content")]
+    FitContentFunction(LengthPercent),
 }
 
 pub use self::GenericMaxSize as MaxSize;
