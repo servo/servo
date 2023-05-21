@@ -336,6 +336,9 @@ ${helpers.predefined_type(
     "text::MozControlCharacterVisibility",
     "Default::default()",
     engines="gecko",
+    enabled_in="chrome",
+    gecko_pref="layout.css.moz-control-character-visibility.enabled",
+    has_effect_on_gecko_scrollbars=False,
     animation_value_type="none",
     spec="Nonstandard"
 )}
