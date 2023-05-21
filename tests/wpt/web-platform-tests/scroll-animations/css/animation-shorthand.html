@@ -49,7 +49,7 @@ test((t) => {
   });
 
   target.style.animation = 'anim 1s';
-  target.style.animationTimeline = 'timeline';
+  target.style.animationTimeline = '--timeline';
   assert_equals(target.style.animation, '');
   assert_equals(target.style.animationName, 'anim');
   assert_equals(target.style.animationDuration, '1s');
@@ -61,7 +61,7 @@ test((t) => {
   });
 
   target.style.animation = 'anim 1s';
-  target.style.animationTimeline = 'timeline';
+  target.style.animationTimeline = '--timeline';
   assert_equals(getComputedStyle(target).animation, '');
   assert_equals(getComputedStyle(target).animationName, 'anim');
   assert_equals(getComputedStyle(target).animationDuration, '1s');

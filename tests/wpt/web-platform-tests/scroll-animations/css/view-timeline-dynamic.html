@@ -14,7 +14,7 @@
     overflow: hidden;
     width: 100px;
     height: 100px;
-    view-timeline: t1 defer;
+    view-timeline: --t1 defer;
   }
   .scroller > div {
     height: 100px;
@@ -46,11 +46,11 @@
 <template id=dynamic_view_timeline_name>
   <style>
     .timeline {
-      view-timeline: t1 ancestor;
+      view-timeline: --t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
-      animation-timeline: t1;
+      animation-timeline: --t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -106,11 +106,11 @@
       width: 100px;
       height: 100px;
       margin: 100px;
-      view-timeline: t1 ancestor;
+      view-timeline: --t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
-      animation-timeline: t1;
+      animation-timeline: --t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -126,7 +126,7 @@
     await scrollLeft(scroller, 20); // 10% (horizontal)
 
     assert_equals(getComputedStyle(target).zIndex, '25', 'vertical');
-    timeline.style.viewTimelineAxis = 'horizontal';
+    timeline.style.viewTimelineAxis = 'x';
     await waitForCSSScrollTimelineStyle();
     assert_equals(getComputedStyle(target).zIndex, '10', 'horizontal');
   }, 'Dynamically changing view-timeline-axis');
@@ -138,11 +138,11 @@
       width: 100px;
       height: 100px;
       margin: 100px;
-      view-timeline: t1 ancestor;
+      view-timeline: --t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
-      animation-timeline: t1;
+      animation-timeline: --t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -166,11 +166,11 @@
 <template id=timeline_display_none>
   <style>
     #timeline {
-      view-timeline: t1 ancestor;
+      view-timeline: --t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
-      animation-timeline: t1;
+      animation-timeline: --t1;
     }
   </style>
   <div id=scroller class=scroller>

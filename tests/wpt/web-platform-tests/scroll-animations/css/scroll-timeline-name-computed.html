@@ -5,24 +5,24 @@
 <script src="/css/support/computed-testcommon.js"></script>
 </head>
 <style>
-  #outer { scroll-timeline-name: foo; }
-  #target { scroll-timeline-name: bar; }
+  #outer { scroll-timeline-name: --foo; }
+  #target { scroll-timeline-name: --bar; }
 </style>
 <div id="outer">
   <div id="target"></div>
 </div>
 <script>
 test_computed_value('scroll-timeline-name', 'initial', 'none');
-test_computed_value('scroll-timeline-name', 'inherit', 'foo');
+test_computed_value('scroll-timeline-name', 'inherit', '--foo');
 test_computed_value('scroll-timeline-name', 'unset', 'none');
 test_computed_value('scroll-timeline-name', 'revert', 'none');
 test_computed_value('scroll-timeline-name', 'none');
-test_computed_value('scroll-timeline-name', 'test');
-test_computed_value('scroll-timeline-name', 'foo, bar');
-test_computed_value('scroll-timeline-name', 'bar, foo');
-test_computed_value('scroll-timeline-name', 'a, b, c, D, e');
+test_computed_value('scroll-timeline-name', '--foo');
+test_computed_value('scroll-timeline-name', '--foo, --bar');
+test_computed_value('scroll-timeline-name', '--bar, --foo');
+test_computed_value('scroll-timeline-name', '--a, --b, --c, --D, --e');
 test_computed_value('scroll-timeline-name', 'none, none');
-test_computed_value('scroll-timeline-name', 'a, b, c, none, d, e');
+test_computed_value('scroll-timeline-name', '--a, --b, --c, none, --d, --e');
 
 test(() => {
   let style = getComputedStyle(document.getElementById('target'));

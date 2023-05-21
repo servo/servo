@@ -162,11 +162,11 @@ const validateSoftNavigationEntry = async (clicks, extraValidations,
         'Event start timestamp matches');
     assert_not_equals(entry.navigationId,
                       performance.getEntriesByType("navigation")[0].navigationId,
-                      "The navigation ID was incremented");
+      "The navigation ID was re-generated and different from the initial one.");
     if (i > 0) {
       assert_not_equals(entry.navigationId,
                         entries[i-1].navigationId,
-                        "The navigation ID was incremented between clicks");
+        "The navigation ID was re-generated between clicks");
     }
   }
   assert_equals(performance.getEntriesByType("soft-navigation").length,

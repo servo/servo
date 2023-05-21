@@ -143,21 +143,21 @@ promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, 'block-content');
   container.style.writingMode = 'vertical-lr';
   div.style.animation = "anim 10s linear";
-  div.style.animationTimeline = "scroll(horizontal)";
+  div.style.animationTimeline = "scroll(x)";
 
   await scrollLeft(container, 50);
   assert_equals(getComputedStyle(div).translate, '100px');
-}, 'animation-timeline: scroll(horizontal)');
+}, 'animation-timeline: scroll(x)');
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, 'inline-content');
   container.style.writingMode = 'vertical-lr';
   div.style.animation = "anim 10s linear";
-  div.style.animationTimeline = "scroll(vertical)";
+  div.style.animationTimeline = "scroll(y)";
 
   await scrollTop(container, 50);
   assert_equals(getComputedStyle(div).translate, '100px');
-}, 'animation-timeline: scroll(vertical)');
+}, 'animation-timeline: scroll(y)');
 
 // TODO: Add more tests which change the overflow property of the container for
 // scroll(nearest)

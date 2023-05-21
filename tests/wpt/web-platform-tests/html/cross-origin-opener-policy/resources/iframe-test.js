@@ -166,8 +166,8 @@ function iframe_test(description, iframe_origin, popup_origin, headers,
             await evaluate(popup_token, 'opener != null'), "true",
             'Popup has an opener?');
           assert_equals(
-            await evaluate(popup_token, `name === '${popup_token}'`), "true",
-            'Popup has a name?');
+            await evaluate(popup_token, `name === ''`), "true",
+            'Popup name is cleared?');
 
           // When the popup was created using window.open, we've kept a handle
           // and we can do extra verifications.
@@ -194,8 +194,8 @@ function iframe_test(description, iframe_origin, popup_origin, headers,
           assert_equals(await evaluate(popup_token, 'opener != null'), "false",
                        'Popup has an opener?');
           assert_equals(
-            await evaluate(popup_token, `name === '${popup_token}'`), "false",
-            'Popup has a name?');
+            await evaluate(popup_token, `name === ''`), "true",
+            'Popup name is cleared?');
 
           // When the popup was created using window.open, we've kept a handle
           // and we can do extra verifications.
@@ -213,8 +213,8 @@ function iframe_test(description, iframe_origin, popup_origin, headers,
           assert_equals(await evaluate(popup_token, 'opener != null'), "false",
                         'Popup has an opener?');
           assert_equals(
-            await evaluate(popup_token, `name === '${popup_token}'`), "false",
-            'Popup has a name?');
+            await evaluate(popup_token, `name === ''`), "true",
+            'Popup name is cleared?');
 
           // When the popup was created using window.open, we've kept a handle
           // and we can do extra verifications.

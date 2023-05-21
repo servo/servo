@@ -8,7 +8,7 @@
     overflow: hidden;
     width: 100px;
     height: 100px;
-    scroll-timeline: timeline;
+    scroll-timeline: --timeline;
   }
   #contents {
     height: 200px;
@@ -20,10 +20,10 @@
   #element {
     width: 0px;
     animation: expand 10s linear;
-    animation-timeline: timeline;
+    animation-timeline: --timeline;
   }
   /* Ensure stable expectations if feature is not supported */
-  @supports not (animation-timeline:foo) {
+  @supports not (animation-timeline:--foo) {
     #element { animation-play-state: paused; }
   }
 </style>

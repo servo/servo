@@ -8,8 +8,8 @@
   <p class="fallback">FAIL (fallback content)</p>
 </canvas>
 <script>
-  const offscreen_canvas = new OffscreenCanvas(200, 200);
-  const ctx = offscreen_canvas.getContext('2d');
+  const canvas = new OffscreenCanvas(200, 200);
+  const ctx = canvas.getContext('2d');
 
   ctx.fillStyle = 'rgba(0, 0, 255, 1)';
   ctx.fillRect(60, 60, 75, 50);
@@ -22,6 +22,6 @@
 
   ctx.endLayer();
 
-  const canvas = document.getElementById("canvas");
-  canvas.getContext('2d').drawImage(offscreen_canvas, 0, 0);
+  const outputCanvas = document.getElementById("canvas");
+  outputCanvas.getContext('2d').drawImage(canvas, 0, 0);
 </script>

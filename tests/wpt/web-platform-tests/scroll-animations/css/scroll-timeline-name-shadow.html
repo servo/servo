@@ -31,10 +31,10 @@
   <style>
     .target {
       animation: anim 10s linear;
-      animation-timeline: timeline;
+      animation-timeline: --timeline;
     }
     main > .scroller {
-      scroll-timeline: timeline horizontal;
+      scroll-timeline: --timeline x;
     }
   </style>
   <div class=scroller>
@@ -42,7 +42,7 @@
       <template shadowrootmode=open>
         <style>
           :host {
-            scroll-timeline: timeline vertical;
+            scroll-timeline: --timeline y;
           }
         </style>
         <slot></slot>
@@ -60,7 +60,7 @@
     assert_equals(target.getAnimations().length, 1);
     let anim = target.getAnimations()[0];
     assert_not_equals(anim.timeline, null);
-    assert_equals(anim.timeline.axis, 'vertical');
+    assert_equals(anim.timeline.axis, 'y');
   }, 'Outer animation can see scroll timeline defined by :host');
 </script>
 
@@ -69,17 +69,17 @@
   <style>
     .target {
       animation: anim 10s linear;
-      animation-timeline: timeline;
+      animation-timeline: --timeline;
     }
     .host {
-      scroll-timeline: timeline horizontal;
+      scroll-timeline: --timeline x;
     }
   </style>
   <div class=host>
     <template shadowrootmode=open>
       <style>
         ::slotted(.scroller) {
-          scroll-timeline: timeline vertical;
+          scroll-timeline: --timeline y;
         }
       </style>
       <slot></slot>
@@ -98,7 +98,7 @@
     assert_equals(target.getAnimations().length, 1);
     let anim = target.getAnimations()[0];
     assert_not_equals(anim.timeline, null);
-    assert_equals(anim.timeline.axis, 'vertical');
+    assert_equals(anim.timeline.axis, 'y');
   }, 'Outer animation can see scroll timeline defined by ::slotted');
 </script>
 
@@ -106,10 +106,10 @@
 <template id=scroll_timeline_part>
   <style>
     .host {
-      scroll-timeline: timeline vertical;
+      scroll-timeline: --timeline y;
     }
     .host::part(foo) {
-      scroll-timeline: timeline horizontal;
+      scroll-timeline: --timeline x;
     }
   </style>
   <div class=host>
@@ -122,7 +122,7 @@
           }
         .target {
           animation: anim2 10s linear;
-          animation-timeline: timeline;
+          animation-timeline: --timeline;
         }
       </style>
       <div part=foo>
@@ -140,7 +140,7 @@
     assert_equals(target.getAnimations().length, 1);
     let anim = target.getAnimations()[0];
     assert_not_equals(anim.timeline, null);
-    assert_equals(anim.timeline.axis, 'horizontal');
+    assert_equals(anim.timeline.axis, 'x');
   }, 'Inner animation can see scroll timeline defined by ::part');
 </script>
 
@@ -149,10 +149,10 @@
   <style>
     .target {
       animation: anim 10s linear;
-      animation-timeline: timeline;
+      animation-timeline: --timeline;
     }
     .host {
-      scroll-timeline: timeline horizontal;
+      scroll-timeline: --timeline x;
     }
   </style>
   <div class=scroller>
@@ -160,7 +160,7 @@
       <template shadowrootmode=open>
         <style>
           div {
-            scroll-timeline: timeline vertical;
+            scroll-timeline: --timeline y;
           }
         </style>
         <div>
@@ -180,6 +180,6 @@
     assert_equals(target.getAnimations().length, 1);
     let anim = target.getAnimations()[0];
     assert_not_equals(anim.timeline, null);
-    assert_equals(anim.timeline.axis, 'vertical');
+    assert_equals(anim.timeline.axis, 'y');
   }, 'Slotted element can see scroll timeline within the shadow');
 </script>

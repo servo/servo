@@ -15,3 +15,11 @@ enum AvcBitstreamFormat {
   "annexb",
   "avc",
 };
+
+partial dictionary VideoEncoderEncodeOptions {
+  VideoEncoderEncodeOptionsForAvc avc;
+};
+
+dictionary VideoEncoderEncodeOptionsForAvc {
+  unsigned short? quantizer;
+};

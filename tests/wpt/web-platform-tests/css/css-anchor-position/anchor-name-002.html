@@ -29,20 +29,26 @@
   <div class="relpos">
     <div>
       <div class="relpos">
+        <!-- This target should not find the anchor, because the last containing
+          block has `position: absolute` and is after in tree order. -->
+        <div class="target" data-expected-width=0></div>
         <div class="abspos">
           <div class="relpos">
-            <div class="anchor1" style="position: absolute"></div>
             <!-- This target should not find the anchor, because the anchor is
-              positioned. -->
+              absolutely positioned after it. -->
             <div class="target" data-expected-width=0></div>
+            <div class="anchor1" style="position: absolute"></div>
+            <!-- This target should find the anchor, because the anchor is
+              absolutely positioned before it. -->
+            <div class="target" data-expected-width=10></div>
           </div>
           <!-- This target should find the anchor, because the last containing
             block has `position: relative`. -->
           <div class="target" data-expected-width=10></div>
         </div>
-        <!-- This target should not find the anchor, because the last containing
-          block has `position: absolute`. -->
-        <div class="target" data-expected-width=0></div>
+        <!-- This target should find the anchor, because the last containing
+          block has `position: absolute` and is before in tree order. -->
+        <div class="target" data-expected-width=10></div>
       </div>
     </div>
     <!-- This target should find the anchor, because the last containing block

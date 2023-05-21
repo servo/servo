@@ -39,10 +39,10 @@
     background-color: coral;
     width: 0px;
     animation: anim auto linear;
-    animation-timeline: t1;
+    animation-timeline: --t1;
   }
   .timeline {
-    scroll-timeline-name: t1;
+    scroll-timeline-name: --t1;
   }
   .local {
     scroll-timeline-attachment: local;
@@ -96,6 +96,25 @@
   }, 'Deferred timeline with no attachments');
 </script>
 
+<template id=scroll_timeline_defer_no_attach_to_prev_sibling>
+  <div class="timeline defer">
+    <div class="scroller timeline">
+      <div class=content></div>
+    </div>
+    <div class=target>Test</div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, scroll_timeline_defer_no_attach_to_prev_sibling);
+    let scroller = main.querySelector('.scroller');
+    let target = main.querySelector('.target');
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(target).width, '0px');
+    assert_equals(getComputedStyle(target).getPropertyValue('--applied'), '');
+  }, 'Deferred timeline with no attachments to previous sibling');
+</script>
+
 <template id=scroll_timeline_local_ancestor>
   <div class="scroller timeline local">
     <div class=content>
@@ -142,7 +161,7 @@
 <template id=scroll_timeline_defer_axis>
   <div class="timeline defer" style="scroll-timeline-axis:inline">
     <div class=target>Test</div>
-    <div class="scroller timeline ancestor" style="scroll-timeline-axis:vertical">
+    <div class="scroller timeline ancestor" style="scroll-timeline-axis:y">
       <div class=content></div>
     </div>
   </div>
@@ -154,7 +173,7 @@
     assert_equals(target.getAnimations().length, 1);
     let anim = target.getAnimations()[0];
     assert_not_equals(anim.timeline, null);
-    assert_equals(anim.timeline.axis, 'vertical');
+    assert_equals(anim.timeline.axis, 'y');
   }, 'Axis of deferred timeline is taken from attached timeline');
 </script>
 
@@ -162,7 +181,7 @@
 <template id=scroll_timeline_defer_axis_multiple>
   <div class="timeline defer" style="scroll-timeline-axis:inline">
     <div class=target>Test</div>
-    <div class="scroller timeline ancestor" style="scroll-timeline-axis:vertical">
+    <div class="scroller timeline ancestor" style="scroll-timeline-axis:y">
       <div class=content></div>
     </div>
     <!-- Extra attachment -->

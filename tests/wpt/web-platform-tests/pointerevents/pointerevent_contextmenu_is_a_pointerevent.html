@@ -20,10 +20,15 @@ let pointerdownPointerId, pointerdownPointerType;
 let inputSource = location.search.substring(1);
 
 target.addEventListener("contextmenu", contextmenuTest.step_func((e)=>{
-  assert_equals(e.constructor, window.PointerEvent, "contextmenu should use a PointerEvent constructor");
-  assert_true(e instanceof PointerEvent, "contextmenu should be a PointerEvent");
-  assert_equals(e.pointerId, pointerdownPointerId, "contextmenu's pointerId should match the pointerId of the pointer event that triggers it");
-    assert_equals(e.pointerType, pointerdownPointerType, "contextmenu's pointerType should match the pointerType of the pointer event that triggers it");
+  assert_equals(e.constructor, window.PointerEvent,
+      "contextmenu should use a PointerEvent constructor");
+  assert_true(e instanceof PointerEvent,
+      "contextmenu should be a PointerEvent");
+  assert_equals(e.pointerId, pointerdownPointerId,
+      "contextmenu's pointerId should match the pointerId of the pointer event that triggers it");
+  assert_equals(e.pointerType, pointerdownPointerType,
+      "contextmenu's pointerType should match the pointerType of the pointer event that triggers it");
+  assert_equals(e.composed, true, "contextmenu.composed should be true");
 }));
 target.addEventListener("pointerdown", e=>{
   pointerdownPointerId = e.pointerId;

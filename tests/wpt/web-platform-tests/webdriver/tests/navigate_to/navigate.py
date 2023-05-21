@@ -74,7 +74,7 @@ def test_cross_origin(session, inline, url):
     assert_success(response)
 
     assert session.url == second_page
-    with pytest.raises(error.StaleElementReferenceException):
+    with pytest.raises(error.NoSuchElementException):
         elem.click()
 
     session.find.css("#delete", all=False)

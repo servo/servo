@@ -34,7 +34,7 @@ jobs:
   displayName: 'affected tests: Safari Technology Preview'
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -51,7 +51,7 @@ jobs:
   displayName: 'affected tests without changes: Safari Technology Preview'
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -93,7 +93,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_infrastructure']
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -104,6 +104,7 @@ jobs:
       packages: virtualenv
   - template: tools/ci/azure/install_fonts.yml
   - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/color_profile.yml
   - template: tools/ci/azure/install_chrome.yml
   - template: tools/ci/azure/install_firefox.yml
   - template: tools/ci/azure/install_safari.yml
@@ -138,7 +139,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -154,7 +155,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -170,7 +171,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -186,7 +187,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -202,7 +203,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   # full checkout required
   - task: UsePythonVersion@0
@@ -222,7 +223,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   # full checkout required
   - task: UsePythonVersion@0
@@ -477,7 +478,7 @@ jobs:
     parallel: 8 # chosen to make runtime ~2h
   timeoutInMinutes: 180
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -487,6 +488,7 @@ jobs:
     parameters:
       packages: virtualenv
   - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/color_profile.yml
   - template: tools/ci/azure/install_safari.yml
     parameters:
       channel: stable
@@ -518,7 +520,7 @@ jobs:
     parallel: 8 # chosen to make runtime ~2h
   timeoutInMinutes: 180
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -528,6 +530,7 @@ jobs:
     parameters:
       packages: virtualenv
   - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/color_profile.yml
   - template: tools/ci/azure/install_safari.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
@@ -556,7 +559,7 @@ jobs:
     parallel: 8 # chosen to make runtime ~2h
   timeoutInMinutes: 180
   pool:
-    vmImage: 'macOS-12'
+    vmImage: 'macOS-13'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -566,6 +569,7 @@ jobs:
     parameters:
       packages: virtualenv
   - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/color_profile.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
   - script: |

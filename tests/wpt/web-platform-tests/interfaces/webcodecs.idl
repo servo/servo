@@ -161,6 +161,7 @@ dictionary AudioEncoderConfig {
   [EnforceRange] unsigned long sampleRate;
   [EnforceRange] unsigned long numberOfChannels;
   [EnforceRange] unsigned long long bitrate;
+  BitrateMode bitrateMode;
 };
 
 dictionary VideoEncoderConfig {

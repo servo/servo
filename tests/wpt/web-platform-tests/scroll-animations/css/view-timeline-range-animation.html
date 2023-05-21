@@ -58,13 +58,13 @@
       let scroller = main.querySelector('#scroller');
       let target = main.querySelector('#target');
 
-      target.style.viewTimeline = 't1 block';
+      target.style.viewTimeline = '--t1 block';
       // TODO(crbug.com/1375998): Create the timeline in a separate frame to
       // work around a bug.
       await waitForNextFrame();
 
       target.style.animation = 'anim auto linear';
-      target.style.animationTimeline = 't1';
+      target.style.animationTimeline = '--t1';
       target.style.animationRangeStart = options.rangeStart;
       target.style.animationRangeEnd = options.rangeEnd;
 

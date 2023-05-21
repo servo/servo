@@ -52,9 +52,9 @@
 <template id=default_view_timeline>
   <style>
     #target {
-      view-timeline: t1;
+      view-timeline: --t1;
       animation: anim 1s linear;
-      animation-timeline: t1;
+      animation-timeline: --t1;
     }
   </style>
   <div id=scroller class=vertical-scroller>
@@ -87,9 +87,9 @@
 <template id=horizontal_timeline>
   <style>
     #target {
-      view-timeline: t1 horizontal;
+      view-timeline: --t1 x;
       animation: anim 1s linear;
-      animation-timeline: t1;
+      animation-timeline: --t1;
     }
   </style>
   <div id=scroller class=horizontal-scroller>
@@ -122,7 +122,7 @@
 <template id=multiple_timelines>
   <style>
     #timelines {
-      view-timeline: tv vertical ancestor,  th horizontal ancestor;
+      view-timeline: --tv y ancestor, --th x ancestor;
       background-color: red;
     }
     #scroller {
@@ -132,7 +132,7 @@
       display: grid;
       grid-template-columns: 50px 50px 50px 50px 50px 50px 50px;
       grid-template-row: 50px 50px 50px 50px 50px 50px 50px;
-      view-timeline: tv defer, th defer;
+      view-timeline: --tv defer, --th defer;
     }
     #scroller > div {
       z-index: -1;
@@ -141,11 +141,11 @@
     }
     #target_v {
       animation: anim 1s linear;
-      animation-timeline: tv;
+      animation-timeline: --tv;
     }
     #target_h {
       animation: anim 1s linear;
-      animation-timeline: th;
+      animation-timeline: --th;
     }
   </style>
   <div id=scroller>

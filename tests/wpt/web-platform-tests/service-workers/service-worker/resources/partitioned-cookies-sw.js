@@ -10,6 +10,8 @@ async function onMessage(event) {
       return onEchoCookiesHttp(event);
     case 'echo_cookies_js':
       return onEchoCookiesJs(event);
+    case 'echo_cookies_import':
+      return onEchoCookiesImport(event);
     default:
       return;
   }
@@ -40,4 +42,12 @@ async function onEchoCookiesJs(event) {
   } catch (err) {
     event.source.postMessage({ok: false});
   }
+}
+
+// Sets `self._cookies` variable, array of the names of cookies available to
+// the request.
+importScripts(`${self.origin}/cookies/resources/list-cookies-for-script.py`);
+
+function onEchoCookiesImport(event) {
+  event.source.postMessage({ok: true, cookies: self._cookies});
 }

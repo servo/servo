@@ -9,10 +9,10 @@ let testInitial = () => {
   return window.performance.getEntries().map(e => e.navigationId);
 }
 
-let testMarkMeasure = (expectedNavigationId, markName, MeasureName) => {
+let testMarkMeasure = (markId, markName, MeasureName) => {
   const markName1 = 'test-mark';
-  const markName2 = 'test-mark' + expectedNavigationId;
-  const measureName = 'test-measure' + expectedNavigationId;
+  const markName2 = 'test-mark' + markId;
+  const measureName = 'test-measure' + markId;
 
   window.performance.mark(markName1);
   window.performance.mark(markName2);
@@ -21,12 +21,13 @@ let testMarkMeasure = (expectedNavigationId, markName, MeasureName) => {
     window.performance.getEntriesByName(measureName)).map(e => e.navigationId);
 }
 
-let testResourceTiming = async (expectedNavigationId) => {
-  let navigationId = -1;
+let testResourceTiming = async (resourceTimingEntryId) => {
+  let navigationId;
 
   let p = new Promise(resolve => {
     new PerformanceObserver((list) => {
-      const entry = list.getEntries().find(e => e.name.includes('json_resource') && e.navigationId == expectedNavigationId);
+      const entry = list.getEntries().find(
+        e => e.name.includes('json_resource' + resourceTimingEntryId));
       if (entry) {
         navigationId = entry.navigationId;
         resolve();
@@ -34,16 +35,18 @@ let testResourceTiming = async (expectedNavigationId) => {
     }).observe({ type: 'resource' });
   });
 
-  const resp = await fetch('/performance-timeline/resources/json_resource.json');
+  const resp = await fetch(
+    '/performance-timeline/resources/json_resource' + resourceTimingEntryId + '.json');
   await p;
   return [navigationId];
 }
 
-let testElementTiming = async (expectedNavigationId) => {
-  let navigationId = -1;
+let testElementTiming = async (elementTimingEntryId) => {
+  let navigationId;
   let p = new Promise(resolve => {
     new PerformanceObserver((list) => {
-      const entry = list.getEntries().find(e => e.entryType === 'element' && e.identifier === 'test-element-timing' + expectedNavigationId);
+      const entry = list.getEntries().find(
+        e => e.entryType === 'element' && e.identifier === 'test-element-timing' + elementTimingEntryId);
       if (entry) {
         navigationId = entry.navigationId;
         resolve();
@@ -52,7 +55,7 @@ let testElementTiming = async (expectedNavigationId) => {
   });
 
   let el = document.createElement('p');
-  el.setAttribute('elementtiming', 'test-element-timing' + expectedNavigationId);
+  el.setAttribute('elementtiming', 'test-element-timing' + elementTimingEntryId);
   el.textContent = 'test element timing text';
   document.body.appendChild(el);
   await p;
@@ -110,21 +113,32 @@ function runNavigationIdTest(params, description) {
     params.openFunc(urlA);
     await pageA.execute_script(waitForPageShow);
 
-    // Assert navigation id is 1 when the document is loaded first time.
+    // Assert navigation ids of all performance entries are the same.
     let navigationIds = await pageA.execute_script(testInitial);
     assert_true(
-      navigationIds.every(t => t === 1), 'All Navigation Ids should be 1.');
+      navigationIds.every(t => t === navigationIds[0]),
+      'Navigation Ids should be the same as the initial load.');
 
     for (i = 1; i <= params.navigationTimes; i++) {
       // Navigate away to url B and back.
       await navigateAndThenBack(pageA, pageB, urlB);
 
-      // Assert navigation id increments when the document is load from bfcache.
-      navigationIds = await pageA.execute_script(
+      // Assert new navigation ids are generated when the document is load from bfcache.
+      let nextNavigationIds = await pageA.execute_script(
         testFunctionMap[params.testName], [i + 1]);
+
+      // Assert navigation ids of all performance entries are the same.
       assert_true(
-        navigationIds.every(t => t === (i + 1)),
-        params.testName + ' Navigation Id should all be ' + (i + 1) + '.');
+        nextNavigationIds.every(t => t === nextNavigationIds[0]),
+        'All Navigation Ids should be same after bfcache navigation.');
+
+      // Assert navigation ids after bfcache navigation are different from those before.
+      assert_true(
+        navigationIds[0] !== nextNavigationIds[0],
+        params.testName +
+        ' Navigation Ids should be re-generated and different from the previous ones.');
+
+      navigationIds = nextNavigationIds;
     }
   }, description);
 }

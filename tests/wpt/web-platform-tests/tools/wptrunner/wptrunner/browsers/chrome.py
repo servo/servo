@@ -50,6 +50,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
                                            **kwargs)
     executor_kwargs["close_after_done"] = True
     executor_kwargs["sanitizer_enabled"] = sanitizer_enabled
+    executor_kwargs["reuse_window"] = kwargs.get("reuse_window", False)
 
     capabilities = {
         "goog:chromeOptions": {

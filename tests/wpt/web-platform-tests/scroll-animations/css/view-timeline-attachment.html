@@ -39,10 +39,10 @@
     background-color: coral;
     width: 0px;
     animation: anim auto linear;
-    animation-timeline: t1;
+    animation-timeline: --t1;
   }
   .timeline {
-    view-timeline-name: t1;
+    view-timeline-name: --t1;
   }
   .local {
     view-timeline-attachment: local;
@@ -122,7 +122,7 @@
   <div class="timeline defer" style="view-timeline-axis:inline">
     <div class=target>Test</div>
     <div class=scroller>
-      <div class="content timeline ancestor" style="view-timeline-axis:vertical"></div>
+      <div class="content timeline ancestor" style="view-timeline-axis:y"></div>
     </div>
   </div>
 </template>
@@ -133,7 +133,7 @@
     assert_equals(target.getAnimations().length, 1);
     let anim = target.getAnimations()[0];
     assert_not_equals(anim.timeline, null);
-    assert_equals(anim.timeline.axis, 'vertical');
+    assert_equals(anim.timeline.axis, 'y');
   }, 'Axis of deferred timeline is taken from attached timeline');
 </script>
 
@@ -141,7 +141,7 @@
   <div class="timeline defer" style="view-timeline-axis:inline">
     <div class=target>Test</div>
     <div class=scroller>
-      <div class="content timeline ancestor" style="view-timeline-axis:vertical"></div>
+      <div class="content timeline ancestor" style="view-timeline-axis:y"></div>
       <!-- Extra attachment -->
       <div class="timeline ancestor"></div>
     </div>
@@ -403,11 +403,11 @@
 <!-- ViewTimelines and ScrollTimelines -->
 
 <template id=view_scroll_timeline_defer>
-  <div style="scroll-timeline: t1 defer">
+  <div style="scroll-timeline: --t1 defer">
     <div class=target>Test1</div>
     <div class="timeline defer">
       <div class=target>Test2</div>
-      <div class=scroller style="scroll-timeline: t1 ancestor;">
+      <div class=scroller style="scroll-timeline: --t1 ancestor;">
         <div class="content timeline ancestor" style="view-timeline-inset: 0px 50px"></div>
       </div>
     </div>

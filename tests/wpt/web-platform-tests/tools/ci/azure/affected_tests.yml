@@ -14,6 +14,7 @@ steps:
   parameters:
     packages: virtualenv
 - template: install_certs.yml
+- template: color_profile.yml
 - template: install_safari.yml
 - template: update_hosts.yml
 - template: update_manifest.yml

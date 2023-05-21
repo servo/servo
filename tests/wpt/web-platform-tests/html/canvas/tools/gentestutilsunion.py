@@ -170,9 +170,18 @@ def _get_test_sub_dir(name: str, name_to_sub_dir: Mapping[str, str]) -> str:
         'Test "%s" has no defined target directory mapping' % name)
 
 
+def _remove_extra_newlines(text: str) -> str:
+    """Remove newlines if a backslash is found at end of line."""
+    # Lines ending with '\' gets their newline character removed.
+    text = re.sub(r'\\\n', '', text, flags=re.MULTILINE | re.DOTALL)
+
+    # Lines ending with '\-' gets their newline and any leading white spaces on
+    # the following line removed.
+    text = re.sub(r'\\-\n\s*', '', text, flags=re.MULTILINE | re.DOTALL)
+    return text
+
 def _expand_test_code(code: str) -> str:
-    # Remove newlines if a backslash is found at end of line.
-    code = re.sub(r'\\\n\s*', '', code, flags=re.MULTILINE | re.DOTALL)
+    code = _remove_extra_newlines(code)
 
     # Unroll expressions with a cross-product-style parameter expansion.
     code = re.sub(r'@unroll ([^;]*;)', lambda m: _unroll(m.group(1)), code)
@@ -287,29 +296,18 @@ def _write_reference_test(is_js_ref: bool, templates: Mapping[str, str],
 
 def _write_testharness_test(templates: Mapping[str, str],
                             template_params: MutableMapping[str, str],
-                            test_type: str,
                             canvas_path: Optional[str],
                             offscreen_path: Optional[str]):
     # Create test cases for canvas and offscreencanvas.
     code = template_params['code']
     template_params['code'] = textwrap.indent(code, '  ')
     if canvas_path:
-        template_name = 'element'
-        if test_type:
-            template_name += '-' + test_type
-
         pathlib.Path(f'{canvas_path}.html').write_text(
-            templates[template_name] % template_params, 'utf-8')
+            templates['element'] % template_params, 'utf-8')
 
     if offscreen_path:
-        offscreen_template_name = 'offscreen'
-        worker_template_name = 'worker'
-        if test_type:
-            offscreen_template_name += '-' + test_type
-            worker_template_name += '-' + test_type
-
-        offscreen_template = templates[offscreen_template_name]
-        worker_template = templates[worker_template_name]
+        offscreen_template = templates['offscreen']
+        worker_template = templates['worker']
 
         if ('then(t_pass, t_fail);' in code):
             offscreen_template = offscreen_template.replace('t.done();\n', '')
@@ -319,6 +317,54 @@ def _write_testharness_test(templates: Mapping[str, str],
             offscreen_template % template_params, 'utf-8')
         pathlib.Path(f'{offscreen_path}.worker.js').write_text(
             worker_template % template_params, 'utf-8')
+
+
+def _expand_template(template: str, template_params: Mapping[str, str]) -> str:
+    # Remove whole line comments.
+    template = re.sub(r'^ *#.*?\n', '', template, flags=re.MULTILINE)
+    # Remove trailing line comments.
+    template = re.sub(r' *#.*?$', '', template, flags=re.MULTILINE)
+
+    # Unwrap lines ending with a backslash.
+    template = _remove_extra_newlines(template)
+
+    content_without_nested_if = r'((?:(?!{%\s*(?:if|else|endif)[^%]*%}).)*?)'
+
+    # Resolve {% if <cond> %}<content>{% else %}<alternate content>{% endif %}
+    if_else_regex = re.compile(
+        r'{%\s*if\s*([^\s%]+)\s*%}' +  # {% if <cond> %}
+        content_without_nested_if +    # content
+        r'{%\s*else\s*%}' +            # {% else %}
+        content_without_nested_if +    # alternate
+        r'{%\s*endif\s*%}',            # {% endif %}
+        flags=re.MULTILINE | re.DOTALL)
+    while match := if_else_regex.search(template):
+        condition, content, alternate = match.groups()
+        substitution = content if template_params[condition] else alternate
+        template = (
+            template[:match.start(0)] + substitution + template[match.end(0):])
+
+    # Resolve {% if <cond> %}<content>{% endif %}
+    if_regex = re.compile(
+        r'{%\s*if\s*([^\s%]+)\s*%}' +  # {% if <cond> %}
+        content_without_nested_if +    # content
+        r'{%\s*endif\s*%}',            # {% endif %}
+        flags=re.MULTILINE | re.DOTALL)
+    while match := if_regex.search(template):
+        condition, content = match.groups()
+        substitution = content if template_params[condition] else ''
+        template = (
+            template[:match.start(0)] + substitution + template[match.end(0):])
+
+    return template
+
+
+def _expand_templates(templates: Mapping[str, str],
+                      params: Mapping[str, str]) -> Mapping[str, str]:
+    return {
+        name: _expand_template(template, params)
+        for name, template in templates.items()
+    }
 
 
 def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
@@ -373,10 +419,10 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
 
     notes = '<p class="notes">%s' % test['notes'] if 'notes' in test else ''
 
-    links = f'\n<link rel="match" href="{name}-expected.html">'
-    fuzzy = ('\n<meta name=fuzzy content="%s">' %
+    links = f'<link rel="match" href="{name}-expected.html">\n'
+    fuzzy = ('<meta name=fuzzy content="%s">\n' %
              test['fuzzy'] if 'fuzzy' in test else '')
-    timeout = ('\n<meta name="timeout" content="%s">' %
+    timeout = ('<meta name="timeout" content="%s">\n' %
                test['timeout'] if 'timeout' in test else '')
     timeout_js = ('// META: timeout=%s\n' % test['timeout']
                   if 'timeout' in test else '')
@@ -420,6 +466,16 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
     else:
         context_args = "'2d'"
 
+    is_promise_test = False
+    if 'test_type' in test:
+        if test['test_type'] == 'promise':
+            is_promise_test = True
+        else:
+            raise InvalidTestDefinitionError(
+                f'Test {name}\' test_type is invalid, it only accepts '
+                '"promise" now for creating promise test type in the template '
+                'file.')
+
     template_params = {
         'name': name,
         'desc': desc,
@@ -439,7 +495,8 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
         'code': code_canvas,
         'fallback': fallback,
         'attributes': attributes,
-        'context_args': context_args
+        'context_args': context_args,
+        'promise_test': is_promise_test
     }
 
     canvas_path = os.path.join(html_canvas_cfg.out_dir, sub_dir, name)
@@ -455,18 +512,7 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
             f'Test {name} is invalid, "reference" and "html_reference" can\'t '
             'both be specified at the same time.')
 
-    test_type = ''
-    if 'test_type' in test:
-        test_type = test['test_type']
-        if test_type != 'promise':
-            raise InvalidTestDefinitionError(
-                f'Test {name}\' test_type is invalid, it only accepts '
-                '"promise" now for creating promise test type in the template '
-                'file.')
-        if js_reference is not None or html_reference is not None:
-            raise InvalidTestDefinitionError(
-                f'Test {name}: promise test type cannot be used together with '
-                'html_reference or js_reference.')
+    templates = _expand_templates(templates, template_params)
 
     ref_code = js_reference or html_reference
     if ref_code is not None:
@@ -476,7 +522,7 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
             offscreen_path if offscreen_canvas_cfg.enabled else None)
     else:
         _write_testharness_test(
-            templates, template_params, test_type,
+            templates, template_params,
             canvas_path if html_canvas_cfg.enabled else None,
             offscreen_path if offscreen_canvas_cfg.enabled else None)
 
