@@ -67,6 +67,15 @@ impl ListStyleType {
             _ => unreachable!("Unknown counter style keyword value"),
         })))
     }
+
+    /// Is this a bullet? (i.e. `list-style-type: disc|circle|square|disclosure-closed|disclosure-open`)
+    #[inline]
+    pub fn is_bullet(&self) -> bool {
+        match self {
+            ListStyleType::CounterStyle(ref style) => style.is_bullet(),
+            _ => false,
+        }
+    }
 }
 
 #[cfg(feature = "gecko")]

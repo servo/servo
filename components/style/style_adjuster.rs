@@ -818,6 +818,52 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// A legacy ::marker (i.e. no 'content') without an author-specified 'font-family'
+    /// and 'list-style-type:disc|circle|square|disclosure-closed|disclosure-open'
+    /// is assigned 'font-family:-moz-bullet-font'. (This is for <ul><li> etc.)
+    /// We don't want synthesized italic/bold for this font, so turn that off too.
+    /// Likewise for 'letter/word-spacing' -- unless the author specified it then reset
+    /// them to their initial value because traditionally we never added such spacing
+    /// between a legacy bullet and the list item's content, so we keep that behavior
+    /// for web-compat reasons.
+    /// We intentionally don't check 'list-style-image' below since we want it to use
+    /// the same font as its fallback ('list-style-type') in case it fails to load.
+    #[cfg(feature = "gecko")]
+    fn adjust_for_marker_pseudo(&mut self) {
+        use crate::values::computed::font::{FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSynthesis, SingleFontFamily};
+        use crate::values::computed::text::{LetterSpacing, WordSpacing};
+
+        let is_legacy_marker = self.style.pseudo.map_or(false, |p| p.is_marker()) &&
+            self.style.get_counters().ineffective_content_property() &&
+            self.style.get_list().clone_list_style_type().is_bullet();
+        if !is_legacy_marker {
+            return;
+        }
+        if !self.style.flags.get().contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY) {
+            let moz_bullet_font_family = FontFamily {
+                families: FontFamilyList::new(Box::new([SingleFontFamily::FamilyName(FamilyName {
+                    name: atom!("-moz-bullet-font"),
+                    syntax: FontFamilyNameSyntax::Identifiers,
+                })])),
+                is_system_font: false,
+            };
+            self.style.mutate_font().set_font_family(moz_bullet_font_family);
+
+            // FIXME(mats): We can remove this if support for font-synthesis is added to @font-face rules.
+            // Then we can add it to the @font-face rule in html.css instead.
+            // https://github.com/w3c/csswg-drafts/issues/6081
+            if !self.style.flags.get().contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS) {
+                self.style.mutate_font().set_font_synthesis(FontSynthesis::none());
+            }
+        }
+        if !self.style.flags.get().contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING) {
+            self.style.mutate_inherited_text().set_letter_spacing(LetterSpacing::normal());
+        }
+        if !self.style.flags.get().contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING) {
+            self.style.mutate_inherited_text().set_word_spacing(WordSpacing::normal());
+        }
+    }
+
     /// Adjusts the style to account for various fixups that don't fit naturally
     /// into the cascade.
     ///
@@ -883,6 +929,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         {
             self.adjust_for_appearance(element);
             self.adjust_for_inert();
+            self.adjust_for_marker_pseudo();
         }
         self.set_bits();
     }

@@ -786,6 +786,34 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_PADDING);
         }
 
+        if self
+            .author_specified
+            .contains(LonghandId::FontFamily)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY);
+        }
+
+        if self
+            .author_specified
+            .contains(LonghandId::LetterSpacing)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING);
+        }
+
+        if self
+            .author_specified
+            .contains(LonghandId::WordSpacing)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING);
+        }
+
+        if self
+            .author_specified
+            .contains(LonghandId::FontSynthesis)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS);
+        }
+
         #[cfg(feature = "servo")]
         {
             if let Some(font) = builder.get_font_if_mutated() {
