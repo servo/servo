@@ -10,6 +10,7 @@ use crate::gecko_bindings::bindings;
 use crate::parallel::STYLE_THREAD_STACK_SIZE_KB;
 use crate::shared_lock::SharedRwLock;
 use crate::thread_state;
+use gecko_profiler;
 use parking_lot::{RwLock, RwLockReadGuard};
 use rayon;
 use std::env;
@@ -49,20 +50,16 @@ fn thread_startup(_index: usize) {
     thread_state::initialize_layout_worker_thread();
     #[cfg(feature = "gecko")]
     unsafe {
-        use std::ffi::CString;
-
         bindings::Gecko_SetJemallocThreadLocalArena(true);
         let name = thread_name(_index);
-        let name = CString::new(name).unwrap();
-        // Gecko_RegisterProfilerThread copies the passed name here.
-        bindings::Gecko_RegisterProfilerThread(name.as_ptr());
+        gecko_profiler::register_thread(&name);
     }
 }
 
 fn thread_shutdown(_: usize) {
     #[cfg(feature = "gecko")]
     unsafe {
-        bindings::Gecko_UnregisterProfilerThread();
+        gecko_profiler::unregister_thread();
         bindings::Gecko_SetJemallocThreadLocalArena(false);
     }
     ALIVE_WORKER_THREADS.fetch_sub(1, Ordering::Relaxed);
