@@ -82,24 +82,6 @@ PACKAGES = {
 }
 
 
-TemporaryDirectory = None
-if sys.version_info >= (3, 2):
-    TemporaryDirectory = tempfile.TemporaryDirectory
-else:
-    import contextlib
-
-    # Not quite as robust as tempfile.TemporaryDirectory,
-    # but good enough for most purposes
-    @contextlib.contextmanager
-    def TemporaryDirectory(**kwargs):
-        dir_name = tempfile.mkdtemp(**kwargs)
-        try:
-            yield dir_name
-        except Exception as e:
-            shutil.rmtree(dir_name)
-            raise e
-
-
 def listfiles(directory):
     return [f for f in os.listdir(directory)
             if path.isfile(path.join(directory, f))]
@@ -683,7 +665,7 @@ class PackageCommands(CommandBase):
 
             brew_version = timestamp.strftime('%Y.%m.%d')
 
-            with TemporaryDirectory(prefix='homebrew-servo') as tmp_dir:
+            with tempfile.TemporaryDirectory(prefix='homebrew-servo') as tmp_dir:
                 def call_git(cmd, **kwargs):
                     subprocess.check_call(
                         ['git', '-C', tmp_dir] + cmd,
