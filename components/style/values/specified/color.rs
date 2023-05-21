@@ -375,6 +375,14 @@ pub enum SystemColor {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozColheaderhovertext,
 
+    /// Color of text in the (active) titlebar.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozGtkTitlebarText,
+
+    /// Color of text in the (inactive) titlebar.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozGtkTitlebarInactiveText,
+
     #[css(skip)]
     End, // Just for array-indexing purposes.
 }
