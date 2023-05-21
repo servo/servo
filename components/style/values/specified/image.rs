@@ -365,7 +365,14 @@ impl ImageSet {
         cors_mode: CorsMode,
         only_url: bool,
     ) -> Result<Self, ParseError<'i>> {
-        input.expect_function_matching("image-set")?;
+        let function = input.expect_function()?;
+        match_ignore_ascii_case! { &function,
+            "-webkit-image-set" | "image-set" => {},
+            _ => {
+                let func = function.clone();
+                return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(func)));
+            }
+        }
         let items = input.parse_nested_block(|input| {
             input.parse_comma_separated(|input| ImageSetItem::parse(context, input, cors_mode, only_url))
         })?;
