@@ -11,7 +11,7 @@ use crate::values::generics::svg as generic;
 use crate::values::RGBA;
 use crate::Zero;
 
-pub use crate::values::specified::{MozContextProperties, SVGPaintOrder};
+pub use crate::values::specified::{DProperty, MozContextProperties, SVGPaintOrder};
 
 /// Computed SVG Paint value
 pub type SVGPaint = generic::GenericSVGPaint<Color, ComputedUrl>;

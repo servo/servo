@@ -63,7 +63,6 @@ COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-text-combine",
     "-webkit-text-emphasis-style",
     "-webkit-text-emphasis",
-    "d",
     "-webkit-mask-box-image-width",
     "-webkit-mask-box-image-source",
     "-webkit-mask-box-image-outset",

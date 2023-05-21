@@ -246,3 +246,13 @@ ${helpers.predefined_type(
     animation_value_type="LengthPercentage",
     spec="https://svgwg.org/svg2-draft/geometry.html#R",
 )}
+
+${helpers.predefined_type(
+    "d",
+    "DProperty",
+    "specified::DProperty::none()",
+    engines="gecko",
+    animation_value_type="ComputedValue",
+    gecko_pref="layout.css.d-property.enabled",
+    spec="https://svgwg.org/svg2-draft/paths.html#TheDProperty",
+)}
