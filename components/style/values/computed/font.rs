@@ -8,9 +8,9 @@
 use crate::gecko_bindings::sugar::refptr::RefPtr;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::{bindings, structs};
-use crate::values::animated::{ToAnimatedValue, ToAnimatedZero};
+use crate::values::animated::ToAnimatedValue;
 use crate::values::computed::{
-    Angle, Context, Integer, Length, NonNegativeLength, NonNegativePercentage,
+    Angle, Context, Integer, Length, NonNegativeLength, NonNegativeNumber, NonNegativePercentage,
 };
 use crate::values::computed::{Number, Percentage, ToComputedValue};
 use crate::values::generics::font::{FeatureTagValue, FontSettings, VariationValue};
@@ -623,64 +623,13 @@ impl<'a> Iterator for FontFamilyNameIter<'a> {
 }
 
 /// Preserve the readability of text when font fallback occurs
-#[derive(
-    Animate,
-    Clone,
-    ComputeSquaredDistance,
-    Copy,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    ToCss,
-    ToResolvedValue,
-)]
-pub enum FontSizeAdjust {
-    #[animation(error)]
-    /// None variant
-    None,
-    /// Number variant
-    Number(CSSFloat),
-}
+pub type FontSizeAdjust = generics::GenericFontSizeAdjust<NonNegativeNumber>;
 
 impl FontSizeAdjust {
     #[inline]
     /// Default value of font-size-adjust
     pub fn none() -> Self {
         FontSizeAdjust::None
-    }
-
-    /// Get font-size-adjust with float number
-    pub fn from_gecko_adjust(gecko: f32) -> Self {
-        if gecko == -1.0 {
-            FontSizeAdjust::None
-        } else {
-            FontSizeAdjust::Number(gecko)
-        }
-    }
-}
-
-impl ToAnimatedZero for FontSizeAdjust {
-    #[inline]
-    // FIXME(emilio): why?
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Err(())
-    }
-}
-
-impl ToAnimatedValue for FontSizeAdjust {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        match animated {
-            FontSizeAdjust::Number(number) => FontSizeAdjust::Number(number.max(0.)),
-            _ => animated,
-        }
     }
 }
 

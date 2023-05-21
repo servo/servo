@@ -1008,26 +1008,7 @@ fn static_assert() {
 
     ${impl_simple("font_variant_alternates", "mFont.variantAlternates")}
 
-    pub fn set_font_size_adjust(&mut self, v: longhands::font_size_adjust::computed_value::T) {
-        use crate::properties::longhands::font_size_adjust::computed_value::T;
-        match v {
-            T::None => self.gecko.mFont.sizeAdjust = -1.0 as f32,
-            T::Number(n) => self.gecko.mFont.sizeAdjust = n,
-        }
-    }
-
-    pub fn copy_font_size_adjust_from(&mut self, other: &Self) {
-        self.gecko.mFont.sizeAdjust = other.gecko.mFont.sizeAdjust;
-    }
-
-    pub fn reset_font_size_adjust(&mut self, other: &Self) {
-        self.copy_font_size_adjust_from(other)
-    }
-
-    pub fn clone_font_size_adjust(&self) -> longhands::font_size_adjust::computed_value::T {
-        use crate::properties::longhands::font_size_adjust::computed_value::T;
-        T::from_gecko_adjust(self.gecko.mFont.sizeAdjust)
-    }
+    ${impl_simple("font_size_adjust", "mFont.sizeAdjust")}
 
     #[allow(non_snake_case)]
     pub fn set__x_lang(&mut self, v: longhands::_x_lang::computed_value::T) {

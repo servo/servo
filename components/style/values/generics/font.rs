@@ -202,3 +202,56 @@ pub enum FontStyle<Angle> {
     #[value_info(starts_with_keyword)]
     Oblique(Angle),
 }
+
+/// A generic value for the `font-size-adjust` property.
+///
+/// https://www.w3.org/TR/css-fonts-4/#font-size-adjust-prop
+/// https://github.com/w3c/csswg-drafts/issues/6160
+#[allow(missing_docs)]
+#[repr(u8)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub enum GenericFontSizeAdjust<Number> {
+    #[animation(error)]
+    None,
+    // 'ex' is the implied basis, so the keyword can be omitted
+    Ex(Number),
+    #[value_info(starts_with_keyword)]
+    Cap(Number),
+    #[value_info(starts_with_keyword)]
+    Ch(Number),
+    #[value_info(starts_with_keyword)]
+    Ic(Number),
+}
+
+impl<Number: ToCss> ToCss for GenericFontSizeAdjust<Number> {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        let (prefix, value) = match self {
+            Self::None => return dest.write_str("none"),
+            Self::Ex(v) => ("", v),
+            Self::Cap(v) => ("cap ", v),
+            Self::Ch(v) => ("ch ", v),
+            Self::Ic(v) => ("ic ", v),
+        };
+
+        dest.write_str(prefix)?;
+        value.to_css(dest)
+    }
+}

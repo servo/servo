@@ -388,8 +388,7 @@ pub mod system_font {
                 font_weight,
                 font_stretch,
                 font_style,
-                font_size_adjust: longhands::font_size_adjust::computed_value
-                                           ::T::from_gecko_adjust(system.sizeAdjust),
+                font_size_adjust: system.sizeAdjust,
                 % for kwprop in kw_font_props:
                     ${kwprop}: longhands::${kwprop}::computed_value::T::from_gecko_keyword(
                         system.${to_camel_case_lower(kwprop.replace('font_', ''))}
