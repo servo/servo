@@ -213,6 +213,7 @@ ${helpers.predefined_type(
     initial_value="computed::XLang::get_initial_value()",
     animation_value_type="none",
     enabled_in="",
+    has_effect_on_gecko_scrollbars=False,
     spec="Internal (not web-exposed)",
 )}
 
@@ -224,6 +225,7 @@ ${helpers.predefined_type(
     animation_value_type="none",
     gecko_ffi_name="mScriptSizeMultiplier",
     enabled_in="",
+    has_effect_on_gecko_scrollbars=False,
     spec="Internal (not web-exposed)",
 )}
 
@@ -263,6 +265,7 @@ ${helpers.single_keyword(
     spec="Internal (not web-exposed)",
     animation_value_type="none",
     enabled_in="",
+    has_effect_on_gecko_scrollbars=False,
     needs_conversion=True,
 )}
 
@@ -273,6 +276,7 @@ ${helpers.predefined_type(
     engines="gecko",
     animation_value_type="none",
     enabled_in="",
+    has_effect_on_gecko_scrollbars=False,
     gecko_ffi_name="mScriptMinSize",
     spec="Internal (not web-exposed)",
 )}
@@ -284,6 +288,7 @@ ${helpers.predefined_type(
     engines="gecko",
     animation_value_type="none",
     enabled_in="",
+    has_effect_on_gecko_scrollbars=False,
     spec="Internal (not web-exposed)",
 )}
 
