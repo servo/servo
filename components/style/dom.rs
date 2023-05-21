@@ -881,7 +881,7 @@ pub trait TElement:
                                 }
                             }
                             // TODO: Could be more granular.
-                            if !shadow.host().exports_any_part() {
+                            if !inner_shadow_host.exports_any_part() {
                                 break;
                             }
                             inner_shadow = shadow;
