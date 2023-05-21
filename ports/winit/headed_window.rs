@@ -14,7 +14,6 @@ use euclid::{
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
-#[cfg(any(target_os = "linux", target_os = "windows"))]
 
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
