@@ -614,6 +614,7 @@ impl IsAbsolute {
 
     /// Return Yes if value is true. Otherwise, return No.
     #[inline]
+    #[cfg(feature = "gecko")]
     fn new(value: bool) -> Self {
         if value {
             IsAbsolute::Yes
