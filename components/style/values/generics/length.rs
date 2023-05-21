@@ -235,7 +235,7 @@ impl<LengthPercentage> MaxSize<LengthPercentage> {
     }
 }
 
-/// A generic `<length>` | `<number>` value for the `-moz-tab-size` property.
+/// A generic `<length>` | `<number>` value for the `tab-size` property.
 #[derive(
     Animate,
     Clone,

@@ -25,7 +25,6 @@ COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-user-modify",
     "-webkit-margin-before",
     "-webkit-margin-after",
-    "tab-size",
     "-webkit-margin-start",
     "-webkit-column-break-inside",
     "-webkit-padding-start",

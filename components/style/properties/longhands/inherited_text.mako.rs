@@ -238,12 +238,13 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-    "-moz-tab-size",
+    "tab-size",
     "NonNegativeLengthOrNumber",
     "generics::length::LengthOrNumber::Number(From::from(8.0))",
     engines="gecko",
     animation_value_type="LengthOrNumber",
     spec="https://drafts.csswg.org/css-text-3/#tab-size-property",
+    aliases="-moz-tab-size",
 )}
 
 ${helpers.predefined_type(
