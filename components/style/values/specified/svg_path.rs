@@ -60,6 +60,111 @@ impl SVGPathData {
 
         SVGPathData(crate::ArcSlice::from_iter(result.into_iter()))
     }
+
+    // FIXME: Bug 1714238, we may drop this once we use the same data structure for both SVG and
+    // CSS.
+    /// Decode the svg path raw data from Gecko.
+    #[cfg(feature = "gecko")]
+    pub fn decode_from_f32_array(path: &[f32]) -> Result<Self, ()> {
+        use crate::gecko_bindings::structs::dom::SVGPathSeg_Binding::*;
+
+        let mut result: Vec<PathCommand> = Vec::new();
+        let mut i: usize = 0;
+        while i < path.len() {
+            // See EncodeType() and DecodeType() in SVGPathSegUtils.h.
+            // We are using reinterpret_cast<> to encode and decode between u32 and f32, so here we
+            // use to_bits() to decode the type.
+            let seg_type = path[i].to_bits() as u16;
+            i = i + 1;
+            match seg_type {
+                PATHSEG_CLOSEPATH => result.push(PathCommand::ClosePath),
+                PATHSEG_MOVETO_ABS | PATHSEG_MOVETO_REL => {
+                    debug_assert!(i + 1 < path.len());
+                    result.push(PathCommand::MoveTo {
+                        point: CoordPair::new(path[i], path[i + 1]),
+                        absolute: IsAbsolute::new(seg_type == PATHSEG_MOVETO_ABS),
+                    });
+                    i = i + 2;
+                }
+                PATHSEG_LINETO_ABS | PATHSEG_LINETO_REL => {
+                    debug_assert!(i + 1 < path.len());
+                    result.push(PathCommand::LineTo {
+                        point: CoordPair::new(path[i], path[i + 1]),
+                        absolute: IsAbsolute::new(seg_type == PATHSEG_LINETO_ABS),
+                    });
+                    i = i + 2;
+                }
+                PATHSEG_CURVETO_CUBIC_ABS | PATHSEG_CURVETO_CUBIC_REL => {
+                    debug_assert!(i + 5 < path.len());
+                    result.push(PathCommand::CurveTo {
+                        control1: CoordPair::new(path[i], path[i + 1]),
+                        control2: CoordPair::new(path[i + 2], path[i + 3]),
+                        point: CoordPair::new(path[i + 4], path[i + 5]),
+                        absolute: IsAbsolute::new(seg_type == PATHSEG_CURVETO_CUBIC_ABS),
+                    });
+                    i = i + 6;
+                }
+                PATHSEG_CURVETO_QUADRATIC_ABS | PATHSEG_CURVETO_QUADRATIC_REL => {
+                    debug_assert!(i + 3 < path.len());
+                    result.push(PathCommand::QuadBezierCurveTo {
+                        control1: CoordPair::new(path[i], path[i + 1]),
+                        point: CoordPair::new(path[i + 2], path[i + 3]),
+                        absolute: IsAbsolute::new(seg_type == PATHSEG_CURVETO_QUADRATIC_ABS),
+                    });
+                    i = i + 4;
+                }
+                PATHSEG_ARC_ABS | PATHSEG_ARC_REL => {
+                    debug_assert!(i + 6 < path.len());
+                    result.push(PathCommand::EllipticalArc {
+                        rx: path[i],
+                        ry: path[i + 1],
+                        angle: path[i + 2],
+                        large_arc_flag: ArcFlag(path[i + 3] != 0.0f32),
+                        sweep_flag: ArcFlag(path[i + 4] != 0.0f32),
+                        point: CoordPair::new(path[i + 5], path[i + 6]),
+                        absolute: IsAbsolute::new(seg_type == PATHSEG_ARC_ABS),
+                    });
+                    i = i + 7;
+                }
+                PATHSEG_LINETO_HORIZONTAL_ABS | PATHSEG_LINETO_HORIZONTAL_REL => {
+                    debug_assert!(i < path.len());
+                    result.push(PathCommand::HorizontalLineTo {
+                        x: path[i],
+                        absolute: IsAbsolute::new(seg_type == PATHSEG_LINETO_HORIZONTAL_ABS),
+                    });
+                    i = i + 1;
+                }
+                PATHSEG_LINETO_VERTICAL_ABS | PATHSEG_LINETO_VERTICAL_REL => {
+                    debug_assert!(i < path.len());
+                    result.push(PathCommand::VerticalLineTo {
+                        y: path[i],
+                        absolute: IsAbsolute::new(seg_type == PATHSEG_LINETO_VERTICAL_ABS),
+                    });
+                    i = i + 1;
+                }
+                PATHSEG_CURVETO_CUBIC_SMOOTH_ABS | PATHSEG_CURVETO_CUBIC_SMOOTH_REL => {
+                    debug_assert!(i + 3 < path.len());
+                    result.push(PathCommand::SmoothCurveTo {
+                        control2: CoordPair::new(path[i], path[i + 1]),
+                        point: CoordPair::new(path[i + 2], path[i + 3]),
+                        absolute: IsAbsolute::new(seg_type == PATHSEG_CURVETO_CUBIC_SMOOTH_ABS),
+                    });
+                    i = i + 4;
+                }
+                PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS | PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL => {
+                    debug_assert!(i + 1 < path.len());
+                    result.push(PathCommand::SmoothQuadBezierCurveTo {
+                        point: CoordPair::new(path[i], path[i + 1]),
+                        absolute: IsAbsolute::new(seg_type == PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS),
+                    });
+                    i = i + 2;
+                }
+                PATHSEG_UNKNOWN | _ => return Err(()),
+            }
+        }
+
+        Ok(SVGPathData(crate::ArcSlice::from_iter(result.into_iter())))
+    }
 }
 
 impl ToCss for SVGPathData {
@@ -505,6 +610,16 @@ impl IsAbsolute {
     #[inline]
     pub fn is_yes(&self) -> bool {
         *self == IsAbsolute::Yes
+    }
+
+    /// Return Yes if value is true. Otherwise, return No.
+    #[inline]
+    fn new(value: bool) -> Self {
+        if value {
+            IsAbsolute::Yes
+        } else {
+            IsAbsolute::No
+        }
     }
 }
 
