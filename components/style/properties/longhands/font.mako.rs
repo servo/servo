@@ -314,7 +314,6 @@ pub mod system_font {
     //! variable reference. We may want to improve this behavior at some
     //! point. See also https://github.com/w3c/csswg-drafts/issues/1586.
 
-    use crate::values::computed::font::GenericFontFamily;
     use crate::properties::longhands;
     use std::hash::{Hash, Hasher};
     use crate::values::computed::{ToComputedValue, Context};
@@ -356,7 +355,7 @@ pub mod system_font {
             use std::mem;
             use crate::values::computed::Percentage;
             use crate::values::specified::font::KeywordInfo;
-            use crate::values::computed::font::{FontFamily, FontSize, FontStretch, FontStyle, FontFamilyList};
+            use crate::values::computed::font::{FontSize, FontStretch, FontStyle};
             use crate::values::generics::NonNegative;
 
             let mut system = mem::MaybeUninit::<nsFont>::uninit();
@@ -375,12 +374,7 @@ pub mod system_font {
             })));
             let font_style = FontStyle::from_gecko(system.style);
             let ret = ComputedSystemFont {
-                font_family: FontFamily {
-                    families: FontFamilyList::SharedFontList(
-                        unsafe { system.fontlist.mFontlist.mBasePtr.to_safe() }
-                    ),
-                    is_system_font: true,
-                },
+                font_family: system.family.clone(),
                 font_size: FontSize {
                     size: NonNegative(cx.maybe_zoom_text(system.size.0)),
                     keyword_info: KeywordInfo::none()
@@ -403,7 +397,6 @@ pub mod system_font {
                 font_variation_settings: longhands::font_variation_settings::get_initial_value(),
                 font_variant_alternates: longhands::font_variant_alternates::get_initial_value(),
                 system_font: *self,
-                default_font_type: system.fontlist.mDefaultFontType,
             };
             unsafe { bindings::Gecko_nsFont_Destroy(system); }
             ret
@@ -435,7 +428,6 @@ pub mod system_font {
             pub ${name}: longhands::${name}::computed_value::T,
         % endfor
         pub system_font: SystemFont,
-        pub default_font_type: GenericFontFamily,
     }
 
 }

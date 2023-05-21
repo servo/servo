@@ -830,7 +830,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// the same font as its fallback ('list-style-type') in case it fails to load.
     #[cfg(feature = "gecko")]
     fn adjust_for_marker_pseudo(&mut self) {
-        use crate::values::computed::font::{FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSynthesis, SingleFontFamily};
+        use crate::values::computed::font::{FontFamily, FontSynthesis};
         use crate::values::computed::text::{LetterSpacing, WordSpacing};
 
         let is_legacy_marker = self.style.pseudo.map_or(false, |p| p.is_marker()) &&
@@ -840,14 +840,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             return;
         }
         if !self.style.flags.get().contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY) {
-            let moz_bullet_font_family = FontFamily {
-                families: FontFamilyList::new(Box::new([SingleFontFamily::FamilyName(FamilyName {
-                    name: atom!("-moz-bullet-font"),
-                    syntax: FontFamilyNameSyntax::Identifiers,
-                })])),
-                is_system_font: false,
-            };
-            self.style.mutate_font().set_font_family(moz_bullet_font_family);
+            self.style.mutate_font().set_font_family(FontFamily::moz_bullet().clone());
 
             // FIXME(mats): We can remove this if support for font-synthesis is added to @font-face rules.
             // Then we can add it to the @font-face rule in html.css instead.

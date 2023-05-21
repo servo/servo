@@ -6,8 +6,6 @@
 
 #[cfg(feature = "gecko")]
 use crate::context::QuirksMode;
-#[cfg(feature = "gecko")]
-use crate::gecko_bindings::bindings;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
 use crate::values::computed::{font as computed, Length, NonNegativeLength};
@@ -24,7 +22,7 @@ use crate::values::CustomIdent;
 use crate::Atom;
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf};
 use std::fmt::{self, Write};
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
@@ -687,9 +685,10 @@ impl FontFamily {
     /// Parse a specified font-family value
     pub fn parse_specified<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let values = input.parse_comma_separated(SingleFontFamily::parse)?;
-        Ok(FontFamily::Values(FontFamilyList::new(
-            values.into_boxed_slice(),
-        )))
+        Ok(FontFamily::Values(FontFamilyList {
+            list: crate::ArcSlice::from_iter(values.into_iter()),
+            fallback: computed::GenericFontFamily::None,
+        }))
     }
 }
 
@@ -698,8 +697,8 @@ impl ToComputedValue for FontFamily {
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            FontFamily::Values(ref v) => computed::FontFamily {
-                families: v.clone(),
+            FontFamily::Values(ref list) => computed::FontFamily {
+                families: list.clone(),
                 is_system_font: false,
             },
             FontFamily::System(_) => self.compute_system(context),
@@ -713,18 +712,12 @@ impl ToComputedValue for FontFamily {
 
 #[cfg(feature = "gecko")]
 impl MallocSizeOf for FontFamily {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match *self {
             FontFamily::Values(ref v) => {
-                // Although a SharedFontList object is refcounted, we always
-                // attribute its size to the specified value, as long as it's
-                // not a value in SharedFontList::sSingleGenerics.
-                if matches!(v, FontFamilyList::SharedFontList(_)) {
-                    let ptr = v.shared_font_list().get();
-                    unsafe { bindings::Gecko_SharedFontList_SizeOfIncludingThis(ptr) }
-                } else {
-                    0
-                }
+                // Although the family list is refcounted, we always attribute
+                // its size to the specified value.
+                v.list.unconditional_size_of(ops)
             },
             FontFamily::System(_) => 0,
         }

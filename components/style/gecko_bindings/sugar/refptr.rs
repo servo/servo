@@ -309,11 +309,6 @@ impl_threadsafe_refcount!(
     bindings::Gecko_ReleasensIURIArbitraryThread
 );
 impl_threadsafe_refcount!(
-    structs::SharedFontList,
-    bindings::Gecko_AddRefSharedFontListArbitraryThread,
-    bindings::Gecko_ReleaseSharedFontListArbitraryThread
-);
-impl_threadsafe_refcount!(
     structs::SheetLoadDataHolder,
     bindings::Gecko_AddRefSheetLoadDataHolderArbitraryThread,
     bindings::Gecko_ReleaseSheetLoadDataHolderArbitraryThread
