@@ -1521,7 +1521,7 @@ impl ShorthandId {
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
             if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
-               return Some(AppendableValue::Css { css, with_variables: true });
+               return Some(AppendableValue::Css(css));
             }
             return None;
         }
@@ -1529,10 +1529,7 @@ impl ShorthandId {
         // Check whether they are all the same CSS-wide keyword.
         if let Some(keyword) = first_declaration.get_css_wide_keyword() {
             if declarations2.all(|d| d.get_css_wide_keyword() == Some(keyword)) {
-                return Some(AppendableValue::Css {
-                    css: keyword.to_str(),
-                    with_variables: false,
-                });
+                return Some(AppendableValue::Css(keyword.to_str()))
             }
             return None;
         }
@@ -1725,7 +1722,8 @@ impl UnparsedValue {
 
         let mut input = ParserInput::new(&css);
         let mut input = Parser::new(&mut input);
-        input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
+        input.skip_whitespace();
+
         if let Ok(keyword) = input.try_parse(CSSWideKeyword::parse) {
             return Cow::Owned(PropertyDeclaration::css_wide_keyword(longhand_id, keyword));
         }
@@ -2441,12 +2439,11 @@ impl PropertyDeclaration {
         debug_assert!(id.allowed_in(context), "{:?}", id);
 
         let non_custom_id = id.non_custom_id();
+        input.skip_whitespace();
+
         let start = input.state();
         match id {
             PropertyId::Custom(property_name) => {
-                // FIXME: fully implement https://github.com/w3c/csswg-drafts/issues/774
-                // before adding skip_whitespace here.
-                // This probably affects some test results.
                 let value = match input.try_parse(CSSWideKeyword::parse) {
                     Ok(keyword) => CustomDeclarationValue::CSSWideKeyword(keyword),
                     Err(()) => CustomDeclarationValue::Value(
@@ -2461,7 +2458,6 @@ impl PropertyDeclaration {
             }
             PropertyId::LonghandAlias(id, _) |
             PropertyId::Longhand(id) => {
-                input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 input.try_parse(CSSWideKeyword::parse).map(|keyword| {
                     PropertyDeclaration::css_wide_keyword(id, keyword)
                 }).or_else(|()| {
@@ -2491,7 +2487,6 @@ impl PropertyDeclaration {
             }
             PropertyId::ShorthandAlias(id, _) |
             PropertyId::Shorthand(id) => {
-                input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 if let Ok(keyword) = input.try_parse(CSSWideKeyword::parse) {
                     if id == ShorthandId::All {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)

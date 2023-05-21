@@ -318,11 +318,6 @@ fn parse_declaration_value<'i, 't>(
     missing_closing_characters: &mut String,
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
-        // Need at least one token
-        let start = input.state();
-        input.next_including_whitespace()?;
-        input.reset(&start);
-
         parse_declaration_value_block(input, references, missing_closing_characters)
     })
 }
@@ -334,6 +329,7 @@ fn parse_declaration_value_block<'i, 't>(
     mut references: Option<&mut VarOrEnvReferences>,
     missing_closing_characters: &mut String,
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
+    input.skip_whitespace();
     let mut token_start = input.position();
     let mut token = match input.next_including_whitespace_and_comments() {
         Ok(token) => token,
@@ -477,10 +473,8 @@ fn parse_fallback<'i, 't>(input: &mut Parser<'i, 't>) -> Result<(), ParseError<'
     // Exclude `!` and `;` at the top level
     // https://drafts.csswg.org/css-syntax/#typedef-declaration-value
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
-        // At least one non-comment token.
-        input.next_including_whitespace()?;
         // Skip until the end.
-        while let Ok(_) = input.next_including_whitespace_and_comments() {}
+        while input.next_including_whitespace_and_comments().is_ok() {}
         Ok(())
     })
 }
@@ -996,12 +990,12 @@ fn substitute_block<'i>(
                         while input.next().is_ok() {}
                     } else {
                         input.expect_comma()?;
+                        input.skip_whitespace();
                         let after_comma = input.state();
                         let first_token_type = input
                             .next_including_whitespace_and_comments()
-                            // parse_var_function() ensures that .unwrap() will not fail.
-                            .unwrap()
-                            .serialization_type();
+                            .ok()
+                            .map_or_else(TokenSerializationType::nothing, |t| t.serialization_type());
                         input.reset(&after_comma);
                         let mut position = (after_comma.position(), first_token_type);
                         last_token_type = substitute_block(
