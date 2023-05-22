@@ -516,8 +516,8 @@ impl ToAnimatedZero for TransformOperation {
             generic::TransformOperation::Rotate(_) => {
                 Ok(generic::TransformOperation::Rotate(Angle::zero()))
             },
-            generic::TransformOperation::Perspective(ref l) => Ok(
-                generic::TransformOperation::Perspective(l.to_animated_zero()?),
+            generic::TransformOperation::Perspective(_) => Ok(
+                generic::TransformOperation::Perspective(Length::new(std::f32::INFINITY))
             ),
             generic::TransformOperation::AccumulateMatrix { .. } |
             generic::TransformOperation::InterpolateMatrix { .. } => {
