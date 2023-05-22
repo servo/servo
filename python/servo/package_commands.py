@@ -434,7 +434,7 @@ class PackageCommands(CommandBase):
             except BuildNotFound:
                 print("Rebuilding Servo did not solve the missing build problem.")
                 return 1
-        elif android:
+        if android:
             pkg_path = self.get_apk_path(release)
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
