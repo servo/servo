@@ -170,14 +170,12 @@ pub unsafe extern "C" fn init_servo(
 
     let opts = InitOptions {
         args,
-        url: Some(url.to_string()),
         density: hidpi,
-        enable_subpixel_text_antialiasing: false,
-        vr_init,
         xr_discovery,
         coordinates,
         gl_context_pointer: Some(ctxt),
         native_display_pointer: Some(disp),
+        ..Default::default()
     };
     let wakeup = Box::new(EventLoopWakerInstance);
     let shut_down_complete = Rc::new(Cell::new(false));
