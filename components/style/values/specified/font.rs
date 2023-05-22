@@ -1990,23 +1990,24 @@ impl Parse for FontFeatureSettings {
     Debug,
     MallocSizeOf,
     PartialEq,
-    SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
     ToShmem,
 )]
 /// Whether user agents are allowed to synthesize bold or oblique font faces
-/// when a font family lacks bold or italic faces
+/// when a font family lacks those faces, or a small-caps variant when this is
+/// not supported by the face.
 pub struct FontSynthesis {
     /// If a `font-weight` is requested that the font family does not contain,
     /// the user agent may synthesize the requested weight from the weights
     /// that do exist in the font family.
-    #[css(represents_keyword)]
     pub weight: bool,
     /// If a font-style is requested that the font family does not contain,
     /// the user agent may synthesize the requested style from the normal face in the font family.
-    #[css(represents_keyword)]
     pub style: bool,
+    /// This bit controls whether the user agent is allowed to synthesize small caps variant
+    /// when a font face lacks it.
+    pub small_caps: bool,
 }
 
 impl FontSynthesis {
@@ -2016,6 +2017,7 @@ impl FontSynthesis {
         FontSynthesis {
             weight: true,
             style: true,
+            small_caps: true,
         }
     }
     #[inline]
@@ -2024,7 +2026,13 @@ impl FontSynthesis {
         FontSynthesis {
             weight: false,
             style: false,
+            small_caps: false,
         }
+    }
+    #[inline]
+    /// Return true if this is the 'none' value
+    pub fn is_none(&self) -> bool {
+        *self == Self::none()
     }
 }
 
@@ -2033,26 +2041,23 @@ impl Parse for FontSynthesis {
         _: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<FontSynthesis, ParseError<'i>> {
-        let mut result = FontSynthesis {
-            weight: false,
-            style: false,
-        };
-        try_match_ident_ignore_ascii_case! { input,
-            "none" => Ok(result),
-            "weight" => {
-                result.weight = true;
-                if input.try_parse(|input| input.expect_ident_matching("style")).is_ok() {
-                    result.style = true;
-                }
-                Ok(result)
-            },
-            "style" => {
-                result.style = true;
-                if input.try_parse(|input| input.expect_ident_matching("weight")).is_ok() {
-                    result.weight = true;
-                }
-                Ok(result)
-            },
+        use crate::values::SelectorParseErrorKind;
+        let mut result = Self::none();
+        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
+            match_ignore_ascii_case! { &ident,
+                "none" if result.is_none() => return Ok(result),
+                "weight" if !result.weight => result.weight = true,
+                "style" if !result.style => result.style = true,
+                "small-caps" if !result.small_caps &&
+                                static_prefs::pref!("layout.css.font-synthesis-small-caps.enabled")
+                                    => result.small_caps = true,
+                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident))),
+            }
+        }
+        if !result.is_none() {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }
@@ -2062,14 +2067,41 @@ impl ToCss for FontSynthesis {
     where
         W: Write,
     {
-        if self.weight && self.style {
-            dest.write_str("weight style")
-        } else if self.style {
-            dest.write_str("style")
-        } else if self.weight {
-            dest.write_str("weight")
-        } else {
-            dest.write_str("none")
+        if self.is_none() {
+            return dest.write_str("none");
+        }
+
+        let mut need_space = false;
+        if self.weight {
+            dest.write_str("weight")?;
+            need_space = true;
+        }
+        if self.style {
+            if need_space {
+                dest.write_str(" ")?;
+            }
+            dest.write_str("style")?;
+            need_space = true;
+        }
+        if self.small_caps {
+            if need_space {
+                dest.write_str(" ")?;
+            }
+            dest.write_str("small-caps")?;
+        }
+        Ok(())
+    }
+}
+
+impl SpecifiedValueInfo for FontSynthesis {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        f(&[
+            "none",
+            "weight",
+            "style",
+        ]);
+        if static_prefs::pref!("layout.css.font-synthesis-small-caps.enabled") {
+            f(&["small-caps"]);
         }
     }
 }
@@ -2082,6 +2114,7 @@ impl From<u8> for FontSynthesis {
         FontSynthesis {
             weight: bits & structs::NS_FONT_SYNTHESIS_WEIGHT as u8 != 0,
             style: bits & structs::NS_FONT_SYNTHESIS_STYLE as u8 != 0,
+            small_caps: bits & structs::NS_FONT_SYNTHESIS_SMALL_CAPS as u8 != 0,
         }
     }
 }
@@ -2097,6 +2130,9 @@ impl From<FontSynthesis> for u8 {
         }
         if v.style {
             bits |= structs::NS_FONT_SYNTHESIS_STYLE as u8;
+        }
+        if v.small_caps {
+            bits |= structs::NS_FONT_SYNTHESIS_SMALL_CAPS as u8;
         }
         bits
     }
