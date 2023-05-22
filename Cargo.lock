@@ -3296,20 +3296,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "348108ab3fba42ec82ff6e9564fc4ca0247bdccdc68dd8af9764bbc79c3c8ffb"
 
 [[package]]
-name = "libmlservo"
-version = "0.0.1"
-dependencies = [
- "libc",
- "libservo",
- "log",
- "servo-egl",
- "simpleservo",
- "smallvec",
- "webxr",
- "webxr-api",
-]
-
-[[package]]
 name = "libservo"
 version = "0.0.1"
 dependencies = [
@@ -5378,15 +5364,6 @@ dependencies = [
  "objc-foundation",
  "thiserror",
  "time-point",
-]
-
-[[package]]
-name = "servo-egl"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21069a884c33fe6ee596975e1f3849ed88c4ec857fbaf11d33672d8ebe051217"
-dependencies = [
- "libc",
 ]
 
 [[package]]

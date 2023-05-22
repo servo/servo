@@ -866,6 +866,8 @@ install them, let us know by filing a bug!")
             assert self.handle_android_target(target)
         if android and not target:
             target = self.config["android"]["target"]
+        if target and not android:
+            android = self.handle_android_target(target)
         return target, android
 
     # A guess about which platforms should use the gstreamer media stack
@@ -919,6 +921,9 @@ install them, let us know by filing a bug!")
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
+
+            features.append("native-bluetooth")
+
             if uwp:
                 features.append("no-wgl")
                 features.append("uwp")
