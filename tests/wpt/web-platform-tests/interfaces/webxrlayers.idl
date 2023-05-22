@@ -11,6 +11,12 @@ enum XRLayerLayout {
   "stereo-top-bottom"
 };
 
+enum XRLayerQuality {
+  "default",
+  "text-optimized",
+  "graphics-optimized"
+};
+
 [Exposed=Window] interface XRCompositionLayer : XRLayer {
   readonly attribute XRLayerLayout layout;
 
@@ -18,6 +24,7 @@ enum XRLayerLayout {
   attribute boolean forceMonoPresentation;
   attribute float opacity;
   readonly attribute unsigned long mipLevels;
+  attribute XRLayerQuality quality;
 
   readonly attribute boolean needsRedraw;
 
@@ -106,6 +113,7 @@ dictionary XRProjectionLayerInit {
   GLenum colorFormat = 0x1908; // RGBA
   GLenum depthFormat = 0x1902; // DEPTH_COMPONENT
   double scaleFactor = 1.0;
+  boolean clearOnAccess = true;
 };
 
 dictionary XRLayerInit {
@@ -117,6 +125,7 @@ dictionary XRLayerInit {
   required unsigned long viewPixelHeight;
   XRLayerLayout layout = "mono";
   boolean isStatic = false;
+  boolean clearOnAccess = true;
 };
 
 dictionary XRQuadLayerInit : XRLayerInit {

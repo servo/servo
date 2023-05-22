@@ -13,6 +13,15 @@
     "help": "Output a hosts file to stdout",
     "virtualenv": false
   },
+  "macos-color-profile": {
+    "path": "macos_color_profile.py",
+    "script": "run",
+    "help": "Change the macOS color profile to sRGB",
+    "virtualenv": true,
+    "requirements": [
+      "requirements_macos_color_profile.txt"
+    ]
+  },
   "regen-certs": {
     "path": "regen_certs.py",
     "script": "run",

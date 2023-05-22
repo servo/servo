@@ -10,8 +10,8 @@
 </canvas>
 <script id='myWorker' type='text/worker'>
   self.onmessage = function(e) {
-    const oc = new OffscreenCanvas(520, 420);
-    const ctx = oc.getContext('2d');
+    const canvas = new OffscreenCanvas(520, 420);
+    const ctx = canvas.getContext('2d');
 
     ctx.fillStyle = 'teal';
     ctx.fillRect(0, 0, 520, 50);
@@ -107,7 +107,7 @@
        floodColor: 'purple', floodOpacity: ['0.4']});
     ctx.fillRect(210, 310, 80, 80);
 
-    const bitmap = oc.transferToImageBitmap();
+    const bitmap = canvas.transferToImageBitmap();
     self.postMessage(bitmap, bitmap);
   };
 </script>

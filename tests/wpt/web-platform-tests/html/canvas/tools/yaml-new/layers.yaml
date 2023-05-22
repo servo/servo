@@ -247,6 +247,146 @@
     ctx.fillRect(70, 70, 75, 50);
 
 
+- name: 2d.layer.unclosed
+  desc: Check that layers are rendered even if not closed.
+  size: 200, 200
+  code: |
+    ctx.fillStyle = 'purple';
+    ctx.fillRect(60, 60, 75, 50);
+    ctx.globalAlpha = 0.5;
+
+    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.fillRect(40, 40, 75, 50);
+    ctx.fillStyle = 'grey';
+    ctx.fillRect(50, 50, 75, 50);
+  reference: |
+    ctx.fillStyle = 'purple';
+    ctx.fillRect(60, 60, 75, 50);
+    ctx.globalAlpha = 0.5;
+
+    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.fillStyle = 'purple';
+    ctx.fillRect(40, 40, 75, 50);
+    ctx.fillStyle = 'grey';
+    ctx.fillRect(50, 50, 75, 50);
+    ctx.endLayer();
+
+
+- name: 2d.layer.render-opportunities
+  desc: Check that layers state stack is flushed and rebuilt on frame renders.
+  size: 200, 200
+  code: |
+    ctx.fillStyle = 'purple';
+    ctx.fillRect(60, 60, 75, 50);
+    ctx.globalAlpha = 0.5;
+
+    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.fillRect(40, 40, 75, 50);
+    ctx.fillStyle = 'grey';
+    ctx.fillRect(50, 50, 75, 50);
+
+    // Force a flush and restoration of the state stack:
+    %(flush_canvas)s
+
+    ctx.fillRect(70, 70, 75, 50);
+    ctx.fillStyle = 'orange';
+    ctx.fillRect(80, 80, 75, 50);
+    ctx.endLayer();
+
+    ctx.fillRect(80, 40, 75, 50);
+  reference: |
+    ctx.fillStyle = 'purple';
+    ctx.fillRect(60, 60, 75, 50);
+    ctx.globalAlpha = 0.5;
+
+    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.fillStyle = 'purple';
+    ctx.fillRect(40, 40, 75, 50);
+    ctx.fillStyle = 'grey';
+    ctx.fillRect(50, 50, 75, 50);
+    ctx.endLayer();
+
+    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.fillStyle = 'grey';
+    ctx.fillRect(70, 70, 75, 50);
+    ctx.fillStyle = 'orange';
+    ctx.fillRect(80, 80, 75, 50);
+    ctx.endLayer();
+
+    ctx.fillRect(80, 40, 75, 50);
+  variants:
+    convertToBlob:
+      test_type: "promise"
+      canvasType: ['OffscreenCanvas']
+      flush_canvas: |-
+        await canvas.convertToBlob();
+    createImageBitmap:
+      flush_canvas: createImageBitmap(canvas);
+    drawImage:
+      flush_canvas: |-
+        const canvas2 = new OffscreenCanvas(200, 200);
+        const ctx2 = canvas2.getContext('2d');
+        ctx2.drawImage(canvas, 0, 0);
+    getImageData:
+      flush_canvas: ctx.getImageData(0, 0, 200, 200);
+    requestAnimationFrame:
+      canvasType: ['HTMLCanvas']
+      test_type: "promise"
+      flush_canvas: |-
+        await new Promise(resolve => requestAnimationFrame(resolve));
+    putImageData:
+      flush_canvas: |-
+        const canvas2 = new OffscreenCanvas(200, 200);
+        const ctx2 = canvas2.getContext('2d');
+        ctx.putImageData(ctx2.getImageData(0, 0, 1, 1), 0, 0);
+    toBlob:
+      test_type: "promise"
+      canvasType: ['HTMLCanvas']
+      flush_canvas: |-
+        await new Promise(resolve => canvas.toBlob(resolve));
+    toDataURL:
+      canvasType: ['HTMLCanvas']
+      flush_canvas: canvas.toDataURL();
+
+
+- name: 2d.layer.render-opportunities.transferToImageBitmap
+  desc: Checks that transferToImageBitmap flushes and rebuilds the state stack.
+  size: 200, 200
+  canvasType: ['OffscreenCanvas']
+  code: |
+    ctx.fillStyle = 'purple';
+    ctx.fillRect(60, 60, 75, 50);
+    ctx.globalAlpha = 0.5;
+
+    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.fillRect(40, 40, 75, 50);
+    ctx.fillStyle = 'grey';
+    ctx.fillRect(50, 50, 75, 50);
+
+    // Force a flush and restoration of the state stack.
+    // `transferToImageBitmap` clears the frame but preserves render states.
+    canvas.transferToImageBitmap();
+
+    ctx.fillRect(70, 70, 75, 50);
+    ctx.fillStyle = 'orange';
+    ctx.fillRect(80, 80, 75, 50);
+    ctx.endLayer();
+
+    ctx.fillRect(80, 40, 75, 50);
+  reference: |
+    ctx.fillStyle = 'purple';
+    ctx.globalAlpha = 0.5;
+
+    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.fillStyle = 'grey';
+    ctx.fillRect(70, 70, 75, 50);
+    ctx.fillStyle = 'orange';
+    ctx.fillRect(80, 80, 75, 50);
+    ctx.endLayer();
+
+    ctx.fillRect(80, 40, 75, 50);
+
+
 - name: 2d.layer.several-complex
   desc: >-
     Test to ensure beginlayer works for filter, alpha and shadow, even with

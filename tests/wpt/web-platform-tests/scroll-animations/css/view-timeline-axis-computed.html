@@ -6,7 +6,7 @@
 </head>
 <style>
   #outer { view-timeline-axis: block, inline; }
-  #target { view-timeline-axis: vertical; }
+  #target { view-timeline-axis: y; }
 </style>
 <div id=outer>
   <div id=target></div>
@@ -18,11 +18,11 @@ test_computed_value('view-timeline-axis', 'unset', 'block');
 test_computed_value('view-timeline-axis', 'revert', 'block');
 test_computed_value('view-timeline-axis', 'block');
 test_computed_value('view-timeline-axis', 'inline');
-test_computed_value('view-timeline-axis', 'vertical');
-test_computed_value('view-timeline-axis', 'horizontal');
+test_computed_value('view-timeline-axis', 'y');
+test_computed_value('view-timeline-axis', 'x');
 test_computed_value('view-timeline-axis', 'block, inline');
 test_computed_value('view-timeline-axis', 'inline, block');
-test_computed_value('view-timeline-axis', 'block, vertical, horizontal, inline');
+test_computed_value('view-timeline-axis', 'block, y, x, inline');
 test_computed_value('view-timeline-axis', 'inline, inline, inline, inline');
 
 test(() => {

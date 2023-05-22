@@ -1,0 +1,80 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Shared Storage API (https://wicg.github.io/shared-storage/)
+
+[Exposed=(Window)]
+interface SharedStorageWorklet : Worklet {
+};
+
+[Exposed=SharedStorageWorklet, Global=SharedStorageWorklet]
+interface SharedStorageWorkletGlobalScope : WorkletGlobalScope {
+  undefined register(DOMString name,
+                     SharedStorageOperationConstructor operationCtor);
+};
+
+callback SharedStorageOperationConstructor =
+  SharedStorageOperation(optional SharedStorageRunOperationMethodOptions options);
+
+[Exposed=SharedStorageWorklet]
+interface SharedStorageOperation {
+};
+
+dictionary SharedStorageRunOperationMethodOptions {
+  object data;
+  boolean resolveToConfig = false;
+  boolean keepAlive = false;
+};
+
+[Exposed=SharedStorageWorklet]
+interface SharedStorageRunOperation : SharedStorageOperation {
+  Promise<undefined> run(object data);
+};
+
+[Exposed=SharedStorageWorklet]
+interface SharedStorageSelectURLOperation : SharedStorageOperation {
+  Promise<long> run(object data,
+                    FrozenArray<SharedStorageUrlWithMetadata> urls);
+};
+
+[Exposed=(Window,SharedStorageWorklet)]
+interface SharedStorage {
+  Promise<any> set(DOMString key,
+                   DOMString value,
+                   optional SharedStorageSetMethodOptions options = {});
+  Promise<any> append(DOMString key,
+                      DOMString value);
+  Promise<any> delete(DOMString key);
+  Promise<any> clear();
+};
+
+dictionary SharedStorageSetMethodOptions {
+  boolean ignoreIfPresent = false;
+};
+
+typedef (USVString or FencedFrameConfig) SharedStorageResponse;
+
+[Exposed=(Window)]
+interface WindowSharedStorage : SharedStorage {
+  Promise<any> run(DOMString name,
+                   optional SharedStorageRunOperationMethodOptions options = {});
+  Promise<SharedStorageResponse> selectURL(DOMString name,
+                               FrozenArray<SharedStorageUrlWithMetadata> urls,
+                               optional SharedStorageRunOperationMethodOptions options = {});
+
+  readonly attribute SharedStorageWorklet worklet;
+};
+
+dictionary SharedStorageUrlWithMetadata {
+  required USVString url;
+  object reportingMetadata;
+};
+
+[Exposed=(SharedStorageWorklet)]
+interface WorkletSharedStorage : SharedStorage {
+  Promise<DOMString> get(DOMString key);
+  Promise<unsigned long> length();
+  Promise<double> remainingBudget();
+
+  async iterable<DOMString, DOMString>;
+};

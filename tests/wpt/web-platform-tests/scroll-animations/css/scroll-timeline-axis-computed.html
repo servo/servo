@@ -5,7 +5,7 @@
 <script src="/css/support/computed-testcommon.js"></script>
 <style>
   #outer { scroll-timeline-axis: inline; }
-  #target { scroll-timeline-axis: vertical; }
+  #target { scroll-timeline-axis: y; }
 </style>
 <div id="outer">
   <div id="target"></div>
@@ -17,11 +17,11 @@ test_computed_value('scroll-timeline-axis', 'unset', 'block');
 test_computed_value('scroll-timeline-axis', 'revert', 'block');
 test_computed_value('scroll-timeline-axis', 'block');
 test_computed_value('scroll-timeline-axis', 'inline');
-test_computed_value('scroll-timeline-axis', 'vertical');
-test_computed_value('scroll-timeline-axis', 'horizontal');
+test_computed_value('scroll-timeline-axis', 'y');
+test_computed_value('scroll-timeline-axis', 'x');
 test_computed_value('scroll-timeline-axis', 'block, inline');
 test_computed_value('scroll-timeline-axis', 'inline, block');
-test_computed_value('scroll-timeline-axis', 'block, vertical, horizontal, inline');
+test_computed_value('scroll-timeline-axis', 'block, y, x, inline');
 test_computed_value('scroll-timeline-axis', 'inline, inline, inline, inline');
 
 test(() => {

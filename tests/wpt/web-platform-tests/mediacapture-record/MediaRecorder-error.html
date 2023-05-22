@@ -57,6 +57,15 @@
             recorder.start();
         });
     }, "MediaRecorder cannot start recording when MediaRecorder' state is not inactive and an InvalidStateError should be thrown");
+    test(t => {
+        const { stream: video } = createVideoStream(t);
+        assert_throws_dom("NotSupportedError", function () {
+            new MediaRecorder(video, {
+                videoKeyFrameIntervalDuration: 10,
+                videoKeyFrameIntervalCount: 10,
+            });
+        });
+    }, "MediaRecorder throws NotSupportedError when given both videoKeyFrameIntervalDuration and videoKeyFrameIntervalCount");
 </script>
 </body>
 </html>

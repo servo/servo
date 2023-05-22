@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: FLEDGE (https://wicg.github.io/turtledove/)
+// Source: Protected Audience (formerly FLEDGE) (https://wicg.github.io/turtledove/)
 
 [SecureContext]
 partial interface Navigator {
@@ -25,7 +25,7 @@ dictionary AuctionAdInterestGroup {
   DOMString executionMode = "compatibility";
   USVString biddingLogicURL;
   USVString biddingWasmHelperURL;
-  USVString dailyUpdateURL;
+  USVString updateURL;
   USVString trustedBiddingSignalsURL;
   sequence<USVString> trustedBiddingSignalsKeys;
   any userBiddingSignals;
@@ -67,9 +67,15 @@ dictionary AuctionAdConfig {
   AbortSignal? signal;
 };
 
+[Exposed=InterestGroupScriptRunnerGlobalScope]
+interface InterestGroupScriptRunnerGlobalScope {
+};
+
 [Exposed=InterestGroupBiddingScriptRunnerGlobalScope,
-Global=InterestGroupBiddingScriptRunnerGlobalScope]
-interface InterestGroupBiddingScriptRunnerGlobalScope {
+ Global=(InterestGroupScriptRunnerGlobalScope,
+         InterestGroupBiddingScriptRunnerGlobalScope)]
+interface InterestGroupBiddingScriptRunnerGlobalScope
+        : InterestGroupScriptRunnerGlobalScope {
   boolean setBid();
   boolean setBid(GenerateBidOutput generateBidOutput);
   undefined setPriority(double priority);
@@ -77,13 +83,17 @@ interface InterestGroupBiddingScriptRunnerGlobalScope {
 };
 
 [Exposed=InterestGroupScoringScriptRunnerGlobalScope,
-Global=InterestGroupScoringScriptRunnerGlobalScope]
-interface InterestGroupScoringScriptRunnerGlobalScope {
+ Global=(InterestGroupScriptRunnerGlobalScope,
+         InterestGroupScoringScriptRunnerGlobalScope)]
+interface InterestGroupScoringScriptRunnerGlobalScope
+        : InterestGroupScriptRunnerGlobalScope {
 };
 
 [Exposed=InterestGroupReportingScriptRunnerGlobalScope,
-Global=InterestGroupReportingScriptRunnerGlobalScope]
-interface InterestGroupReportingScriptRunnerGlobalScope {
+ Global=(InterestGroupScriptRunnerGlobalScope,
+         InterestGroupReportingScriptRunnerGlobalScope)]
+interface InterestGroupReportingScriptRunnerGlobalScope
+        : InterestGroupScriptRunnerGlobalScope {
   undefined sendReportTo(DOMString url);
 };
 
@@ -96,7 +106,7 @@ dictionary AdRender {
 dictionary GenerateBidOutput {
   required double bid;
   required (DOMString or AdRender) adRender;
-  DOMString ad;
+  any ad;
   sequence<(DOMString or AdRender)> adComponents;
   double adCost;
   double modelingSignals;

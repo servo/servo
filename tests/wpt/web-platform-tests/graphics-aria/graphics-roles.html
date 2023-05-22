@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<div role="graphics-document" data-expectedrole="graphics-document" class="ex">x</div>
+<div role="graphics-object" data-expectedrole="graphics-object" class="ex">x</div>
+<div role="graphics-symbol" data-expectedrole="graphics-symbol" class="ex">x</div>
+
+<script>
+AriaUtils.verifyRolesBySelector(".ex");
+</script>
+
+</body>
+</html>

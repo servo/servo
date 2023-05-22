@@ -18,7 +18,7 @@
   main {
     height: 0px;
     overflow: hidden;
-    scroll-timeline: timeline1 defer, timeline2 defer;
+    scroll-timeline: --timeline1 defer, --timeline2 defer;
   }
   .scroller {
     height: 100px;
@@ -30,12 +30,12 @@
   #element1 {
     width: 1px;
     animation: expand_width 10s;
-    animation-timeline: timeline1;
+    animation-timeline: --timeline1;
   }
   #element2 {
     height: 1px;
     animation: expand_height 10s;
-    animation-timeline: timeline2;
+    animation-timeline: --timeline2;
   }
 </style>
 <main id=main>
@@ -61,7 +61,7 @@
       let events1 = [];
       let events2 = [];
 
-      insertScroller('timeline1');
+      insertScroller('--timeline1');
       // Even though the scroller was just inserted into the DOM, |timeline1|
       // remains inactive until the next frame.
       //
@@ -69,7 +69,7 @@
       assert_equals(getComputedStyle(element1).width, '1px');
       (new ResizeObserver(entries => {
         events1.push(entries);
-        insertScroller('timeline2');
+        insertScroller('--timeline2');
         assert_equals(getComputedStyle(element2).height, '1px');
       })).observe(element1);
 

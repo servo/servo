@@ -11,8 +11,8 @@
 </canvas>
 <script id='myWorker' type='text/worker'>
   self.onmessage = function(e) {
-    const oc = new OffscreenCanvas(200, 200);
-    const ctx = oc.getContext('2d');
+    const canvas = new OffscreenCanvas(200, 200);
+    const ctx = canvas.getContext('2d');
 
     ctx.fillStyle = 'rgba(0,0,255,1)';
     ctx.fillRect(50, 50, 75, 50);
@@ -25,7 +25,7 @@
 
     ctx.fillRect(70, 70, 75, 50);
 
-    const bitmap = oc.transferToImageBitmap();
+    const bitmap = canvas.transferToImageBitmap();
     self.postMessage(bitmap, bitmap);
   };
 </script>

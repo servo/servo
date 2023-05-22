@@ -15,8 +15,8 @@ promise_test(async t => {
   const url_2 = '/sub-app-2';
 
   const mocked_response = [
-    { "unhashedAppIdPath": url_1, "appName": "App 1" },
-    { "unhashedAppIdPath": url_2, "appName": "App 2" },
+    { "manifestIdPath": url_1, "appName": "App 1" },
+    { "manifestIdPath": url_2, "appName": "App 2" },
   ];
 
   let expected_results = {

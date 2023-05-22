@@ -8,8 +8,8 @@
   <p class="fallback">FAIL (fallback content)</p>
 </canvas>
 <script>
-  const offscreen_canvas = new OffscreenCanvas(520, 420);
-  const ctx = offscreen_canvas.getContext('2d');
+  const canvas = new OffscreenCanvas(520, 420);
+  const ctx = canvas.getContext('2d');
 
   ctx.fillStyle = 'teal';
   ctx.fillRect(0, 0, 520, 50);
@@ -105,6 +105,6 @@
      floodColor: 'purple', floodOpacity: ['0.4']});
   ctx.fillRect(210, 310, 80, 80);
 
-  const canvas = document.getElementById("canvas");
-  canvas.getContext('2d').drawImage(offscreen_canvas, 0, 0);
+  const outputCanvas = document.getElementById("canvas");
+  outputCanvas.getContext('2d').drawImage(canvas, 0, 0);
 </script>

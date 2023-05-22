@@ -1,4 +1,5 @@
 const STORE_URL = '/fenced-frame/resources/key-value-store.py';
+const BEACON_URL = '/fenced-frame/resources/automatic-beacon-store.py';
 const REMOTE_EXECUTOR_URL = '/fenced-frame/resources/remote-context-executor.https.html';
 const FLEDGE_BIDDING_URL = '/fenced-frame/resources/fledge-bidding-logic.js';
 const FLEDGE_BIDDING_WITH_SIZE_URL = '/fenced-frame/resources/fledge-bidding-logic-with-size.js';
@@ -407,6 +408,37 @@ async function nextValueFromServer(key) {
   while (true) {
     // Fetches the test result from the server.
     const { status, value } = await readValueFromServer(key);
+    if (!status) {
+      // The test result has not been stored yet. Retry after a while.
+      await new Promise(resolve => setTimeout(resolve, 20));
+      continue;
+    }
+
+    return value;
+  }
+}
+
+// Reads the data from the latest automatic beacon sent to the server.
+async function readAutomaticBeaconDataFromServer() {
+  const serverUrl = `${BEACON_URL}`;
+  const response = await fetch(serverUrl);
+  if (!response.ok)
+    throw new Error('An error happened in the server');
+  const value = await response.text();
+
+  // The value is not stored in the server.
+  if (value === "<Not set>")
+    return { status: false };
+
+  return { status: true, value: value };
+}
+
+// Convenience wrapper around the above getter that will wait until a value is
+// available on the server.
+async function nextAutomaticBeacon() {
+  while (true) {
+    // Fetches the test result from the server.
+    const { status, value } = await readAutomaticBeaconDataFromServer();
     if (!status) {
       // The test result has not been stored yet. Retry after a while.
       await new Promise(resolve => setTimeout(resolve, 20));

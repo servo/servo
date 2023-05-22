@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Multiple globals for base URL in WebSocket constructor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- This is the entry global -->
+
+<iframe src="incumbent/incumbent.html"></iframe>
+
+<script>
+async_test((t) => {
+  onload = t.step_func_done(() => {
+    frames[0].hello();
+    // Inside constructors, "this's relevant settings object" === "current settings object",
+    // because of how "this" is constructed.
+    // https://github.com/whatwg/websockets/issues/46
+    const expectedUrl = new URL('current/foo', location.href);
+    expectedUrl.protocol = 'ws:';
+    assert_equals(frames[0].ws.url, expectedUrl.href);
+  });
+});
+</script>

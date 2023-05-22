@@ -27,9 +27,6 @@ function convertValue(value, optParent) {
     case 'function':
       return value.apply(optParent);
     case 'object':
-      if (value === null) {
-        return value;
-      }
       if (value.__proto__.constructor === Object) {
         var result = {};
         Object.entries(value).map((k, v) => {
@@ -68,7 +65,9 @@ function convertObject(obj, params) {
     switch (typeof (param)) {
       case 'string':
         assert_true(param in obj, `missing ${param}`);
-        result[param] = convertValue(obj[param], obj);
+        if (obj[param] !== null) {
+          result[param] = convertValue(obj[param], obj);
+        }
         break;
       case 'object':
         assert_true(param.name in obj, `missing ${param.name}`);

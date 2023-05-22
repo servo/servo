@@ -26,7 +26,20 @@
     "iframe", "img", "input", "map", "meta", "object", "output",
     "param", "select", "slot", "textarea",
   ];
+
+  // Optionally add "details" to reflectingTagNames since Chromium is
+  // prototyping the proposal at
+  // https://open-ui.org/components/accordion.explainer that adds this
+  // reflection to "details" as well.
+  // TODO(https://crbug.com/1444057): This runtime check should eventually be
+  // removed, and depending on the outcome of the proposal details should
+  // possibly be added to reflectingTagNames unconditionally.
+  if ("name" in HTMLDetailsElement.prototype) {
+    reflectingTagNames.push("details");
+  }
+
   const old_and_new_elements = [...HTML5_ELEMENTS, ...HTML5_DEPRECATED_ELEMENTS];
+
   const nonReflectingTagNames = old_and_new_elements.filter(x => !reflectingTagNames.includes(x));
 
   reflectingTagNames.forEach(function(tagName) {

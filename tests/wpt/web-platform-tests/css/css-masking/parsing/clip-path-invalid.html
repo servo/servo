@@ -46,6 +46,8 @@ test_invalid_value("clip-path", "polygon(1%)");
 
 test_invalid_value("clip-path", "unknown-box");
 
+test_invalid_value("clip-path", 'path(" ")');
+test_invalid_value("clip-path", 'path(evenodd, "")');
 test_invalid_value("clip-path", 'path(abc, "m 20 0 h -100 z")');
 test_invalid_value("clip-path", 'path(nonzero)');
 test_invalid_value("clip-path", 'path("m 20 0 h -100", nonzero)');

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help"
+  href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/targetted-form.js"></script>
+
+<!-- The onclick requestSubmit() should get superseded by the default
+     action submit, which isn't preventDefaulted by onclick here.
+     This is per the Form Submission Algorithm [1], which
+     says that new planned navigations replace old planned navigations.
+     [1] https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#planned-navigation
+  -->
+
+<body>
+  <script>
+    function runTest({ submitterType, preventDefaultSubmitButton, preventDefaultRequestSubmit, passSubmitter, testName }) {
+      if (preventDefaultRequestSubmit && preventDefaultSubmitButton) {
+        // In this case, no submit action will take place.
+        return;
+      }
+
+      promise_test(async () => {
+        const form = populateForm(`<input name=n1 value=v1><${submitterType} type=submit name=n2 value=v2>${submitterType == 'button' ? '</button>' : ''}`);
+        const input = form.elements[0];
+        const submitter = form.elements[1];
+        submitter.addEventListener('click', e => {
+          form.addEventListener('submit', e => {
+            submitter.value = 'v3';
+            if (preventDefaultRequestSubmit) {
+              e.preventDefault();
+            }
+          }, { once: true });
+
+          form.requestSubmit(passSubmitter ? submitter : null);
+          input.value = 'v2';
+
+          form.addEventListener('submit', e => {
+            submitter.value = 'v4';
+            if (preventDefaultSubmitButton) {
+              e.preventDefault();
+            }
+          }, { once: true });
+        });
+
+        let formDataInEvent;
+        form.addEventListener('formdata', e => {
+          formDataInEvent = e.formData;
+        });
+
+        submitter.click();
+        assert_equals(formDataInEvent.get('n1'), preventDefaultSubmitButton ? 'v1' : 'v2');
+        if (preventDefaultSubmitButton && !passSubmitter) {
+          assert_false(formDataInEvent.has('n2'));
+        } else {
+          assert_equals(formDataInEvent.get('n2'),
+            preventDefaultSubmitButton && passSubmitter ? 'v3' : 'v4')
+        }
+
+        let iframe = form.previousSibling;
+        await loadPromise(iframe);
+        assert_equals(getParamValue(iframe, 'n1'), preventDefaultSubmitButton ? 'v1' : 'v2');
+        if (preventDefaultSubmitButton && !passSubmitter) {
+          assert_equals(getParamValue(iframe, 'n2'), null);
+        } else {
+          assert_equals(getParamValue(iframe, 'n2'),
+            preventDefaultSubmitButton && passSubmitter ? 'v3' : 'v4');
+        }
+      }, testName);
+    }
+
+    function runTest2({ submitterType, callRequestSubmit, callSubmit, preventDefault, passSubmitter, testName }) {
+      if (!callSubmit && preventDefault) {
+        // Without callSubmit, preventDefault will cause the form to not get
+        // submitted.
+        return;
+      }
+
+      promise_test(async () => {
+        const form = populateForm(`<input name=n1 value=v1><${submitterType} type=submit name=n2 value=v3>${submitterType == 'button' ? '</button>' : ''}`);
+        const input = form.elements[0];
+        const submitter = form.elements[1];
+
+        form.addEventListener('submit', e => {
+          if (callRequestSubmit) {
+            form.requestSubmit(passSubmitter ? submitter : null);
+            input.value = 'v2';
+          }
+          if (callSubmit) {
+            form.submit();
+          }
+          if (preventDefault) {
+            e.preventDefault();
+          }
+        });
+
+        form.requestSubmit(passSubmitter ? submitter : null);
+        let iframe = form.previousSibling;
+        await loadPromise(iframe);
+
+        assert_equals(getParamValue(iframe, 'n1'), callRequestSubmit ? 'v2' : 'v1');
+        if (callSubmit || !passSubmitter) {
+          assert_equals(getParamValue(iframe, 'n2'), null);
+        } else {
+          assert_equals(getParamValue(iframe, 'n2'), 'v3')
+        }
+      }, testName);
+    }
+
+    function callWithArgs(test, argsLeft, args) {
+      if (argsLeft.length == 0) {
+        args.testName = 'test ' + test.name + ' with ' + Object.entries(args).map(([key, value]) => `${key}: ${value}`).join(', ');
+        test(args);
+        return;
+      }
+
+      let [name, values] = argsLeft[0];
+      for (let value of values) {
+        callWithArgs(test, argsLeft.slice(1), { ...args, [name]: value })
+      }
+    }
+
+    let args = {
+      submitterType: ['input', 'button'],
+      preventDefaultRequestSubmit: [true, false],
+      preventDefaultSubmitButton: [true, false],
+      passSubmitter: [true, false],
+    };
+    callWithArgs(runTest, Object.entries(args), {});
+
+    args = {
+      submitterType: ['input', 'button'],
+      callRequestSubmit: [true, false],
+      callSubmit: [true, false],
+      preventDefault: [true, false],
+      passSubmitter: [true, false],
+    };
+    callWithArgs(runTest2, Object.entries(args), {});
+  </script>
+</body>

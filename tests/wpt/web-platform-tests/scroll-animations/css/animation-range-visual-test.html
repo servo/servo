@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<link rel="match" href="animation-range-visual-test-ref.html">
+<link rel="stylesheet" href="support/animation-range.css">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+</head>
+<body>
+<h3>View timeline</h3>
+<template id="meters">
+  <div class="meters">
+    <div class="cover"><div class="meter"><div class="bar"></div></div><div>Cover</div></div>
+    <div class="contain"><div class="meter"><div class="bar"></div></div><div>Contain</div></div>
+    <div class="entry"><div class="meter"><div class="bar"></div></div><div>Entry</div></div>
+    <div class="exit"><div class="meter"><div class="bar"></div></div><div>Exit</div></div>
+  </div>
+</template>
+<div class="flex">
+  <div>
+    <div class="scroller">
+      <div class="subject" style="margin-top: 90px;"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+  <div>
+    <div class="scroller">
+      <div class="subject" style="margin-top: 70px;"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+  <div>
+    <div class="scroller">
+      <div class="subject" style="margin-top: 10px;"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+  <div>
+    <div class="scroller">
+      <div class="subject" style="margin-top: -10px;"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+</div>
+</body>
+<script>
+  let template = document.querySelector('#meters');
+  let subjects = document.querySelectorAll('.subject');
+  for (let i = 0; i < subjects.length; i++) {
+    subjects[i].appendChild(template.content.cloneNode(true));
+  }
+  waitForCompositorReady().then(takeScreenshot);
+</script>
+</html>

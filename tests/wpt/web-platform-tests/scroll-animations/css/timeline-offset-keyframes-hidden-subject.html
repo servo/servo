@@ -13,10 +13,10 @@
 <style type="text/css">
   @keyframes anim {
     cover 0% {
-      margin-left:  0px;
+      margin-left: 0px;
     }
     50% {
-      opacity:  0.5;
+      opacity: 0.5;
     }
     cover 100% {
       margin-right: 0px;
@@ -24,35 +24,34 @@
   }
 
   #scroller {
-    scroll-timeline-attachment: defer t1;
-    border:  10px solid lightgray;
+    border: 10px solid lightgray;
     overflow-y: scroll;
     overflow-x: hidden;
     width: 300px;
     height: 200px;
+    view-timeline: --t1 defer;
   }
   #block {
-    scroll-timeline-attachment: ancestor;
-    margin-top:  800px;
-    margin-left:  10px;
-    margin-right:  10px;
-    width:  100px;
-    height:  50px;
-    background-color:  blue;
-    view-timeline:  t1 block;
+    margin-top: 800px;
+    margin-left: 10px;
+    margin-right: 10px;
+    width: 100px;
+    height: 50px;
+    background-color: blue;
+    view-timeline: --t1 ancestor;
   }
   #target {
     margin-bottom: 800px;
-    margin-left:  10px;
-    margin-right:  10px;
+    margin-left: 10px;
+    margin-right: 10px;
     width: 100px;
     height: 100px;
     z-index: -1;
     background-color: green;
-    animation:  anim auto both linear;
-    animation-range-start:  contain 0%;
-    animation-range-end:  contain 100%;
-    animation-timeline:  t1;
+    animation: anim auto both linear;
+    animation-range-start: contain 0%;
+    animation-range-end: contain 100%;
+    animation-timeline: --t1;
   }
 </style>
 <body>
@@ -74,16 +73,16 @@
 
       let frames = anim.effect.getKeyframes();
       let expected_resolved_offsets = [
-        { offset:  0, computedOffset: 0, easing: "linear", composite: "replace",
+        { offset: 0, computedOffset: 0, easing: "linear", composite: "replace",
           marginRight: "10px", opacity: "1" },
         { offset: 1/2, computedOffset: 1/2, easing: "linear",
           composite: "auto", opacity: "0.5" },
         { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
           marginLeft: "10px", opacity: "1" },
-        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+        { offset: { rangeName: "cover", offset: CSS.percent(0) },
           computedOffset: -1/3, easing: "linear",
           composite: "auto", marginLeft: "0px" },
-        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+        { offset: { rangeName: "cover", offset: CSS.percent(100) },
           computedOffset: 4/3, easing: "linear", composite: "auto",
           marginRight: "0px" },
       ];

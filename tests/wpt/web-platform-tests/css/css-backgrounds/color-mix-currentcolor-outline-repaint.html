@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>currentColor in color-mix() used in outline repaints properly when color changes</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-color/#currentcolor-color">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+    #target {
+        color: red;
+        outline: 50px solid color-mix(in hsl, transparent 0%, currentColor 100%);
+        outline-offset: -50px;
+        width: 100px;
+        height: 100px;
+    }
+
+    #target.green {
+        color: green;
+    }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="target"></div>
+
+<script>
+    addEventListener("load", () => {
+        setTimeout(() => {
+            requestAnimationFrame(() => {
+                target.classList.add("green");
+                document.documentElement.classList.remove("reftest-wait");
+            });
+        }, 0);
+    });
+</script>
+</html>

@@ -14,6 +14,12 @@
     const BackForwardCacheRestorationName = '';
     const BackForwardCacheRestorationType = 'back-forward-cache-restoration';
 
+    let getNavigationId = (i) => {
+      let identifier = 'mark' + i;
+      performance.mark(identifier);
+      return window.performance.getEntriesByName(identifier)[0].navigationId;
+    }
+
     let getNumberofBackForwardCacheRestorationEntries = (BackForwardCacheRestorationType) => {
       return window.performance.getEntriesByType(BackForwardCacheRestorationType).length;
     }
@@ -40,10 +46,10 @@
       return await p;
     }
 
-    let checkEntry = (entry, expectedNavigationId) => {
+    let checkEntry = (entry, previousNavigationId) => {
       assert_equals(entry.name, BackForwardCacheRestorationName);
       assert_equals(entry.entryType, BackForwardCacheRestorationType);
-      assert_equals(entry.navigationId, expectedNavigationId);
+      assert_not_equals(entry.navigationId, previousNavigationId);
       assert_true(entry.pageshowEventStart > entry.startTime);
       assert_true(entry.pageshowEventEnd >= entry.pageshowEventStart);
     }
@@ -64,18 +70,23 @@
 
       let entry;
       for (i = 0; i < 2; i++) {
+        let curr_nav_id = await pageA.execute_script(getNavigationId, [i]);
+
         // Navigate away to url B and back.
         await navigateAndThenBack(pageA, pageB, urlB);
 
         // Assert Performance Observer API supports BackForwardCacheRestoration.
         entry = await pageA.execute_script(getBackForwardCacheRestorationByPerformanceObserverBuffered, [BackForwardCacheRestorationType]);
-        checkEntry(entry, i + 2); // The expected navigation id of the entry created at i-th navigating away and back is i+2 because navigation id starts from 1 and increments before an instance of BackForwardRestoration is created.
+        // The navigation id after a bfcache restoration should be different
+        // from that before.
+        checkEntry(entry, curr_nav_id);
+
         // Assert Performance Timeline API supports BackForwardCacheRestoration.
         entry = await pageA.execute_script(getBackForwardCacheRestorationByType, [BackForwardCacheRestorationType]);
-        checkEntry(entry, i + 2);
+        checkEntry(entry, curr_nav_id);
 
         entry = await pageA.execute_script(getBackForwardCacheRestorationByGetAllAndFilter, [BackForwardCacheRestorationType]);
-        checkEntry(entry, i + 2);
+        checkEntry(entry, curr_nav_id);
       }
     }, 'Performance API for the back forward cache restoration entry.');
   </script>

@@ -132,7 +132,14 @@ def create_complete_parser():
     for command in commands:
         props = commands[command]
 
-        venv.install_requirements(*props.get("requirements", []))
+        try:
+            venv.install_requirements(*props.get("requirements", []))
+        except Exception:
+            logging.warning(
+                f"Unable to install requirements ({props['requirements']!r}) for command {command}"
+            )
+            continue
+
 
         subparser = import_command('wpt', command, props)[1]
         if not subparser:

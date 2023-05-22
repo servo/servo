@@ -566,7 +566,7 @@ test(() => {
 
   controller.abort();
 
-  assert_array_equals(log, ['clone-aborted', 'original-aborted'], "Abort events fired in correct order");
+  assert_array_equals(log, ['original-aborted', 'clone-aborted'], "Abort events fired in correct order");
   assert_true(request.signal.aborted, 'Signal aborted');
   assert_true(clonedRequest.signal.aborted, 'Signal aborted');
 }, "Clone aborts with original controller");

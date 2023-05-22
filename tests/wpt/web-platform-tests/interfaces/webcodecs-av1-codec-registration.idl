@@ -3,6 +3,14 @@
 // (https://github.com/w3c/webref)
 // Source: AV1 WebCodecs Registration (https://w3c.github.io/webcodecs/av1_codec_registration.html)
 
+partial dictionary VideoEncoderConfig {
+  AV1EncoderConfig av1;
+};
+
+dictionary AV1EncoderConfig {
+  boolean forceScreenContentTools = false;
+};
+
 partial dictionary VideoEncoderEncodeOptions {
   VideoEncoderEncodeOptionsForAv1 av1;
 };

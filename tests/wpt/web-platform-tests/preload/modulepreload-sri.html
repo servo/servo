@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="modulepreload" href="resources/module1.js" integrity="sha384-invalid">
+<script type="module" src="resources/module1.js" id="myscript"></script>
+<body>
+<script>
+  // compared to modulepreload.html, this tests behavior when elements are
+  // initially on an HTML page instead of being added by JS
+  promise_test(() => {
+    return new Promise((resolve, reject) => {
+      let myscript = document.querySelector('#myscript');
+      myscript.onerror = resolve;
+      myscript.onload = reject;
+    });
+  }, "Script should not be loaded if modulepreload's integrity is invalid");
+</script>

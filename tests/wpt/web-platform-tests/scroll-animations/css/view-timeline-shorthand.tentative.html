@@ -9,63 +9,63 @@
 <script src="/css/support/shorthand-testcommon.js"></script>
 <div id="target"></div>
 <script>
-test_valid_value('view-timeline', 'abcd');
+test_valid_value('view-timeline', '--abcd');
 test_valid_value('view-timeline', 'none block', 'none');
 test_valid_value('view-timeline', 'none inline');
 
-// view-timeline-name: inline/block/horizontal/vertical.
-test_valid_value('view-timeline', 'inline block', 'inline');
-test_valid_value('view-timeline', 'block block', 'block');
-test_valid_value('view-timeline', 'vertical block', 'vertical');
-test_valid_value('view-timeline', 'horizontal block', 'horizontal');
+// view-timeline-name: inline/block/x/y.
+test_valid_value('view-timeline', '--inline block', '--inline');
+test_valid_value('view-timeline', '--block block', '--block');
+test_valid_value('view-timeline', '--y block', '--y');
+test_valid_value('view-timeline', '--x block', '--x');
 
-test_valid_value('view-timeline', 'a, b, c');
-test_valid_value('view-timeline', 'a inline, b block, c vertical', 'a inline, b, c vertical');
-test_valid_value('view-timeline', 'auto');
-test_valid_value('view-timeline', 'abc defer vertical', 'abc vertical defer');
-test_valid_value('view-timeline', 'abc vertical defer');
+test_valid_value('view-timeline', '--a, --b, --c');
+test_valid_value('view-timeline', '--a inline, --b block, --c y', '--a inline, --b, --c y');
+test_valid_value('view-timeline', '--auto');
+test_valid_value('view-timeline', '--abc defer y', '--abc y defer');
+test_valid_value('view-timeline', '--abc y defer');
 
-test_invalid_value('view-timeline', 'abc abc');
+test_invalid_value('view-timeline', '--abc --abc');
 test_invalid_value('view-timeline', 'block none');
 test_invalid_value('view-timeline', 'none none');
 test_invalid_value('view-timeline', 'default');
 test_invalid_value('view-timeline', ',');
-test_invalid_value('view-timeline', ',,block,,');
+test_invalid_value('view-timeline', ',,--block,,');
 
-test_computed_value('view-timeline', 'abcd');
+test_computed_value('view-timeline', '--abcd');
 test_computed_value('view-timeline', 'none block', 'none');
 test_computed_value('view-timeline', 'none inline');
-test_computed_value('view-timeline', 'inline block', 'inline');
-test_computed_value('view-timeline', 'block block', 'block');
-test_computed_value('view-timeline', 'vertical block', 'vertical');
-test_computed_value('view-timeline', 'horizontal block', 'horizontal');
-test_computed_value('view-timeline', 'a, b, c');
-test_computed_value('view-timeline', 'a inline, b block, c vertical', 'a inline, b, c vertical');
-test_computed_value('view-timeline', 'abc defer vertical', 'abc vertical defer');
-test_computed_value('view-timeline', 'abc vertical defer');
+test_computed_value('view-timeline', '--inline block', '--inline');
+test_computed_value('view-timeline', '--block block', '--block');
+test_computed_value('view-timeline', '--y block', '--y');
+test_computed_value('view-timeline', '--x block', '--x');
+test_computed_value('view-timeline', '--a, --b, --c');
+test_computed_value('view-timeline', '--a inline, --b block, --c y', '--a inline, --b, --c y');
+test_computed_value('view-timeline', '--abc defer y', '--abc y defer');
+test_computed_value('view-timeline', '--abc y defer');
 
-test_shorthand_value('view-timeline', 'abc vertical',
+test_shorthand_value('view-timeline', '--abc y',
 {
-  'view-timeline-name': 'abc',
-  'view-timeline-axis': 'vertical',
+  'view-timeline-name': '--abc',
+  'view-timeline-axis': 'y',
   'view-timeline-attachment': 'local',
 });
-test_shorthand_value('view-timeline', 'abc vertical defer, def',
+test_shorthand_value('view-timeline', '--abc y defer, --def',
 {
-  'view-timeline-name': 'abc, def',
-  'view-timeline-axis': 'vertical, block',
+  'view-timeline-name': '--abc, --def',
+  'view-timeline-axis': 'y, block',
   'view-timeline-attachment': 'defer, local',
 });
-test_shorthand_value('view-timeline', 'abc, def',
+test_shorthand_value('view-timeline', '--abc, --def',
 {
-  'view-timeline-name': 'abc, def',
+  'view-timeline-name': '--abc, --def',
   'view-timeline-axis': 'block, block',
   'view-timeline-attachment': 'local, local',
 });
-test_shorthand_value('view-timeline', 'inline horizontal ancestor',
+test_shorthand_value('view-timeline', '--inline x ancestor',
 {
-  'view-timeline-name': 'inline',
-  'view-timeline-axis': 'horizontal',
+  'view-timeline-name': '--inline',
+  'view-timeline-axis': 'x',
   'view-timeline-attachment': 'ancestor',
 });
 
@@ -84,16 +84,16 @@ function test_shorthand_contraction(shorthand, longhands, expected) {
 }
 
 test_shorthand_contraction('view-timeline', {
-  'view-timeline-name': 'abc',
+  'view-timeline-name': '--abc',
   'view-timeline-axis': 'inline',
   'view-timeline-attachment': 'ancestor',
-}, 'abc inline ancestor');
+}, '--abc inline ancestor');
 
 test_shorthand_contraction('view-timeline', {
-  'view-timeline-name': 'a, b',
+  'view-timeline-name': '--a, --b',
   'view-timeline-axis': 'inline, block',
   'view-timeline-attachment': 'defer, local',
-}, 'a inline defer, b');
+}, '--a inline defer, --b');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': 'none, none',
@@ -104,13 +104,13 @@ test_shorthand_contraction('view-timeline', {
 // Longhands with different lengths:
 
 test_shorthand_contraction('view-timeline', {
-  'view-timeline-name': 'a, b, c',
+  'view-timeline-name': '--a, --b, --c',
   'view-timeline-axis': 'inline, inline',
   'view-timeline-attachment': 'local, local',
 }, '');
 
 test_shorthand_contraction('view-timeline', {
-  'view-timeline-name': 'a, b',
+  'view-timeline-name': '--a, --b',
   'view-timeline-axis': 'inline, inline, inline',
   'view-timeline-attachment': 'local, local',
 }, '');

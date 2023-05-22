@@ -489,13 +489,8 @@ partial interface MLGraphBuilder {
   MLActivation sigmoid();
 };
 
-dictionary MLSliceOptions {
-  sequence<unsigned long> axes;
-};
-
 partial interface MLGraphBuilder {
-  MLOperand slice(MLOperand input, sequence<long> starts, sequence<long> sizes,
-                optional MLSliceOptions options = {});
+  MLOperand slice(MLOperand input, sequence<unsigned long> starts, sequence<unsigned long> sizes);
 };
 
 partial interface MLGraphBuilder {

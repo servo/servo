@@ -85,8 +85,10 @@
 
     tests.forEach(test => {
       async_test(t =>  {
-        var url = generateUrlWithAllowCSPFrom(test.origin, test.allow_csp_from);
-        assert_iframe_with_csp(t, url, test.csp, test.expected, test.name, test.blockedURI);
+        const url = generateUrlWithAllowCSPFrom(
+            test.origin, test.allow_csp_from);
+        assert_iframe_with_csp(t, url, test.csp, test.expected, test.name,
+                               test.blockedURI, /*checkImageLoaded=*/true);
       }, test.name);
     });
   </script>

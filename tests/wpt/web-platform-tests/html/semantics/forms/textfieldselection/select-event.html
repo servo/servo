@@ -6,7 +6,6 @@
 <link rel=help href="https://html.spec.whatwg.org/multipage/#textFieldSelection">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/rendering-utils.js"></script>
 <div id="log"></div>
 
 <textarea>foobar</textarea>
@@ -60,10 +59,25 @@ const actions = [
   }
 ];
 
+function waitForEvents() {
+  // Engines differ in when these events are sent (see:
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1785615) so wait for both a
+  // frame to be rendered, and a timeout.
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          resolve();
+        });
+      });
+    });
+  });
+}
+
 function initialize(el) {
   el.setRangeText("foobar", 0, el.value.length, "start");
   // Make sure to flush async dispatches
-  return waitForAtLeastOneFrame();
+  return waitForEvents();
 }
 
 els.forEach((el) => {
@@ -93,7 +107,7 @@ els.forEach((el) => {
 
       action.action(el);
 
-      await waitForAtLeastOneFrame();
+      await waitForEvents();
       el.onselect = null;
     }, `${elLabel}: ${action.label} a second time (must not fire select)`);
 
@@ -104,7 +118,7 @@ els.forEach((el) => {
 
       action.action(element);
 
-      await waitForAtLeastOneFrame();
+      await waitForEvents();
       assert_true(fired, "event didn't fire");
 
     }, `${elLabel}: ${action.label} disconnected node`);
@@ -119,7 +133,7 @@ els.forEach((el) => {
       action.action(element);
 
       assert_false(fired, "the select event must not fire synchronously");
-      await waitForAtLeastOneFrame();
+      await waitForEvents();
       assert_true(fired, "event didn't fire");
     }, `${elLabel}: ${action.label} event queue`);
 
@@ -132,7 +146,7 @@ els.forEach((el) => {
       action.action(element);
       action.action(element);
 
-      await waitForAtLeastOneFrame();
+      await waitForEvents();
       assert_equals(selectCount, 1, "the select event must not fire twice");
     }, `${elLabel}: ${action.label} twice in disconnected node (must fire select only once)`);
   });

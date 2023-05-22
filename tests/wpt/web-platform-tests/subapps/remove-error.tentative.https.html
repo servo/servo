@@ -48,9 +48,9 @@ promise_test(async t => {
   let remove_call_params = [url_1, url_2, url_3];
 
   let mocked_response = [
-    { "unhashedAppIdPath": url_1, "resultCode": Status.FAILURE },
-    { "unhashedAppIdPath": url_2, "resultCode": Status.FAILURE },
-    { "unhashedAppIdPath": url_3, "resultCode": Status.FAILURE }
+    { "manifestIdPath": url_1, "resultCode": Status.FAILURE },
+    { "manifestIdPath": url_2, "resultCode": Status.FAILURE },
+    { "manifestIdPath": url_3, "resultCode": Status.FAILURE }
   ];
 
   let expected_results = {
@@ -70,9 +70,9 @@ promise_test(async t => {
   let remove_call_params = [url_1, url_2, url_3];
 
   let mocked_response = [
-    { "unhashedAppIdPath": url_1, "resultCode": Status.SUCCESS },
-    { "unhashedAppIdPath": url_2, "resultCode": Status.SUCCESS },
-    { "unhashedAppIdPath": url_3, "resultCode": Status.FAILURE }
+    { "manifestIdPath": url_1, "resultCode": Status.SUCCESS },
+    { "manifestIdPath": url_2, "resultCode": Status.SUCCESS },
+    { "manifestIdPath": url_3, "resultCode": Status.FAILURE }
   ];
 
   let expected_results = {

@@ -148,7 +148,10 @@ async def test_subscribe_to_closed_tab(bidi_session, send_blocking_command):
 
     # Try to subscribe to the closed context
     with pytest.raises(NoSuchFrameException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.subscribe",
-            {"events": ["log.entryAdded"], "contexts": [new_tab["context"]]},
+            {
+                "events": ["log.entryAdded"],
+                "contexts": [new_tab["context"]]
+            },
         )

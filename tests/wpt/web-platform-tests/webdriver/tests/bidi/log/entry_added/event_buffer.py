@@ -81,9 +81,10 @@ async def test_console_log_cached_message_after_refresh(
 
     # Log a message, refresh, log another message and subscribe
     expected_text_1 = await create_log(bidi_session, new_tab, log_type, "cached_message_1")
-    await bidi_session.browsing_context.navigate(
-        context=new_tab["context"], url=new_tab["url"], wait="complete"
-    )
+    context = new_tab["context"]
+    await bidi_session.browsing_context.navigate(context=context,
+                                                 url='about:blank',
+                                                 wait="complete")
     expected_text_2 = await create_log(bidi_session, new_tab, log_type, "cached_message_2")
 
     await subscribe_events(events=["log.entryAdded"])

@@ -10,19 +10,23 @@ interface HTMLFencedFrameElement : HTMLElement {
   [CEReactions] attribute FencedFrameConfig? config;
   [CEReactions] attribute DOMString width;
   [CEReactions] attribute DOMString height;
+  [CEReactions] attribute DOMString allow;
 };
 
 enum OpaqueProperty {"opaque"};
 
 typedef (unsigned long or OpaqueProperty) FencedFrameConfigSize;
-typedef (USVString or OpaqueProperty) FencedFrameConfigURL;
+typedef USVString FencedFrameConfigURL;
 
 [Exposed=Window]
 interface FencedFrameConfig {
-  constructor(USVString url);
   readonly attribute FencedFrameConfigURL? url;
-  readonly attribute FencedFrameConfigSize? width;
-  readonly attribute FencedFrameConfigSize? height;
+  readonly attribute FencedFrameConfigSize? containerWidth;
+  readonly attribute FencedFrameConfigSize? containerHeight;
+  readonly attribute FencedFrameConfigSize? contentWidth;
+  readonly attribute FencedFrameConfigSize? contentHeight;
+
+  undefined setSharedStorageContext(DOMString contextString);
 };
 
 enum FenceReportingDestination {

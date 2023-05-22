@@ -1,0 +1,4 @@
+pyobjc-core==9.1.1
+pyobjc-framework-Cocoa==9.1.1
+pyobjc-framework-ColorSync==9.1.1
+pyobjc-framework-Quartz==9.1.1

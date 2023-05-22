@@ -42,6 +42,12 @@
                   "AXSubrole",
                   "is",
                   "AXInsertStyleGroup"
+               ],
+               [
+                  "result",
+                  "AXAttributedStringForTextMarkerRange"
+                  "contains",
+                  "AXIsSuggestedInsertion"
                ]
             ],
             "IAccessible2" : [
@@ -63,7 +69,7 @@
                   "property",
                   "LocalizedControlType",
                   "is",
-                  "ins"
+                  "insertion"
                ]
             ]
          },
@@ -78,7 +84,9 @@
     </script>
   </head>
   <body>
-  <p>This test examines the ARIA properties for insertion.</p>
+  <p>
+    This test examines the ARIA properties for insertion.
+  </p>
   <div role="insertion" id="test">content</div>
   <div id="manualMode"></div>
   <div id="log"></div>
