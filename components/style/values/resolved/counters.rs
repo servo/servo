@@ -27,15 +27,16 @@ impl ToResolvedValue for computed::Content {
             .style
             .pseudo()
             .map_or(false, |p| p.is_before_or_after());
+        let is_marker = context
+            .style
+            .pseudo()
+            .map_or(false, |p| p.is_marker());
 
         match self {
             Self::Normal if is_before_or_after => Self::None,
-            // For now, make `content: none` compute to `normal` on other
-            // elements, as we don't respect it.
-            //
-            // FIXME(emilio, bug 1605473): for marker this should be preserved
-            // and respected, probably.
-            Self::None if !is_before_or_after => Self::Normal,
+            // For now, make `content: none` compute to `normal` for elements
+            // other than ::before, ::after and ::marker, as we don't respect it.
+            Self::None if !is_before_or_after && !is_marker => Self::Normal,
             other => other,
         }
     }

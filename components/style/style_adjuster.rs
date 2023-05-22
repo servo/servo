@@ -832,10 +832,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_marker_pseudo(&mut self) {
         use crate::values::computed::font::{FontFamily, FontSynthesis};
         use crate::values::computed::text::{LetterSpacing, WordSpacing};
+        use crate::values::computed::counters::{Content};
 
         let is_legacy_marker = self.style.pseudo.map_or(false, |p| p.is_marker()) &&
-            self.style.get_counters().ineffective_content_property() &&
-            self.style.get_list().clone_list_style_type().is_bullet();
+            self.style.get_list().clone_list_style_type().is_bullet() &&
+	    self.style.get_counters().clone_content() == Content::Normal;
         if !is_legacy_marker {
             return;
         }
