@@ -274,7 +274,7 @@ pub fn traverse_nodes<'a, 'scope, E, D, I>(
             top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
         } else {
             scope.spawn_fifo(move |scope| {
-                profiler_label!(Style);
+                gecko_profiler_label!(Layout, StyleComputation);
                 let work = work;
                 top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
             });
@@ -284,7 +284,7 @@ pub fn traverse_nodes<'a, 'scope, E, D, I>(
             let nodes: WorkUnit<E::ConcreteNode> = chunk.collect();
             let traversal_data_copy = traversal_data.clone();
             scope.spawn_fifo(move |scope| {
-                profiler_label!(Style);
+                gecko_profiler_label!(Layout, StyleComputation);
                 let n = nodes;
                 top_down_dom(&*n, root, traversal_data_copy, scope, pool, traversal, tls)
             });

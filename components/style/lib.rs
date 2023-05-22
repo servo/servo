@@ -33,6 +33,8 @@ extern crate cssparser;
 extern crate debug_unreachable;
 #[macro_use]
 extern crate derive_more;
+#[macro_use]
+extern crate gecko_profiler;
 #[cfg(feature = "gecko")]
 #[macro_use]
 pub mod gecko_string_cache;
