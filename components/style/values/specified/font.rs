@@ -681,19 +681,6 @@ pub enum FontFamily {
 
 impl FontFamily {
     system_font_methods!(FontFamily, font_family);
-
-    /// Parse a specified font-family value
-    pub fn parse_specified<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let values = input.parse_comma_separated(SingleFontFamily::parse)?;
-        Ok(FontFamily::Values(FontFamilyList {
-            #[cfg(feature = "gecko")]
-            list: crate::ArcSlice::from_iter(values.into_iter()),
-            #[cfg(feature = "servo")]
-            list: values.into_boxed_slice(),
-            #[cfg(feature = "gecko")]
-            fallback: computed::GenericFontFamily::None,
-        }))
-    }
 }
 
 impl ToComputedValue for FontFamily {
@@ -733,23 +720,31 @@ impl Parse for FontFamily {
     /// <family-name> = <string> | [ <ident>+ ]
     /// TODO: <generic-family>
     fn parse<'i, 't>(
-        _: &ParserContext,
+        context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<FontFamily, ParseError<'i>> {
-        FontFamily::parse_specified(input)
+        let values = input.parse_comma_separated(|input| SingleFontFamily::parse(context, input))?;
+        Ok(FontFamily::Values(FontFamilyList {
+            #[cfg(feature = "gecko")]
+            list: crate::ArcSlice::from_iter(values.into_iter()),
+            #[cfg(feature = "servo")]
+            list: values.into_boxed_slice(),
+            #[cfg(feature = "gecko")]
+            fallback: computed::GenericFontFamily::None,
+        }))
     }
 }
 
 impl SpecifiedValueInfo for FontFamily {}
 
-/// `FamilyName::parse` is based on `SingleFontFamily::parse` and not the other way around
-/// because we want the former to exclude generic family keywords.
+/// `FamilyName::parse` is based on `SingleFontFamily::parse` and not the other
+/// way around because we want the former to exclude generic family keywords.
 impl Parse for FamilyName {
     fn parse<'i, 't>(
-        _: &ParserContext,
+        context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        match SingleFontFamily::parse(input) {
+        match SingleFontFamily::parse(context, input) {
             Ok(SingleFontFamily::FamilyName(name)) => Ok(name),
             Ok(SingleFontFamily::Generic(_)) => {
                 Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
