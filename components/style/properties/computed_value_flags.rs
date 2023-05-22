@@ -101,6 +101,9 @@ bitflags! {
 
         /// Whether there are author-specified rules for `word-spacing`.
         const HAS_AUTHOR_SPECIFIED_WORD_SPACING = 1 << 19;
+
+        /// Whether the style depends on viewport units.
+        const USES_VIEWPORT_UNITS = 1 << 20;
     }
 }
 

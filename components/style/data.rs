@@ -175,6 +175,25 @@ impl ElementStyles {
         self.primary().get_box().clone_display().is_none()
     }
 
+    /// Whether this element uses viewport units.
+    pub fn uses_viewport_units(&self) -> bool {
+        use crate::computed_value_flags::ComputedValueFlags;
+
+        if self.primary().flags.intersects(ComputedValueFlags::USES_VIEWPORT_UNITS) {
+            return true;
+        }
+
+        for pseudo_style in self.pseudos.as_array() {
+            if let Some(ref pseudo_style) = pseudo_style {
+                if pseudo_style.flags.intersects(ComputedValueFlags::USES_VIEWPORT_UNITS) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
     #[cfg(feature = "gecko")]
     fn size_of_excluding_cvs(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // As the method name suggests, we don't measures the ComputedValues
