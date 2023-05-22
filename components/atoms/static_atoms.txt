@@ -127,6 +127,7 @@ stroke-opacity
 storage
 submit
 suspend
+system-ui
 tel
 text
 time

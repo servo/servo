@@ -387,7 +387,10 @@ pub enum SingleFontFamily {
 }
 
 fn system_ui_enabled(_: &ParserContext) -> bool {
-    static_prefs::pref!("layout.css.system-ui.enabled")
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.system-ui.enabled");
+    #[cfg(feature = "servo")]
+    return false;
 }
 
 /// A generic font-family name.
@@ -501,6 +504,7 @@ impl SingleFontFamily {
             atom!("cursive") => return SingleFontFamily::Generic(GenericFontFamily::Cursive),
             atom!("fantasy") => return SingleFontFamily::Generic(GenericFontFamily::Fantasy),
             atom!("monospace") => return SingleFontFamily::Generic(GenericFontFamily::Monospace),
+            atom!("system-ui") => return SingleFontFamily::Generic(GenericFontFamily::SystemUi),
             _ => {},
         }
 
@@ -510,6 +514,7 @@ impl SingleFontFamily {
             "cursive" => return SingleFontFamily::Generic(GenericFontFamily::Cursive),
             "fantasy" => return SingleFontFamily::Generic(GenericFontFamily::Fantasy),
             "monospace" => return SingleFontFamily::Generic(GenericFontFamily::Monospace),
+            "system-ui" => return SingleFontFamily::Generic(GenericFontFamily::SystemUi),
             _ => {}
         }
 
