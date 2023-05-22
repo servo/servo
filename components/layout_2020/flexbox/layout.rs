@@ -943,6 +943,8 @@ impl FlexLine<'_> {
                 //  it’s a min violation.”
                 for (item_and_target_main_size, frozen) in items() {
                     if violation(item_and_target_main_size) > Length::zero() {
+                        let (item, target_main_size) = item_and_target_main_size;
+                        target_main_size.set(item.content_min_size.main);
                         frozen_count.set(frozen_count.get() + 1);
                         frozen.set(true);
                     }
@@ -954,6 +956,11 @@ impl FlexLine<'_> {
                 //  it’s a max violation.”
                 for (item_and_target_main_size, frozen) in items() {
                     if violation(item_and_target_main_size) < Length::zero() {
+                        let (item, target_main_size) = item_and_target_main_size;
+                        let Some(max_size) = item.content_max_size.main else {
+                            unreachable!()
+                        };
+                        target_main_size.set(max_size);
                         frozen_count.set(frozen_count.get() + 1);
                         frozen.set(true);
                     }
