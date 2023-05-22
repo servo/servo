@@ -1376,6 +1376,9 @@ impl LonghandId {
             LonghandId::FontStyle |
             LonghandId::FontFamily |
 
+            // color-scheme affects how system colors resolve.
+            LonghandId::ColorScheme |
+
             // Needed to properly compute the writing mode, to resolve logical
             // properties, and similar stuff.
             LonghandId::WritingMode |
