@@ -794,10 +794,11 @@ impl Parse for FontSizeAdjust {
             let basis = match_ignore_ascii_case! { &ident,
                 "none" => return Ok(FontSizeAdjust::none()),
                 // Check for size adjustment basis keywords if enabled.
-                "ex" if basis_enabled => GenericFontSizeAdjust::Ex,
-                "cap" if basis_enabled => GenericFontSizeAdjust::Cap,
-                "ch" if basis_enabled => GenericFontSizeAdjust::Ch,
-                "ic" if basis_enabled => GenericFontSizeAdjust::Ic,
+                "ex-height" if basis_enabled => GenericFontSizeAdjust::ExHeight,
+                "cap-height" if basis_enabled => GenericFontSizeAdjust::CapHeight,
+                "ch-width" if basis_enabled => GenericFontSizeAdjust::ChWidth,
+                "ic-width" if basis_enabled => GenericFontSizeAdjust::IcWidth,
+                "ic-height" if basis_enabled => GenericFontSizeAdjust::IcHeight,
                 // Unknown (or disabled) keyword.
                 _ => return Err(location.new_custom_error(
                     ::selectors::parser::SelectorParseErrorKind::UnexpectedIdent(ident)
@@ -806,9 +807,9 @@ impl Parse for FontSizeAdjust {
             let value = NonNegativeNumber::parse(context, input)?;
             return Ok(FontSizeAdjust::Value(basis(value)));
         }
-        // Without a basis keyword, the number refers to the 'ex' metric.
+        // Without a basis keyword, the number refers to the 'ex-height' metric.
         let value = NonNegativeNumber::parse(context, input)?;
-        Ok(FontSizeAdjust::Value(GenericFontSizeAdjust::Ex(value)))
+        Ok(FontSizeAdjust::Value(GenericFontSizeAdjust::ExHeight(value)))
     }
 }
 
