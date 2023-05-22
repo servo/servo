@@ -9,7 +9,6 @@
                     sub_properties="column-width column-count"
                     servo_2013_pref="layout.columns.enabled",
                     derive_serialize="True"
-                    extra_prefixes="moz:layout.css.prefixes.columns"
                     spec="https://drafts.csswg.org/css-multicol/#propdef-columns">
     use crate::properties::longhands::{column_count, column_width};
 
@@ -60,7 +59,6 @@
 <%helpers:shorthand
     name="column-rule"
     engines="gecko"
-    extra_prefixes="moz:layout.css.prefixes.columns"
     sub_properties="column-rule-width column-rule-style column-rule-color"
     derive_serialize="True"
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule"
