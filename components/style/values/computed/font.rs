@@ -398,6 +398,10 @@ fn system_ui_enabled(_: &ParserContext) -> bool {
 /// The order here is important, if you change it make sure that
 /// `gfxPlatformFontList.h`s ranged array and `gfxFontFamilyList`'s
 /// sSingleGenerics are updated as well.
+///
+/// NOTE(emilio): Should be u8, but it's a u32 because of ABI issues between GCC
+/// and LLVM see https://bugs.llvm.org/show_bug.cgi?id=44228 / bug 1600735 /
+/// bug 1726515.
 #[derive(
     Clone,
     Copy,
@@ -413,7 +417,7 @@ fn system_ui_enabled(_: &ParserContext) -> bool {
     ToShmem,
 )]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[repr(u8)]
+#[repr(u32)]
 #[allow(missing_docs)]
 pub enum GenericFontFamily {
     /// No generic family specified, only for internal usage.
