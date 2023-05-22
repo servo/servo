@@ -408,14 +408,14 @@ impl SystemColor {
     fn compute(&self, cx: &Context, scheme: SystemColorScheme) -> ComputedColor {
         use crate::gecko_bindings::bindings;
 
-        let prefs = cx.device().pref_sheet_prefs();
+        let colors = &cx.device().pref_sheet_prefs().mColors;
 
         convert_nscolor_to_computedcolor(match *self {
-            SystemColor::Canvastext => prefs.mDefaultColor,
-            SystemColor::Canvas => prefs.mDefaultBackgroundColor,
-            SystemColor::Linktext => prefs.mLinkColor,
-            SystemColor::Activetext => prefs.mActiveLinkColor,
-            SystemColor::Visitedtext => prefs.mVisitedLinkColor,
+            SystemColor::Canvastext => colors.mDefault,
+            SystemColor::Canvas => colors.mDefaultBackground,
+            SystemColor::Linktext => colors.mLink,
+            SystemColor::Activetext => colors.mActiveLink,
+            SystemColor::Visitedtext => colors.mVisitedLink,
 
             _ => {
                 let color = unsafe {

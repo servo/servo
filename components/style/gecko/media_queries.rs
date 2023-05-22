@@ -93,7 +93,7 @@ impl Device {
             document,
             default_values: ComputedValues::default_values(doc),
             root_font_size: AtomicU32::new(FONT_MEDIUM_PX.to_bits()),
-            body_text_color: AtomicUsize::new(prefs.mDefaultColor as usize),
+            body_text_color: AtomicUsize::new(prefs.mColors.mDefault as usize),
             used_root_font_size: AtomicBool::new(false),
             used_font_metrics: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
@@ -387,12 +387,12 @@ impl Device {
 
     /// Returns the default background color.
     pub fn default_background_color(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.pref_sheet_prefs().mDefaultBackgroundColor)
+        convert_nscolor_to_rgba(self.pref_sheet_prefs().mColors.mDefaultBackground)
     }
 
     /// Returns the default foreground color.
     pub fn default_color(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.pref_sheet_prefs().mDefaultColor)
+        convert_nscolor_to_rgba(self.pref_sheet_prefs().mColors.mDefault)
     }
 
     /// Returns the current effective text zoom.
