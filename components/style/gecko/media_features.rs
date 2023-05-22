@@ -331,7 +331,6 @@ fn eval_inverted_colors(
 enum OverflowBlock {
     None,
     Scroll,
-    OptionalPaged,
     Paged,
 }
 
@@ -351,7 +350,7 @@ fn eval_overflow_block(context: &Context, query_value: Option<OverflowBlock>) ->
     };
 
     match query_value {
-        OverflowBlock::None | OverflowBlock::OptionalPaged => false,
+        OverflowBlock::None => false,
         OverflowBlock::Scroll => scrolling,
         OverflowBlock::Paged => !scrolling,
     }
