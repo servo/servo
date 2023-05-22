@@ -733,9 +733,9 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(
-                    computed::font::FontFamilyList::new(Box::new([
-                        computed::font::SingleFontFamily::from_atom(font_family),
-                    ])),
+                    computed::font::FontFamilyList {
+                        list: Box::new([computed::font::SingleFontFamily::from_atom(font_family)]),
+                    },
                 )),
             ));
         }

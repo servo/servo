@@ -686,7 +686,11 @@ impl FontFamily {
     pub fn parse_specified<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let values = input.parse_comma_separated(SingleFontFamily::parse)?;
         Ok(FontFamily::Values(FontFamilyList {
+            #[cfg(feature = "gecko")]
             list: crate::ArcSlice::from_iter(values.into_iter()),
+            #[cfg(feature = "servo")]
+            list: values.into_boxed_slice(),
+            #[cfg(feature = "gecko")]
             fallback: computed::GenericFontFamily::None,
         }))
     }

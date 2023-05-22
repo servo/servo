@@ -188,7 +188,11 @@ macro_rules! static_font_family {
         lazy_static! {
             static ref $ident: FontFamily = FontFamily {
                 families: FontFamilyList {
+                    #[cfg(feature = "gecko")]
                     list: crate::ArcSlice::from_iter_leaked(std::iter::once($family)),
+                    #[cfg(feature = "servo")]
+                    list: Box::new([$family]),
+                    #[cfg(feature = "gecko")]
                     fallback: GenericFontFamily::None,
                 },
                 is_system_font: false,
@@ -206,6 +210,7 @@ impl FontFamily {
     }
 
     /// Returns the font family for `-moz-bullet-font`.
+    #[cfg(feature = "gecko")]
     pub(crate) fn moz_bullet() -> &'static Self {
         static_font_family!(MOZ_BULLET, SingleFontFamily::FamilyName(FamilyName {
             name: atom!("-moz-bullet-font"),
@@ -216,6 +221,7 @@ impl FontFamily {
     }
 
     /// Returns a font family for a single system font.
+    #[cfg(feature = "gecko")]
     pub fn for_system_font(name: &str) -> Self {
         Self {
             families: FontFamilyList {
@@ -242,6 +248,7 @@ impl FontFamily {
         generic_font_family!(MONOSPACE, Monospace);
         generic_font_family!(CURSIVE, Cursive);
         generic_font_family!(FANTASY, Fantasy);
+        #[cfg(feature = "gecko")]
         generic_font_family!(MOZ_EMOJI, MozEmoji);
 
         match generic {
@@ -254,6 +261,7 @@ impl FontFamily {
             GenericFontFamily::Monospace => &*MONOSPACE,
             GenericFontFamily::Cursive => &*CURSIVE,
             GenericFontFamily::Fantasy => &*FANTASY,
+            #[cfg(feature = "gecko")]
             GenericFontFamily::MozEmoji => &*MOZ_EMOJI,
         }
     }
@@ -283,7 +291,12 @@ impl ToCss for FontFamily {
         let mut iter = self.families.iter();
         match iter.next() {
             Some(f) => f.to_css(dest)?,
-            None => return self.families.fallback.to_css(dest),
+            None => {
+                #[cfg(feature = "gecko")]
+                return self.families.fallback.to_css(dest);
+                #[cfg(feature = "servo")]
+                unreachable!();
+            },
         }
         for family in iter {
             dest.write_str(", ")?;
@@ -499,6 +512,7 @@ impl SingleFontFamily {
 }
 
 /// A list of font families.
+#[cfg(feature = "gecko")]
 #[derive(Clone, Debug, ToComputedValue, ToResolvedValue, ToShmem, PartialEq, Eq)]
 #[repr(C)]
 pub struct FontFamilyList {
@@ -508,6 +522,26 @@ pub struct FontFamilyList {
     pub fallback: GenericFontFamily,
 }
 
+/// A list of font families.
+#[cfg(feature = "servo")]
+#[derive(
+    Clone,
+    Debug,
+    Deserialize,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub struct FontFamilyList {
+    /// The actual list of font families specified.
+    pub list: Box<[SingleFontFamily]>,
+}
+
 impl FontFamilyList {
     /// Return iterator of SingleFontFamily
     pub fn iter(&self) -> impl Iterator<Item = &SingleFontFamily> {
@@ -515,6 +549,7 @@ impl FontFamilyList {
     }
 
     /// Puts the fallback in the list if needed.
+    #[cfg(feature = "gecko")]
     pub fn normalize(&mut self) {
         if self.fallback == GenericFontFamily::None {
             return;
@@ -527,6 +562,7 @@ impl FontFamilyList {
     /// If there's a generic font family on the list (which isn't cursive or
     /// fantasy), then move it to the front of the list. Otherwise, prepend the
     /// default generic.
+    #[cfg(feature = "gecko")]
     pub (crate) fn prioritize_first_generic_or_prepend(&mut self, generic: GenericFontFamily) {
         let index_of_first_generic = self.iter().position(|f| {
             match *f {
