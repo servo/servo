@@ -557,8 +557,6 @@ class MachCommands(CommandBase):
             features=features, **kwargs
         )
 
-        elapsed = time() - build_start
-
         # Do some additional things if the build succeeded
         if status == 0:
             if android and not no_package:
@@ -631,6 +629,7 @@ class MachCommands(CommandBase):
 
                 if has_media_stack:
                     gst_root = gstreamer_root(target, env)
+                    print("Packaging gstreamer dylibs")
                     if not package_gstreamer_dylibs(gst_root, servo_path):
                         return 1
 
@@ -655,6 +654,7 @@ class MachCommands(CommandBase):
 
         # Generate Desktop Notification if elapsed-time > some threshold value
 
+        elapsed = time() - build_start
         elapsed_delta = datetime.timedelta(seconds=int(elapsed))
         build_message = f"{'Succeeded' if status == 0 else 'Failed'} in {elapsed_delta}"
         self.notify("Servo build", build_message)
@@ -858,8 +858,8 @@ def copy_dependencies(binary_path, lib_path, gst_root):
 
     # Update binary libraries
     binary_dependencies = set(otool(binary_path))
-    binary_dependencies = binary_dependencies.union(macos_plugins())
     change_non_system_libraries_path(binary_dependencies, relative_path, binary_path)
+    binary_dependencies = binary_dependencies.union(macos_plugins())
 
     # Update dependencies libraries
     need_checked = binary_dependencies
