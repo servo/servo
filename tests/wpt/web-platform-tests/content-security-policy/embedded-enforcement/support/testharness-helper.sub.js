@@ -102,14 +102,16 @@ function assert_required_csp(t, url, csp, expected) {
   document.body.appendChild(i);
 }
 
-function assert_iframe_with_csp(t, url, csp, shouldBlock, urlId, blockedURI) {
-  var i = document.createElement('iframe');
+function assert_iframe_with_csp(t, url, csp, shouldBlock, urlId, blockedURI,
+                                checkImageLoaded) {
+  const i = document.createElement('iframe');
   url.searchParams.append("id", urlId);
   i.src = url.toString();
   if (csp != null)
     i.csp = csp;
 
   var loaded = {};
+  var onLoadReceived = {};
   window.addEventListener("message", function (e) {
     if (e.source != i.contentWindow)
         return;
@@ -146,24 +148,22 @@ function assert_iframe_with_csp(t, url, csp, shouldBlock, urlId, blockedURI) {
   } else {
     // Assert iframe loads.  Wait for the load event, the postMessage from the
     // script and the img load event.
-    let postMessage_received = false;
-    let img_loaded = false;
+    let img_loaded = !checkImageLoaded;
     window.addEventListener('message', t.step_func(e => {
       if (e.source != i.contentWindow)
         return;
-      if (e.data.loaded) {
-        assert_true(loaded[urlId]);
-        postMessage_received = true;
-      } else if (e.data === "img.loaded")
+      if (e.data === "img loaded")
         img_loaded = true;
 
-      if (i.onloadReceived && postMessage_received && img_loaded)
+      if (loaded[urlId] && onLoadReceived[urlId] && img_loaded) {
         t.done();
+      }
     }));
     i.onload = t.step_func(function () {
-      if (loaded[urlId])
+      onLoadReceived[urlId] = true;
+      if (loaded[urlId] && onLoadReceived[urlId] && img_loaded) {
         t.done();
-      i.onloadReceived = true;
+      }
     });
   }
   document.body.appendChild(i);

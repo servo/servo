@@ -1,5 +1,6 @@
 import pytest
-from webdriver import error
+
+from webdriver.error import NoSuchElementException
 
 from tests.support.asserts import assert_success
 from tests.support.helpers import wait_for_new_handle
@@ -120,7 +121,7 @@ def test_link_from_toplevel_context_with_target(session, inline, target):
     wait = Poll(
         session,
         timeout=5,
-        ignored_exceptions=error.NoSuchElementException,
+        ignored_exceptions=NoSuchElementException,
         message="Expected element has not been found")
     wait.until(lambda s: s.find.css("#foo"))
 
@@ -159,7 +160,7 @@ def test_link_from_nested_context_with_target(session, inline, iframe, target):
     wait = Poll(
         session,
         timeout=5,
-        ignored_exceptions=error.NoSuchElementException,
+        ignored_exceptions=NoSuchElementException,
         message="Expected element has not been found")
     wait.until(lambda s: s.find.css("#foo"))
 
@@ -179,8 +180,6 @@ def test_link_cross_origin(session, inline, url):
     assert_success(response)
 
     assert session.url == target_page
-    with pytest.raises(error.StaleElementReferenceException):
-        link.click()
 
     session.find.css("#delete", all=False)
 

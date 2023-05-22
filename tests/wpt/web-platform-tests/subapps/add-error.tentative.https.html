@@ -82,8 +82,8 @@ promise_test(async t => {
   };
 
   let mocked_response = [
-    { "unhashedAppIdPath": url_1, "resultCode": Status.FAILURE },
-    { "unhashedAppIdPath": url_2, "resultCode": Status.FAILURE }
+    { "manifestIdPath": url_1, "resultCode": Status.FAILURE },
+    { "manifestIdPath": url_2, "resultCode": Status.FAILURE }
   ];
 
   let expected_results = {
@@ -106,8 +106,8 @@ promise_test(async t => {
   };
 
   let mocked_response = [
-    { "unhashedAppIdPath": url_1, "resultCode": Status.SUCCESS },
-    { "unhashedAppIdPath": url_2, "resultCode": Status.FAILURE }
+    { "manifestIdPath": url_1, "resultCode": Status.SUCCESS },
+    { "manifestIdPath": url_2, "resultCode": Status.FAILURE }
   ];
 
   let expected_results = {

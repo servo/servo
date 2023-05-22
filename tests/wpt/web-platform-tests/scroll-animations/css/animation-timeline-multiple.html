@@ -7,7 +7,7 @@
 <style>
   main {
     scroll-timeline-attachment: defer;
-    scroll-timeline-name: top_timeline, bottom_timeline, left_timeline, right_timeline;
+    scroll-timeline-name: --top_timeline, --bottom_timeline, --left_timeline, --right_timeline;
   }
 
   .scroller {
@@ -39,19 +39,19 @@
   }
 
   #top_scroller {
-    scroll-timeline-name: top_timeline;
+    scroll-timeline-name: --top_timeline;
     scroll-timeline-axis: block;
   }
   #bottom_scroller {
-    scroll-timeline-name: bottom_timeline;
+    scroll-timeline-name: --bottom_timeline;
     scroll-timeline-axis: inline;
   }
   #left_scroller {
-    scroll-timeline-name: left_timeline;
+    scroll-timeline-name: --left_timeline;
     scroll-timeline-axis: block;
   }
   #right_scroller {
-    scroll-timeline-name: right_timeline;
+    scroll-timeline-name: --right_timeline;
     scroll-timeline-axis: inline;
   }
 
@@ -59,10 +59,10 @@
     animation-name: top, bottom, left, right;
     animation-duration: 10s;
     animation-timing-function: linear;
-    animation-timeline: top_timeline, bottom_timeline, left_timeline, right_timeline;
+    animation-timeline: --top_timeline, --bottom_timeline, --left_timeline, --right_timeline;
   }
   /* Ensure stable expectations if feature is not supported */
-  @supports not (animation-timeline:foo) {
+  @supports not (animation-timeline:--foo) {
     #element { animation-play-state: paused; }
   }
 </style>

@@ -41,10 +41,6 @@ test_valid_value("offset-path",
     '  path(  "m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50"  )  ',
     'path("m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50")'
 );
-// See https://github.com/w3c/fxtf-drafts/issues/392. If empty path string,
-// Blink serializes it as none, but Gecko serializes as path("").
-test_valid_value("offset-path", 'path("")', ['none', 'path("")']);
-test_valid_value("offset-path", 'path(" ")', ['none', 'path("")']);
 
 test_valid_value("offset-path", 'url("http://www.example.com/index.html#polyline1")');
 

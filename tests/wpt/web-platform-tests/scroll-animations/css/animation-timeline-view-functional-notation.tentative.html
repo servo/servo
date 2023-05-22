@@ -202,7 +202,7 @@ promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
   container.style.overflow = 'hidden';
   div.style.animation = "fade-out-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view(horizontal)";
+  div.style.animationTimeline = "view(x)";
   // So the range is [-200px, 100px], but it is impossible to scroll to the
   // negative part.
 
@@ -214,12 +214,12 @@ promise_test(async t => {
   assert_equals(getComputedStyle(div).opacity, '0.2', 'At 80%');
   await scrollLeft(container, 100);
   assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
-}, 'animation-timeline: view(horizontal) without timeline range name');
+}, 'animation-timeline: view(x) without timeline range name');
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
   div.style.animation = "fade-out-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view(vertical)";
+  div.style.animationTimeline = "view(y)";
   // So the range is [-200px, 100px], but it is impossible to scroll to the
   // negative part.
 
@@ -231,13 +231,13 @@ promise_test(async t => {
   assert_equals(getComputedStyle(div).opacity, '0.2', 'At 80%');
   await scrollTop(container, 100);
   assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
-}, 'animation-timeline: view(vertical) without timeline range name');
+}, 'animation-timeline: view(y) without timeline range name');
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
   container.style.overflow = 'hidden';
   div.style.animation = "fade-out-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view(horizontal 50px)";
+  div.style.animationTimeline = "view(x 50px)";
   // So the range is [-150px, 50px], but it is impossible to scroll to the
   // negative part.
 
@@ -248,7 +248,7 @@ promise_test(async t => {
   assert_equals(getComputedStyle(div).opacity, '0.2', 'At 80%');
   await scrollLeft(container, 50);
   assert_equals(getComputedStyle(div).opacity, '0', 'At 100%');
-}, 'animation-timeline: view(horizontal 50px) without timeline range name');
+}, 'animation-timeline: view(x 50px) without timeline range name');
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
@@ -384,7 +384,7 @@ promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
   container.style.overflow = 'scroll';
   div.style.animation = "fade-out 1s linear";
-  div.style.animationTimeline = "view(horizontal)";
+  div.style.animationTimeline = "view(x)";
 
   await scrollLeft(container, 0);
   assert_equals(getComputedStyle(div).opacity, '1', 'At exit 0%');
@@ -392,13 +392,13 @@ promise_test(async t => {
   assert_equals(getComputedStyle(div).opacity, '0.5', 'At exit 50%');
   await scrollLeft(container, 100);
   assert_equals(getComputedStyle(div).opacity, '0', 'At exit 100%');
-}, 'animation-timeline: view(horizontal)');
+}, 'animation-timeline: view(x)');
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
   container.style.overflow = 'scroll';
   div.style.animation = "fade-out 1s linear";
-  div.style.animationTimeline = "view(vertical)";
+  div.style.animationTimeline = "view(y)";
 
   await scrollTop(container, 0);
   assert_equals(getComputedStyle(div).opacity, '1', 'At exit 0%');
@@ -406,20 +406,20 @@ promise_test(async t => {
   assert_equals(getComputedStyle(div).opacity, '0.5', 'At exit 50%');
   await scrollTop(container, 100);
   assert_equals(getComputedStyle(div).opacity, '0', 'At exit 100%');
-}, 'animation-timeline: view(vertical)');
+}, 'animation-timeline: view(y)');
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
   container.style.overflowY = 'hidden';
   container.style.overflowX = 'scroll';
   div.style.animation = "fade-out 1s linear";
-  div.style.animationTimeline = "view(horizontal 50px)";
+  div.style.animationTimeline = "view(x 50px)";
 
   await scrollLeft(container, 0);
   assert_equals(getComputedStyle(div).opacity, '0.5', 'At exit 50%');
   await scrollLeft(container, 50);
   assert_equals(getComputedStyle(div).opacity, '0', 'At exit 100%');
-}, 'animation-timeline: view(horizontal 50px)');
+}, 'animation-timeline: view(x 50px)');
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);

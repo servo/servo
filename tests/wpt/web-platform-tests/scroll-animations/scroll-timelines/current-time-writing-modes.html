@@ -23,9 +23,9 @@ promise_test(async t => {
   const inlineScrollTimeline = new ScrollTimeline(
       {source: scroller, axis: 'inline'});
   const horizontalScrollTimeline = new ScrollTimeline(
-      {source: scroller, axis: 'horizontal'});
+      {source: scroller, axis: 'x'});
   const verticalScrollTimeline = new ScrollTimeline(
-      {source: scroller, axis: 'vertical'});
+      {source: scroller, axis: 'y'});
 
   // Unscrolled, all timelines should read a current time of 0 even though the
   // X-axis will have started at the right hand side for rtl.
@@ -67,9 +67,9 @@ promise_test(async t => {
   const inlineScrollTimeline = new ScrollTimeline(
       {source: scroller, axis: 'inline'});
   const horizontalScrollTimeline = new ScrollTimeline(
-      {source: scroller, axis: 'horizontal'});
+      {source: scroller, axis: 'x'});
   const verticalScrollTimeline = new ScrollTimeline(
-      {source: scroller, axis: 'vertical'});
+      {source: scroller, axis: 'y'});
 
   // Unscrolled, all timelines should read a current time of 0 even though the
   // X-axis will have started at the right hand side for vertical-rl.
@@ -113,9 +113,9 @@ promise_test(async t => {
   const inlineScrollTimeline = new ScrollTimeline(
       {source: scroller, axis: 'inline'});
   const horizontalScrollTimeline = new ScrollTimeline(
-      {source: scroller, axis: 'horizontal'});
+      {source: scroller, axis: 'x'});
   const verticalScrollTimeline = new ScrollTimeline(
-      {source: scroller, axis: 'vertical'});
+      {source: scroller, axis: 'y'});
 
   // Unscrolled, all timelines should read a current time of 0.
   assert_percents_equal(blockScrollTimeline.currentTime, 0,

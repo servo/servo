@@ -12,15 +12,16 @@ test_valid_value('scroll-timeline-name', 'unset');
 test_valid_value('scroll-timeline-name', 'revert');
 
 test_valid_value('scroll-timeline-name', 'none');
-test_valid_value('scroll-timeline-name', 'abc');
-test_valid_value('scroll-timeline-name', '  abc', 'abc');
-test_valid_value('scroll-timeline-name', 'aBc');
-test_valid_value('scroll-timeline-name', 'foo, bar');
-test_valid_value('scroll-timeline-name', 'bar, foo');
+test_valid_value('scroll-timeline-name', '--abc');
+test_valid_value('scroll-timeline-name', '  --abc', '--abc');
+test_valid_value('scroll-timeline-name', '--aBc');
+test_valid_value('scroll-timeline-name', '--foo, --bar');
+test_valid_value('scroll-timeline-name', '--bar, --foo');
 test_valid_value('scroll-timeline-name', 'none, none');
-test_valid_value('scroll-timeline-name', 'a, none, b');
-test_valid_value('scroll-timeline-name', 'auto');
+test_valid_value('scroll-timeline-name', '--a, none, --b');
 
+test_invalid_value('scroll-timeline-name', 'auto');
+test_invalid_value('scroll-timeline-name', 'abc');
 test_invalid_value('scroll-timeline-name', 'default');
 test_invalid_value('scroll-timeline-name', '10px');
 test_invalid_value('scroll-timeline-name', 'foo bar');

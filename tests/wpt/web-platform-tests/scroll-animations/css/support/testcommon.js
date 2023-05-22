@@ -14,6 +14,6 @@ async function waitForCSSScrollTimelineStyle() {
 }
 
 function assert_implements_animation_timeline() {
-  assert_implements(CSS.supports('animation-timeline:foo'),
+  assert_implements(CSS.supports('animation-timeline:--foo'),
       'animation-timeline not supported');
 }

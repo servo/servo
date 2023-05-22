@@ -72,7 +72,8 @@ dictionary RTCEncodedVideoFrameMetadata {
     unsigned long temporalIndex;
     unsigned long synchronizationSource;
     octet payloadType;
-  sequence<unsigned long> contributingSources;
+    sequence<unsigned long> contributingSources;
+    long long timestamp;    // microseconds
 };
 
 // New interfaces to define encoded video and audio frames. Will eventually

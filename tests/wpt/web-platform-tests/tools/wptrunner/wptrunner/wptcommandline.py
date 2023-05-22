@@ -280,7 +280,8 @@ scheme host and port.""")
                                 help="Total number of chunks to use")
     chunking_group.add_argument("--this-chunk", action="store", type=int, default=1,
                                 help="Chunk number to run")
-    chunking_group.add_argument("--chunk-type", action="store", choices=["none", "hash", "dir_hash"],
+    chunking_group.add_argument("--chunk-type", action="store",
+                                choices=["none", "hash", "id_hash", "dir_hash"],
                                 default=None, help="Chunking type to use")
 
     ssl_group = parser.add_argument_group("SSL/TLS")
@@ -367,6 +368,12 @@ scheme host and port.""")
         action="store_true",
         dest="sanitizer_enabled",
         help="Only alert on sanitizer-related errors and crashes.")
+    chrome_group.add_argument(
+        "--reuse-window",
+        action="store_true",
+        help=("Reuse a window across `testharness.js` tests where possible, "
+              "which can speed up testing. Also useful for ensuring that the "
+              "renderer process has a stable PID for a debugger to attach to."))
 
     sauce_group = parser.add_argument_group("Sauce Labs-specific")
     sauce_group.add_argument("--sauce-browser", dest="sauce_browser",

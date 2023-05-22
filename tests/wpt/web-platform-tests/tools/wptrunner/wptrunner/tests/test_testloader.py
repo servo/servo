@@ -7,8 +7,15 @@ import tempfile
 import pytest
 
 from mozlog import structured
-from ..testloader import TestFilter, TestLoader, TagFilter
-from ..testloader import read_include_from_file
+from ..testloader import (
+    DirectoryHashChunker,
+    IDHashChunker,
+    PathHashChunker,
+    TestFilter,
+    TestLoader,
+    TagFilter,
+    read_include_from_file,
+)
 from .test_wpttest import make_mock_manifest
 
 here = os.path.dirname(__file__)
@@ -25,6 +32,31 @@ skip: true
 [test_\u53F0]
   skip: false
 """
+
+
+@pytest.fixture
+def manifest():
+    manifest_json = {
+        "items": {
+            "testharness": {
+                "a": {
+                    "foo.html": [
+                        "abcdef123456",
+                        ["a/foo.html?b", {}],
+                        ["a/foo.html?c", {}],
+                    ],
+                    "bar.html": [
+                        "uvwxyz987654",
+                        [None, {}],
+                    ],
+                }
+            }
+        },
+        "url_base": "/",
+        "version": 8,
+    }
+    return WPTManifest.from_json("/", manifest_json)
+
 
 
 def test_loader_h2_tests():
@@ -138,3 +170,65 @@ def test_loader_filter_tags():
         assert len(loader.tests["testharness"]) == 1
         assert loader.tests["testharness"][0].id == "/a/bar.html"
         assert loader.tests["testharness"][0].tags == {"dir:a", "test-include"}
+
+
+def test_chunk_hash(manifest):
+    chunker1 = PathHashChunker(total_chunks=2, chunk_number=1)
+    chunker2 = PathHashChunker(total_chunks=2, chunk_number=2)
+    # Check that the chunkers partition the manifest (i.e., each item is
+    # assigned to exactly one chunk).
+    items = sorted([*chunker1(manifest), *chunker2(manifest)],
+                   key=lambda item: item[1])
+    assert len(items) == 2
+    test_type, test_path, tests = items[0]
+    assert test_type == "testharness"
+    assert test_path == os.path.join("a", "bar.html")
+    assert {test.id for test in tests} == {"/a/bar.html"}
+    test_type, test_path, tests = items[1]
+    assert test_type == "testharness"
+    assert test_path == os.path.join("a", "foo.html")
+    assert {test.id for test in tests} == {"/a/foo.html?b", "/a/foo.html?c"}
+
+
+def test_chunk_id_hash(manifest):
+    chunker1 = IDHashChunker(total_chunks=2, chunk_number=1)
+    chunker2 = IDHashChunker(total_chunks=2, chunk_number=2)
+    items = []
+    for test_type, test_path, tests in [*chunker1(manifest), *chunker2(manifest)]:
+        assert len(tests) > 0
+        items.extend((test_type, test_path, test) for test in tests)
+    assert len(items) == 3
+    items.sort(key=lambda item: item[2].id)
+    test_type, test_path, test = items[0]
+    assert test_type == "testharness"
+    assert test_path == os.path.join("a", "bar.html")
+    assert test.id == "/a/bar.html"
+    test_type, test_path, test = items[1]
+    assert test_type == "testharness"
+    assert test_path == os.path.join("a", "foo.html")
+    assert test.id == "/a/foo.html?b"
+    test_type, test_path, test = items[2]
+    assert test_type == "testharness"
+    assert test_path == os.path.join("a", "foo.html")
+    assert test.id == "/a/foo.html?c"
+
+
+def test_chunk_dir_hash(manifest):
+    chunker1 = DirectoryHashChunker(total_chunks=2, chunk_number=1)
+    chunker2 = DirectoryHashChunker(total_chunks=2, chunk_number=2)
+    # Check that tests in the same directory are located in the same chunk
+    # (which particular chunk is irrelevant).
+    empty_chunk, chunk_a = sorted([
+        list(chunker1(manifest)),
+        list(chunker2(manifest)),
+    ], key=len)
+    assert len(empty_chunk) == 0
+    assert len(chunk_a) == 2
+    test_type, test_path, tests = chunk_a[0]
+    assert test_type == "testharness"
+    assert test_path == os.path.join("a", "bar.html")
+    assert {test.id for test in tests} == {"/a/bar.html"}
+    test_type, test_path, tests = chunk_a[1]
+    assert test_type == "testharness"
+    assert test_path == os.path.join("a", "foo.html")
+    assert {test.id for test in tests} == {"/a/foo.html?b", "/a/foo.html?c"}

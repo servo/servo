@@ -20,24 +20,30 @@ navigation id, not the increment.
     }
 
     promise_test(async t => {
-      // Assert navigation id exists in LCP entries and is the default value 1.
-      const navigationIds = await NavigationIdsFromLCP();
-      assert_true(navigationIds.every(e => e.navigationId == 1), 'Navigation Id\
-      of LCP entries should be default value 1 at initial navigations');
+      // Assert navigation id exists in LCP entries and and are all the same.
+      const navigationIdsOfLCP = (await NavigationIdsFromLCP()).map(e => e.navigationId);
+      assert_true(navigationIdsOfLCP.every(e => e == navigationIdsOfLCP[0]),
+        'Navigation Ids of LCP entries should be the same at initial navigation');
 
-      // Assert navigation id exists in a NavigationTiming entry and is the
-      // default value 1.
-      const navigationId = performance.getEntriesByType('navigation')[0].navigationId;
-      assert_equals(navigationId, 1, 'Navigation Id of an navigation timing\
-      entry should be default value 1 at initial navigations');
+      // Assert navigation id exists in a NavigationTiming entry.
+      const navigationIdOfNavigationTiming =
+        performance.getEntriesByType('navigation')[0].navigationId;
+      assert_not_equals(navigationIdOfNavigationTiming, null,
+        'Navigation Id of a navigation timing entry should exist at initial navigation');
 
-      // Assert navigation id exists in PaintTiming entries and is the default
-      // value 1.
-      assert_true(performance.getEntriesByType('paint').every(e =>
-        e.navigationId == 1),
-        'Navigation Id of PaintTiming entries should be default value 1 at\
-         initial navigations.');
+      // Assert navigation id exists in PaintTiming entries and are all the same.
+      const navigationIdsOfPaintTiming =
+        performance.getEntriesByType('paint').map(e => e.navigationId);
+      assert_true(navigationIdsOfPaintTiming.every(e =>
+        e == navigationIdsOfPaintTiming[0]),
+        'Navigation Id of PaintTiming entries should be the same as the initial navigation.');
 
-    }, 'Navigation Id should be 1 at initial navigations.');
+      // Assert navigation ids are all the same.
+      const navigationIdsOfAll =
+        navigationIdsOfLCP.concat(navigationIdsOfPaintTiming, navigationIdOfNavigationTiming);
+      assert_true(navigationIdsOfAll.every(e => e == navigationIdsOfAll[0]),
+        'Navigation Id of all entries should be the same as the initial navigation.');
+
+    }, 'Navigation Ids should exist and are all the same as the initial navigation.');
   </script>
 </body>

@@ -43,10 +43,10 @@
 <template id=omitted_axis>
   <style>
     #target {
-      view-timeline-name: t1, t2; /* Two items */
+      view-timeline-name: --t1, --t2; /* Two items */
       view-timeline-axis: inline; /* One item */
       animation: anim 1s linear;
-      animation-timeline: t2;
+      animation-timeline: --t2;
     }
   </style>
   <div id=scroller class=scroller>
@@ -76,10 +76,10 @@
 <template id=omitted_inset>
   <style>
     #target {
-      view-timeline-name: t1, t2; /* Two items */
+      view-timeline-name: --t1, --t2; /* Two items */
       view-timeline-inset: 100px; /* One item */
       animation: anim 1s linear;
-      animation-timeline: t2;
+      animation-timeline: --t2;
     }
   </style>
   <div id=scroller class=scroller>

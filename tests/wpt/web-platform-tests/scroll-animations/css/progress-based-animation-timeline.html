@@ -21,18 +21,18 @@
   }
 
   #scroller1 {
-    scroll-timeline: top_timeline;
+    scroll-timeline: --top_timeline;
   }
 
   #element {
     animation-name: top;
     animation-duration: 10s;
     animation-timing-function: linear;
-    animation-timeline: top_timeline;
+    animation-timeline: --top_timeline;
     position: absolute;
   }
   /* Ensure stable expectations if feature is not supported */
-  @supports not (animation-timeline:foo) {
+  @supports not (animation-timeline:--foo) {
     #element { animation-play-state: paused; }
   }
 </style>

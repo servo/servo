@@ -26,24 +26,28 @@
     window.open(urlA, '_blank', 'noopener')
     await pageA.execute_script(waitForPageShow);
 
-    // Assert navigation id is 1 when the document is loaded first time.
-
-    let navigationId = await pageA.execute_script(getNavigationId);
-    assert_equals(navigationId, 1, 'Navigation Id should be 1 initially.');
+    let navigationIdInitial = await pageA.execute_script(getNavigationId);
 
     // Navigate away to url B and back.
     await navigateAndThenBack(pageA, pageB, urlB);
 
-    // Assert navigation id increments to 2 when the document is load from bfcache.
-    navigationId = await pageA.execute_script(getNavigationId);
-    assert_equals(navigationId, 2, 'Navigation Id should be 2 after increment.');
+    // Assert navigation id is re-generated and thus different when the
+    // document is load from bfcache.
+    navigationIdAfterBFCacheNav = await pageA.execute_script(getNavigationId);
+    assert_not_equals(navigationIdInitial, navigationIdAfterBFCacheNav, 'Navigation Id should be \
+    re-generated and different from the previous one after back-forward-cache navigation.');
 
     // Reload page.
     await pageA.execute_script(reload);
     await pageA.execute_script(waitForPageShow);
 
-    // Assert navigation id is reset to 1 after reload.
-    navigationId = await pageA.execute_script(getNavigationId);
-    assert_equals(navigationId, 1, 'Navigation Id should be 1 after reload.');
-  }, 'Navigation Id should be reset to 1 after reload.');
+    navigationIdAfterReset = await pageA.execute_script(getNavigationId);
+
+    assert_not_equals(navigationIdAfterReset, navigationIdAfterBFCacheNav, 'Navigation Id should\
+    be re-generated after reload which is different from the previous one.');
+
+    assert_not_equals(navigationIdAfterReset, navigationIdInitial, 'Navigation Id should\
+    be re-generated after reload which is different from the one of the initial load.');
+
+  }, 'Navigation Id should be re-generated after reload.');
 </script>

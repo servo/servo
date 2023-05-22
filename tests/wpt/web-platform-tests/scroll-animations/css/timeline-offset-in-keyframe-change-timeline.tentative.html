@@ -27,7 +27,7 @@
     overflow-x: hidden;
     width: 300px;
     height: 200px;
-    view-timeline: sibling defer;
+    view-timeline: --sibling defer;
   }
   #sibling {
     margin-top: 800px;
@@ -36,7 +36,7 @@
     width:  100px;
     height:  50px;
     background-color:  blue;
-    view-timeline: sibling block ancestor;
+    view-timeline: --sibling block ancestor;
   }
   #target {
     margin-bottom: 800px;
@@ -50,14 +50,14 @@
     /* using document timeline by default */
     animation-range-start:  contain 0%;
     animation-range-end:  contain 100%;
-    view-timeline:  target block;
+    view-timeline:  --target block;
   }
 
   #target.with-view-timeline {
-    animation-timeline: target;
+    animation-timeline: --target;
   }
   #target.with-view-timeline.retarget {
-    animation-timeline: sibling;
+    animation-timeline: --sibling;
   }
 </style>
 <body>
@@ -90,7 +90,7 @@
       // Once a view-timeline is added, the kefyrames must update to reflect
       // the new keyframe offsets.
       target.classList.add('with-view-timeline');
-      assert_equals(getComputedStyle(target).animationTimeline, 'target',
+      assert_equals(getComputedStyle(target).animationTimeline, '--target',
                     'Switch to view timeline');
       await waitForNextFrame();
 
@@ -110,7 +110,7 @@
       assert_frame_lists_equal(frames, expected);
 
       target.classList.add('retarget');
-      assert_equals(getComputedStyle(target).animationTimeline, 'sibling',
+      assert_equals(getComputedStyle(target).animationTimeline, '--sibling',
                     'Switch to another view timeline');
       await waitForNextFrame();
       frames = anim.effect.getKeyframes();

@@ -254,11 +254,21 @@ window.onload = () => {
     },{once: true});
     assert_true(popover.matches(':popover-open'));
     assert_true(other_popover.matches(':popover-open'));
-    assert_throws_dom('InvalidStateError', () => popover.hidePopover());
+    popover.hidePopover(); // Calling hidePopover on a hidden popover should not throw.
     assert_false(other_popover.matches(':popover-open'),'unrelated popover is hidden');
     assert_false(popover.matches(':popover-open'),'popover is still hidden if its type changed during hide event');
-    assert_throws_dom("InvalidStateError",() => other_popover.hidePopover(),'Nested popover should already be hidden');
-  },`Changing the popover type in a "beforetoggle" event handler should throw an exception (during hidePopover())`);
+    other_popover.hidePopover(); // Calling hidePopover on a hidden popover should not throw.
+  },`Changing the popover type in a "beforetoggle" event handler during hidePopover() should not throw an exception`);
+
+  test(t => {
+    const popover = document.createElement('div');
+    assert_throws_dom('NotSupportedError', () => popover.hidePopover(),
+      'Calling hidePopover on an element without a popover attribute should throw.');
+    popover.setAttribute('popover', 'auto');
+    popover.hidePopover(); // Calling hidePopover on a disconnected popover should not throw.
+    assert_throws_dom('InvalidStateError', () => popover.showPopover(),
+      'Calling showPopover on a disconnected popover should throw.');
+  },'Calling hidePopover on a disconnected popover should not throw.');
 
   function interpretedType(typeString,method) {
     if (validTypes.includes(typeString))

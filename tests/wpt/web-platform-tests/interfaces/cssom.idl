@@ -106,7 +106,9 @@ interface CSSStyleRule : CSSRule {
 interface CSSImportRule : CSSRule {
   readonly attribute USVString href;
   [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
-  [SameObject] readonly attribute CSSStyleSheet styleSheet;
+  [SameObject] readonly attribute CSSStyleSheet? styleSheet;
+  readonly attribute CSSOMString? layerName;
+  readonly attribute CSSOMString? supportsText;
 };
 
 [Exposed=Window]

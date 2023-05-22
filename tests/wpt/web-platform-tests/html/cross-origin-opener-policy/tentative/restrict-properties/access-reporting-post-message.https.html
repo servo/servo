@@ -10,15 +10,8 @@
 <script>
 
 testAccessProperty(
-  "postMessage single arg",
-  w => w.postMessage(""),
-  expectReport = false,
-  use_restrict_properties = true
-);
-
-testAccessProperty(
-  "postMessage double arg",
-  w => w.postMessage("", ""),
+  "postMessage",
+  w => w.postMessage("message", "*"),
   expectReport = false,
   use_restrict_properties = true
 );
