@@ -824,12 +824,6 @@ install them, let us know by filing a bug!")
                 help='Build for Android',
             ),
             CommandArgument(
-                '--magicleap',
-                default=None,
-                action='store_true',
-                help='Build for Magic Leap',
-            ),
-            CommandArgument(
                 '--libsimpleservo',
                 default=None,
                 action='store_true',
