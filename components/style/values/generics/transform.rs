@@ -443,32 +443,31 @@ where
         use self::TransformOperation::*;
         use std::f64;
 
-        const TWO_PI: f64 = 2.0f64 * f64::consts::PI;
         let reference_width = reference_box.map(|v| v.size.width);
         let reference_height = reference_box.map(|v| v.size.height);
         let matrix = match *self {
             Rotate3D(ax, ay, az, theta) => {
-                let theta = TWO_PI - theta.radians64();
+                let theta = theta.radians64();
                 let (ax, ay, az, theta) =
                     get_normalized_vector_and_angle(ax.into(), ay.into(), az.into(), theta);
                 Transform3D::rotation(
                     ax as f64,
                     ay as f64,
                     az as f64,
-                    -euclid::Angle::radians(theta),
+                    euclid::Angle::radians(theta),
                 )
             },
             RotateX(theta) => {
-                let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
-                Transform3D::rotation(1., 0., 0., -theta)
+                let theta = euclid::Angle::radians(theta.radians64());
+                Transform3D::rotation(1., 0., 0., theta)
             },
             RotateY(theta) => {
-                let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
-                Transform3D::rotation(0., 1., 0., -theta)
+                let theta = euclid::Angle::radians(theta.radians64());
+                Transform3D::rotation(0., 1., 0., theta)
             },
             RotateZ(theta) | Rotate(theta) => {
-                let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
-                Transform3D::rotation(0., 0., 1., -theta)
+                let theta = euclid::Angle::radians(theta.radians64());
+                Transform3D::rotation(0., 0., 1., theta)
             },
             Perspective(ref d) => {
                 let m = create_perspective_matrix(d.to_pixel_length(None)?);
