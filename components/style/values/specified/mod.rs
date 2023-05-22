@@ -20,7 +20,6 @@ use crate::values::serialize_atom_identifier;
 use crate::values::specified::calc::CalcNode;
 use crate::{Atom, Namespace, One, Prefix, Zero};
 use cssparser::{Parser, Token};
-use std::f32;
 use std::fmt::{self, Write};
 use std::ops::Add;
 use style_traits::values::specified::AllowedNumericType;

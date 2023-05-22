@@ -107,6 +107,7 @@ pub mod media_queries;
 pub mod parallel;
 pub mod parser;
 pub mod piecewise_linear;
+pub mod properties_and_values;
 #[macro_use]
 pub mod queries;
 pub mod rule_cache;

@@ -26,7 +26,7 @@ impl ToComputedValue for specified::AnimationIterationCount {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         AnimationIterationCount(match *self {
             specified::AnimationIterationCount::Number(n) => n.to_computed_value(context).0,
-            specified::AnimationIterationCount::Infinite => std::f32::INFINITY,
+            specified::AnimationIterationCount::Infinite => f32::INFINITY,
         })
     }
 
