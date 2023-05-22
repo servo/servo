@@ -241,7 +241,7 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
     @CommandBase.build_like_command_arguments
-    def doc(self, params, features, target=None, android=False, magicleap=False,
+    def doc(self, params, features, target=None, android=False,
             media_stack=None, **kwargs):
         self.ensure_bootstrapped(rustup_components=["rust-docs"])
         rustc_path = check_output(
@@ -272,7 +272,7 @@ class PostBuildCommands(CommandBase):
 
         features = features or []
 
-        target, android = self.pick_target_triple(target, android, magicleap)
+        target, android = self.pick_target_triple(target, android)
 
         features += self.pick_media_stack(media_stack, target)
 
