@@ -68,16 +68,20 @@ pub struct ColorMix {
     pub hue_adjuster: HueAdjuster,
 }
 
-#[cfg(feature = "gecko")]
 #[inline]
 fn allow_color_mix() -> bool {
-    static_prefs::pref!("layout.css.color-mix.enabled")
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.color-mix.enabled");
+    #[cfg(feature = "servo")]
+    return false;
 }
 
-#[cfg(feature = "servo")]
 #[inline]
-fn allow_color_mix() -> bool {
-    false
+fn allow_color_mix_color_spaces() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.color-mix.color-spaces.enabled");
+    #[cfg(feature = "servo")]
+    return false;
 }
 
 // NOTE(emilio): Syntax is still a bit in-flux, since [1] doesn't seem
@@ -97,7 +101,7 @@ impl Parse for ColorMix {
         }
 
         let color_spaces_enabled = context.chrome_rules_enabled() ||
-            static_prefs::pref!("layout.css.color-mix.color-spaces.enabled");
+            allow_color_mix_color_spaces();
 
         input.expect_function_matching("color-mix")?;
 
