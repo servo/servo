@@ -550,6 +550,7 @@ impl StylesheetInvalidationSet {
             },
             CounterStyle(..) |
             Page(..) |
+            Property(..) |
             Viewport(..) |
             FontFeatureValues(..) |
             FontPaletteValues(..) |
@@ -633,7 +634,11 @@ impl StylesheetInvalidationSet {
                     // existing elements.
                 }
             },
-            CounterStyle(..) | Page(..) | Viewport(..) | FontFeatureValues(..) |
+            CounterStyle(..) |
+            Page(..) |
+            Property(..) |
+            Viewport(..) |
+            FontFeatureValues(..) |
             FontPaletteValues(..) => {
                 debug!(
                     " > Found unsupported rule, marking the whole subtree \

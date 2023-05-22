@@ -19,6 +19,7 @@ mod media_rule;
 mod namespace_rule;
 pub mod origin;
 mod page_rule;
+mod property_rule;
 mod rule_list;
 mod rule_parser;
 mod rules_iterator;
@@ -61,6 +62,7 @@ pub use self::media_rule::MediaRule;
 pub use self::namespace_rule::NamespaceRule;
 pub use self::origin::{Origin, OriginSet, OriginSetIterator, PerOrigin, PerOriginIter};
 pub use self::page_rule::{PageRule, PageSelector, PageSelectors};
+pub use self::property_rule::PropertyRule;
 pub use self::rule_list::{CssRules, CssRulesHelpers};
 pub use self::rule_parser::{InsertRuleContext, State, TopLevelRuleParser};
 pub use self::rules_iterator::{AllRules, EffectiveRules};
@@ -261,6 +263,7 @@ pub enum CssRule {
     Keyframes(Arc<Locked<KeyframesRule>>),
     Supports(Arc<Locked<SupportsRule>>),
     Page(Arc<Locked<PageRule>>),
+    Property(Arc<Locked<PropertyRule>>),
     Document(Arc<Locked<DocumentRule>>),
     LayerBlock(Arc<Locked<LayerBlockRule>>),
     LayerStatement(Arc<Locked<LayerStatementRule>>),
@@ -303,6 +306,10 @@ impl CssRule {
             },
 
             CssRule::Page(ref lock) => {
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            },
+
+            CssRule::Property(ref lock) => {
                 lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
             },
 
@@ -350,6 +357,8 @@ pub enum CssRuleType {
     LayerStatement = 17,
     Container = 18,
     FontPaletteValues = 19,
+    // 20 is an arbitrary number to use for Property.
+    Property = 20,
 }
 
 impl CssRuleType {
@@ -413,6 +422,7 @@ impl CssRule {
             CssRule::Viewport(_) => CssRuleType::Viewport,
             CssRule::Supports(_) => CssRuleType::Supports,
             CssRule::Page(_) => CssRuleType::Page,
+            CssRule::Property(_) => CssRuleType::Property,
             CssRule::Document(_) => CssRuleType::Document,
             CssRule::LayerBlock(_) => CssRuleType::LayerBlock,
             CssRule::LayerStatement(_) => CssRuleType::LayerStatement,
@@ -545,6 +555,10 @@ impl DeepCloneWithLock for CssRule {
                     lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
                 ))
             },
+            CssRule::Property(ref arc) => {
+                let rule = arc.read_with(guard);
+                CssRule::Property(Arc::new(lock.wrap(rule.clone())))
+            },
             CssRule::Document(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::Document(Arc::new(
@@ -583,6 +597,7 @@ impl ToCssWithGuard for CssRule {
             CssRule::Media(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Supports(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Page(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Property(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Document(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::LayerBlock(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::LayerStatement(ref lock) => lock.read_with(guard).to_css(guard, dest),

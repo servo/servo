@@ -5,6 +5,7 @@
 //! Parsing of the stylesheet contents.
 
 use crate::counter_style::{parse_counter_style_body, parse_counter_style_name_definition};
+use crate::custom_properties::parse_name as parse_custom_property_name;
 use crate::error_reporting::ContextualParseError;
 use crate::font_face::parse_font_face_block;
 use crate::media_queries::MediaList;
@@ -12,6 +13,7 @@ use crate::parser::{Parse, ParserContext};
 use crate::properties::declaration_block::{
     parse_property_declaration_list, DeclarationParserState, PropertyDeclarationBlock,
 };
+use crate::properties_and_values::rule::{parse_property_block, PropertyRuleName};
 use crate::selector_parser::{SelectorImpl, SelectorParser};
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::str::starts_with_ignore_ascii_case;
@@ -30,7 +32,7 @@ use crate::stylesheets::{
 };
 use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, DashedIdent, KeyframesName};
-use crate::{Namespace, Prefix};
+use crate::{Atom, Namespace, Prefix};
 use cssparser::{
     AtRuleParser, BasicParseError, BasicParseErrorKind, CowRcStr, DeclarationParser, Parser,
     ParserState, QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser, SourceLocation,
@@ -201,6 +203,8 @@ pub enum AtRulePrelude {
     Keyframes(KeyframesName, Option<VendorPrefix>),
     /// A @page rule prelude, with its page name if it exists.
     Page(PageSelectors),
+    /// A @property rule prelude.
+    Property(PropertyRuleName),
     /// A @document rule, with its conditional.
     Document(DocumentCondition),
     /// A @import rule prelude.
@@ -600,6 +604,13 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                     input.try_parse(|i| PageSelectors::parse(self.context, i)).unwrap_or_default()
                 )
             },
+            "property" if static_prefs::pref!("layout.css.properties-and-values.enabled") => {
+                let name = input.expect_ident_cloned()?;
+                let name = parse_custom_property_name(&name).map_err(|_| {
+                    input.new_custom_error(StyleParseErrorKind::UnexpectedIdent(name.clone()))
+                })?;
+                AtRulePrelude::Property(PropertyRuleName(Arc::new(Atom::from(name))))
+            },
             "-moz-document" if cfg!(feature = "gecko") => {
                 let cond = DocumentCondition::parse(self.context, input)?;
                 AtRulePrelude::Document(cond)
@@ -704,6 +715,11 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                     source_location: start.source_location(),
                 })))
             },
+            AtRulePrelude::Property(name) => self.nest_for_rule(CssRuleType::Property, |p| {
+                CssRule::Property(Arc::new(p.shared_lock.wrap(
+                    parse_property_block(&p.context, input, name, start.source_location()),
+                )))
+            }),
             AtRulePrelude::Document(condition) => {
                 if !cfg!(feature = "gecko") {
                     unreachable!()
