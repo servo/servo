@@ -45,7 +45,7 @@ fn rgb_to_hue_min_max(red: f32, green: f32, blue: f32) -> (f32, f32, f32) {
             (red - green) / delta + 4.0
         }
     } else {
-        std::f32::NAN
+        f32::NAN
     };
 
     (hue, min, max)

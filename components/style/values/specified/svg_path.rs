@@ -996,8 +996,8 @@ fn parse_number(iter: &mut Peekable<Cloned<slice::Iter<u8>>>) -> Result<CSSFloat
 
     if value.is_finite() {
         Ok(value
-            .min(::std::f32::MAX as f64)
-            .max(::std::f32::MIN as f64) as CSSFloat)
+            .min(f32::MAX as f64)
+            .max(f32::MIN as f64) as CSSFloat)
     } else {
         Err(())
     }

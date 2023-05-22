@@ -383,8 +383,6 @@ impl Quaternion {
 
 impl Animate for Quaternion {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        use std::f64;
-
         let (this_weight, other_weight) = procedure.weights();
         debug_assert!(
             // Doule EPSILON since both this_weight and other_weght have calculation errors
