@@ -1366,6 +1366,9 @@ impl LonghandId {
 
             // font-size depends on math-depth's computed value.
             LonghandId::MathDepth |
+
+            // color-scheme affects how system colors resolve.
+            LonghandId::ColorScheme |
             % endif
 
             // Needed to compute the first available font, in order to
@@ -1375,9 +1378,6 @@ impl LonghandId {
             LonghandId::FontStretch |
             LonghandId::FontStyle |
             LonghandId::FontFamily |
-
-            // color-scheme affects how system colors resolve.
-            LonghandId::ColorScheme |
 
             // Needed to properly compute the writing mode, to resolve logical
             // properties, and similar stuff.
