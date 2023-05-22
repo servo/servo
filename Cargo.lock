@@ -293,12 +293,6 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d5ca2cd0adc3f48f9e9ea5a6bbdf9ccc0bfade884847e484d452414c7ccffb3"
-
-[[package]]
-name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
@@ -5021,11 +5015,11 @@ dependencies = [
 
 [[package]]
 name = "ron"
-version = "0.6.0"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a91260f321dbf3b5a16ff91c451dc9eb644ce72775a6812f9c3dfffe63818f8f"
+checksum = "86018df177b1beef6c7c8ef949969c4f7cb9a9344181b92486b23c79995bdaa4"
 dependencies = [
- "base64 0.12.0",
+ "base64 0.13.0",
  "bitflags",
  "serde",
 ]
@@ -7236,7 +7230,7 @@ dependencies = [
  "gfx-memory",
  "naga",
  "parking_lot 0.11.2",
- "ron 0.6.0",
+ "ron 0.6.6",
  "serde",
  "smallvec",
  "thiserror",
