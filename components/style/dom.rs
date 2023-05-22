@@ -151,7 +151,7 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// Get this node's first child.
     fn first_child(&self) -> Option<Self>;
 
-    /// Get this node's first child.
+    /// Get this node's last child.
     fn last_child(&self) -> Option<Self>;
 
     /// Get this node's previous sibling.
