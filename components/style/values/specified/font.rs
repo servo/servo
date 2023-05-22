@@ -2036,6 +2036,14 @@ impl FontSynthesis {
     }
 }
 
+#[inline]
+fn allow_font_synthesis_small_caps() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.font-synthesis-small-caps.enabled");
+    #[cfg(feature = "servo")]
+    return false;
+}
+
 impl Parse for FontSynthesis {
     fn parse<'i, 't>(
         _: &ParserContext,
@@ -2048,8 +2056,7 @@ impl Parse for FontSynthesis {
                 "none" if result.is_none() => return Ok(result),
                 "weight" if !result.weight => result.weight = true,
                 "style" if !result.style => result.style = true,
-                "small-caps" if !result.small_caps &&
-                                static_prefs::pref!("layout.css.font-synthesis-small-caps.enabled")
+                "small-caps" if !result.small_caps && allow_font_synthesis_small_caps()
                                     => result.small_caps = true,
                 _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident))),
             }
@@ -2100,7 +2107,7 @@ impl SpecifiedValueInfo for FontSynthesis {
             "weight",
             "style",
         ]);
-        if static_prefs::pref!("layout.css.font-synthesis-small-caps.enabled") {
+        if allow_font_synthesis_small_caps() {
             f(&["small-caps"]);
         }
     }
