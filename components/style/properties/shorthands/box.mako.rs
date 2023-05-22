@@ -316,15 +316,15 @@ ${helpers.two_properties_shorthand(
     name="page-break-before"
     flags="SHORTHAND_IN_GETCS IS_LEGACY_SHORTHAND"
     sub_properties="break-before"
-    spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-before"
+    spec="https://drafts.csswg.org/css-break-3/#page-break-properties"
 >
     pub fn parse_value<'i>(
-        _: &ParserContext,
+        context: &ParserContext,
         input: &mut Parser<'i, '_>,
     ) -> Result<Longhands, ParseError<'i>> {
         use crate::values::specified::box_::BreakBetween;
         Ok(expanded! {
-            break_before: BreakBetween::parse_legacy(input)?,
+            break_before: BreakBetween::parse_legacy(context, input)?,
         })
     }
 
@@ -340,21 +340,45 @@ ${helpers.two_properties_shorthand(
     name="page-break-after"
     flags="SHORTHAND_IN_GETCS IS_LEGACY_SHORTHAND"
     sub_properties="break-after"
-    spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-after"
+    spec="https://drafts.csswg.org/css-break-3/#page-break-properties"
 >
     pub fn parse_value<'i>(
-        _: &ParserContext,
+        context: &ParserContext,
         input: &mut Parser<'i, '_>,
     ) -> Result<Longhands, ParseError<'i>> {
         use crate::values::specified::box_::BreakBetween;
         Ok(expanded! {
-            break_after: BreakBetween::parse_legacy(input)?,
+            break_after: BreakBetween::parse_legacy(context, input)?,
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.break_after.to_css_legacy(dest)
+        }
+    }
+</%helpers:shorthand>
+
+<%helpers:shorthand
+    engines="gecko"
+    name="page-break-inside"
+    flags="SHORTHAND_IN_GETCS IS_LEGACY_SHORTHAND"
+    sub_properties="break-inside"
+    spec="https://drafts.csswg.org/css-break-3/#page-break-properties"
+>
+    pub fn parse_value<'i>(
+        context: &ParserContext,
+        input: &mut Parser<'i, '_>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        use crate::values::specified::box_::BreakWithin;
+        Ok(expanded! {
+            break_inside: BreakWithin::parse_legacy(context, input)?,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            self.break_inside.to_css_legacy(dest)
         }
     }
 </%helpers:shorthand>

@@ -1894,28 +1894,19 @@ pub enum BreakBetween {
 }
 
 impl BreakBetween {
-    /// Parse a legacy break-between value for `page-break-*`.
+    /// Parse a legacy break-between value for `page-break-{before,after}`.
     ///
     /// See https://drafts.csswg.org/css-break/#page-break-properties.
     #[inline]
-    pub fn parse_legacy<'i>(input: &mut Parser<'i, '_>) -> Result<Self, ParseError<'i>> {
-        let location = input.current_source_location();
-        let ident = input.expect_ident()?;
-        let break_value = match BreakBetween::from_ident(ident) {
-            Ok(v) => v,
-            Err(()) => {
-                return Err(location
-                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
-            },
-        };
+    pub(crate) fn parse_legacy<'i>(_: &ParserContext, input: &mut Parser<'i, '_>) -> Result<Self, ParseError<'i>> {
+        let break_value = BreakBetween::parse(input)?;
         match break_value {
             BreakBetween::Always => Ok(BreakBetween::Page),
             BreakBetween::Auto | BreakBetween::Avoid | BreakBetween::Left | BreakBetween::Right => {
                 Ok(break_value)
             },
             BreakBetween::Page => {
-                Err(location
-                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             },
         }
     }
@@ -1923,7 +1914,7 @@ impl BreakBetween {
     /// Serialize a legacy break-between value for `page-break-*`.
     ///
     /// See https://drafts.csswg.org/css-break/#page-break-properties.
-    pub fn to_css_legacy<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    pub(crate) fn to_css_legacy<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
     {
@@ -1960,6 +1951,37 @@ impl BreakBetween {
 pub enum BreakWithin {
     Auto,
     Avoid,
+    AvoidPage,
+    AvoidColumn,
+}
+
+impl BreakWithin {
+    /// Parse a legacy break-between value for `page-break-inside`.
+    ///
+    /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    #[inline]
+    pub(crate) fn parse_legacy<'i>(_: &ParserContext, input: &mut Parser<'i, '_>) -> Result<Self, ParseError<'i>> {
+        let break_value = BreakWithin::parse(input)?;
+        match break_value {
+            BreakWithin::Auto | BreakWithin::Avoid => Ok(break_value),
+            BreakWithin::AvoidPage | BreakWithin::AvoidColumn => {
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            },
+        }
+    }
+
+    /// Serialize a legacy break-between value for `page-break-inside`.
+    ///
+    /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    pub(crate) fn to_css_legacy<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match *self {
+            BreakWithin::Auto | BreakWithin::Avoid => self.to_css(dest),
+            BreakWithin::AvoidPage | BreakWithin::AvoidColumn => Ok(()),
+        }
+    }
 }
 
 /// The value for the `overflow-x` / `overflow-y` properties.
