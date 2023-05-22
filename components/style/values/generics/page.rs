@@ -94,22 +94,25 @@ pub enum Orientation {
     Landscape,
 }
 
+#[inline]
+fn is_portrait(orientation: &Orientation) -> bool {
+    *orientation == Orientation::Portrait
+}
+
 /// Page size property
 ///
 /// https://drafts.csswg.org/css-page-3/#page-size-prop
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 #[repr(C, u8)]
 pub enum GenericPageSize<S> {
-    /// Page dimensions.
-    Size(S),
-    /// Paper size with no orientation.
-    PaperSize(PaperSize),
-    /// An orientation with no size.
-    Orientation(Orientation),
-    /// Paper size by name, with an orientation.
-    PaperSizeAndOrientation(PaperSize, Orientation),
     /// `auto` value.
     Auto,
+    /// Page dimensions.
+    Size(S),
+    /// An orientation with no size.
+    Orientation(Orientation),
+    /// Paper size by name
+    PaperSize(PaperSize, #[css(skip_if = "is_portrait")] Orientation),
 }
 
 pub use self::GenericPageSize as PageSize;

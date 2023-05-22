@@ -23,15 +23,15 @@ impl Parse for PageSize {
     ) -> Result<Self, ParseError<'i>> {
         // Try to parse as <page-size> [ <orientation> ]
         if let Ok(paper_size) = input.try_parse(PaperSize::parse) {
-            if let Ok(orientation) = input.try_parse(Orientation::parse) {
-                return Ok(PageSize::PaperSizeAndOrientation(paper_size, orientation));
-            }
-            return Ok(PageSize::PaperSize(paper_size));
+            let orientation = input
+                .try_parse(Orientation::parse)
+                .unwrap_or(Orientation::Portrait);
+            return Ok(PageSize::PaperSize(paper_size, orientation));
         }
         // Try to parse as <orientation> [ <page-size> ]
         if let Ok(orientation) = input.try_parse(Orientation::parse) {
             if let Ok(paper_size) = input.try_parse(PaperSize::parse) {
-                return Ok(PageSize::PaperSizeAndOrientation(paper_size, orientation));
+                return Ok(PageSize::PaperSize(paper_size, orientation));
             }
             return Ok(PageSize::Orientation(orientation));
         }

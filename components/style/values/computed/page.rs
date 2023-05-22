@@ -36,16 +36,14 @@ impl ToComputedValue for specified::PageSize {
     fn to_computed_value(&self, ctx: &Context) -> Self::ComputedValue {
         match &*self {
             Self::Size(s) => PageSize::Size(s.to_computed_value(ctx)),
-            Self::PaperSizeAndOrientation(p, Orientation::Landscape) => PageSize::Size(Size2D {
+            Self::PaperSize(p, Orientation::Landscape) => PageSize::Size(Size2D {
                 width: p.long_edge().to_computed_value(ctx),
                 height: p.short_edge().to_computed_value(ctx),
             }),
-            Self::PaperSizeAndOrientation(p, Orientation::Portrait) | Self::PaperSize(p) => {
-                PageSize::Size(Size2D {
-                    width: p.short_edge().to_computed_value(ctx),
-                    height: p.long_edge().to_computed_value(ctx),
-                })
-            },
+            Self::PaperSize(p, Orientation::Portrait) => PageSize::Size(Size2D {
+                width: p.short_edge().to_computed_value(ctx),
+                height: p.long_edge().to_computed_value(ctx),
+            }),
             Self::Orientation(o) => PageSize::Orientation(*o),
             Self::Auto => PageSize::Auto,
         }
