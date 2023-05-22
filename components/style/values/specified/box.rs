@@ -1897,6 +1897,7 @@ impl BreakBetween {
     /// Parse a legacy break-between value for `page-break-{before,after}`.
     ///
     /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    #[cfg(feature = "gecko")]
     #[inline]
     pub(crate) fn parse_legacy<'i>(_: &ParserContext, input: &mut Parser<'i, '_>) -> Result<Self, ParseError<'i>> {
         let break_value = BreakBetween::parse(input)?;
@@ -1914,6 +1915,7 @@ impl BreakBetween {
     /// Serialize a legacy break-between value for `page-break-*`.
     ///
     /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    #[cfg(feature = "gecko")]
     pub(crate) fn to_css_legacy<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
@@ -1959,6 +1961,7 @@ impl BreakWithin {
     /// Parse a legacy break-between value for `page-break-inside`.
     ///
     /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    #[cfg(feature = "gecko")]
     #[inline]
     pub(crate) fn parse_legacy<'i>(_: &ParserContext, input: &mut Parser<'i, '_>) -> Result<Self, ParseError<'i>> {
         let break_value = BreakWithin::parse(input)?;
@@ -1973,6 +1976,7 @@ impl BreakWithin {
     /// Serialize a legacy break-between value for `page-break-inside`.
     ///
     /// See https://drafts.csswg.org/css-break/#page-break-properties.
+    #[cfg(feature = "gecko")]
     pub(crate) fn to_css_legacy<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
