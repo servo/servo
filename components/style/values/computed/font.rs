@@ -427,7 +427,7 @@ pub enum GenericFontFamily {
     Monospace,
     Cursive,
     Fantasy,
-    #[parse(aliases = "-apple-system", condition = "system_ui_enabled")]
+    #[parse(condition = "system_ui_enabled")]
     SystemUi,
     /// An internal value for emoji font selection.
     #[css(skip)]
