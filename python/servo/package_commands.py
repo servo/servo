@@ -18,7 +18,6 @@ import io
 import json
 import os
 import os.path as path
-import platform
 import shutil
 import subprocess
 import sys
