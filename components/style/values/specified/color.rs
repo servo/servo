@@ -9,7 +9,7 @@ use super::AllowQuirks;
 use crate::gecko_bindings::structs::nscolor;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
-use crate::values::generics::color::{GenericColorOrAuto, GenericCaretColor};
+use crate::values::generics::color::{GenericCaretColor, GenericColorOrAuto};
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::Percentage;
 use crate::values::CustomIdent;
@@ -21,17 +21,51 @@ use std::io::Write as IoWrite;
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind};
 use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
 
+/// A color space as defined in [1].
+///
+/// [1]: https://drafts.csswg.org/css-color-5/#typedef-colorspace
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
+pub enum ColorSpaceKind {
+    /// The sRGB color space.
+    Srgb,
+    /// The CIEXYZ color space.
+    Xyz,
+    /// The CIELAB color space.
+    Lab,
+    /// The CIELAB color space, expressed in cylindrical coordinates.
+    Lch,
+}
+
+/// A hue adjuster as defined in [1].
+///
+/// [1]: https://drafts.csswg.org/css-color-5/#typedef-hue-adjuster
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
+pub enum HueAdjuster {
+    /// The "shorter" angle adjustment.
+    Shorter,
+    /// The "longer" angle adjustment.
+    Longer,
+    /// The "increasing" angle adjustment.
+    Increasing,
+    /// The "decreasing" angle adjustment.
+    Decreasing,
+    /// The "specified" angle adjustment.
+    Specified,
+}
+
 /// A restricted version of the css `color-mix()` function, which only supports
-/// percentages and sRGB color-space interpolation.
+/// percentages.
 ///
 /// https://drafts.csswg.org/css-color-5/#color-mix
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 #[allow(missing_docs)]
 pub struct ColorMix {
+    pub color_space: ColorSpaceKind,
     pub left: Color,
     pub left_percentage: Percentage,
     pub right: Color,
     pub right_percentage: Percentage,
+    pub hue_adjuster: HueAdjuster,
 }
 
 #[cfg(feature = "gecko")]
@@ -62,6 +96,9 @@ impl Parse for ColorMix {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
+        let color_spaces_enabled = context.chrome_rules_enabled() ||
+            static_prefs::pref!("layout.css.color-mix.color-spaces.enabled");
+
         input.expect_function_matching("color-mix")?;
 
         // NOTE(emilio): This implements the syntax described here for now,
@@ -70,12 +107,18 @@ impl Parse for ColorMix {
         // https://github.com/w3c/csswg-drafts/issues/6066#issuecomment-789836765
         input.parse_nested_block(|input| {
             input.expect_ident_matching("in")?;
-            // TODO: support multiple interpolation spaces.
-            input.expect_ident_matching("srgb")?;
+            let color_space = if color_spaces_enabled {
+                ColorSpaceKind::parse(input)?
+            } else {
+                input.expect_ident_matching("srgb")?;
+                ColorSpaceKind::Srgb
+            };
             input.expect_comma()?;
 
             let left = Color::parse(context, input)?;
-            let left_percentage = input.try_parse(|input| Percentage::parse(context, input)).ok();
+            let left_percentage = input
+                .try_parse(|input| Percentage::parse(context, input))
+                .ok();
 
             input.expect_comma()?;
 
@@ -88,11 +131,18 @@ impl Parse for ColorMix {
 
             let left_percentage =
                 left_percentage.unwrap_or_else(|| Percentage::new(1.0 - right_percentage.get()));
+
+            let hue_adjuster = input
+                .try_parse(|input| HueAdjuster::parse(input))
+                .unwrap_or(HueAdjuster::Shorter);
+
             Ok(ColorMix {
+                color_space,
                 left,
                 left_percentage,
                 right,
                 right_percentage,
+                hue_adjuster,
             })
         })
     }
@@ -116,7 +166,9 @@ impl ToCss for ColorMix {
             (1.0 - percent.get() - other.get()).abs() <= f32::EPSILON
         }
 
-        dest.write_str("color-mix(in srgb, ")?;
+        dest.write_str("color-mix(in ")?;
+        self.color_space.to_css(dest)?;
+        dest.write_str(", ")?;
         self.left.to_css(dest)?;
         if !can_omit(&self.left_percentage, &self.right_percentage, true) {
             dest.write_str(" ")?;
@@ -128,6 +180,12 @@ impl ToCss for ColorMix {
             dest.write_str(" ")?;
             self.right_percentage.to_css(dest)?;
         }
+
+        if self.hue_adjuster != HueAdjuster::Shorter {
+            dest.write_str(" ")?;
+            self.hue_adjuster.to_css(dest)?;
+        }
+
         dest.write_str(")")
     }
 }
@@ -433,7 +491,7 @@ impl SystemColor {
                     return ComputedColor::currentcolor();
                 }
                 color
-            }
+            },
         })
     }
 }
@@ -552,7 +610,9 @@ impl Parse for Color {
                     }
 
                     if context.chrome_rules_enabled() {
-                        if let Ok((color, scheme)) = input.try_parse(|i| parse_moz_system_color(context, i)) {
+                        if let Ok((color, scheme)) =
+                            input.try_parse(|i| parse_moz_system_color(context, i))
+                        {
                             return Ok(Color::System(color, scheme));
                         }
                     }
@@ -603,7 +663,7 @@ impl ToCss for Color {
                     scheme.to_css(dest)?;
                     dest.write_char(')')
                 }
-            }
+            },
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => Ok(()),
         }
@@ -762,10 +822,12 @@ impl Color {
                 let left = mix.left.to_computed_color(context)?.to_animated_value();
                 let right = mix.right.to_computed_color(context)?.to_animated_value();
                 ToAnimatedValue::from_animated_value(AnimatedColor::mix(
+                    mix.color_space,
                     &left,
                     mix.left_percentage.get(),
                     &right,
                     mix.right_percentage.get(),
+                    mix.hue_adjuster,
                 ))
             },
             #[cfg(feature = "gecko")]
