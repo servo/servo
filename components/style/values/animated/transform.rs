@@ -1105,8 +1105,8 @@ impl Animate for ComputedTransformOperation {
                 //    interpolated as defined in section Interpolation of
                 //    Matrices afterwards.
                 //
-                let from = create_perspective_matrix(fd.px());
-                let to = create_perspective_matrix(td.px());
+                let from = create_perspective_matrix(fd.infinity_or(|l| l.px()));
+                let to = create_perspective_matrix(td.infinity_or(|l| l.px()));
 
                 let interpolated = Matrix3D::from(from).animate(&Matrix3D::from(to), procedure)?;
 
@@ -1115,15 +1115,17 @@ impl Animate for ComputedTransformOperation {
                 // Clamp results outside of the -1 to 0 range so that we get perspective
                 // function values between 1 and infinity.
                 let used_value = if perspective_z >= 0. {
-                    std::f32::INFINITY
-                } else if perspective_z <= -1. {
-                    1.
+                    transform::PerspectiveFunction::None
                 } else {
-                    -1. / perspective_z
+                    transform::PerspectiveFunction::Length(CSSPixelLength::new(
+                        if perspective_z <= -1. {
+                            1.
+                        } else {
+                            -1. / perspective_z
+                        }
+                    ))
                 };
-                Ok(TransformOperation::Perspective(CSSPixelLength::new(
-                    used_value,
-                )))
+                Ok(TransformOperation::Perspective(used_value))
             },
             _ if self.is_translate() && other.is_translate() => self
                 .to_translate_3d()
@@ -1202,14 +1204,18 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
             (
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
-            ) => fd.compute_squared_distance(td),
+            ) => {
+                fd.infinity_or(|l| l.px())
+                    .compute_squared_distance(&td.infinity_or(|l| l.px()))
+            },
             (&TransformOperation::Perspective(ref p), &TransformOperation::Matrix3D(ref m)) |
             (&TransformOperation::Matrix3D(ref m), &TransformOperation::Perspective(ref p)) => {
                 // FIXME(emilio): Is this right? Why interpolating this with
                 // Perspective but not with anything else?
                 let mut p_matrix = Matrix3D::identity();
-                if p.px() >= 0. {
-                    p_matrix.m34 = -1. / p.px().max(1.);
+                let p = p.infinity_or(|p| p.px());
+                if p >= 0. {
+                    p_matrix.m34 = -1. / p.max(1.);
                 }
                 p_matrix.compute_squared_distance(&m)
             },
