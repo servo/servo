@@ -1204,8 +1204,8 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 // FIXME(emilio): Is this right? Why interpolating this with
                 // Perspective but not with anything else?
                 let mut p_matrix = Matrix3D::identity();
-                if p.px() > 0. {
-                    p_matrix.m34 = -1. / p.px();
+                if p.px() >= 0. {
+                    p_matrix.m34 = -1. / p.px().max(1.);
                 }
                 p_matrix.compute_squared_distance(&m)
             },

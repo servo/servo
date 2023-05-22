@@ -583,17 +583,10 @@ impl<T: ToMatrix> Transform<T> {
 /// Return the transform matrix from a perspective length.
 #[inline]
 pub fn create_perspective_matrix(d: CSSFloat) -> Transform3D<CSSFloat> {
-    // TODO(gw): The transforms spec says that perspective length must
-    // be positive. However, there is some confusion between the spec
-    // and browser implementations as to handling the case of 0 for the
-    // perspective value. Until the spec bug is resolved, at least ensure
-    // that a provided perspective value of <= 0.0 doesn't cause panics
-    // and behaves as it does in other browsers.
-    // See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
-    if d <= 0.0 {
+    if d < 0.0 {
         Transform3D::identity()
     } else {
-        Transform3D::perspective(d)
+        Transform3D::perspective(d.max(1.))
     }
 }
 
