@@ -836,7 +836,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         let is_legacy_marker = self.style.pseudo.map_or(false, |p| p.is_marker()) &&
             self.style.get_list().clone_list_style_type().is_bullet() &&
-	    self.style.get_counters().clone_content() == Content::Normal;
+            self.style.get_counters().clone_content() == Content::Normal;
         if !is_legacy_marker {
             return;
         }
