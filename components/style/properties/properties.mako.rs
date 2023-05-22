@@ -232,7 +232,7 @@ pub mod shorthands {
 // which don't exist in `LonghandId`.
 
 <%
-    extra = [
+    extra_variants = [
         {
             "name": "CSSWideKeyword",
             "type": "WideKeywordDeclaration",
@@ -252,7 +252,7 @@ pub mod shorthands {
             "copy": False,
         },
     ]
-    for v in extra:
+    for v in extra_variants:
         variants.append(v)
         groups[v["type"]] = [v]
 %>
@@ -394,6 +394,17 @@ impl MallocSizeOf for PropertyDeclaration {
 
 
 impl PropertyDeclaration {
+    /// Returns whether this is a variant of the Longhand(Value) type, rather
+    /// than one of the special variants in extra_variants.
+    fn is_longhand_value(&self) -> bool {
+        match *self {
+            % for v in extra_variants:
+            PropertyDeclaration::${v["name"]}(..) => false,
+            % endfor
+            _ => true,
+        }
+    }
+
     /// Like the method on ToCss, but without the type parameter to avoid
     /// accidentally monomorphizing this large function multiple times for
     /// different writers.
@@ -408,6 +419,24 @@ impl PropertyDeclaration {
             }
             % endfor
         }
+    }
+
+    /// Returns the color value of a given property, for high-contrast-mode
+    /// tweaks.
+    pub(crate) fn color_value(&self) -> Option<<&crate::values::specified::Color> {
+        ${static_longhand_id_set("COLOR_PROPERTIES", lambda p: p.predefined_type == "Color")}
+        <%
+            # sanity check
+            assert data.longhands_by_name["background-color"].predefined_type == "Color"
+
+            color_specified_type = data.longhands_by_name["background-color"].specified_type()
+        %>
+        let id = self.id().as_longhand()?;
+        if !COLOR_PROPERTIES.contains(id) || !self.is_longhand_value() {
+            return None;
+        }
+        let repr = self as *const _ as *const PropertyDeclarationVariantRepr<${color_specified_type}>;
+        Some(unsafe { &(*repr).value })
     }
 }
 

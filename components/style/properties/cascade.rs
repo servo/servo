@@ -464,7 +464,22 @@ fn tweak_when_ignoring_colors(
                 }
             }
         },
-        _ => {},
+        _ => {
+            // We honor transparent and system colors more generally for all
+            // colors.
+            //
+            // NOTE(emilio): This doesn't handle caret-color and
+            // accent-color because those use a slightly different syntax
+            // (<color> | auto for example). That's probably fine though, as
+            // using a system color for caret-color doesn't make sense (using
+            // currentColor is fine), and we ignore accent-color in
+            // high-contrast-mode anyways.
+            if let Some(color) = declaration.color_value() {
+                if color.is_system() || alpha_channel(color, context) == 0 {
+                    return;
+                }
+            }
+        },
     }
 
     *declaration.to_mut() =
