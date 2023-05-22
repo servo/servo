@@ -2849,6 +2849,7 @@ impl CascadeData {
                     self.extra_data
                         .add_page(guard, rule, containing_rule_state.layer_id)?;
                 },
+                // TODO: Handle CssRule::Property
                 CssRule::Viewport(..) => {},
                 _ => {
                     handled = false;
@@ -3090,6 +3091,7 @@ impl CascadeData {
                 CssRule::Supports(..) |
                 CssRule::Keyframes(..) |
                 CssRule::Page(..) |
+                CssRule::Property(..) |
                 CssRule::Viewport(..) |
                 CssRule::Document(..) |
                 CssRule::LayerBlock(..) |

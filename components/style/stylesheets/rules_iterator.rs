@@ -68,6 +68,7 @@ where
             CssRule::Viewport(_) |
             CssRule::Keyframes(_) |
             CssRule::Page(_) |
+            CssRule::Property(_) |
             CssRule::LayerStatement(_) |
             CssRule::FontFeatureValues(_) |
             CssRule::FontPaletteValues(_) => None,

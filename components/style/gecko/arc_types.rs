@@ -16,7 +16,7 @@ use crate::stylesheets::keyframes_rule::Keyframe;
 use crate::stylesheets::{
     ContainerRule, CounterStyleRule, CssRules, DocumentRule, FontFaceRule, FontFeatureValuesRule,
     FontPaletteValuesRule, ImportRule, KeyframesRule, LayerBlockRule, LayerStatementRule,
-    MediaRule, NamespaceRule, PageRule, StyleRule, StylesheetContents, SupportsRule,
+    MediaRule, NamespaceRule, PageRule, PropertyRule, StyleRule, StylesheetContents, SupportsRule,
 };
 use servo_arc::Arc;
 
@@ -113,6 +113,12 @@ impl_locked_arc_ffi!(
     LockedPageRule,
     Servo_PageRule_AddRef,
     Servo_PageRule_Release
+);
+impl_locked_arc_ffi!(
+    PropertyRule,
+    LockedPropertyRule,
+    Servo_PropertyRule_AddRef,
+    Servo_PropertyRule_Release
 );
 impl_locked_arc_ffi!(
     SupportsRule,
