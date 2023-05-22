@@ -1197,7 +1197,7 @@ pub fn append_declaration_value<'a, 'b: 'a>(
         AppendableValue::Css(css) => dest.write_str(css),
         AppendableValue::Declaration(decl) => decl.to_css(dest),
         AppendableValue::DeclarationsForShorthand(shorthand, decls) => {
-            shorthand.longhands_to_css(decls, &mut CssWriter::new(dest))
+            shorthand.longhands_to_css(decls, dest)
         },
     }
 }

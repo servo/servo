@@ -1471,34 +1471,31 @@ impl ShorthandId {
     ///
     /// Returns an error if writing to the stream fails, or if the declarations
     /// do not map to a shorthand.
-    pub fn longhands_to_css<W>(
+    pub fn longhands_to_css(
         &self,
         declarations: &[&PropertyDeclaration],
-        dest: &mut CssWriter<W>,
-    ) -> fmt::Result
-    where
-        W: Write,
-    {
-        // TODO(emilio): Save codesize here by using a lookup table on
-        // ShorthandId instead.
-        let declarations = declarations.iter().cloned();
-        match *self {
-            ShorthandId::All => {
-                // No need to try to serialize the declarations as the 'all'
-                // shorthand, since it only accepts CSS-wide keywords (and
-                // variable references), which will be handled in
-                // get_shorthand_appendable_value.
-                Ok(())
-            }
-            % for property in data.shorthands_except_all():
-                ShorthandId::${property.camel_case} => {
-                    match shorthands::${property.ident}::LonghandsToSerialize::from_iter(declarations) {
-                        Ok(longhands) => longhands.to_css(dest),
-                        Err(_) => Ok(())
-                    }
-                },
-            % endfor
+        dest: &mut CssStringWriter,
+    ) -> fmt::Result {
+        type LonghandsToCssFn = for<'a, 'b> fn(&'a [&'b PropertyDeclaration], &mut CssStringWriter) -> fmt::Result;
+        fn all_to_css(_: &[&PropertyDeclaration], _: &mut CssStringWriter) -> fmt::Result {
+            // No need to try to serialize the declarations as the 'all'
+            // shorthand, since it only accepts CSS-wide keywords (and variable
+            // references), which will be handled in
+            // get_shorthand_appendable_value.
+            Ok(())
         }
+
+        static LONGHANDS_TO_CSS: [LonghandsToCssFn; ${len(data.shorthands)}] = [
+            % for shorthand in data.shorthands:
+            % if shorthand.ident == "all":
+                all_to_css,
+            % else:
+                shorthands::${shorthand.ident}::to_css,
+            % endif
+            % endfor
+        ];
+
+        LONGHANDS_TO_CSS[*self as usize](declarations, dest)
     }
 
     /// Finds and returns an appendable value for the given declarations.
@@ -1591,23 +1588,20 @@ impl ShorthandId {
             input: &mut Parser<'i, 't>,
         ) -> Result<(), ParseError<'i>>;
 
-        fn unreachable<'i, 't>(
+        fn parse_all<'i, 't>(
             _: &mut SourcePropertyDeclaration,
             _: &ParserContext,
-            _: &mut Parser<'i, 't>
+            input: &mut Parser<'i, 't>
         ) -> Result<(), ParseError<'i>> {
-            unreachable!()
+            // 'all' accepts no value other than CSS-wide keywords
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
 
-        // 'all' accepts no value other than CSS-wide keywords
-        if *self == ShorthandId::All {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
 
         static PARSE_INTO: [ParseIntoFn; ${len(data.shorthands)}] = [
             % for shorthand in data.shorthands:
             % if shorthand.ident == "all":
-            unreachable,
+            parse_all,
             % else:
             shorthands::${shorthand.ident}::parse_into,
             % endif
