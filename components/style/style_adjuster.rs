@@ -232,9 +232,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
-        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-        use crate::computed_values::list_style_position::T as ListStylePosition;
-
         let mut blockify = false;
         macro_rules! blockify_if {
             ($if_what:expr) => {
@@ -254,16 +251,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         blockify_if!(self.style.is_floating());
         blockify_if!(self.style.is_absolutely_positioned());
-        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-        blockify_if!(
-            self.style.pseudo.map_or(false, |p| p.is_marker()) &&
-                self.style.get_parent_list().clone_list_style_position() ==
-                    ListStylePosition::Outside &&
-                !layout_parent_style
-                    .get_box()
-                    .clone_display()
-                    .is_inline_flow()
-        );
 
         if !blockify {
             return;
