@@ -121,4 +121,5 @@ COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-columns",
     "-webkit-column-rule-color",
     "-webkit-shape-margin",
+    "content-visibility",
 ]
