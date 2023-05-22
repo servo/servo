@@ -1,3 +1,0 @@
-DATAS = \
-	scenes/Servo2D.scene.res.xml : assets/scenes/Servo2D.scene.res.xml \
-	scenes/Servo2D.scene.xml : assets/scenes/Servo2D.scene.xml
