@@ -385,7 +385,7 @@ impl PropertyDeclarationBlock {
         // Step 1.2.3
         // We don't print !important when serializing individual properties,
         // so we treat this as a normal-importance property
-        match shorthand.get_shorthand_appendable_value(list.iter().cloned()) {
+        match shorthand.get_shorthand_appendable_value(&list) {
             Some(appendable_value) => append_declaration_value(dest, appendable_value),
             None => return Ok(()),
         }
@@ -911,9 +911,6 @@ impl PropertyDeclarationBlock {
     ///
     /// https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
     pub fn to_css(&self, dest: &mut CssStringWriter) -> fmt::Result {
-        use std::iter::Cloned;
-        use std::slice;
-
         let mut is_first_serialization = true; // trailing serializations should have a prepended space
 
         // Step 1 -> dest = result list
@@ -938,7 +935,7 @@ impl PropertyDeclarationBlock {
                     // properties in a declaration block, and that custom
                     // properties can't be part of a shorthand, we can just care
                     // about them here.
-                    append_serialization::<Cloned<slice::Iter<_>>, _>(
+                    append_serialization(
                         dest,
                         &property,
                         AppendableValue::Declaration(declaration),
@@ -992,7 +989,7 @@ impl PropertyDeclarationBlock {
 
                 // Step 3.4.3:
                 //     Let current longhands be an empty array.
-                let mut current_longhands = SmallVec::<[_; 10]>::new();
+                let mut current_longhands = SmallVec::<[&_; 10]>::new();
                 let mut logical_groups = LogicalGroupSet::new();
                 let mut saw_one = false;
                 let mut logical_mismatch = false;
@@ -1066,7 +1063,7 @@ impl PropertyDeclarationBlock {
                 //    Let value be the result of invoking serialize a CSS value
                 //    of current longhands.
                 let appendable_value = match shorthand
-                    .get_shorthand_appendable_value(current_longhands.iter().cloned())
+                    .get_shorthand_appendable_value(&current_longhands)
                 {
                     None => continue,
                     Some(appendable_value) => appendable_value,
@@ -1109,7 +1106,7 @@ impl PropertyDeclarationBlock {
                 //
                 // 3.4.10:
                 //     Append serialized declaration to list.
-                append_serialization::<Cloned<slice::Iter<_>>, _>(
+                append_serialization(
                     dest,
                     &shorthand,
                     value,
@@ -1145,7 +1142,7 @@ impl PropertyDeclarationBlock {
             //     its important flag set.
             //
             //     Append serialized declaration to list.
-            append_serialization::<Cloned<slice::Iter<_>>, _>(
+            append_serialization(
                 dest,
                 &property,
                 AppendableValue::Declaration(declaration),
@@ -1165,17 +1162,14 @@ impl PropertyDeclarationBlock {
 
 /// A convenient enum to represent different kinds of stuff that can represent a
 /// _value_ in the serialization of a property declaration.
-pub enum AppendableValue<'a, I>
-where
-    I: Iterator<Item = &'a PropertyDeclaration>,
-{
+pub enum AppendableValue<'a, 'b: 'a> {
     /// A given declaration, of which we'll serialize just the value.
     Declaration(&'a PropertyDeclaration),
     /// A set of declarations for a given shorthand.
     ///
     /// FIXME: This needs more docs, where are the shorthands expanded? We print
     /// the property name before-hand, don't we?
-    DeclarationsForShorthand(ShorthandId, I),
+    DeclarationsForShorthand(ShorthandId, &'a [&'b PropertyDeclaration]),
     /// A raw CSS string, coming for example from a property with CSS variables,
     /// or when storing a serialized shorthand value before appending directly.
     Css(&'a str),
@@ -1195,13 +1189,10 @@ where
 }
 
 /// Append a given kind of appendable value to a serialization.
-pub fn append_declaration_value<'a, I>(
+pub fn append_declaration_value<'a, 'b: 'a>(
     dest: &mut CssStringWriter,
-    appendable_value: AppendableValue<'a, I>,
-) -> fmt::Result
-where
-    I: Iterator<Item = &'a PropertyDeclaration>,
-{
+    appendable_value: AppendableValue<'a, 'b>,
+) -> fmt::Result {
     match appendable_value {
         AppendableValue::Css(css) => dest.write_str(css),
         AppendableValue::Declaration(decl) => decl.to_css(dest),
@@ -1212,15 +1203,14 @@ where
 }
 
 /// Append a given property and value pair to a serialization.
-pub fn append_serialization<'a, I, N>(
+pub fn append_serialization<'a, 'b: 'a, N>(
     dest: &mut CssStringWriter,
     property_name: &N,
-    appendable_value: AppendableValue<'a, I>,
+    appendable_value: AppendableValue<'a, 'b>,
     importance: Importance,
     is_first_serialization: &mut bool,
 ) -> fmt::Result
 where
-    I: Iterator<Item = &'a PropertyDeclaration>,
     N: ToCss,
 {
     handle_first_serialization(dest, is_first_serialization)?;

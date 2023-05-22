@@ -1471,15 +1471,17 @@ impl ShorthandId {
     ///
     /// Returns an error if writing to the stream fails, or if the declarations
     /// do not map to a shorthand.
-    pub fn longhands_to_css<'a, W, I>(
+    pub fn longhands_to_css<W>(
         &self,
-        declarations: I,
+        declarations: &[&PropertyDeclaration],
         dest: &mut CssWriter<W>,
     ) -> fmt::Result
     where
         W: Write,
-        I: Iterator<Item=&'a PropertyDeclaration>,
     {
+        // TODO(emilio): Save codesize here by using a lookup table on
+        // ShorthandId instead.
+        let declarations = declarations.iter().cloned();
         match *self {
             ShorthandId::All => {
                 // No need to try to serialize the declarations as the 'all'
@@ -1502,25 +1504,16 @@ impl ShorthandId {
     /// Finds and returns an appendable value for the given declarations.
     ///
     /// Returns the optional appendable value.
-    pub fn get_shorthand_appendable_value<'a, I>(
+    pub fn get_shorthand_appendable_value<'a, 'b: 'a>(
         self,
-        declarations: I,
-    ) -> Option<AppendableValue<'a, I::IntoIter>>
-    where
-        I: IntoIterator<Item=&'a PropertyDeclaration>,
-        I::IntoIter: Clone,
-    {
-        let declarations = declarations.into_iter();
-
-        // Only cloning iterators (a few pointers each) not declarations.
-        let mut declarations2 = declarations.clone();
-        let mut declarations3 = declarations.clone();
-
-        let first_declaration = declarations2.next()?;
+        declarations: &'a [&'b PropertyDeclaration],
+    ) -> Option<AppendableValue<'a, 'b>> {
+        let first_declaration = declarations.get(0)?;
+        let rest = || declarations.iter().skip(1);
 
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
-            if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
+            if rest().all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
                return Some(AppendableValue::Css(css));
             }
             return None;
@@ -1528,7 +1521,7 @@ impl ShorthandId {
 
         // Check whether they are all the same CSS-wide keyword.
         if let Some(keyword) = first_declaration.get_css_wide_keyword() {
-            if declarations2.all(|d| d.get_css_wide_keyword() == Some(keyword)) {
+            if rest().all(|d| d.get_css_wide_keyword() == Some(keyword)) {
                 return Some(AppendableValue::Css(keyword.to_str()))
             }
             return None;
@@ -1540,7 +1533,7 @@ impl ShorthandId {
         }
 
         // Check whether all declarations can be serialized as part of shorthand.
-        if declarations3.all(|d| d.may_serialize_as_part_of_shorthand()) {
+        if declarations.iter().all(|d| d.may_serialize_as_part_of_shorthand()) {
             return Some(AppendableValue::DeclarationsForShorthand(self, declarations));
         }
 
