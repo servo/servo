@@ -14,7 +14,7 @@ use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::values::{AtomIdent, AtomString};
 use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
 use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
-use selectors::parser::{ParseErrorRecovery, SelectorParseErrorKind};
+use selectors::parser::SelectorParseErrorKind;
 use selectors::SelectorList;
 use std::fmt;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
@@ -309,15 +309,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     #[inline]
     fn parse_is_and_where(&self) -> bool {
         true
-    }
-
-    #[inline]
-    fn is_and_where_error_recovery(&self) -> ParseErrorRecovery {
-        if static_prefs::pref!("layout.css.is-and-where-better-error-recovery.enabled") {
-            ParseErrorRecovery::IgnoreInvalidSelector
-        } else {
-            ParseErrorRecovery::DiscardList
-        }
     }
 
     #[inline]
