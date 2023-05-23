@@ -347,14 +347,14 @@ pub enum SystemColor {
     /// Used to highlight valid regions to drop something onto.
     MozDragtargetzone,
     /// Used for selected but not focused cell backgrounds.
+    #[parse(aliases = "-moz-html-cellhighlight")]
     MozCellhighlight,
     /// Used for selected but not focused cell text.
-    MozCellhighlighttext,
-    /// Used for selected but not focused html cell backgrounds.
-    #[parse(aliases = "-moz-html-cellhighlight")]
-    Selecteditem,
-    /// Used for selected but not focused html cell text.
     #[parse(aliases = "-moz-html-cellhighlighttext")]
+    MozCellhighlighttext,
+    /// Used for selected and focused html cell backgrounds.
+    Selecteditem,
+    /// Used for selected and focused html cell text.
     Selecteditemtext,
     /// Used to button text background when hovered.
     MozButtonhoverface,
