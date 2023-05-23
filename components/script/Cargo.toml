@@ -25,8 +25,8 @@ uwp = ["js/uwp"]
 xr-profile = ["webxr-api/profile"]
 
 [build-dependencies]
-phf_codegen = "0.8"
-phf_shared = "0.8"
+phf_codegen = "0.10"
+phf_shared = "0.10"
 serde_json = { workspace = true }
 
 [dependencies]
@@ -82,7 +82,7 @@ net_traits = { path = "../net_traits" }
 num-traits = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
-phf = "0.8"
+phf = "0.10"
 pixels = { path = "../pixels" }
 profile_traits = { path = "../profile_traits" }
 range = { path = "../range" }
