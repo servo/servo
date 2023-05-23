@@ -45,3 +45,6 @@ webdriver = { workspace = true }
 webgpu = { path = "../webgpu" }
 webrender_api = { git = "https://github.com/servo/webrender" }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+
+[dev-dependencies]
+std_test_override = { path = "../std_test_override" }

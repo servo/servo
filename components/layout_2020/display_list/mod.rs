@@ -18,7 +18,7 @@ use gfx::text::glyph::GlyphStore;
 use mitochondria::OnceCell;
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::image_cache::UsePlaceholder;
-use script_traits::compositor::CompositorDisplayListInfo;
+use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId};
 use std::sync::Arc;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
@@ -66,27 +66,28 @@ pub struct DisplayList {
 impl DisplayList {
     /// Create a new [DisplayList] given the dimensions of the layout and the WebRender
     /// pipeline id.
-    ///
-    /// TODO(mrobinson): `_viewport_size` will eventually be used in the creation
-    /// of the compositor-side scroll tree.
     pub fn new(
-        _viewport_size: units::LayoutSize,
+        viewport_size: units::LayoutSize,
         content_size: units::LayoutSize,
         pipeline_id: wr::PipelineId,
     ) -> Self {
         Self {
             wr: wr::DisplayListBuilder::new(pipeline_id, content_size),
-            compositor_info: CompositorDisplayListInfo::default(),
+            compositor_info: CompositorDisplayListInfo::new(
+                viewport_size,
+                content_size,
+                pipeline_id,
+            ),
         }
     }
 }
 
 pub(crate) struct DisplayListBuilder<'a> {
-    /// The current [wr::SpatialId] for this [DisplayListBuilder]. This allows
-    /// only passing the builder instead passing the containing
+    /// The current [ScrollTreeNodeId] for this [DisplayListBuilder]. This
+    /// allows only passing the builder instead passing the containing
     /// [stacking_context::StackingContextFragment] as an argument to display
     /// list building functions.
-    current_spatial_id: wr::SpatialId,
+    current_scroll_node_id: ScrollTreeNodeId,
 
     /// The current [wr::ClipId] for this [DisplayListBuilder]. This allows
     /// only passing the builder instead passing the containing
@@ -125,7 +126,7 @@ impl DisplayList {
         root_stacking_context: &StackingContext,
     ) -> (FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>, bool) {
         let mut builder = DisplayListBuilder {
-            current_spatial_id: wr::SpatialId::root_scroll_node(self.wr.pipeline_id),
+            current_scroll_node_id: self.compositor_info.root_scroll_node_id,
             current_clip_id: wr::ClipId::root(self.wr.pipeline_id),
             element_for_canvas_background: fragment_tree.canvas_background.from_element,
             is_contentful: false,
@@ -153,7 +154,7 @@ impl<'a> DisplayListBuilder<'a> {
         // for fragments that paint their entire border rectangle.
         wr::CommonItemProperties {
             clip_rect,
-            spatial_id: self.current_spatial_id,
+            spatial_id: self.current_scroll_node_id.spatial_id,
             clip_id: self.current_clip_id,
             hit_info: None,
             flags: style.get_webrender_primitive_flags(),
@@ -176,6 +177,7 @@ impl<'a> DisplayListBuilder<'a> {
         let hit_test_index = self.display_list.compositor_info.add_hit_test_info(
             tag?.node.0 as u64,
             Some(cursor(inherited_ui.cursor.keyword, auto_cursor)),
+            self.current_scroll_node_id,
         );
         Some((hit_test_index as u64, 0u16))
     }
@@ -866,7 +868,7 @@ fn clip_for_radii(
         None
     } else {
         let parent_space_and_clip = wr::SpaceAndClipInfo {
-            spatial_id: builder.current_spatial_id,
+            spatial_id: builder.current_scroll_node_id.spatial_id,
             clip_id: builder.current_clip_id,
         };
         Some(builder.wr().define_clip_rounded_rect(
