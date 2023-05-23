@@ -69,17 +69,13 @@ ${helpers.single_keyword(
 
 // According to to CSS-IMAGES-3, `optimizespeed` and `optimizequality` are synonyms for `auto`
 // And, firefox doesn't support `pixelated` yet (https://bugzilla.mozilla.org/show_bug.cgi?id=856337)
-${helpers.single_keyword(
+${helpers.predefined_type(
     "image-rendering",
-    "auto crisp-edges",
+    "ImageRendering",
+    "computed::ImageRendering::Auto",
     engines="gecko servo-2013 servo-2020",
-    extra_gecko_values="optimizespeed optimizequality",
-    extra_servo_2013_values="pixelated",
-    extra_servo_2020_values="pixelated",
-    gecko_aliases="-moz-crisp-edges=crisp-edges",
-    gecko_enum_prefix="StyleImageRendering",
-    animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-image-rendering",
+    animation_value_type="discrete",
 )}
 
 ${helpers.single_keyword(
