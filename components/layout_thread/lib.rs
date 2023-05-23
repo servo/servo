@@ -1064,20 +1064,18 @@ impl LayoutThread {
 
                 debug!("Layout done!");
 
-                // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let (builder, compositor_info, is_contentful) =
-                    display_list.convert_to_webrender(self.id);
-
-                let viewport_size = Size2D::new(
+                let viewport_size = webrender_api::units::LayoutSize::new(
                     self.viewport_size.width.to_f32_px(),
                     self.viewport_size.height.to_f32_px(),
                 );
 
+                // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
+                let (builder, compositor_info, is_contentful) =
+                    display_list.convert_to_webrender(self.id, viewport_size);
+
                 let mut epoch = self.epoch.get();
                 epoch.next();
                 self.epoch.set(epoch);
-
-                let viewport_size = webrender_api::units::LayoutSize::from_untyped(viewport_size);
 
                 // Observe notifications about rendered frames if needed right before
                 // sending the display list to WebRender in order to set time related

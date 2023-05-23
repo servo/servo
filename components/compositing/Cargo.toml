@@ -20,6 +20,7 @@ canvas = { path = "../canvas" }
 crossbeam-channel = { workspace = true }
 embedder_traits = { path = "../embedder_traits" }
 euclid = { workspace = true }
+fnv = { workspace = true }
 gfx_traits = { path = "../gfx_traits" }
 gleam = { workspace = true, optional = true }
 image = { workspace = true }

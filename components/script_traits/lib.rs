@@ -30,6 +30,7 @@ use crate::transferable::MessagePortImpl;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use compositor::ScrollTreeNodeId;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{Cursor, EventLoopWaker};
@@ -1118,6 +1119,9 @@ pub struct CompositorHitTestResult {
 
     /// The cursor that should be used when hovering the item hit by the hit test.
     pub cursor: Option<Cursor>,
+
+    /// The scroll tree node associated with this hit test item.
+    pub scroll_tree_node: ScrollTreeNodeId,
 }
 
 /// The set of WebRender operations that can be initiated by the content process.
