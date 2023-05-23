@@ -5,7 +5,6 @@ members = [
     "ports/gstplugin",
     "ports/libsimpleservo/capi/",
     "ports/libsimpleservo/jniapi/",
-    "ports/libmlservo/",
     "tests/unit/*",
 ]
 exclude = [".cargo"]

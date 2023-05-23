@@ -36,13 +36,13 @@ class MachCommands(CommandBase):
         help="Command-line arguments to be passed through to cargo check")
     @CommandBase.build_like_command_arguments
     def check(self, params, features=[], media_stack=None, target=None,
-              android=False, magicleap=False, **kwargs):
+              android=False, **kwargs):
         if not params:
             params = []
 
         features = features or []
 
-        target, android = self.pick_target_triple(target, android, magicleap)
+        target, android = self.pick_target_triple(target, android)
 
         features += self.pick_media_stack(media_stack, target)
 
@@ -130,13 +130,13 @@ class MachCommands(CommandBase):
         help="Command-line arguments to be passed through to cargo-fix")
     @CommandBase.build_like_command_arguments
     def cargo_fix(self, params, features=[], media_stack=None, target=None,
-                  android=False, magicleap=False, **kwargs):
+                  android=False, **kwargs):
         if not params:
             params = []
 
         features = features or []
 
-        target, android = self.pick_target_triple(target, android, magicleap)
+        target, android = self.pick_target_triple(target, android)
 
         features += self.pick_media_stack(media_stack, target)
 
@@ -154,13 +154,13 @@ class MachCommands(CommandBase):
         help="Command-line arguments to be passed through to cargo-clippy")
     @CommandBase.build_like_command_arguments
     def cargo_clippy(self, params, features=[], media_stack=None, target=None,
-                     android=False, magicleap=False, **kwargs):
+                     android=False, **kwargs):
         if not params:
             params = []
 
         features = features or []
 
-        target, android = self.pick_target_triple(target, android, magicleap)
+        target, android = self.pick_target_triple(target, android)
 
         features += self.pick_media_stack(media_stack, target)
 

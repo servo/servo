@@ -356,17 +356,14 @@ class CommandBase(object):
         build_type = "release" if release else "debug"
         return path.join(base_path, build_type, apk_name)
 
-    def get_binary_path(self, release, dev, target=None, android=False, magicleap=False, simpleservo=False):
+    def get_binary_path(self, release, dev, target=None, android=False, simpleservo=False):
         # TODO(autrilla): this function could still use work - it shouldn't
         # handle quitting, or printing. It should return the path, or an error.
         base_path = self.get_target_dir()
 
         binary_name = "servo" + BIN_SUFFIX
 
-        if magicleap:
-            base_path = path.join(base_path, "magicleap", "aarch64-linux-android")
-            binary_name = "libmlservo.a"
-        elif android:
+        if android:
             base_path = path.join(base_path, "android", self.config["android"]["target"])
             simpleservo = True
         elif target:
@@ -824,12 +821,6 @@ install them, let us know by filing a bug!")
                 help='Build for Android',
             ),
             CommandArgument(
-                '--magicleap',
-                default=None,
-                action='store_true',
-                help='Build for Magic Leap',
-            ),
-            CommandArgument(
                 '--libsimpleservo',
                 default=None,
                 action='store_true',
@@ -868,16 +859,14 @@ install them, let us know by filing a bug!")
             decorated_function = decorator(decorated_function)
         return decorated_function
 
-    def pick_target_triple(self, target, android, magicleap):
+    def pick_target_triple(self, target, android):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
             assert self.handle_android_target(target)
         if android and not target:
             target = self.config["android"]["target"]
-        if magicleap and not target:
-            target = "aarch64-linux-android"
-        if target and not android and not magicleap:
+        if target and not android:
             android = self.handle_android_target(target)
         return target, android
 
@@ -900,14 +889,14 @@ install them, let us know by filing a bug!")
     def run_cargo_build_like_command(
         self, command, cargo_args,
         env=None, verbose=False,
-        target=None, android=False, magicleap=False, libsimpleservo=False,
+        target=None, android=False, libsimpleservo=False,
         features=None, debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, without_wgl=False,
         with_layout_2020=False, with_layout_2013=False,
         uwp=False, media_stack=None,
     ):
         env = env or self.build_env()
-        target, android = self.pick_target_triple(target, android, magicleap)
+        target, android = self.pick_target_triple(target, android)
 
         args = []
         if "--manifest-path" not in cargo_args:
@@ -932,8 +921,9 @@ install them, let us know by filing a bug!")
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
-            if not magicleap:
-                features.append("native-bluetooth")
+
+            features.append("native-bluetooth")
+
             if uwp:
                 features.append("no-wgl")
                 features.append("uwp")

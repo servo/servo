@@ -70,7 +70,7 @@ class MachCommands(CommandBase):
     @CommandBase.build_like_command_arguments
     def build(self, release=False, dev=False, jobs=None, params=None, media_stack=None,
               no_package=False, verbose=False, very_verbose=False,
-              target=None, android=False, magicleap=False, libsimpleservo=False,
+              target=None, android=False, libsimpleservo=False,
               features=None, uwp=False, win_arm64=False, **kwargs):
         # Force the UWP-enabled target if the convenience UWP flags are passed.
         if uwp and not target:
@@ -82,7 +82,7 @@ class MachCommands(CommandBase):
         opts = params or []
         features = features or []
 
-        target, android = self.pick_target_triple(target, android, magicleap)
+        target, android = self.pick_target_triple(target, android)
 
         # Infer UWP build if only provided a target.
         if not uwp:
@@ -96,9 +96,7 @@ class MachCommands(CommandBase):
         if android:
             target_path = path.join(target_path, "android")
             base_path = path.join(target_path, target)
-        elif magicleap:
-            target_path = path.join(target_path, "magicleap")
-            base_path = path.join(target_path, target)
+
         release_path = path.join(base_path, "release", "servo")
         dev_path = path.join(base_path, "debug", "servo")
 
@@ -422,121 +420,6 @@ class MachCommands(CommandBase):
                         expr = "s#libdir=.*#libdir=%s#g" % gst_lib_path
                         subprocess.call(["perl", "-i", "-pe", expr, pc])
 
-        if magicleap:
-            if platform.system() not in ["Darwin"]:
-                raise Exception("Magic Leap builds are only supported on macOS. "
-                                "If you only wish to test if your code builds, "
-                                "run ./mach build -p libmlservo.")
-
-            ml_sdk = env.get("MAGICLEAP_SDK")
-            if not ml_sdk:
-                raise Exception("Magic Leap builds need the MAGICLEAP_SDK environment variable")
-            if not os.path.exists(ml_sdk):
-                raise Exception("Path specified by MAGICLEAP_SDK does not exist.")
-
-            ml_support = path.join(self.get_top_dir(), "support", "magicleap")
-
-            # We pretend to be an Android build
-            env.setdefault("ANDROID_VERSION", "21")
-            env.setdefault("ANDROID_NDK", env["MAGICLEAP_SDK"])
-            env.setdefault("ANDROID_NDK_VERSION", "16.0.0")
-            env.setdefault("ANDROID_PLATFORM_DIR", path.join(env["MAGICLEAP_SDK"], "lumin"))
-            env.setdefault("ANDROID_TOOLCHAIN_DIR", path.join(env["MAGICLEAP_SDK"], "tools", "toolchains"))
-            env.setdefault("ANDROID_CLANG", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "clang"))
-
-            # A random collection of search paths
-            env.setdefault("STLPORT_LIBS", " ".join([
-                "-L" + path.join(env["MAGICLEAP_SDK"], "lumin", "stl", "libc++-lumin", "lib"),
-                "-lc++"
-            ]))
-            env.setdefault("STLPORT_CPPFLAGS", " ".join([
-                "-I" + path.join(env["MAGICLEAP_SDK"], "lumin", "stl", "libc++-lumin", "include")
-            ]))
-            env.setdefault("CPPFLAGS", " ".join([
-                "--no-standard-includes",
-                "--sysroot=" + env["ANDROID_PLATFORM_DIR"],
-                "-I" + path.join(env["ANDROID_PLATFORM_DIR"], "usr", "include"),
-                "-isystem" + path.join(env["ANDROID_TOOLCHAIN_DIR"], "lib64", "clang", "3.8", "include"),
-            ]))
-            env.setdefault("CFLAGS", " ".join([
-                env["CPPFLAGS"],
-                "-L" + path.join(env["ANDROID_TOOLCHAIN_DIR"], "lib", "gcc", target, "4.9.x"),
-            ]))
-            env.setdefault("CXXFLAGS", " ".join([
-                # Sigh, Angle gets confused if there's another EGL around
-                "-I./gfx/angle/checkout/include",
-                env["STLPORT_CPPFLAGS"],
-                env["CFLAGS"]
-            ]))
-
-            # The toolchain commands
-            env.setdefault("AR", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-ar"))
-            env.setdefault("AS", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-clang"))
-            env.setdefault("CC", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-clang"))
-            env.setdefault("CPP", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-clang -E"))
-            env.setdefault("CXX", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-clang++"))
-            env.setdefault("LD", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-ld"))
-            env.setdefault("OBJCOPY", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-objcopy"))
-            env.setdefault("OBJDUMP", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-objdump"))
-            env.setdefault("RANLIB", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-ranlib"))
-            env.setdefault("STRIP", path.join(env["ANDROID_TOOLCHAIN_DIR"], "bin", "aarch64-linux-android-strip"))
-
-            # Undo all of that when compiling build tools for the host
-            env.setdefault("HOST_CFLAGS", "")
-            env.setdefault("HOST_CXXFLAGS", "")
-            env.setdefault("HOST_CC", "/usr/local/opt/llvm/bin/clang")
-            env.setdefault("HOST_CXX", "/usr/local/opt/llvm/bin/clang++")
-            env.setdefault("HOST_LD", "ld")
-
-            # Some random build configurations
-            env.setdefault("HARFBUZZ_SYS_NO_PKG_CONFIG", "1")
-            env.setdefault("PKG_CONFIG_ALLOW_CROSS", "1")
-            env.setdefault("CMAKE_TOOLCHAIN_FILE", path.join(ml_support, "toolchain.cmake"))
-            env.setdefault("_LIBCPP_INLINE_VISIBILITY", "__attribute__((__always_inline__))")
-
-            # The Open SSL configuration
-            env.setdefault("OPENSSL_DIR", path.join(target_path, target, "native", "openssl"))
-            env.setdefault("OPENSSL_VERSION", "1.1.1d")
-            env.setdefault("OPENSSL_STATIC", "1")
-
-            # GStreamer configuration
-            env.setdefault("GSTREAMER_DIR", path.join(target_path, target, "native", "gstreamer-1.16.0"))
-            env.setdefault("GSTREAMER_URL", "https://servo-deps-2.s3.amazonaws.com/gstreamer/gstreamer-magicleap-1.16.0-20190823-104505.tgz")
-            env.setdefault("PKG_CONFIG_PATH", path.join(env["GSTREAMER_DIR"], "system", "lib64", "pkgconfig"))
-
-            # Override the linker set in .cargo/config
-            env.setdefault("CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER", path.join(ml_support, "fake-ld.sh"))
-
-            # Only build libmlservo
-            opts += ["--package", "libmlservo"]
-
-            # Download and build OpenSSL if necessary
-            status = call(path.join(ml_support, "openssl.sh"), env=env, verbose=verbose)
-            if status:
-                return status
-
-            # Download prebuilt Gstreamer if necessary
-            if not os.path.exists(path.join(env["GSTREAMER_DIR"], "system")):
-                if not os.path.exists(env["GSTREAMER_DIR"] + ".tgz"):
-                    check_call([
-                        'curl',
-                        '-L',
-                        '-f',
-                        '-o', env["GSTREAMER_DIR"] + ".tgz",
-                        env["GSTREAMER_URL"],
-                    ])
-                check_call([
-                    'mkdir',
-                    '-p',
-                    env["GSTREAMER_DIR"],
-                ])
-                check_call([
-                    'tar',
-                    'xzf',
-                    env["GSTREAMER_DIR"] + ".tgz",
-                    '-C', env["GSTREAMER_DIR"],
-                ])
-
         # https://internals.rust-lang.org/t/exploring-crate-graph-build-times-with-cargo-build-ztimings/10975
         # Prepend so that e.g. `-Ztimings` (which means `-Ztimings=info,html`)
         # given on the command line can override it
@@ -553,7 +436,7 @@ class MachCommands(CommandBase):
 
         status = self.run_cargo_build_like_command(
             "build", opts, env=env, verbose=verbose,
-            target=target, android=android, magicleap=magicleap, libsimpleservo=libsimpleservo, uwp=uwp,
+            target=target, android=android, libsimpleservo=libsimpleservo, uwp=uwp,
             features=features, **kwargs
         )
 
