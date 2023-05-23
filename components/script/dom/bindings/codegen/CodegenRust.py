@@ -2381,7 +2381,10 @@ class CGDOMJSClass(CGThing):
             "resolveHook": "None",
             "slots": "1",
             "traceHook": TRACE_HOOK_NAME,
+            "constructorHook": "None",
         }
+        if self.descriptor.interface.ctor():
+            args["constructorHook"] = "Some(%s)" % CONSTRUCT_HOOK_NAME
         if self.descriptor.isGlobal():
             assert not self.descriptor.weakReferenceable
             args["enumerateHook"] = "Some(enumerate_global)"
@@ -2400,8 +2403,8 @@ static CLASS_OPS: js::jsapi::JSClassOps = js::jsapi::JSClassOps {
     resolve: %(resolveHook)s,
     mayResolve: None,
     finalize: Some(%(finalizeHook)s),
-    call: None,
-    construct: None,
+    call: %(constructorHook)s,
+    construct: %(constructorHook)s,
     trace: Some(%(traceHook)s),
 };
 
