@@ -98,7 +98,7 @@ jobs:
         if: ${{ inputs.upload }}
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: |
-          python mach upload-nightly windows-msvc --secret-from-environment `
+          python mach upload-nightly ${{ env.PACKAGE }} --secret-from-environment `
             --github-release-id ${{ inputs.github-release-id }}
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}

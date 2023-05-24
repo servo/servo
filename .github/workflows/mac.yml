@@ -88,7 +88,7 @@ jobs:
       - name: Upload
         if: ${{ inputs.upload }}
         run: |
-          python3 ./mach upload-nightly mac --secret-from-environment \
+          python3 ./mach upload-nightly ${{ env.PACKAGE }} --secret-from-environment \
             --github-release-id ${{ inputs.github-release-id }}
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
