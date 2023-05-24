@@ -876,12 +876,14 @@ where
         Component::Nth(ref nth_data) => {
             matches_generic_nth_child(element, context.shared, nth_data, &[])
         },
-        Component::NthOf(ref nth_of_data) => matches_generic_nth_child(
-            element,
-            context.shared,
-            nth_of_data.nth_data(),
-            nth_of_data.selectors(),
-        ),
+        Component::NthOf(ref nth_of_data) => context.shared.nest(|context| {
+            matches_generic_nth_child(
+                element,
+                context,
+                nth_of_data.nth_data(),
+                nth_of_data.selectors(),
+            )
+        }),
         Component::Is(ref list) | Component::Where(ref list) => context
             .shared
             .nest(|context| list_matches_complex_selector(list, element, context)),
