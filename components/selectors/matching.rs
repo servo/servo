@@ -319,12 +319,14 @@ where
                     }
                 }
             },
-            _ => {
+            ref other => {
                 debug_assert!(
                     false,
                     "Used MatchingMode::ForStatelessPseudoElement \
-                     in a non-pseudo selector"
+                     in a non-pseudo selector {:?}",
+                    other
                 );
+                return false;
             },
         }
 
