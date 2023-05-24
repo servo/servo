@@ -1,18 +1,6 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true,
-    });
-  } else {
-    obj[key] = value;
-  }
-  return obj;
-}
+ **/
 
 function endOfRange(r) {
   return 'count' in r ? r.begin + r.count : r.end;
@@ -24,34 +12,42 @@ function* rangeAsIterator(r) {
   }
 }
 
+/**
+ * Represents a range of subresources of a single-plane texture:
+ * a min/max mip level and min/max array layer.
+ */
 export class SubresourceRange {
   constructor(subresources) {
-    _defineProperty(this, 'mipRange', void 0);
-    _defineProperty(this, 'sliceRange', void 0);
     this.mipRange = {
       begin: subresources.mipRange.begin,
       end: endOfRange(subresources.mipRange),
     };
-
-    this.sliceRange = {
-      begin: subresources.sliceRange.begin,
-      end: endOfRange(subresources.sliceRange),
+    this.layerRange = {
+      begin: subresources.layerRange.begin,
+      end: endOfRange(subresources.layerRange),
     };
   }
 
+  /**
+   * Iterates over the "rectangle" of `{ level, layer }` pairs represented by the range.
+   */
   *each() {
     for (let level = this.mipRange.begin; level < this.mipRange.end; ++level) {
-      for (let slice = this.sliceRange.begin; slice < this.sliceRange.end; ++slice) {
-        yield { level, slice };
+      for (let layer = this.layerRange.begin; layer < this.layerRange.end; ++layer) {
+        yield { level, layer };
       }
     }
   }
 
+  /**
+   * Iterates over the mip levels represented by the range, each level including an iterator
+   * over the array layers at that level.
+   */
   *mipLevels() {
     for (let level = this.mipRange.begin; level < this.mipRange.end; ++level) {
       yield {
         level,
-        slices: rangeAsIterator(this.sliceRange),
+        layers: rangeAsIterator(this.layerRange),
       };
     }
   }

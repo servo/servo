@@ -1,25 +1,13 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true,
-    });
-  } else {
-    obj[key] = value;
-  }
-  return obj;
-}
-import { LogMessageWithStack } from '../../framework/logging/log_message.js';
+ **/ import { LogMessageWithStack } from '../../internal/logging/log_message.js';
+
+import { getDefaultRequestAdapterOptions } from '../../util/navigator_gpu.js';
 
 export class TestWorker {
+  resolvers = new Map();
+
   constructor(debug) {
-    _defineProperty(this, 'debug', void 0);
-    _defineProperty(this, 'worker', void 0);
-    _defineProperty(this, 'resolvers', new Map());
     this.debug = debug;
 
     const selfPath = import.meta.url;
@@ -36,13 +24,18 @@ export class TestWorker {
       }
       this.resolvers.get(query)(result);
 
-      // TODO(kainino0x): update the Logger with this result (or don't have a logger and update the
-      // entire results JSON somehow at some point).
+      // MAINTENANCE_TODO(kainino0x): update the Logger with this result (or don't have a logger and
+      // update the entire results JSON somehow at some point).
     };
   }
 
-  async run(rec, query) {
-    this.worker.postMessage({ query, debug: this.debug });
+  async run(rec, query, expectations = []) {
+    this.worker.postMessage({
+      query,
+      expectations,
+      debug: this.debug,
+      defaultRequestAdapterOptions: getDefaultRequestAdapterOptions(),
+    });
     const workerResult = await new Promise(resolve => {
       this.resolvers.set(query, resolve);
     });
