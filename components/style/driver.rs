@@ -11,7 +11,7 @@ use crate::context::{PerThreadTraversalStatistics, StyleContext};
 use crate::context::{ThreadLocalStyleContext, TraversalStatistics};
 use crate::dom::{SendNode, TElement, TNode};
 use crate::parallel;
-use crate::parallel::{DispatchMode, WORK_UNIT_MAX};
+use crate::parallel::{work_unit_max, DispatchMode};
 use crate::scoped_tls::ScopedTLS;
 use crate::traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 use rayon;
@@ -48,17 +48,19 @@ fn report_statistics(stats: &PerThreadTraversalStatistics) {
     gecko_stats.mStylesReused += stats.styles_reused;
 }
 
-/// Do a DOM traversal for top-down and (optionally) bottom-up processing,
-/// generic over `D`.
+fn parallelism_threshold() -> usize {
+    static_prefs::pref!("layout.css.stylo-parallelism-threshold") as usize
+}
+
+/// Do a DOM traversal for top-down and (optionally) bottom-up processing, generic over `D`.
 ///
-/// We use an adaptive traversal strategy. We start out with simple sequential
-/// processing, until we arrive at a wide enough level in the DOM that the
-/// parallel traversal would parallelize it. If a thread pool is provided, we
-/// then transfer control over to the parallel traversal.
+/// We use an adaptive traversal strategy. We start out with simple sequential processing, until we
+/// arrive at a wide enough level in the DOM that the parallel traversal would parallelize it.
+/// If a thread pool is provided, we then transfer control over to the parallel traversal.
 ///
-/// Returns true if the traversal was parallel, and also returns the statistics
-/// object containing information on nodes traversed (on nightly only). Not
-/// all of its fields will be initialized since we don't call finish().
+/// Returns true if the traversal was parallel, and also returns the statistics object containing
+/// information on nodes traversed (on nightly only). Not all of its fields will be initialized
+/// since we don't call finish().
 pub fn traverse_dom<E, D>(
     traversal: &D,
     token: PreTraverseToken<E>,
@@ -100,7 +102,9 @@ where
     // Process the nodes breadth-first, just like the parallel traversal does.
     // This helps keep similar traversal characteristics for the style sharing
     // cache.
-    let mut discovered = VecDeque::<SendNode<E::ConcreteNode>>::with_capacity(WORK_UNIT_MAX * 2);
+    let work_unit_max = work_unit_max();
+    let parallelism_threshold = parallelism_threshold();
+    let mut discovered = VecDeque::<SendNode<E::ConcreteNode>>::with_capacity(work_unit_max * 2);
     let mut depth = root.depth();
     let mut nodes_remaining_at_current_depth = 1;
     discovered.push_back(unsafe { SendNode::new(root.as_node()) });
@@ -122,45 +126,48 @@ where
         );
 
         nodes_remaining_at_current_depth -= 1;
-        if nodes_remaining_at_current_depth == 0 {
-            depth += 1;
-            // If there is enough work to parallelize over, and the caller allows
-            // parallelism, switch to the parallel driver. We do this only when
-            // moving to the next level in the dom so that we can pass the same
-            // depth for all the children.
-            if pool.is_some() && discovered.len() > WORK_UNIT_MAX {
-                let pool = pool.unwrap();
-                let tls = ScopedTLS::<ThreadLocalStyleContext<E>>::new(pool);
-                let root_opaque = root.as_node().opaque();
-                let drain = discovered.drain(..);
-                pool.scope_fifo(|scope| {
-                    // Enable a breadth-first rayon traversal. This causes the work
-                    // queue to be always FIFO, rather than FIFO for stealers and
-                    // FILO for the owner (which is what rayon does by default). This
-                    // ensures that we process all the elements at a given depth before
-                    // proceeding to the next depth, which is important for style sharing.
-                    #[cfg(feature = "gecko")]
-                    gecko_profiler_label!(Layout, StyleComputation);
-                    parallel::traverse_nodes(
-                        drain,
-                        DispatchMode::TailCall,
-                        /* recursion_ok = */ true,
-                        root_opaque,
-                        PerLevelTraversalData {
-                            current_dom_depth: depth,
-                        },
-                        scope,
-                        pool,
-                        traversal,
-                        &tls,
-                    );
-                });
 
-                tls_slots = Some(tls.into_slots());
-                break;
-            }
-            nodes_remaining_at_current_depth = discovered.len();
+        // If there is enough work to parallelize over, and the caller allows parallelism, switch
+        // to the parallel driver. We do this only when moving to the next level in the dom so that
+        // we can pass the same depth for all the children.
+        if nodes_remaining_at_current_depth != 0 {
+            continue;
         }
+        depth += 1;
+        if pool.is_some() &&
+            discovered.len() > parallelism_threshold &&
+            parallelism_threshold > 0
+        {
+            let pool = pool.unwrap();
+            let tls = ScopedTLS::<ThreadLocalStyleContext<E>>::new(pool);
+            let root_opaque = root.as_node().opaque();
+            pool.scope_fifo(|scope| {
+                // Enable a breadth-first rayon traversal. This causes the work
+                // queue to be always FIFO, rather than FIFO for stealers and
+                // FILO for the owner (which is what rayon does by default). This
+                // ensures that we process all the elements at a given depth before
+                // proceeding to the next depth, which is important for style sharing.
+                #[cfg(feature = "gecko")]
+                gecko_profiler_label!(Layout, StyleComputation);
+                parallel::traverse_nodes(
+                    discovered.make_contiguous(),
+                    DispatchMode::TailCall,
+                    /* recursion_ok = */ true,
+                    root_opaque,
+                    PerLevelTraversalData {
+                        current_dom_depth: depth,
+                    },
+                    scope,
+                    pool,
+                    traversal,
+                    &tls,
+                );
+            });
+
+            tls_slots = Some(tls.into_slots());
+            break;
+        }
+        nodes_remaining_at_current_depth = discovered.len();
     }
 
     // Collect statistics from thread-locals if requested.
