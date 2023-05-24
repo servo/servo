@@ -40,6 +40,9 @@ from servo.command_base import (
 )
 from servo_tidy_tests import test_tidy
 
+from servo.util import delete
+from distutils.dir_util import copy_tree
+
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
@@ -819,6 +822,54 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
         run_globals = {"__file__": run_file}
         exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
         return run_globals["update_conformance"](version, dest_folder, None, patches_dir)
+
+    @Command('update-webgpu',
+             description='Update the WebGPU conformance test suite',
+             category='testing')
+    @CommandArgument(
+        '--repo', '-r', default="https://github.com/gpuweb/cts",
+        help='Repo to vendor cts from')
+    @CommandArgument(
+        '--checkout', '-c', default="main",
+        help='Branch or commit of repo')
+    def cts(self, repo="https://github.com/gpuweb/cts", checkout="main"):
+        tdir = path.join(self.context.topdir, "tests/wpt/webgpu/tests")
+        clone_dir = path.join(tdir, "cts_clone")
+        # clone
+        res = call(["git", "clone", "-n", repo, "cts_clone"], cwd=tdir)
+        if res != 0:
+            return res
+        # checkout
+        res = call(["git", "checkout", checkout], cwd=clone_dir)
+        if res != 0:
+            return res
+        # build
+        res = call(["npm", "ci"], cwd=clone_dir)
+        if res != 0:
+            return res
+        res = call(["npm", "run", "wpt"], cwd=clone_dir)
+        if res != 0:
+            return res
+        cts_html = path.join(clone_dir, "out-wpt", "cts.https.html")
+        # patch
+        with open(cts_html, 'r') as file:
+            filedata = file.read()
+        # files are mounted differently
+        filedata = filedata.replace('src=/webgpu/common/runtime/wpt.js', 'src=../webgpu/common/runtime/wpt.js')
+        # Write the file out again
+        with open(cts_html, 'w') as file:
+            file.write(filedata)
+        # copy
+        delete(path.join(tdir, "webgpu"))
+        copy_tree(path.join(clone_dir, "out-wpt"), path.join(tdir, "webgpu"))
+        # update commit
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode()
+        with open(path.join(tdir, "checkout_commit.txt"), 'w') as file:
+            file.write(commit)
+        # clean up
+        delete(clone_dir)
+        print("Updating manifest.")
+        return self.context.commands.dispatch("update-manifest", self.context)
 
     @Command('smoketest',
              description='Load a simple page in Servo and ensure that it closes properly',
