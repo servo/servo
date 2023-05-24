@@ -26,8 +26,6 @@ use crate::context::{StyleContext, ThreadLocalStyleContext};
 use crate::dom::{OpaqueNode, SendNode, TElement};
 use crate::scoped_tls::ScopedTLS;
 use crate::traversal::{DomTraversal, PerLevelTraversalData};
-use arrayvec::ArrayVec;
-use itertools::Itertools;
 use rayon;
 use smallvec::SmallVec;
 
@@ -59,23 +57,10 @@ pub const STYLE_THREAD_STACK_SIZE_KB: usize = 512;
 ///
 pub const STACK_SAFETY_MARGIN_KB: usize = 168;
 
-/// The maximum number of child nodes that we will process as a single unit.
-///
-/// Larger values will increase style sharing cache hits and general DOM
-/// locality at the expense of decreased opportunities for parallelism.  There
-/// are some measurements in
-/// https://bugzilla.mozilla.org/show_bug.cgi?id=1385982#c11 and comments 12
-/// and 13 that investigate some slightly different values for the work unit
-/// size.  If the size is significantly increased, make sure to adjust the
-/// condition for kicking off a new work unit in top_down_dom, because
-/// otherwise we're likely to end up doing too much work serially.  For
-/// example, the condition there could become some fraction of WORK_UNIT_MAX
-/// instead of WORK_UNIT_MAX.
-pub const WORK_UNIT_MAX: usize = 16;
-
-/// A set of nodes, sized to the work unit. This gets copied when sent to other
-/// threads, so we keep it compact.
-type WorkUnit<N> = ArrayVec<SendNode<N>, WORK_UNIT_MAX>;
+/// See documentation of the pref for performance characteristics.
+pub fn work_unit_max() -> usize {
+    static_prefs::pref!("layout.css.stylo-work-unit-size") as usize
+}
 
 /// A callback to create our thread local context.  This needs to be
 /// out of line so we don't allocate stack space for the entire struct
@@ -115,14 +100,15 @@ fn top_down_dom<'a, 'scope, E, D>(
     E: TElement + 'scope,
     D: DomTraversal<E>,
 {
-    debug_assert!(nodes.len() <= WORK_UNIT_MAX);
+    let work_unit_max = work_unit_max();
+    debug_assert!(nodes.len() <= work_unit_max);
 
     // We set this below, when we have a borrow of the thread-local-context
     // available.
     let recursion_ok;
 
     // Collect all the children of the elements in our work unit. This will
-    // contain the combined children of up to WORK_UNIT_MAX nodes, which may
+    // contain the combined children of up to work_unit_max nodes, which may
     // be numerous. As such, we store it in a large SmallVec to minimize heap-
     // spilling, and never move it.
     let mut discovered_child_nodes = SmallVec::<[SendNode<E::ConcreteNode>; 128]>::new();
@@ -171,19 +157,19 @@ fn top_down_dom<'a, 'scope, E, D>(
             // following.
             //
             // The worst case behavior for waiting until we have a full work
-            // item is a deep tree which has WORK_UNIT_MAX "linear" branches,
-            // hence WORK_UNIT_MAX elements at each level.  Such a tree would
+            // item is a deep tree which has work_unit_max "linear" branches,
+            // hence work_unit_max elements at each level.  Such a tree would
             // end up getting processed entirely sequentially, because we would
             // process each level one at a time as a single work unit, whether
             // via our end-of-loop tail call or not.  If we kicked off a
             // traversal as soon as we discovered kids, we would instead
             // process such a tree more or less with a thread-per-branch,
             // multiplexed across our actual threadpool.
-            if discovered_child_nodes.len() >= WORK_UNIT_MAX {
+            if discovered_child_nodes.len() >= work_unit_max {
                 let mut traversal_data_copy = traversal_data.clone();
                 traversal_data_copy.current_dom_depth += 1;
                 traverse_nodes(
-                    discovered_child_nodes.drain(..),
+                    &discovered_child_nodes,
                     DispatchMode::NotTailCall,
                     recursion_ok,
                     root,
@@ -193,6 +179,7 @@ fn top_down_dom<'a, 'scope, E, D>(
                     traversal,
                     tls,
                 );
+                discovered_child_nodes.clear();
             }
 
             let node = **n;
@@ -213,7 +200,7 @@ fn top_down_dom<'a, 'scope, E, D>(
     if !discovered_child_nodes.is_empty() {
         traversal_data.current_dom_depth += 1;
         traverse_nodes(
-            discovered_child_nodes.drain(..),
+            &discovered_child_nodes,
             DispatchMode::TailCall,
             recursion_ok,
             root,
@@ -245,8 +232,8 @@ impl DispatchMode {
 /// Enqueues |nodes| for processing, possibly on this thread if the tail call
 /// conditions are met.
 #[inline]
-pub fn traverse_nodes<'a, 'scope, E, D, I>(
-    nodes: I,
+pub fn traverse_nodes<'a, 'scope, E, D>(
+    nodes: &[SendNode<E::ConcreteNode>],
     mode: DispatchMode,
     recursion_ok: bool,
     root: OpaqueNode,
@@ -258,7 +245,6 @@ pub fn traverse_nodes<'a, 'scope, E, D, I>(
 ) where
     E: TElement + 'scope,
     D: DomTraversal<E>,
-    I: ExactSizeIterator<Item = SendNode<E::ConcreteNode>>,
 {
     debug_assert_ne!(nodes.len(), 0);
 
@@ -272,29 +258,37 @@ pub fn traverse_nodes<'a, 'scope, E, D, I>(
     let may_dispatch_tail =
         mode.is_tail_call() && recursion_ok && !pool.current_thread_has_pending_tasks().unwrap();
 
-    // In the common case, our children fit within a single work unit, in which
-    // case we can pass the SmallVec directly and avoid extra allocation.
-    if nodes.len() <= WORK_UNIT_MAX {
-        let work: WorkUnit<E::ConcreteNode> = nodes.collect();
+    let work_unit_max = work_unit_max();
+    // In the common case, our children fit within a single work unit, in which case we can pass
+    // the nodes directly and avoid extra allocation.
+    if nodes.len() <= work_unit_max {
         if may_dispatch_tail {
-            top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
+            top_down_dom(&nodes, root, traversal_data, scope, pool, traversal, tls);
         } else {
+            let work = nodes.to_vec();
             scope.spawn_fifo(move |scope| {
                 #[cfg(feature = "gecko")]
                 gecko_profiler_label!(Layout, StyleComputation);
-                let work = work;
                 top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
             });
         }
     } else {
-        for chunk in nodes.chunks(WORK_UNIT_MAX).into_iter() {
-            let nodes: WorkUnit<E::ConcreteNode> = chunk.collect();
+        for chunk in nodes.chunks(work_unit_max) {
+            let work = chunk.to_vec();
             let traversal_data_copy = traversal_data.clone();
             scope.spawn_fifo(move |scope| {
                 #[cfg(feature = "gecko")]
                 gecko_profiler_label!(Layout, StyleComputation);
-                let n = nodes;
-                top_down_dom(&*n, root, traversal_data_copy, scope, pool, traversal, tls)
+                let work = work;
+                top_down_dom(
+                    &work,
+                    root,
+                    traversal_data_copy,
+                    scope,
+                    pool,
+                    traversal,
+                    tls,
+                )
             });
         }
     }
