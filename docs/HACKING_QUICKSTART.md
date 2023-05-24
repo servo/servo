@@ -12,7 +12,7 @@ on the [Github Workflow](https://github.com/servo/servo/wiki/Github-workflow) an
 Building Servo is quite easy. Install the prerequisites described in the [README](../README.md) file, then type:
 
 ```shell
-./mach build -d
+./mach build -d --with-layout-2020
 ```
 
 *Note: on Mac, you might run into an SSL issue while compiling. You'll find a solution to this problem [here](https://github.com/sfackler/rust-openssl/issues/255).*
@@ -20,6 +20,8 @@ Building Servo is quite easy. Install the prerequisites described in the [README
 The `-d` option means "debug build". You can also build with the `-r` option which means "release build". Building with `-d` will allow you to use a debugger (lldb). A `-r` build is more performant. Release builds are slower to build.
 
 You can use and build a release build and a debug build in parallel.
+
+The `--with-layout-2020` option will build with Layout 2020 as the layout engine. Current work on the project is focused in this new layout engine, that's why this is the recommended build by default.
 
 ## Running Servo
 

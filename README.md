@@ -295,7 +295,7 @@ To build Servo in development mode.
 This is useful for development, but the resulting binary is very slow:
 
 ``` sh
-./mach build --dev
+./mach build --dev --with-layout-2020
 ./mach run tests/html/about-mozilla.html
 ```
 
@@ -304,7 +304,7 @@ For benchmarking, performance testing, or real-world use.
 Add the `--release` flag to create an optimized build:
 
 ``` sh
-./mach build --release
+./mach build --release --with-layout-2020
 ./mach run --release tests/html/about-mozilla.html
 ```
 
@@ -329,14 +329,14 @@ though of course it doesn’t produce a binary you can run.
 For ARM (`armv7-linux-androideabi`, most phones):
 
 ``` sh
-./mach build --release --android
+./mach build --release --with-layout-2020 --android
 ./mach package --release --android
 ```
 
 For x86 (typically for the emulator):
 
 ```sh
-./mach build --release --target i686-linux-android
+./mach build --release --with-layout-2020 --target i686-linux-android
 ./mach package --release --target i686-linux-android
 ```
 
