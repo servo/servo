@@ -7,7 +7,7 @@
 //! https://drafts.csswg.org/mediaqueries/#typedef-media-query
 
 use crate::parser::ParserContext;
-use crate::queries::{FeatureType, QueryCondition};
+use crate::queries::{FeatureFlags, FeatureType, QueryCondition};
 use crate::str::string_as_ascii_lowercase;
 use crate::values::CustomIdent;
 use crate::Atom;
@@ -115,6 +115,13 @@ impl MediaQuery {
             media_type: MediaQueryType::All,
             condition: None,
         }
+    }
+
+    /// Returns whether this media query depends on the viewport.
+    pub fn is_viewport_dependent(&self) -> bool {
+        self.condition.as_ref().map_or(false, |c| {
+            return c.cumulative_flags().contains(FeatureFlags::VIEWPORT_DEPENDENT)
+        })
     }
 
     /// Parse a media query given css input.
