@@ -10,6 +10,7 @@
 from __future__ import print_function
 
 import contextlib
+from typing import Optional
 import distro
 import functools
 import gzip
@@ -38,7 +39,7 @@ import servo.util as util
 
 from xml.etree.ElementTree import XML
 from servo.util import download_file, get_default_cache_dir
-from mach.decorators import CommandArgument
+from mach.decorators import CommandArgument, CommandArgumentGroup
 from mach.registrar import Registrar
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
@@ -228,6 +229,10 @@ class CommandBase(object):
 
     def __init__(self, context):
         self.context = context
+        self.features = []
+        self.cross_compile_target = None
+        self.is_uwp_build = False
+        self.is_android_build = False
 
         def get_env_bool(var, default):
             # Contents of env vars are strings by default. This returns the
@@ -285,8 +290,9 @@ class CommandBase(object):
         self.config["android"].setdefault("sdk", "")
         self.config["android"].setdefault("ndk", "")
         self.config["android"].setdefault("toolchain", "")
+
         # Set default android target
-        self.handle_android_target("armv7-linux-androideabi")
+        self.setup_configuration_for_android_target("armv7-linux-androideabi")
 
     _rust_toolchain = None
 
@@ -516,12 +522,13 @@ class CommandBase(object):
             'vcdir': vcinstalldir,
         }
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False, uwp=False, features=None):
+    def build_env(self, hosts_file_path=None, is_build=False, test_unit=False, features=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
 
         if not features or "media-dummy" not in features:
-            servo.platform.get().set_gstreamer_environment_variables_if_necessary(env, cross_compilation_target=target)
+            servo.platform.get().set_gstreamer_environment_variables_if_necessary(
+                env, cross_compilation_target=self.cross_compile_target)
 
         if sys.platform == "win32" and type(env['PATH']) == six.text_type:
             # On win32, the virtualenv's activate_this.py script sometimes ends up
@@ -532,7 +539,8 @@ class CommandBase(object):
             # it in any case.
             env['PATH'] = env['PATH'].encode('ascii', 'ignore')
         extra_path = []
-        if "msvc" in (target or servo.platform.host_triple()):
+        effective_target = self.cross_compile_target or servo.platform.host_triple()
+        if "msvc" in effective_target:
             extra_path += [path.join(self.msvc_package_dir("cmake"), "bin")]
             extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
             extra_path += [path.join(self.msvc_package_dir("ninja"), "bin")]
@@ -540,20 +548,20 @@ class CommandBase(object):
 
             env.setdefault("CC", "clang-cl.exe")
             env.setdefault("CXX", "clang-cl.exe")
-            if uwp:
+            if self.is_uwp_build:
                 env.setdefault("TARGET_CFLAGS", "")
                 env.setdefault("TARGET_CXXFLAGS", "")
                 env["TARGET_CFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
                 env["TARGET_CXXFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
 
-            arch = (target or servo.platform.host_triple()).split('-')[0]
+            arch = effective_target.split('-')[0]
             vcpkg_arch = {
                 "x86_64": "x64-windows",
                 "i686": "x86-windows",
                 "aarch64": "arm64-windows",
             }
             target_arch = vcpkg_arch[arch]
-            if uwp:
+            if self.is_uwp_build:
                 target_arch += "-uwp"
             openssl_base_dir = path.join(self.msvc_package_dir("openssl"), target_arch)
 
@@ -657,9 +665,10 @@ class CommandBase(object):
             env['CCACHE'] = self.config["build"]["ccache"]
 
         # Ensure Rust uses hard floats and SIMD on ARM devices
-        if target:
-            if target.startswith('arm') or target.startswith('aarch64'):
-                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
+        if self.cross_compile_target and (
+            self.cross_compile_target.startswith('arm')
+                or self.cross_compile_target.startswith('aarch64')):
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
 
         env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
 
@@ -708,107 +717,151 @@ class CommandBase(object):
         return env
 
     @staticmethod
-    def build_like_command_arguments(decorated_function):
+    def build_like_command_arguments(original_function):
         decorators = [
+            CommandArgumentGroup('Cross Compilation'),
             CommandArgument(
                 '--target', '-t',
+                group="Cross Compilation",
                 default=None,
                 help='Cross compile for given target platform',
             ),
             CommandArgument(
-                '--media-stack',
-                default=None,
-                choices=["gstreamer", "dummy"],
-                help='Which media stack to use',
+                '--android', default=None, action='store_true',
+                help='Build for Android. If --target is not specified, this '
+                     'will choose a default target architecture.',
             ),
             CommandArgument(
-                '--android',
-                default=None,
+                '--uwp',
+                group="Cross Compilation",
                 action='store_true',
-                help='Build for Android',
+                help='Build for HoloLens (x64)'),
+            CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target"),
+            CommandArgumentGroup('Feature Selection'),
+            CommandArgument(
+                '--features', default=None, group="Feature Selection", nargs='+',
+                help='Space-separated list of features to also build',
+            ),
+            CommandArgument(
+                '--media-stack', default=None, group="Feature Selection",
+                choices=["gstreamer", "dummy"], help='Which media stack to use',
             ),
             CommandArgument(
                 '--libsimpleservo',
                 default=None,
+                group="Feature Selection",
                 action='store_true',
                 help='Build the libsimpleservo library instead of the servo executable',
             ),
             CommandArgument(
-                '--features',
-                default=None,
-                help='Space-separated list of features to also build',
-                nargs='+',
-            ),
-            CommandArgument(
                 '--debug-mozjs',
-                default=None,
+                default=False,
+                group="Feature Selection",
                 action='store_true',
                 help='Enable debug assertions in mozjs',
             ),
             CommandArgument(
                 '--with-debug-assertions',
-                default=None,
+                default=False,
+                group="Feature Selection",
                 action='store_true',
                 help='Enable debug assertions in release',
             ),
             CommandArgument(
                 '--with-frame-pointer',
-                default=None,
+                default=None, group="Feature Selection",
                 action='store_true',
                 help='Build with frame pointer enabled, used by the background hang monitor.',
             ),
-            CommandArgument('--with-layout-2020', '--layout-2020', default=None, action='store_true'),
-            CommandArgument('--with-layout-2013', '--layout-2013', default=None, action='store_true'),
-            CommandArgument('--without-wgl', default=None, action='store_true'),
+            CommandArgument(
+                '--with-layout-2020', '--layout-2020',
+                group="Feature Selection", default=None, action='store_true'),
+            CommandArgument(
+                '--with-layout-2013', '--layout-2013', group="Feature Selection", default=None, action='store_true'),
+            CommandArgument('--without-wgl', group="Feature Selection", default=None, action='store_true'),
         ]
 
+        def configuration_decorator(self, *args, **kwargs):
+            self.configure_cross_compilation(
+                kwargs['target'], kwargs['android'],
+                kwargs['uwp'], kwargs['win_arm64'])
+
+            self.features = kwargs.get("features", None) or []
+            self.configure_media_stack(kwargs['media_stack'])
+            original_function(self, *args, **kwargs)
+
+        decorators.reverse()
+        decorated_function = configuration_decorator
         for decorator in decorators:
             decorated_function = decorator(decorated_function)
         return decorated_function
 
-    def pick_target_triple(self, target, android):
+    def configure_cross_compilation(
+            self,
+            cross_compile_target: Optional[str],
+            android: Optional[str],
+            uwp: Optional[str],
+            win_arm64: Optional[str]):
+        # Force the UWP-enabled target if the convenience UWP flags are passed.
+        if uwp and not cross_compile_target:
+            if win_arm64:
+                cross_compile_target = 'aarch64-uwp-windows-msvc'
+            else:
+                cross_compile_target = 'x86_64-uwp-windows-msvc'
+
         if android is None:
             android = self.config["build"]["android"]
-        if target and android:
-            assert self.handle_android_target(target)
-        if android and not target:
-            target = self.config["android"]["target"]
-        if target and not android:
-            android = self.handle_android_target(target)
-        return target, android
+        if android:
+            if not cross_compile_target:
+                cross_compile_target = self.config["android"]["target"]
+            assert cross_compile_target
+            assert self.setup_configuration_for_android_target(cross_compile_target)
+        elif cross_compile_target:
+            # If a target was specified, it might also be an android target,
+            # so set up the configuration in that case.
+            self.setup_configuration_for_android_target(cross_compile_target)
 
-    # A guess about which platforms should use the gstreamer media stack
-    def pick_media_stack(self, media_stack, target):
+        self.cross_compile_target = cross_compile_target
+        self.is_uwp_build = uwp or (cross_compile_target and "uwp" in cross_compile_target)
+        self.is_android_build = (cross_compile_target and "android" in cross_compile_target)
+
+        if self.cross_compile_target:
+            print(f"Targeting '{self.cross_compile_target}' for cross-compilation")
+
+    def configure_media_stack(self, media_stack: Optional[str]):
+        """Determine what media stack to use based on the value of the build target
+           platform and the value of the '--media-stack' command-line argument.
+           The chosen media stack is written into the `features` instance variable."""
         if not media_stack:
             if self.config["build"]["media-stack"] != "auto":
                 media_stack = self.config["build"]["media-stack"]
+                assert media_stack
             elif (
-                not target
-                or ("armv7" in target and "android" in target)
-                or "x86_64" in target
-                or "uwp" in target
+                not self.cross_compile_target
+                or ("armv7" in self.cross_compile_target and self.is_android_build)
+                or "x86_64" in self.cross_compile_target
+                or "uwp" in self.cross_compile_target
             ):
                 media_stack = "gstreamer"
             else:
                 media_stack = "dummy"
-        return ["media-" + media_stack]
+        self.features += ["media-" + media_stack]
 
     def run_cargo_build_like_command(
         self, command, cargo_args,
         env=None, verbose=False,
-        target=None, android=False, libsimpleservo=False,
-        features=None, debug_mozjs=False, with_debug_assertions=False,
+        libsimpleservo=False,
+        debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, without_wgl=False,
         with_layout_2020=False, with_layout_2013=False,
-        uwp=False, media_stack=None,
+        **_kwargs
     ):
         env = env or self.build_env()
-        target, android = self.pick_target_triple(target, android)
 
         args = []
         if "--manifest-path" not in cargo_args:
-            if libsimpleservo or android:
-                if android:
+            if libsimpleservo or self.is_android_build:
+                if self.is_android_build:
                     api = "jniapi"
                 else:
                     api = "capi"
@@ -819,19 +872,17 @@ class CommandBase(object):
                 "--manifest-path",
                 path.join(self.context.topdir, "ports", port, "Cargo.toml"),
             ]
-        if target:
-            args += ["--target", target]
+        if self.cross_compile_target:
+            args += ["--target", self.cross_compile_target]
 
-        if features is None:  # If we're passed a list, mutate it even if it's empty
-            features = []
-
+        features = list(self.features)
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
 
             features.append("native-bluetooth")
 
-            if uwp:
+            if self.is_uwp_build:
                 features.append("no-wgl")
                 features.append("uwp")
             else:
@@ -856,7 +907,7 @@ class CommandBase(object):
         assert "--features" not in cargo_args
         args += ["--features", " ".join(features)]
 
-        if target and 'uwp' in target:
+        if self.is_uwp_build:
             cargo_args += ["-Z", "build-std"]
         return self.call_rustup_run(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
@@ -880,7 +931,10 @@ class CommandBase(object):
                 return sdk_adb
         return "emulator"
 
-    def handle_android_target(self, target):
+    def setup_configuration_for_android_target(self, target: str):
+        """If cross-compilation targets Android, configure the Android
+           build by writing the appropriate toolchain configuration values
+           into the stored configuration."""
         if target == "armv7-linux-androideabi":
             self.config["android"]["platform"] = "android-21"
             self.config["android"]["target"] = target
@@ -908,13 +962,12 @@ class CommandBase(object):
             return True
         return False
 
-    def ensure_bootstrapped(self, target=None, rustup_components=None):
+    def ensure_bootstrapped(self, rustup_components=None):
         if self.context.bootstrapped:
             return
 
-        target_platform = target or servo.platform.host_triple()
-
         # Always check if all needed MSVC dependencies are installed
+        target_platform = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in target_platform:
             Registrar.dispatch("bootstrap", context=self.context)
 
@@ -943,10 +996,13 @@ class CommandBase(object):
                 if component.encode("utf-8") not in installed:
                     check_call(["rustup", "component", "add", "--toolchain", toolchain, component])
 
-            if target and "uwp" not in target and target.encode("utf-8") not in check_output(
-                ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
-            ):
-                check_call(["rustup", "target", "add", "--toolchain", toolchain, target])
+            needs_toolchain_install = self.cross_compile_target \
+                and not self.is_uwp_build \
+                and self.cross_compile_target.encode("utf-8") not in check_output(
+                    ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
+                )
+            if needs_toolchain_install:
+                check_call(["rustup", "target", "add", "--toolchain", toolchain, self.cross_compile_target])
 
         self.context.bootstrapped = True
 

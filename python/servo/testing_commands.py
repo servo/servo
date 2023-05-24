@@ -470,10 +470,11 @@ class MachCommands(CommandBase):
         avd = "servo-x86"
         target = "i686-linux-android"
         print("Assuming --target " + target)
+        self.cross_compile_target = target
 
-        env = self.build_env(target=target)
+        env = self.build_env()
         os.environ["PATH"] = env["PATH"]
-        assert self.handle_android_target(target)
+        assert self.setup_configuration_for_android_target(target)
         apk = self.get_apk_path(release)
 
         py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
