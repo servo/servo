@@ -118,6 +118,8 @@ bitflags! {
         const CONTAINER_REQUIRES_WIDTH_AXIS = 1 << 4;
         /// The feature requires containment in the physical height axis.
         const CONTAINER_REQUIRES_HEIGHT_AXIS = 1 << 5;
+        /// The feature evaluation depends on the viewport size.
+        const VIEWPORT_DEPENDENT = 1 << 6;
     }
 }
 

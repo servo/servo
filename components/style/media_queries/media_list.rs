@@ -102,6 +102,11 @@ impl MediaList {
         self.media_queries.is_empty()
     }
 
+    /// Whether this `MediaList` depends on the viewport size.
+    pub fn is_viewport_dependent(&self) -> bool {
+        self.media_queries.iter().any(|q| q.is_viewport_dependent())
+    }
+
     /// Append a new media query item to the media list.
     /// <https://drafts.csswg.org/cssom/#dom-medialist-appendmedium>
     ///
