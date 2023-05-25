@@ -70,6 +70,7 @@ impl DisplayList {
         viewport_size: units::LayoutSize,
         content_size: units::LayoutSize,
         pipeline_id: wr::PipelineId,
+        epoch: wr::Epoch,
     ) -> Self {
         Self {
             wr: wr::DisplayListBuilder::new(pipeline_id, content_size),
@@ -77,6 +78,7 @@ impl DisplayList {
                 viewport_size,
                 content_size,
                 pipeline_id,
+                epoch,
             ),
         }
     }

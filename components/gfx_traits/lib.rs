@@ -28,6 +28,12 @@ impl Epoch {
     }
 }
 
+impl Into<webrender_api::Epoch> for Epoch {
+    fn into(self) -> webrender_api::Epoch {
+        webrender_api::Epoch(self.0)
+    }
+}
+
 /// A unique ID for every stacking context.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct StackingContextId(

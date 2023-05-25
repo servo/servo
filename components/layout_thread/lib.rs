@@ -1069,13 +1069,13 @@ impl LayoutThread {
                     self.viewport_size.height.to_f32_px(),
                 );
 
-                // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let (builder, compositor_info, is_contentful) =
-                    display_list.convert_to_webrender(self.id, viewport_size);
-
                 let mut epoch = self.epoch.get();
                 epoch.next();
                 self.epoch.set(epoch);
+
+                // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
+                let (builder, compositor_info, is_contentful) =
+                    display_list.convert_to_webrender(self.id, viewport_size, epoch.into());
 
                 // Observe notifications about rendered frames if needed right before
                 // sending the display list to WebRender in order to set time related
@@ -1083,12 +1083,8 @@ impl LayoutThread {
                 self.paint_time_metrics
                     .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
-                self.webrender_api.send_display_list(
-                    epoch,
-                    viewport_size,
-                    compositor_info,
-                    builder.finalize(),
-                );
+                self.webrender_api
+                    .send_display_list(compositor_info, builder.finalize());
             },
         );
     }
