@@ -116,7 +116,6 @@ directories = [
   # Upstream
   "./support/android/apk",
   "./support/hololens",
-  "./support/linux/gstreamer",
   "./tests/wpt/harness",
   "./tests/wpt/web-platform-tests",
   "./tests/wpt/mozilla/tests/mozilla/referrer-policy",

@@ -66,7 +66,7 @@ jobs:
       - name: Bootstrap
         run: |
           python3 -m pip install --upgrade pip virtualenv
-          bash etc/install_macos_gstreamer.sh
+          python3 ./mach bootstrap-gstreamer
           brew install gnu-tar
       - name: Release build
         run: |

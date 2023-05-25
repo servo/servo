@@ -24,6 +24,8 @@ import zipfile
 from time import time
 
 import notifypy
+import servo.platform
+import servo.util
 
 from mach.decorators import (
     CommandArgument,
@@ -33,9 +35,8 @@ from mach.decorators import (
 from mach.registrar import Registrar
 
 from mach_bootstrap import _get_exec_path
-from servo.command_base import CommandBase, cd, call, check_call, append_to_path_env, gstreamer_root
+from servo.command_base import CommandBase, cd, call, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
-from servo.platform import host_triple
 
 
 @CommandProvider
@@ -92,7 +93,7 @@ class MachCommands(CommandBase):
         features += media_stack
         has_media_stack = media_stack[0] == "media-gstreamer"
 
-        target_path = base_path = self.get_target_dir()
+        target_path = base_path = servo.util.get_target_dir()
         if android:
             target_path = path.join(target_path, "android")
             base_path = path.join(target_path, target)
@@ -141,8 +142,8 @@ class MachCommands(CommandBase):
         build_start = time()
         env["CARGO_TARGET_DIR"] = target_path
 
-        host = host_triple()
-        target_triple = target or host_triple()
+        host = servo.platform.host_triple()
+        target_triple = target or servo.platform.host_triple()
         if 'apple-darwin' in host and target_triple == host:
             if 'CXXFLAGS' not in env:
                 env['CXXFLAGS'] = ''
@@ -191,7 +192,7 @@ class MachCommands(CommandBase):
 
             # Ensure that the NuGet ANGLE package containing libEGL is accessible
             # to the Rust linker.
-            append_to_path_env(angle_root(target_triple, env), env, "LIB")
+            servo.util.append_paths_to_env(env, "LIB", angle_root(target_triple, env))
 
             # Don't want to mix non-UWP libraries with vendored UWP libraries.
             if "gstreamer" in env['LIB']:
@@ -223,12 +224,6 @@ class MachCommands(CommandBase):
                 print("Failed to run vcvarsall. stderr:")
                 print(stderr.decode(encoding))
                 exit(1)
-
-        # Ensure that GStreamer libraries are accessible when linking.
-        if 'windows' in target_triple:
-            gst_root = gstreamer_root(target_triple, env)
-            if gst_root:
-                append_to_path_env(os.path.join(gst_root, "lib"), env, "LIB")
 
         if android:
             if "ANDROID_NDK" not in env:
@@ -511,9 +506,8 @@ class MachCommands(CommandBase):
                 assert os.path.exists(servo_bin_dir)
 
                 if has_media_stack:
-                    gst_root = gstreamer_root(target, env)
                     print("Packaging gstreamer dylibs")
-                    if not package_gstreamer_dylibs(gst_root, servo_path):
+                    if not package_gstreamer_dylibs(target, servo_path):
                         return 1
 
                     # On Mac we use the relocatable dylibs from offical gstreamer
@@ -776,7 +770,13 @@ def copy_dependencies(binary_path, lib_path, gst_root):
         need_checked.difference_update(checked)
 
 
-def package_gstreamer_dylibs(gst_root, servo_bin):
+def package_gstreamer_dylibs(cross_compilation_target, servo_bin):
+    gst_root = servo.platform.get().gstreamer_root(cross_compilation_target)
+
+    # This might be None if we are cross-compiling.
+    if not gst_root:
+        return True
+
     lib_dir = path.join(path.dirname(servo_bin), "lib")
     if os.path.exists(lib_dir):
         shutil.rmtree(lib_dir)
@@ -791,7 +791,7 @@ def package_gstreamer_dylibs(gst_root, servo_bin):
 
 
 def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
-    gst_root = gstreamer_root(target, env)
+    gst_root = servo.platform.get().gstreamer_root(cross_compilation_target=target)
     if not gst_root:
         print("Could not find GStreamer installation directory.")
         return False

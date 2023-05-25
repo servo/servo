@@ -50,18 +50,10 @@ Please select your operating system:
 
 #### macOS
 
-Xcode version 10.2 or above is recommended.
-
-##### On macOS(Intel based or ARM based) (Homebrew)
-
-NOTE: run these steps after you've cloned the project locally.
-
-``` sh
-cd servo 
-bash etc/install_macos_gstreamer.sh
-brew bundle install --file=etc/homebrew/Brewfile
-pip install virtualenv
-```
+- Install Xcode (version 10.2 or above is recommended)
+- Run `./mach bootstrap-gstreamer`. This will install the recommended version of GStreamer globally on your system.
+- Run `brew bundle install --file=etc/homebrew/Brewfile`
+- Run `pip install virtualenv`
 
 #### On Debian-based distros
 
@@ -82,10 +74,15 @@ sudo apt install git curl autoconf libx11-dev libfreetype6-dev libgl1-mesa-dri \
     libgstreamer-plugins-bad1.0-dev autoconf2.13 llvm-dev
 ```
 
-Additionally, you'll need a local copy of GStreamer with a version later than 16.2. You can place it in `support/linux/gstreamer/gst`, or run `./mach bootstrap-gstreamer` to set it up. On **Ubuntu 20.04LTS**, you can use the system GStreamer if you install the necessary packages:
-``` sh
-sudo apt install gstreamer1.0-nice gstreamer1.0-plugins-bad
-```
+You will also need GStreamer which you can install in two ways:
+
+1. On **Ubuntu 20.04 LTS or greater**:  The system version of GStreamer is sufficient if you install the necessary plugins:
+
+   ```
+    sudo apt install gstreamer1.0-nice gstreamer1.0-plugins-bad
+   ```
+
+2. Run `./mach bootstrap-gstreamer` to install the prepackaged binaries into the `target` directory.
 
 If you are using **Ubuntu 16.04** or **Linux Mint 18**, run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
 
@@ -188,39 +185,40 @@ You will need to run this in every shell before running mach.
 
 1. Install Python 3.9 for Windows (https://www.python.org/downloads/release/python-392/). The Windows x86-64 MSI installer is fine. This is required in order to build the JavaScript engine, SpiderMonkey.
 
-You will also need to set the `PYTHON3` environment variable, e.g., to 'C:\Python39\python.exe' by doing:
-```
-setx PYTHON3 "C:\Python39\python.exe" /m
-```
-The `/m` will set it system-wide for all future command windows.
+   You will also need to set the `PYTHON3` environment variable, e.g., to 'C:\Python39\python.exe' by doing:
+   ```
+   setx PYTHON3 "C:\Python39\python.exe" /m
+   ```
+   The `/m` will set it system-wide for all future command windows.
 
-2. Install virtualenv.
+2. Install virtualenv. In a normal Windows Shell (cmd), do:
+     ```
+    pip install virtualenv
+    ```
+     If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
 
- In a normal Windows Shell (cmd), do:
- ```
-pip install virtualenv
-```
- If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
+3. Install GStreamer:
+    ```
+    mach bootstrap-gstreamer
+    ```
+   You can also install GStreamer manually using the MSVC (**not MingGW**) binaries from the [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) site. The currently recommended version is 1.16.0. i.e:
 
-3. Install the most recent [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) MSVC packages. You need to download the two `.msi` files for your platform from the [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) website and install them. The currently recommended version is 1.16.0. i.e.:
+    - [gstreamer-1.0-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi)
+    - [gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi)
 
-- [gstreamer-1.0-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi)
-- [gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi)
 
-Note that the MinGW binaries will not work, so make sure that you install the MSVC ones.
-
-Note that you should ensure that _all_ components are installed from gstreamer, as we require many of the optional libraries that are not installed by default.
+   Note that you should ensure that _all_ components are installed from gstreamer, as we require many of the optional libraries that are not installed by default.
 
 4. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
 settings for the installer are fine).
 
 5. Install Visual Studio Build Tools 2019 (https://visualstudio.microsoft.com/de/downloads/#build-tools-for-visual-studio-2019). It is easiest to install via [Chocolatey](https://chocolatey.org/install#installing-chocolatey) with:
-```
-choco install -y visualstudio2019buildtools --package-parameters="--add Microsoft.VisualStudio.Component.Roslyn.Compiler --add Microsoft.Component.MSBuild --add Microsoft.VisualStudio.Component.CoreBuildTools --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.VisualStudio.Component.VC.CoreBuildTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC --add Microsoft.VisualStudio.Component.TextTemplating --add Microsoft.VisualStudio.Component.VC.CoreIde --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core --add Microsoft.VisualStudio.Workload.VCTools"
-```
-If you really need to use the Visual Studio Installer (UI), choose "Desktop development with C++" and add the optional "MSVC", "C++-ATL" and "C++-MFC" (latest).
+   ```
+   choco install -y visualstudio2019buildtools --package-parameters="--add Microsoft.VisualStudio.Component.Roslyn.Compiler --add Microsoft.Component.MSBuild --add Microsoft.VisualStudio.Component.CoreBuildTools --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.VisualStudio.Component.VC.CoreBuildTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC --add Microsoft.VisualStudio.Component.TextTemplating --add Microsoft.VisualStudio.Component.VC.CoreIde --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core --add Microsoft.VisualStudio.Workload.VCTools"
+   ```
+   If you really need to use the Visual Studio Installer (UI), choose "Desktop development with C++" and add the optional "MSVC", "C++-ATL" and "C++-MFC" (latest).
 
-The Visual Studio 2019 Build Tools MUST be installed to the default location or mach.bat will not find them.
+   The Visual Studio 2019 Build Tools MUST be installed to the default location or mach.bat will not find them.
 
 ##### [Optional] Install LLVM for faster link times
 

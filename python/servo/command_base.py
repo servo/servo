@@ -34,12 +34,12 @@ from subprocess import PIPE
 
 import toml
 import servo.platform
+import servo.util as util
 
 from xml.etree.ElementTree import XML
 from servo.util import download_file, get_default_cache_dir
 from mach.decorators import CommandArgument
 from mach.registrar import Registrar
-from servo.gstreamer import macos_gst_root
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
@@ -213,37 +213,6 @@ def is_linux():
     return sys.platform.startswith('linux')
 
 
-def append_to_path_env(string, env, name):
-    variable = ""
-    if name in env:
-        variable = six.ensure_str(env[name])
-        if len(variable) > 0:
-            variable += os.pathsep
-    variable += string
-    env[name] = variable
-
-
-def gstreamer_root(target, env, topdir=None):
-    if is_windows():
-        arch = {
-            "x86_64": "X86_64",
-            "x86": "X86",
-            "aarch64": "ARM64",
-        }
-        gst_x64 = arch[target.split('-')[0]]
-        gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
-        gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
-        if env.get(gst_env) is not None:
-            return env.get(gst_env)
-        elif os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
-            return gst_default_path
-    elif is_linux():
-        return path.join(topdir, "support", "linux", "gstreamer", "gst")
-    elif is_macosx():
-        return macos_gst_root()
-    return None
-
-
 class BuildNotFound(Exception):
     def __init__(self, message):
         self.message = message
@@ -343,14 +312,8 @@ class CommandBase(object):
     def get_top_dir(self):
         return self.context.topdir
 
-    def get_target_dir(self):
-        if "CARGO_TARGET_DIR" in os.environ:
-            return os.environ["CARGO_TARGET_DIR"]
-        else:
-            return path.join(self.context.topdir, "target")
-
     def get_apk_path(self, release):
-        base_path = self.get_target_dir()
+        base_path = util.get_target_dir()
         base_path = path.join(base_path, "android", self.config["android"]["target"])
         apk_name = "servoapp.apk"
         build_type = "release" if release else "debug"
@@ -359,7 +322,7 @@ class CommandBase(object):
     def get_binary_path(self, release, dev, target=None, android=False, simpleservo=False):
         # TODO(autrilla): this function could still use work - it shouldn't
         # handle quitting, or printing. It should return the path, or an error.
-        base_path = self.get_target_dir()
+        base_path = util.get_target_dir()
 
         binary_name = "servo" + BIN_SUFFIX
 
@@ -532,56 +495,6 @@ class CommandBase(object):
 
         return self.get_executable(destination_folder)
 
-    def needs_gstreamer_env(self, target, env, uwp=False, features=[]):
-        if uwp:
-            return False
-        if "media-dummy" in features:
-            return False
-
-        # MacOS always needs the GStreamer environment variable, but should
-        # also check that the Servo-specific version is downloaded and available.
-        if is_macosx():
-            if servo.platform.get().is_gstreamer_installed():
-                return True
-            else:
-                raise Exception("Official GStreamer framework not found (we need at least 1.21)."
-                                "Please see installation instructions in README.md")
-
-        try:
-            if servo.platform.get().is_gstreamer_installed():
-                return False
-        except Exception:
-            # Some systems don't have pkg-config; we can't probe in this case
-            # and must hope for the best
-            return False
-        effective_target = target or servo.platform.host_triple()
-        if "x86_64" not in effective_target or "android" in effective_target:
-            # We don't build gstreamer for non-x86_64 / android yet
-            return False
-        if is_linux() or is_windows():
-            if path.isdir(gstreamer_root(effective_target, env, self.get_top_dir())):
-                return True
-            else:
-                raise Exception("Your system's gstreamer libraries are out of date \
-(we need at least 1.16). Please run ./mach bootstrap-gstreamer")
-        else:
-            raise Exception("Your system's gstreamer libraries are out of date \
-(we need at least 1.16). If you're unable to \
-install them, let us know by filing a bug!")
-        return False
-
-    def set_run_env(self, android=False):
-        """Some commands, like test-wpt, don't use a full build env,
-           but may still need dynamic search paths. This command sets that up"""
-        if not android and self.needs_gstreamer_env(None, os.environ):
-            gstpath = gstreamer_root(servo.platform.host_triple(), os.environ, self.get_top_dir())
-            if gstpath is None:
-                return
-            os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib")
-            os.environ["GST_PLUGIN_SYSTEM_PATH"] = path.join(gstpath, "lib", "gstreamer-1.0")
-            os.environ["PKG_CONFIG_PATH"] = path.join(gstpath, "lib", "pkgconfig")
-            os.environ["GST_PLUGIN_SCANNER"] = path.join(gstpath, "libexec", "gstreamer-1.0", "gst-plugin-scanner")
-
     def msvc_package_dir(self, package):
         return path.join(self.context.sharedir, "msvc-dependencies", package,
                          servo.platform.windows.DEPENDENCIES[package])
@@ -606,6 +519,10 @@ install them, let us know by filing a bug!")
     def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False, uwp=False, features=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
+
+        if not features or "media-dummy" not in features:
+            servo.platform.get().set_gstreamer_environment_variables_if_necessary(env, cross_compilation_target=target)
+
         if sys.platform == "win32" and type(env['PATH']) == six.text_type:
             # On win32, the virtualenv's activate_this.py script sometimes ends up
             # turning os.environ['PATH'] into a unicode string.  This doesn't work
@@ -615,7 +532,6 @@ install them, let us know by filing a bug!")
             # it in any case.
             env['PATH'] = env['PATH'].encode('ascii', 'ignore')
         extra_path = []
-        extra_lib = []
         if "msvc" in (target or servo.platform.host_triple()):
             extra_path += [path.join(self.msvc_package_dir("cmake"), "bin")]
             extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
@@ -666,19 +582,6 @@ install them, let us know by filing a bug!")
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if is_build and self.needs_gstreamer_env(target or servo.platform.host_triple(), env, uwp, features):
-            gst_root = gstreamer_root(target or servo.platform.host_triple(), env, self.get_top_dir())
-            bin_path = path.join(gst_root, "bin")
-            lib_path = path.join(gst_root, "lib")
-            pkg_config_path = path.join(lib_path, "pkgconfig")
-            # we append in the reverse order so that system gstreamer libraries
-            # do not get precedence
-            extra_path = [bin_path] + extra_path
-            extra_lib = [lib_path] + extra_lib
-            append_to_path_env(pkg_config_path, env, "PKG_CONFIG_PATH")
-            if is_macosx():
-                env["OPENSSL_INCLUDE_DIR"] = path.join(gst_root, "Headers")
-
         if is_linux():
             distrib, version, _ = distro.linux_distribution()
             distrib = six.ensure_str(distrib)
@@ -687,16 +590,12 @@ install them, let us know by filing a bug!")
                 env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
         if extra_path:
-            append_to_path_env(os.pathsep.join(extra_path), env, "PATH")
+            util.append_paths_to_env(env, "PATH", extra_path)
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
         elif self.config["build"]["incremental"] is not None:
             env["CARGO_INCREMENTAL"] = "0"
-
-        if extra_lib:
-            path_var = "DYLD_LIBRARY_PATH" if sys.platform == "darwin" else "LD_LIBRARY_PATH"
-            append_to_path_env(os.pathsep.join(extra_lib), env, path_var)
 
         # Paths to Android build tools:
         if self.config["android"]["sdk"]:
@@ -737,6 +636,14 @@ install them, let us know by filing a bug!")
             # This wrapper script is in bash and doesn't work on Windows
             # where we want to run doctests as part of `./mach test-unit`
             env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
+        elif "msvc" in servo.platform.host_triple():
+            # on MSVC, we need some DLLs in the path. They were copied
+            # in to the servo.exe build dir, so just point PATH to that.
+            util.prepend_paths_to_env(env, "PATH", path.dirname(self.get_binary_path(False, False)))
+
+        # FIXME: https://github.com/servo/servo/issues/26192
+        if test_unit and "apple-darwin" not in servo.platform.host_triple():
+            env["RUST_BACKTRACE"] = "1"
 
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
@@ -1067,7 +974,7 @@ install them, let us know by filing a bug!")
 
     def ensure_clobbered(self, target_dir=None):
         if target_dir is None:
-            target_dir = self.get_target_dir()
+            target_dir = util.get_target_dir()
         auto = True if os.environ.get('AUTOCLOBBER', False) else False
         src_clobber = os.path.join(self.context.topdir, 'CLOBBER')
         target_clobber = os.path.join(target_dir, 'CLOBBER')

@@ -17,9 +17,12 @@ import stat
 import sys
 import time
 import urllib
+import urllib.request
 import zipfile
+from typing import Dict, List, Union
 
-from io import BytesIO
+import six
+from io import BufferedIOBase, BytesIO
 from socket import error as socket_error
 
 try:
@@ -27,6 +30,8 @@ try:
 except ImportError:
     HAS_SNI = False
 
+SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
+SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 HAS_SNI_AND_RECENT_PYTHON = HAS_SNI and sys.version_info >= (2, 7, 9)
 
 
@@ -58,17 +63,17 @@ def delete(path):
         os.remove(path)
 
 
-def download(desc, src, writer, start_byte=0):
+def download(description: str, url: str, writer: BufferedIOBase, start_byte: int = 0):
     if start_byte:
-        print("Resuming download of {} ...".format(src))
+        print("Resuming download of {} ...".format(url))
     else:
-        print("Downloading {} ...".format(src))
+        print("Downloading {} ...".format(url))
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
 
     try:
-        req = urllib.request.Request(src)
+        req = urllib.request.Request(url)
         if start_byte:
-            req = urllib.request.Request(src, headers={'Range': 'bytes={}-'.format(start_byte)})
+            req = urllib.request.Request(url, headers={'Range': 'bytes={}-'.format(start_byte)})
         resp = urllib.request.urlopen(req, **get_urlopen_kwargs())
 
         fsize = None
@@ -79,7 +84,7 @@ def download(desc, src, writer, start_byte=0):
         chunk_size = 64 * 1024
 
         previous_progress_line = None
-        previous_progress_line_time = 0
+        previous_progress_line_time = 0.0
         while True:
             chunk = resp.read(chunk_size)
             if not chunk:
@@ -88,7 +93,7 @@ def download(desc, src, writer, start_byte=0):
             if not dumb:
                 if fsize is not None:
                     pct = recved * 100.0 / fsize
-                    progress_line = "\rDownloading %s: %5.1f%%" % (desc, pct)
+                    progress_line = "\rDownloading %s: %5.1f%%" % (description, pct)
                     now = time.time()
                     duration = now - previous_progress_line_time
                     if progress_line != previous_progress_line and duration > .1:
@@ -102,13 +107,13 @@ def download(desc, src, writer, start_byte=0):
         if not dumb:
             print()
     except urllib.error.HTTPError as e:
-        print("Download failed ({}): {} - {}".format(e.code, e.reason, src))
+        print("Download failed ({}): {} - {}".format(e.code, e.reason, url))
         if e.code == 403:
             print("No Rust compiler binary available for this platform. "
                   "Please see https://github.com/servo/servo/#prerequisites")
         sys.exit(1)
     except urllib.error.URLError as e:
-        print("Error downloading {}: {}. The failing URL was: {}".format(desc, e.reason, src))
+        print("Error downloading {}: {}. The failing URL was: {}".format(description, e.reason, url))
         sys.exit(1)
     except socket_error as e:
         print("Looks like there's a connectivity issue, check your Internet connection. {}".format(e))
@@ -118,22 +123,22 @@ def download(desc, src, writer, start_byte=0):
         raise
 
 
-def download_bytes(desc, src):
+def download_bytes(description: str, url: str):
     content_writer = BytesIO()
-    download(desc, src, content_writer)
+    download(description, url, content_writer)
     return content_writer.getvalue()
 
 
-def download_file(desc, src, dst):
-    tmp_path = dst + ".part"
+def download_file(description: str, url: str, destination_path: str):
+    tmp_path = destination_path + ".part"
     try:
         start_byte = os.path.getsize(tmp_path)
         with open(tmp_path, 'ab') as fd:
-            download(desc, src, fd, start_byte=start_byte)
+            download(description, url, fd, start_byte=start_byte)
     except os.error:
         with open(tmp_path, 'wb') as fd:
-            download(desc, src, fd)
-    os.rename(tmp_path, dst)
+            download(description, url, fd)
+    os.rename(tmp_path, destination_path)
 
 
 # https://stackoverflow.com/questions/39296101/python-zipfile-removes-execute-permissions-from-binaries
@@ -198,3 +203,30 @@ def check_hash(filename, expected, algorithm):
 
 def get_default_cache_dir(topdir):
     return os.environ.get("SERVO_CACHE_DIR", os.path.join(topdir, ".servo"))
+
+
+def append_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[str]]):
+    if isinstance(paths, list):
+        paths = os.pathsep.join(paths)
+
+    existing_value = env.get(key, None)
+    if existing_value:
+        new_value = six.ensure_str(existing_value) + os.pathsep + paths
+    else:
+        new_value = paths
+    env[key] = new_value
+
+
+def prepend_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[str]]):
+    if isinstance(paths, list):
+        paths = os.pathsep.join(paths)
+
+    existing_value = env.get(key, None)
+    new_value = paths
+    if existing_value:
+        new_value += os.pathsep + six.ensure_str(existing_value)
+    env[key] = new_value
+
+
+def get_target_dir():
+    return os.environ.get("CARGO_TARGET_DIR", os.path.join(SERVO_ROOT, "target"))
