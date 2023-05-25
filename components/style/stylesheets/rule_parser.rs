@@ -357,13 +357,11 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a, 'i> {
 
                 self.state = State::Namespaces;
                 self.rules
-                    .push(CssRule::Namespace(Arc::new(self.shared_lock.wrap(
-                        NamespaceRule {
-                            prefix,
-                            url,
-                            source_location: start.source_location(),
-                        },
-                    ))));
+                    .push(CssRule::Namespace(Arc::new(NamespaceRule {
+                        prefix,
+                        url,
+                        source_location: start.source_location(),
+                    })));
             },
             AtRulePrelude::Layer(..) => {
                 AtRuleParser::rule_without_block(&mut self.nested(), prelude, start)?;
@@ -637,25 +635,21 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
             }),
             AtRulePrelude::FontFeatureValues(family_names) => {
                 self.nest_for_rule(CssRuleType::FontFeatureValues, |p| {
-                    CssRule::FontFeatureValues(Arc::new(p.shared_lock.wrap(
-                        FontFeatureValuesRule::parse(
-                            &p.context,
-                            input,
-                            family_names,
-                            start.source_location(),
-                        ),
+                    CssRule::FontFeatureValues(Arc::new(FontFeatureValuesRule::parse(
+                        &p.context,
+                        input,
+                        family_names,
+                        start.source_location(),
                     )))
                 })
             },
             AtRulePrelude::FontPaletteValues(name) => {
                 self.nest_for_rule(CssRuleType::FontPaletteValues, |p| {
-                    CssRule::FontPaletteValues(Arc::new(p.shared_lock.wrap(
-                        FontPaletteValuesRule::parse(
-                            &p.context,
-                            input,
-                            name,
-                            start.source_location(),
-                        ),
+                    CssRule::FontPaletteValues(Arc::new(FontPaletteValuesRule::parse(
+                        &p.context,
+                        input,
+                        name,
+                        start.source_location(),
                     )))
                 })
             },
@@ -667,36 +661,32 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
             },
             AtRulePrelude::Media(media_queries) => {
                 let source_location = start.source_location();
-                CssRule::Media(Arc::new(
-                    self.shared_lock.wrap(MediaRule {
-                        media_queries,
-                        rules: self
-                            .parse_nested(input, CssRuleType::Media, None)
-                            .into_rules(self.shared_lock, source_location),
-                        source_location,
-                    }),
-                ))
+                CssRule::Media(Arc::new(MediaRule {
+                    media_queries,
+                    rules: self
+                        .parse_nested(input, CssRuleType::Media, None)
+                        .into_rules(self.shared_lock, source_location),
+                    source_location,
+                }))
             },
             AtRulePrelude::Supports(condition) => {
                 let enabled =
                     self.nest_for_rule(CssRuleType::Style, |p| condition.eval(&p.context));
                 let source_location = start.source_location();
-                CssRule::Supports(Arc::new(
-                    self.shared_lock.wrap(SupportsRule {
-                        condition,
-                        rules: self
-                            .parse_nested(input, CssRuleType::Supports, None)
-                            .into_rules(self.shared_lock, source_location),
-                        enabled,
-                        source_location,
-                    }),
-                ))
+                CssRule::Supports(Arc::new(SupportsRule {
+                    condition,
+                    rules: self
+                        .parse_nested(input, CssRuleType::Supports, None)
+                        .into_rules(self.shared_lock, source_location),
+                    enabled,
+                    source_location,
+                }))
             },
             AtRulePrelude::Viewport => {
                 let body = self.nest_for_rule(CssRuleType::Viewport, |p| {
                     ViewportRule::parse(&p.context, input)
                 })?;
-                CssRule::Viewport(Arc::new(self.shared_lock.wrap(body)))
+                CssRule::Viewport(Arc::new(body))
             },
             AtRulePrelude::Keyframes(name, vendor_prefix) => {
                 self.nest_for_rule(CssRuleType::Keyframe, |p| {
@@ -732,27 +722,23 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                     unreachable!()
                 }
                 let source_location = start.source_location();
-                CssRule::Document(Arc::new(
-                    self.shared_lock.wrap(DocumentRule {
-                        condition,
-                        rules: self
-                            .parse_nested(input, CssRuleType::Document, None)
-                            .into_rules(self.shared_lock, source_location),
-                        source_location,
-                    }),
-                ))
+                CssRule::Document(Arc::new(DocumentRule {
+                    condition,
+                    rules: self
+                        .parse_nested(input, CssRuleType::Document, None)
+                        .into_rules(self.shared_lock, source_location),
+                    source_location,
+                }))
             },
             AtRulePrelude::Container(condition) => {
                 let source_location = start.source_location();
-                CssRule::Container(Arc::new(
-                    self.shared_lock.wrap(ContainerRule {
-                        condition,
-                        rules: self
-                            .parse_nested(input, CssRuleType::Container, None)
-                            .into_rules(self.shared_lock, source_location),
-                        source_location,
-                    }),
-                ))
+                CssRule::Container(Arc::new(ContainerRule {
+                    condition,
+                    rules: self
+                        .parse_nested(input, CssRuleType::Container, None)
+                        .into_rules(self.shared_lock, source_location),
+                    source_location,
+                }))
             },
             AtRulePrelude::Layer(names) => {
                 let name = match names.len() {
@@ -760,15 +746,13 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                     _ => return Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid)),
                 };
                 let source_location = start.source_location();
-                CssRule::LayerBlock(Arc::new(
-                    self.shared_lock.wrap(LayerBlockRule {
-                        name,
-                        rules: self
-                            .parse_nested(input, CssRuleType::LayerBlock, None)
-                            .into_rules(self.shared_lock, source_location),
-                        source_location,
-                    }),
-                ))
+                CssRule::LayerBlock(Arc::new(LayerBlockRule {
+                    name,
+                    rules: self
+                        .parse_nested(input, CssRuleType::LayerBlock, None)
+                        .into_rules(self.shared_lock, source_location),
+                    source_location,
+                }))
             },
             AtRulePrelude::Import(..) | AtRulePrelude::Namespace(..) => {
                 // These rules don't have blocks.
@@ -790,10 +774,10 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                 if names.is_empty() {
                     return Err(());
                 }
-                CssRule::LayerStatement(Arc::new(self.shared_lock.wrap(LayerStatementRule {
+                CssRule::LayerStatement(Arc::new(LayerStatementRule {
                     names,
                     source_location: start.source_location(),
-                })))
+                }))
             },
             _ => return Err(()),
         };

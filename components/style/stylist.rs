@@ -1710,11 +1710,11 @@ pub struct ExtraStyleData {
 
     /// A list of effective font-feature-values rules.
     #[cfg(feature = "gecko")]
-    pub font_feature_values: LayerOrderedVec<Arc<Locked<FontFeatureValuesRule>>>,
+    pub font_feature_values: LayerOrderedVec<Arc<FontFeatureValuesRule>>,
 
     /// A list of effective font-palette-values rules.
     #[cfg(feature = "gecko")]
-    pub font_palette_values: LayerOrderedVec<Arc<Locked<FontPaletteValuesRule>>>,
+    pub font_palette_values: LayerOrderedVec<Arc<FontPaletteValuesRule>>,
 
     /// A map of effective counter-style rules.
     #[cfg(feature = "gecko")]
@@ -1735,7 +1735,7 @@ impl ExtraStyleData {
     /// Add the given @font-feature-values rule.
     fn add_font_feature_values(
         &mut self,
-        rule: &Arc<Locked<FontFeatureValuesRule>>,
+        rule: &Arc<FontFeatureValuesRule>,
         layer: LayerId,
     ) {
         self.font_feature_values.push(rule.clone(), layer);
@@ -1744,7 +1744,7 @@ impl ExtraStyleData {
     /// Add the given @font-palette-values rule.
     fn add_font_palette_values(
         &mut self,
-        rule: &Arc<Locked<FontPaletteValuesRule>>,
+        rule: &Arc<FontPaletteValuesRule>,
         layer: LayerId,
     ) {
         self.font_palette_values.push(rule.clone(), layer);
@@ -2630,8 +2630,7 @@ impl CascadeData {
                     debug!(" + {:?}", import_rule.stylesheet.media(guard));
                     results.push(import_rule.to_media_list_key());
                 },
-                CssRule::Media(ref lock) => {
-                    let media_rule = lock.read_with(guard);
+                CssRule::Media(ref media_rule) => {
                     debug!(" + {:?}", media_rule.media_queries.read_with(guard));
                     results.push(media_rule.to_media_list_key());
                 },
@@ -2952,19 +2951,16 @@ impl CascadeData {
                         ImportLayer::None => {},
                     }
                 },
-                CssRule::Media(ref lock) => {
+                CssRule::Media(ref media_rule) => {
                     if rebuild_kind.should_rebuild_invalidation() {
-                        let media_rule = lock.read_with(guard);
-                        self.effective_media_query_results.saw_effective(media_rule);
+                        self.effective_media_query_results.saw_effective(&**media_rule);
                     }
                 },
-                CssRule::LayerBlock(ref lock) => {
-                    let layer_rule = lock.read_with(guard);
-                    maybe_register_layers(self, layer_rule.name.as_ref(), containing_rule_state);
+                CssRule::LayerBlock(ref rule) => {
+                    maybe_register_layers(self, rule.name.as_ref(), containing_rule_state);
                 },
-                CssRule::LayerStatement(ref lock) => {
-                    let layer_rule = lock.read_with(guard);
-                    for name in &*layer_rule.names {
+                CssRule::LayerStatement(ref rule) => {
+                    for name in &*rule.names {
                         maybe_register_layers(self, Some(name), containing_rule_state);
                         // Register each layer individually.
                         containing_rule_state.restore(&saved_containing_rule_state);
@@ -2975,12 +2971,11 @@ impl CascadeData {
                         containing_rule_state.ancestor_selector_lists.push(s);
                     }
                 }
-                CssRule::Container(ref lock) => {
-                    let container_rule = lock.read_with(guard);
+                CssRule::Container(ref rule) => {
                     let id = ContainerConditionId(self.container_conditions.len() as u16);
                     self.container_conditions.push(ContainerConditionReference {
                         parent: containing_rule_state.container_condition_id,
-                        condition: Some(container_rule.condition.clone()),
+                        condition: Some(rule.condition.clone()),
                     });
                     containing_rule_state.container_condition_id = id;
                 },
@@ -3124,12 +3119,11 @@ impl CascadeData {
                         iter.skip_children();
                     }
                 },
-                CssRule::Media(ref lock) => {
-                    let media_rule = lock.read_with(guard);
+                CssRule::Media(ref media_rule) => {
                     let mq = media_rule.media_queries.read_with(guard);
                     let effective_now = mq.evaluate(device, quirks_mode);
                     let effective_then =
-                        self.effective_media_query_results.was_effective(media_rule);
+                        self.effective_media_query_results.was_effective(&**media_rule);
 
                     if effective_now != effective_then {
                         debug!(

@@ -250,23 +250,23 @@ impl Eq for UrlExtraData {}
 pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
-    Namespace(Arc<Locked<NamespaceRule>>),
+    Namespace(Arc<NamespaceRule>),
     Import(Arc<Locked<ImportRule>>),
     Style(Arc<Locked<StyleRule>>),
-    Media(Arc<Locked<MediaRule>>),
-    Container(Arc<Locked<ContainerRule>>),
+    Media(Arc<MediaRule>),
+    Container(Arc<ContainerRule>),
     FontFace(Arc<Locked<FontFaceRule>>),
-    FontFeatureValues(Arc<Locked<FontFeatureValuesRule>>),
-    FontPaletteValues(Arc<Locked<FontPaletteValuesRule>>),
+    FontFeatureValues(Arc<FontFeatureValuesRule>),
+    FontPaletteValues(Arc<FontPaletteValuesRule>),
     CounterStyle(Arc<Locked<CounterStyleRule>>),
-    Viewport(Arc<Locked<ViewportRule>>),
+    Viewport(Arc<ViewportRule>),
     Keyframes(Arc<Locked<KeyframesRule>>),
-    Supports(Arc<Locked<SupportsRule>>),
+    Supports(Arc<SupportsRule>),
     Page(Arc<Locked<PageRule>>),
     Property(Arc<PropertyRule>),
-    Document(Arc<Locked<DocumentRule>>),
-    LayerBlock(Arc<Locked<LayerBlockRule>>),
-    LayerStatement(Arc<Locked<LayerStatementRule>>),
+    Document(Arc<DocumentRule>),
+    LayerBlock(Arc<LayerBlockRule>),
+    LayerStatement(Arc<LayerStatementRule>),
 }
 
 impl CssRule {
@@ -285,36 +285,30 @@ impl CssRule {
             CssRule::Style(ref lock) => {
                 lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
             },
-
-            CssRule::Media(ref lock) => {
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            CssRule::Media(ref arc) => {
+                arc.unconditional_shallow_size_of(ops) + arc.size_of(guard, ops)
             },
-
-            CssRule::Container(ref lock) => {
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            CssRule::Container(ref arc) => {
+                arc.unconditional_shallow_size_of(ops) + arc.size_of(guard, ops)
             },
-
             CssRule::FontFace(_) => 0,
             CssRule::FontFeatureValues(_) => 0,
             CssRule::FontPaletteValues(_) => 0,
             CssRule::CounterStyle(_) => 0,
             CssRule::Viewport(_) => 0,
             CssRule::Keyframes(_) => 0,
-
-            CssRule::Supports(ref lock) => {
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            CssRule::Supports(ref arc) => {
+                arc.unconditional_shallow_size_of(ops) + arc.size_of(guard, ops)
             },
-
             CssRule::Page(ref lock) => {
                 lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
             },
-
-            CssRule::Property(ref rule) => rule.size_of(guard, ops),
-
-            CssRule::Document(ref lock) => {
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            CssRule::Property(ref rule) => {
+                rule.unconditional_shallow_size_of(ops) + rule.size_of(guard, ops)
             },
-
+            CssRule::Document(ref arc) => {
+                arc.unconditional_shallow_size_of(ops) + arc.size_of(guard, ops)
+            },
             // TODO(emilio): Add memory reporting for these rules.
             CssRule::LayerBlock(_) | CssRule::LayerStatement(_) => 0,
         }
@@ -488,8 +482,7 @@ impl DeepCloneWithLock for CssRule {
     ) -> CssRule {
         match *self {
             CssRule::Namespace(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::Namespace(Arc::new(lock.wrap(rule.clone())))
+                CssRule::Namespace(arc.clone())
             },
             CssRule::Import(ref arc) => {
                 let rule = arc
@@ -504,36 +497,27 @@ impl DeepCloneWithLock for CssRule {
                 ))
             },
             CssRule::Container(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::Container(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
-                ))
+                CssRule::Container(Arc::new(arc.deep_clone_with_lock(lock, guard, params)))
             },
             CssRule::Media(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::Media(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
-                ))
+                CssRule::Media(Arc::new(arc.deep_clone_with_lock(lock, guard, params)))
             },
             CssRule::FontFace(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::FontFace(Arc::new(lock.wrap(rule.clone())))
             },
             CssRule::FontFeatureValues(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::FontFeatureValues(Arc::new(lock.wrap(rule.clone())))
+                CssRule::FontFeatureValues(arc.clone())
             },
             CssRule::FontPaletteValues(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::FontPaletteValues(Arc::new(lock.wrap(rule.clone())))
+                CssRule::FontPaletteValues(arc.clone())
             },
             CssRule::CounterStyle(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::CounterStyle(Arc::new(lock.wrap(rule.clone())))
             },
             CssRule::Viewport(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::Viewport(Arc::new(lock.wrap(rule.clone())))
+                CssRule::Viewport(arc.clone())
             },
             CssRule::Keyframes(ref arc) => {
                 let rule = arc.read_with(guard);
@@ -542,10 +526,7 @@ impl DeepCloneWithLock for CssRule {
                 ))
             },
             CssRule::Supports(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::Supports(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
-                ))
+                CssRule::Supports(Arc::new(arc.deep_clone_with_lock(lock, guard, params)))
             },
             CssRule::Page(ref arc) => {
                 let rule = arc.read_with(guard);
@@ -559,22 +540,13 @@ impl DeepCloneWithLock for CssRule {
                 CssRule::Property(arc.clone())
             },
             CssRule::Document(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::Document(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
-                ))
+                CssRule::Document(Arc::new(arc.deep_clone_with_lock(lock, guard, params)))
             },
             CssRule::LayerStatement(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::LayerStatement(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
-                ))
+                CssRule::LayerStatement(arc.clone())
             },
             CssRule::LayerBlock(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::LayerBlock(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
-                ))
+                CssRule::LayerBlock(Arc::new(arc.deep_clone_with_lock(lock, guard, params)))
             },
         }
     }
@@ -584,23 +556,23 @@ impl ToCssWithGuard for CssRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule
     fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         match *self {
-            CssRule::Namespace(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Namespace(ref rule) => rule.to_css(guard, dest),
             CssRule::Import(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Style(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::FontFace(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::FontFeatureValues(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::FontPaletteValues(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::FontFeatureValues(ref rule) => rule.to_css(guard, dest),
+            CssRule::FontPaletteValues(ref rule) => rule.to_css(guard, dest),
             CssRule::CounterStyle(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::Viewport(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Viewport(ref rule) => rule.to_css(guard, dest),
             CssRule::Keyframes(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::Media(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::Supports(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Media(ref rule) => rule.to_css(guard, dest),
+            CssRule::Supports(ref rule) => rule.to_css(guard, dest),
             CssRule::Page(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Property(ref rule) => rule.to_css(guard, dest),
-            CssRule::Document(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::LayerBlock(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::LayerStatement(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::Container(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Document(ref rule) => rule.to_css(guard, dest),
+            CssRule::LayerBlock(ref rule) => rule.to_css(guard, dest),
+            CssRule::LayerStatement(ref rule) => rule.to_css(guard, dest),
+            CssRule::Container(ref rule) => rule.to_css(guard, dest),
         }
     }
 }
