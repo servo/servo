@@ -232,7 +232,7 @@ pub mod shorthands {
 // which don't exist in `LonghandId`.
 
 <%
-    extra = [
+    extra_variants = [
         {
             "name": "CSSWideKeyword",
             "type": "WideKeywordDeclaration",
@@ -252,7 +252,7 @@ pub mod shorthands {
             "copy": False,
         },
     ]
-    for v in extra:
+    for v in extra_variants:
         variants.append(v)
         groups[v["type"]] = [v]
 %>
@@ -394,6 +394,17 @@ impl MallocSizeOf for PropertyDeclaration {
 
 
 impl PropertyDeclaration {
+    /// Returns whether this is a variant of the Longhand(Value) type, rather
+    /// than one of the special variants in extra_variants.
+    fn is_longhand_value(&self) -> bool {
+        match *self {
+            % for v in extra_variants:
+            PropertyDeclaration::${v["name"]}(..) => false,
+            % endfor
+            _ => true,
+        }
+    }
+
     /// Like the method on ToCss, but without the type parameter to avoid
     /// accidentally monomorphizing this large function multiple times for
     /// different writers.
@@ -408,6 +419,24 @@ impl PropertyDeclaration {
             }
             % endfor
         }
+    }
+
+    /// Returns the color value of a given property, for high-contrast-mode
+    /// tweaks.
+    pub(crate) fn color_value(&self) -> Option<<&crate::values::specified::Color> {
+        ${static_longhand_id_set("COLOR_PROPERTIES", lambda p: p.predefined_type == "Color")}
+        <%
+            # sanity check
+            assert data.longhands_by_name["background-color"].predefined_type == "Color"
+
+            color_specified_type = data.longhands_by_name["background-color"].specified_type()
+        %>
+        let id = self.id().as_longhand()?;
+        if !COLOR_PROPERTIES.contains(id) || !self.is_longhand_value() {
+            return None;
+        }
+        let repr = self as *const _ as *const PropertyDeclarationVariantRepr<${color_specified_type}>;
+        Some(unsafe { &(*repr).value })
     }
 }
 
@@ -1366,6 +1395,9 @@ impl LonghandId {
 
             // font-size depends on math-depth's computed value.
             LonghandId::MathDepth |
+
+            // color-scheme affects how system colors resolve.
+            LonghandId::ColorScheme |
             % endif
 
             // Needed to compute the first available font, in order to
@@ -1471,74 +1503,66 @@ impl ShorthandId {
     ///
     /// Returns an error if writing to the stream fails, or if the declarations
     /// do not map to a shorthand.
-    pub fn longhands_to_css<'a, W, I>(
+    pub fn longhands_to_css(
         &self,
-        declarations: I,
-        dest: &mut CssWriter<W>,
-    ) -> fmt::Result
-    where
-        W: Write,
-        I: Iterator<Item=&'a PropertyDeclaration>,
-    {
-        match *self {
-            ShorthandId::All => {
-                // No need to try to serialize the declarations as the 'all'
-                // shorthand, since it only accepts CSS-wide keywords (and
-                // variable references), which will be handled in
-                // get_shorthand_appendable_value.
-                Err(fmt::Error)
-            }
-            % for property in data.shorthands_except_all():
-                ShorthandId::${property.camel_case} => {
-                    match shorthands::${property.ident}::LonghandsToSerialize::from_iter(declarations) {
-                        Ok(longhands) => longhands.to_css(dest),
-                        Err(_) => Err(fmt::Error)
-                    }
-                },
-            % endfor
+        declarations: &[&PropertyDeclaration],
+        dest: &mut CssStringWriter,
+    ) -> fmt::Result {
+        type LonghandsToCssFn = for<'a, 'b> fn(&'a [&'b PropertyDeclaration], &mut CssStringWriter) -> fmt::Result;
+        fn all_to_css(_: &[&PropertyDeclaration], _: &mut CssStringWriter) -> fmt::Result {
+            // No need to try to serialize the declarations as the 'all'
+            // shorthand, since it only accepts CSS-wide keywords (and variable
+            // references), which will be handled in
+            // get_shorthand_appendable_value.
+            Ok(())
         }
+
+        static LONGHANDS_TO_CSS: [LonghandsToCssFn; ${len(data.shorthands)}] = [
+            % for shorthand in data.shorthands:
+            % if shorthand.ident == "all":
+                all_to_css,
+            % else:
+                shorthands::${shorthand.ident}::to_css,
+            % endif
+            % endfor
+        ];
+
+        LONGHANDS_TO_CSS[*self as usize](declarations, dest)
     }
 
     /// Finds and returns an appendable value for the given declarations.
     ///
     /// Returns the optional appendable value.
-    pub fn get_shorthand_appendable_value<'a, I>(
+    pub fn get_shorthand_appendable_value<'a, 'b: 'a>(
         self,
-        declarations: I,
-    ) -> Option<AppendableValue<'a, I::IntoIter>>
-    where
-        I: IntoIterator<Item=&'a PropertyDeclaration>,
-        I::IntoIter: Clone,
-    {
-        let declarations = declarations.into_iter();
-
-        // Only cloning iterators (a few pointers each) not declarations.
-        let mut declarations2 = declarations.clone();
-        let mut declarations3 = declarations.clone();
-
-        let first_declaration = declarations2.next()?;
+        declarations: &'a [&'b PropertyDeclaration],
+    ) -> Option<AppendableValue<'a, 'b>> {
+        let first_declaration = declarations.get(0)?;
+        let rest = || declarations.iter().skip(1);
 
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
-            if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
-               return Some(AppendableValue::Css { css, with_variables: true });
+            if rest().all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
+               return Some(AppendableValue::Css(css));
             }
             return None;
         }
 
         // Check whether they are all the same CSS-wide keyword.
         if let Some(keyword) = first_declaration.get_css_wide_keyword() {
-            if declarations2.all(|d| d.get_css_wide_keyword() == Some(keyword)) {
-                return Some(AppendableValue::Css {
-                    css: keyword.to_str(),
-                    with_variables: false,
-                });
+            if rest().all(|d| d.get_css_wide_keyword() == Some(keyword)) {
+                return Some(AppendableValue::Css(keyword.to_str()))
             }
             return None;
         }
 
+        if self == ShorthandId::All {
+            // 'all' only supports variables and CSS wide keywords.
+            return None;
+        }
+
         // Check whether all declarations can be serialized as part of shorthand.
-        if declarations3.all(|d| d.may_serialize_as_part_of_shorthand()) {
+        if declarations.iter().all(|d| d.may_serialize_as_part_of_shorthand()) {
             return Some(AppendableValue::DeclarationsForShorthand(self, declarations));
         }
 
@@ -1596,23 +1620,20 @@ impl ShorthandId {
             input: &mut Parser<'i, 't>,
         ) -> Result<(), ParseError<'i>>;
 
-        fn unreachable<'i, 't>(
+        fn parse_all<'i, 't>(
             _: &mut SourcePropertyDeclaration,
             _: &ParserContext,
-            _: &mut Parser<'i, 't>
+            input: &mut Parser<'i, 't>
         ) -> Result<(), ParseError<'i>> {
-            unreachable!()
+            // 'all' accepts no value other than CSS-wide keywords
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
 
-        // 'all' accepts no value other than CSS-wide keywords
-        if *self == ShorthandId::All {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
 
         static PARSE_INTO: [ParseIntoFn; ${len(data.shorthands)}] = [
             % for shorthand in data.shorthands:
             % if shorthand.ident == "all":
-            unreachable,
+            parse_all,
             % else:
             shorthands::${shorthand.ident}::parse_into,
             % endif
@@ -1720,7 +1741,8 @@ impl UnparsedValue {
 
         let mut input = ParserInput::new(&css);
         let mut input = Parser::new(&mut input);
-        input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
+        input.skip_whitespace();
+
         if let Ok(keyword) = input.try_parse(CSSWideKeyword::parse) {
             return Cow::Owned(PropertyDeclaration::css_wide_keyword(longhand_id, keyword));
         }
@@ -2436,12 +2458,11 @@ impl PropertyDeclaration {
         debug_assert!(id.allowed_in(context), "{:?}", id);
 
         let non_custom_id = id.non_custom_id();
+        input.skip_whitespace();
+
         let start = input.state();
         match id {
             PropertyId::Custom(property_name) => {
-                // FIXME: fully implement https://github.com/w3c/csswg-drafts/issues/774
-                // before adding skip_whitespace here.
-                // This probably affects some test results.
                 let value = match input.try_parse(CSSWideKeyword::parse) {
                     Ok(keyword) => CustomDeclarationValue::CSSWideKeyword(keyword),
                     Err(()) => CustomDeclarationValue::Value(
@@ -2456,7 +2477,6 @@ impl PropertyDeclaration {
             }
             PropertyId::LonghandAlias(id, _) |
             PropertyId::Longhand(id) => {
-                input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 input.try_parse(CSSWideKeyword::parse).map(|keyword| {
                     PropertyDeclaration::css_wide_keyword(id, keyword)
                 }).or_else(|()| {
@@ -2486,7 +2506,6 @@ impl PropertyDeclaration {
             }
             PropertyId::ShorthandAlias(id, _) |
             PropertyId::Shorthand(id) => {
-                input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 if let Ok(keyword) = input.try_parse(CSSWideKeyword::parse) {
                     if id == ShorthandId::All {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)

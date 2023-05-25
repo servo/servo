@@ -434,7 +434,6 @@ ${helpers.predefined_type(
     "computed::length::NonNegativeLengthPercentageOrNormal::normal()",
     engines="gecko servo-2013",
     aliases="grid-column-gap" if engine == "gecko" else "",
-    extra_prefixes="moz:layout.css.prefixes.columns",
     servo_2013_pref="layout.columns.enabled",
     spec="https://drafts.csswg.org/css-align-3/#propdef-column-gap",
     animation_value_type="NonNegativeLengthPercentageOrNormal",

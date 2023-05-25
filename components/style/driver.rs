@@ -140,7 +140,8 @@ where
                     // ensures that we process all the elements at a given depth before
                     // proceeding to the next depth, which is important for style sharing.
                     rayon::scope_fifo(|scope| {
-                        profiler_label!(Style);
+                        #[cfg(feature = "gecko")]
+                        gecko_profiler_label!(Layout, StyleComputation);
                         parallel::traverse_nodes(
                             drain,
                             DispatchMode::TailCall,

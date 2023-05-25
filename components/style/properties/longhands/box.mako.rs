@@ -503,7 +503,6 @@ ${helpers.predefined_type(
     "BreakWithin",
     "computed::BreakWithin::Auto",
     engines="gecko",
-    aliases="page-break-inside",
     spec="https://drafts.csswg.org/css-break/#propdef-break-inside",
     animation_value_type="discrete",
 )}

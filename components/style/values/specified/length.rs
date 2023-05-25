@@ -1247,6 +1247,27 @@ macro_rules! parse_size_non_length {
     }};
 }
 
+#[cfg(feature = "gecko")]
+fn is_fit_content_function_enabled() -> bool {
+    static_prefs::pref!("layout.css.fit-content-function.enabled")
+}
+
+#[cfg(feature = "gecko")]
+macro_rules! parse_fit_content_function {
+    ($size:ident, $input:expr, $context:expr, $allow_quirks:expr) => {
+        if is_fit_content_function_enabled() {
+            if let Ok(length) = $input.try_parse(|input| {
+                input.expect_function_matching("fit-content")?;
+                input.parse_nested_block(|i| {
+                    NonNegativeLengthPercentage::parse_quirky($context, i, $allow_quirks)
+                })
+            }) {
+                return Ok($size::FitContentFunction(length));
+            }
+        }
+    };
+}
+
 impl Size {
     /// Parses, with quirks.
     pub fn parse_quirky<'i, 't>(
@@ -1255,6 +1276,8 @@ impl Size {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         parse_size_non_length!(Size, input, "auto" => Auto);
+        #[cfg(feature = "gecko")]
+        parse_fit_content_function!(Size, input, context, allow_quirks);
 
         let length = NonNegativeLengthPercentage::parse_quirky(context, input, allow_quirks)?;
         Ok(GenericSize::LengthPercentage(length))
@@ -1287,6 +1310,8 @@ impl MaxSize {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         parse_size_non_length!(MaxSize, input, "none" => None);
+        #[cfg(feature = "gecko")]
+        parse_fit_content_function!(MaxSize, input, context, allow_quirks);
 
         let length = NonNegativeLengthPercentage::parse_quirky(context, input, allow_quirks)?;
         Ok(GenericMaxSize::LengthPercentage(length))

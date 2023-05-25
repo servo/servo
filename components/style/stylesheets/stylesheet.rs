@@ -65,6 +65,10 @@ pub struct StylesheetContents {
     pub source_map_url: RwLock<Option<String>>,
     /// This stylesheet's source URL.
     pub source_url: RwLock<Option<String>>,
+
+    /// We don't want to allow construction outside of this file, to guarantee
+    /// that all contents are created with Arc<>.
+    _forbid_construction: (),
 }
 
 impl StylesheetContents {
@@ -82,7 +86,7 @@ impl StylesheetContents {
         use_counters: Option<&UseCounters>,
         allow_import_rules: AllowImportRules,
         sanitization_data: Option<&mut SanitizationData>,
-    ) -> Self {
+    ) -> Arc<Self> {
         let namespaces = RwLock::new(Namespaces::default());
         let (rules, source_map_url, source_url) = Stylesheet::parse_rules(
             css,
@@ -99,7 +103,7 @@ impl StylesheetContents {
             sanitization_data,
         );
 
-        Self {
+        Arc::new(Self {
             rules: CssRules::new(rules, &shared_lock),
             origin,
             url_data: RwLock::new(url_data),
@@ -107,7 +111,8 @@ impl StylesheetContents {
             quirks_mode,
             source_map_url: RwLock::new(source_map_url),
             source_url: RwLock::new(source_url),
-        }
+            _forbid_construction: (),
+        })
     }
 
     /// Creates a new StylesheetContents with the specified pre-parsed rules,
@@ -126,9 +131,9 @@ impl StylesheetContents {
         origin: Origin,
         url_data: UrlExtraData,
         quirks_mode: QuirksMode,
-    ) -> Self {
+    ) -> Arc<Self> {
         debug_assert!(rules.is_static());
-        Self {
+        Arc::new(Self {
             rules,
             origin,
             url_data: RwLock::new(url_data),
@@ -136,7 +141,8 @@ impl StylesheetContents {
             quirks_mode,
             source_map_url: RwLock::new(None),
             source_url: RwLock::new(None),
-        }
+            _forbid_construction: (),
+        })
     }
 
     /// Returns a reference to the list of rules.
@@ -178,6 +184,7 @@ impl DeepCloneWithLock for StylesheetContents {
             namespaces: RwLock::new((*self.namespaces.read()).clone()),
             source_map_url: RwLock::new((*self.source_map_url.read()).clone()),
             source_url: RwLock::new((*self.source_url.read()).clone()),
+            _forbid_construction: (),
         }
     }
 }
@@ -186,7 +193,7 @@ impl DeepCloneWithLock for StylesheetContents {
 #[derive(Debug)]
 pub struct Stylesheet {
     /// The contents of this stylesheet.
-    pub contents: StylesheetContents,
+    pub contents: Arc<StylesheetContents>,
     /// The lock used for objects inside this stylesheet
     pub shared_lock: SharedRwLock,
     /// List of media associated with the Stylesheet.
@@ -587,9 +594,9 @@ impl Clone for Stylesheet {
         // Make a deep clone of the media, using the new lock.
         let media = self.media.read_with(&guard).clone();
         let media = Arc::new(lock.wrap(media));
-        let contents = self
+        let contents = Arc::new(self
             .contents
-            .deep_clone_with_lock(&lock, &guard, &DeepCloneParams);
+            .deep_clone_with_lock(&lock, &guard, &DeepCloneParams));
 
         Stylesheet {
             contents,

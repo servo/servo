@@ -25,7 +25,6 @@ COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-user-modify",
     "-webkit-margin-before",
     "-webkit-margin-after",
-    "tab-size",
     "-webkit-margin-start",
     "-webkit-column-break-inside",
     "-webkit-padding-start",
@@ -63,7 +62,6 @@ COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-text-combine",
     "-webkit-text-emphasis-style",
     "-webkit-text-emphasis",
-    "d",
     "-webkit-mask-box-image-width",
     "-webkit-mask-box-image-source",
     "-webkit-mask-box-image-outset",
@@ -123,4 +121,5 @@ COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-columns",
     "-webkit-column-rule-color",
     "-webkit-shape-margin",
+    "content-visibility",
 ]

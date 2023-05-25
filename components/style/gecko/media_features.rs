@@ -590,6 +590,23 @@ fn eval_moz_os_version(
     query_value.as_ptr() == os_version
 }
 
+fn eval_moz_windows_non_native_menus(
+    device: &Device,
+    query_value: Option<bool>,
+    _: Option<RangeOrOperator>,
+) -> bool {
+    let use_non_native_menus = match static_prefs::pref!("browser.display.windows.non_native_menus") {
+        0 => false,
+        1 => true,
+        _ => {
+            eval_moz_os_version(device, Some(atom!("windows-win10")), None) &&
+                get_lnf_int_as_bool(bindings::LookAndFeel_IntID::WindowsDefaultTheme as i32)
+        },
+    };
+
+    query_value.map_or(use_non_native_menus, |v| v == use_non_native_menus)
+}
+
 fn get_lnf_int(int_id: i32) -> i32 {
     unsafe { bindings::Gecko_GetLookAndFeelInt(int_id) }
 }
@@ -663,7 +680,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [MediaFeatureDescription; 62] = [
+pub static MEDIA_FEATURES: [MediaFeatureDescription; 60] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -879,6 +896,12 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 62] = [
         keyword_evaluator!(eval_toolbar_prefers_color_scheme, ToolbarPrefersColorScheme),
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
+    feature!(
+        atom!("-moz-windows-non-native-menus"),
+        AllowsRanges::No,
+        Evaluator::BoolInteger(eval_moz_windows_non_native_menus),
+        ParsingRequirements::CHROME_AND_UA_ONLY,
+    ),
 
     lnf_int_feature!(atom!("-moz-scrollbar-start-backward"), ScrollArrowStyle, get_scrollbar_start_backward),
     lnf_int_feature!(atom!("-moz-scrollbar-start-forward"), ScrollArrowStyle, get_scrollbar_start_forward),
@@ -903,10 +926,6 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 62] = [
     lnf_int_feature!(atom!("-moz-gtk-csd-close-button"), GTKCSDCloseButton),
     lnf_int_feature!(atom!("-moz-gtk-csd-reversed-placement"), GTKCSDReversedPlacement),
     lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
-
     bool_pref_feature!(atom!("-moz-proton"), "browser.proton.enabled"),
-    bool_pref_feature!(atom!("-moz-proton-modals"), "browser.proton.modals.enabled"),
-    bool_pref_feature!(atom!("-moz-proton-contextmenus"), "browser.proton.contextmenus.enabled"),
-    bool_pref_feature!(atom!("-moz-proton-doorhangers"), "browser.proton.doorhangers.enabled"),
     bool_pref_feature!(atom!("-moz-proton-places-tooltip"), "browser.proton.places-tooltip.enabled"),
 ];

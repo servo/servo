@@ -95,6 +95,21 @@ impl CounterStyle {
     pub fn decimal() -> Self {
         CounterStyle::Name(CustomIdent(atom!("decimal")))
     }
+
+    /// Is this a bullet? (i.e. `list-style-type: disc|circle|square|disclosure-closed|disclosure-open`)
+    #[inline]
+    pub fn is_bullet(&self) -> bool {
+        match self {
+            CounterStyle::Name(CustomIdent(ref name)) => {
+                name == &atom!("disc") ||
+                    name == &atom!("circle") ||
+                    name == &atom!("square") ||
+                    name == &atom!("disclosure-closed") ||
+                    name == &atom!("disclosure-open")
+            }
+            _ => false,
+        }
+    }
 }
 
 impl Parse for CounterStyle {

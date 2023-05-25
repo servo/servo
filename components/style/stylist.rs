@@ -11,7 +11,7 @@ use crate::element_state::{DocumentState, ElementState};
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
 use crate::invalidation::element::invalidation_map::InvalidationMap;
-use crate::invalidation::media_queries::EffectiveMediaQueryResults;
+use crate::invalidation::media_queries::{EffectiveMediaQueryResults, MediaListKey, ToMediaListKey};
 use crate::invalidation::stylesheets::RuleChangeKind;
 use crate::media_queries::Device;
 use crate::properties::{self, CascadeMode, ComputedValues};
@@ -26,8 +26,7 @@ use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKin
 use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
 use crate::stylesheets::keyframes_rule::KeyframesAnimation;
 use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
-use crate::stylesheets::StyleRule;
-use crate::stylesheets::StylesheetInDocument;
+use crate::stylesheets::{StyleRule, StylesheetInDocument, StylesheetContents};
 #[cfg(feature = "gecko")]
 use crate::stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use crate::stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
@@ -50,7 +49,9 @@ use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
 use std::sync::Mutex;
 use std::{mem, ops};
+use std::hash::{Hash, Hasher};
 use style_traits::viewport::ViewportConstraints;
+use fxhash::FxHashMap;
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]
@@ -59,6 +60,37 @@ pub type StylistSheet = crate::stylesheets::DocumentStyleSheet;
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "gecko")]
 pub type StylistSheet = crate::gecko::data::GeckoStyleSheet;
+
+#[derive(Debug, Clone)]
+struct StylesheetContentsPtr(Arc<StylesheetContents>);
+
+impl PartialEq for StylesheetContentsPtr {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl Eq for StylesheetContentsPtr {}
+
+impl Hash for StylesheetContentsPtr {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let contents: &StylesheetContents = &*self.0;
+        (contents as *const StylesheetContents).hash(state)
+    }
+}
+
+type StyleSheetContentList = Vec<StylesheetContentsPtr>;
+
+/// A key in the cascade data cache.
+#[derive(Debug, Hash, Default, PartialEq, Eq)]
+struct CascadeDataCacheKey {
+    media_query_results: Vec<MediaListKey>,
+    contents: StyleSheetContentList,
+}
+
+unsafe impl Send for CascadeDataCacheKey {}
+unsafe impl Sync for CascadeDataCacheKey {}
 
 trait CascadeDataCacheEntry : Sized {
     /// Returns a reference to the cascade data.
@@ -80,7 +112,7 @@ trait CascadeDataCacheEntry : Sized {
 }
 
 struct CascadeDataCache<Entry> {
-    entries: Vec<Arc<Entry>>,
+    entries: FxHashMap<CascadeDataCacheKey, Arc<Entry>>,
 }
 
 impl<Entry> CascadeDataCache<Entry>
@@ -88,7 +120,7 @@ where
     Entry: CascadeDataCacheEntry,
 {
     fn new() -> Self {
-        Self { entries: vec![] }
+        Self { entries: Default::default() }
     }
 
     fn len(&self) -> usize {
@@ -110,51 +142,66 @@ where
     where
         S: StylesheetInDocument + PartialEq + 'static,
     {
+        use std::collections::hash_map::Entry as HashMapEntry;
         debug!("StyleSheetCache::lookup({})", self.len());
 
         if !collection.dirty() {
             return Ok(None);
         }
 
-        let mut key = EffectiveMediaQueryResults::new();
+        let mut key = CascadeDataCacheKey::default();
         for sheet in collection.sheets() {
-            CascadeData::collect_applicable_media_query_results_into(device, sheet, guard, &mut key)
+            CascadeData::collect_applicable_media_query_results_into(
+                device,
+                sheet,
+                guard,
+                &mut key.media_query_results,
+                &mut key.contents,
+            )
         }
 
-        for entry in &self.entries {
-            if std::ptr::eq(&**entry, old_entry) {
+        let new_entry;
+        match self.entries.entry(key) {
+            HashMapEntry::Vacant(e) => {
+                debug!("> Picking the slow path (not in the cache)");
+                new_entry = Entry::rebuild(
+                    device,
+                    quirks_mode,
+                    collection,
+                    guard,
+                    old_entry,
+                )?;
+                e.insert(new_entry.clone());
+            }
+            HashMapEntry::Occupied(mut e) => {
                 // Avoid reusing our old entry (this can happen if we get
                 // invalidated due to CSSOM mutations and our old stylesheet
-                // contents were already unique, for example). This old entry
-                // will be pruned from the cache with take_unused() afterwards.
-                continue;
-            }
-            if entry.cascade_data().effective_media_query_results != key {
-                continue;
-            }
-            if log_enabled!(log::Level::Debug) {
-                debug!("cache hit for:");
-                for sheet in collection.sheets() {
-                    debug!(" > {:?}", sheet);
+                // contents were already unique, for example).
+                if !std::ptr::eq(&**e.get(), old_entry) {
+                    if log_enabled!(log::Level::Debug) {
+                        debug!("cache hit for:");
+                        for sheet in collection.sheets() {
+                            debug!(" > {:?}", sheet);
+                        }
+                    }
+                    // The line below ensures the "committed" bit is updated
+                    // properly.
+                    collection.each(|_, _| true);
+                    return Ok(Some(e.get().clone()));
                 }
+
+                debug!("> Picking the slow path due to same entry as old");
+                new_entry = Entry::rebuild(
+                    device,
+                    quirks_mode,
+                    collection,
+                    guard,
+                    old_entry,
+                )?;
+                e.insert(new_entry.clone());
             }
-            // The line below ensures the "committed" bit is updated properly
-            // below.
-            collection.each(|_, _| true);
-            return Ok(Some(entry.clone()));
         }
 
-        debug!("> Picking the slow path");
-
-        let new_entry = Entry::rebuild(
-            device,
-            quirks_mode,
-            collection,
-            guard,
-            old_entry,
-        )?;
-
-        self.entries.push(new_entry.clone());
         Ok(Some(new_entry))
     }
 
@@ -167,25 +214,27 @@ where
     /// cache to not deadlock.
     fn take_unused(&mut self) -> SmallVec<[Arc<Entry>; 3]> {
         let mut unused = SmallVec::new();
-        for i in (0..self.entries.len()).rev() {
+        self.entries.retain(|_key, value| {
             // is_unique() returns false for static references, but we never
             // have static references to UserAgentCascadeDatas.  If we did, it
             // may not make sense to put them in the cache in the first place.
-            if self.entries[i].is_unique() {
-                unused.push(self.entries.remove(i));
+            if !value.is_unique() {
+                return true;
             }
-        }
+            unused.push(value.clone());
+            false
+        });
         unused
     }
 
-    fn take_all(&mut self) -> Vec<Arc<Entry>> {
-        mem::replace(&mut self.entries, Vec::new())
+    fn take_all(&mut self) -> FxHashMap<CascadeDataCacheKey, Arc<Entry>> {
+        mem::take(&mut self.entries)
     }
 
     #[cfg(feature = "gecko")]
     fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
         sizes.mOther += self.entries.shallow_size_of(ops);
-        for arc in self.entries.iter() {
+        for (_key, arc) in self.entries.iter() {
             // These are primary Arc references that can be measured
             // unconditionally.
             sizes.mOther += arc.unconditional_shallow_size_of(ops);
@@ -2033,7 +2082,8 @@ impl CascadeData {
         device: &Device,
         stylesheet: &S,
         guard: &SharedRwLockReadGuard,
-        results: &mut EffectiveMediaQueryResults,
+        results: &mut Vec<MediaListKey>,
+        contents_list: &mut StyleSheetContentList,
     ) where
         S: StylesheetInDocument + 'static,
     {
@@ -2042,19 +2092,25 @@ impl CascadeData {
         }
 
         debug!(" + {:?}", stylesheet);
-        results.saw_effective(stylesheet.contents());
+        let contents = stylesheet.contents();
+        results.push(contents.to_media_list_key());
+
+        // Safety: StyleSheetContents are reference-counted with Arc.
+        contents_list.push(StylesheetContentsPtr(unsafe {
+            Arc::from_raw_addrefed(contents)
+        }));
 
         for rule in stylesheet.effective_rules(device, guard) {
             match *rule {
                 CssRule::Import(ref lock) => {
                     let import_rule = lock.read_with(guard);
                     debug!(" + {:?}", import_rule.stylesheet.media(guard));
-                    results.saw_effective(import_rule);
+                    results.push(import_rule.to_media_list_key());
                 },
                 CssRule::Media(ref lock) => {
                     let media_rule = lock.read_with(guard);
                     debug!(" + {:?}", media_rule.media_queries.read_with(guard));
-                    results.saw_effective(media_rule);
+                    results.push(media_rule.to_media_list_key());
                 },
                 _ => {},
             }

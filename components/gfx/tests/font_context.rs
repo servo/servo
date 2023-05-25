@@ -120,7 +120,9 @@ fn font_family(names: Vec<&str>) -> FontFamily {
         .collect();
 
     FontFamily {
-        families: FontFamilyList::new(names.into_boxed_slice()),
+        families: FontFamilyList {
+            list: names.into_boxed_slice(),
+        },
         is_system_font: false,
     }
 }

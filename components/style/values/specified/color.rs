@@ -9,9 +9,10 @@ use super::AllowQuirks;
 use crate::gecko_bindings::structs::nscolor;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
-use crate::values::generics::color::{GenericColorOrAuto, GenericCaretColor};
+use crate::values::generics::color::{GenericCaretColor, GenericColorOrAuto};
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::Percentage;
+use crate::values::CustomIdent;
 use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
 use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
 use itoa;
@@ -20,29 +21,67 @@ use std::io::Write as IoWrite;
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind};
 use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
 
+/// A color space as defined in [1].
+///
+/// [1]: https://drafts.csswg.org/css-color-5/#typedef-colorspace
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
+pub enum ColorSpaceKind {
+    /// The sRGB color space.
+    Srgb,
+    /// The CIEXYZ color space.
+    Xyz,
+    /// The CIELAB color space.
+    Lab,
+    /// The CIELAB color space, expressed in cylindrical coordinates.
+    Lch,
+}
+
+/// A hue adjuster as defined in [1].
+///
+/// [1]: https://drafts.csswg.org/css-color-5/#typedef-hue-adjuster
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
+pub enum HueAdjuster {
+    /// The "shorter" angle adjustment.
+    Shorter,
+    /// The "longer" angle adjustment.
+    Longer,
+    /// The "increasing" angle adjustment.
+    Increasing,
+    /// The "decreasing" angle adjustment.
+    Decreasing,
+    /// The "specified" angle adjustment.
+    Specified,
+}
+
 /// A restricted version of the css `color-mix()` function, which only supports
-/// percentages and sRGB color-space interpolation.
+/// percentages.
 ///
 /// https://drafts.csswg.org/css-color-5/#color-mix
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 #[allow(missing_docs)]
 pub struct ColorMix {
+    pub color_space: ColorSpaceKind,
     pub left: Color,
     pub left_percentage: Percentage,
     pub right: Color,
     pub right_percentage: Percentage,
+    pub hue_adjuster: HueAdjuster,
 }
 
-#[cfg(feature = "gecko")]
 #[inline]
 fn allow_color_mix() -> bool {
-    static_prefs::pref!("layout.css.color-mix.enabled")
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.color-mix.enabled");
+    #[cfg(feature = "servo")]
+    return false;
 }
 
-#[cfg(feature = "servo")]
 #[inline]
-fn allow_color_mix() -> bool {
-    false
+fn allow_color_mix_color_spaces() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.color-mix.color-spaces.enabled");
+    #[cfg(feature = "servo")]
+    return false;
 }
 
 // NOTE(emilio): Syntax is still a bit in-flux, since [1] doesn't seem
@@ -61,6 +100,9 @@ impl Parse for ColorMix {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
+        let color_spaces_enabled = context.chrome_rules_enabled() ||
+            allow_color_mix_color_spaces();
+
         input.expect_function_matching("color-mix")?;
 
         // NOTE(emilio): This implements the syntax described here for now,
@@ -69,12 +111,18 @@ impl Parse for ColorMix {
         // https://github.com/w3c/csswg-drafts/issues/6066#issuecomment-789836765
         input.parse_nested_block(|input| {
             input.expect_ident_matching("in")?;
-            // TODO: support multiple interpolation spaces.
-            input.expect_ident_matching("srgb")?;
+            let color_space = if color_spaces_enabled {
+                ColorSpaceKind::parse(input)?
+            } else {
+                input.expect_ident_matching("srgb")?;
+                ColorSpaceKind::Srgb
+            };
             input.expect_comma()?;
 
             let left = Color::parse(context, input)?;
-            let left_percentage = input.try_parse(|input| Percentage::parse(context, input)).ok();
+            let left_percentage = input
+                .try_parse(|input| Percentage::parse(context, input))
+                .ok();
 
             input.expect_comma()?;
 
@@ -87,11 +135,18 @@ impl Parse for ColorMix {
 
             let left_percentage =
                 left_percentage.unwrap_or_else(|| Percentage::new(1.0 - right_percentage.get()));
+
+            let hue_adjuster = input
+                .try_parse(|input| HueAdjuster::parse(input))
+                .unwrap_or(HueAdjuster::Shorter);
+
             Ok(ColorMix {
+                color_space,
                 left,
                 left_percentage,
                 right,
                 right_percentage,
+                hue_adjuster,
             })
         })
     }
@@ -115,7 +170,9 @@ impl ToCss for ColorMix {
             (1.0 - percent.get() - other.get()).abs() <= f32::EPSILON
         }
 
-        dest.write_str("color-mix(in srgb, ")?;
+        dest.write_str("color-mix(in ")?;
+        self.color_space.to_css(dest)?;
+        dest.write_str(", ")?;
         self.left.to_css(dest)?;
         if !can_omit(&self.left_percentage, &self.right_percentage, true) {
             dest.write_str(" ")?;
@@ -127,8 +184,28 @@ impl ToCss for ColorMix {
             dest.write_str(" ")?;
             self.right_percentage.to_css(dest)?;
         }
+
+        if self.hue_adjuster != HueAdjuster::Shorter {
+            dest.write_str(" ")?;
+            self.hue_adjuster.to_css(dest)?;
+        }
+
         dest.write_str(")")
     }
+}
+
+/// The color scheme for a specific system color.
+#[cfg(feature = "gecko")]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
+#[repr(u8)]
+pub enum SystemColorScheme {
+    /// The default color-scheme for the document.
+    #[css(skip)]
+    Default,
+    /// A light color scheme.
+    Light,
+    /// A dark color scheme.
+    Dark,
 }
 
 /// Specified color value
@@ -145,9 +222,10 @@ pub enum Color {
     },
     /// A complex color value from computed value
     Complex(ComputedColor),
-    /// A system color
+    /// Either a system color, or a `-moz-system-color(<system-color>, light|dark)`
+    /// function which allows chrome code to choose between color schemes.
     #[cfg(feature = "gecko")]
-    System(SystemColor),
+    System(SystemColor, SystemColorScheme),
     /// A color mix.
     ColorMix(Box<ColorMix>),
     /// Quirksmode-only rule for inheriting color from the body
@@ -181,13 +259,13 @@ pub enum SystemColor {
     TextBackground,
     #[css(skip)]
     TextForeground,
-    #[css(skip)]
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectBackground,
-    #[css(skip)]
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectForeground,
-    #[css(skip)]
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectBackgroundDisabled,
-    #[css(skip)]
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectBackgroundAttention,
     #[css(skip)]
     TextHighlightBackground,
@@ -358,6 +436,10 @@ pub enum SystemColor {
     /// colors.
     MozNativehyperlinktext,
 
+    /// As above, but visited link color.
+    #[css(skip)]
+    MozNativevisitedhyperlinktext,
+
     #[parse(aliases = "-moz-hyperlinktext")]
     Linktext,
     #[parse(aliases = "-moz-activehyperlinktext")]
@@ -369,13 +451,19 @@ pub enum SystemColor {
     MozComboboxtext,
     MozCombobox,
 
-    MozGtkInfoBarText,
-
     /// Color of tree column headers
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozColheadertext,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozColheaderhovertext,
+
+    /// Color of text in the (active) titlebar.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozGtkTitlebarText,
+
+    /// Color of text in the (inactive) titlebar.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozGtkTitlebarInactiveText,
 
     #[css(skip)]
     End, // Just for array-indexing purposes.
@@ -384,20 +472,29 @@ pub enum SystemColor {
 #[cfg(feature = "gecko")]
 impl SystemColor {
     #[inline]
-    fn compute(&self, cx: &Context) -> ComputedColor {
+    fn compute(&self, cx: &Context, scheme: SystemColorScheme) -> ComputedColor {
         use crate::gecko_bindings::bindings;
 
-        let prefs = cx.device().pref_sheet_prefs();
+        let colors = &cx.device().pref_sheet_prefs().mColors;
+        let style_color_scheme = cx.style().get_inherited_ui().clone_color_scheme();
 
+        // TODO: At least Canvas / CanvasText should be color-scheme aware
+        // (probably the link colors too).
         convert_nscolor_to_computedcolor(match *self {
-            SystemColor::Canvastext => prefs.mDefaultColor,
-            SystemColor::Canvas => prefs.mDefaultBackgroundColor,
-            SystemColor::Linktext => prefs.mLinkColor,
-            SystemColor::Activetext => prefs.mActiveLinkColor,
-            SystemColor::Visitedtext => prefs.mVisitedLinkColor,
+            SystemColor::Canvastext => colors.mDefault,
+            SystemColor::Canvas => colors.mDefaultBackground,
+            SystemColor::Linktext => colors.mLink,
+            SystemColor::Activetext => colors.mActiveLink,
+            SystemColor::Visitedtext => colors.mVisitedLink,
 
-            _ => unsafe {
-                bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document())
+            _ => {
+                let color = unsafe {
+                    bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document(), scheme, &style_color_scheme)
+                };
+                if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
+                    return ComputedColor::currentcolor();
+                }
+                color
             },
         })
     }
@@ -473,6 +570,21 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
     }
 }
 
+#[cfg(feature = "gecko")]
+fn parse_moz_system_color<'i, 't>(
+    context: &ParserContext,
+    input: &mut Parser<'i, 't>,
+) -> Result<(SystemColor, SystemColorScheme), ParseError<'i>> {
+    debug_assert!(context.chrome_rules_enabled());
+    input.expect_function_matching("-moz-system-color")?;
+    input.parse_nested_block(|input| {
+        let color = SystemColor::parse(context, input)?;
+        input.expect_comma()?;
+        let scheme = SystemColorScheme::parse(input)?;
+        Ok((color, scheme))
+    })
+}
+
 impl Parse for Color {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -498,7 +610,15 @@ impl Parse for Color {
                 #[cfg(feature = "gecko")]
                 {
                     if let Ok(system) = input.try_parse(|i| SystemColor::parse(context, i)) {
-                        return Ok(Color::System(system));
+                        return Ok(Color::System(system, SystemColorScheme::Default));
+                    }
+
+                    if context.chrome_rules_enabled() {
+                        if let Ok((color, scheme)) =
+                            input.try_parse(|i| parse_moz_system_color(context, i))
+                        {
+                            return Ok(Color::System(color, scheme));
+                        }
                     }
                 }
 
@@ -537,7 +657,17 @@ impl ToCss for Color {
             Color::Complex(_) => Ok(()),
             Color::ColorMix(ref mix) => mix.to_css(dest),
             #[cfg(feature = "gecko")]
-            Color::System(system) => system.to_css(dest),
+            Color::System(system, scheme) => {
+                if scheme == SystemColorScheme::Default {
+                    system.to_css(dest)
+                } else {
+                    dest.write_str("-moz-system-color(")?;
+                    system.to_css(dest)?;
+                    dest.write_str(", ")?;
+                    scheme.to_css(dest)?;
+                    dest.write_char(')')
+                }
+            },
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => Ok(()),
         }
@@ -696,14 +826,16 @@ impl Color {
                 let left = mix.left.to_computed_color(context)?.to_animated_value();
                 let right = mix.right.to_computed_color(context)?.to_animated_value();
                 ToAnimatedValue::from_animated_value(AnimatedColor::mix(
+                    mix.color_space,
                     &left,
                     mix.left_percentage.get(),
                     &right,
                     mix.right_percentage.get(),
+                    mix.hue_adjuster,
                 ))
             },
             #[cfg(feature = "gecko")]
-            Color::System(system) => system.compute(context?),
+            Color::System(system, scheme) => system.compute(context?, scheme),
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => ComputedColor::rgba(context?.device().body_text_color()),
         })
@@ -816,5 +948,125 @@ impl Parse for CaretColor {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         ColorOrAuto::parse(context, input).map(GenericCaretColor)
+    }
+}
+
+bitflags! {
+    /// Various flags to represent the color-scheme property in an efficient
+    /// way.
+    #[derive(Default, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[repr(C)]
+    #[value_info(other_values = "light,dark,only")]
+    pub struct ColorSchemeFlags: u8 {
+        /// Whether the author specified `light`.
+        const LIGHT = 1 << 0;
+        /// Whether the author specified `dark`.
+        const DARK = 1 << 1;
+        /// Whether the author specified `only`.
+        const ONLY = 1 << 2;
+    }
+}
+
+/// <https://drafts.csswg.org/css-color-adjust/#color-scheme-prop>
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+#[value_info(other_values = "normal")]
+pub struct ColorScheme {
+    #[ignore_malloc_size_of = "Arc"]
+    idents: crate::ArcSlice<CustomIdent>,
+    bits: ColorSchemeFlags,
+}
+
+impl ColorScheme {
+    /// Returns the `normal` value.
+    pub fn normal() -> Self {
+        Self {
+            idents: Default::default(),
+            bits: ColorSchemeFlags::empty(),
+        }
+    }
+}
+
+impl Parse for ColorScheme {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let mut idents = vec![];
+        let mut bits = ColorSchemeFlags::empty();
+
+        let mut location = input.current_source_location();
+        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
+            let mut is_only = false;
+            match_ignore_ascii_case! { &ident,
+                "normal" => {
+                    if idents.is_empty() && bits.is_empty() {
+                        return Ok(Self::normal());
+                    }
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                },
+                "light" => bits.insert(ColorSchemeFlags::LIGHT),
+                "dark" => bits.insert(ColorSchemeFlags::DARK),
+                "only" => {
+                    if bits.intersects(ColorSchemeFlags::ONLY) {
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                    }
+                    bits.insert(ColorSchemeFlags::ONLY);
+                    is_only = true;
+                },
+                _ => {},
+            };
+
+            if is_only {
+                if !idents.is_empty() {
+                    // Only is allowed either at the beginning or at the end,
+                    // but not in the middle.
+                    break;
+                }
+            } else {
+                idents.push(CustomIdent::from_ident(location, &ident, &[])?);
+            }
+            location = input.current_source_location();
+        }
+
+        if idents.is_empty() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        Ok(Self {
+            idents: crate::ArcSlice::from_iter(idents.into_iter()),
+            bits,
+        })
+    }
+}
+
+impl ToCss for ColorScheme {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.idents.is_empty() {
+            debug_assert!(self.bits.is_empty());
+            return dest.write_str("normal");
+        }
+        let mut first = true;
+        for ident in self.idents.iter() {
+            if !first {
+                dest.write_char(' ')?;
+            }
+            first = false;
+            ident.to_css(dest)?;
+        }
+        if self.bits.intersects(ColorSchemeFlags::ONLY) {
+            dest.write_str(" only")?;
+        }
+        Ok(())
     }
 }

@@ -209,6 +209,9 @@ ${helpers.predefined_type(
     "MozContextProperties",
     "computed::MozContextProperties::default()",
     engines="gecko",
+    enabled_in="chrome",
+    gecko_pref="svg.context-properties.content.enabled",
+    has_effect_on_gecko_scrollbars=False,
     animation_value_type="none",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-context-properties)",
 )}

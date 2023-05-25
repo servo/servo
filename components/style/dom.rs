@@ -151,7 +151,7 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// Get this node's first child.
     fn first_child(&self) -> Option<Self>;
 
-    /// Get this node's first child.
+    /// Get this node's last child.
     fn last_child(&self) -> Option<Self>;
 
     /// Get this node's previous sibling.
@@ -881,7 +881,7 @@ pub trait TElement:
                                 }
                             }
                             // TODO: Could be more granular.
-                            if !shadow.host().exports_any_part() {
+                            if !inner_shadow_host.exports_any_part() {
                                 break;
                             }
                             inner_shadow = shadow;

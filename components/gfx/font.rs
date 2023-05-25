@@ -569,6 +569,7 @@ impl<'a> From<&'a SingleFontFamily> for FontFamilyName {
                 GenericFontFamily::Monospace => atom!("monospace"),
                 GenericFontFamily::Cursive => atom!("cursive"),
                 GenericFontFamily::Fantasy => atom!("fantasy"),
+                GenericFontFamily::SystemUi => atom!("system-ui"),
             }),
         }
     }

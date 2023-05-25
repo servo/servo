@@ -27,7 +27,6 @@ servo-layout-2013 = []
 servo-layout-2020 = []
 gecko_debug = []
 gecko_refcount_logging = []
-gecko_profiler = []
 
 [dependencies]
 app_units = "0.7"

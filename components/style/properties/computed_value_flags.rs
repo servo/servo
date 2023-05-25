@@ -12,7 +12,7 @@ bitflags! {
     /// If we ever want to add some flags that shouldn't inherit for them,
     /// we might want to add a function to handle this.
     #[repr(C)]
-    pub struct ComputedValueFlags: u16 {
+    pub struct ComputedValueFlags: u32 {
         /// Whether the style or any of the ancestors has a text-decoration-line
         /// property that should get propagated to descendants.
         ///
@@ -89,6 +89,21 @@ bitflags! {
         /// FIXME(emilio): Try to merge this with BORDER_BACKGROUND, see
         /// https://github.com/w3c/csswg-drafts/issues/4777
         const HAS_AUTHOR_SPECIFIED_PADDING = 1 << 15;
+
+        /// Whether there are author-specified rules for `font-family`.
+        const HAS_AUTHOR_SPECIFIED_FONT_FAMILY = 1 << 16;
+
+        /// Whether there are author-specified rules for `font-synthesis`.
+        const HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS = 1 << 17;
+
+        /// Whether there are author-specified rules for `letter-spacing`.
+        const HAS_AUTHOR_SPECIFIED_LETTER_SPACING = 1 << 18;
+
+        /// Whether there are author-specified rules for `word-spacing`.
+        const HAS_AUTHOR_SPECIFIED_WORD_SPACING = 1 << 19;
+
+        /// Whether the style depends on viewport units.
+        const USES_VIEWPORT_UNITS = 1 << 20;
     }
 }
 

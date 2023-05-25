@@ -13,6 +13,8 @@ use std::ptr::NonNull;
 use std::{iter, mem};
 use to_shmem_derive::ToShmem;
 
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf};
+
 /// A canary that we stash in ArcSlices.
 ///
 /// Given we cannot use a zero-sized-type for the header, since well, C++
@@ -136,6 +138,22 @@ impl<T> ArcSlice<T> {
         let ptr = empty.0.ptr();
         std::mem::forget(empty);
         ptr as *mut _
+    }
+
+    /// Returns whether there's only one reference to this ArcSlice.
+    pub fn is_unique(&self) -> bool {
+        self.0.with_arc(|arc| arc.is_unique())
+    }
+}
+
+impl<T: MallocSizeOf> MallocUnconditionalSizeOf for ArcSlice<T> {
+    #[allow(unsafe_code)]
+    fn unconditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut size = unsafe { ops.malloc_size_of(self.0.heap_ptr()) };
+        for el in self.iter() {
+            size += el.size_of(ops);
+        }
+        size
     }
 }
 

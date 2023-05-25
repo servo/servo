@@ -56,7 +56,13 @@ impl ImportSheet {
     /// exists.
     pub fn as_sheet(&self) -> Option<&crate::gecko::data::GeckoStyleSheet> {
         match *self {
-            ImportSheet::Sheet(ref s) => Some(s),
+            ImportSheet::Sheet(ref s) => {
+                debug_assert!(!s.hack_is_null());
+                if s.hack_is_null() {
+                    return None;
+                }
+                Some(s)
+            },
             ImportSheet::Pending(_) => None,
         }
     }

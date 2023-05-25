@@ -110,6 +110,14 @@ impl ToComputedValue for specified::WordSpacing {
 /// A computed value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLength>;
 
+impl WordSpacing {
+    /// Return the `normal` computed value, which is just zero.
+    #[inline]
+    pub fn normal() -> Self {
+        LengthPercentage::zero()
+    }
+}
+
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue)]
 #[repr(C)]
 /// text-overflow.

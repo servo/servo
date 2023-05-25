@@ -845,10 +845,7 @@
         impl<'a> LonghandsToSerialize<'a> {
             /// Tries to get a serializable set of longhands given a set of
             /// property declarations.
-            pub fn from_iter<I>(iter: I) -> Result<Self, ()>
-            where
-                I: Iterator<Item=&'a PropertyDeclaration>,
-            {
+            pub fn from_iter(iter: impl Iterator<Item = &'a PropertyDeclaration>) -> Result<Self, ()> {
                 // Define all of the expected variables that correspond to the shorthand
                 % for sub_property in shorthand.sub_properties:
                     let mut ${sub_property.ident} =
@@ -856,8 +853,8 @@
                 % endfor
 
                 // Attempt to assign the incoming declarations to the expected variables
-                for longhand in iter {
-                    match *longhand {
+                for declaration in iter {
+                    match *declaration {
                         % for sub_property in shorthand.sub_properties:
                             PropertyDeclaration::${sub_property.camel_case}(ref value) => {
                                 ${sub_property.ident} = Some(value)
@@ -916,6 +913,14 @@
                 % endif
                 % endfor
             })
+        }
+
+        /// Try to serialize a given shorthand to a string.
+        pub fn to_css(declarations: &[&PropertyDeclaration], dest: &mut crate::str::CssStringWriter) -> fmt::Result {
+            match LonghandsToSerialize::from_iter(declarations.iter().cloned()) {
+                Ok(longhands) => longhands.to_css(&mut CssWriter::new(dest)),
+                Err(_) => Ok(())
+            }
         }
 
         ${caller.body()}

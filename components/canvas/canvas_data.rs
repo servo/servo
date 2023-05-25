@@ -1387,6 +1387,8 @@ fn to_font_kit_family(font_family: &font::SingleFontFamily) -> FamilyName {
             font::GenericFontFamily::Monospace => FamilyName::Monospace,
             font::GenericFontFamily::Fantasy => FamilyName::Fantasy,
             font::GenericFontFamily::Cursive => FamilyName::Cursive,
+            // TODO: There is no FontFamily::SystemUi.
+            font::GenericFontFamily::SystemUi => unreachable!("system-ui should be disabled"),
             font::GenericFontFamily::None => unreachable!("Shouldn't appear in computed values"),
         },
     }

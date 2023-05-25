@@ -464,7 +464,22 @@ fn tweak_when_ignoring_colors(
                 }
             }
         },
-        _ => {},
+        _ => {
+            // We honor transparent and system colors more generally for all
+            // colors.
+            //
+            // NOTE(emilio): This doesn't handle caret-color and
+            // accent-color because those use a slightly different syntax
+            // (<color> | auto for example). That's probably fine though, as
+            // using a system color for caret-color doesn't make sense (using
+            // currentColor is fine), and we ignore accent-color in
+            // high-contrast-mode anyways.
+            if let Some(color) = declaration.color_value() {
+                if color.is_system() || alpha_channel(color, context) == 0 {
+                    return;
+                }
+            }
+        },
     }
 
     *declaration.to_mut() =
@@ -786,6 +801,35 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_PADDING);
         }
 
+        if self
+            .author_specified
+            .contains(LonghandId::FontFamily)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY);
+        }
+
+        if self
+            .author_specified
+            .contains(LonghandId::LetterSpacing)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING);
+        }
+
+        if self
+            .author_specified
+            .contains(LonghandId::WordSpacing)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING);
+        }
+
+        #[cfg(feature = "gecko")]
+        if self
+            .author_specified
+            .contains(LonghandId::FontSynthesis)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS);
+        }
+
         #[cfg(feature = "servo")]
         {
             if let Some(font) = builder.get_font_if_mutated() {
@@ -849,18 +893,19 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
             // System fonts are all right, and should have the default font type
             // set to none already, so bail out early.
-            if font.mFont.systemFont {
+            if font.mFont.family.is_system_font {
                 debug_assert_eq!(
-                    font.mFont.fontlist.mDefaultFontType,
+                    font.mFont.family.families.fallback,
                     GenericFontFamily::None
                 );
                 return;
             }
 
+            let generic = font.mFont.family.families.single_generic().unwrap_or(GenericFontFamily::None);
             let default_font_type = unsafe {
                 bindings::Gecko_nsStyleFont_ComputeDefaultFontType(
                     builder.device.document(),
-                    font.mGenericID,
+                    generic,
                     font.mLanguage.mRawPtr,
                 )
             };
@@ -870,15 +915,15 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             // cursive or fantasy, since they're ignored, see bug 789788), and
             // we have a generic family to actually replace it with.
             let prioritize_user_fonts = !use_document_fonts &&
+                default_font_type != GenericFontFamily::None &&
                 matches!(
-                    font.mGenericID,
+                    generic,
                     GenericFontFamily::None |
-                        GenericFontFamily::Fantasy |
-                        GenericFontFamily::Cursive
-                ) &&
-                default_font_type != GenericFontFamily::None;
+                    GenericFontFamily::Fantasy |
+                    GenericFontFamily::Cursive
+                );
 
-            if !prioritize_user_fonts && default_font_type == font.mFont.fontlist.mDefaultFontType {
+            if !prioritize_user_fonts && default_font_type == font.mFont.family.families.fallback {
                 // Nothing to do.
                 return;
             }
@@ -886,9 +931,9 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         };
 
         let font = builder.mutate_font().gecko_mut();
-        font.mFont.fontlist.mDefaultFontType = default_font_type;
+        font.mFont.family.families.fallback = default_font_type;
         if prioritize_user_fonts {
-            unsafe { bindings::Gecko_nsStyleFont_PrioritizeUserFonts(font, default_font_type) }
+            font.mFont.family.families.prioritize_first_generic_or_prepend(default_font_type);
         }
     }
 

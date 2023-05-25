@@ -340,13 +340,14 @@ class Longhand(Property):
         assert (
             has_effect_on_gecko_scrollbars in [None, False, True]
             and not style_struct.inherited
-            or (gecko_pref is None) == (has_effect_on_gecko_scrollbars is None)
+            or (gecko_pref is None and enabled_in != "")
+            == (has_effect_on_gecko_scrollbars is None)
         ), (
             "Property "
             + name
             + ": has_effect_on_gecko_scrollbars must be "
             + "specified, and must have a value of True or False, iff a "
-            + "property is inherited and is behind a Gecko pref"
+            + "property is inherited and is behind a Gecko pref or internal"
         )
         self.need_index = need_index
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
@@ -759,7 +760,7 @@ def _add_logical_props(data, props):
 # These are probably Gecko bugs and should be supported per spec.
 def _remove_common_first_line_and_first_letter_properties(props, engine):
     if engine == "gecko":
-        props.remove("-moz-tab-size")
+        props.remove("tab-size")
         props.remove("hyphens")
         props.remove("line-break")
         props.remove("text-align-last")

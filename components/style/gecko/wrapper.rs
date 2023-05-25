@@ -409,9 +409,11 @@ impl<'ln> TNode for GeckoNode<'ln> {
     #[inline]
     fn prev_sibling(&self) -> Option<Self> {
         unsafe {
-            bindings::Gecko_GetPreviousSibling(self.0)
-                .as_ref()
-                .map(GeckoNode)
+            let prev_or_last = GeckoNode::from_content(self.0.mPreviousOrLastSibling.as_ref()?);
+            if prev_or_last.0.mNextSibling.raw::<nsIContent>().is_null() {
+                return None;
+            }
+            Some(prev_or_last)
         }
     }
 

@@ -256,11 +256,6 @@ pub trait Parser<'i> {
         false
     }
 
-    /// The error recovery that selector lists inside :is() and :where() have.
-    fn is_and_where_error_recovery(&self) -> ParseErrorRecovery {
-        ParseErrorRecovery::IgnoreInvalidSelector
-    }
-
     /// Whether the given function name is an alias for the `:is()` function.
     fn is_is_alias(&self, _name: &str) -> bool {
         false
@@ -344,7 +339,7 @@ pub struct SelectorList<Impl: SelectorImpl>(
 );
 
 /// How to treat invalid selectors in a selector list.
-pub enum ParseErrorRecovery {
+enum ParseErrorRecovery {
     /// Discard the entire selector list, this is the default behavior for
     /// almost all of CSS.
     DiscardList,
@@ -2277,7 +2272,7 @@ where
         state |
             SelectorParsingState::SKIP_DEFAULT_NAMESPACE |
             SelectorParsingState::DISALLOW_PSEUDOS,
-        parser.is_and_where_error_recovery(),
+        ParseErrorRecovery::IgnoreInvalidSelector,
     )?;
     Ok(component(inner.0.into_vec().into_boxed_slice()))
 }
@@ -2684,10 +2679,6 @@ pub mod tests {
 
         fn parse_is_and_where(&self) -> bool {
             true
-        }
-
-        fn is_and_where_error_recovery(&self) -> ParseErrorRecovery {
-            ParseErrorRecovery::DiscardList
         }
 
         fn parse_part(&self) -> bool {
@@ -3294,9 +3285,9 @@ pub mod tests {
         assert!(parse("::slotted(div)::before").is_ok());
         assert!(parse("slot::slotted(div,foo)").is_err());
 
-        assert!(parse("foo:where()").is_err());
+        assert!(parse("foo:where()").is_ok());
         assert!(parse("foo:where(div, foo, .bar baz)").is_ok());
-        assert!(parse("foo:where(::before)").is_err());
+        assert!(parse_expected("foo:where(::before)", Some("foo:where()")).is_ok());
     }
 
     #[test]

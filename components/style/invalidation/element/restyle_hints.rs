@@ -60,7 +60,12 @@ impl RestyleHint {
     /// Returns whether this hint invalidates the element and all its
     /// descendants.
     pub fn contains_subtree(&self) -> bool {
-        self.contains(RestyleHint::RESTYLE_SELF | RestyleHint::RESTYLE_DESCENDANTS)
+        self.contains(Self::restyle_subtree())
+    }
+
+    /// Returns whether we'll recascade all of the descendants.
+    pub fn will_recascade_subtree(&self) -> bool {
+        self.contains_subtree() || self.contains(Self::recascade_subtree())
     }
 
     /// Returns whether we need to restyle this element.

@@ -29,7 +29,6 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
 };
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
-use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
@@ -41,9 +40,7 @@ use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::import_rule::ImportSheet;
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
-use style::stylesheets::{
-    CssRules, ImportRule, Namespaces, Origin, Stylesheet, StylesheetContents,
-};
+use style::stylesheets::{CssRules, ImportRule, Origin, Stylesheet, StylesheetContents};
 use style::values::CssUrl;
 
 pub trait StylesheetOwner {
@@ -363,15 +360,12 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
         media: Arc<Locked<MediaList>>,
     ) -> Arc<Locked<ImportRule>> {
         let sheet = Arc::new(Stylesheet {
-            contents: StylesheetContents {
-                rules: CssRules::new(Vec::new(), lock),
-                origin: context.stylesheet_origin,
-                url_data: RwLock::new(context.url_data.clone()),
-                quirks_mode: context.quirks_mode,
-                namespaces: RwLock::new(Namespaces::default()),
-                source_map_url: RwLock::new(None),
-                source_url: RwLock::new(None),
-            },
+            contents: StylesheetContents::from_shared_data(
+                CssRules::new(Vec::new(), lock),
+                context.stylesheet_origin,
+                context.url_data.clone(),
+                context.quirks_mode,
+            ),
             media: media,
             shared_lock: lock.clone(),
             disabled: AtomicBool::new(false),

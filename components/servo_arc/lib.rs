@@ -248,6 +248,14 @@ impl<T> Arc<T> {
         }
     }
 
+    /// Like from_raw, but returns an addrefed arc instead.
+    #[inline]
+    pub unsafe fn from_raw_addrefed(ptr: *const T) -> Self {
+        let arc = Self::from_raw(ptr);
+        mem::forget(arc.clone());
+        arc
+    }
+
     /// Create a new static Arc<T> (one that won't reference count the object)
     /// and place it in the allocation provided by the specified `alloc`
     /// function.
