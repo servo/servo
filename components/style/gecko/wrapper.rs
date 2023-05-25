@@ -895,6 +895,9 @@ fn selector_flags_to_node_flags(flags: ElementSelectorFlags) -> u32 {
     if flags.contains(ElementSelectorFlags::HAS_EMPTY_SELECTOR) {
         gecko_flags |= NODE_HAS_EMPTY_SELECTOR;
     }
+    if flags.contains(ElementSelectorFlags::ANCHORS_RELATIVE_SELECTOR) {
+        gecko_flags |= NODE_ANCHORS_RELATIVE_SELECTOR;
+    }
 
     gecko_flags
 }
@@ -1728,6 +1731,11 @@ impl<'le> TElement for GeckoElement<'le> {
                 hints.push(MATHML_LANG_RULE.clone());
             }
         }
+    }
+
+    fn anchors_relative_selector(&self) -> bool {
+        use crate::gecko_bindings::structs::NODE_ANCHORS_RELATIVE_SELECTOR;
+        self.flags() & NODE_ANCHORS_RELATIVE_SELECTOR != 0
     }
 }
 

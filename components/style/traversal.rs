@@ -222,7 +222,10 @@ pub trait DomTraversal<E: TElement>: Sync {
         if traversal_flags.for_animation_only() {
             return data.map_or(false, |d| d.has_styles()) &&
                 (el.has_animation_only_dirty_descendants() ||
-                 data.as_ref().unwrap().hint.has_animation_hint_or_recascade());
+                    data.as_ref()
+                        .unwrap()
+                        .hint
+                        .has_animation_hint_or_recascade());
         }
 
         // Non-incremental layout visits every node.
@@ -420,7 +423,8 @@ pub fn recalc_style_at<E, D, F>(
 
     // Compute style for this element if necessary.
     if let Some(restyle_kind) = restyle_kind {
-        child_restyle_requirement = compute_style(traversal_data, context, element, data, restyle_kind);
+        child_restyle_requirement =
+            compute_style(traversal_data, context, element, data, restyle_kind);
 
         if !element.matches_user_and_content_rules() {
             // We must always cascade native anonymous subtrees, since they
