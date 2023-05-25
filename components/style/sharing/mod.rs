@@ -67,6 +67,7 @@
 use crate::applicable_declarations::ApplicableDeclarationBlock;
 use crate::bloom::StyleBloom;
 use crate::context::{SharedStyleContext, StyleContext};
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::{SendElement, TElement};
 use crate::properties::ComputedValues;
 use crate::rule_tree::StrongRuleNode;
@@ -275,11 +276,13 @@ pub struct StyleSharingCandidate<E: TElement> {
     /// The element.
     element: E,
     validation_data: ValidationData,
+    considered_relative_selector: bool,
 }
 
 struct FakeCandidate {
     _element: usize,
     _validation_data: ValidationData,
+    _considered_relative_selector: bool,
 }
 
 impl<E: TElement> Deref for StyleSharingCandidate<E> {
@@ -466,13 +469,19 @@ impl<Candidate> SharingCacheBase<Candidate> {
 }
 
 impl<E: TElement> SharingCache<E> {
-    fn insert(&mut self, element: E, validation_data_holder: Option<&mut StyleSharingTarget<E>>) {
+    fn insert(
+        &mut self,
+        element: E,
+        considered_relative_selector: bool,
+        validation_data_holder: Option<&mut StyleSharingTarget<E>>,
+    ) {
         let validation_data = match validation_data_holder {
             Some(v) => v.take_validation_data(),
             None => ValidationData::default(),
         };
         self.entries.insert(StyleSharingCandidate {
             element,
+            considered_relative_selector,
             validation_data,
         });
     }
@@ -612,6 +621,22 @@ impl<E: TElement> StyleSharingCache<E> {
             return;
         }
 
+        // If this element was considered for matching a relative selector, we can't
+        // share style, as that requires evaluating the relative selector in the
+        // first place. A couple notes:
+        // - This means that a document that contains a standalone `:has()`
+        //   rule would basically turn style sharing off.
+        // - Since the flag is set on the element, we may be overly pessimistic:
+        //   For example, given `<div class="foo"><div class="bar"></div></div>`,
+        //   if we run into a `.foo:has(.bar) .baz` selector, we refuse any selector
+        //   matching `.foo`, even if `:has()` may not even be used. Ideally we'd
+        //   have something like `RelativeSelectorConsidered::RightMost`, but the
+        //   element flag is required for invalidation, and this reduces more tracking.
+        if element.anchors_relative_selector() {
+            debug!("Failing to insert to the cache: may anchor relative selector");
+            return;
+        }
+
         // In addition to the above running animations check, we also need to
         // check CSS animation and transition styles since it's possible that
         // we are about to create CSS animations/transitions.
@@ -642,7 +667,15 @@ impl<E: TElement> StyleSharingCache<E> {
             self.clear();
             self.dom_depth = dom_depth;
         }
-        self.cache_mut().insert(*element, validation_data_holder);
+        self.cache_mut().insert(
+            *element,
+            style
+                .style
+                .0
+                .flags
+                .intersects(ComputedValueFlags::CONSIDERED_RELATIVE_SELECTOR),
+            validation_data_holder,
+        );
     }
 
     /// Clear the style sharing candidate cache.

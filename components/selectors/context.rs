@@ -146,6 +146,7 @@ where
 
     /// The current element we're anchoring on for evaluating the relative selector.
     current_relative_selector_anchor: Option<OpaqueElement>,
+    pub considered_relative_selector: bool,
 
     quirks_mode: QuirksMode,
     needs_selector_flags: NeedsSelectorFlags,
@@ -199,6 +200,7 @@ where
             pseudo_element_matching_fn: None,
             extra_data: Default::default(),
             current_relative_selector_anchor: None,
+            considered_relative_selector: false,
             _impl: ::std::marker::PhantomData,
         }
     }
@@ -332,6 +334,7 @@ where
         self.current_relative_selector_anchor = Some(anchor);
         let result = self.nest(f);
         self.current_relative_selector_anchor = original_relative_selector_anchor;
+        self.considered_relative_selector = true;
         result
     }
 

@@ -499,6 +499,16 @@ where
             }
         }
 
+        if matching_context.considered_relative_selector {
+            // This is a bit awkward - ideally, the flag is set directly where `considered_relative_selector`
+            // is; however, in that context, the implementation detail of `extra_data` is not visible, so
+            // it's done here. A trait for manipulating the flags is an option, but not worth it for a single flag.
+            matching_context
+                .extra_data
+                .cascade_input_flags
+                .insert(ComputedValueFlags::CONSIDERED_RELATIVE_SELECTOR);
+        }
+
         MatchingResults {
             rule_node,
             flags: matching_context.extra_data.cascade_input_flags,

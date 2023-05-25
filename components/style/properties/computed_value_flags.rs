@@ -118,6 +118,9 @@ bitflags! {
         /// A flag used to mark styles which have `container-type` of `size` or
         /// `inline-size`, or under one.
         const SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE = 1 << 23;
+
+        /// Whether the style evaluated any relative selector.
+        const CONSIDERED_RELATIVE_SELECTOR = 1 << 24;
     }
 }
 
@@ -150,7 +153,7 @@ impl ComputedValueFlags {
     /// Flags that are an input to the cascade.
     #[inline]
     fn cascade_input_flags() -> Self {
-        Self::USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES
+        Self::USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES | Self::CONSIDERED_RELATIVE_SELECTOR
     }
 
     /// Returns the flags that are always propagated to descendants.

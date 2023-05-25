@@ -60,13 +60,18 @@ bitflags! {
         /// The element has an empty selector, so when a child is appended we
         /// might need to restyle the parent completely.
         const HAS_EMPTY_SELECTOR = 1 << 4;
+
+        /// This element has a relative selector that anchors to it, or may do so
+        /// if its descendants or its later siblings change.
+        const ANCHORS_RELATIVE_SELECTOR = 1 << 5;
     }
 }
 
 impl ElementSelectorFlags {
     /// Returns the subset of flags that apply to the element.
     pub fn for_self(self) -> ElementSelectorFlags {
-        self & (ElementSelectorFlags::HAS_EMPTY_SELECTOR)
+        self & (ElementSelectorFlags::HAS_EMPTY_SELECTOR |
+            ElementSelectorFlags::ANCHORS_RELATIVE_SELECTOR)
     }
 
     /// Returns the subset of flags that apply to the parent.
@@ -365,6 +370,12 @@ fn matches_relative_selectors<E: Element>(
     element: &E,
     context: &mut MatchingContext<E::Impl>,
 ) -> bool {
+    if context.needs_selector_flags() {
+        // If we've considered anchoring `:has()` selector while trying to match this element,
+        // mark it as such, as it has implications on style sharing (See style sharing
+        // code for further information).
+        element.apply_selector_flags(ElementSelectorFlags::ANCHORS_RELATIVE_SELECTOR);
+    }
     for RelativeSelector {
         match_hint,
         selector,

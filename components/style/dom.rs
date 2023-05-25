@@ -894,6 +894,10 @@ pub trait TElement:
     /// This will usually be the size of the content area of the primary box,
     /// but can be None if there is no box or if some axis lacks size containment.
     fn query_container_size(&self, display: &Display) -> euclid::default::Size2D<Option<app_units::Au>>;
+
+    /// Returns true if this element anchors a relative selector, now or after
+    /// a DOM mutation.
+    fn anchors_relative_selector(&self) -> bool;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit
