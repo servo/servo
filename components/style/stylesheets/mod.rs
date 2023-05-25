@@ -556,8 +556,9 @@ impl DeepCloneWithLock for CssRule {
                 ))
             },
             CssRule::Property(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::Property(Arc::new(lock.wrap(rule.clone())))
+                // @property rules are immutable, so we don't need any of the `Locked`
+                // shenanigans, actually, and can just share the rule.
+                CssRule::Property(arc.clone())
             },
             CssRule::Document(ref arc) => {
                 let rule = arc.read_with(guard);
