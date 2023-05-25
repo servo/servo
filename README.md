@@ -308,8 +308,6 @@ Add the `--release` flag to create an optimized build:
 ./mach run --release tests/html/about-mozilla.html
 ```
 
-**Note:** `mach build ` will build both `servo` and `libsimpleservo`. To make compilation a bit faster, it's possible to only compile the servo binary: `./mach build --dev -p servo`.
-
 ### Checking for build errors, without building
 
 If you’re making changes to one crate that cause build errors in another crate,
