@@ -1247,8 +1247,10 @@ impl MozImageRect {
 #[repr(u8)]
 pub enum ImageRendering {
     Auto,
+    Smooth,
     #[parse(aliases = "-moz-crisp-edges")]
     CrispEdges,
+    Pixelated,
     // From the spec:
     //
     //     This property previously accepted the values optimizeSpeed and
@@ -1256,10 +1258,9 @@ pub enum ImageRendering {
     //     them as valid values but must treat them as having the same behavior
     //     as crisp-edges and smooth respectively, and authors must not use
     //     them.
+    //
     #[cfg(feature = "gecko")]
     Optimizespeed,
     #[cfg(feature = "gecko")]
     Optimizequality,
-    #[cfg(feature = "servo")]
-    Pixelated,
 }
