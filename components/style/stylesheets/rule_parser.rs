@@ -720,8 +720,11 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                 })))
             },
             AtRulePrelude::Property(name) => self.nest_for_rule(CssRuleType::Property, |p| {
-                CssRule::Property(Arc::new(p.shared_lock.wrap(
-                    parse_property_block(&p.context, input, name, start.source_location()),
+                CssRule::Property(Arc::new(parse_property_block(
+                    &p.context,
+                    input,
+                    name,
+                    start.source_location(),
                 )))
             }),
             AtRulePrelude::Document(condition) => {

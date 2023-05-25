@@ -263,7 +263,7 @@ pub enum CssRule {
     Keyframes(Arc<Locked<KeyframesRule>>),
     Supports(Arc<Locked<SupportsRule>>),
     Page(Arc<Locked<PageRule>>),
-    Property(Arc<Locked<PropertyRule>>),
+    Property(Arc<PropertyRule>),
     Document(Arc<Locked<DocumentRule>>),
     LayerBlock(Arc<Locked<LayerBlockRule>>),
     LayerStatement(Arc<Locked<LayerStatementRule>>),
@@ -309,9 +309,7 @@ impl CssRule {
                 lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
             },
 
-            CssRule::Property(ref lock) => {
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
-            },
+            CssRule::Property(ref rule) => rule.size_of(guard, ops),
 
             CssRule::Document(ref lock) => {
                 lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
@@ -598,7 +596,7 @@ impl ToCssWithGuard for CssRule {
             CssRule::Media(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Supports(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Page(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::Property(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Property(ref rule) => rule.to_css(guard, dest),
             CssRule::Document(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::LayerBlock(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::LayerStatement(ref lock) => lock.read_with(guard).to_css(guard, dest),

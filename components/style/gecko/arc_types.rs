@@ -114,9 +114,8 @@ impl_locked_arc_ffi!(
     Servo_PageRule_AddRef,
     Servo_PageRule_Release
 );
-impl_locked_arc_ffi!(
+impl_simple_arc_ffi!(
     PropertyRule,
-    LockedPropertyRule,
     Servo_PropertyRule_AddRef,
     Servo_PropertyRule_Release
 );
