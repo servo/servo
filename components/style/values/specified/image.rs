@@ -1256,7 +1256,9 @@ pub enum ImageRendering {
     //     them as valid values but must treat them as having the same behavior
     //     as crisp-edges and smooth respectively, and authors must not use
     //     them.
+    #[cfg(feature = "gecko")]
     Optimizespeed,
+    #[cfg(feature = "gecko")]
     Optimizequality,
     #[cfg(feature = "servo")]
     Pixelated,
