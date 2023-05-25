@@ -352,15 +352,29 @@ impl InlineFormattingContext {
                             .push(Fragment::AbsoluteOrFixedPositioned(hoisted_fragment));
                     },
                     InlineLevelBox::OutOfFlowFloatBox(box_) => {
-                        box_.layout(
+                        let mut fragment = box_.layout(
                             layout_context,
                             ifc.positioning_context,
                             containing_block,
                             ifc.sequential_layout_state.as_mut().map(|c| &mut **c),
                         );
-                        ifc.current_nesting_level
-                            .fragments_so_far
-                            .push(Fragment::Float);
+                        if let Some(state) = &ifc.sequential_layout_state {
+                            let offset_from_formatting_context_to_containing_block = Vec2 {
+                                inline: state.floats.containing_block_info.inline_start,
+                                block: state.floats.containing_block_info.block_start +
+                                    state
+                                        .floats
+                                        .containing_block_info
+                                        .block_start_margins_not_collapsed
+                                        .solve(),
+                            };
+                            if let Fragment::Float(ref mut box_fragment) = &mut fragment {
+                                box_fragment.content_rect.start_corner =
+                                    &box_fragment.content_rect.start_corner -
+                                        &offset_from_formatting_context_to_containing_block;
+                            }
+                        }
+                        ifc.current_nesting_level.fragments_so_far.push(fragment);
                     },
                 }
             } else

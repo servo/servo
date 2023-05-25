@@ -425,7 +425,7 @@ fn process_offset_parent_query_inner(
             //
             // [1]: https://github.com/w3c/csswg-drafts/issues/4541
             let fragment_relative_rect = match fragment {
-                Fragment::Box(fragment) => fragment
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                     .border_rect()
                     .to_physical(fragment.style.writing_mode, &containing_block),
                 Fragment::Text(fragment) => fragment
@@ -434,8 +434,6 @@ fn process_offset_parent_query_inner(
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) |
-                Fragment::Float |
-                Fragment::HoistedFloat(_) |
                 Fragment::Anonymous(_) => unreachable!(),
             };
             let border_box = fragment_relative_rect.translate(containing_block.origin.to_vector());
@@ -485,7 +483,7 @@ fn process_offset_parent_query_inner(
         } else {
             // Record the paths of the nodes being traversed.
             let parent_node_address = match fragment {
-                Fragment::Box(fragment) => {
+                Fragment::Box(fragment) | Fragment::Float(fragment) => {
                     let is_eligible_parent =
                         match (is_body_element, fragment.style.get_box().position) {
                             // Spec says the element is eligible as `offsetParent` if any of
@@ -512,8 +510,6 @@ fn process_offset_parent_query_inner(
                 Fragment::Text(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) |
-                Fragment::Float |
-                Fragment::HoistedFloat(_) |
                 Fragment::Anonymous(_) => None,
             };
 
@@ -544,29 +540,28 @@ fn process_offset_parent_query_inner(
             fragment_tree
                 .find(|fragment, _, containing_block| {
                     match fragment {
-                        Fragment::Box(fragment)
-                            if fragment.base.tag == Some(offset_parent_node_tag) =>
-                        {
-                            // Again, take the *first* associated CSS layout box.
-                            let padding_box_corner = fragment
-                                .padding_rect()
-                                .to_physical(fragment.style.writing_mode, &containing_block)
-                                .origin
-                                .to_vector() +
-                                containing_block.origin.to_vector();
-                            let padding_box_corner = Vector2D::new(
-                                Au::from_f32_px(padding_box_corner.x.px()),
-                                Au::from_f32_px(padding_box_corner.y.px()),
-                            );
-                            Some(padding_box_corner)
+                        Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                            if fragment.base.tag == Some(offset_parent_node_tag) {
+                                // Again, take the *first* associated CSS layout box.
+                                let padding_box_corner = fragment
+                                    .padding_rect()
+                                    .to_physical(fragment.style.writing_mode, &containing_block)
+                                    .origin
+                                    .to_vector() +
+                                    containing_block.origin.to_vector();
+                                let padding_box_corner = Vector2D::new(
+                                    Au::from_f32_px(padding_box_corner.x.px()),
+                                    Au::from_f32_px(padding_box_corner.y.px()),
+                                );
+                                Some(padding_box_corner)
+                            } else {
+                                None
+                            }
                         },
                         Fragment::AbsoluteOrFixedPositioned(_) |
-                        Fragment::Box(_) |
                         Fragment::Text(_) |
                         Fragment::Image(_) |
                         Fragment::IFrame(_) |
-                        Fragment::Float |
-                        Fragment::HoistedFloat(_) |
                         Fragment::Anonymous(_) => None,
                     }
                 })

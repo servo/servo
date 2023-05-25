@@ -193,15 +193,13 @@ impl Fragment {
         section: StackingContextSection,
     ) {
         match self {
-            Fragment::Box(b) => match b.style.get_inherited_box().visibility {
+            Fragment::Box(b) | Fragment::Float(b) => match b.style.get_inherited_box().visibility {
                 Visibility::Visible => {
                     BuilderForBoxFragment::new(b, containing_block).build(builder, section)
                 },
                 Visibility::Hidden => (),
                 Visibility::Collapse => (),
             },
-            Fragment::HoistedFloat(_) => {},
-            Fragment::Float => {},
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Anonymous(_) => {},
             Fragment::Image(i) => match i.style.get_inherited_box().visibility {

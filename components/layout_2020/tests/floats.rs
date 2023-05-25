@@ -9,7 +9,7 @@ extern crate lazy_static;
 
 use euclid::num::Zero;
 use layout::flow::float::{ClearSide, FloatBand, FloatBandNode, FloatBandTree, FloatContext};
-use layout::flow::float::{FloatSide, InlineWalls, PlacementInfo};
+use layout::flow::float::{ContainingBlockOffsets, FloatSide, PlacementInfo};
 use layout::geom::flow_relative::{Rect, Vec2};
 use quickcheck::{Arbitrary, Gen};
 use std::f32;
@@ -339,7 +339,7 @@ struct FloatInput {
     ceiling: u32,
     /// Distances from the logical left side of the block formatting context to the logical sides
     /// of the current containing block.
-    walls: InlineWalls,
+    cb_offset: ContainingBlockOffsets,
 }
 
 impl Arbitrary for FloatInput {
@@ -366,7 +366,8 @@ impl Arbitrary for FloatInput {
                 clear: new_clear_side(clear),
             },
             ceiling,
-            walls: InlineWalls {
+            cb_offset: ContainingBlockOffsets {
+                top: Length::zero(),
                 left: Length::new(left as f32),
                 right: Length::new(right as f32),
             },
@@ -388,12 +389,12 @@ impl Arbitrary for FloatInput {
             this.info.clear = new_clear_side(clear_side);
             shrunk = true;
         }
-        if let Some(left) = self.walls.left.px().shrink().next() {
-            this.walls.left = Length::new(left);
+        if let Some(left) = self.cb_offset.left.px().shrink().next() {
+            this.cb_offset.left = Length::new(left);
             shrunk = true;
         }
-        if let Some(right) = self.walls.right.px().shrink().next() {
-            this.walls.right = Length::new(right);
+        if let Some(right) = self.cb_offset.right.px().shrink().next() {
+            this.cb_offset.right = Length::new(right);
             shrunk = true;
         }
         if let Some(ceiling) = self.ceiling.shrink().next() {
@@ -429,7 +430,7 @@ struct PlacedFloat {
     origin: Vec2<Length>,
     info: PlacementInfo,
     ceiling: Length,
-    walls: InlineWalls,
+    walls: ContainingBlockOffsets,
 }
 
 impl Drop for FloatPlacement {
@@ -470,12 +471,12 @@ impl FloatPlacement {
         for float in floats {
             let ceiling = Length::new(float.ceiling as f32);
             float_context.lower_ceiling(ceiling);
-            float_context.walls = float.walls;
+            float_context.cb_bfc_distance = float.cb_offset;
             placed_floats.push(PlacedFloat {
                 origin: float_context.add_float(&float.info),
                 info: float.info,
                 ceiling,
-                walls: float.walls,
+                walls: float.cb_offset,
             })
         }
         FloatPlacement {

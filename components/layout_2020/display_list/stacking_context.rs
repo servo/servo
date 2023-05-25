@@ -7,7 +7,7 @@ use crate::cell::ArcRefCell;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::DisplayListBuilder;
 use crate::fragment_tree::ContainingBlockManager;
-use crate::fragments::{AnonymousFragment, BoxFragment, Fragment, HoistedFloatFragment};
+use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
 use crate::geom::PhysicalRect;
 use crate::style_ext::ComputedValuesExt;
 use crate::FragmentTree;
@@ -531,7 +531,7 @@ impl Fragment {
     ) {
         let containing_block = containing_block_info.get_containing_block_for_fragment(self);
         match self {
-            Fragment::Box(fragment) => {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 if mode == StackingContextBuildMode::SkipHoisted &&
                     fragment.style.clone_position().is_absolutely_positioned()
                 {
@@ -554,14 +554,6 @@ impl Fragment {
                     stacking_context,
                 );
             },
-            Fragment::HoistedFloat(fragment) => {
-                fragment.build_stacking_context_tree(
-                    display_list,
-                    containing_block_info,
-                    stacking_context,
-                );
-            },
-            Fragment::Float => {},
             Fragment::AbsoluteOrFixedPositioned(fragment) => {
                 let shared_fragment = fragment.borrow();
                 let fragment_ref = match shared_fragment.fragment.as_ref() {
@@ -1101,22 +1093,5 @@ impl AnonymousFragment {
                 StackingContextBuildMode::SkipHoisted,
             );
         }
-    }
-}
-
-impl HoistedFloatFragment {
-    fn build_stacking_context_tree(
-        &self,
-        display_list: &mut DisplayList,
-        containing_block_info: &ContainingBlockInfo,
-        stacking_context: &mut StackingContext,
-    ) {
-        self.fragment.borrow().build_stacking_context_tree(
-            &self.fragment,
-            display_list,
-            containing_block_info,
-            stacking_context,
-            StackingContextBuildMode::SkipHoisted,
-        );
     }
 }

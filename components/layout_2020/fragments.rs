@@ -26,11 +26,12 @@ use webrender_api::{FontInstanceKey, ImageKey};
 #[derive(Serialize)]
 pub(crate) enum Fragment {
     Box(BoxFragment),
-    // The original document position of a float in the document tree.
-    Float,
-    // A float hoisted up from its original position (where a placeholder `Fragment::Float` is) to
-    // its containing block.
-    HoistedFloat(HoistedFloatFragment),
+    /// Floating content. A floated fragment is very similar to a normal
+    /// [BoxFragment] but it isn't positioned using normal in block flow
+    /// positioning rules (margin collapse, etc). Instead, they are laid out by
+    /// the [SequentialLayoutState] of their float containing block formatting
+    /// context.
+    Float(BoxFragment),
     Anonymous(AnonymousFragment),
     /// Absolute and fixed position fragments are hoisted up so that they
     /// are children of the BoxFragment that establishes their containing
@@ -43,13 +44,6 @@ pub(crate) enum Fragment {
     Text(TextFragment),
     Image(ImageFragment),
     IFrame(IFrameFragment),
-}
-
-// A float hoisted up from its original position (where a placeholder `Fragment::Float` is) to its
-// containing block.
-#[derive(Serialize)]
-pub(crate) struct HoistedFloatFragment {
-    pub fragment: ArcRefCell<Fragment>,
 }
 
 #[derive(Serialize)]
@@ -171,9 +165,7 @@ impl Fragment {
     pub fn offset_inline(&mut self, offset: &Length) {
         let position = match self {
             Fragment::Box(f) => &mut f.content_rect.start_corner,
-            Fragment::HoistedFloat(_) |
-            Fragment::Float |
-            Fragment::AbsoluteOrFixedPositioned(_) => return,
+            Fragment::Float(_) | Fragment::AbsoluteOrFixedPositioned(_) => return,
             Fragment::Anonymous(f) => &mut f.rect.start_corner,
             Fragment::Text(f) => &mut f.rect.start_corner,
             Fragment::Image(f) => &mut f.rect.start_corner,
@@ -187,12 +179,11 @@ impl Fragment {
         Some(match self {
             Fragment::Box(fragment) => &fragment.base,
             Fragment::Text(fragment) => &fragment.base,
-            Fragment::Float => return None,
             Fragment::AbsoluteOrFixedPositioned(_) => return None,
             Fragment::Anonymous(fragment) => &fragment.base,
             Fragment::Image(fragment) => &fragment.base,
             Fragment::IFrame(fragment) => &fragment.base,
-            Fragment::HoistedFloat(_) => return None,
+            Fragment::Float(fragment) => &fragment.base,
         })
     }
 
@@ -203,8 +194,11 @@ impl Fragment {
     pub fn print(&self, tree: &mut PrintTree) {
         match self {
             Fragment::Box(fragment) => fragment.print(tree),
-            Fragment::HoistedFloat(fragment) => fragment.print(tree),
-            Fragment::Float => tree.add_item(format!("Float")),
+            Fragment::Float(fragment) => {
+                tree.new_level(format!("Float"));
+                fragment.print(tree);
+                tree.end_level();
+            },
             Fragment::AbsoluteOrFixedPositioned(_) => {
                 tree.add_item("AbsoluteOrFixedPositioned".to_string());
             },
@@ -220,11 +214,10 @@ impl Fragment {
         containing_block: &PhysicalRect<Length>,
     ) -> PhysicalRect<Length> {
         match self {
-            Fragment::Box(fragment) => fragment.scrollable_overflow_for_parent(&containing_block),
-            Fragment::HoistedFloat(fragment) => {
-                (*fragment.fragment.borrow()).scrollable_overflow(&containing_block)
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                fragment.scrollable_overflow_for_parent(&containing_block)
             },
-            Fragment::Float | Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
+            Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
             Fragment::Anonymous(fragment) => fragment.scrollable_overflow.clone(),
             Fragment::Text(fragment) => fragment
                 .rect
@@ -250,7 +243,7 @@ impl Fragment {
         }
 
         match self {
-            Fragment::Box(fragment) => {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 let content_rect = fragment
                     .content_rect
                     .to_physical(fragment.style.writing_mode, containing_block)
@@ -291,15 +284,6 @@ impl Fragment {
             },
             _ => None,
         }
-    }
-}
-
-impl HoistedFloatFragment {
-    #[allow(dead_code)]
-    pub fn print(&self, tree: &mut PrintTree) {
-        tree.new_level(format!("HoistedFloatFragment"));
-        self.fragment.borrow().print(tree);
-        tree.end_level();
     }
 }
 
@@ -450,19 +434,17 @@ impl BoxFragment {
                 \ncontent={:?}\
                 \npadding rect={:?}\
                 \nborder rect={:?}\
+                \nclearance={:?}\
                 \nscrollable_overflow={:?}\
-                \noverflow={:?} / {:?}\
-                \noverconstrained={:?}
-                \nstyle={:p}",
+                \noverflow={:?} / {:?}",
             self.base,
             self.content_rect,
             self.padding_rect(),
             self.border_rect(),
+            self.clearance,
             self.scrollable_overflow(&PhysicalRect::zero()),
             self.style.get_box().overflow_x,
             self.style.get_box().overflow_y,
-            self.overconstrained,
-            self.style,
         ));
 
         for child in &self.children {

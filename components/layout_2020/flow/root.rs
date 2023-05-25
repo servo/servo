@@ -440,14 +440,12 @@ impl FragmentTree {
             }
 
             let fragment_relative_rect = match fragment {
-                Fragment::Box(fragment) => fragment
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                     .border_rect()
                     .to_physical(fragment.style.writing_mode, &containing_block),
                 Fragment::Text(fragment) => fragment
                     .rect
                     .to_physical(fragment.parent_style.writing_mode, &containing_block),
-                Fragment::HoistedFloat(_) |
-                Fragment::Float |
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) |
@@ -521,15 +519,13 @@ impl FragmentTree {
             }
 
             scroll_area = match fragment {
-                Fragment::Box(fragment) => fragment
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                     .scrollable_overflow(&containing_block)
                     .translate(containing_block.origin.to_vector()),
                 Fragment::Text(_) |
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) |
-                Fragment::Float |
-                Fragment::HoistedFloat(_) |
                 Fragment::Anonymous(_) => return None,
             };
             None::<()>

@@ -4,9 +4,11 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
+use std::ops::DerefMut;
+
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::flow::float::{ClearSide, FloatBox, SequentialLayoutState};
+use crate::flow::float::{ClearSide, ContainingBlockPositionInfo, FloatBox, SequentialLayoutState};
 use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
@@ -82,7 +84,7 @@ impl BlockFormattingContext {
             None
         };
 
-        let mut flow_layout = self.contents.layout(
+        let flow_layout = self.contents.layout(
             layout_context,
             positioning_context,
             containing_block,
@@ -95,11 +97,6 @@ impl BlockFormattingContext {
                 .collapsible_margins_in_children
                 .collapsed_through
         );
-
-        // FIXME(pcwalton): Relative positioning of ancestors should affect descendant floats.
-        if let Some(ref sequential_layout_state) = sequential_layout_state {
-            sequential_layout_state.add_float_fragments_to_list(&mut flow_layout.fragments);
-        }
 
         IndependentLayout {
             fragments: flow_layout.fragments,
@@ -267,7 +264,10 @@ fn layout_block_level_children_sequentially(
                     tree_rank,
                     Some(&mut *sequential_layout_state),
                 );
+
                 placement_state.place_fragment(&mut fragment);
+                placement_state
+                    .adjust_positions_of_float_children(&mut fragment, sequential_layout_state);
                 fragment
             })
             .collect()
@@ -364,15 +364,12 @@ impl BlockLevelBox {
                 positioning_context.push(hoisted_box);
                 Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
             },
-            BlockLevelBox::OutOfFlowFloatBox(box_) => {
-                box_.layout(
-                    layout_context,
-                    positioning_context,
-                    containing_block,
-                    sequential_layout_state,
-                );
-                Fragment::Float
-            },
+            BlockLevelBox::OutOfFlowFloatBox(box_) => box_.layout(
+                layout_context,
+                positioning_context,
+                containing_block,
+                sequential_layout_state,
+            ),
         }
     }
 
@@ -489,9 +486,9 @@ fn layout_in_flow_non_replaced_block_level(
         min_box_size.block == Length::zero();
 
     let mut clearance = Length::zero();
-    let old_inline_walls;
+    let parent_containing_block_position_info;
     match sequential_layout_state {
-        None => old_inline_walls = None,
+        None => parent_containing_block_position_info = None,
         Some(ref mut sequential_layout_state) => {
             sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_start));
             if !start_margin_can_collapse_with_children {
@@ -508,12 +505,26 @@ fn layout_in_flow_non_replaced_block_level(
                 pbm.padding.block_start + pbm.border.block_start + clearance,
             );
 
-            // Store our old inline walls so we can reset them later.
-            old_inline_walls = Some(sequential_layout_state.floats.walls);
-            sequential_layout_state.floats.walls.left +=
-                pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start;
-            sequential_layout_state.floats.walls.right =
-                sequential_layout_state.floats.walls.left + inline_size;
+            // We are about to lay out children. Update the offset between the block formatting
+            // context and the containing block that we create for them. This offset is used to
+            // ajust BFC relative coordinates to coordinates that are relative to our content box.
+            // Our content box establishes the containing block for non-abspos children, including
+            // floats.
+            let inline_start = sequential_layout_state
+                .floats
+                .containing_block_info
+                .inline_start +
+                pbm.padding.inline_start +
+                pbm.border.inline_start +
+                margin.inline_start;
+            let new_cb_offsets = ContainingBlockPositionInfo {
+                block_start: sequential_layout_state.bfc_relative_block_position,
+                block_start_margins_not_collapsed: sequential_layout_state.current_margin,
+                inline_start,
+                inline_end: inline_start + inline_size,
+            };
+            parent_containing_block_position_info =
+                Some(sequential_layout_state.update_all_containing_block_offsets(new_cb_offsets));
         },
     };
 
@@ -579,8 +590,10 @@ fn layout_in_flow_non_replaced_block_level(
     });
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
-        // Now that we're done laying out our children, we can restore the old inline walls.
-        sequential_layout_state.floats.walls = old_inline_walls.unwrap();
+        // Now that we're done laying out our children, we can restore the
+        // parent's containing block position information.
+        sequential_layout_state
+            .update_all_containing_block_offsets(parent_containing_block_position_info.unwrap());
 
         // Account for padding and border. We also might have to readjust the
         // `bfc_relative_block_position` if it was different from the content size (i.e. was
@@ -749,7 +762,7 @@ impl PlacementState {
                 };
                 fragment.borrow_mut().adjust_offsets(offset);
             },
-            Fragment::Anonymous(_) | Fragment::Float => {},
+            Fragment::Anonymous(_) | Fragment::Float(_) => {},
             _ => unreachable!(),
         }
     }
@@ -759,6 +772,55 @@ impl PlacementState {
             collapsed_through: self.next_in_flow_margin_collapses_with_parent_start_margin,
             start: self.start_margin,
             end: self.current_margin,
+        }
+    }
+
+    /// When Float fragments are created in block flows, they are positioned
+    /// relative to the float containing independent block formatting context.
+    /// Once we place a float's containing block, this function can be used to
+    /// fix up the float position to be relative to the containing block.
+    fn adjust_positions_of_float_children(
+        &self,
+        fragment: &mut Fragment,
+        sequential_layout_state: &mut SequentialLayoutState,
+    ) {
+        let fragment = match fragment {
+            Fragment::Box(ref mut fragment) => fragment,
+            _ => return,
+        };
+
+        // TODO(mrobinson): Will these margins be accurate if this fragment
+        // collapses through. Can a fragment collapse through when it has a
+        // non-zero sized float inside? The float won't be positioned correctly
+        // anyway (see the comment in `floats.rs` about margin collapse), but
+        // this might make the result even worse.
+        let collapsed_margins = self.collapsible_margins_in_children().start.adjoin(
+            &sequential_layout_state
+                .floats
+                .containing_block_info
+                .block_start_margins_not_collapsed,
+        );
+
+        let parent_fragment_offset_in_cb = &fragment.content_rect.start_corner;
+        let parent_fragment_offset_in_formatting_context = Vec2 {
+            inline: sequential_layout_state
+                .floats
+                .containing_block_info
+                .inline_start +
+                parent_fragment_offset_in_cb.inline,
+            block: sequential_layout_state
+                .floats
+                .containing_block_info
+                .block_start +
+                collapsed_margins.solve() +
+                parent_fragment_offset_in_cb.block,
+        };
+
+        for child_fragment in fragment.children.iter_mut() {
+            if let Fragment::Float(box_fragment) = child_fragment.borrow_mut().deref_mut() {
+                box_fragment.content_rect.start_corner = &box_fragment.content_rect.start_corner -
+                    &parent_fragment_offset_in_formatting_context;
+            }
         }
     }
 }
