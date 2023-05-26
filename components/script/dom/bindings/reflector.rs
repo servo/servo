@@ -23,7 +23,16 @@ where
     U: DerivedFrom<GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, obj) }
+    unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, None, obj) }
+}
+
+pub fn reflect_dom_object2<T, U>(obj: Box<T>, global: &U, proto: HandleObject) -> DomRoot<T>
+where
+    T: DomObject + DomObjectWrap,
+    U: DerivedFrom<GlobalScope>,
+{
+    let global_scope = global.upcast();
+    unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, Some(proto), obj) }
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
@@ -109,7 +118,7 @@ impl MutDomObject for Reflector {
 /// A trait to provide a function pointer to wrap function for DOM objects.
 pub trait DomObjectWrap: Sized + DomObject {
     /// Function pointer to the general wrap function type
-    const WRAP: unsafe fn(JSContext, &GlobalScope, Box<Self>) -> Root<Dom<Self>>;
+    const WRAP: unsafe fn(JSContext, &GlobalScope, Option<HandleObject>, Box<Self>) -> Root<Dom<Self>>;
 }
 
 /// A trait to provide a function pointer to wrap function for
@@ -119,6 +128,7 @@ pub trait DomObjectIteratorWrap: DomObjectWrap + JSTraceable + Iterable {
     const ITER_WRAP: unsafe fn(
         JSContext,
         &GlobalScope,
+        Option<HandleObject>,
         Box<IterableIterator<Self>>,
     ) -> Root<Dom<IterableIterator<Self>>>;
 }

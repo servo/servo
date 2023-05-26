@@ -2313,10 +2313,11 @@ def DOMClass(descriptor):
     return """\
 DOMClass {
     interface_chain: [ %s ],
+    depth: %d,
     type_id: %s,
     malloc_size_of: %s as unsafe fn(&mut _, _) -> _,
     global: InterfaceObjectMap::Globals::%s,
-}""" % (prototypeChainString, DOMClassTypeId(descriptor), mallocSizeOf, globals_)
+}""" % (prototypeChainString, descriptor.prototypeDepth, DOMClassTypeId(descriptor), mallocSizeOf, globals_)
 
 
 class CGDOMJSClass(CGThing):
@@ -2865,7 +2866,7 @@ ensure_expando_object(*cx, obj.handle().into(), expando.handle_mut());
         copyFunc = "JS_InitializePropertiesFromCompatibleNativeObject"
     copyCode += """\
 let mut slot = UndefinedValue();
-JS_GetReservedSlot(proto.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, &mut slot);
+JS_GetReservedSlot(canonical_proto.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, &mut slot);
 rooted!(in(*cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
 unforgeable_holder.handle_mut().set(slot.to_object());
 assert!(%(copyFunc)s(*cx, %(obj)s.handle(), unforgeable_holder.handle()));
@@ -2884,6 +2885,7 @@ class CGWrapMethod(CGAbstractMethod):
         assert not descriptor.isGlobal()
         args = [Argument('SafeJSContext', 'cx'),
                 Argument('&GlobalScope', 'scope'),
+                Argument('Option<HandleObject>', 'given_proto'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'DomRoot<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
@@ -2896,7 +2898,7 @@ class CGWrapMethod(CGAbstractMethod):
                 proto = "ptr::null_mut()"
                 lazyProto = "true"  # Our proxy handler will manage the prototype
             else:
-                proto = "proto.get()"
+                proto = "canonical_proto.get()"
                 lazyProto = "false"
 
             create = """
@@ -2924,6 +2926,15 @@ SetProxyReservedSlot(
         else:
             lazyProto = None
             create = """
+rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
+if let Some(given) = given_proto {
+    *proto = *given;
+    if get_context_realm(*cx) != get_object_realm(*given) {
+        assert!(JS_WrapObject(*cx, proto.handle_mut()));
+    }
+} else {
+    *proto = *canonical_proto;
+}
 rooted!(in(*cx) let obj = JS_NewObjectWithGivenProto(
     *cx,
     &Class.base,
@@ -2951,9 +2962,9 @@ assert!(!scope.get().is_null());
 assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 let _ac = JSAutoRealm::new(*cx, scope.get());
 
-rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
-GetProtoObject(cx, scope, proto.handle_mut());
-assert!(!proto.is_null());
+rooted!(in(*cx) let mut canonical_proto = ptr::null_mut::<JSObject>());
+GetProtoObject(cx, scope, canonical_proto.handle_mut());
+assert!(!canonical_proto.is_null());
 
 %(createObject)s
 let root = raw.reflect_with(obj.get());
@@ -3010,9 +3021,9 @@ assert!(!obj.is_null());
 let root = raw.reflect_with(obj.get());
 
 let _ac = JSAutoRealm::new(*cx, obj.get());
-rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
-GetProtoObject(cx, obj.handle(), proto.handle_mut());
-assert!(JS_SetPrototype(*cx, obj.handle(), proto.handle()));
+rooted!(in(*cx) let mut canonical_proto = ptr::null_mut::<JSObject>());
+GetProtoObject(cx, obj.handle(), canonical_proto.handle_mut());
+assert!(JS_SetPrototype(*cx, obj.handle(), canonical_proto.handle()));
 let mut immutable = false;
 assert!(JS_SetImmutablePrototype(*cx, obj.handle(), &mut immutable));
 assert!(immutable);
@@ -3076,6 +3087,7 @@ impl DomObjectWrap for %s {
     const WRAP: unsafe fn(
         SafeJSContext,
         &GlobalScope,
+        Option<HandleObject>,
         Box<Self>,
     ) -> Root<Dom<Self>> = Wrap;
 }
@@ -3098,6 +3110,7 @@ impl DomObjectIteratorWrap for %s {
     const ITER_WRAP: unsafe fn(
         SafeJSContext,
         &GlobalScope,
+        Option<HandleObject>,
         Box<IterableIterator<Self>>,
     ) -> Root<Dom<IterableIterator<Self>>> = Wrap;
 }
@@ -6102,13 +6115,25 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def definition_body(self):
         preamble = """let cx = SafeJSContext::from_ptr(cx);
+let args = CallArgs::from_vp(vp, argc);
 let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
-"""
+rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
+let proto_result = get_desired_proto(
+  cx,
+  &args,
+  PrototypeList::ID::%s,
+  CreateInterfaceObjects,
+  desired_proto.handle_mut(),
+);
+        assert!(proto_result.is_ok());
+if proto_result.is_err() {
+  return false;
+}
+""" % (MakeNativeName(self.descriptor.name))
         if len(self.exposureSet) == 1:
             preamble += """\
 let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
 """ % list(self.exposureSet)[0]
-        preamble += """let args = CallArgs::from_vp(vp, argc);\n"""
         preamble = CGGeneric(preamble)
         if self.constructor.isHTMLConstructor():
             signatures = self.constructor.signatures()
@@ -6122,7 +6147,10 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
         else:
             name = self.constructor.identifier.name
             nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-            constructorCall = CGMethodCall(["&global"], nativeName, True,
+            args = ["&global"]
+            if self.descriptor.interface.identifier.name == "EventTarget":
+                args += ["desired_proto.handle()"]
+            constructorCall = CGMethodCall(args, nativeName, True,
                                            self.descriptor, self.constructor)
         return CGList([preamble, constructorCall])
 
@@ -6295,6 +6323,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::CallArgs',
         'js::jsapi::CurrentGlobalOrNull',
         'js::rust::wrappers::GetPropertyKeys',
+        'js::rust::get_object_realm',
+        'js::rust::get_context_realm',
         'js::jsapi::GCContext',
         'js::jsapi::GetWellKnownSymbol',
         'js::rust::Handle',
@@ -6439,6 +6469,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::interface::define_guarded_properties',
         'crate::dom::bindings::interface::is_exposed_in',
         'crate::dom::bindings::interface::get_per_interface_object_handle',
+        'crate::dom::bindings::interface::get_desired_proto',
         'crate::dom::bindings::htmlconstructor::pop_current_element_queue',
         'crate::dom::bindings::htmlconstructor::push_new_element_queue',
         'crate::dom::bindings::iterable::Iterable',
