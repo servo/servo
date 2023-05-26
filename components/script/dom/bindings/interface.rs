@@ -11,7 +11,7 @@ use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::principals::ServoJSPrincipals;
 use crate::dom::bindings::utils::{
-    get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL
+    get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL,
 };
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::error::throw_type_error;
@@ -589,12 +589,6 @@ pub fn define_dom_interface(
     }
 
     rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
-    get_per_interface_object_handle(
-        cx,
-        global,
-        id,
-        creator,
-        proto.handle_mut(),
-    );
+    get_per_interface_object_handle(cx, global, id, creator, proto.handle_mut());
     assert!(!proto.is_null());
 }
