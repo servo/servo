@@ -537,10 +537,24 @@ unsafe extern "C" fn non_new_constructor(
     false
 }
 
+pub enum ProtoOrIfaceIndex {
+    ID(PrototypeList::ID),
+    Constructor(PrototypeList::Constructor),
+}
+
+impl Into<usize> for ProtoOrIfaceIndex {
+    fn into(self) -> usize {
+        match self {
+            ProtoOrIfaceIndex::ID(id) => id as usize,
+            ProtoOrIfaceIndex::Constructor(constructor) => constructor as usize,
+        }
+    }
+}
+
 pub fn get_per_interface_object_handle(
     cx: SafeJSContext,
     global: HandleObject,
-    id: usize,
+    id: ProtoOrIfaceIndex,
     creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
     mut rval: MutableHandleObject,
 ) {
@@ -549,13 +563,14 @@ pub fn get_per_interface_object_handle(
 
         /* Check to see whether the interface objects are already installed */
         let proto_or_iface_array = get_proto_or_iface_array(global.get());
-        rval.set((*proto_or_iface_array)[id]);
+        let index: usize = id.into();
+        rval.set((*proto_or_iface_array)[index]);
         if !rval.get().is_null() {
             return;
         }
 
         creator(cx, global, proto_or_iface_array);
-        rval.set((*proto_or_iface_array)[id]);
+        rval.set((*proto_or_iface_array)[index]);
         assert!(!rval.get().is_null());
     }
 }
@@ -563,7 +578,7 @@ pub fn get_per_interface_object_handle(
 pub fn define_dom_interface(
     cx: SafeJSContext,
     global: HandleObject,
-    id: usize,
+    id: ProtoOrIfaceIndex,
     creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
     enabled: fn(SafeJSContext, HandleObject) -> bool,
 ) {
