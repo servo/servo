@@ -10,7 +10,9 @@ use crate::dom::bindings::constant::{define_constants, ConstantSpec};
 use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::principals::ServoJSPrincipals;
-use crate::dom::bindings::utils::{ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT};
+use crate::dom::bindings::utils::{
+    get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL
+};
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
@@ -533,4 +535,51 @@ unsafe extern "C" fn non_new_constructor(
 ) -> bool {
     throw_type_error(cx, "This constructor needs to be called with `new`.");
     false
+}
+
+pub fn get_per_interface_object_handle(
+    cx: SafeJSContext,
+    global: HandleObject,
+    id: usize,
+    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    mut rval: MutableHandleObject,
+) {
+    unsafe {
+        assert!(((*get_object_class(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
+
+        /* Check to see whether the interface objects are already installed */
+        let proto_or_iface_array = get_proto_or_iface_array(global.get());
+        rval.set((*proto_or_iface_array)[id]);
+        if !rval.get().is_null() {
+            return;
+        }
+
+        creator(cx, global, proto_or_iface_array);
+        rval.set((*proto_or_iface_array)[id]);
+        assert!(!rval.get().is_null());
+    }
+}
+
+pub fn define_dom_interface(
+    cx: SafeJSContext,
+    global: HandleObject,
+    id: usize,
+    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    enabled: fn(SafeJSContext, HandleObject) -> bool,
+) {
+    assert!(!global.get().is_null());
+
+    if !enabled(cx, global) {
+        return;
+    }
+
+    rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
+    get_per_interface_object_handle(
+        cx,
+        global,
+        id,
+        creator,
+        proto.handle_mut(),
+    );
+    assert!(!proto.is_null());
 }

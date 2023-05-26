@@ -3493,21 +3493,8 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
 
     def definition_body(self):
         return CGGeneric("""
-unsafe {
-    assert!(((*get_object_class(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
-
-    /* Check to see whether the interface objects are already installed */
-    let proto_or_iface_array = get_proto_or_iface_array(global.get());
-    rval.set((*proto_or_iface_array)[%(id)s as usize]);
-    if !rval.get().is_null() {
-        return;
-    }
-
-    CreateInterfaceObjects(cx, global, proto_or_iface_array);
-    rval.set((*proto_or_iface_array)[%(id)s as usize]);
-    assert!(!rval.get().is_null());
-}
-""" % {"id": self.id})
+        get_per_interface_object_handle(cx, global, %s as usize, CreateInterfaceObjects, rval)
+        """ % self.id)
 
 
 class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
@@ -3655,25 +3642,19 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface',
                                   'void', args, pub=True)
+        if self.descriptor.interface.isCallback() or self.descriptor.interface.isNamespace():
+            idPrefix = "PrototypeList::Constructor"
+        else:
+            idPrefix = "PrototypeList::ID"
+        self.id = idPrefix + "::" + MakeNativeName(self.descriptor.name)
 
     def define(self):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        if self.descriptor.interface.isCallback() or self.descriptor.interface.isNamespace():
-            function = "GetConstructorObject"
-        else:
-            function = "GetProtoObject"
-        return CGGeneric("""\
-assert!(!global.get().is_null());
-
-if !ConstructorEnabled(cx, global) {
-    return;
-}
-
-rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
-%s(cx, global, proto.handle_mut());
-assert!(!proto.is_null());""" % (function,))
+        return CGGeneric("""
+        define_dom_interface(cx, global, %s as usize, CreateInterfaceObjects, ConstructorEnabled)
+        """ % self.id)
 
 
 def needCx(returnType, arguments, considerTypes):
@@ -6453,6 +6434,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::interface::define_guarded_methods',
         'crate::dom::bindings::interface::define_guarded_properties',
         'crate::dom::bindings::interface::is_exposed_in',
+        'crate::dom::bindings::interface::get_per_interface_object_handle',
+        'crate::dom::bindings::interface::define_dom_interface',
         'crate::dom::bindings::htmlconstructor::pop_current_element_queue',
         'crate::dom::bindings::htmlconstructor::push_new_element_queue',
         'crate::dom::bindings::iterable::Iterable',
