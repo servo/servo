@@ -8,6 +8,7 @@
 #![deny(missing_docs)]
 
 use crate::dom::{SendElement, TElement};
+use crate::LocalName;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use owning_ref::OwningHandle;
 use selectors::bloom::BloomFilter;
@@ -107,9 +108,8 @@ impl<E: TElement> PushedElement<E> {
 /// We do this for attributes that are very common but not commonly used in
 /// selectors.
 #[inline]
-#[cfg(feature = "gecko")]
-pub fn is_attr_name_excluded_from_filter(atom: &crate::Atom) -> bool {
-    *atom == atom!("class") || *atom == atom!("id") || *atom == atom!("style")
+pub fn is_attr_name_excluded_from_filter(name: &LocalName) -> bool {
+    return *name == local_name!("class") || *name == local_name!("id") || *name == local_name!("style")
 }
 
 fn each_relevant_element_hash<E, F>(element: E, mut f: F)

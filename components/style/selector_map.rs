@@ -137,7 +137,10 @@ impl<T: 'static> SelectorMap<T> {
             local_name_hash: HashMap::default(),
             namespace_hash: HashMap::default(),
             other: SmallVec::new(),
+            #[cfg(feature = "gecko")]
             bucket_attributes: static_prefs::pref!("layout.css.bucket-attribute-names.enabled"),
+            #[cfg(feature = "servo")]
+            bucket_attributes: false,
             count: 0,
         }
     }
