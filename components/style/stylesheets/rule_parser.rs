@@ -406,7 +406,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
             "font-face" => {
                 AtRulePrelude::FontFace
             },
-            "layer" if static_prefs::pref!("layout.css.cascade-layers.enabled") => {
+            "layer" => {
                 let names = input.try_parse(|input| {
                     input.parse_comma_separated(|input| {
                         LayerName::parse(self.context, input)
