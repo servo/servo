@@ -308,6 +308,7 @@ impl CssRule {
 }
 
 /// https://drafts.csswg.org/cssom-1/#dom-cssrule-type
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, PartialEq)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
