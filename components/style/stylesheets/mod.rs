@@ -372,8 +372,7 @@ impl CssRule {
             // CssRule::Charset(..) => State::Start,
             CssRule::Import(..) => State::Imports,
             CssRule::Namespace(..) => State::Namespaces,
-            // TODO(emilio): We'll need something here for non-block layer
-            // rules.
+            // TODO(emilio): Do we need something for EarlyLayers?
             _ => State::Body,
         }
     }

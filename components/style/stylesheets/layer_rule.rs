@@ -90,11 +90,11 @@ pub enum LayerRuleKind {
     /// A statement `@layer <name>, <name>, <name>;`
     Statement {
         /// The list of layers to sort.
-        names: SmallVec<[LayerName; 3]>,
+        names: Vec<LayerName>,
     },
 }
 
-/// A [`@layer`][layer] urle.
+/// A [`@layer`][layer] rule.
 ///
 /// [layer]: https://drafts.csswg.org/css-cascade-5/#layering
 #[derive(Debug, ToShmem)]
