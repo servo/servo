@@ -517,6 +517,7 @@ impl LayoutThread {
         animation_timeline_value: f64,
         animations: &DocumentAnimationSet,
         stylesheets_changed: bool,
+        use_rayon: bool,
     ) -> LayoutContext<'a> {
         let traversal_flags = match stylesheets_changed {
             true => TraversalFlags::ForCSSRuleChanges,
@@ -541,7 +542,7 @@ impl LayoutThread {
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: Mutex::new(vec![]),
-            use_rayon: STYLE_THREAD_POOL.pool().is_some(),
+            use_rayon,
         }
     }
 
@@ -989,6 +990,10 @@ impl LayoutThread {
 
         self.stylist.flush(&guards, Some(root_element), Some(&map));
 
+        let rayon_pool = STYLE_THREAD_POOL.lock().unwrap();
+        let rayon_pool = rayon_pool.pool();
+        let rayon_pool = rayon_pool.as_ref();
+
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(
             guards.clone(),
@@ -997,6 +1002,7 @@ impl LayoutThread {
             data.animation_timeline_value,
             &data.animations,
             data.stylesheets_changed,
+            rayon_pool.is_some(),
         );
 
         let dirty_root = unsafe {
@@ -1011,9 +1017,6 @@ impl LayoutThread {
                 DomTraversal::<ServoLayoutElement<DOMLayoutData>>::shared_context(&traversal);
             RecalcStyle::pre_traverse(dirty_root, shared)
         };
-
-        let rayon_pool = STYLE_THREAD_POOL.pool();
-        let rayon_pool = rayon_pool.as_ref();
 
         if token.should_traverse() {
             let dirty_root: ServoLayoutNode<DOMLayoutData> =

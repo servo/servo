@@ -16,6 +16,7 @@ use parking_lot::{RwLock, RwLockReadGuard};
 use rayon;
 use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Mutex;
 
 /// Global style data
 pub struct GlobalStyleData {
@@ -74,7 +75,7 @@ impl StyleThreadPool {
         }
         {
             // Drop the pool.
-            let _ = STYLE_THREAD_POOL.style_thread_pool.write().take();
+            let _ = STYLE_THREAD_POOL.lock().unwrap().style_thread_pool.write().take();
         }
         // Spin until all our threads are done. This will usually be pretty
         // fast, as on shutdown there should be basically no threads left
@@ -104,7 +105,7 @@ impl StyleThreadPool {
 
 lazy_static! {
     /// Global thread pool
-    pub static ref STYLE_THREAD_POOL: StyleThreadPool = {
+    pub static ref STYLE_THREAD_POOL: Mutex<StyleThreadPool> = {
         let stylo_threads = env::var("STYLO_THREADS")
             .map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS value"));
         let mut num_threads = match stylo_threads {
@@ -157,14 +158,14 @@ lazy_static! {
             workers.ok()
         };
 
-        StyleThreadPool {
+        Mutex::new(StyleThreadPool {
             num_threads: if num_threads > 0 {
                 Some(num_threads)
             } else {
                 None
             },
             style_thread_pool: RwLock::new(pool),
-        }
+        })
     };
 
     /// Global style data

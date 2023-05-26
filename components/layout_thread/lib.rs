@@ -1332,10 +1332,10 @@ impl LayoutThread {
             data.stylesheets_changed,
         );
 
-        let pool;
+        let pool = STYLE_THREAD_POOL.lock().unwrap();
+        let thread_pool = pool.pool();
         let (thread_pool, num_threads) = if self.parallel_flag {
-            pool = STYLE_THREAD_POOL.pool();
-            (pool.as_ref(), STYLE_THREAD_POOL.num_threads.unwrap_or(1))
+            (thread_pool.as_ref(), pool.num_threads.unwrap_or(1))
         } else {
             (None, 1)
         };
@@ -1419,6 +1419,7 @@ impl LayoutThread {
                 Some(&document),
                 &mut rw_data,
                 &mut layout_context,
+                thread_pool,
             );
         }
 
@@ -1626,6 +1627,7 @@ impl LayoutThread {
         document: Option<&ServoLayoutDocument<LayoutData>>,
         rw_data: &mut LayoutThreadData,
         context: &mut LayoutContext,
+        thread_pool: Option<&rayon::ThreadPool>,
     ) {
         Self::cancel_animations_for_nodes_not_in_flow_tree(
             &mut *(context.style_context.animations.sets.write()),
@@ -1682,14 +1684,6 @@ impl LayoutThread {
                 self.time_profiler_chan.clone(),
                 || {
                     let profiler_metadata = self.profiler_metadata();
-
-                    let pool;
-                    let thread_pool = if self.parallel_flag {
-                        pool = STYLE_THREAD_POOL.pool();
-                        pool.as_ref()
-                    } else {
-                        None
-                    };
 
                     if let Some(pool) = thread_pool {
                         // Parallel mode.

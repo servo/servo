@@ -32,7 +32,13 @@ use rayon;
 use smallvec::SmallVec;
 
 /// The minimum stack size for a thread in the styling pool, in kilobytes.
+#[cfg(feature = "gecko")]
 pub const STYLE_THREAD_STACK_SIZE_KB: usize = 256;
+
+/// The minimum stack size for a thread in the styling pool, in kilobytes.
+/// Servo requires a bigger stack in debug builds.
+#[cfg(feature = "servo")]
+pub const STYLE_THREAD_STACK_SIZE_KB: usize = 512;
 
 /// The stack margin. If we get this deep in the stack, we will skip recursive
 /// optimizations to ensure that there is sufficient room for non-recursive work.
