@@ -27,9 +27,7 @@ use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, KeyframesName};
 use crate::{Namespace, Prefix};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
-use cssparser::{
-    BasicParseError, BasicParseErrorKind, CowRcStr, ParseErrorKind, ParserState, SourcePosition,
-};
+use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, ParserState, SourcePosition};
 use selectors::SelectorList;
 use servo_arc::Arc;
 use style_traits::{ParseError, StyleParseErrorKind};
@@ -182,7 +180,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         &mut self,
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>,
-    ) -> Result<Self::Prelude, ParseError<'i>> {
+    ) -> Result<AtRulePrelude, ParseError<'i>> {
         match_ignore_ascii_case! { &*name,
             "import" => {
                 if !self.check_state(State::Imports) {
@@ -206,9 +204,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 let media = MediaList::parse(&self.context, input);
                 let media = Arc::new(self.shared_lock.wrap(media));
 
-                let prelude = AtRulePrelude::Import(url, media);
-
-                return Ok(prelude);
+                return Ok(AtRulePrelude::Import(url, media));
             },
             "namespace" => {
                 if !self.check_state(State::Namespaces) {
@@ -225,8 +221,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     Err(e) => return Err(e.into()),
                 };
                 let url = Namespace::from(maybe_namespace.as_ref());
-                let prelude = AtRulePrelude::Namespace(prefix, url);
-                return Ok(prelude);
+                return Ok(AtRulePrelude::Namespace(prefix, url));
             },
             // @charset is removed by rust-cssparser if it’s the first rule in the stylesheet
             // anything left is invalid.
@@ -261,7 +256,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         &mut self,
         prelude: AtRulePrelude,
         start: &ParserState,
-    ) -> Result<Self::AtRule, ()> {
+    ) -> Result<Self::AtRule, ()>  {
         let rule = match prelude {
             AtRulePrelude::Import(url, media) => {
                 let loader = self
@@ -383,14 +378,14 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
             "media" => {
                 let media_queries = MediaList::parse(self.context, input);
                 let arc = Arc::new(self.shared_lock.wrap(media_queries));
-                Ok(Self::Prelude::Media(arc))
+                Ok(AtRulePrelude::Media(arc))
             },
             "supports" => {
                 let cond = SupportsCondition::parse(input)?;
-                Ok(Self::Prelude::Supports(cond))
+                Ok(AtRulePrelude::Supports(cond))
             },
             "font-face" => {
-                Ok(Self::Prelude::FontFace)
+                Ok(AtRulePrelude::FontFace)
             },
             "font-feature-values" => {
                 if !cfg!(feature = "gecko") {
@@ -398,7 +393,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     return Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
                 }
                 let family_names = parse_family_name_list(self.context, input)?;
-                Ok(Self::Prelude::FontFeatureValues(family_names))
+                Ok(AtRulePrelude::FontFeatureValues(family_names))
             },
             "counter-style" => {
                 if !cfg!(feature = "gecko") {
@@ -406,11 +401,11 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     return Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
                 }
                 let name = parse_counter_style_name_definition(input)?;
-                Ok(Self::Prelude::CounterStyle(name))
+                Ok(AtRulePrelude::CounterStyle(name))
             },
             "viewport" => {
                 if viewport_rule::enabled() {
-                    Ok(Self::Prelude::Viewport)
+                    Ok(AtRulePrelude::Viewport)
                 } else {
                     Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
                 }
@@ -430,7 +425,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 }
                 let name = KeyframesName::parse(self.context, input)?;
 
-                Ok(Self::Prelude::Keyframes(name, prefix))
+                Ok(AtRulePrelude::Keyframes(name, prefix))
             },
             "page" => {
                 if cfg!(feature = "gecko") {
@@ -447,7 +442,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 }
 
                 let cond = DocumentCondition::parse(self.context, input)?;
-                Ok(Self::Prelude::Document(cond))
+                Ok(AtRulePrelude::Document(cond))
             },
             _ => Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
         }
@@ -577,12 +572,10 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     },
                 ))))
             },
-            _ => Err(ParseError {
-                kind: ParseErrorKind::Basic(BasicParseErrorKind::AtRuleInvalid(CowRcStr::from(
-                    "Unsupported AtRule Prelude.",
-                ))),
-                location: start.source_location(),
-            }),
+            AtRulePrelude::Import(..) | AtRulePrelude::Namespace(..) => {
+                // These rules don't have blocks.
+                Err(input.new_unexpected_token_error(cssparser::Token::CurlyBracketBlock))
+            },
         }
     }
 }
