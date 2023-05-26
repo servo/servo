@@ -1961,7 +1961,15 @@ impl CascadeData {
             state_dependencies: ElementState::empty(),
             document_state_dependencies: DocumentState::empty(),
             mapped_ids: PrecomputedHashSet::default(),
-            selectors_for_cache_revalidation: SelectorMap::new(),
+            // NOTE: We disable attribute bucketing for revalidation because we
+            // rely on the buckets to match, but we don't want to just not share
+            // style across elements with different attributes.
+            //
+            // An alternative to this would be to perform a style sharing check
+            // like may_match_different_id_rules which would check that the
+            // attribute buckets match on all scopes. But that seems
+            // somewhat gnarly.
+            selectors_for_cache_revalidation: SelectorMap::new_without_attribute_bucketing(),
             animations: Default::default(),
             extra_data: ExtraStyleData::default(),
             effective_media_query_results: EffectiveMediaQueryResults::new(),

@@ -126,14 +126,11 @@ where
 
     element.each_class(|class| f(class.get_hash()));
 
-    #[cfg(feature = "gecko")]
-    if static_prefs::pref!("layout.css.bloom-filter-attribute-names.enabled") {
-        element.each_attr_name(|name| {
-            if !is_attr_name_excluded_from_filter(name) {
-                f(name.get_hash())
-            }
-        });
-    }
+    element.each_attr_name(|name| {
+        if !is_attr_name_excluded_from_filter(name) {
+            f(name.get_hash())
+        }
+    });
 }
 
 impl<E: TElement> Drop for StyleBloom<E> {

@@ -786,10 +786,7 @@ impl<E: TElement> StyleSharingCache<E> {
         }
 
         // It's possible that there are no styles for either id.
-        let may_match_different_id_rules =
-            checks::may_match_different_id_rules(shared, target.element, candidate.element);
-
-        if may_match_different_id_rules {
+        if checks::may_match_different_id_rules(shared, target.element, candidate.element) {
             trace!("Miss: ID Attr");
             return None;
         }
