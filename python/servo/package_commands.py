@@ -147,19 +147,20 @@ class PackageCommands(CommandBase):
                      action='append',
                      help='Create an APPX package')
     @CommandArgument('--ms-app-store', default=None, action='store_true')
-    def package(self, release=False, dev=False, android=None, debug=False,
-                debugger=None, target=None, flavor=None, maven=False, uwp=None, ms_app_store=False):
+    def package(self, release=False, dev=False, android=None, target=None,
+                flavor=None, maven=False, uwp=None, ms_app_store=False):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
             print("Please specify either --target or --android.")
             sys.exit(1)
         if not android:
-            android = self.handle_android_target(target)
+            android = self.setup_configuration_for_android_target(target)
         else:
             target = self.config["android"]["target"]
 
-        env = self.build_env(target=target)
+        self.cross_compile_target = target
+        env = self.build_env()
         binary_path = self.get_binary_path(
             release, dev, target=target, android=android,
             simpleservo=uwp is not None
@@ -423,9 +424,10 @@ class PackageCommands(CommandBase):
             print("Please specify either --target or --android.")
             sys.exit(1)
         if not android:
-            android = self.handle_android_target(target)
+            android = self.setup_configuration_for_android_target(target)
+        self.cross_compile_target = target
 
-        env = self.build_env(target=target)
+        env = self.build_env()
         try:
             binary_path = self.get_binary_path(release, dev, android=android)
         except BuildNotFound:

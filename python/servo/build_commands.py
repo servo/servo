@@ -62,41 +62,19 @@ class MachCommands(CommandBase):
     @CommandArgument('--very-verbose', '-vv',
                      action='store_true',
                      help='Print very verbose output')
-    @CommandArgument('--uwp',
-                     action='store_true',
-                     help='Build for HoloLens (x64)')
-    @CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target")
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.build_like_command_arguments
-    def build(self, release=False, dev=False, jobs=None, params=None, media_stack=None,
-              no_package=False, verbose=False, very_verbose=False,
-              target=None, android=False, libsimpleservo=False,
-              features=None, uwp=False, win_arm64=False, **kwargs):
-        # Force the UWP-enabled target if the convenience UWP flags are passed.
-        if uwp and not target:
-            if win_arm64:
-                target = 'aarch64-uwp-windows-msvc'
-            else:
-                target = 'x86_64-uwp-windows-msvc'
-
+    def build(self, release=False, dev=False, jobs=None, params=None, no_package=False,
+              verbose=False, very_verbose=False, libsimpleservo=False, **kwargs):
         opts = params or []
-        features = features or []
-
-        target, android = self.pick_target_triple(target, android)
-
-        # Infer UWP build if only provided a target.
-        if not uwp:
-            uwp = target and 'uwp' in target
-
-        media_stack = self.pick_media_stack(media_stack, target)
-        features += media_stack
-        has_media_stack = media_stack[0] == "media-gstreamer"
+        has_media_stack = "media-gstreamer" in self.features
 
         target_path = base_path = servo.util.get_target_dir()
-        if android:
+        if self.is_android_build:
+            assert self.cross_compile_target
             target_path = path.join(target_path, "android")
-            base_path = path.join(target_path, target)
+            base_path = path.join(target_path, self.cross_compile_target)
 
         release_path = path.join(base_path, "release", "servo")
         dev_path = path.join(base_path, "debug", "servo")
@@ -135,15 +113,15 @@ class MachCommands(CommandBase):
         if very_verbose:
             opts += ["-vv"]
 
-        env = self.build_env(target=target, is_build=True, uwp=uwp, features=features)
-        self.ensure_bootstrapped(target=target)
+        env = self.build_env(is_build=True, features=self.features)
+        self.ensure_bootstrapped()
         self.ensure_clobbered()
 
         build_start = time()
         env["CARGO_TARGET_DIR"] = target_path
 
         host = servo.platform.host_triple()
-        target_triple = target or servo.platform.host_triple()
+        target_triple = self.cross_compile_target or servo.platform.host_triple()
         if 'apple-darwin' in host and target_triple == host:
             if 'CXXFLAGS' not in env:
                 env['CXXFLAGS'] = ''
@@ -166,7 +144,7 @@ class MachCommands(CommandBase):
 
             env['PKG_CONFIG_ALLOW_CROSS'] = "1"
 
-        if uwp:
+        if self.is_uwp_build:
             # Ensure libstd is ready for the new UWP target.
             check_call(["rustup", "component", "add", "rust-src"])
 
@@ -225,7 +203,7 @@ class MachCommands(CommandBase):
                 print(stderr.decode(encoding))
                 exit(1)
 
-        if android:
+        if self.is_android_build:
             if "ANDROID_NDK" not in env:
                 print("Please set the ANDROID_NDK environment variable.")
                 sys.exit(1)
@@ -244,7 +222,7 @@ class MachCommands(CommandBase):
             make_cmd = ["make"]
             if jobs is not None:
                 make_cmd += ["-j" + jobs]
-            openssl_dir = path.join(target_path, target, "native", "openssl")
+            openssl_dir = path.join(target_path, self.cross_compile_target, "native", "openssl")
             if not path.exists(openssl_dir):
                 os.makedirs(openssl_dir)
             shutil.copy(path.join(self.android_support_dir(), "openssl.makefile"), openssl_dir)
@@ -261,7 +239,7 @@ class MachCommands(CommandBase):
                     print("Currently only support NDK 15. Please re-run `./mach bootstrap-android`.")
                     sys.exit(1)
 
-            env["RUST_TARGET"] = target
+            env["RUST_TARGET"] = self.cross_compile_target
             with cd(openssl_dir):
                 status = call(
                     make_cmd + ["-f", "openssl.makefile"],
@@ -339,7 +317,7 @@ class MachCommands(CommandBase):
             # Also worth remembering: autoconf uses C for its configuration,
             # even for C++ builds, so the C flags need to line up with the C++ flags.
             env['CFLAGS'] = ' '.join([
-                "--target=" + target,
+                "--target=" + self.cross_compile_target,
                 "--sysroot=" + env['ANDROID_SYSROOT'],
                 "--gcc-toolchain=" + gcc_toolchain,
                 "-isystem", sysroot_include,
@@ -349,7 +327,7 @@ class MachCommands(CommandBase):
                 "-D__ANDROID_API__=" + android_api,
             ])
             env['CXXFLAGS'] = ' '.join([
-                "--target=" + target,
+                "--target=" + self.cross_compile_target,
                 "--sysroot=" + env['ANDROID_SYSROOT'],
                 "--gcc-toolchain=" + gcc_toolchain,
                 "-I" + cpufeatures_include,
@@ -368,7 +346,7 @@ class MachCommands(CommandBase):
                 "-D__NDK_FPABI__=",
             ])
             env['CPPFLAGS'] = ' '.join([
-                "--target=" + target,
+                "--target=" + self.cross_compile_target,
                 "--sysroot=" + env['ANDROID_SYSROOT'],
                 "-I" + arch_include,
             ])
@@ -431,26 +409,26 @@ class MachCommands(CommandBase):
 
         status = self.run_cargo_build_like_command(
             "build", opts, env=env, verbose=verbose,
-            target=target, android=android, libsimpleservo=libsimpleservo, uwp=uwp,
-            features=features, **kwargs
+            libsimpleservo=libsimpleservo, **kwargs
         )
 
         # Do some additional things if the build succeeded
         if status == 0:
-            if android and not no_package:
+            if self.is_android_build and not no_package:
                 flavor = None
-                if "googlevr" in features:
+                if "googlevr" in self.features:
                     flavor = "googlevr"
-                elif "oculusvr" in features:
+                elif "oculusvr" in self.features:
                     flavor = "oculusvr"
                 rv = Registrar.dispatch("package", context=self.context,
-                                        release=release, dev=dev, target=target, flavor=flavor)
+                                        release=release, dev=dev, target=self.cross_compile_target,
+                                        flavor=flavor)
                 if rv:
                     return rv
 
             if sys.platform == "win32":
                 servo_exe_dir = os.path.dirname(
-                    self.get_binary_path(release, dev, target=target, simpleservo=libsimpleservo)
+                    self.get_binary_path(release, dev, target=self.cross_compile_target, simpleservo=libsimpleservo)
                 )
                 assert os.path.exists(servo_exe_dir)
 
@@ -483,7 +461,7 @@ class MachCommands(CommandBase):
                         print("WARNING: could not find " + lib)
 
                 # UWP build has its own ANGLE library that it packages.
-                if not uwp:
+                if not self.is_uwp_build:
                     print("Packaging EGL DLLs")
                     egl_libs = ["libEGL.dll", "libGLESv2.dll"]
                     if not package_generated_shared_libraries(egl_libs, build_path, servo_exe_dir):
@@ -492,7 +470,7 @@ class MachCommands(CommandBase):
                 # copy needed gstreamer DLLs in to servo.exe dir
                 if has_media_stack:
                     print("Packaging gstreamer DLLs")
-                    if not package_gstreamer_dlls(env, servo_exe_dir, target_triple, uwp):
+                    if not package_gstreamer_dlls(env, servo_exe_dir, target_triple, self.is_uwp_build):
                         status = 1
 
                 # UWP app packaging already bundles all required DLLs for us.
@@ -501,13 +479,14 @@ class MachCommands(CommandBase):
                     status = 1
 
             elif sys.platform == "darwin":
-                servo_path = self.get_binary_path(release, dev, target=target, simpleservo=libsimpleservo)
+                servo_path = self.get_binary_path(
+                    release, dev, target=self.cross_compile_target, simpleservo=libsimpleservo)
                 servo_bin_dir = os.path.dirname(servo_path)
                 assert os.path.exists(servo_bin_dir)
 
                 if has_media_stack:
                     print("Packaging gstreamer dylibs")
-                    if not package_gstreamer_dylibs(target, servo_path):
+                    if not package_gstreamer_dylibs(self.cross_compile_target, servo_path):
                         return 1
 
                     # On Mac we use the relocatable dylibs from offical gstreamer

@@ -35,21 +35,13 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo check")
     @CommandBase.build_like_command_arguments
-    def check(self, params, features=[], media_stack=None, target=None,
-              android=False, **kwargs):
+    def check(self, params, **kwargs):
         if not params:
             params = []
 
-        features = features or []
-
-        target, android = self.pick_target_triple(target, android)
-
-        features += self.pick_media_stack(media_stack, target)
-
-        self.ensure_bootstrapped(target=target)
+        self.ensure_bootstrapped()
         self.ensure_clobbered()
-
-        status = self.run_cargo_build_like_command("check", params, features=features, **kwargs)
+        status = self.run_cargo_build_like_command("check", params, **kwargs)
         if status == 0:
             print('Finished checking, binary NOT updated. Consider ./mach build before ./mach run')
 
@@ -128,21 +120,13 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo-fix")
     @CommandBase.build_like_command_arguments
-    def cargo_fix(self, params, features=[], media_stack=None, target=None,
-                  android=False, **kwargs):
+    def cargo_fix(self, params, **kwargs):
         if not params:
             params = []
 
-        features = features or []
-
-        target, android = self.pick_target_triple(target, android)
-
-        features += self.pick_media_stack(media_stack, target)
-
-        self.ensure_bootstrapped(target=target)
+        self.ensure_bootstrapped()
         self.ensure_clobbered()
-
-        return self.run_cargo_build_like_command("fix", params, features=features, **kwargs)
+        return self.run_cargo_build_like_command("fix", params, **kwargs)
 
     @Command('cargo-clippy',
              description='Run "cargo clippy"',
@@ -151,21 +135,13 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo-clippy")
     @CommandBase.build_like_command_arguments
-    def cargo_clippy(self, params, features=[], media_stack=None, target=None,
-                     android=False, **kwargs):
+    def cargo_clippy(self, params, **kwargs):
         if not params:
             params = []
 
-        features = features or []
-
-        target, android = self.pick_target_triple(target, android)
-
-        features += self.pick_media_stack(media_stack, target)
-
-        self.ensure_bootstrapped(target=target)
+        self.ensure_bootstrapped()
         self.ensure_clobbered()
-
-        return self.run_cargo_build_like_command("clippy", params, features=features, **kwargs)
+        return self.run_cargo_build_like_command("clippy", params, **kwargs)
 
     @Command('grep',
              description='`git grep` for selected directories.',
@@ -224,9 +200,11 @@ class MachCommands(CommandBase):
         if not path.isfile(logfile):
             print(logfile + " doesn't exist")
             return -1
-        env = self.build_env(target=target)
+
+        self.cross_compile_target = target
+        env = self.build_env()
         ndk_stack = path.join(env["ANDROID_NDK"], "ndk-stack")
-        self.handle_android_target(target)
+        self.setup_configuration_for_android_target(target)
         sym_path = path.join(
             "target",
             target,
@@ -244,8 +222,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--target', action='store', default="armv7-linux-androideabi",
                      help="Build target")
     def ndk_gdb(self, release, target):
-        env = self.build_env(target)
-        self.handle_android_target(target)
+        self.cross_compile_target = target
+        self.setup_configuration_for_android_target(target)
+        env = self.build_env()
         ndk_gdb = path.join(env["ANDROID_NDK"], "ndk-gdb")
         adb_path = path.join(env["ANDROID_SDK"], "platform-tools", "adb")
         sym_paths = [
