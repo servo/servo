@@ -439,4 +439,10 @@ impl Device {
             bindings::Gecko_IsSupportedImageMimeType(mime_type.as_ptr(), mime_type.len() as u32)
         }
     }
+
+    /// Return whether the document is a chrome document.
+    #[inline]
+    pub fn is_chrome_document(&self) -> bool {
+        self.pref_sheet_prefs().mIsChrome
+    }
 }
