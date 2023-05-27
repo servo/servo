@@ -310,10 +310,11 @@ impl CssRule {
 /// https://drafts.csswg.org/cssom-1/#dom-cssrule-type
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, PartialEq)]
+#[repr(u8)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
     Style = 1,
-    Charset = 2,
+    // Charset = 2, // Historical
     Import = 3,
     Media = 4,
     FontFace = 5,
@@ -322,7 +323,7 @@ pub enum CssRuleType {
     Keyframes = 7,
     Keyframe = 8,
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
-    Margin = 9,
+    // Margin = 9, // Not implemented yet.
     Namespace = 10,
     // https://drafts.csswg.org/css-counter-styles-3/#extentions-to-cssrule-interface
     CounterStyle = 11,

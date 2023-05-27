@@ -9,34 +9,26 @@
 #![allow(non_snake_case, missing_docs)]
 
 use crate::gecko::url::CssUrlData;
-use crate::gecko_bindings::structs::RawServoAnimationValue;
-use crate::gecko_bindings::structs::RawServoCounterStyleRule;
-use crate::gecko_bindings::structs::RawServoCssUrlData;
-use crate::gecko_bindings::structs::RawServoDeclarationBlock;
-use crate::gecko_bindings::structs::RawServoFontFaceRule;
-use crate::gecko_bindings::structs::RawServoFontFeatureValuesRule;
-use crate::gecko_bindings::structs::RawServoImportRule;
-use crate::gecko_bindings::structs::RawServoKeyframe;
-use crate::gecko_bindings::structs::RawServoKeyframesRule;
-use crate::gecko_bindings::structs::RawServoMediaList;
-use crate::gecko_bindings::structs::RawServoMediaRule;
-use crate::gecko_bindings::structs::RawServoMozDocumentRule;
-use crate::gecko_bindings::structs::RawServoNamespaceRule;
-use crate::gecko_bindings::structs::RawServoPageRule;
-use crate::gecko_bindings::structs::RawServoStyleRule;
-use crate::gecko_bindings::structs::RawServoStyleSheetContents;
-use crate::gecko_bindings::structs::RawServoSupportsRule;
-use crate::gecko_bindings::structs::ServoCssRules;
+use crate::gecko_bindings::structs::{
+    RawServoAnimationValue, RawServoCounterStyleRule, RawServoCssUrlData,
+    RawServoDeclarationBlock, RawServoFontFaceRule,
+    RawServoFontFeatureValuesRule, RawServoImportRule, RawServoKeyframe,
+    RawServoKeyframesRule, RawServoLayerRule, RawServoMediaList,
+    RawServoMediaRule, RawServoMozDocumentRule, RawServoNamespaceRule,
+    RawServoPageRule, RawServoStyleRule, RawServoStyleSheetContents,
+    RawServoSupportsRule, ServoCssRules
+};
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
 use crate::media_queries::MediaList;
 use crate::properties::animated_properties::AnimationValue;
 use crate::properties::{ComputedValues, PropertyDeclarationBlock};
 use crate::shared_lock::Locked;
 use crate::stylesheets::keyframes_rule::Keyframe;
-use crate::stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
-use crate::stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule};
-use crate::stylesheets::{NamespaceRule, PageRule};
-use crate::stylesheets::{StyleRule, StylesheetContents, SupportsRule};
+use crate::stylesheets::{
+    CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule,
+    DocumentRule, ImportRule, KeyframesRule, LayerRule, MediaRule,
+    NamespaceRule, PageRule, StyleRule, StylesheetContents, SupportsRule
+};
 use servo_arc::{Arc, ArcBorrow};
 use std::{mem, ptr};
 
@@ -82,6 +74,9 @@ impl_arc_ffi!(Locked<Keyframe> => RawServoKeyframe
 
 impl_arc_ffi!(Locked<KeyframesRule> => RawServoKeyframesRule
               [Servo_KeyframesRule_AddRef, Servo_KeyframesRule_Release]);
+
+impl_arc_ffi!(Locked<LayerRule> => RawServoLayerRule
+              [Servo_LayerRule_AddRef, Servo_LayerRule_Release]);
 
 impl_arc_ffi!(Locked<MediaList> => RawServoMediaList
               [Servo_MediaList_AddRef, Servo_MediaList_Release]);
