@@ -25,7 +25,7 @@ use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
 use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
 use crate::stylesheets::keyframes_rule::KeyframesAnimation;
-use crate::stylesheets::layer_rule::LayerName;
+use crate::stylesheets::layer_rule::{LayerName, LayerOrder};
 use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use crate::stylesheets::{StyleRule, StylesheetInDocument, StylesheetContents};
 #[cfg(feature = "gecko")]
@@ -1867,6 +1867,14 @@ impl PartElementAndPseudoRules {
     }
 }
 
+#[derive(Debug, Clone, MallocSizeOf)]
+struct LayerOrderState {
+    /// The order for this layer.
+    order: LayerOrder,
+    /// The order for the next registered child layer.
+    next_child: LayerOrder,
+}
+
 /// Data resulting from performing the CSS cascade that is specific to a given
 /// origin.
 ///
@@ -1933,10 +1941,10 @@ pub struct CascadeData {
     animations: PrecomputedHashMap<Atom, KeyframesAnimation>,
 
     /// A map from cascade layer name to layer order.
-    layer_order: FxHashMap<LayerName, u32>,
+    layer_order: FxHashMap<LayerName, LayerOrderState>,
 
-    /// The next layer order for this cascade data.
-    next_layer_order: u32,
+    /// The next layer order for the top level cascade data.
+    next_layer_order: LayerOrder,
 
     /// Effective media query results cached from the last rebuild.
     effective_media_query_results: EffectiveMediaQueryResults,
@@ -1979,7 +1987,7 @@ impl CascadeData {
             selectors_for_cache_revalidation: SelectorMap::new_without_attribute_bucketing(),
             animations: Default::default(),
             layer_order: Default::default(),
-            next_layer_order: 1, // 0 reserved for the root scope.
+            next_layer_order: LayerOrder::first(),
             extra_data: ExtraStyleData::default(),
             effective_media_query_results: EffectiveMediaQueryResults::new(),
             rules_source_order: 0,
@@ -2143,7 +2151,7 @@ impl CascadeData {
         guard: &SharedRwLockReadGuard,
         rebuild_kind: SheetRebuildKind,
         current_layer: &mut LayerName,
-        current_layer_order: u32,
+        current_layer_order: LayerOrder,
         mut precomputed_pseudo_element_decls: Option<&mut PrecomputedPseudoElementDeclarations>,
     ) -> Result<(), FailedAllocationError>
     where
@@ -2176,7 +2184,7 @@ impl CascadeData {
                                         self.rules_source_order,
                                         CascadeLevel::UANormal,
                                         selector.specificity(),
-                                        current_layer_order,
+                                        current_layer_order.raw(),
                                     ));
                                 continue;
                             }
@@ -2330,16 +2338,31 @@ impl CascadeData {
             }
 
 
-            fn maybe_register_layer(data: &mut CascadeData, layer: &LayerName) -> u32 {
+            fn maybe_register_layer(data: &mut CascadeData, layer: &LayerName) -> LayerOrder {
                 // TODO: Measure what's more common / expensive, if
                 // layer.clone() or the double hash lookup in the insert
                 // case.
-                if let Some(order) = data.layer_order.get(layer) {
-                    return *order;
+                if let Some(ref mut state) = data.layer_order.get(layer) {
+                    return state.order;
                 }
-                let order = data.next_layer_order;
-                data.layer_order.insert(layer.clone(), order);
-                data.next_layer_order += 1;
+                // If the layer is not top-level, find the relevant parent.
+                let order = if layer.layer_names().len() > 1 {
+                    let mut parent = layer.clone();
+                    parent.0.pop();
+
+                    let mut parent_state = data.layer_order.get_mut(&parent).expect("Parent layers should be registered before child layers");
+                    let order = parent_state.next_child;
+                    parent_state.next_child = order.for_next_sibling();
+                    order
+                } else {
+                    let order = data.next_layer_order;
+                    data.next_layer_order = order.for_next_sibling();
+                    order
+                };
+                data.layer_order.insert(layer.clone(), LayerOrderState {
+                    order,
+                    next_child: order.for_child(),
+                });
                 order
             }
 
@@ -2448,7 +2471,7 @@ impl CascadeData {
             guard,
             rebuild_kind,
             &mut current_layer,
-            /* current_layer_order = */ 0,
+            LayerOrder::top_level(),
             precomputed_pseudo_element_decls.as_deref_mut(),
         )?;
 
@@ -2567,7 +2590,7 @@ impl CascadeData {
         }
         self.animations.clear();
         self.layer_order.clear();
-        self.next_layer_order = 1;
+        self.next_layer_order = LayerOrder::first();
         self.extra_data.clear();
         self.rules_source_order = 0;
         self.num_selectors = 0;
@@ -2657,7 +2680,7 @@ pub struct Rule {
     pub source_order: u32,
 
     /// The current layer order of this style rule.
-    pub layer_order: u32,
+    pub layer_order: LayerOrder,
 
     /// The actual style rule.
     #[cfg_attr(
@@ -2687,7 +2710,7 @@ impl Rule {
         level: CascadeLevel,
     ) -> ApplicableDeclarationBlock {
         let source = StyleSource::from_rule(self.style_rule.clone());
-        ApplicableDeclarationBlock::new(source, self.source_order, level, self.specificity(), self.layer_order)
+        ApplicableDeclarationBlock::new(source, self.source_order, level, self.specificity(), self.layer_order.raw())
     }
 
     /// Creates a new Rule.
@@ -2696,7 +2719,7 @@ impl Rule {
         hashes: AncestorHashes,
         style_rule: Arc<Locked<StyleRule>>,
         source_order: u32,
-        layer_order: u32,
+        layer_order: LayerOrder,
     ) -> Self {
         Rule {
             selector,

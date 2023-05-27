@@ -19,6 +19,97 @@ use smallvec::SmallVec;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
+/// The order of a given layer. We encode in a 32-bit integer as follows:
+///
+///  * 0 is reserved for the initial (top-level) layer.
+///  * Top 7 bits are for top level layer order.
+///  * The 25 remaining bits are split in 5 chunks of 5 bits each, for each
+///    nesting level.
+///
+/// This scheme this gives up to 127 layers in the top level, and up to 31
+/// children layers in nested levels, with a max of 6 nesting levels over all.
+///
+/// This seemingly complicated scheme is to avoid fixing up layer orders after
+/// the cascade data rebuild.
+///
+/// An alternative approach that would allow improving those limits would be to
+/// make layers have a sequential identifier, and sort layer order after the
+/// fact. But that complicates incremental cascade data rebuild.
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd, Ord)]
+pub struct LayerOrder(u32);
+
+impl LayerOrder {
+    const FIRST_LEVEL_BITS: usize = 7;
+    const CHILD_BITS: usize = 5;
+    const FIRST_LEVEL_MASK: u32 = 0b11111110_00000000_00000000_00000000;
+    const CHILD_MASK: u32 = 0b00011111;
+
+    /// Get the raw value.
+    pub fn raw(self) -> u32 {
+        self.0
+    }
+
+    /// The top level layer (implicit) is zero.
+    #[inline]
+    pub const fn top_level() -> Self {
+        Self(0)
+    }
+
+    /// The first layer order.
+    #[inline]
+    pub const fn first() -> Self {
+        Self(1 << (32 - Self::FIRST_LEVEL_BITS))
+    }
+
+    fn child_bit_offset(self) -> usize {
+        if self.0 & (Self::CHILD_MASK << 5) != 0 {
+            return 0; // We're at the last or next-to-last level.
+        }
+        if self.0 & (Self::CHILD_MASK << 10) != 0 {
+            return 5;
+        }
+        if self.0 & (Self::CHILD_MASK << 15) != 0 {
+            return 10;
+        }
+        if self.0 & (Self::CHILD_MASK << 20) != 0 {
+            return 15;
+        }
+        if self.0 != 0 {
+            return 20;
+        }
+        return 25;
+    }
+
+    fn sibling_bit_mask_max_and_offset(self) -> (u32, u32, u32) {
+        debug_assert_ne!(self.0, 0, "Top layer should have no siblings");
+        for offset in &[0, 5, 10, 15, 20] {
+            let mask = Self::CHILD_MASK << *offset;
+            if self.0 & mask != 0 {
+                return (mask, (1 << Self::CHILD_BITS) - 1, *offset);
+            }
+        }
+        return (Self::FIRST_LEVEL_MASK, (1 << Self::FIRST_LEVEL_BITS) - 1, 25);
+    }
+
+    /// Generate the layer order for our first child.
+    pub fn for_child(self) -> Self {
+        Self(self.0 | (1 << self.child_bit_offset()))
+    }
+
+    /// Generate the layer order for our next sibling. Might return the same
+    /// order when our limits overflow.
+    pub fn for_next_sibling(self) -> Self {
+        let (mask, max_index, offset) = self.sibling_bit_mask_max_and_offset();
+        let self_index = (self.0 & mask) >> offset;
+        let next_index = if self_index == max_index {
+            self_index
+        } else {
+            self_index + 1
+        };
+        Self((self.0 & !mask) | (next_index << offset))
+    }
+}
+
 /// A `<layer-name>`: https://drafts.csswg.org/css-cascade-5/#typedef-layer-name
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
 pub struct LayerName(pub SmallVec<[AtomIdent; 1]>);
