@@ -75,8 +75,13 @@ fn get_titlebar_radius(device: &Device) -> VariableValue {
     VariableValue::pixel(device.titlebar_radius())
 }
 
-static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 1] = [
+fn get_menu_radius(device: &Device) -> VariableValue {
+    VariableValue::pixel(device.menu_radius())
+}
+
+static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 2] = [
     make_variable!(atom!("-moz-gtk-csd-titlebar-radius"), get_titlebar_radius),
+    make_variable!(atom!("-moz-gtk-menu-radius"), get_menu_radius),
 ];
 
 impl CssEnvironment {
