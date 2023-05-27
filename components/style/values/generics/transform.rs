@@ -687,7 +687,7 @@ pub trait IsParallelTo {
 
 impl<Number, Angle> ToCss for Rotate<Number, Angle>
 where
-    Number: Copy + ToCss,
+    Number: Copy + ToCss + Zero,
     Angle: ToCss,
     (Number, Number, Number): IsParallelTo,
 {
@@ -700,25 +700,41 @@ where
             Rotate::None => dest.write_str("none"),
             Rotate::Rotate(ref angle) => angle.to_css(dest),
             Rotate::Rotate3D(x, y, z, ref angle) => {
-                // If a 3d rotation is specified, the property must serialize with an axis
-                // specified. If the axis is parallel with the x, y, or z axises, it must
-                // serialize as the appropriate keyword.
+                // If the axis is parallel with the x or y axes, it must serialize as the
+                // appropriate keyword. If a rotation about the z axis (that is, in 2D) is
+                // specified, the property must serialize as just an <angle>
+                //
                 // https://drafts.csswg.org/css-transforms-2/#individual-transform-serialization
                 let v = (x, y, z);
-                if v.is_parallel_to(&DirectionVector::new(1., 0., 0.)) {
-                    dest.write_char('x')?;
+                let axis = if x.is_zero() && y.is_zero() && z.is_zero() {
+                    // The zero length vector is parallel to every other vector, so
+                    // is_parallel_to() returns true for it. However, it is definitely different
+                    // from x axis, y axis, or z axis, and it's meaningless to perform a rotation
+                    // using that direction vector. So we *have* to serialize it using that same
+                    // vector - we can't simplify to some theoretically parallel axis-aligned
+                    // vector.
+                    None
+                } else if v.is_parallel_to(&DirectionVector::new(1., 0., 0.)) {
+                    Some("x ")
                 } else if v.is_parallel_to(&DirectionVector::new(0., 1., 0.)) {
-                    dest.write_char('y')?;
+                    Some("y ")
                 } else if v.is_parallel_to(&DirectionVector::new(0., 0., 1.)) {
-                    dest.write_char('z')?;
+                    // When we're parallel to the z-axis, we can just serialize the angle.
+                    return angle.to_css(dest);
                 } else {
-                    x.to_css(dest)?;
-                    dest.write_char(' ')?;
-                    y.to_css(dest)?;
-                    dest.write_char(' ')?;
-                    z.to_css(dest)?;
+                    None
+                };
+                match axis {
+                    Some(a) => dest.write_str(a)?,
+                    None => {
+                        x.to_css(dest)?;
+                        dest.write_char(' ')?;
+                        y.to_css(dest)?;
+                        dest.write_char(' ')?;
+                        z.to_css(dest)?;
+                        dest.write_char(' ')?;
+                    }
                 }
-                dest.write_char(' ')?;
                 angle.to_css(dest)
             },
         }
