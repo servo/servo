@@ -88,6 +88,13 @@
                 has_value = true;
             }
 
+            if !is_auto_thickness {
+                if has_value {
+                    dest.write_str(" ")?;
+                }
+                self.text_decoration_thickness.to_css(dest)?;
+            }
+
             % if engine == "gecko":
             if !is_solid_style {
                 if has_value {
@@ -103,13 +110,6 @@
                 }
                 self.text_decoration_color.to_css(dest)?;
                 has_value = true;
-            }
-
-            if !is_auto_thickness {
-                if has_value {
-                    dest.write_str(" ")?;
-                }
-                self.text_decoration_thickness.to_css(dest)?;
             }
             % endif
 
