@@ -18,15 +18,6 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
-/// With asynchronous stylesheet parsing, we can't synchronously create a
-/// GeckoStyleSheet. So we use this placeholder instead.
-#[cfg(feature = "gecko")]
-#[derive(Clone, Debug)]
-pub struct PendingSheet {
-    origin: Origin,
-    quirks_mode: QuirksMode,
-}
-
 /// A sheet that is held from an import rule.
 #[cfg(feature = "gecko")]
 #[derive(Debug)]
@@ -35,7 +26,7 @@ pub enum ImportSheet {
     Sheet(crate::gecko::data::GeckoStyleSheet),
     /// An @import created while parsing off-main-thread, whose Gecko sheet has
     /// yet to be created and attached.
-    Pending(PendingSheet),
+    Pending,
 }
 
 #[cfg(feature = "gecko")]
@@ -46,11 +37,8 @@ impl ImportSheet {
     }
 
     /// Creates a pending ImportSheet for a load that has not started yet.
-    pub fn new_pending(origin: Origin, quirks_mode: QuirksMode) -> Self {
-        ImportSheet::Pending(PendingSheet {
-            origin,
-            quirks_mode,
-        })
+    pub fn new_pending() -> Self {
+        ImportSheet::Pending
     }
 
     /// Returns a reference to the GeckoStyleSheet in this ImportSheet, if it
@@ -64,7 +52,7 @@ impl ImportSheet {
                 }
                 Some(s)
             },
-            ImportSheet::Pending(_) => None,
+            ImportSheet::Pending => None,
         }
     }
 
@@ -99,7 +87,7 @@ impl DeepCloneWithLock for ImportSheet {
                 };
                 ImportSheet::Sheet(unsafe { GeckoStyleSheet::from_addrefed(clone) })
             },
-            ImportSheet::Pending(ref p) => ImportSheet::Pending(p.clone()),
+            ImportSheet::Pending => ImportSheet::Pending,
         }
     }
 }
