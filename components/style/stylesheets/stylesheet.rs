@@ -278,6 +278,7 @@ pub trait StylesheetInDocument: ::std::fmt::Debug {
 
     rule_filter! {
         effective_style_rules(Style => StyleRule),
+        effective_font_face_rules(FontFace => FontFaceRule),
         effective_viewport_rules(Viewport => ViewportRule),
     }
 }
