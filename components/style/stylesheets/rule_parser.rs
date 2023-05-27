@@ -324,7 +324,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     source_location: start.source_location(),
                 })))
             },
-            AtRulePrelude::Layer(names) => {
+            AtRulePrelude::Layer(ref names) => {
                 if names.is_empty() {
                     return Err(());
                 }
@@ -333,12 +333,10 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 } else {
                     self.state = State::Body;
                 }
-                CssRule::Layer(Arc::new(self.shared_lock.wrap(LayerRule {
-                    kind: LayerRuleKind::Statement { names },
-                    source_location: start.source_location(),
-                })))
+                AtRuleParser::rule_without_block(&mut self.nested(), prelude, start)
+                    .expect("All validity checks on the nested parser should be done before changing self.state")
             },
-            _ => return Err(()),
+            _ => AtRuleParser::rule_without_block(&mut self.nested(), prelude, start)?,
         };
 
         Ok((start.position(), rule))
@@ -645,6 +643,26 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 ))))
             },
         }
+    }
+
+    #[inline]
+    fn rule_without_block(
+        &mut self,
+        prelude: AtRulePrelude,
+        start: &ParserState,
+    ) -> Result<Self::AtRule, ()>  {
+        Ok(match prelude {
+            AtRulePrelude::Layer(names) => {
+                if names.is_empty() {
+                    return Err(());
+                }
+                CssRule::Layer(Arc::new(self.shared_lock.wrap(LayerRule {
+                    kind: LayerRuleKind::Statement { names },
+                    source_location: start.source_location(),
+                })))
+            },
+            _ => return Err(()),
+        })
     }
 }
 
