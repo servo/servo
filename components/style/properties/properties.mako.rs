@@ -945,18 +945,6 @@ impl LonghandIdSet {
         &HAS_NO_EFFECT_ON_SCROLLBARS
     }
 
-    /// Returns the set of padding properties for the purpose of disabling
-    /// native appearance.
-    #[inline]
-    pub fn padding_properties() -> &'static Self {
-        <% assert "padding" in logical_groups %>
-        ${static_longhand_id_set(
-            "PADDING_PROPERTIES",
-            lambda p: p.logical_group == "padding"
-        )}
-        &PADDING_PROPERTIES
-    }
-
     /// Returns the set of border properties for the purpose of disabling native
     /// appearance.
     #[inline]
