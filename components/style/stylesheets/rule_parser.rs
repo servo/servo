@@ -477,6 +477,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 let cond = DocumentCondition::parse(self.context, input)?;
                 AtRulePrelude::Document(cond)
             },
+            #[cfg(feature = "gecko")]
             "scroll-timeline" if static_prefs::pref!("layout.css.scroll-linked-animations.enabled") => {
                 let name = TimelineName::parse(self.context, input)?;
                 AtRulePrelude::ScrollTimeline(name)
