@@ -210,6 +210,13 @@ macro_rules! try_parse_one {
             % endfor
         }
 
+        fn scroll_linked_animations_enabled() -> bool {
+            #[cfg(feature = "gecko")]
+            return static_prefs::pref!("layout.css.scroll-linked-animations.enabled");
+            #[cfg(feature = "servo")]
+            return false;
+        }
+
         fn parse_one_animation<'i, 't>(
             context: &ParserContext,
             input: &mut Parser<'i, 't>,
@@ -234,7 +241,7 @@ macro_rules! try_parse_one {
                 try_parse_one!(context, input, fill_mode, animation_fill_mode);
                 try_parse_one!(context, input, play_state, animation_play_state);
                 try_parse_one!(context, input, name, animation_name);
-                if static_prefs::pref!("layout.css.scroll-linked-animations.enabled") {
+                if scroll_linked_animations_enabled() {
                     try_parse_one!(context, input, timeline, animation_timeline);
                 }
 
