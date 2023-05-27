@@ -794,6 +794,11 @@ impl AnimationTimeline {
     pub fn auto() -> Self {
         Self::Auto
     }
+
+    /// Returns true if it is auto (i.e. the default value).
+    pub fn is_auto(&self) -> bool {
+        matches!(self, Self::Auto)
+    }
 }
 
 impl Parse for AnimationTimeline {
