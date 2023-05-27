@@ -573,6 +573,7 @@ fn layout_atomic(
             let size = replaced.contents.used_size_as_if_inline_element(
                 ifc.containing_block,
                 &replaced.style,
+                None,
                 &pbm,
             );
             let fragments = replaced

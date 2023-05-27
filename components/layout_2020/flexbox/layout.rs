@@ -1006,6 +1006,7 @@ impl<'a> FlexItem<'a> {
                         let size = replaced.contents.used_size_as_if_inline_element(
                             flex_context.containing_block,
                             &replaced.style,
+                            None,
                             &pbm,
                         );
                         let cross_size = flex_context.vec2_to_flex_relative(size.clone()).cross;

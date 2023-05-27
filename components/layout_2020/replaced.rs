@@ -309,13 +309,14 @@ impl ReplacedContent {
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
+        box_size: Option<Vec2<LengthOrAuto>>,
         pbm: &PaddingBorderMargin,
     ) -> Vec2<Length> {
         let mode = style.writing_mode;
         let intrinsic_size = self.flow_relative_intrinsic_size(style);
         let intrinsic_ratio = self.inline_size_over_block_size_intrinsic_ratio(style);
 
-        let box_size = style.content_box_size(containing_block, &pbm);
+        let box_size = box_size.unwrap_or(style.content_box_size(containing_block, &pbm));
         let max_box_size = style.content_max_box_size(containing_block, &pbm);
         let min_box_size = style
             .content_min_box_size(containing_block, &pbm)
