@@ -243,6 +243,13 @@ impl generic::CalcNodeLeaf for Leaf {
     }
 }
 
+fn trig_enabled() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.trig.enabled");
+    #[cfg(feature = "servo")]
+    return false;
+}
+
 /// A calc node representation for specified values.
 pub type CalcNode = generic::GenericCalcNode<Leaf>;
 
@@ -314,7 +321,7 @@ impl CalcNode {
                 CalcNode::parse(context, input, function, expected_unit)
             },
             (&Token::Ident(ref ident), _) => {
-                if !static_prefs::pref!("layout.css.trig.enabled") {
+                if !trig_enabled() {
                     return Err(location.new_unexpected_token_error(Token::Ident(ident.clone())));
                 }
                 let number = match_ignore_ascii_case! { &**ident,
@@ -593,7 +600,7 @@ impl CalcNode {
             Err(()) => return Err(location.new_unexpected_token_error(Token::Function(name.clone()))),
         };
 
-        if matches!(function, Sin | Cos | Tan | Asin | Acos | Atan) && !static_prefs::pref!("layout.css.trig.enabled") {
+        if matches!(function, Sin | Cos | Tan | Asin | Acos | Atan) && !trig_enabled() {
             return Err(location.new_unexpected_token_error(Token::Function(name.clone())));
         }
 
