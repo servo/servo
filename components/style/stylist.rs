@@ -2134,10 +2134,9 @@ impl CascadeData {
         }
     }
 
-    #[inline]
-    fn add_rule<S>(
+    fn add_rule_list<S>(
         &mut self,
-        rule: &CssRule,
+        rules: std::slice::Iter<'_, CssRule>,
         device: &Device,
         quirks_mode: QuirksMode,
         stylesheet: &S,
@@ -2149,241 +2148,241 @@ impl CascadeData {
     where
         S: StylesheetInDocument + 'static,
     {
-        // Handle leaf rules first, as those are by far the most common ones,
-        // and are always effective, so we can skip some checks.
-        let mut handled = true;
-        match *rule {
-            CssRule::Style(ref locked) => {
-                let style_rule = locked.read_with(&guard);
-                self.num_declarations += style_rule.block.read_with(&guard).len();
-                for selector in &style_rule.selectors.0 {
-                    self.num_selectors += 1;
+        for rule in rules {
+            // Handle leaf rules first, as those are by far the most common
+            // ones, and are always effective, so we can skip some checks.
+            let mut handled = true;
+            match *rule {
+                CssRule::Style(ref locked) => {
+                    let style_rule = locked.read_with(&guard);
+                    self.num_declarations += style_rule.block.read_with(&guard).len();
+                    for selector in &style_rule.selectors.0 {
+                        self.num_selectors += 1;
 
-                    let pseudo_element = selector.pseudo_element();
+                        let pseudo_element = selector.pseudo_element();
 
-                    if let Some(pseudo) = pseudo_element {
-                        if pseudo.is_precomputed() {
-                            debug_assert!(selector.is_universal());
-                            debug_assert_eq!(stylesheet.contents().origin, Origin::UserAgent);
+                        if let Some(pseudo) = pseudo_element {
+                            if pseudo.is_precomputed() {
+                                debug_assert!(selector.is_universal());
+                                debug_assert_eq!(stylesheet.contents().origin, Origin::UserAgent);
 
-                            precomputed_pseudo_element_decls
-                                .as_mut()
-                                .expect("Expected precomputed declarations for the UA level")
-                                .get_or_insert_with(pseudo, Vec::new)
-                                .push(ApplicableDeclarationBlock::new(
-                                    StyleSource::from_rule(locked.clone()),
-                                    self.rules_source_order,
-                                    CascadeLevel::UANormal,
-                                    selector.specificity(),
-                                ));
-                            continue;
-                        }
-                        if pseudo.is_unknown_webkit_pseudo_element() {
-                            continue;
-                        }
-                    }
-
-                    let hashes = AncestorHashes::new(&selector, quirks_mode);
-
-                    let rule = Rule::new(
-                        selector.clone(),
-                        hashes,
-                        locked.clone(),
-                        self.rules_source_order,
-                    );
-
-                    if rebuild_kind.should_rebuild_invalidation() {
-                        self.invalidation_map.note_selector(selector, quirks_mode)?;
-                        let mut needs_revalidation = false;
-                        let mut visitor = StylistSelectorVisitor {
-                            needs_revalidation: &mut needs_revalidation,
-                            passed_rightmost_selector: false,
-                            attribute_dependencies: &mut self.attribute_dependencies,
-                            state_dependencies: &mut self.state_dependencies,
-                            document_state_dependencies: &mut self.document_state_dependencies,
-                            mapped_ids: &mut self.mapped_ids,
-                        };
-
-                        rule.selector.visit(&mut visitor);
-
-                        if needs_revalidation {
-                            self.selectors_for_cache_revalidation.insert(
-                                RevalidationSelectorAndHashes::new(
-                                    rule.selector.clone(),
-                                    rule.hashes.clone(),
-                                ),
-                                quirks_mode,
-                            )?;
-                        }
-                    }
-
-                    // Part is special, since given it doesn't have any
-                    // selectors inside, it's not worth using a whole
-                    // SelectorMap for it.
-                    if let Some(parts) = selector.parts() {
-                        // ::part() has all semantics, so we just need to
-                        // put any of them in the selector map.
-                        //
-                        // We choose the last one quite arbitrarily,
-                        // expecting it's slightly more likely to be more
-                        // specific.
-                        self.part_rules
-                            .get_or_insert_with(|| Box::new(Default::default()))
-                            .for_insertion(pseudo_element)
-                            .try_entry(parts.last().unwrap().clone().0)?
-                            .or_insert_with(SmallVec::new)
-                            .try_push(rule)?;
-                    } else {
-                        // NOTE(emilio): It's fine to look at :host and then at
-                        // ::slotted(..), since :host::slotted(..) could never
-                        // possibly match, as <slot> is not a valid shadow host.
-                        let rules =
-                            if selector.is_featureless_host_selector_or_pseudo_element() {
-                                self.host_rules
-                                    .get_or_insert_with(|| Box::new(Default::default()))
-                            } else if selector.is_slotted() {
-                                self.slotted_rules
-                                    .get_or_insert_with(|| Box::new(Default::default()))
-                            } else {
-                                &mut self.normal_rules
+                                precomputed_pseudo_element_decls
+                                    .as_mut()
+                                    .expect("Expected precomputed declarations for the UA level")
+                                    .get_or_insert_with(pseudo, Vec::new)
+                                    .push(ApplicableDeclarationBlock::new(
+                                        StyleSource::from_rule(locked.clone()),
+                                        self.rules_source_order,
+                                        CascadeLevel::UANormal,
+                                        selector.specificity(),
+                                    ));
+                                continue;
                             }
-                            .for_insertion(pseudo_element);
-                        rules.insert(rule, quirks_mode)?;
-                    }
-                }
-                self.rules_source_order += 1;
-            },
-            CssRule::Keyframes(ref keyframes_rule) => {
-                let keyframes_rule = keyframes_rule.read_with(guard);
-                debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
+                            if pseudo.is_unknown_webkit_pseudo_element() {
+                                continue;
+                            }
+                        }
 
-                // Don't let a prefixed keyframes animation override a non-prefixed one.
-                let needs_insertion = keyframes_rule.vendor_prefix.is_none() ||
-                    self.animations
-                        .get(keyframes_rule.name.as_atom())
-                        .map_or(true, |rule| rule.vendor_prefix.is_some());
-                if needs_insertion {
-                    let animation = KeyframesAnimation::from_keyframes(
-                        &keyframes_rule.keyframes,
-                        keyframes_rule.vendor_prefix.clone(),
-                        guard,
-                    );
-                    debug!("Found valid keyframe animation: {:?}", animation);
-                    self.animations
-                        .try_insert(keyframes_rule.name.as_atom().clone(), animation)?;
-                }
-            },
-            #[cfg(feature = "gecko")]
-            CssRule::FontFace(ref rule) => {
-                self.extra_data.add_font_face(rule);
-            },
-            #[cfg(feature = "gecko")]
-            CssRule::FontFeatureValues(ref rule) => {
-                self.extra_data.add_font_feature_values(rule);
-            },
-            #[cfg(feature = "gecko")]
-            CssRule::CounterStyle(ref rule) => {
-                self.extra_data.add_counter_style(guard, rule);
-            },
-            #[cfg(feature = "gecko")]
-            CssRule::Page(ref rule) => {
-                self.extra_data.add_page(rule);
-            },
-            CssRule::Viewport(..) => {},
-            _ => {
-                handled = false;
-            },
-        }
+                        let hashes = AncestorHashes::new(&selector, quirks_mode);
 
-        if handled {
-            // Assert that there are no children, and that the rule is
-            // effective.
-            if cfg!(debug_assertions) {
-                let mut effective = false;
-                let children = EffectiveRulesIterator::children(
-                    rule,
-                    device,
-                    quirks_mode,
-                    guard,
-                    &mut effective,
-                );
-                debug_assert!(children.is_none());
-                debug_assert!(effective);
-            }
-            return Ok(());
-        }
+                        let rule = Rule::new(
+                            selector.clone(),
+                            hashes,
+                            locked.clone(),
+                            self.rules_source_order,
+                        );
 
-        let mut effective = false;
-        let children = EffectiveRulesIterator::children(
-            rule,
-            device,
-            quirks_mode,
-            guard,
-            &mut effective,
-        );
+                        if rebuild_kind.should_rebuild_invalidation() {
+                            self.invalidation_map.note_selector(selector, quirks_mode)?;
+                            let mut needs_revalidation = false;
+                            let mut visitor = StylistSelectorVisitor {
+                                needs_revalidation: &mut needs_revalidation,
+                                passed_rightmost_selector: false,
+                                attribute_dependencies: &mut self.attribute_dependencies,
+                                state_dependencies: &mut self.state_dependencies,
+                                document_state_dependencies: &mut self.document_state_dependencies,
+                                mapped_ids: &mut self.mapped_ids,
+                            };
 
-        if !effective {
-            return Ok(());
-        }
+                            rule.selector.visit(&mut visitor);
 
-        let mut layer_names_to_pop = 0;
-        match *rule {
-            CssRule::Import(ref lock) => {
-                if rebuild_kind.should_rebuild_invalidation() {
-                    let import_rule = lock.read_with(guard);
-                    self.effective_media_query_results
-                        .saw_effective(import_rule);
-                }
+                            if needs_revalidation {
+                                self.selectors_for_cache_revalidation.insert(
+                                    RevalidationSelectorAndHashes::new(
+                                        rule.selector.clone(),
+                                        rule.hashes.clone(),
+                                    ),
+                                    quirks_mode,
+                                )?;
+                            }
+                        }
 
-            },
-            CssRule::Media(ref lock) => {
-                if rebuild_kind.should_rebuild_invalidation() {
-                    let media_rule = lock.read_with(guard);
-                    self.effective_media_query_results.saw_effective(media_rule);
-                }
-            },
-            CssRule::Layer(ref lock) => {
-                use crate::stylesheets::layer_rule::LayerRuleKind;
-
-                fn maybe_register_layer(data: &mut CascadeData, layer: &LayerName) {
-                    // TODO: Measure what's more common / expensive, if
-                    // layer.clone() or the double hash lookup in the insert
-                    // case.
-                    if data.layer_order.get(layer).is_some() {
-                        return;
-                    }
-                    data.layer_order.insert(layer.clone(), data.next_layer_order);
-                    data.next_layer_order += 1;
-                }
-
-                let layer_rule = lock.read_with(guard);
-                match layer_rule.kind {
-                    LayerRuleKind::Block { ref name, .. } => {
-                        for name in name.layer_names() {
-                            current_layer.0.push(name.clone());
-                            maybe_register_layer(self, &current_layer);
-                            layer_names_to_pop += 1;
+                        // Part is special, since given it doesn't have any
+                        // selectors inside, it's not worth using a whole
+                        // SelectorMap for it.
+                        if let Some(parts) = selector.parts() {
+                            // ::part() has all semantics, so we just need to
+                            // put any of them in the selector map.
+                            //
+                            // We choose the last one quite arbitrarily,
+                            // expecting it's slightly more likely to be more
+                            // specific.
+                            self.part_rules
+                                .get_or_insert_with(|| Box::new(Default::default()))
+                                .for_insertion(pseudo_element)
+                                .try_entry(parts.last().unwrap().clone().0)?
+                                .or_insert_with(SmallVec::new)
+                                .try_push(rule)?;
+                        } else {
+                            // NOTE(emilio): It's fine to look at :host and then at
+                            // ::slotted(..), since :host::slotted(..) could never
+                            // possibly match, as <slot> is not a valid shadow host.
+                            let rules =
+                                if selector.is_featureless_host_selector_or_pseudo_element() {
+                                    self.host_rules
+                                        .get_or_insert_with(|| Box::new(Default::default()))
+                                } else if selector.is_slotted() {
+                                    self.slotted_rules
+                                        .get_or_insert_with(|| Box::new(Default::default()))
+                                } else {
+                                    &mut self.normal_rules
+                                }
+                                .for_insertion(pseudo_element);
+                            rules.insert(rule, quirks_mode)?;
                         }
                     }
-                    LayerRuleKind::Statement { ref names } => {
-                        for name in &**names {
+                    self.rules_source_order += 1;
+                },
+                CssRule::Keyframes(ref keyframes_rule) => {
+                    let keyframes_rule = keyframes_rule.read_with(guard);
+                    debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
+
+                    // Don't let a prefixed keyframes animation override a non-prefixed one.
+                    let needs_insertion = keyframes_rule.vendor_prefix.is_none() ||
+                        self.animations
+                            .get(keyframes_rule.name.as_atom())
+                            .map_or(true, |rule| rule.vendor_prefix.is_some());
+                    if needs_insertion {
+                        let animation = KeyframesAnimation::from_keyframes(
+                            &keyframes_rule.keyframes,
+                            keyframes_rule.vendor_prefix.clone(),
+                            guard,
+                        );
+                        debug!("Found valid keyframe animation: {:?}", animation);
+                        self.animations
+                            .try_insert(keyframes_rule.name.as_atom().clone(), animation)?;
+                    }
+                },
+                #[cfg(feature = "gecko")]
+                CssRule::FontFace(ref rule) => {
+                    self.extra_data.add_font_face(rule);
+                },
+                #[cfg(feature = "gecko")]
+                CssRule::FontFeatureValues(ref rule) => {
+                    self.extra_data.add_font_feature_values(rule);
+                },
+                #[cfg(feature = "gecko")]
+                CssRule::CounterStyle(ref rule) => {
+                    self.extra_data.add_counter_style(guard, rule);
+                },
+                #[cfg(feature = "gecko")]
+                CssRule::Page(ref rule) => {
+                    self.extra_data.add_page(rule);
+                },
+                CssRule::Viewport(..) => {},
+                _ => {
+                    handled = false;
+                },
+            }
+
+            if handled {
+                // Assert that there are no children, and that the rule is
+                // effective.
+                if cfg!(debug_assertions) {
+                    let mut effective = false;
+                    let children = EffectiveRulesIterator::children(
+                        rule,
+                        device,
+                        quirks_mode,
+                        guard,
+                        &mut effective,
+                    );
+                    debug_assert!(children.is_none());
+                    debug_assert!(effective);
+                }
+                continue;
+            }
+
+            let mut effective = false;
+            let children = EffectiveRulesIterator::children(
+                rule,
+                device,
+                quirks_mode,
+                guard,
+                &mut effective,
+            );
+
+            if !effective {
+                continue;
+            }
+
+            let mut layer_names_to_pop = 0;
+            match *rule {
+                CssRule::Import(ref lock) => {
+                    if rebuild_kind.should_rebuild_invalidation() {
+                        let import_rule = lock.read_with(guard);
+                        self.effective_media_query_results
+                            .saw_effective(import_rule);
+                    }
+
+                },
+                CssRule::Media(ref lock) => {
+                    if rebuild_kind.should_rebuild_invalidation() {
+                        let media_rule = lock.read_with(guard);
+                        self.effective_media_query_results.saw_effective(media_rule);
+                    }
+                },
+                CssRule::Layer(ref lock) => {
+                    use crate::stylesheets::layer_rule::LayerRuleKind;
+
+                    fn maybe_register_layer(data: &mut CascadeData, layer: &LayerName) {
+                        // TODO: Measure what's more common / expensive, if
+                        // layer.clone() or the double hash lookup in the insert
+                        // case.
+                        if data.layer_order.get(layer).is_some() {
+                            return;
+                        }
+                        data.layer_order.insert(layer.clone(), data.next_layer_order);
+                        data.next_layer_order += 1;
+                    }
+
+                    let layer_rule = lock.read_with(guard);
+                    match layer_rule.kind {
+                        LayerRuleKind::Block { ref name, .. } => {
                             for name in name.layer_names() {
                                 current_layer.0.push(name.clone());
                                 maybe_register_layer(self, &current_layer);
-                                current_layer.0.pop();
+                                layer_names_to_pop += 1;
+                            }
+                        }
+                        LayerRuleKind::Statement { ref names } => {
+                            for name in &**names {
+                                for name in name.layer_names() {
+                                    current_layer.0.push(name.clone());
+                                    maybe_register_layer(self, &current_layer);
+                                    current_layer.0.pop();
+                                }
                             }
                         }
                     }
-                }
-            },
-            // We don't care about any other rule.
-            _ => {},
-        }
+                },
+                // We don't care about any other rule.
+                _ => {},
+            }
 
-        if let Some(children) = children {
-            for child in children {
-                self.add_rule(
-                    child,
+            if let Some(children) = children {
+                self.add_rule_list(
+                    children,
                     device,
                     quirks_mode,
                     stylesheet,
@@ -2393,10 +2392,10 @@ impl CascadeData {
                     precomputed_pseudo_element_decls.as_deref_mut(),
                 )?;
             }
-        }
 
-        for _ in 0..layer_names_to_pop {
-            current_layer.0.pop();
+            for _ in 0..layer_names_to_pop {
+                current_layer.0.pop();
+            }
         }
 
         Ok(())
@@ -2426,19 +2425,16 @@ impl CascadeData {
         }
 
         let mut current_layer = LayerName::new_empty();
-
-        for rule in contents.rules(guard).iter() {
-            self.add_rule(
-                rule,
-                device,
-                quirks_mode,
-                stylesheet,
-                guard,
-                rebuild_kind,
-                &mut current_layer,
-                precomputed_pseudo_element_decls.as_deref_mut(),
-            )?;
-        }
+        self.add_rule_list(
+            contents.rules(guard).iter(),
+            device,
+            quirks_mode,
+            stylesheet,
+            guard,
+            rebuild_kind,
+            &mut current_layer,
+            precomputed_pseudo_element_decls.as_deref_mut(),
+        )?;
 
         Ok(())
     }
