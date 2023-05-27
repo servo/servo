@@ -218,7 +218,14 @@ pub enum Color {
     InheritFromBodyQuirk,
 }
 
-/// System colors.
+/// System colors. A bunch of these are ad-hoc, others come from Windows:
+///
+///   https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsyscolor
+///
+/// Others are HTML/CSS specific. Spec is:
+///
+///   https://drafts.csswg.org/css-color/#css-system-colors
+///   https://drafts.csswg.org/css-color/#deprecated-system-colors
 #[allow(missing_docs)]
 #[cfg(feature = "gecko")]
 #[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
@@ -291,6 +298,7 @@ pub enum SystemColor {
     #[css(skip)]
     ThemedScrollbarThumbInactive,
     Activeborder,
+    /// Background in the (active) titlebar.
     Activecaption,
     Appworkspace,
     Background,
@@ -298,6 +306,7 @@ pub enum SystemColor {
     Buttonhighlight,
     Buttonshadow,
     Buttontext,
+    /// Text color in the (active) titlebar.
     Captiontext,
     #[parse(aliases = "-moz-field")]
     Field,
@@ -311,7 +320,9 @@ pub enum SystemColor {
     Highlight,
     Highlighttext,
     Inactiveborder,
+    /// Background in the (inactive) titlebar.
     Inactivecaption,
+    /// Text color in the (inactive) titlebar.
     Inactivecaptiontext,
     Infobackground,
     Infotext,
@@ -449,14 +460,6 @@ pub enum SystemColor {
     MozColheadertext,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozColheaderhovertext,
-
-    /// Color of text in the (active) titlebar.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozGtkTitlebarText,
-
-    /// Color of text in the (inactive) titlebar.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozGtkTitlebarInactiveText,
 
     #[css(skip)]
     End, // Just for array-indexing purposes.
