@@ -443,6 +443,7 @@ impl GenericFontFamily {
     /// When we disallow websites to override fonts, we ignore some generic
     /// families that the website might specify, since they're not configured by
     /// the user. See bug 789788 and bug 1730098.
+    #[cfg(feature = "gecko")]
     pub (crate) fn valid_for_user_font_prioritization(self) -> bool {
         match self {
             Self::None |
