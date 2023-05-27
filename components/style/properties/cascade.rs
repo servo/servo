@@ -853,12 +853,20 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         // We're using the same reset style as another element, and we'll skip
         // applying the relevant properties. So we need to do the relevant
-        // bookkeeping here to keep these two bits correct.
+        // bookkeeping here to keep these bits correct.
         //
-        // Note that all the properties involved are non-inherited, so we don't
-        // need to do anything else other than just copying the bits over.
-        let reset_props_bits = ComputedValueFlags::HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND;
-        builder.add_flags(cached_style.flags & reset_props_bits);
+        // Note that the border/background properties are non-inherited, so we
+        // don't need to do anything else other than just copying the bits over.
+        //
+        // When using this optimization, we also need to copy whether the old
+        // style specified viewport units / used font-relative lengths, this one
+        // would as well.  It matches the same rules, so it is the right thing
+        // to do anyways, even if it's only used on inherited properties.
+        let bits_to_copy = ComputedValueFlags::HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND |
+            ComputedValueFlags::DEPENDS_ON_SELF_FONT_METRICS |
+            ComputedValueFlags::DEPENDS_ON_INHERITED_FONT_METRICS |
+            ComputedValueFlags::USES_VIEWPORT_UNITS;
+        builder.add_flags(cached_style.flags & bits_to_copy);
 
         true
     }
