@@ -189,7 +189,7 @@ impl Size {
             #[cfg(feature = "gecko")]
             GenericSize::MinContent |
             GenericSize::MaxContent |
-            GenericSize::MozFitContent |
+            GenericSize::FitContent |
             GenericSize::MozAvailable |
             GenericSize::FitContentFunction(_) => false
         }
