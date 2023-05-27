@@ -194,20 +194,6 @@ impl ToCss for ColorMix {
     }
 }
 
-/// The color scheme for a specific system color.
-#[cfg(feature = "gecko")]
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
-#[repr(u8)]
-pub enum SystemColorScheme {
-    /// The default color-scheme for the document.
-    #[css(skip)]
-    Default,
-    /// A light color scheme.
-    Light,
-    /// A dark color scheme.
-    Dark,
-}
-
 /// Specified color value
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum Color {
@@ -222,10 +208,9 @@ pub enum Color {
     },
     /// A complex color value from computed value
     Complex(ComputedColor),
-    /// Either a system color, or a `-moz-system-color(<system-color>, light|dark)`
-    /// function which allows chrome code to choose between color schemes.
+    /// A system color.
     #[cfg(feature = "gecko")]
-    System(SystemColor, SystemColorScheme),
+    System(SystemColor),
     /// A color mix.
     ColorMix(Box<ColorMix>),
     /// Quirksmode-only rule for inheriting color from the body
@@ -480,7 +465,7 @@ pub enum SystemColor {
 #[cfg(feature = "gecko")]
 impl SystemColor {
     #[inline]
-    fn compute(&self, cx: &Context, scheme: SystemColorScheme) -> ComputedColor {
+    fn compute(&self, cx: &Context) -> ComputedColor {
         use crate::gecko_bindings::bindings;
 
         let colors = &cx.device().pref_sheet_prefs().mColors;
@@ -497,7 +482,7 @@ impl SystemColor {
 
             _ => {
                 let color = unsafe {
-                    bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document(), scheme, &style_color_scheme)
+                    bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document(), &style_color_scheme)
                 };
                 if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
                     return ComputedColor::currentcolor();
@@ -578,21 +563,6 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
     }
 }
 
-#[cfg(feature = "gecko")]
-fn parse_moz_system_color<'i, 't>(
-    context: &ParserContext,
-    input: &mut Parser<'i, 't>,
-) -> Result<(SystemColor, SystemColorScheme), ParseError<'i>> {
-    debug_assert!(context.chrome_rules_enabled());
-    input.expect_function_matching("-moz-system-color")?;
-    input.parse_nested_block(|input| {
-        let color = SystemColor::parse(context, input)?;
-        input.expect_comma()?;
-        let scheme = SystemColorScheme::parse(input)?;
-        Ok((color, scheme))
-    })
-}
-
 impl Parse for Color {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -618,15 +588,7 @@ impl Parse for Color {
                 #[cfg(feature = "gecko")]
                 {
                     if let Ok(system) = input.try_parse(|i| SystemColor::parse(context, i)) {
-                        return Ok(Color::System(system, SystemColorScheme::Default));
-                    }
-
-                    if context.chrome_rules_enabled() {
-                        if let Ok((color, scheme)) =
-                            input.try_parse(|i| parse_moz_system_color(context, i))
-                        {
-                            return Ok(Color::System(color, scheme));
-                        }
+                        return Ok(Color::System(system));
                     }
                 }
 
@@ -665,17 +627,7 @@ impl ToCss for Color {
             Color::Complex(_) => Ok(()),
             Color::ColorMix(ref mix) => mix.to_css(dest),
             #[cfg(feature = "gecko")]
-            Color::System(system, scheme) => {
-                if scheme == SystemColorScheme::Default {
-                    system.to_css(dest)
-                } else {
-                    dest.write_str("-moz-system-color(")?;
-                    system.to_css(dest)?;
-                    dest.write_str(", ")?;
-                    scheme.to_css(dest)?;
-                    dest.write_char(')')
-                }
-            },
+            Color::System(system) => system.to_css(dest),
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => Ok(()),
         }
@@ -843,7 +795,7 @@ impl Color {
                 ))
             },
             #[cfg(feature = "gecko")]
-            Color::System(system, scheme) => system.compute(context?, scheme),
+            Color::System(system) => system.compute(context?),
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => ComputedColor::rgba(context?.device().body_text_color()),
         })
