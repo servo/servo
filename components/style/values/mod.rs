@@ -464,29 +464,33 @@ impl ToCss for CustomIdent {
     }
 }
 
+/// The <timeline-name> or <keyframes-name>.
+/// The definition of these two names are the same, so we use the same type for them.
+///
+/// <https://drafts.csswg.org/css-animations-2/#typedef-timeline-name>
 /// <https://drafts.csswg.org/css-animations/#typedef-keyframes-name>
 #[derive(
     Clone, Debug, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem,
 )]
-pub enum KeyframesName {
+pub enum TimelineOrKeyframesName {
     /// <custom-ident>
     Ident(CustomIdent),
     /// <string>
     QuotedString(Atom),
 }
 
-impl KeyframesName {
+impl TimelineOrKeyframesName {
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
     pub fn from_ident(value: &str) -> Self {
         let location = SourceLocation { line: 0, column: 0 };
         let custom_ident = CustomIdent::from_ident(location, &value.into(), &["none"]).ok();
         match custom_ident {
-            Some(ident) => KeyframesName::Ident(ident),
-            None => KeyframesName::QuotedString(value.into()),
+            Some(ident) => Self::Ident(ident),
+            None => Self::QuotedString(value.into()),
         }
     }
 
-    /// Create a new KeyframesName from Atom.
+    /// Create a new TimelineOrKeyframesName from Atom.
     #[cfg(feature = "gecko")]
     pub fn from_atom(atom: Atom) -> Self {
         debug_assert_ne!(atom, atom!(""));
@@ -494,19 +498,19 @@ impl KeyframesName {
         // FIXME: We might want to preserve <string>, but currently Gecko
         // stores both of <custom-ident> and <string> into nsAtom, so
         // we can't tell it.
-        KeyframesName::Ident(CustomIdent(atom))
+        Self::Ident(CustomIdent(atom))
     }
 
     /// The name as an Atom
     pub fn as_atom(&self) -> &Atom {
         match *self {
-            KeyframesName::Ident(ref ident) => &ident.0,
-            KeyframesName::QuotedString(ref atom) => atom,
+            Self::Ident(ref ident) => &ident.0,
+            Self::QuotedString(ref atom) => atom,
         }
     }
 }
 
-impl Eq for KeyframesName {}
+impl Eq for TimelineOrKeyframesName {}
 
 /// A trait that returns whether a given type is the `auto` value or not. So far
 /// only needed for background-size serialization, which special-cases `auto`.
@@ -515,13 +519,13 @@ pub trait IsAuto {
     fn is_auto(&self) -> bool;
 }
 
-impl PartialEq for KeyframesName {
+impl PartialEq for TimelineOrKeyframesName {
     fn eq(&self, other: &Self) -> bool {
         self.as_atom() == other.as_atom()
     }
 }
 
-impl hash::Hash for KeyframesName {
+impl hash::Hash for TimelineOrKeyframesName {
     fn hash<H>(&self, state: &mut H)
     where
         H: hash::Hasher,
@@ -530,32 +534,40 @@ impl hash::Hash for KeyframesName {
     }
 }
 
-impl Parse for KeyframesName {
+impl Parse for TimelineOrKeyframesName {
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         match *input.next()? {
-            Token::Ident(ref s) => Ok(KeyframesName::Ident(CustomIdent::from_ident(
+            Token::Ident(ref s) => Ok(Self::Ident(CustomIdent::from_ident(
                 location,
                 s,
                 &["none"],
             )?)),
-            Token::QuotedString(ref s) => Ok(KeyframesName::QuotedString(Atom::from(s.as_ref()))),
+            Token::QuotedString(ref s) => {
+                Ok(Self::QuotedString(Atom::from(s.as_ref())))
+            },
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
     }
 }
 
-impl ToCss for KeyframesName {
+impl ToCss for TimelineOrKeyframesName {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
     {
         match *self {
-            KeyframesName::Ident(ref ident) => ident.to_css(dest),
-            KeyframesName::QuotedString(ref atom) => atom.to_string().to_css(dest),
+            Self::Ident(ref ident) => ident.to_css(dest),
+            Self::QuotedString(ref atom) => atom.to_string().to_css(dest),
         }
     }
 }
+
+/// The typedef of <timeline-name>.
+pub type TimelineName = TimelineOrKeyframesName;
+
+/// The typedef of <keyframes-name>.
+pub type KeyframesName = TimelineOrKeyframesName;
