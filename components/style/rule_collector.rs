@@ -148,7 +148,7 @@ where
         f(self);
         if start != self.rules.len() {
             self.rules[start..]
-                .sort_unstable_by_key(|block| (block.specificity, block.source_order()));
+                .sort_unstable_by_key(|block| (block.layer_order, block.specificity, block.source_order()));
         }
         self.context.current_host = old_host;
         self.in_sort_scope = false;

@@ -69,8 +69,10 @@ pub struct ApplicableDeclarationBlock {
     /// The bits containing the source order, cascade level, and shadow cascade
     /// order.
     bits: ApplicableDeclarationBits,
-    /// The specificity of the selector this block is represented by.
+    /// The specificity of the selector.
     pub specificity: u32,
+    /// The layer order of the selector.
+    pub layer_order: u32,
 }
 
 impl ApplicableDeclarationBlock {
@@ -85,16 +87,18 @@ impl ApplicableDeclarationBlock {
             source: StyleSource::from_declarations(declarations),
             bits: ApplicableDeclarationBits::new(0, level),
             specificity: 0,
+            layer_order: 0,
         }
     }
 
     /// Constructs an applicable declaration block from the given components
     #[inline]
-    pub fn new(source: StyleSource, order: u32, level: CascadeLevel, specificity: u32) -> Self {
+    pub fn new(source: StyleSource, source_order: u32, level: CascadeLevel, specificity: u32, layer_order: u32) -> Self {
         ApplicableDeclarationBlock {
             source,
-            bits: ApplicableDeclarationBits::new(order, level),
+            bits: ApplicableDeclarationBits::new(source_order, level),
             specificity,
+            layer_order,
         }
     }
 
