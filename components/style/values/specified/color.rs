@@ -316,8 +316,12 @@ pub enum SystemColor {
     Captiontext,
     #[parse(aliases = "-moz-field")]
     Field,
+    /// Used for disabled field backgrounds.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozDisabledfield,
     #[parse(aliases = "-moz-fieldtext")]
     Fieldtext,
+
     Graytext,
     Highlight,
     Highlighttext,
@@ -381,6 +385,10 @@ pub enum SystemColor {
     /// Used for button background when pressed.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozButtonactiveface,
+
+    /// Used for button background when disabled.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozButtondisabledface,
 
     /// Background color of chrome toolbars in active windows.
     MozMacChromeActive,
