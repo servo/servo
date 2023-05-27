@@ -522,13 +522,14 @@ class CommandBase(object):
             'vcdir': vcinstalldir,
         }
 
-    def build_env(self, hosts_file_path=None, is_build=False, test_unit=False, features=None):
+    def build_env(self, hosts_file_path=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
 
-        if not features or "media-dummy" not in features:
+        if "media-dummy" not in self.features:
             servo.platform.get().set_gstreamer_environment_variables_if_necessary(
-                env, cross_compilation_target=self.cross_compile_target)
+                env, cross_compilation_target=self.cross_compile_target,
+                check_installation=is_build)
 
         if sys.platform == "win32" and type(env['PATH']) == six.text_type:
             # On win32, the virtualenv's activate_this.py script sometimes ends up
