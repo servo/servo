@@ -891,7 +891,6 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 60] = [
     lnf_int_feature!(atom!("-moz-swipe-animation-enabled"), SwipeAnimationEnabled),
     lnf_int_feature!(atom!("-moz-gtk-csd-available"), GTKCSDAvailable),
     lnf_int_feature!(atom!("-moz-gtk-csd-hide-titlebar-by-default"), GTKCSDHideTitlebarByDefault),
-    lnf_int_feature!(atom!("-moz-gtk-csd-transparent-background"), GTKCSDTransparentBackground),
     lnf_int_feature!(atom!("-moz-gtk-csd-minimize-button"), GTKCSDMinimizeButton),
     lnf_int_feature!(atom!("-moz-gtk-csd-maximize-button"), GTKCSDMaximizeButton),
     lnf_int_feature!(atom!("-moz-gtk-csd-close-button"), GTKCSDCloseButton),
