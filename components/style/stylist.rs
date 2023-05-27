@@ -2265,7 +2265,10 @@ impl CascadeData {
                     self.rules_source_order += 1;
                 },
                 CssRule::Keyframes(ref keyframes_rule) => {
+                    #[cfg(feature = "gecko")]
                     use hashglobe::hash_map::Entry;
+                    #[cfg(feature = "servo")]
+                    use hashglobe::fake::Entry;
 
                     let keyframes_rule = keyframes_rule.read_with(guard);
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
