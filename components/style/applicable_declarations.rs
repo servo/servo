@@ -88,13 +88,19 @@ impl ApplicableDeclarationBlock {
             source: StyleSource::from_declarations(declarations),
             bits: ApplicableDeclarationBits::new(0, level),
             specificity: 0,
-            layer_order: LayerOrder::first(),
+            layer_order: LayerOrder::root(),
         }
     }
 
-    /// Constructs an applicable declaration block from the given components
+    /// Constructs an applicable declaration block from the given components.
     #[inline]
-    pub fn new(source: StyleSource, source_order: u32, level: CascadeLevel, specificity: u32, layer_order: LayerOrder) -> Self {
+    pub fn new(
+        source: StyleSource,
+        source_order: u32,
+        level: CascadeLevel,
+        specificity: u32,
+        layer_order: LayerOrder,
+    ) -> Self {
         ApplicableDeclarationBlock {
             source,
             bits: ApplicableDeclarationBits::new(source_order, level),

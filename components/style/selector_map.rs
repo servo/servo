@@ -12,7 +12,7 @@ use crate::hash::map as hash_map;
 use crate::hash::{HashMap, HashSet};
 use crate::rule_tree::CascadeLevel;
 use crate::selector_parser::SelectorImpl;
-use crate::stylist::Rule;
+use crate::stylist::{Rule, CascadeData};
 use crate::{Atom, LocalName, Namespace, WeakAtom};
 use fallible::FallibleVec;
 use hashglobe::FailedAllocationError;
@@ -189,6 +189,7 @@ impl SelectorMap<Rule> {
         context: &mut MatchingContext<E::Impl>,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
+        cascade_data: &CascadeData,
     ) where
         E: TElement,
         F: FnMut(&E, ElementSelectorFlags),
@@ -207,6 +208,7 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
                 cascade_level,
+                cascade_data,
             );
         }
 
@@ -219,6 +221,7 @@ impl SelectorMap<Rule> {
                     context,
                     flags_setter,
                     cascade_level,
+                    cascade_data,
                 )
             }
         }
@@ -232,6 +235,7 @@ impl SelectorMap<Rule> {
                     context,
                     flags_setter,
                     cascade_level,
+                    cascade_data,
                 )
             }
         });
@@ -246,6 +250,7 @@ impl SelectorMap<Rule> {
                         context,
                         flags_setter,
                         cascade_level,
+                        cascade_data,
                     )
                 }
             });
@@ -259,6 +264,7 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
                 cascade_level,
+                cascade_data,
             )
         }
 
@@ -270,6 +276,7 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
                 cascade_level,
+                cascade_data,
             )
         }
 
@@ -280,6 +287,7 @@ impl SelectorMap<Rule> {
             context,
             flags_setter,
             cascade_level,
+            cascade_data,
         );
     }
 
@@ -291,6 +299,7 @@ impl SelectorMap<Rule> {
         context: &mut MatchingContext<E::Impl>,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
+        cascade_data: &CascadeData,
     ) where
         E: TElement,
         F: FnMut(&E, ElementSelectorFlags),
@@ -304,7 +313,7 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
             ) {
-                matching_rules.push(rule.to_applicable_declaration_block(cascade_level));
+                matching_rules.push(rule.to_applicable_declaration_block(cascade_level, cascade_data));
             }
         }
     }
