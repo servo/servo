@@ -607,6 +607,16 @@ fn eval_moz_windows_non_native_menus(
     query_value.map_or(use_non_native_menus, |v| v == use_non_native_menus)
 }
 
+fn eval_moz_overlay_scrollbars(
+    device: &Device,
+    query_value: Option<bool>,
+    _: Option<RangeOrOperator>,
+) -> bool {
+    let use_overlay =
+        unsafe { bindings::Gecko_MediaFeatures_UseOverlayScrollbars(device.document()) };
+    query_value.map_or(use_overlay, |v| v == use_overlay)
+}
+
 fn get_lnf_int(int_id: i32) -> i32 {
     unsafe { bindings::Gecko_GetLookAndFeelInt(int_id) }
 }
@@ -902,13 +912,18 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 61] = [
         Evaluator::BoolInteger(eval_moz_windows_non_native_menus),
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
+    feature!(
+        atom!("-moz-overlay-scrollbars"),
+        AllowsRanges::No,
+        Evaluator::BoolInteger(eval_moz_overlay_scrollbars),
+        ParsingRequirements::CHROME_AND_UA_ONLY,
+    ),
 
     lnf_int_feature!(atom!("-moz-scrollbar-start-backward"), ScrollArrowStyle, get_scrollbar_start_backward),
     lnf_int_feature!(atom!("-moz-scrollbar-start-forward"), ScrollArrowStyle, get_scrollbar_start_forward),
     lnf_int_feature!(atom!("-moz-scrollbar-end-backward"), ScrollArrowStyle, get_scrollbar_end_backward),
     lnf_int_feature!(atom!("-moz-scrollbar-end-forward"), ScrollArrowStyle, get_scrollbar_end_forward),
     lnf_int_feature!(atom!("-moz-scrollbar-thumb-proportional"), ScrollSliderStyle),
-    lnf_int_feature!(atom!("-moz-overlay-scrollbars"), UseOverlayScrollbars),
     lnf_int_feature!(atom!("-moz-menubar-drag"), MenuBarDrag),
     lnf_int_feature!(atom!("-moz-windows-default-theme"), WindowsDefaultTheme),
     lnf_int_feature!(atom!("-moz-mac-graphite-theme"), MacGraphiteTheme),
