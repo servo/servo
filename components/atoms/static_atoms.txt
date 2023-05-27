@@ -1,4 +1,5 @@
 -moz-gtk-csd-titlebar-radius
+-moz-gtk-menu-radius
 DOMContentLoaded
 abort
 activate

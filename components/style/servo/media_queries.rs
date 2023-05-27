@@ -227,6 +227,12 @@ impl Device {
         0.0
     }
 
+    /// Returns the gtk menu radius in CSS pixels.
+    /// TODO: implement this method.
+    pub fn menu_radius(&self) -> f32 {
+        0.0
+    }
+
     /// Return whether the document is a chrome document.
     #[inline]
     pub fn is_chrome_document(&self) -> bool {
