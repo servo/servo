@@ -7,7 +7,6 @@
 <%helpers:shorthand name="list-style"
                     engines="gecko servo-2013 servo-2020"
                     sub_properties="list-style-position list-style-image list-style-type"
-                    derive_serialize="True"
                     spec="https://drafts.csswg.org/css-lists/#propdef-list-style">
     use crate::properties::longhands::{list_style_image, list_style_position, list_style_type};
     use crate::values::specified::Image;
@@ -102,6 +101,37 @@
                 })
             }
             _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+        }
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            use longhands::list_style_position::SpecifiedValue as ListStylePosition;
+            use longhands::list_style_type::SpecifiedValue as ListStyleType;
+            use longhands::list_style_image::SpecifiedValue as ListStyleImage;
+            let mut have_one_non_initial_value = false;
+            if self.list_style_position != &ListStylePosition::Outside {
+                self.list_style_position.to_css(dest)?;
+                have_one_non_initial_value = true;
+            }
+            if self.list_style_image != &ListStyleImage::None {
+                if have_one_non_initial_value {
+                    dest.write_str(" ")?;
+                }
+                self.list_style_image.to_css(dest)?;
+                have_one_non_initial_value = true;
+            }
+            if self.list_style_type != &ListStyleType::disc() {
+                if have_one_non_initial_value {
+                    dest.write_str(" ")?;
+                }
+                self.list_style_type.to_css(dest)?;
+                have_one_non_initial_value = true;
+            }
+            if !have_one_non_initial_value {
+                self.list_style_position.to_css(dest)?;
+            }
+            Ok(())
         }
     }
 </%helpers:shorthand>
