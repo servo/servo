@@ -220,6 +220,12 @@ impl Device {
             _ => false,
         }
     }
+
+    /// Return whether the document is a chrome document.
+    #[inline]
+    pub fn is_chrome_document(&self) -> bool {
+        false
+    }
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#width
