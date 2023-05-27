@@ -543,6 +543,7 @@ impl StylesheetInvalidationSet {
             FontFeatureValues(..) |
             FontFace(..) |
             Keyframes(..) |
+            ScrollTimeline(..) |
             Style(..) => {
                 if is_generic_change {
                     // TODO(emilio): We need to do this for selector / keyframe
@@ -617,6 +618,10 @@ impl StylesheetInvalidationSet {
                     // Do nothing, this animation can't affect the style of
                     // existing elements.
                 }
+            },
+            ScrollTimeline(..) => {
+                // TODO: Bug 1676784: check if animation-timeline name is referenced.
+                // Now we do nothing.
             },
             CounterStyle(..) | Page(..) | Viewport(..) | FontFeatureValues(..) => {
                 debug!(

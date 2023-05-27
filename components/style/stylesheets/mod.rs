@@ -63,6 +63,7 @@ pub use self::rules_iterator::{AllRules, EffectiveRules};
 pub use self::rules_iterator::{
     EffectiveRulesIterator, NestedRuleIterationCondition, RulesIterator,
 };
+pub use self::scroll_timeline_rule::ScrollTimelineRule;
 pub use self::style_rule::StyleRule;
 pub use self::stylesheet::{AllowImportRules, SanitizationData, SanitizationKind};
 pub use self::stylesheet::{DocumentStyleSheet, Namespaces, Stylesheet};
@@ -261,6 +262,7 @@ pub enum CssRule {
     Page(Arc<Locked<PageRule>>),
     Document(Arc<Locked<DocumentRule>>),
     Layer(Arc<Locked<LayerRule>>),
+    ScrollTimeline(Arc<Locked<ScrollTimelineRule>>),
 }
 
 impl CssRule {
@@ -304,6 +306,7 @@ impl CssRule {
 
             // TODO(emilio): Add memory reporting for @layer rules.
             CssRule::Layer(_) => 0,
+            CssRule::ScrollTimeline(_) => 0,
         }
     }
 }
@@ -339,6 +342,7 @@ pub enum CssRuleType {
     // After viewport, all rules should return 0 from the API, but we still need
     // a constant somewhere.
     Layer = 16,
+    ScrollTimeline = 17,
 }
 
 #[allow(missing_docs)]
@@ -366,6 +370,7 @@ impl CssRule {
             CssRule::Page(_) => CssRuleType::Page,
             CssRule::Document(_) => CssRuleType::Document,
             CssRule::Layer(_) => CssRuleType::Layer,
+            CssRule::ScrollTimeline(_) => CssRuleType::ScrollTimeline,
         }
     }
 
@@ -505,6 +510,10 @@ impl DeepCloneWithLock for CssRule {
                     lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
                 ))
             }
+            CssRule::ScrollTimeline(ref arc) => {
+                let rule = arc.read_with(guard);
+                CssRule::ScrollTimeline(Arc::new(lock.wrap(rule.clone())))
+            }
         }
     }
 }
@@ -526,6 +535,7 @@ impl ToCssWithGuard for CssRule {
             CssRule::Page(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Document(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Layer(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::ScrollTimeline(ref lock) => lock.read_with(guard).to_css(guard, dest),
         }
     }
 }

@@ -2285,6 +2285,10 @@ impl CascadeData {
                     }
                 },
                 #[cfg(feature = "gecko")]
+                CssRule::ScrollTimeline(..) => {
+                    // TODO: Bug 1676784: set the timeline into animation.
+                }
+                #[cfg(feature = "gecko")]
                 CssRule::FontFace(ref rule) => {
                     self.extra_data.add_font_face(rule);
                 },
@@ -2553,6 +2557,7 @@ impl CascadeData {
                 CssRule::CounterStyle(..) |
                 CssRule::Supports(..) |
                 CssRule::Keyframes(..) |
+                CssRule::ScrollTimeline(..) |
                 CssRule::Page(..) |
                 CssRule::Viewport(..) |
                 CssRule::Document(..) |

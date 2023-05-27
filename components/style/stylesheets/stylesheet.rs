@@ -378,7 +378,8 @@ impl SanitizationKind {
             CssRule::Page(..) |
             CssRule::FontFeatureValues(..) |
             CssRule::Viewport(..) |
-            CssRule::CounterStyle(..) => !is_standard,
+            CssRule::CounterStyle(..) |
+            CssRule::ScrollTimeline(..) => !is_standard,
         }
     }
 }
