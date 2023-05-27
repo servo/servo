@@ -376,10 +376,12 @@ pub enum SystemColor {
 
     /// Used for button text when pressed.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozGtkButtonactivetext,
+    MozButtonactivetext,
 
-    /// Used for button text when pressed.
-    MozMacButtonactivetext,
+    /// Used for button background when pressed.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozButtonactiveface,
+
     /// Background color of chrome toolbars in active windows.
     MozMacChromeActive,
     /// Background color of chrome toolbars in inactive windows.
