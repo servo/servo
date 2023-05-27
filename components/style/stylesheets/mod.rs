@@ -11,7 +11,7 @@ mod font_face_rule;
 pub mod font_feature_values_rule;
 pub mod import_rule;
 pub mod keyframes_rule;
-mod layer_rule;
+pub mod layer_rule;
 mod loader;
 mod media_rule;
 mod namespace_rule;

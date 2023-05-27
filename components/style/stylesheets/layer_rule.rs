@@ -20,8 +20,37 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A `<layer-name>`: https://drafts.csswg.org/css-cascade-5/#typedef-layer-name
-#[derive(Clone, Debug, ToShmem)]
-pub struct LayerName(SmallVec<[AtomIdent; 1]>);
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
+pub struct LayerName(pub SmallVec<[AtomIdent; 1]>);
+
+impl LayerName {
+    /// Returns an empty layer name (which isn't a valid final state, so caller
+    /// is responsible to fill up the name before use).
+    pub fn new_empty() -> Self {
+        Self(Default::default())
+    }
+
+    /// Returns a synthesized name for an anonymous layer.
+    pub fn new_anonymous() -> Self {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static NEXT_ANONYMOUS_LAYER_NAME: AtomicUsize = AtomicUsize::new(0);
+
+        let mut name = SmallVec::new();
+        let next_id = NEXT_ANONYMOUS_LAYER_NAME.fetch_add(1, Ordering::Relaxed);
+        // The parens don't _technically_ prevent conflicts with authors, as
+        // authors could write escaped parens as part of the identifier, I
+        // think, but highly reduces the possibility.
+        name.push(AtomIdent::from(&*format!("-moz-anon-layer({})", next_id)));
+
+        LayerName(name)
+    }
+
+    /// Returns the names of the layers. That is, for a layer like `foo.bar`,
+    /// it'd return [foo, bar].
+    pub fn layer_names(&self) -> &[AtomIdent] {
+        &self.0
+    }
+}
 
 impl Parse for LayerName {
     fn parse<'i, 't>(
@@ -82,10 +111,13 @@ impl ToCss for LayerName {
 pub enum LayerRuleKind {
     /// A block `@layer <name>? { ... }`
     Block {
-        /// The layer name, or `None` if anonymous.
-        name: Option<LayerName>,
+        /// The layer name.
+        name: LayerName,
         /// The nested rules.
         rules: Arc<Locked<CssRules>>,
+        /// Whether the layer name is synthesized (and thus shouldn't be
+        /// serialized).
+        is_anonymous: bool,
     },
     /// A statement `@layer <name>, <name>, <name>;`
     Statement {
@@ -116,8 +148,9 @@ impl ToCssWithGuard for LayerRule {
             LayerRuleKind::Block {
                 ref name,
                 ref rules,
+                ref is_anonymous,
             } => {
-                if let Some(ref name) = *name {
+                if !*is_anonymous {
                     name.to_css(&mut CssWriter::new(dest))?;
                     dest.write_char(' ')?;
                 }
@@ -151,8 +184,13 @@ impl DeepCloneWithLock for LayerRule {
                 LayerRuleKind::Block {
                     ref name,
                     ref rules,
+                    ref is_anonymous,
                 } => LayerRuleKind::Block {
-                    name: name.clone(),
+                    name: if *is_anonymous {
+                        LayerName::new_anonymous()
+                    } else {
+                        name.clone()
+                    },
                     rules: Arc::new(
                         lock.wrap(
                             rules
@@ -160,6 +198,7 @@ impl DeepCloneWithLock for LayerRule {
                                 .deep_clone_with_lock(lock, guard, params),
                         ),
                     ),
+                    is_anonymous: *is_anonymous,
                 },
                 LayerRuleKind::Statement { ref names } => LayerRuleKind::Statement {
                     names: names.clone(),

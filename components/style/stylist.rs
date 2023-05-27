@@ -25,11 +25,12 @@ use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
 use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
 use crate::stylesheets::keyframes_rule::KeyframesAnimation;
+use crate::stylesheets::layer_rule::LayerName;
 use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use crate::stylesheets::{StyleRule, StylesheetInDocument, StylesheetContents};
 #[cfg(feature = "gecko")]
 use crate::stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
-use crate::stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
+use crate::stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter, EffectiveRulesIterator};
 use crate::thread_state::{self, ThreadState};
 use crate::{Atom, LocalName, Namespace, WeakAtom};
 use fallible::FallibleVec;
@@ -1931,6 +1932,12 @@ pub struct CascadeData {
     /// by name.
     animations: PrecomputedHashMap<Atom, KeyframesAnimation>,
 
+    /// A map from cascade layer name to layer order.
+    layer_order: FxHashMap<LayerName, u32>,
+
+    /// The next layer order for this cascade data.
+    next_layer_order: u32,
+
     /// Effective media query results cached from the last rebuild.
     effective_media_query_results: EffectiveMediaQueryResults,
 
@@ -1971,6 +1978,8 @@ impl CascadeData {
             // somewhat gnarly.
             selectors_for_cache_revalidation: SelectorMap::new_without_attribute_bucketing(),
             animations: Default::default(),
+            layer_order: Default::default(),
+            next_layer_order: 0,
             extra_data: ExtraStyleData::default(),
             effective_media_query_results: EffectiveMediaQueryResults::new(),
             rules_source_order: 0,
@@ -2129,16 +2138,20 @@ impl CascadeData {
     fn add_rule<S>(
         &mut self,
         rule: &CssRule,
-        _device: &Device,
+        device: &Device,
         quirks_mode: QuirksMode,
         stylesheet: &S,
         guard: &SharedRwLockReadGuard,
         rebuild_kind: SheetRebuildKind,
+        current_layer: &mut LayerName,
         mut precomputed_pseudo_element_decls: Option<&mut PrecomputedPseudoElementDeclarations>,
     ) -> Result<(), FailedAllocationError>
     where
         S: StylesheetInDocument + 'static,
     {
+        // Handle leaf rules first, as those are by far the most common ones,
+        // and are always effective, so we can skip some checks.
+        let mut handled = true;
         match *rule {
             CssRule::Style(ref locked) => {
                 let style_rule = locked.read_with(&guard);
@@ -2240,22 +2253,6 @@ impl CascadeData {
                 }
                 self.rules_source_order += 1;
             },
-            CssRule::Import(ref lock) => {
-                if rebuild_kind.should_rebuild_invalidation() {
-                    let import_rule = lock.read_with(guard);
-                    self.effective_media_query_results
-                        .saw_effective(import_rule);
-                }
-
-                // NOTE: effective_rules visits the inner stylesheet if
-                // appropriate.
-            },
-            CssRule::Media(ref lock) => {
-                if rebuild_kind.should_rebuild_invalidation() {
-                    let media_rule = lock.read_with(guard);
-                    self.effective_media_query_results.saw_effective(media_rule);
-                }
-            },
             CssRule::Keyframes(ref keyframes_rule) => {
                 let keyframes_rule = keyframes_rule.read_with(guard);
                 debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
@@ -2292,9 +2289,116 @@ impl CascadeData {
             CssRule::Page(ref rule) => {
                 self.extra_data.add_page(rule);
             },
+            CssRule::Viewport(..) => {},
+            _ => {
+                handled = false;
+            },
+        }
+
+        if handled {
+            // Assert that there are no children, and that the rule is
+            // effective.
+            if cfg!(debug_assertions) {
+                let mut effective = false;
+                let children = EffectiveRulesIterator::children(
+                    rule,
+                    device,
+                    quirks_mode,
+                    guard,
+                    &mut effective,
+                );
+                debug_assert!(children.is_none());
+                debug_assert!(effective);
+            }
+            return Ok(());
+        }
+
+        let mut effective = false;
+        let children = EffectiveRulesIterator::children(
+            rule,
+            device,
+            quirks_mode,
+            guard,
+            &mut effective,
+        );
+
+        if !effective {
+            return Ok(());
+        }
+
+        let mut layer_names_to_pop = 0;
+        match *rule {
+            CssRule::Import(ref lock) => {
+                if rebuild_kind.should_rebuild_invalidation() {
+                    let import_rule = lock.read_with(guard);
+                    self.effective_media_query_results
+                        .saw_effective(import_rule);
+                }
+
+            },
+            CssRule::Media(ref lock) => {
+                if rebuild_kind.should_rebuild_invalidation() {
+                    let media_rule = lock.read_with(guard);
+                    self.effective_media_query_results.saw_effective(media_rule);
+                }
+            },
+            CssRule::Layer(ref lock) => {
+                use crate::stylesheets::layer_rule::LayerRuleKind;
+
+                fn maybe_register_layer(data: &mut CascadeData, layer: &LayerName) {
+                    // TODO: Measure what's more common / expensive, if
+                    // layer.clone() or the double hash lookup in the insert
+                    // case.
+                    if data.layer_order.get(layer).is_some() {
+                        return;
+                    }
+                    data.layer_order.insert(layer.clone(), data.next_layer_order);
+                    data.next_layer_order += 1;
+                }
+
+                let layer_rule = lock.read_with(guard);
+                match layer_rule.kind {
+                    LayerRuleKind::Block { ref name, .. } => {
+                        for name in name.layer_names() {
+                            current_layer.0.push(name.clone());
+                            maybe_register_layer(self, &current_layer);
+                            layer_names_to_pop += 1;
+                        }
+                    }
+                    LayerRuleKind::Statement { ref names } => {
+                        for name in &**names {
+                            for name in name.layer_names() {
+                                current_layer.0.push(name.clone());
+                                maybe_register_layer(self, &current_layer);
+                                current_layer.0.pop();
+                            }
+                        }
+                    }
+                }
+            },
             // We don't care about any other rule.
             _ => {},
         }
+
+        if let Some(children) = children {
+            for child in children {
+                self.add_rule(
+                    child,
+                    device,
+                    quirks_mode,
+                    stylesheet,
+                    guard,
+                    rebuild_kind,
+                    current_layer,
+                    precomputed_pseudo_element_decls.as_deref_mut(),
+                )?;
+            }
+        }
+
+        for _ in 0..layer_names_to_pop {
+            current_layer.0.pop();
+        }
+
         Ok(())
     }
 
@@ -2321,8 +2425,9 @@ impl CascadeData {
             self.effective_media_query_results.saw_effective(contents);
         }
 
+        let mut current_layer = LayerName::new_empty();
 
-        for rule in stylesheet.effective_rules(device, guard) {
+        for rule in contents.rules(guard).iter() {
             self.add_rule(
                 rule,
                 device,
@@ -2330,6 +2435,7 @@ impl CascadeData {
                 stylesheet,
                 guard,
                 rebuild_kind,
+                &mut current_layer,
                 precomputed_pseudo_element_decls.as_deref_mut(),
             )?;
         }
@@ -2448,6 +2554,8 @@ impl CascadeData {
             host_rules.clear();
         }
         self.animations.clear();
+        self.layer_order.clear();
+        self.next_layer_order = 0;
         self.extra_data.clear();
         self.rules_source_order = 0;
         self.num_selectors = 0;

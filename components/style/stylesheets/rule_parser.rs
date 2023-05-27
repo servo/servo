@@ -577,9 +577,9 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 ))))
             },
             AtRulePrelude::Layer(names) => {
-                let name = match names.len() {
-                    0 => None,
-                    1 => Some(names.into_iter().next().unwrap()),
+                let (name, is_anonymous) = match names.len() {
+                    0 => (LayerName::new_anonymous(), true),
+                    1 => (names.into_iter().next().unwrap(), false),
                     _ => return Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid)),
                 };
                 Ok(CssRule::Layer(Arc::new(self.shared_lock.wrap(
@@ -587,6 +587,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                         kind: LayerRuleKind::Block {
                             name,
                             rules: self.parse_nested_rules(input, CssRuleType::Layer),
+                            is_anonymous,
                         },
                         source_location: start.source_location(),
                     },
