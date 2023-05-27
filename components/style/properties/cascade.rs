@@ -916,12 +916,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             // we have a generic family to actually replace it with.
             let prioritize_user_fonts = !use_document_fonts &&
                 default_font_type != GenericFontFamily::None &&
-                matches!(
-                    generic,
-                    GenericFontFamily::None |
-                    GenericFontFamily::Fantasy |
-                    GenericFontFamily::Cursive
-                );
+                !generic.valid_for_user_font_prioritization();
 
             if !prioritize_user_fonts && default_font_type == font.mFont.family.families.fallback {
                 // Nothing to do.
