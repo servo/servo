@@ -234,7 +234,7 @@ impl ToCssWithGuard for LayerRule {
         guard: &SharedRwLockReadGuard,
         dest: &mut crate::str::CssStringWriter,
     ) -> fmt::Result {
-        dest.write_str("@layer ")?;
+        dest.write_str("@layer")?;
         match self.kind {
             LayerRuleKind::Block {
                 ref name,
@@ -242,8 +242,8 @@ impl ToCssWithGuard for LayerRule {
                 ref is_anonymous,
             } => {
                 if !*is_anonymous {
-                    name.to_css(&mut CssWriter::new(dest))?;
                     dest.write_char(' ')?;
+                    name.to_css(&mut CssWriter::new(dest))?;
                 }
                 rules.read_with(guard).to_css_block(guard, dest)
             },
@@ -251,7 +251,9 @@ impl ToCssWithGuard for LayerRule {
                 let mut writer = CssWriter::new(dest);
                 let mut first = true;
                 for name in &**names {
-                    if !first {
+                    if first {
+                        writer.write_char(' ')?;
+                    } else {
                         writer.write_str(", ")?;
                     }
                     first = false;
