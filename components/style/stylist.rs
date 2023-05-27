@@ -2404,9 +2404,13 @@ impl CascadeData {
                         }
                         LayerRuleKind::Statement { ref names } => {
                             for name in &**names {
+                                let mut pushed = 0;
                                 for name in name.layer_names() {
                                     current_layer.0.push(name.clone());
                                     maybe_register_layer(self, &current_layer);
+                                    pushed += 1;
+                                }
+                                for _ in 0..pushed {
                                     current_layer.0.pop();
                                 }
                             }
