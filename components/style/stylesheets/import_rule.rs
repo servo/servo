@@ -137,12 +137,10 @@ impl DeepCloneWithLock for ImportSheet {
 }
 
 /// The layer keyword or function in an import rule.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImportLayer {
-    /// Whether the layer is anonymous.
-    pub is_anonymous: bool,
-    /// The layer name.
-    pub name: LayerName,
+    /// The layer name, or None for an anonymous layer.
+    pub name: Option<LayerName>,
 }
 
 
@@ -151,12 +149,13 @@ impl ToCss for ImportLayer {
     where
         W: Write,
     {
-        if self.is_anonymous {
-            dest.write_str("layer")
-        } else {
-            dest.write_str("layer(")?;
-            self.name.to_css(dest)?;
-            dest.write_char(')')
+        match self.name {
+            None => dest.write_str("layer"),
+            Some(ref name) => {
+                dest.write_str("layer(")?;
+                name.to_css(dest)?;
+                dest.write_char(')')
+            },
         }
     }
 }
@@ -199,16 +198,7 @@ impl DeepCloneWithLock for ImportRule {
         ImportRule {
             url: self.url.clone(),
             stylesheet: self.stylesheet.deep_clone_with_lock(lock, guard, params),
-            layer: self.layer.as_ref().map(|layer| {
-                ImportLayer {
-                    is_anonymous: layer.is_anonymous,
-                    name: if layer.is_anonymous {
-                        LayerName::new_anonymous()
-                    } else {
-                        layer.name.clone()
-                    },
-                }
-            }),
+            layer: self.layer.clone(),
             source_location: self.source_location.clone(),
         }
     }

@@ -2150,7 +2150,7 @@ impl CascadeData {
         stylesheet: &S,
         guard: &SharedRwLockReadGuard,
         rebuild_kind: SheetRebuildKind,
-        current_layer: &mut LayerName,
+        mut current_layer: &mut LayerName,
         current_layer_order: LayerOrder,
         mut precomputed_pseudo_element_decls: Option<&mut PrecomputedPseudoElementDeclarations>,
     ) -> Result<(), FailedAllocationError>
@@ -2337,7 +2337,6 @@ impl CascadeData {
                 continue;
             }
 
-
             fn maybe_register_layer(data: &mut CascadeData, layer: &LayerName) -> LayerOrder {
                 // TODO: Measure what's more common / expensive, if
                 // layer.clone() or the double hash lookup in the insert
@@ -2366,6 +2365,31 @@ impl CascadeData {
                 order
             }
 
+            fn maybe_register_layers(
+                data: &mut CascadeData,
+                name: Option<&LayerName>,
+                current_layer: &mut LayerName,
+                pushed_layers: &mut usize,
+            ) -> LayerOrder {
+                let anon_name;
+                let name = match name {
+                    Some(name) => name,
+                    None => {
+                        anon_name = LayerName::new_anonymous();
+                        &anon_name
+                    },
+                };
+
+                let mut order = LayerOrder::top_level();
+                for name in name.layer_names() {
+                    current_layer.0.push(name.clone());
+                    order = maybe_register_layer(data, &current_layer);
+                    *pushed_layers += 1;
+                }
+                debug_assert_ne!(order, LayerOrder::top_level());
+                order
+            }
+
             let mut layer_names_to_pop = 0;
             let mut children_layer_order = current_layer_order;
             match *rule {
@@ -2376,11 +2400,12 @@ impl CascadeData {
                             .saw_effective(import_rule);
                     }
                     if let Some(ref layer) = import_rule.layer {
-                        for name in layer.name.layer_names() {
-                            current_layer.0.push(name.clone());
-                            children_layer_order = maybe_register_layer(self, &current_layer);
-                            layer_names_to_pop += 1;
-                        }
+                        children_layer_order = maybe_register_layers(
+                            self,
+                            layer.name.as_ref(),
+                            &mut current_layer,
+                            &mut layer_names_to_pop,
+                        );
                     }
 
                 },
@@ -2396,20 +2421,24 @@ impl CascadeData {
                     let layer_rule = lock.read_with(guard);
                     match layer_rule.kind {
                         LayerRuleKind::Block { ref name, .. } => {
-                            for name in name.layer_names() {
-                                current_layer.0.push(name.clone());
-                                children_layer_order = maybe_register_layer(self, &current_layer);
-                                layer_names_to_pop += 1;
-                            }
+                            children_layer_order = maybe_register_layers(
+                                self,
+                                name.as_ref(),
+                                &mut current_layer,
+                                &mut layer_names_to_pop,
+                            );
                         }
                         LayerRuleKind::Statement { ref names } => {
                             for name in &**names {
                                 let mut pushed = 0;
-                                for name in name.layer_names() {
-                                    current_layer.0.push(name.clone());
-                                    maybe_register_layer(self, &current_layer);
-                                    pushed += 1;
-                                }
+                                // There are no children, so we can ignore the
+                                // return value.
+                                maybe_register_layers(
+                                    self,
+                                    Some(name),
+                                    &mut current_layer,
+                                    &mut pushed,
+                                );
                                 for _ in 0..pushed {
                                     current_layer.0.pop();
                                 }

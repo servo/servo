@@ -216,8 +216,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     None
                 } else if input.try_parse(|input| input.expect_ident_matching("layer")).is_ok() {
                     Some(ImportLayer {
-                        is_anonymous: true,
-                        name: LayerName::new_anonymous(),
+                        name: None,
                     })
                 } else {
                     input.try_parse(|input| {
@@ -225,8 +224,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                         input.parse_nested_block(|input| {
                             LayerName::parse(&self.context, input)
                         }).map(|name| ImportLayer {
-                            is_anonymous: false,
-                            name,
+                            name: Some(name),
                         })
                     }).ok()
                 };
@@ -603,9 +601,8 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 ))))
             },
             AtRulePrelude::Layer(names) => {
-                let (name, is_anonymous) = match names.len() {
-                    0 => (LayerName::new_anonymous(), true),
-                    1 => (names.into_iter().next().unwrap(), false),
+                let name = match names.len() {
+                    0 | 1 => names.into_iter().next(),
                     _ => return Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid)),
                 };
                 Ok(CssRule::Layer(Arc::new(self.shared_lock.wrap(
@@ -613,7 +610,6 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                         kind: LayerRuleKind::Block {
                             name,
                             rules: self.parse_nested_rules(input, CssRuleType::Layer),
-                            is_anonymous,
                         },
                         source_location: start.source_location(),
                     },
