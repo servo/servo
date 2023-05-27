@@ -44,7 +44,7 @@ pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderImageSlice, BorderImageWidth};
-pub use self::box_::{AnimationIterationCount, AnimationName, Contain};
+pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, Contain};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, Float};
 pub use self::box_::{Display, Overflow, OverflowAnchor, TransitionProperty};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};

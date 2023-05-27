@@ -320,6 +320,20 @@ ${helpers.predefined_type(
     rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
 )}
 
+${helpers.predefined_type(
+    "animation-timeline",
+    "AnimationTimeline",
+    "computed::AnimationTimeline::auto()",
+    engines="gecko",
+    initial_specified_value="specified::AnimationTimeline::auto()",
+    vector=True,
+    need_index=True,
+    animation_value_type="none",
+    gecko_pref="layout.css.scroll-linked-animations.enabled",
+    spec="https://drafts.csswg.org/css-animations-2/#propdef-animation-timeline",
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
+)}
+
 <% transform_extra_prefixes = "moz:layout.css.prefixes.transforms webkit" %>
 
 ${helpers.predefined_type(

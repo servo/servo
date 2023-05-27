@@ -1049,7 +1049,7 @@ fn static_assert() {
             % if member:
             ours.m${gecko_ffi_name}.${member} = others.m${gecko_ffi_name}.${member};
             % else:
-            ours.m${gecko_ffi_name} = others.m${gecko_ffi_name};
+            ours.m${gecko_ffi_name} = others.m${gecko_ffi_name}.clone();
             % endif
         }
     }
@@ -1183,7 +1183,7 @@ fn static_assert() {
 <% skip_box_longhands= """display
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
-                          animation-iteration-count animation-timing-function
+                          animation-iteration-count animation-timeline animation-timing-function
                           clear transition-duration transition-delay
                           transition-timing-function transition-property
                           -webkit-line-clamp""" %>
@@ -1444,6 +1444,27 @@ fn static_assert() {
     ${impl_animation_count('iteration_count', 'IterationCount')}
     ${impl_copy_animation_value('iteration_count', 'IterationCount')}
     ${impl_animation_or_transition_timing_function('animation')}
+
+    pub fn set_animation_timeline<I>(&mut self, v: I)
+    where
+        I: IntoIterator<Item = longhands::animation_timeline::computed_value::single_value::T>,
+        I::IntoIter: ExactSizeIterator
+    {
+        let v = v.into_iter();
+        debug_assert_ne!(v.len(), 0);
+        let input_len = v.len();
+        self.gecko.mAnimations.ensure_len(input_len);
+
+        self.gecko.mAnimationTimelineCount = input_len as u32;
+        for (gecko, servo) in self.gecko.mAnimations.iter_mut().take(input_len as usize).zip(v) {
+            gecko.mTimeline = servo;
+        }
+    }
+    pub fn animation_timeline_at(&self, index: usize) -> values::specified::box_::AnimationTimeline {
+        self.gecko.mAnimations[index].mTimeline.clone()
+    }
+    ${impl_animation_count('timeline', 'Timeline')}
+    ${impl_copy_animation_value('timeline', 'Timeline')}
 
     #[allow(non_snake_case)]
     pub fn set__webkit_line_clamp(&mut self, v: longhands::_webkit_line_clamp::computed_value::T) {

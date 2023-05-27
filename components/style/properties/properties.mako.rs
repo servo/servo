@@ -2921,7 +2921,7 @@ pub mod style_structs {
             }
 
             /// Returns true if animation properties are equal between styles, but without
-            /// considering keyframe data.
+            /// considering keyframe data and animation-timeline.
             #[cfg(feature = "servo")]
             pub fn animations_equals(&self, other: &Self) -> bool {
                 self.animation_name_iter().eq(other.animation_name_iter()) &&

@@ -2301,8 +2301,12 @@ impl CascadeData {
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::ScrollTimeline(..) => {
-                    // TODO: Bug 1676784: set the timeline into animation.
-                }
+                    // TODO: Bug 1676791: set the timeline into animation.
+                    // https://phabricator.services.mozilla.com/D126452
+                    //
+                    // Note: Bug 1733260: we may drop @scroll-timeline rule once this spec issue
+                    // https://github.com/w3c/csswg-drafts/issues/6674 gets landed.
+                },
                 #[cfg(feature = "gecko")]
                 CssRule::FontFace(ref rule) => {
                     self.extra_data.add_font_face(rule);

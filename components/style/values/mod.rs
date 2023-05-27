@@ -472,6 +472,7 @@ impl ToCss for CustomIdent {
 #[derive(
     Clone, Debug, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem,
 )]
+#[repr(C, u8)]
 pub enum TimelineOrKeyframesName {
     /// <custom-ident>
     Ident(CustomIdent),
