@@ -71,7 +71,12 @@ static ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
     make_variable!(atom!("safe-area-inset-right"), get_safearea_inset_right),
 ];
 
-static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 0] = [
+fn get_titlebar_radius(device: &Device) -> VariableValue {
+    VariableValue::pixel(device.titlebar_radius())
+}
+
+static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 1] = [
+    make_variable!(atom!("-moz-gtk-csd-titlebar-radius"), get_titlebar_radius),
 ];
 
 impl CssEnvironment {
