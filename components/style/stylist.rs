@@ -2329,14 +2329,35 @@ impl CascadeData {
                 continue;
             }
 
+
+            fn maybe_register_layer(data: &mut CascadeData, layer: &LayerName) -> u32 {
+                // TODO: Measure what's more common / expensive, if
+                // layer.clone() or the double hash lookup in the insert
+                // case.
+                if let Some(order) = data.layer_order.get(layer) {
+                    return *order;
+                }
+                let order = data.next_layer_order;
+                data.layer_order.insert(layer.clone(), order);
+                data.next_layer_order += 1;
+                order
+            }
+
             let mut layer_names_to_pop = 0;
             let mut children_layer_order = current_layer_order;
             match *rule {
                 CssRule::Import(ref lock) => {
+                    let import_rule = lock.read_with(guard);
                     if rebuild_kind.should_rebuild_invalidation() {
-                        let import_rule = lock.read_with(guard);
                         self.effective_media_query_results
                             .saw_effective(import_rule);
+                    }
+                    if let Some(ref layer) = import_rule.layer {
+                        for name in layer.name.layer_names() {
+                            current_layer.0.push(name.clone());
+                            children_layer_order = maybe_register_layer(self, &current_layer);
+                            layer_names_to_pop += 1;
+                        }
                     }
 
                 },
@@ -2348,19 +2369,6 @@ impl CascadeData {
                 },
                 CssRule::Layer(ref lock) => {
                     use crate::stylesheets::layer_rule::LayerRuleKind;
-
-                    fn maybe_register_layer(data: &mut CascadeData, layer: &LayerName) -> u32 {
-                        // TODO: Measure what's more common / expensive, if
-                        // layer.clone() or the double hash lookup in the insert
-                        // case.
-                        if let Some(order) = data.layer_order.get(layer) {
-                            return *order;
-                        }
-                        let order = data.next_layer_order;
-                        data.layer_order.insert(layer.clone(), order);
-                        data.next_layer_order += 1;
-                        order
-                    }
 
                     let layer_rule = lock.read_with(guard);
                     match layer_rule.kind {

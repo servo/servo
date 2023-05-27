@@ -11,6 +11,7 @@ use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::{CssRule, StylesheetInDocument};
+use crate::stylesheets::layer_rule::LayerName;
 use crate::values::CssUrl;
 use cssparser::SourceLocation;
 use std::fmt::{self, Write};
@@ -135,6 +136,31 @@ impl DeepCloneWithLock for ImportSheet {
     }
 }
 
+/// The layer keyword or function in an import rule.
+#[derive(Debug)]
+pub struct ImportLayer {
+    /// Whether the layer is anonymous.
+    pub is_anonymous: bool,
+    /// The layer name.
+    pub name: LayerName,
+}
+
+
+impl ToCss for ImportLayer {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.is_anonymous {
+            dest.write_str("layer")
+        } else {
+            dest.write_str("layer(")?;
+            self.name.to_css(dest)?;
+            dest.write_char(')')
+        }
+    }
+}
+
 /// The [`@import`][import] at-rule.
 ///
 /// [import]: https://drafts.csswg.org/css-cascade-3/#at-import
@@ -147,6 +173,9 @@ pub struct ImportRule {
     /// parsing, we don't actually have a Gecko sheet at first, and so the
     /// ImportSheet just has stub behavior until it appears.
     pub stylesheet: ImportSheet,
+
+    /// A `layer()` function name.
+    pub layer: Option<ImportLayer>,
 
     /// The line and column of the rule's source code.
     pub source_location: SourceLocation,
@@ -170,6 +199,16 @@ impl DeepCloneWithLock for ImportRule {
         ImportRule {
             url: self.url.clone(),
             stylesheet: self.stylesheet.deep_clone_with_lock(lock, guard, params),
+            layer: self.layer.as_ref().map(|layer| {
+                ImportLayer {
+                    is_anonymous: layer.is_anonymous,
+                    name: if layer.is_anonymous {
+                        LayerName::new_anonymous()
+                    } else {
+                        layer.name.clone()
+                    },
+                }
+            }),
             source_location: self.source_location.clone(),
         }
     }
@@ -180,14 +219,18 @@ impl ToCssWithGuard for ImportRule {
         dest.write_str("@import ")?;
         self.url.to_css(&mut CssWriter::new(dest))?;
 
-        match self.stylesheet.media(guard) {
-            Some(media) if !media.is_empty() => {
-                dest.write_str(" ")?;
+        if let Some(media) = self.stylesheet.media(guard) {
+            if !media.is_empty() {
+                dest.write_char(' ')?;
                 media.to_css(&mut CssWriter::new(dest))?;
-            },
-            _ => {},
-        };
+            }
+        }
 
-        dest.write_str(";")
+        if let Some(ref layer) = self.layer {
+            dest.write_char(' ')?;
+            layer.to_css(&mut CssWriter::new(dest))?;
+        }
+
+        dest.write_char(';')
     }
 }
