@@ -317,7 +317,7 @@ class WheelInputSource(InputSource):
 class Actions:
     def __init__(self) -> None:
         self.input_sources: List[InputSource] = []
-        self.seen_names: MutableMapping[str, Set[str]] = defaultdict(Set)
+        self.seen_names: MutableMapping[str, Set[str]] = defaultdict(set)
 
     def _add_source(self,
                     cls: Type[InputSourceType],

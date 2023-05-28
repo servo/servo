@@ -31,6 +31,7 @@ RUN apt-get -qqy update \
     python3 \
     python3-dev \
     python3-pip \
+    python3-venv \
     software-properties-common \
     qemu-kvm \
     tzdata \
@@ -64,7 +65,6 @@ RUN apt-get -qqy install \
 RUN apt-get -y autoremove
 
 RUN pip install --upgrade pip
-RUN pip install virtualenv
 
 ENV TZ "UTC"
 RUN echo "${TZ}" > /etc/timezone \

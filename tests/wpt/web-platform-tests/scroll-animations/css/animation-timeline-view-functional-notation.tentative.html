@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <title>The animation-timeline: view() notation</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
-<link rel="help" src="https://w3c.github.io/csswg-drafts/scroll-animations-1/#view-notation">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#view-notation">
 <link rel="help" src="https://github.com/w3c/csswg-drafts/issues/7587">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -116,11 +116,13 @@ async function scrollTop(element, value) {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['content', 'target', 'content']);
-  container.style.overflow = 'hidden';
-  div.style.animation = "fade-in-out-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view()";
-  // So the range is [200px, 500px].
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'hidden';
+    div.style.animation = "fade-in-out-without-timeline-range 1s linear";
+    div.style.animationTimeline = "view()";
 
+  });
+  // So the range is [200px, 500px].
   await scrollTop(container, 200);
   assert_equals(getComputedStyle(div).opacity, '0', 'At 0%');
   await scrollTop(container, 260);
@@ -138,9 +140,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['content', 'target', 'content']);
-  container.style.overflow = 'hidden';
-  div.style.animation = "fade-in-out-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view(50px)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'hidden';
+    div.style.animation = "fade-in-out-without-timeline-range 1s linear";
+    div.style.animationTimeline = "view(50px)";
+  });
   // So the range is [250px, 450px].
 
   await scrollTop(container, 250);
@@ -160,9 +164,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['content', 'target', 'content']);
-  container.style.overflow = 'hidden';
-  div.style.animation = "fade-in-out-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view(auto 50px)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'hidden';
+    div.style.animation = "fade-in-out-without-timeline-range 1s linear";
+    div.style.animationTimeline = "view(auto 50px)";
+  });
   // So the range is [250px, 500px].
 
   await scrollTop(container, 250);
@@ -182,9 +188,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflow = 'hidden';
-  div.style.animation = "fade-out-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view(inline)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'hidden';
+    div.style.animation = "fade-out-without-timeline-range 1s linear";
+    div.style.animationTimeline = "view(inline)";
+  });
   // So the range is [-200px, 100px], but it is impossible to scroll to the
   // negative part.
 
@@ -200,9 +208,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflow = 'hidden';
-  div.style.animation = "fade-out-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view(x)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'hidden';
+    div.style.animation = "fade-out-without-timeline-range 1s linear";
+    div.style.animationTimeline = "view(x)";
+  });
   // So the range is [-200px, 100px], but it is impossible to scroll to the
   // negative part.
 
@@ -218,8 +228,10 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  div.style.animation = "fade-out-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view(y)";
+  await runAndWaitForFrameUpdate(() => {
+    div.style.animation = "fade-out-without-timeline-range 1s linear";
+    div.style.animationTimeline = "view(y)";
+  });
   // So the range is [-200px, 100px], but it is impossible to scroll to the
   // negative part.
 
@@ -235,9 +247,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflow = 'hidden';
-  div.style.animation = "fade-out-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view(x 50px)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'hidden';
+    div.style.animation = "fade-out-without-timeline-range 1s linear";
+    div.style.animationTimeline = "view(x 50px)";
+  });
   // So the range is [-150px, 50px], but it is impossible to scroll to the
   // negative part.
 
@@ -252,10 +266,12 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflow = 'hidden';
-  div.style.animation = "fade-out-without-timeline-range 1s linear, " +
-                        "change-font-size-without-timeline-range 1s linear";
-  div.style.animationTimeline = "view(50px), view(inline 50px)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'hidden';
+    div.style.animation = "fade-out-without-timeline-range 1s linear, " +
+                          "change-font-size-without-timeline-range 1s linear";
+    div.style.animationTimeline = "view(50px), view(inline 50px)";
+  });
 
   await scrollLeft(container, 0);
   assert_equals(getComputedStyle(div).fontSize, '25px', 'At 75% inline');
@@ -282,10 +298,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflow = 'hidden';
-  div.style.animation = "fade-out-without-timeline-range 1s linear";
-
-  div.style.animationTimeline = "view(inline)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'hidden';
+    div.style.animation = "fade-out-without-timeline-range 1s linear";
+    div.style.animationTimeline = "view(inline)";
+  });
   await scrollLeft(container, 0);
   assert_approx_equals(parseFloat(getComputedStyle(div).opacity), 0.33333,
                        0.00001, 'At 66.7%');
@@ -309,8 +326,10 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['content', 'target', 'content']);
-  div.style.animation = "fade-in-out 1s linear";
-  div.style.animationTimeline = "view()";
+  await runAndWaitForFrameUpdate(() => {
+    div.style.animation = "fade-in-out 1s linear";
+    div.style.animationTimeline = "view()";
+  });
 
   await scrollTop(container, 200);
   assert_equals(getComputedStyle(div).opacity, '0', 'At entry 0%');
@@ -329,8 +348,10 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['content', 'target', 'content']);
-  div.style.animation = "fade-in-out 1s linear";
-  div.style.animationTimeline = "view(50px)";
+  await runAndWaitForFrameUpdate(() => {
+    div.style.animation = "fade-in-out 1s linear";
+    div.style.animationTimeline = "view(50px)";
+  });
 
   await scrollTop(container, 250);
   assert_equals(getComputedStyle(div).opacity, '0', 'At entry 0%');
@@ -348,8 +369,10 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['content', 'target', 'content']);
-  div.style.animation = "fade-in-out 1s linear";
-  div.style.animationTimeline = "view(auto 50px)";
+  await runAndWaitForFrameUpdate(() => {
+    div.style.animation = "fade-in-out 1s linear";
+    div.style.animationTimeline = "view(auto 50px)";
+  });
 
   await scrollTop(container, 250);
   assert_equals(getComputedStyle(div).opacity, '0', 'At entry 0%');
@@ -368,9 +391,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflow = 'scroll';
-  div.style.animation = "fade-out 1s linear";
-  div.style.animationTimeline = "view(inline)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'scroll';
+    div.style.animation = "fade-out 1s linear";
+    div.style.animationTimeline = "view(inline)";
+  });
 
   await scrollLeft(container, 0);
   assert_equals(getComputedStyle(div).opacity, '1', 'At exit 0%');
@@ -382,9 +407,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflow = 'scroll';
-  div.style.animation = "fade-out 1s linear";
-  div.style.animationTimeline = "view(x)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'scroll';
+    div.style.animation = "fade-out 1s linear";
+    div.style.animationTimeline = "view(x)";
+  });
 
   await scrollLeft(container, 0);
   assert_equals(getComputedStyle(div).opacity, '1', 'At exit 0%');
@@ -396,9 +423,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflow = 'scroll';
-  div.style.animation = "fade-out 1s linear";
-  div.style.animationTimeline = "view(y)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'scroll';
+    div.style.animation = "fade-out 1s linear";
+    div.style.animationTimeline = "view(y)";
+  });
 
   await scrollTop(container, 0);
   assert_equals(getComputedStyle(div).opacity, '1', 'At exit 0%');
@@ -410,10 +439,12 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflowY = 'hidden';
-  container.style.overflowX = 'scroll';
-  div.style.animation = "fade-out 1s linear";
-  div.style.animationTimeline = "view(x 50px)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflowY = 'hidden';
+    container.style.overflowX = 'scroll';
+    div.style.animation = "fade-out 1s linear";
+    div.style.animationTimeline = "view(x 50px)";
+  });
 
   await scrollLeft(container, 0);
   assert_equals(getComputedStyle(div).opacity, '0.5', 'At exit 50%');
@@ -423,9 +454,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflow = 'scroll';
-  div.style.animation = "fade-out 1s linear, change-font-size 1s linear";
-  div.style.animationTimeline = "view(), view(inline)";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflow = 'scroll';
+    div.style.animation = "fade-out 1s linear, change-font-size 1s linear";
+    div.style.animationTimeline = "view(), view(inline)";
+  });
 
   await scrollLeft(container, 0);
   assert_equals(getComputedStyle(div).fontSize, '10px', 'At exit 0% inline');
@@ -451,9 +484,11 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, ['target', 'content']);
-  container.style.overflowY = 'hidden';
-  container.style.overflowX = 'scroll';
-  div.style.animation = "fade-out 1s linear";
+  await runAndWaitForFrameUpdate(() => {
+    container.style.overflowY = 'hidden';
+    container.style.overflowX = 'scroll';
+    div.style.animation = "fade-out 1s linear";
+  });
 
   div.style.animationTimeline = "view(inline)";
   await scrollLeft(container, 0);

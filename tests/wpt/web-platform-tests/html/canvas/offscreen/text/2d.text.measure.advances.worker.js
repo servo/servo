@@ -13,32 +13,31 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
-let fonts = (self.fonts ? self.fonts : document.fonts);
-f.load();
-fonts.add(f);
-fonts.ready.then(function() {
-    ctx.font = '50px CanvasTest';
-    ctx.direction = 'ltr';
-    ctx.align = 'left'
-    // Some platforms may return '-0'.
-    _assertSame(Math.abs(ctx.measureText('Hello').advances[0]), 0, "Math.abs(ctx.measureText('Hello').advances[\""+(0)+"\"])", "0");
-    // Different platforms may render text slightly different.
-    _assert(ctx.measureText('Hello').advances[1] >= 36, "ctx.measureText('Hello').advances[\""+(1)+"\"] >= 36");
-    _assert(ctx.measureText('Hello').advances[2] >= 58, "ctx.measureText('Hello').advances[\""+(2)+"\"] >= 58");
-    _assert(ctx.measureText('Hello').advances[3] >= 70, "ctx.measureText('Hello').advances[\""+(3)+"\"] >= 70");
-    _assert(ctx.measureText('Hello').advances[4] >= 80, "ctx.measureText('Hello').advances[\""+(4)+"\"] >= 80");
+  var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+  let fonts = (self.fonts ? self.fonts : document.fonts);
+  f.load();
+  fonts.add(f);
+  fonts.ready.then(function() {
+      ctx.font = '50px CanvasTest';
+      ctx.direction = 'ltr';
+      ctx.align = 'left'
+      // Some platforms may return '-0'.
+      _assertSame(Math.abs(ctx.measureText('Hello').advances[0]), 0, "Math.abs(ctx.measureText('Hello').advances[\""+(0)+"\"])", "0");
+      // Different platforms may render text slightly different.
+      _assert(ctx.measureText('Hello').advances[1] >= 36, "ctx.measureText('Hello').advances[\""+(1)+"\"] >= 36");
+      _assert(ctx.measureText('Hello').advances[2] >= 58, "ctx.measureText('Hello').advances[\""+(2)+"\"] >= 58");
+      _assert(ctx.measureText('Hello').advances[3] >= 70, "ctx.measureText('Hello').advances[\""+(3)+"\"] >= 70");
+      _assert(ctx.measureText('Hello').advances[4] >= 80, "ctx.measureText('Hello').advances[\""+(4)+"\"] >= 80");
 
-    var tm = ctx.measureText('Hello');
-    _assertSame(ctx.measureText('Hello').advances[0], tm.advances[0], "ctx.measureText('Hello').advances[\""+(0)+"\"]", "tm.advances[\""+(0)+"\"]");
-    _assertSame(ctx.measureText('Hello').advances[1], tm.advances[1], "ctx.measureText('Hello').advances[\""+(1)+"\"]", "tm.advances[\""+(1)+"\"]");
-    _assertSame(ctx.measureText('Hello').advances[2], tm.advances[2], "ctx.measureText('Hello').advances[\""+(2)+"\"]", "tm.advances[\""+(2)+"\"]");
-    _assertSame(ctx.measureText('Hello').advances[3], tm.advances[3], "ctx.measureText('Hello').advances[\""+(3)+"\"]", "tm.advances[\""+(3)+"\"]");
-    _assertSame(ctx.measureText('Hello').advances[4], tm.advances[4], "ctx.measureText('Hello').advances[\""+(4)+"\"]", "tm.advances[\""+(4)+"\"]");
-}).then(t_pass, t_fail);
-
+      var tm = ctx.measureText('Hello');
+      _assertSame(ctx.measureText('Hello').advances[0], tm.advances[0], "ctx.measureText('Hello').advances[\""+(0)+"\"]", "tm.advances[\""+(0)+"\"]");
+      _assertSame(ctx.measureText('Hello').advances[1], tm.advances[1], "ctx.measureText('Hello').advances[\""+(1)+"\"]", "tm.advances[\""+(1)+"\"]");
+      _assertSame(ctx.measureText('Hello').advances[2], tm.advances[2], "ctx.measureText('Hello').advances[\""+(2)+"\"]", "tm.advances[\""+(2)+"\"]");
+      _assertSame(ctx.measureText('Hello').advances[3], tm.advances[3], "ctx.measureText('Hello').advances[\""+(3)+"\"]", "tm.advances[\""+(3)+"\"]");
+      _assertSame(ctx.measureText('Hello').advances[4], tm.advances[4], "ctx.measureText('Hello').advances[\""+(4)+"\"]", "tm.advances[\""+(4)+"\"]");
+  }).then(t_pass, t_fail);
 });
 done();

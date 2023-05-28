@@ -19,32 +19,31 @@
 var t = async_test("CSSHSL works as color input");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = new CSSHSL(CSS.deg(180), 0.5, 0.5);
-ctx.fillRect(0, 0, 100, 50);
-_assertPixelApprox(canvas, 50,25, 64,191,191,255, 3);
+  ctx.fillStyle = new CSSHSL(CSS.deg(180), 0.5, 0.5);
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixelApprox(canvas, 50,25, 64,191,191,255, 3);
 
-const color = new CSSHSL(CSS.deg(180), 1, 1);
-ctx.fillStyle = color;
-_assertSame(ctx.fillStyle, '#ffffff', "ctx.fillStyle", "'#ffffff'");
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 255,255,255,255);
-color.l = 0.5;
-ctx.fillStyle = color;
-_assertSame(ctx.fillStyle, '#00ffff', "ctx.fillStyle", "'#00ffff'");
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,255,255);
+  const color = new CSSHSL(CSS.deg(180), 1, 1);
+  ctx.fillStyle = color;
+  _assertSame(ctx.fillStyle, '#ffffff', "ctx.fillStyle", "'#ffffff'");
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 255,255,255,255);
+  color.l = 0.5;
+  ctx.fillStyle = color;
+  _assertSame(ctx.fillStyle, '#00ffff', "ctx.fillStyle", "'#00ffff'");
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,255,255,255);
 
-ctx.fillStyle = new CSSRGB(1, 0, 1).toHSL();
-_assertSame(ctx.fillStyle, '#ff00ff', "ctx.fillStyle", "'#ff00ff'");
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 255,0,255,255);
+  ctx.fillStyle = new CSSRGB(1, 0, 1).toHSL();
+  _assertSame(ctx.fillStyle, '#ff00ff', "ctx.fillStyle", "'#ff00ff'");
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 255,0,255,255);
 
-color.h = CSS.deg(120);
-color.s = 1;
-color.l = 0.5;
-ctx.fillStyle = color;
-ctx.fillRect(0, 0, 100, 50);
-
+  color.h = CSS.deg(120);
+  color.s = 1;
+  color.l = 0.5;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 100, 50);
 
 });
 </script>

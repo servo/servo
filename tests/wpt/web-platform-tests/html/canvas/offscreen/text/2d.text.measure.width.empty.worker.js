@@ -13,17 +13,16 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
-let fonts = (self.fonts ? self.fonts : document.fonts);
-f.load();
-fonts.add(f);
-fonts.ready.then(function() {
-    ctx.font = '50px CanvasTest';
-    _assertSame(ctx.measureText("").width, 0, "ctx.measureText(\"\").width", "0");
-}).then(t_pass, t_fail);
-
+  var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
+  let fonts = (self.fonts ? self.fonts : document.fonts);
+  f.load();
+  fonts.add(f);
+  fonts.ready.then(function() {
+      ctx.font = '50px CanvasTest';
+      _assertSame(ctx.measureText("").width, 0, "ctx.measureText(\"\").width", "0");
+  }).then(t_pass, t_fail);
 });
 done();

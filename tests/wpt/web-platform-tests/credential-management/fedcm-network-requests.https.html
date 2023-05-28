@@ -211,6 +211,9 @@ credential-management/support/fedcm/userinfo-iframe.html`;
   assert_equals(message.result, "Pass");
   assert_equals(message.numAccounts, 1);
   assert_equals(message.firstAccountEmail, "john_doe@idp.example");
+  assert_equals(message.firstAccountName, "John Doe");
+  assert_equals(message.firstAccountGivenName, "John");
+  assert_equals(message.firstAccountPicture, "https://idp.example/profile/123");
 }, 'Test basic User InFo API flow');
 
 fedcm_test(async t => {

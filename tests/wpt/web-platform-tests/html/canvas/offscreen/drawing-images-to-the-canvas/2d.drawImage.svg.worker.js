@@ -11,21 +11,11 @@ promise_test(async t => {
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
-  var promise = new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", '/images/green.svg');
-    xhr.responseType = 'blob';
-    xhr.send();
-    xhr.onload = function() {
-      resolve(xhr.response);
-    };
-  });
-  promise.then(function(response) {
-    createImageBitmap(response).then(bitmap => {
-      ctx.drawImage(bitmap, 0, 0);
-      _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-    });
-  });
+  const response = await fetch('/images/green.svg');
+  const blob = await response.blob();
+  const bitmap = await createImageBitmap(blob);
+  ctx.drawImage(bitmap, 0, 0);
+  _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
   t.done();
 }, "drawImage() of an SVG image");
 done();

@@ -659,8 +659,8 @@ TESTHARNESS-IN-OTHER-TYPE: svg/svg-in-svg/svg-in-svg-circular-filter-reference-c
 # Adding the testharnessreport.js script causes the test to never complete.
 MISSING-TESTHARNESSREPORT: accessibility/crashtests/computed-node-checked.html
 
-PRINT STATEMENT: webdriver/tests/print/*
 PRINT STATEMENT: webdriver/tests/bidi/browsing_context/print/*
+PRINT STATEMENT: webdriver/tests/classic/print/*
 PRINT STATEMENT: webdriver/tests/support/fixtures_bidi.py
 
 DUPLICATE-BASENAME-PATH: acid/acid3/empty.html

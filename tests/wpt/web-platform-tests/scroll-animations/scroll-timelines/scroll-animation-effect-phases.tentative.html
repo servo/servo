@@ -314,7 +314,7 @@
     verifyEffectBeforePhase(animation);
 
     animation.pause();
-    await waitForNextFrame();
+    await animation.ready;
     verifyEffectBeforePhase(animation);
 
     // Scrolling should not cause the animation effect to change.

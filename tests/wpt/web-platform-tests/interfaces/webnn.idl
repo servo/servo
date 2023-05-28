@@ -127,10 +127,10 @@ interface MLGraphBuilder {
   constructor(MLContext context);
 
   // Create an operand for a graph input.
-  MLOperand input(DOMString name, MLOperandDescriptor desc);
+  MLOperand input(DOMString name, MLOperandDescriptor descriptor);
 
   // Create an operand for a graph constant.
-  MLOperand constant(MLOperandDescriptor desc, MLBufferView bufferView);
+  MLOperand constant(MLOperandDescriptor descriptor, MLBufferView bufferView);
 
   // Create a single-value operand from the specified number of the specified type.
   MLOperand constant(double value, optional MLOperandType type = "float32");

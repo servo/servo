@@ -13,8 +13,6 @@ enum RTCStatsType {
 "media-playout",
 "peer-connection",
 "data-channel",
-"stream",
-"track",
 "transport",
 "candidate-pair",
 "local-candidate",

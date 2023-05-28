@@ -13,29 +13,27 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-
-ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
-ctx.fillRect(0, 0, 100, 50);
-ctx.globalCompositeOperation = 'destination-in';
-var promise = new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", '/images/yellow.png');
-    xhr.responseType = 'blob';
-    xhr.send();
-    xhr.onload = function() {
-        resolve(xhr.response);
-    };
-});
-promise.then(function(response) {
-    createImageBitmap(response).then(bitmap => {
-        ctx.drawImage(bitmap, 40, 40, 10, 10, 40, 50, 10, 10);
-        _assertPixelApprox(canvas, 15,15, 0,0,0,0, 5);
-        _assertPixelApprox(canvas, 50,25, 0,0,0,0, 5);
-    }, t_fail);
-}).then(t_pass, t_fail);
-
+  ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.globalCompositeOperation = 'destination-in';
+  var promise = new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", '/images/yellow.png');
+      xhr.responseType = 'blob';
+      xhr.send();
+      xhr.onload = function() {
+          resolve(xhr.response);
+      };
+  });
+  promise.then(function(response) {
+      createImageBitmap(response).then(bitmap => {
+          ctx.drawImage(bitmap, 40, 40, 10, 10, 40, 50, 10, 10);
+          _assertPixelApprox(canvas, 15,15, 0,0,0,0, 5);
+          _assertPixelApprox(canvas, 50,25, 0,0,0,0, 5);
+      }, t_fail);
+  }).then(t_pass, t_fail);
 });
 done();

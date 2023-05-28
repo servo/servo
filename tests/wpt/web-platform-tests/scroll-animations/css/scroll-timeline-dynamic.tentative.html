@@ -7,12 +7,7 @@
 <script src="support/testcommon.js"></script>
 <style>
   main {
-    scroll-timeline-attachment: defer;
-    scroll-timeline-name:  --timeline;
-  }
-
-  .scroller {
-    scroll-timeline-attachment: ancestor;
+    timeline-scope: --timeline;
   }
 
   main > div {
@@ -91,8 +86,9 @@
       assert_equals(getComputedStyle(element).width, expected);
     }, description + ' [immediate]');
 
-    // Verify that the computed style after scrolling a bit.
+    // Verify the computed style after scrolling a bit.
     instantiate(async (element, expected) => {
+      await waitForNextFrame();
       scroller1.scrollTop = scroller1.scrollTop + 10;
       scroller2.scrollTop = scroller2.scrollTop + 10;
       await waitForNextFrame();
@@ -146,7 +142,7 @@
     // Note: #scroller1 is at 20%, and #scroller2 is at 40%.
     scroller1.style.scrollTimelineName = '--timeline1';
     scroller2.style.scrollTimelineName = '--timeline2';
-    main.style.scrollTimelineName = "--timeline1, --timeline2";
+    main.style.timelineScope = "--timeline1, --timeline2";
 
     await assert_width(element, '100px');
 

@@ -99,6 +99,17 @@ the global scope.
 .. js:autofunction:: test_driver.set_spc_transaction_mode
 ```
 
+### Federated Credential Management ###
+```eval_rst
+.. js:autofunction:: test_driver.cancel_fedcm_dialog
+.. js:autofunction:: test_driver.select_fedcm_account
+.. js:autofunction:: test_driver.get_fedcm_account_list
+.. js:autofunction:: test_driver.get_fedcm_dialog_title
+.. js:autofunction:: test_driver.get_fedcm_dialog_type
+.. js:autofunction:: test_driver.set_fedcm_delay_enabled
+.. js:autofunction:: test_driver.reset_fedcm_cooldown
+```
+
 ### Using test_driver in other browsing contexts ###
 
 Testdriver can be used in browsing contexts (i.e. windows or frames)

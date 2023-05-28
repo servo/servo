@@ -43,6 +43,10 @@ test(function () {
 promise_test(async t => {
   // Both permissions are needed at some point, asking both at once
   await setMediaPermission();
+  // A successful camera gUM call is needed to expose camera information
+  const afterGum = await navigator.mediaDevices.getUserMedia({video: true});
+  afterGum.getTracks()[0].stop();
+
   assert_true(navigator.mediaDevices.getSupportedConstraints()["groupId"],
     "groupId should be supported");
   const devices = await navigator.mediaDevices.enumerateDevices();
@@ -66,6 +70,10 @@ promise_test(async t => {
 }, 'groupId is correctly supported by getUserMedia() for video devices');
 
 promise_test(async t => {
+  // A successful microphone gUM call is needed to expose microphone information
+  const afterGum = await navigator.mediaDevices.getUserMedia({audio: true});
+  afterGum.getTracks()[0].stop();
+
   assert_true(navigator.mediaDevices.getSupportedConstraints()["groupId"],
     "groupId should be supported");
   const devices = await navigator.mediaDevices.enumerateDevices();

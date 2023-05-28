@@ -2,6 +2,7 @@
 <body>
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
+  <script src=/browsing-topics/resources/header-util.sub.js></script>
   <script>
     promise_test(async t => {
       const xhr = new XMLHttpRequest();
@@ -12,7 +13,7 @@
             // An empty result indicates that the request was eligible for
             // topics. Currently, the web-platform-tests framework does not
             // support actually handling the topics request.
-            assert_equals(xhr.responseText, "");
+            assert_equals(xhr.responseText, EMPTY_TOPICS_HEADER);
             resolve();
           }
         }

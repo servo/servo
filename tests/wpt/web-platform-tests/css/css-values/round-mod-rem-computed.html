@@ -126,9 +126,9 @@ test_math_used('mod(100px,1rem)', '4px');
 test_math_used('mod(10s,6000ms)', '4s', {type:'time'});
 test_math_used('mod(10000ms,6s)', '4s', {type:'time'});
 test_math_used('mod(18px,100% / 15)', '3px');
-test_math_used('mod(-18px,100% / 15)', '2px');
+test_math_used('mod(-18px,100% / 10)', '4.5px');
 test_math_used('mod(18%,5%)', '3%');
-test_math_used('mod(-18%,5%)', '2%');
+test_math_used('mod(-19%,5%)', '1%');
 test_math_used('mod(18vw,5vw)', '3vw');
 test_math_used('mod(-18vw,5vw)', '2vw');
 
@@ -144,7 +144,7 @@ test_math_used('rem(18vw,5vw)', '3vw');
 test_math_used('rem(-18vw,5vw)', '-3vw');
 
 test_math_used('calc(round(1px + 0%, 1px + 0%))', '1px');
-test_math_used('calc(mod(1px + 0%, 1px + 0%))', '0px');
-test_math_used('calc(rem(1px + 0%, 1px + 0%))', '0px');
+test_math_used('calc(mod(3px + 0%, 2px + 0%))', '1px');
+test_math_used('calc(rem(3px + 0%, 2px + 0%))', '1px');
 
 </script>

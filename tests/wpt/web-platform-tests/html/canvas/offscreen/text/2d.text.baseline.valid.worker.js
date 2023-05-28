@@ -13,27 +13,26 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.textBaseline = 'top';
-_assertSame(ctx.textBaseline, 'top', "ctx.textBaseline", "'top'");
+  ctx.textBaseline = 'top';
+  _assertSame(ctx.textBaseline, 'top', "ctx.textBaseline", "'top'");
 
-ctx.textBaseline = 'hanging';
-_assertSame(ctx.textBaseline, 'hanging', "ctx.textBaseline", "'hanging'");
+  ctx.textBaseline = 'hanging';
+  _assertSame(ctx.textBaseline, 'hanging', "ctx.textBaseline", "'hanging'");
 
-ctx.textBaseline = 'middle';
-_assertSame(ctx.textBaseline, 'middle', "ctx.textBaseline", "'middle'");
+  ctx.textBaseline = 'middle';
+  _assertSame(ctx.textBaseline, 'middle', "ctx.textBaseline", "'middle'");
 
-ctx.textBaseline = 'alphabetic';
-_assertSame(ctx.textBaseline, 'alphabetic', "ctx.textBaseline", "'alphabetic'");
+  ctx.textBaseline = 'alphabetic';
+  _assertSame(ctx.textBaseline, 'alphabetic', "ctx.textBaseline", "'alphabetic'");
 
-ctx.textBaseline = 'ideographic';
-_assertSame(ctx.textBaseline, 'ideographic', "ctx.textBaseline", "'ideographic'");
+  ctx.textBaseline = 'ideographic';
+  _assertSame(ctx.textBaseline, 'ideographic', "ctx.textBaseline", "'ideographic'");
 
-ctx.textBaseline = 'bottom';
-_assertSame(ctx.textBaseline, 'bottom', "ctx.textBaseline", "'bottom'");
-t.done();
-
+  ctx.textBaseline = 'bottom';
+  _assertSame(ctx.textBaseline, 'bottom', "ctx.textBaseline", "'bottom'");
+  t.done();
 });
 done();

@@ -58,6 +58,8 @@ promise_test(async () => {
 
   assert_click_construction(click_event, this);
   assert_click_attributes(click_event, pointerdown_event, pointerup_event);
+  assert_not_equals(click_event.pointerId, -1,
+                    "Click event triggered by a pointing device should not have -1 as the pointerId");
 }, "click using " + pointer_type + " is a PointerEvent");
 
 promise_test(async () => {
@@ -77,4 +79,28 @@ promise_test(async () => {
   assert_click_construction(click_event, frames[0]);
   assert_click_attributes(click_event, pointerdown_event, pointerup_event);
 }, "click in a subframe using " + pointer_type + " is a PointerEvent");
+
+// Run this part of the test only once, since it doesn't rely on the pointer_type.
+if (pointer_type == "mouse") {
+  promise_test(async () => {
+    const target = document.getElementById("target");
+    let click_promise = getEvent("click", target);
+    target.click();
+    let click_event = await click_promise;
+    assert_equals(click_event.pointerId, -1,
+                  "Click event triggered by a non-pointing device should have -1 as the pointerId");
+
+    target.type = "button";
+    target.focus();
+    click_promise = getEvent("click", target);
+    // Press enter
+    let actions = new test_driver.Actions()
+                                 .keyDown("\uE007")
+                                 .keyUp("\uE007");
+    await actions.send();
+    click_event = await click_promise;
+    assert_equals(click_event.pointerId, -1,
+                  "Click event triggered by a non-pointing device should have -1 as the pointerId");
+  }, "Click event triggered by a non-pointing device should have -1 as the pointerId");
+}
 </script>

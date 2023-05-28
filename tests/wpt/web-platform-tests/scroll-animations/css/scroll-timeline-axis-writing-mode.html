@@ -89,49 +89,53 @@
   <div class=target id=element_inline_in_vertical></div>
 </div>
 <script>
-  // Animations linked to vertical scroll-timelines are at 75% progress.
-  timeline_initial_axis.scrollTop = 75;
-  timeline_y.scrollTop = 75;
-  timeline_block_in_horizontal.scrollTop = 75;
-  timeline_inline_in_vertical.scrollTop = 75;
-  // Animations linked to horizontal scroll-timelines are at 25% progress.
-  timeline_x.scrollLeft = 25;
-  timeline_block_in_vertical.scrollLeft = 25;
-  timeline_inline_in_horizontal.scrollLeft = 25;
+  async function setScrollPositions() {
+    return runAndWaitForFrameUpdate(() => {
+      // Animations linked to vertical scroll-timelines are at 75% progress.
+      timeline_initial_axis.scrollTop = 75;
+      timeline_y.scrollTop = 75;
+      timeline_block_in_horizontal.scrollTop = 75;
+      timeline_inline_in_vertical.scrollTop = 75;
+      // Animations linked to horizontal scroll-timelines are at 25% progress.
+      timeline_x.scrollLeft = 25;
+      timeline_block_in_vertical.scrollLeft = 25;
+      timeline_inline_in_horizontal.scrollLeft = 25;
+    });
+  }
 
   promise_test(async (t) => {
-    await waitForNextFrame();
+    await setScrollPositions();
     assert_equals(getComputedStyle(element_initial_axis).width, '175px');
   }, 'Initial axis');
 
   promise_test(async (t) => {
-    await waitForNextFrame();
+    await setScrollPositions();
     assert_equals(getComputedStyle(element_y).width, '175px');
   }, 'Vertical axis');
 
   promise_test(async (t) => {
-    await waitForNextFrame();
+    await setScrollPositions();
     assert_equals(getComputedStyle(element_x).width, '125px');
   }, 'Horizontal axis');
 
   promise_test(async (t) => {
-    await waitForNextFrame();
+    await setScrollPositions();
     assert_equals(getComputedStyle(element_block_in_horizontal).width, '175px');
   }, 'Block axis in horizontal writing-mode');
 
   promise_test(async (t) => {
-    await waitForNextFrame();
+    await setScrollPositions();
     assert_equals(getComputedStyle(element_inline_in_horizontal).width, '125px');
   }, 'Inline axis in horizontal writing-mode');
 
   promise_test(async (t) => {
-    await waitForNextFrame();
+    await setScrollPositions();
     assert_equals(getComputedStyle(timeline_block_in_vertical).writingMode, 'vertical-lr');
     assert_equals(getComputedStyle(element_block_in_vertical).width, '125px');
   }, 'Block axis in vertical writing-mode');
 
   promise_test(async (t) => {
-    await waitForNextFrame();
+    await setScrollPositions();
     assert_equals(getComputedStyle(timeline_inline_in_vertical).writingMode, 'vertical-lr');
     assert_equals(getComputedStyle(element_inline_in_vertical).width, '175px');
   }, 'Inline axis in vertical writing-mode');

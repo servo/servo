@@ -19,11 +19,10 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-var img = document.createElement("img");
-_assertSame(ctx.createPattern(img, 'repeat'), null, "ctx.createPattern(img, 'repeat')", "null");
-var img = document.createElementNS("http://www.w3.org/2000/svg", "image");
-_assertSame(ctx.createPattern(img, 'repeat'), null, "ctx.createPattern(img, 'repeat')", "null");
-
+  var img = document.createElement("img");
+  _assertSame(ctx.createPattern(img, 'repeat'), null, "ctx.createPattern(img, 'repeat')", "null");
+  var img = document.createElementNS("http://www.w3.org/2000/svg", "image");
+  _assertSame(ctx.createPattern(img, 'repeat'), null, "ctx.createPattern(img, 'repeat')", "null");
 
 });
 </script>

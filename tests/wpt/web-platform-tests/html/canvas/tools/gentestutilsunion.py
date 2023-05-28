@@ -28,7 +28,7 @@
 #
 # * Test the tests, add new ones to Git, remove deleted ones from Git, etc.
 
-from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, List, Mapping, MutableMapping, Optional, Set, Tuple
 
 import re
 import collections
@@ -36,6 +36,7 @@ import dataclasses
 import enum
 import importlib
 import itertools
+import jinja2
 import os
 import pathlib
 import sys
@@ -61,12 +62,12 @@ class InvalidTestDefinitionError(Error):
     """Raised on invalid test definition."""
 
 
-def _simpleEscapeJS(string: str) -> str:
+def _doubleQuoteEscape(string: str) -> str:
     return string.replace('\\', '\\\\').replace('"', '\\"')
 
 
 def _escapeJS(string: str) -> str:
-    string = _simpleEscapeJS(string)
+    string = _doubleQuoteEscape(string)
     # Kind of an ugly hack, for nicer failure-message output.
     string = re.sub(r'\[(\w+)\]', r'[\\""+(\1)+"\\"]', string)
     return string
@@ -87,7 +88,10 @@ def _unroll(text: str) -> str:
     f = {b: 3};
     """
     patterns = []  # type: List[Tuple[str, List[str]]]
-    while match := re.search(r'<([^>]+)>', text):
+    while True:
+        match = re.search(r'<([^>]+)>', text)
+        if not match:
+            break
         key = f'@unroll_pattern_{len(patterns)}'
         values = text[match.start(1):match.end(1)]
         text = text[:match.start(0)] + key + text[match.end(0):]
@@ -232,20 +236,20 @@ def _expand_test_code(code: str) -> str:
     return code
 
 
-class CanvasType(str, enum.Enum):
+class TestType(str, enum.Enum):
     HTML_CANVAS = 'htmlcanvas'
     OFFSCREEN_CANVAS = 'offscreencanvas'
+    WORKER = 'worker'
 
 
-def _get_enabled_canvas_types(test: Mapping[str, Any]) -> List[CanvasType]:
-    return [CanvasType(t.lower()) for t in test.get('canvasType', CanvasType)]
+def _get_enabled_test_types(test: Mapping[str, Any]) -> Set[TestType]:
+    return {TestType(t.lower()) for t in test.get('canvasType', TestType)}
 
 
 @dataclasses.dataclass
 class TestConfig:
     out_dir: str
     image_out_dir: str
-    enabled: bool
 
 
 _CANVAS_SIZE_REGEX = re.compile(r'(?P<width>.*), (?P<height>.*)',
@@ -263,120 +267,84 @@ def _get_canvas_size(test: Mapping[str, Any]):
     return match.group('width'), match.group('height')
 
 
-def _write_reference_test(is_js_ref: bool, templates: Mapping[str, str],
-                          template_params: MutableMapping[str, str],
-                          ref_code: str, canvas_path: Optional[str],
-                          offscreen_path: Optional[str]):
-    ref_code = ref_code.strip()
-    ref_code = textwrap.indent(ref_code, '  ') if is_js_ref else ref_code
-    ref_template_name = 'element_ref_test' if is_js_ref else 'html_ref_test'
+def _write_reference_test(test: Mapping[str, Any],
+                          jinja_env: jinja2.Environment,
+                          template_params: MutableMapping[str, Any],
+                          enabled_tests: Set[TestType],
+                          canvas_path: str, offscreen_path: str):
+    name = template_params["name"]
+    js_ref = test.get('reference')
+    html_ref = test.get('html_reference')
+    if js_ref is not None and html_ref is not None:
+        raise InvalidTestDefinitionError(
+            f'Test {name} is invalid, "reference" and "html_reference" can\'t '
+            'both be specified at the same time.')
 
-    code = template_params['code']
-    template_params['code'] = textwrap.indent(code, '  ')
-    if canvas_path:
-        pathlib.Path(f'{canvas_path}.html').write_text(
-            templates['element_ref_test'] % template_params, 'utf-8')
-    if offscreen_path:
-        pathlib.Path(f'{offscreen_path}.html').write_text(
-            templates['offscreen_ref_test'] % template_params, 'utf-8')
-        template_params['code'] = textwrap.indent(code, '    ')
-        pathlib.Path(f'{offscreen_path}.w.html').write_text(
-            templates['worker_ref_test'] % template_params, 'utf-8')
-
-    template_params['code'] = ref_code
-    template_params['links'] = ''
-    template_params['fuzzy'] = ''
-    if canvas_path:
+    ref_params = template_params.copy()
+    ref_params.update({'code': js_ref or html_ref})
+    ref_template_name = 'reftest_element.html' if js_ref else 'reftest.html'
+    if TestType.HTML_CANVAS in enabled_tests:
         pathlib.Path(f'{canvas_path}-expected.html').write_text(
-            templates[ref_template_name] % template_params, 'utf-8')
-    if offscreen_path:
+            jinja_env.get_template(ref_template_name).render(ref_params),
+            'utf-8')
+    if {TestType.OFFSCREEN_CANVAS, TestType.WORKER} & enabled_tests:
         pathlib.Path(f'{offscreen_path}-expected.html').write_text(
-            templates[ref_template_name] % template_params, 'utf-8')
+            jinja_env.get_template(ref_template_name).render(ref_params),
+            'utf-8')
 
-
-def _write_testharness_test(templates: Mapping[str, str],
-                            template_params: MutableMapping[str, str],
-                            canvas_path: Optional[str],
-                            offscreen_path: Optional[str]):
-    # Create test cases for canvas and offscreencanvas.
-    code = template_params['code']
-    template_params['code'] = textwrap.indent(code, '  ')
-    if canvas_path:
+    params = template_params.copy()
+    params.update({
+        'ref_link': f'{name}-expected.html',
+        'fuzzy': test.get('fuzzy')
+    })
+    if TestType.HTML_CANVAS in enabled_tests:
         pathlib.Path(f'{canvas_path}.html').write_text(
-            templates['element'] % template_params, 'utf-8')
-
-    if offscreen_path:
-        offscreen_template = templates['offscreen']
-        worker_template = templates['worker']
-
-        if ('then(t_pass, t_fail);' in code):
-            offscreen_template = offscreen_template.replace('t.done();\n', '')
-            worker_template = worker_template.replace('t.done();\n', '')
-
+            jinja_env.get_template("reftest_element.html").render(params),
+            'utf-8')
+    if TestType.OFFSCREEN_CANVAS in enabled_tests:
         pathlib.Path(f'{offscreen_path}.html').write_text(
-            offscreen_template % template_params, 'utf-8')
+            jinja_env.get_template("reftest_offscreen.html").render(params),
+            'utf-8')
+    if TestType.WORKER in enabled_tests:
+        pathlib.Path(f'{offscreen_path}.w.html').write_text(
+            jinja_env.get_template("reftest_worker.html").render(params),
+            'utf-8')
+
+
+def _write_testharness_test(jinja_env: jinja2.Environment,
+                            template_params: MutableMapping[str, Any],
+                            enabled_tests: Set[TestType],
+                            canvas_path: str,
+                            offscreen_path: str):
+    # Create test cases for canvas and offscreencanvas.
+    if TestType.HTML_CANVAS in enabled_tests:
+        pathlib.Path(f'{canvas_path}.html').write_text(
+            jinja_env.get_template("testharness_element.html").render(
+                template_params), 'utf-8')
+
+    template_params['done_needed'] = ('then(t_pass, t_fail);'
+                                      not in template_params['code'])
+
+    if TestType.OFFSCREEN_CANVAS in enabled_tests:
+        pathlib.Path(f'{offscreen_path}.html').write_text(
+            jinja_env.get_template("testharness_offscreen.html").render(
+                template_params), 'utf-8')
+
+    if TestType.WORKER in enabled_tests:
         pathlib.Path(f'{offscreen_path}.worker.js').write_text(
-            worker_template % template_params, 'utf-8')
+            jinja_env.get_template("testharness_worker.js").render(
+                template_params), 'utf-8')
 
 
-def _expand_template(template: str, template_params: Mapping[str, str]) -> str:
-    # Remove whole line comments.
-    template = re.sub(r'^ *#.*?\n', '', template, flags=re.MULTILINE)
-    # Remove trailing line comments.
-    template = re.sub(r' *#.*?$', '', template, flags=re.MULTILINE)
-
-    # Unwrap lines ending with a backslash.
-    template = _remove_extra_newlines(template)
-
-    content_without_nested_if = r'((?:(?!{%\s*(?:if|else|endif)[^%]*%}).)*?)'
-
-    # Resolve {% if <cond> %}<content>{% else %}<alternate content>{% endif %}
-    if_else_regex = re.compile(
-        r'{%\s*if\s*([^\s%]+)\s*%}' +  # {% if <cond> %}
-        content_without_nested_if +    # content
-        r'{%\s*else\s*%}' +            # {% else %}
-        content_without_nested_if +    # alternate
-        r'{%\s*endif\s*%}',            # {% endif %}
-        flags=re.MULTILINE | re.DOTALL)
-    while match := if_else_regex.search(template):
-        condition, content, alternate = match.groups()
-        substitution = content if template_params[condition] else alternate
-        template = (
-            template[:match.start(0)] + substitution + template[match.end(0):])
-
-    # Resolve {% if <cond> %}<content>{% endif %}
-    if_regex = re.compile(
-        r'{%\s*if\s*([^\s%]+)\s*%}' +  # {% if <cond> %}
-        content_without_nested_if +    # content
-        r'{%\s*endif\s*%}',            # {% endif %}
-        flags=re.MULTILINE | re.DOTALL)
-    while match := if_regex.search(template):
-        condition, content = match.groups()
-        substitution = content if template_params[condition] else ''
-        template = (
-            template[:match.start(0)] + substitution + template[match.end(0):])
-
-    return template
-
-
-def _expand_templates(templates: Mapping[str, str],
-                      params: Mapping[str, str]) -> Mapping[str, str]:
-    return {
-        name: _expand_template(template, params)
-        for name, template in templates.items()
-    }
-
-
-def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
-                   sub_dir: str, html_canvas_cfg: TestConfig,
+def _generate_test(test: Mapping[str, Any], jinja_env: jinja2.Environment,
+                   sub_dir: str, enabled_tests: Set[TestType],
+                   html_canvas_cfg: TestConfig,
                    offscreen_canvas_cfg: TestConfig) -> None:
     name = test['name']
 
     if test.get('expected', '') == 'green' and re.search(
             r'@assert pixel .* 0,0,0,0;', test['code']):
         print('Probable incorrect pixel test in %s' % name)
-
-    code_canvas = _expand_test_code(test['code']).strip()
 
     expectation_html = ''
     if 'expected' in test and test['expected'] is not None:
@@ -394,17 +362,20 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
                 r'surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, \1, \2)'
                 r'\ncr = cairo.Context(surface)', expected)
 
-            expected_canvas = (
-                expected + "\nsurface.write_to_png('%s.png')\n" %
-                os.path.join(html_canvas_cfg.image_out_dir, sub_dir, name))
-            eval(compile(expected_canvas, '<test %s>' % name, 'exec'), {},
-                 {'cairo': cairo})
+            if TestType.HTML_CANVAS in enabled_tests:
+                expected_canvas = (
+                    expected + "\nsurface.write_to_png('%s.png')\n" %
+                    os.path.join(html_canvas_cfg.image_out_dir, sub_dir, name))
+                eval(compile(expected_canvas, '<test %s>' % name, 'exec'), {},
+                    {'cairo': cairo})
 
-            expected_offscreencanvas = (
-                expected + "\nsurface.write_to_png('%s.png')\n" % os.path.join(
-                    offscreen_canvas_cfg.image_out_dir, sub_dir, name))
-            eval(compile(expected_offscreencanvas, '<test %s>' % name, 'exec'),
-                 {}, {'cairo': cairo})
+            if {TestType.OFFSCREEN_CANVAS, TestType.WORKER} & enabled_tests:
+                expected_offscreen = (
+                    expected +
+                    "\nsurface.write_to_png('%s.png')\n" % os.path.join(
+                        offscreen_canvas_cfg.image_out_dir, sub_dir, name))
+                eval(compile(expected_offscreen, '<test %s>' % name, 'exec'),
+                     {}, {'cairo': cairo})
 
             expected_img = '%s.png' % name
 
@@ -414,18 +385,7 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
                 '<img src="%s" class="output expected" id="expected" '
                 'alt="">' % expected_img)
 
-    canvas = ' ' + test['canvas'] if 'canvas' in test else ''
     width, height = _get_canvas_size(test)
-
-    notes = '<p class="notes">%s' % test['notes'] if 'notes' in test else ''
-
-    links = f'<link rel="match" href="{name}-expected.html">\n'
-    fuzzy = ('<meta name=fuzzy content="%s">\n' %
-             test['fuzzy'] if 'fuzzy' in test else '')
-    timeout = ('<meta name="timeout" content="%s">\n' %
-               test['timeout'] if 'timeout' in test else '')
-    timeout_js = ('// META: timeout=%s\n' % test['timeout']
-                  if 'timeout' in test else '')
 
     images = ''
     for src in test.get('images', []):
@@ -441,31 +401,6 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
                    '</svg>\n' % (src, img_id))
     images = images.replace('../images/', '/images/')
 
-    fonts = ''
-    fonthack = ''
-    for font in test.get('fonts', []):
-        fonts += ('@font-face {\n  font-family: %s;\n'
-                  '  src: url("/fonts/%s.ttf");\n}\n' % (font, font))
-        # Browsers require the font to actually be used in the page.
-        if test.get('fonthack', 1):
-            fonthack += ('<span style="font-family: %s; position: '
-                         'absolute; visibility: hidden">A</span>\n' % font)
-    if fonts:
-        fonts = '<style>\n%s</style>\n' % fonts
-
-    fallback = test.get('fallback',
-                        '<p class="fallback">FAIL (fallback content)</p>')
-
-    desc = test.get('desc', '')
-    escaped_desc = _simpleEscapeJS(desc)
-
-    attributes = test.get('attributes', '')
-    if attributes:
-        context_args = "'2d', %s" % attributes.strip()
-        attributes = ', ' + attributes.strip()
-    else:
-        context_args = "'2d'"
-
     is_promise_test = False
     if 'test_type' in test:
         if test['test_type'] == 'promise':
@@ -478,24 +413,16 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
 
     template_params = {
         'name': name,
-        'desc': desc,
-        'escaped_desc': escaped_desc,
-        'notes': notes,
+        'desc': test.get('desc', ''),
+        'notes': test.get('notes', ''),
         'images': images,
-        'fonts': fonts,
-        'fonthack': fonthack,
-        'timeout': timeout,
-        'timeout_js': timeout_js,
-        'fuzzy': fuzzy,
-        'links': links,
-        'canvas': canvas,
+        'timeout': test.get('timeout'),
+        'canvas': test.get('canvas', ''),
         'width': width,
         'height': height,
         'expected': expectation_html,
-        'code': code_canvas,
-        'fallback': fallback,
-        'attributes': attributes,
-        'context_args': context_args,
+        'code': _expand_test_code(test['code']),
+        'attributes': test.get('attributes', ''),
         'promise_test': is_promise_test
     }
 
@@ -505,33 +432,27 @@ def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
         canvas_path += '-manual'
         offscreen_path += '-manual'
 
-    js_reference = test.get('reference')
-    html_reference = test.get('html_reference')
-    if js_reference is not None and html_reference is not None:
-        raise InvalidTestDefinitionError(
-            f'Test {name} is invalid, "reference" and "html_reference" can\'t '
-            'both be specified at the same time.')
-
-    templates = _expand_templates(templates, template_params)
-
-    ref_code = js_reference or html_reference
-    if ref_code is not None:
-        _write_reference_test(
-            js_reference is not None, templates, template_params, ref_code,
-            canvas_path if html_canvas_cfg.enabled else None,
-            offscreen_path if offscreen_canvas_cfg.enabled else None)
+    if 'reference' in test or 'html_reference' in test:
+        _write_reference_test(test, jinja_env, template_params, enabled_tests,
+                              canvas_path, offscreen_path)
     else:
-        _write_testharness_test(
-            templates, template_params,
-            canvas_path if html_canvas_cfg.enabled else None,
-            offscreen_path if offscreen_canvas_cfg.enabled else None)
+        _write_testharness_test(jinja_env, template_params, enabled_tests,
+                                canvas_path, offscreen_path)
 
 
-def genTestUtils_union(TEMPLATEFILE: str, NAME2DIRFILE: str) -> None:
+def genTestUtils_union(NAME2DIRFILE: str) -> None:
     CANVASOUTPUTDIR = '../element'
     CANVASIMAGEOUTPUTDIR = '../element'
     OFFSCREENCANVASOUTPUTDIR = '../offscreen'
     OFFSCREENCANVASIMAGEOUTPUTDIR = '../offscreen'
+
+    jinja_env = jinja2.Environment(
+        loader=jinja2.PackageLoader("gentestutilsunion"),
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True)
+
+    jinja_env.filters['double_quote_escape'] = _doubleQuoteEscape
 
     # Run with --test argument to run unit tests.
     if len(sys.argv) > 1 and sys.argv[1] == '--test':
@@ -539,7 +460,6 @@ def genTestUtils_union(TEMPLATEFILE: str, NAME2DIRFILE: str) -> None:
         doctest.testmod()
         sys.exit()
 
-    templates = yaml.safe_load(pathlib.Path(TEMPLATEFILE).read_text())
     name_to_sub_dir = yaml.safe_load(pathlib.Path(NAME2DIRFILE).read_text())
 
     tests = []
@@ -590,28 +510,26 @@ def genTestUtils_union(TEMPLATEFILE: str, NAME2DIRFILE: str) -> None:
             name = test['name']
             print('\r(%s)' % name, ' ' * 32, '\t')
 
-            enabled_canvas_types = _get_enabled_canvas_types(test)
+            enabled_test_types = _get_enabled_test_types(test)
 
             already_tested = used_tests[name].intersection(
-                enabled_canvas_types)
+                enabled_test_types)
             if already_tested:
                 raise InvalidTestDefinitionError(
                     f'Test {name} is defined twice for types {already_tested}')
-            used_tests[name].update(enabled_canvas_types)
+            used_tests[name].update(enabled_test_types)
 
             sub_dir = _get_test_sub_dir(name, name_to_sub_dir)
             _generate_test(
                 test,
-                templates,
+                jinja_env,
                 sub_dir,
+                enabled_test_types,
                 html_canvas_cfg=TestConfig(
                     out_dir=CANVASOUTPUTDIR,
-                    image_out_dir=CANVASIMAGEOUTPUTDIR,
-                    enabled=CanvasType.HTML_CANVAS in enabled_canvas_types),
+                    image_out_dir=CANVASIMAGEOUTPUTDIR),
                 offscreen_canvas_cfg=TestConfig(
                     out_dir=OFFSCREENCANVASOUTPUTDIR,
-                    image_out_dir=OFFSCREENCANVASIMAGEOUTPUTDIR,
-                    enabled=CanvasType.OFFSCREEN_CANVAS in
-                    enabled_canvas_types))
+                    image_out_dir=OFFSCREENCANVASIMAGEOUTPUTDIR))
 
     print()

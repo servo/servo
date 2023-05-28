@@ -19,13 +19,12 @@
 var t = async_test("Shadows look correct for large blurs");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = '#ff0';
-ctx.fillRect(0, 0, 100, 50);
-ctx.shadowColor = '#00f';
-ctx.shadowOffsetY = 0;
-ctx.shadowBlur = 100;
-ctx.fillRect(-200, -200, 200, 400);
-
+  ctx.fillStyle = '#ff0';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.shadowColor = '#00f';
+  ctx.shadowOffsetY = 0;
+  ctx.shadowBlur = 100;
+  ctx.fillRect(-200, -200, 200, 400);
 
 });
 </script>

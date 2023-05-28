@@ -10,8 +10,8 @@
 <body>
   <script>
     promise_test(async t => {
-      let small_image_path = '/images/green-100x50.png';
-      let big_image_path = '/images/green-256x256.png';
+      let small_image_path = '/images/lcp-100x50.png';
+      let big_image_path = '/images/lcp-256x256.png';
       let non_tao_scheme = get_host_info().OTHER_ORIGIN;
 
       // Load non-tao image with 0 opacity so it won't trigger an LCP entry.

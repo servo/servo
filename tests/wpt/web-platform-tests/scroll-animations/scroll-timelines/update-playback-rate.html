@@ -26,9 +26,6 @@
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   await animation.ready;
 

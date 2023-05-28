@@ -232,14 +232,15 @@ promise_test(async t => {
   const animation = createAnimation(t);
   const scrollTimeline = createScrollTimeline(t);
   animation.timeline = scrollTimeline;
-  await animation.ready;
 
   animation.reverse();
-  animation.pause();
-  await updateScrollPosition(scrollTimeline, 100);
-  assert_scroll_synced_times(animation, 10, 90);
-
   await animation.ready;
+  await updateScrollPosition(scrollTimeline, 100);
+
+  animation.pause();
+  await animation.ready;
+
+  assert_scroll_synced_times(animation, 10, 90);
 
   animation.timeline = document.timeline;
   assert_false(animation.pending);
@@ -321,39 +322,16 @@ promise_test(async t => {
 
   const animation = createAnimation(t);
   animation.pause();
+  animation.currentTime = 500; // 50%
   animation.timeline = scrollTimeline;
-  await animation.ready;
-  assert_percents_equal(animation.currentTime, 0);
-
-  animation.currentTime = CSSNumericValue.parse("50%");
-
-  animation.play();
   await animation.ready;
   assert_percents_equal(animation.currentTime, 50);
-}, 'Switching from a document timeline to a scroll timeline and updating ' +
-   'currentTime preserves the new value when unpaused.');
-
-promise_test(async t => {
-  const scrollTimeline = createScrollTimeline(t);
-  await updateScrollPosition(scrollTimeline, 100);
-
-  const animation = createAnimation(t);
-  animation.pause();
-  animation.timeline = scrollTimeline;
-  await animation.ready;
-  assert_percents_equal(animation.currentTime, 0);
-  assert_equals(animation.playState, 'paused');
-
-  // Set a start time that will ensure that current time is in the active
-  // region in order not to trigger a seek when play is called.
-  animation.startTime = CSSNumericValue.parse("-10%");
-  assert_equals(animation.playState, 'running');
 
   animation.play();
   await animation.ready;
-  assert_percents_equal(animation.startTime, -10);
+  assert_percents_equal(animation.currentTime, 10);
 }, 'Switching from a document timeline to a scroll timeline and updating ' +
-   'startTime preserves the new value when play is called.');
+   'currentTime preserves the progress while paused.');
 
 promise_test(async t => {
   const elem = createDiv(t);
@@ -388,7 +366,7 @@ promise_test(async t => {
   assert_percents_equal(timing.endTime, 0);
 
 }, 'Switching from a document timeline to a scroll timeline on an infinite ' +
-   'duration animation.')
+   'duration animation.');
 
 </script>
 </body>

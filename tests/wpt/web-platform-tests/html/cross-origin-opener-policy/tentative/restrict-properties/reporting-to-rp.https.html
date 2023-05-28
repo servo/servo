@@ -22,22 +22,7 @@ let tests = [
     "",
     "",
     "",
-    [
-      {
-        "endpoint": popupReportEndpoint,
-        "report": {
-          "body": {
-            "disposition": "enforce",
-            "effectivePolicy": "restrict-properties",
-            "previousResponseURL": `${location.href}`,
-            "referrer": `${location.origin}/`,
-            "type": "navigation-to-response"
-          },
-          "url": /uuid=EXECUTOR_UUID$/,
-          "type": "coop"
-        }
-      }
-    ]
+    []
   ],
 
   // Open a cross-origin popup with COOP report-only restrict-properties, which
@@ -48,22 +33,7 @@ let tests = [
     "",
     "",
     "",
-    [
-      {
-        "endpoint": popupReportEndpoint,
-        "report": {
-          "body": {
-            "disposition": "enforce",
-            "effectivePolicy": "restrict-properties",
-            "previousResponseURL": "",
-            "referrer": `${location.origin}/`,
-            "type": "navigation-to-response"
-          },
-          "url": /uuid=EXECUTOR_UUID$/,
-          "type": "coop"
-        }
-      }
-    ]
+    []
   ],
 ];
 

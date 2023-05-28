@@ -13,14 +13,13 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-canvas.width = 120;
-canvas.height = 60;
-_assertSame(canvas.width, 120, "canvas.width", "120");
-_assertSame(canvas.height, 60, "canvas.height", "60");
-t.done();
-
+  canvas.width = 120;
+  canvas.height = 60;
+  _assertSame(canvas.width, 120, "canvas.width", "120");
+  _assertSame(canvas.height, 60, "canvas.height", "60");
+  t.done();
 });
 done();

@@ -7,14 +7,12 @@
   main {
     overflow: hidden;
     height: 0px;
-    scroll-timeline-attachment: defer;
-    scroll-timeline-name: --timeline1, --timeline2, --timeline3;
+    timeline-scope: --timeline1, --timeline2, --timeline3;
   }
   .scroller {
     overflow: hidden;
     width: 100px;
     height: 100px;
-    scroll-timeline-attachment: ancestor;
   }
   .scroller > div {
     height: 200px;
@@ -53,12 +51,6 @@
   <div id=container></div>
 </main>
 <script>
-  // Force layout of scrollers.
-  scroller1.offsetTop;
-  scroller2.offsetTop;
-  scroller3.offsetTop;
-  scroller4.offsetTop;
-
   scroller1.scrollTop = 20;
   scroller2.scrollTop = 40;
   scroller3.scrollTop = 60;
@@ -68,10 +60,12 @@
   function test_animation_timeline(func, description) {
     promise_test(async () => {
       try {
-        let element = document.createElement('element');
-        element.setAttribute('id', 'element');
-        container.append(element);
-        await func();
+        await runAndWaitForFrameUpdate(() => {
+          let element = document.createElement('element');
+          element.setAttribute('id', 'element');
+          container.append(element);
+        });
+        func();
       } finally {
         while (container.firstChild)
           container.firstChild.remove();
@@ -79,22 +73,17 @@
     }, description);
   }
 
-  test_animation_timeline(async () => {
-    await waitForNextFrame();
+  test_animation_timeline(() => {
     assert_equals(getComputedStyle(element).width, '120px');
     element.style = 'animation-timeline:--timeline2';
     assert_equals(getComputedStyle(element).width, '140px');
   }, 'Changing animation-timeline changes the timeline (sanity check)');
 
-  test_animation_timeline(async () => {
-    await waitForNextFrame();
+  test_animation_timeline(() => {
     assert_equals(getComputedStyle(element).width, '120px');
 
     // Set a (non-CSS) ScrollTimeline on the CSSAnimation.
-    let timeline4 = new ScrollTimeline({
-      source: scroller4,
-      scrollOffsets: [CSS.px(0), CSS.px(100)]
-    });
+    let timeline4 = new ScrollTimeline({ source: scroller4 });
 
     element.getAnimations()[0].timeline = timeline4;
     assert_equals(getComputedStyle(element).width, '180px');
@@ -102,14 +91,14 @@
     // Changing the animation-timeline property should have no effect.
     element.style = 'animation-timeline:--timeline2';
     assert_equals(getComputedStyle(element).width, '180px');
-  }, 'animation-timeline ignored after setting timeline with JS (ScrollTimeline from JS)');
+  }, 'animation-timeline ignored after setting timeline with JS ' +
+     '(ScrollTimeline from JS)');
 
-  test_animation_timeline(async () => {
-    await waitForNextFrame();
+  test_animation_timeline(() => {
     assert_equals(getComputedStyle(element).width, '120px');
+
     let animation = element.getAnimations()[0];
     let timeline1 = animation.timeline;
-
     element.style = 'animation-timeline:--timeline2';
     assert_equals(getComputedStyle(element).width, '140px');
 
@@ -119,10 +108,10 @@
     // Should have no effect.
     element.style = 'animation-timeline:--timeline3';
     assert_equals(getComputedStyle(element).width, '120px');
-  }, 'animation-timeline ignored after setting timeline with JS (ScrollTimeline from CSS)');
+  }, 'animation-timeline ignored after setting timeline with JS ' +
+     '(ScrollTimeline from CSS)');
 
-  test_animation_timeline(async () => {
-    await waitForNextFrame();
+  test_animation_timeline(() => {
     assert_equals(getComputedStyle(element).width, '120px');
     element.getAnimations()[0].timeline = document.timeline;
 
@@ -134,8 +123,7 @@
     assert_equals(getComputedStyle(element).width, '120px');
   }, 'animation-timeline ignored after setting timeline with JS (document timeline)');
 
-  test_animation_timeline(async () => {
-    await waitForNextFrame();
+  test_animation_timeline(() => {
     assert_equals(getComputedStyle(element).width, '120px');
     element.getAnimations()[0].timeline = null;
     assert_equals(getComputedStyle(element).width, '120px');

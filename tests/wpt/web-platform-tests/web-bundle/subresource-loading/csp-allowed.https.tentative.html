@@ -13,9 +13,7 @@
       https://web-platform.test:8444/resources/testharnessreport.js
       'unsafe-inline';
     img-src
-      https://web-platform.test:8444/web-bundle/resources/wbn/pass.png;
-    frame-src
-      https://web-platform.test:8444/web-bundle/resources/wbn/uuid-in-package.wbn"
+      https://web-platform.test:8444/web-bundle/resources/wbn/pass.png"
 />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -29,8 +27,7 @@
   <script type="webbundle">
     {
       "source": "../resources/wbn/uuid-in-package.wbn",
-      "resources": ["uuid-in-package:020111b3-437a-4c5c-ae07-adb6bbffb720",
-                    "uuid-in-package:429fcc4e-0696-4bad-b099-ee9175f023ae"
+      "resources": ["uuid-in-package:020111b3-437a-4c5c-ae07-adb6bbffb720"
       ]
     }
   </script>
@@ -59,31 +56,5 @@
     }, "URL matching of script-src CSP should be done based on the bundle URL " +
        "when the subresource URL is uuid-in-package: URL.");
 
-    promise_test(async () => {
-      const frame_url = "uuid-in-package:429fcc4e-0696-4bad-b099-ee9175f023ae";
-      const iframe = document.createElement("iframe");
-      iframe.src = frame_url;
-      const load_promise = new Promise((resolve) => {
-        iframe.addEventListener("load", resolve);
-      });
-      document.body.appendChild(iframe);
-      await load_promise;
-      assert_equals(await evalInIframe(iframe, "location.href"), frame_url);
-    }, "URL matching of frame-src CSP should be done based on the bundle URL " +
-       "when the frame URL is uuid-in-package: URL.");
-
-    async function evalInIframe(iframe, code) {
-      const message_promise = new Promise((resolve) => {
-        window.addEventListener(
-          "message",
-          (e) => {
-            resolve(e.data);
-          },
-          { once: true }
-        );
-      });
-      iframe.contentWindow.postMessage(code, "*");
-      return message_promise;
-    }
   </script>
 </body>

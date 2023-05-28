@@ -61,7 +61,7 @@
 
 - name: 2d.filter.canvasFilterObject.tentative
   desc: Test CanvasFilter() object
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     @assert ctx.filter == 'none';
     ctx.filter = 'blur(5px)';

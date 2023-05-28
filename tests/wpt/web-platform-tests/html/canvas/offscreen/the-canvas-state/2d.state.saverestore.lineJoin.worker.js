@@ -13,25 +13,24 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-// Test that restore() undoes any modifications
-var old = ctx.lineJoin;
-ctx.save();
-ctx.lineJoin = "round";
-ctx.restore();
-_assertSame(ctx.lineJoin, old, "ctx.lineJoin", "old");
+  // Test that restore() undoes any modifications
+  var old = ctx.lineJoin;
+  ctx.save();
+  ctx.lineJoin = "round";
+  ctx.restore();
+  _assertSame(ctx.lineJoin, old, "ctx.lineJoin", "old");
 
-// Also test that save() doesn't modify the values
-ctx.lineJoin = "round";
-old = ctx.lineJoin;
-    // we're not interested in failures caused by get(set(x)) != x (e.g.
-    // from rounding), so compare against 'old' instead of against "round"
-ctx.save();
-_assertSame(ctx.lineJoin, old, "ctx.lineJoin", "old");
-ctx.restore();
-t.done();
-
+  // Also test that save() doesn't modify the values
+  ctx.lineJoin = "round";
+  old = ctx.lineJoin;
+      // we're not interested in failures caused by get(set(x)) != x (e.g.
+      // from rounding), so compare against 'old' instead of against "round"
+  ctx.save();
+  _assertSame(ctx.lineJoin, old, "ctx.lineJoin", "old");
+  ctx.restore();
+  t.done();
 });
 done();

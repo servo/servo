@@ -7,54 +7,22 @@ var kAbsCaptureTime =
     'http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time';
 
 function addHeaderExtensionToSdp(sdp, uri) {
-  const extmap = new RegExp('a=extmap:(\\d+)');
-  let sdpLines = sdp.split('\r\n');
+  // Find the highest used header extension id by sorting the extension ids used,
+  // eliminating duplicates and adding one. This is not quite correct
+  // but this code will go away with the header extension API.
+  const usedIds = sdp.split('\n')
+    .filter(line => line.startsWith('a=extmap:'))
+    .map(line => parseInt(line.split(' ')[0].substring(9), 10))
+    .sort((a, b) => a - b)
+    .filter((item, index, array) => array.indexOf(item) === index);
+  const nextId = usedIds[usedIds.length - 1] + 1;
+  const extmapLine = 'a=extmap:' + nextId + ' ' + uri + '\r\n';
 
-  // This assumes at most one audio m= section and one video m= section.
-  // If more are present, only the first section of each kind is munged.
-  for (const section of ['audio', 'video']) {
-    let found_section = false;
-    let maxId = undefined;
-    let maxIdLine = undefined;
-    let extmapAllowMixed = false;
-
-    // find the largest header extension id for section.
-    for (let i = 0; i < sdpLines.length; ++i) {
-      if (!found_section) {
-        if (sdpLines[i].startsWith('m=' + section)) {
-          found_section = true;
-        }
-        continue;
-      } else {
-        if (sdpLines[i].startsWith('m=')) {
-          // end of section
-          break;
-        }
-      }
-
-      if (sdpLines[i] === 'a=extmap-allow-mixed') {
-        extmapAllowMixed = true;
-      }
-      let result = sdpLines[i].match(extmap);
-      if (result && result.length === 2) {
-        if (maxId == undefined || result[1] > maxId) {
-          maxId = parseInt(result[1]);
-          maxIdLine = i;
-        }
-      }
-    }
-
-    if (maxId == 14 && !extmapAllowMixed) {
-      // Reaching the limit of one byte header extension. Adding two byte header
-      // extension support.
-      sdpLines.splice(maxIdLine + 1, 0, 'a=extmap-allow-mixed');
-    }
-    if (maxIdLine !== undefined) {
-      sdpLines.splice(maxIdLine + 1, 0,
-                      'a=extmap:' + (maxId + 1).toString() + ' ' + uri);
-    }
-  }
-  return sdpLines.join('\r\n');
+  const sections = sdp.split('\nm=').map((part, index) => {
+    return (index > 0 ? 'm=' + part : part).trim() + '\r\n';
+  });
+  const sessionPart = sections.shift();
+  return sessionPart + sections.map(mediaSection => mediaSection + extmapLine).join('');
 }
 
 // TODO(crbug.com/1051821): Use RTP header extension API instead of munging

@@ -30,7 +30,7 @@ var tv = async_test("videoElement.networkState should be NETWORK_LOADING during 
 var v = document.getElementById("v");
 v.addEventListener("loadstart", function() {
   tv.step(function() {
-   assert_equals(a.networkState,
+   assert_equals(v.networkState,
    v.NETWORK_LOADING);
   });
   tv.done();

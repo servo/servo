@@ -514,11 +514,7 @@ def exe_path(name):
     if name is None:
         return
 
-    path = which(name)
-    if path and os.access(path, os.X_OK):
-        return path
-    else:
-        return None
+    return which(name)
 
 
 def check_paths(kwargs):

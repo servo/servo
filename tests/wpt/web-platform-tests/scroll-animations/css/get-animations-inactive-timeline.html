@@ -41,14 +41,11 @@
   setup(assert_implements_animation_timeline);
 
   promise_test(async t => {
-    // Newly created timeline is inactive,
     let animations = document.getAnimations();
     assert_equals(animations.length, 1,
                   'Single running animation');
     assert_true(animations[0].timeline instanceof ScrollTimeline,
                 'Animation associated with a scroll timeline');
-    assert_equals(animations[0].timeline.currentTime, null,
-                  'Timeline is initially inactive');
 
     // Canceled animation is no longer current.
     const anim = animations[0];

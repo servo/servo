@@ -40,9 +40,9 @@ promise_test(async () => {
   const outputDevices = devices.filter(info => info.kind == "audiooutput");
   assert_equals(outputDevices.length, 1, "number of audiooutput devices.");
   assert_not_equals(selected, undefined);
-  const info = outputDevices[0];
-  assert_equals(info.deviceId, selected.deviceId);
-  assert_equals(info.groupId, selected.groupId);
-  assert_equals(info.label, selected.label);
+  const [info] = outputDevices;
+  assert_equals(info.deviceId, selected.deviceId, "deviceId exposed");
+  assert_equals(info.groupId, selected.groupId, "groupId exposed");
+  assert_equals(info.label, selected.label, "label exposed");
 }, "enumerateDevices() after selectAudioOutput()");
 </script>

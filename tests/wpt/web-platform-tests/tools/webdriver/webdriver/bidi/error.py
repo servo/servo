@@ -39,6 +39,10 @@ class MoveTargetOutOfBoundsException(BidiException):
     error_code = "move target out of bounds"
 
 
+class NoSuchElementException(BidiException):
+    error_code = "no such element"
+
+
 class NoSuchFrameException(BidiException):
     error_code = "no such frame"
 

@@ -19,9 +19,8 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-var img = document.getElementById('no-such-image-really.png');
-assert_throws_dom("INVALID_STATE_ERR", function() { ctx.createPattern(img, 'repeat'); });
-
+  var img = document.getElementById('no-such-image-really.png');
+  assert_throws_dom("INVALID_STATE_ERR", function() { ctx.createPattern(img, 'repeat'); });
 
 });
 </script>

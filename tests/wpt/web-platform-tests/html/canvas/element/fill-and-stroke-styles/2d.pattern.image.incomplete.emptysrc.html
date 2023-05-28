@@ -19,10 +19,9 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-var img = document.getElementById('red.png');
-img.src = "";
-_assertSame(ctx.createPattern(img, 'repeat'), null, "ctx.createPattern(img, 'repeat')", "null");
-
+  var img = document.getElementById('red.png');
+  img.src = "";
+  _assertSame(ctx.createPattern(img, 'repeat'), null, "ctx.createPattern(img, 'repeat')", "null");
 
 });
 </script>

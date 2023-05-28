@@ -19,12 +19,11 @@
 var t = async_test("Parsing of non-negative integers");
 _addTest(function(canvas, ctx) {
 
-_assertSame(canvas.width, 100, "canvas.width", "100");
-_assertSame(canvas.height, 100, "canvas.height", "100");
-_assertSame(window.getComputedStyle(canvas, null).getPropertyValue("width"), "100px", "window.getComputedStyle(canvas, null).getPropertyValue(\"width\")", "\"100px\"");
-_assertSame(canvas.getAttribute('width'), '100e1', "canvas.getAttribute('width')", "'100e1'");
-_assertSame(canvas.getAttribute('height'), '100e1', "canvas.getAttribute('height')", "'100e1'");
-
+  _assertSame(canvas.width, 100, "canvas.width", "100");
+  _assertSame(canvas.height, 100, "canvas.height", "100");
+  _assertSame(window.getComputedStyle(canvas, null).getPropertyValue("width"), "100px", "window.getComputedStyle(canvas, null).getPropertyValue(\"width\")", "\"100px\"");
+  _assertSame(canvas.getAttribute('width'), '100e1', "canvas.getAttribute('width')", "'100e1'");
+  _assertSame(canvas.getAttribute('height'), '100e1', "canvas.getAttribute('height')", "'100e1'");
 
 });
 </script>

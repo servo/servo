@@ -11,10 +11,10 @@
 <body>
 <script>
 promise_test(async(t) => {
-  await runDefaultEnabledFeaturesTest(t, true, get_host_info().ORIGIN);
-  await runDefaultEnabledFeaturesTest(t, true, get_host_info().ORIGIN,
+  await runDefaultEnabledFeaturesTest(t, false, get_host_info().ORIGIN);
+  await runDefaultEnabledFeaturesTest(t, false, get_host_info().ORIGIN,
       generator_api="sharedstorage");
-}, 'Same-origin fenced frame loads when feature policies are self');
+}, 'Same-origin fenced frame does not when feature policies are self');
 
 promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, false, get_host_info().REMOTE_ORIGIN);
@@ -38,35 +38,6 @@ promise_test(async(t) => {
         "USB access should be disallowed in the fenced frame.");
   }, []);
 }, 'Fenced frames default feature policies are set to not allow anything.');
-
-promise_test(async(t) => {
-  // We do this test the "old fashioned way" because a redirect in a fenced
-  // frame remote context will cause it to lose its ability to communicate with
-  // the main page (which results in a timeout).
-  const page1_key = token();
-  const redirect_key = token();
-
-  const fencedframe = attachFencedFrame(
-      await generateURNFromFledge(
-          "resources/default-enabled-features-redirect.https.html",
-          [page1_key, redirect_key]));
-
-  // The fenced frame will send its attribution reporting result and then
-  // attempt to redirect to a remote origin page.
-  const page1_resp = await nextValueFromServer(page1_key);
-  assert_equals(page1_resp, "true",
-      "Attribution reporting should be enabled on the original page.");
-
-  // There is no API to observe whether the document in the fenced frame loaded
-  // or not. Instead, set up a timeout. If the document loads, "FAIL" will be
-  // sent to the server. Otherwise "blocked" will be sent after 2 seconds.
-  const fencedframe_blocked = new Promise(r => t.step_timeout(r, 1000));
-  assert_equals("blocked", await Promise.any([
-    nextValueFromServer(redirect_key).then(() => "loaded"),
-    fencedframe_blocked.then(() => "blocked")
-  ]), "The fenced frame redirect should not be successful.");
-}, 'A fenced frame redirected to a page that does not allow feature policies ' +
-    'does not navigate');
 
 </script>
 </body>

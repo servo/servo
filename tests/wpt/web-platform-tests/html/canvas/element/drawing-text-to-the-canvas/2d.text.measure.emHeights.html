@@ -26,24 +26,23 @@
 var t = async_test("Testing emHeights");
 _addTest(function(canvas, ctx) {
 
-deferTest();
-var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
-document.fonts.add(f);
-document.fonts.ready.then(() => {
-     step_timeout(t.step_func_done(function () {
-        ctx.font = '50px CanvasTest';
-        ctx.direction = 'ltr';
-        ctx.align = 'left'
-        _assertSame(ctx.measureText('A').emHeightAscent, 37.5, "ctx.measureText('A').emHeightAscent", "37.5");
-        _assertSame(ctx.measureText('A').emHeightDescent, 12.5, "ctx.measureText('A').emHeightDescent", "12.5");
-        _assertSame(ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent, 50, "ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent", "50");
+  deferTest();
+  var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+  document.fonts.add(f);
+  document.fonts.ready.then(() => {
+       step_timeout(t.step_func_done(function () {
+          ctx.font = '50px CanvasTest';
+          ctx.direction = 'ltr';
+          ctx.align = 'left'
+          _assertSame(ctx.measureText('A').emHeightAscent, 37.5, "ctx.measureText('A').emHeightAscent", "37.5");
+          _assertSame(ctx.measureText('A').emHeightDescent, 12.5, "ctx.measureText('A').emHeightDescent", "12.5");
+          _assertSame(ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent, 50, "ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent", "50");
 
-        _assertSame(ctx.measureText('ABCD').emHeightAscent, 37.5, "ctx.measureText('ABCD').emHeightAscent", "37.5");
-        _assertSame(ctx.measureText('ABCD').emHeightDescent, 12.5, "ctx.measureText('ABCD').emHeightDescent", "12.5");
-        _assertSame(ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent, 50, "ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent", "50");
-    }), 500);
-});
-
+          _assertSame(ctx.measureText('ABCD').emHeightAscent, 37.5, "ctx.measureText('ABCD').emHeightAscent", "37.5");
+          _assertSame(ctx.measureText('ABCD').emHeightDescent, 12.5, "ctx.measureText('ABCD').emHeightDescent", "12.5");
+          _assertSame(ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent, 50, "ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent", "50");
+      }), 500);
+  });
 
 });
 </script>

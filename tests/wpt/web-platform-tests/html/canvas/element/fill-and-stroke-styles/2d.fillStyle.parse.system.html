@@ -19,11 +19,9 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-
-ctx.fillStyle = '#f00';
-ctx.fillStyle = 'ThreeDDarkShadow';
-assert_regexp_match(ctx.fillStyle, /^#(?!(FF0000|ff0000|f00)$)/); // test that it's not red
-
+  ctx.fillStyle = '#f00';
+  ctx.fillStyle = 'ThreeDDarkShadow';
+  assert_regexp_match(ctx.fillStyle, /^#(?!(FF0000|ff0000|f00)$)/); // test that it's not red
 
 });
 </script>

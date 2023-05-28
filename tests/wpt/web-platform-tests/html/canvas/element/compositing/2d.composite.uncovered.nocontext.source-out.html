@@ -19,14 +19,12 @@
 var t = async_test("drawImage() of a canvas with no context draws pixels as (0,0,0,0), and does not leave the pixels unchanged.");
 _addTest(function(canvas, ctx) {
 
-
-ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
-ctx.fillRect(0, 0, 100, 50);
-ctx.globalCompositeOperation = 'source-out';
-var canvas2 = document.createElement('canvas');
-ctx.drawImage(canvas2, 0, 0);
-_assertPixelApprox(canvas, 50,25, 0,0,0,0, 5);
-
+  ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.globalCompositeOperation = 'source-out';
+  var canvas2 = document.createElement('canvas');
+  ctx.drawImage(canvas2, 0, 0);
+  _assertPixelApprox(canvas, 50,25, 0,0,0,0, 5);
 
 });
 </script>

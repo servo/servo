@@ -19,21 +19,20 @@
 var t = async_test("Passing a function in to ctx.fillStyle or ctx.strokeStyle with a toString callback works as specified");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = { toString: function() { return "#008000"; } };
-_assertSame(ctx.fillStyle, "#008000", "ctx.fillStyle", "\"#008000\"");
-ctx.fillStyle = {};
-_assertSame(ctx.fillStyle, "#008000", "ctx.fillStyle", "\"#008000\"");
-ctx.fillStyle = 800000;
-_assertSame(ctx.fillStyle, "#008000", "ctx.fillStyle", "\"#008000\"");
-assert_throws_js(TypeError, function() { ctx.fillStyle = { toString: function() { throw new TypeError; } }; });
-ctx.strokeStyle = { toString: function() { return "#008000"; } };
-_assertSame(ctx.strokeStyle, "#008000", "ctx.strokeStyle", "\"#008000\"");
-ctx.strokeStyle = {};
-_assertSame(ctx.strokeStyle, "#008000", "ctx.strokeStyle", "\"#008000\"");
-ctx.strokeStyle = 800000;
-_assertSame(ctx.strokeStyle, "#008000", "ctx.strokeStyle", "\"#008000\"");
-assert_throws_js(TypeError, function() { ctx.strokeStyle = { toString: function() { throw new TypeError; } }; });
-
+  ctx.fillStyle = { toString: function() { return "#008000"; } };
+  _assertSame(ctx.fillStyle, "#008000", "ctx.fillStyle", "\"#008000\"");
+  ctx.fillStyle = {};
+  _assertSame(ctx.fillStyle, "#008000", "ctx.fillStyle", "\"#008000\"");
+  ctx.fillStyle = 800000;
+  _assertSame(ctx.fillStyle, "#008000", "ctx.fillStyle", "\"#008000\"");
+  assert_throws_js(TypeError, function() { ctx.fillStyle = { toString: function() { throw new TypeError; } }; });
+  ctx.strokeStyle = { toString: function() { return "#008000"; } };
+  _assertSame(ctx.strokeStyle, "#008000", "ctx.strokeStyle", "\"#008000\"");
+  ctx.strokeStyle = {};
+  _assertSame(ctx.strokeStyle, "#008000", "ctx.strokeStyle", "\"#008000\"");
+  ctx.strokeStyle = 800000;
+  _assertSame(ctx.strokeStyle, "#008000", "ctx.strokeStyle", "\"#008000\"");
+  assert_throws_js(TypeError, function() { ctx.strokeStyle = { toString: function() { throw new TypeError; } }; });
 
 });
 </script>

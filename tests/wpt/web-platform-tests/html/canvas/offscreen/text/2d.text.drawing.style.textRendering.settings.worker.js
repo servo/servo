@@ -13,41 +13,40 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-// Setting textRendering with lower cases
-_assertSame(ctx.textRendering, "auto", "ctx.textRendering", "\"auto\"");
+  // Setting textRendering with lower cases
+  _assertSame(ctx.textRendering, "auto", "ctx.textRendering", "\"auto\"");
 
-ctx.textRendering = "auto";
-_assertSame(ctx.textRendering, "auto", "ctx.textRendering", "\"auto\"");
+  ctx.textRendering = "auto";
+  _assertSame(ctx.textRendering, "auto", "ctx.textRendering", "\"auto\"");
 
-ctx.textRendering = "optimizespeed";
-_assertSame(ctx.textRendering, "optimizeSpeed", "ctx.textRendering", "\"optimizeSpeed\"");
+  ctx.textRendering = "optimizespeed";
+  _assertSame(ctx.textRendering, "optimizeSpeed", "ctx.textRendering", "\"optimizeSpeed\"");
 
-ctx.textRendering = "optimizelegibility";
-_assertSame(ctx.textRendering, "optimizeLegibility", "ctx.textRendering", "\"optimizeLegibility\"");
+  ctx.textRendering = "optimizelegibility";
+  _assertSame(ctx.textRendering, "optimizeLegibility", "ctx.textRendering", "\"optimizeLegibility\"");
 
-ctx.textRendering = "geometricprecision";
-_assertSame(ctx.textRendering, "geometricPrecision", "ctx.textRendering", "\"geometricPrecision\"");
+  ctx.textRendering = "geometricprecision";
+  _assertSame(ctx.textRendering, "geometricPrecision", "ctx.textRendering", "\"geometricPrecision\"");
 
-// Setting textRendering with lower cases and upper cases word.
-ctx.textRendering = "aUto";
-_assertSame(ctx.textRendering, "auto", "ctx.textRendering", "\"auto\"");
+  // Setting textRendering with lower cases and upper cases word.
+  ctx.textRendering = "aUto";
+  _assertSame(ctx.textRendering, "auto", "ctx.textRendering", "\"auto\"");
 
-ctx.textRendering = "OPtimizeSpeed";
-_assertSame(ctx.textRendering, "optimizeSpeed", "ctx.textRendering", "\"optimizeSpeed\"");
+  ctx.textRendering = "OPtimizeSpeed";
+  _assertSame(ctx.textRendering, "optimizeSpeed", "ctx.textRendering", "\"optimizeSpeed\"");
 
-ctx.textRendering = "OPtimizELEgibility";
-_assertSame(ctx.textRendering, "optimizeLegibility", "ctx.textRendering", "\"optimizeLegibility\"");
+  ctx.textRendering = "OPtimizELEgibility";
+  _assertSame(ctx.textRendering, "optimizeLegibility", "ctx.textRendering", "\"optimizeLegibility\"");
 
-ctx.textRendering = "GeometricPrecision";
-_assertSame(ctx.textRendering, "geometricPrecision", "ctx.textRendering", "\"geometricPrecision\"");
+  ctx.textRendering = "GeometricPrecision";
+  _assertSame(ctx.textRendering, "geometricPrecision", "ctx.textRendering", "\"geometricPrecision\"");
 
-// Setting textRendering with non-existing font variant.
-ctx.textRendering = "abcd";
-_assertSame(ctx.textRendering, "geometricPrecision", "ctx.textRendering", "\"geometricPrecision\"");
-t.done();
-
+  // Setting textRendering with non-existing font variant.
+  ctx.textRendering = "abcd";
+  _assertSame(ctx.textRendering, "geometricPrecision", "ctx.textRendering", "\"geometricPrecision\"");
+  t.done();
 });
 done();

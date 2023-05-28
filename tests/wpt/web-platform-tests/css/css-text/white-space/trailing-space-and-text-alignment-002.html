@@ -9,32 +9,12 @@
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-pre">
 <link rel="match" href="reference/trailing-space-and-text-alignment-002-ref.html">
 <meta name="assert" content="preserved trailing spaces under 'white-space: pre' shouldn't hang and may cause overflow and activate the scrollbars.">
-<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="support/trailing-space-and-text-alignment.css">
 <style>
-    textarea {
-        /* Reset user-agent style */
-        margin: initial;
-        padding: initial;
-        border: initial;
-        outline: initial;
-        resize: initial;
-        overflow-wrap: initial;
-
-        height: 100px;
-        font: 40px/1 Ahem;
-        border: 1px solid black;
-        overflow-y: hidden;
-        overflow-x: auto;
-
-        /* testing */
-        width: 3ch;
-        white-space: pre;
-    }
-.left { text-align: left; }
-.center { text-align: center; }
-.right { text-align: right; }
-.start { text-align: start; }
-.end { text-align: end; }
+textarea {
+    white-space: pre;
+}
 </style>
 <textarea class="left">XXX &#10;X</textarea>
 <textarea class="center">XXX &#10;X</textarea>

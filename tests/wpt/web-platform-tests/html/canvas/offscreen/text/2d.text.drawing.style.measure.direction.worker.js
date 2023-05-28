@@ -13,17 +13,16 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.direction = "ltr";
-metrics = ctx.measureText('hello');
-_assert(metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight");
+  ctx.direction = "ltr";
+  metrics = ctx.measureText('hello');
+  _assert(metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight");
 
-ctx.direction = "rtl";
-metrics = ctx.measureText('hello');
-_assert(metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight");
-t.done();
-
+  ctx.direction = "rtl";
+  metrics = ctx.measureText('hello');
+  _assert(metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight");
+  t.done();
 });
 done();

@@ -19,19 +19,18 @@
 var t = async_test("Testing letter spacing and word spacing with nonfinite inputs");
 _addTest(function(canvas, ctx) {
 
-_assertSame(ctx.letterSpacing, '0px', "ctx.letterSpacing", "'0px'");
-_assertSame(ctx.wordSpacing, '0px', "ctx.wordSpacing", "'0px'");
-
-function test_word_spacing(value) {
-  ctx.wordSpacing = value;
-  ctx.letterSpacing = value;
-  _assertSame(ctx.wordSpacing, '0px', "ctx.wordSpacing", "'0px'");
   _assertSame(ctx.letterSpacing, '0px', "ctx.letterSpacing", "'0px'");
-}
-test_word_spacing(NaN);
-test_word_spacing(Infinity);
-test_word_spacing(-Infinity);
+  _assertSame(ctx.wordSpacing, '0px', "ctx.wordSpacing", "'0px'");
 
+  function test_word_spacing(value) {
+    ctx.wordSpacing = value;
+    ctx.letterSpacing = value;
+    _assertSame(ctx.wordSpacing, '0px', "ctx.wordSpacing", "'0px'");
+    _assertSame(ctx.letterSpacing, '0px', "ctx.letterSpacing", "'0px'");
+  }
+  test_word_spacing(NaN);
+  test_word_spacing(Infinity);
+  test_word_spacing(-Infinity);
 
 });
 </script>

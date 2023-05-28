@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Fragmentation Test: Print a multi-column container containing break-inside:avoid elements</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-break-3/#break-within">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1831829">
+  <link rel="match" href="break-inside-avoid-multicol-001-print-ref.html">
+
+  <style>
+  @page {
+    size: 5in 3in;
+    margin: 0.5in;
+  }
+  body {
+    margin: 0;
+  }
+  article {
+    column-count: 2;
+    column-gap: 0;
+  }
+  article > div {
+    width: 100%;
+    height: 3in;
+    background: green;
+    break-inside: avoid;
+  }
+  </style>
+
+  <article>
+    <!-- page 1 -->
+    <div></div>
+
+    <!-- page 2 -->
+    <div></div>
+  </article>
+</html>

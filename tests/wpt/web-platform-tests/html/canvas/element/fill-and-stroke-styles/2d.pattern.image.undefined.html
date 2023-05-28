@@ -19,8 +19,7 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-assert_throws_js(TypeError, function() { ctx.createPattern(undefined, 'repeat'); });
-
+  assert_throws_js(TypeError, function() { ctx.createPattern(undefined, 'repeat'); });
 
 });
 </script>

@@ -56,6 +56,7 @@
     t.add_cleanup(() => {
       anim.cancel();
     });
+    await anim.ready;
 
     container.scrollLeft = 750;
     await waitForNextFrame();
@@ -72,8 +73,10 @@
     // contain 0% @ 700px
     // cover 100% @ 900px
     // expected opacity = (750 - 700) / (900 - 700) = 0.25
-    anim.rangeStart = "contain 0%";
-    anim.rangeEnd = "cover 100%";
+    await runAndWaitForFrameUpdate(() => {
+      anim.rangeStart = "contain 0%";
+      anim.rangeEnd = "cover 100%";
+    });
 
     assert_timeline_offset(
         anim.rangeStart,
@@ -89,8 +92,10 @@
     // entry -20px @ 580px
     // exit-crossing 10% @ 810px
     // expected opacity = (750 - 580) / (810 - 580) = 0.739130
-    anim.rangeStart = { rangeName: 'entry', offset: CSS.px(-20), };
-    anim.rangeEnd = { rangeName: 'exit-crossing', offset: CSS.percent(10) };
+    await runAndWaitForFrameUpdate(() => {
+      anim.rangeStart = { rangeName: 'entry', offset: CSS.px(-20), };
+      anim.rangeEnd = { rangeName: 'exit-crossing', offset: CSS.percent(10) };
+    });
     assert_timeline_offset(
         anim.rangeStart,
         { rangeName: 'entry', offset: CSS.px(-20) },
@@ -106,8 +111,10 @@
     // normal [start] @ 600px
     // contain 100% @ 800px
     // expected opacity = (750 - 600) / (800 - 600) = 0.75
-    anim.rangeStart = "normal";
-    anim.rangeEnd = "contain calc(60% + 40%)";
+    await runAndWaitForFrameUpdate(() => {
+      anim.rangeStart = "normal";
+      anim.rangeEnd = "contain calc(60% + 40%)";
+    });
     assert_equals(anim.rangeStart, 'normal','rangeStart set to normal');
     assert_timeline_offset(
         anim.rangeEnd,

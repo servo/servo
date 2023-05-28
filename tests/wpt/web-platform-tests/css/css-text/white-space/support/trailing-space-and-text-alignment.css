@@ -1,0 +1,24 @@
+textarea {
+    /* Reset user-agent style */
+    margin: initial;
+    padding: initial;
+    border: initial;
+    border-radius: initial;
+    outline: initial;
+    resize: initial;
+    overflow-wrap: initial;
+
+    height: 100px;
+    font: 40px/1 Ahem;
+    border: 1px solid black;
+    overflow-y: hidden;
+    overflow-x: auto;
+
+    /* testing */
+    width: 3ch;
+}
+.left { text-align: left; }
+.center { text-align: center; }
+.right { text-align: right; }
+.start { text-align: start; }
+.end { text-align: end; }

@@ -15,10 +15,9 @@ promise_test(async (t) => {
   attachFencedFrame(urn);
 
   const response = await nextValueFromServer(key);
-  const [length, first_url] = response.split(",");
+  const [length] = response.split(",");
 
   assert_equals(length, '20', 'There should be 20 nested configurations.');
-  assert_equals(first_url, 'opaque', 'The first config should be opaque.');
 }, 'getNestedConfigs() created by FLEDGE should return configurations');
 
 for (const resolve_to_config of [true, false]) {

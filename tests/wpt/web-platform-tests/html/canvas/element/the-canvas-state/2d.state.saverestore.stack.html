@@ -19,17 +19,16 @@
 var t = async_test("save()/restore() can be nested as a stack");
 _addTest(function(canvas, ctx) {
 
-ctx.lineWidth = 1;
-ctx.save();
-ctx.lineWidth = 2;
-ctx.save();
-ctx.lineWidth = 3;
-_assertSame(ctx.lineWidth, 3, "ctx.lineWidth", "3");
-ctx.restore();
-_assertSame(ctx.lineWidth, 2, "ctx.lineWidth", "2");
-ctx.restore();
-_assertSame(ctx.lineWidth, 1, "ctx.lineWidth", "1");
-
+  ctx.lineWidth = 1;
+  ctx.save();
+  ctx.lineWidth = 2;
+  ctx.save();
+  ctx.lineWidth = 3;
+  _assertSame(ctx.lineWidth, 3, "ctx.lineWidth", "3");
+  ctx.restore();
+  _assertSame(ctx.lineWidth, 2, "ctx.lineWidth", "2");
+  ctx.restore();
+  _assertSame(ctx.lineWidth, 1, "ctx.lineWidth", "1");
 
 });
 </script>

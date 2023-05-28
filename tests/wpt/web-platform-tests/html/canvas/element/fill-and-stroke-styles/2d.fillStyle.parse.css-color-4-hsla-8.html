@@ -19,12 +19,10 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-
-ctx.fillStyle = '#f00';
-ctx.fillStyle = 'hsl(2.0943951024rad, 100.0%, 50.0%)';
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255);
-
+  ctx.fillStyle = '#f00';
+  ctx.fillStyle = 'hsl(2.0943951024rad, 100.0%, 50.0%)';
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,255,0,255);
 
 });
 </script>

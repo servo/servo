@@ -16,10 +16,10 @@
 <body>
 <div>
 <div class='flex-container' id="container">
-  <img src='/images/yellow.png?pipe=trickle(d1)' width="1000" height="1000"/>
-  <img src='/images/green-1x1.png?1' width="1000" height="1000"/>
-  <img src='/images/green-1x1.png?2' width="1000" height="1000"/>
-  <img src='/images/green-1x1.png?3' width="1000" height="1000"/>
+  <img src='/images/lcp-100x50.png?pipe=trickle(d1)' width="1000" height="1000"/>
+  <img src='/images/lcp-1x1.png?1' width="1000" height="1000"/>
+  <img src='/images/lcp-1x1.png?2' width="1000" height="1000"/>
+  <img src='/images/lcp-1x1.png?3' width="1000" height="1000"/>
 </div>
 </div>
 <script>
@@ -48,7 +48,7 @@ promise_test(async t => {
         if (!entry.url) {
           return;
         }
-        assert_true(entry.url.includes("yellow.png"), "Re-visible image has an entry");
+        assert_true(entry.url.includes("lcp-100x50.png"), "Re-visible image has an entry");
         resolve();
       });
     });

@@ -19,12 +19,11 @@
 var t = async_test("restore() with an empty stack has no effect");
 _addTest(function(canvas, ctx) {
 
-for (var i = 0; i < 16; ++i)
-    ctx.restore();
-ctx.lineWidth = 0.5;
-ctx.restore();
-_assertSame(ctx.lineWidth, 0.5, "ctx.lineWidth", "0.5");
-
+  for (var i = 0; i < 16; ++i)
+      ctx.restore();
+  ctx.lineWidth = 0.5;
+  ctx.restore();
+  _assertSame(ctx.lineWidth, 0.5, "ctx.lineWidth", "0.5");
 
 });
 </script>

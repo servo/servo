@@ -23,21 +23,7 @@ let tests = [
     "",
     "",
     "",
-    [
-      {
-        "endpoint": reportOnlyEndpoint,
-        "report": {
-          "body": {
-            "disposition": "reporting",
-            "effectivePolicy": "restrict-properties",
-            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // next document URL
-            "type": "navigation-from-response"
-          },
-          "url": `${location.href}`,
-          "type": "coop"
-        }
-      }
-    ]
+    []
   ],
 
   // Open a cross-origin popup with COOP unsafe-none, which mismatches with the
@@ -48,21 +34,7 @@ let tests = [
     "",
     "",
     "",
-    [
-      {
-        "endpoint": reportOnlyEndpoint,
-        "report": {
-          "body": {
-            "disposition": "reporting",
-            "effectivePolicy": "restrict-properties",
-            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // next document URL
-            "type": "navigation-from-response"
-          },
-          "url": `${location.href}`,
-          "type": "coop"
-        }
-      }
-    ]
+    []
   ],
 
   // Open a same-origin popup with COOP restrict-properties, which matches with

@@ -19,17 +19,16 @@
 var t = async_test("Conic gradient with negative rotation");
 _addTest(function(canvas, ctx) {
 
-const g = ctx.createConicGradient(-Math.PI/2, 50, 25);
-// It's red in the upper right region and green on the lower left region
-g.addColorStop(0, "#f00");
-g.addColorStop(0.25, "#0f0");
-g.addColorStop(0.50, "#0f0");
-g.addColorStop(0.75, "#f00");
-ctx.fillStyle = g;
-ctx.fillRect(0, 0, 100, 50);
-_assertPixelApprox(canvas, 25,15, 255,0,0,255, 3);
-_assertPixelApprox(canvas, 75,40, 0,255,0,255, 3);
-
+  const g = ctx.createConicGradient(-Math.PI/2, 50, 25);
+  // It's red in the upper right region and green on the lower left region
+  g.addColorStop(0, "#f00");
+  g.addColorStop(0.25, "#0f0");
+  g.addColorStop(0.50, "#0f0");
+  g.addColorStop(0.75, "#f00");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixelApprox(canvas, 25,15, 255,0,0,255, 3);
+  _assertPixelApprox(canvas, 75,40, 0,255,0,255, 3);
 
 });
 </script>

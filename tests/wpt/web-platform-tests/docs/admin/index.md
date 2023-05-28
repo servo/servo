@@ -79,12 +79,10 @@ explicitly-managed secret.
   - smcgruer@google.com
   - boaz@bocoup.com
   - mike@bocoup.com
-  - simon@bocoup.com
 - [GitHub](https://github.com/): @wpt-pr-bot account
   - smcgruer@google.com
   - boaz@bocoup.com
   - mike@bocoup.com
-  - simon@bocoup.com
 
 ## Emergency playbook
 

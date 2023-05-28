@@ -22,6 +22,32 @@ promise_test(async(t) => {
       generator_api="sharedstorage");
 }, 'Cross-origin fenced frame loads when feature policies are *');
 
+promise_test(async(t) => {
+  // We do this test the "old fashioned way" because a redirect in a fenced
+  // frame remote context will cause it to lose its ability to communicate with
+  // the main page (which results in a timeout).
+  const page1_key = token();
+  const redirect_key = token();
+
+  const fencedframe = attachFencedFrame(
+      await generateURNFromFledge(
+          "resources/default-enabled-features-navigate.https.html",
+          [page1_key, redirect_key]));
+
+  // The fenced frame will send its attribution reporting result and then
+  // attempt to redirect to a remote origin page.
+  const page1_resp = await nextValueFromServer(page1_key);
+  assert_equals(page1_resp, "true",
+      "Attribution reporting should be enabled on the original page.");
+
+  // The fenced frame will send its attribution reporting result and then
+  // attempt to redirect to a remote origin page.
+  const redirect_resp = await nextValueFromServer(redirect_key);
+  assert_equals(redirect_resp, "true",
+      "Attribution reporting should be enabled on the redirected page.");
+}, 'A fenced frame that navigates itself to a cross origin page that allows feature policies ' +
+    'can still access the feature policies');
+
 </script>
 </body>
 </html>
