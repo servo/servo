@@ -77,7 +77,7 @@ use crate::webdriver_handlers::jsval_to_webdriver;
 use crate::window_named_properties;
 use app_units::Au;
 use backtrace::Backtrace;
-use base64;
+use base64::Engine;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
 use crossbeam_channel::{unbounded, Sender, TryRecvError};
@@ -577,7 +577,7 @@ pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
 
         // "and then must apply the base64 algorithm to that sequence of
         //  octets, and return the result. [RFC4648]"
-        Ok(DOMString::from(base64::encode(&octets)))
+        Ok(DOMString::from(base64::engine::general_purpose::STANDARD.encode(&octets)))
     }
 }
 
@@ -624,8 +624,14 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         return Err(Error::InvalidCharacter);
     }
 
-    let data = base64::decode_config(&input, base64::STANDARD.decode_allow_trailing_bits(true))
-        .map_err(|_| Error::InvalidCharacter)?;
+    let config = base64::engine::general_purpose::GeneralPurposeConfig::new()
+        .with_decode_allow_trailing_bits(true);
+
+    let alphabet = base64::alphabet::STANDARD;
+
+    let engine = base64::engine::GeneralPurpose::new(&alphabet, config);
+
+    let data = engine.decode(&input).map_err(|_| Error::InvalidCharacter)?;
     Ok(data.iter().map(|&b| b as char).collect::<String>().into())
 }
 

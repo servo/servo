@@ -9,6 +9,7 @@ use crate::filemanager_thread::{FileManager, FILE_CHUNK_SIZE};
 use crate::http_loader::{determine_requests_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
+use base64::Engine;
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
@@ -659,7 +660,8 @@ async fn scheme_fetch(
             if let Some((secret, bytes)) = data {
                 let secret = str::from_utf8(secret).ok().and_then(|s| s.parse().ok());
                 if secret == Some(*net_traits::PRIVILEGED_SECRET) {
-                    if let Ok(bytes) = base64::decode(&bytes[1..]) {
+                    if let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(&bytes[1..])
+                    {
                         context.state.extra_certs.add(bytes);
                     }
                 }

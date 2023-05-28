@@ -25,7 +25,7 @@ use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
 use crate::task_source::file_reading::FileReadingTask;
 use crate::task_source::{TaskSource, TaskSourceName};
-use base64;
+use base64::Engine;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use js::jsapi::Heap;
@@ -89,7 +89,7 @@ pub struct FileReaderSharedFunctionality;
 
 impl FileReaderSharedFunctionality {
     pub fn dataurl_format(blob_contents: &[u8], blob_type: String) -> DOMString {
-        let base64 = base64::encode(&blob_contents);
+        let base64 = base64::engine::general_purpose::STANDARD.encode(&blob_contents);
 
         let dataurl = if blob_type.is_empty() {
             format!("data:base64,{}", base64)

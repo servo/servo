@@ -17,7 +17,7 @@ mod actions;
 mod capabilities;
 
 use crate::actions::{InputSourceState, PointerInputState};
-use base64;
+use base64::Engine;
 use capabilities::ServoCapabilities;
 use compositing::ConstellationMsg;
 use crossbeam_channel::{after, unbounded, Receiver, Sender};
@@ -1603,7 +1603,7 @@ impl Handler {
             .write_to(&mut png_data, ImageFormat::Png)
             .unwrap();
 
-        Ok(base64::encode(png_data.get_ref()))
+        Ok(base64::engine::general_purpose::STANDARD.encode(png_data.get_ref()))
     }
 
     fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {

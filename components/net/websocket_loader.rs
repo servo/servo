@@ -18,6 +18,7 @@ use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
 use async_tungstenite::tokio::{client_async_tls_with_connector_and_config, ConnectStream};
 use async_tungstenite::WebSocketStream;
+use base64::Engine;
 use embedder_traits::resources::{self, Resource};
 use futures::future::TryFutureExt;
 use futures::sink::SinkExt;
@@ -93,7 +94,7 @@ fn create_request(
     }
 
     if resource_url.password().is_some() || resource_url.username() != "" {
-        let basic = base64::encode(&format!(
+        let basic = base64::engine::general_purpose::STANDARD.encode(&format!(
             "{}:{}",
             resource_url.username(),
             resource_url.password().unwrap_or("")
