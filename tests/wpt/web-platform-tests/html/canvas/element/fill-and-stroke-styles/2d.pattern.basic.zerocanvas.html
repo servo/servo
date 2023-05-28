@@ -19,24 +19,23 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-canvas.width = 0;
-canvas.height = 10;
-_assertSame(canvas.width, 0, "canvas.width", "0");
-_assertSame(canvas.height, 10, "canvas.height", "10");
-assert_throws_dom("INVALID_STATE_ERR", function() { ctx.createPattern(canvas, 'repeat'); });
+  canvas.width = 0;
+  canvas.height = 10;
+  _assertSame(canvas.width, 0, "canvas.width", "0");
+  _assertSame(canvas.height, 10, "canvas.height", "10");
+  assert_throws_dom("INVALID_STATE_ERR", function() { ctx.createPattern(canvas, 'repeat'); });
 
-canvas.width = 10;
-canvas.height = 0;
-_assertSame(canvas.width, 10, "canvas.width", "10");
-_assertSame(canvas.height, 0, "canvas.height", "0");
-assert_throws_dom("INVALID_STATE_ERR", function() { ctx.createPattern(canvas, 'repeat'); });
+  canvas.width = 10;
+  canvas.height = 0;
+  _assertSame(canvas.width, 10, "canvas.width", "10");
+  _assertSame(canvas.height, 0, "canvas.height", "0");
+  assert_throws_dom("INVALID_STATE_ERR", function() { ctx.createPattern(canvas, 'repeat'); });
 
-canvas.width = 0;
-canvas.height = 0;
-_assertSame(canvas.width, 0, "canvas.width", "0");
-_assertSame(canvas.height, 0, "canvas.height", "0");
-assert_throws_dom("INVALID_STATE_ERR", function() { ctx.createPattern(canvas, 'repeat'); });
-
+  canvas.width = 0;
+  canvas.height = 0;
+  _assertSame(canvas.width, 0, "canvas.width", "0");
+  _assertSame(canvas.height, 0, "canvas.height", "0");
+  assert_throws_dom("INVALID_STATE_ERR", function() { ctx.createPattern(canvas, 'repeat'); });
 
 });
 </script>

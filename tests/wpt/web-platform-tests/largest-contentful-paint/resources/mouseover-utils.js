@@ -7,7 +7,7 @@ const loadImage = size => {
     } else {
       zoom = new Image();
     }
-    zoom.src=`/images/green-${size}.png`;
+    zoom.src=`/images/lcp-${size}.png`;
     ++counter;
     zoom.elementTiming = "zoom" + counter;
     document.body.appendChild(zoom);
@@ -19,7 +19,7 @@ const loadBackgroundImage = size => {
     const [width, height] = size.split("x");
     ++counter;
     div.style = `background-image:
-      url(/images/green-${size}.png?${counter}); width: ${width}px; height: ${height}px`;
+      url(/images/lcp-${size}.png?${counter}); width: ${width}px; height: ${height}px`;
     div.elementTiming = "zoom" + counter;
     document.body.appendChild(div);
   }

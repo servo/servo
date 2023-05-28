@@ -7,10 +7,11 @@
 
 <main id=main></main>
 <script>
-  function inflate(t, template) {
+  async function inflate(t, template) {
     t.add_cleanup(() => main.replaceChildren());
-    main.append(template.content.cloneNode(true));
-    main.offsetTop;
+    return runAndWaitForFrameUpdate(() => {
+       main.append(template.content.cloneNode(true));
+    });
   }
 
   async function scrollTop(e, value) {
@@ -62,9 +63,13 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, deferred_timeline);
+    await inflate(t, deferred_timeline);
     let scroller = main.querySelector('.scroller');
     let target = main.querySelector('.target');
+
+    const anim = target.getAnimations()[0];
+    await anim.ready;
+
     await scrollTop(scroller, 350); // 50%
     assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
   }, 'Descendant can attach to deferred timeline');
@@ -80,7 +85,7 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, deferred_timeline_no_attachments);
+    await inflate(t, deferred_timeline_no_attachments);
     let scroller = main.querySelector('.scroller');
     let target = main.querySelector('.target');
     await scrollTop(scroller, 350); // 50%
@@ -100,7 +105,7 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, scroll_timeline_inner_interference);
+    await inflate(t, scroll_timeline_inner_interference);
     let scroller = main.querySelector('.scroller');
     let target = main.querySelector('.target');
     await scrollTop(scroller, 350); // 50%
@@ -120,7 +125,7 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, deferred_timeline_two_attachments);
+    await inflate(t, deferred_timeline_two_attachments);
     let scroller = main.querySelector('.scroller');
     let target = main.querySelector('.target');
     await scrollTop(scroller, 350); // 50%
@@ -143,7 +148,7 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, deferred_timeline_reattach);
+    await inflate(t, deferred_timeline_reattach);
     let scrollers = main.querySelectorAll('.scroller');
     assert_equals(scrollers.length, 2);
     let target = main.querySelector('.target');
@@ -154,10 +159,11 @@
     assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
 
     // Reattach to scrollers[1].
-    scrollers[0].classList.remove('timeline');
-    scrollers[1].classList.add('timeline');
+    await runAndWaitForFrameUpdate(() => {
+      scrollers[0].classList.remove('timeline');
+      scrollers[1].classList.add('timeline');
+    });
 
-    await waitForNextFrame();
     assert_equals(getComputedStyle(target).width, '50px'); // 0px => 200px, 25%
   }, 'Dynamically re-attaching');
 </script>
@@ -175,7 +181,7 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, deferred_timeline_dynamic_detach);
+    await inflate(t, deferred_timeline_dynamic_detach);
     let scrollers = main.querySelectorAll('.scroller');
     assert_equals(scrollers.length, 2);
     let target = main.querySelector('.target');
@@ -186,9 +192,10 @@
     assert_equals(getComputedStyle(target).width, '0px');
 
     // Detach scrollers[1].
-    scrollers[1].classList.remove('timeline');
+    await runAndWaitForFrameUpdate(() => {
+      scrollers[1].classList.remove('timeline');
+    });
 
-    await waitForNextFrame();
     assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
 
     // Also detach scrollers[0].
@@ -209,7 +216,7 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, deferred_timeline_attached_removed);
+    await inflate(t, deferred_timeline_attached_removed);
     let scroller = main.querySelector('.scroller');
     let target = main.querySelector('.target');
     await scrollTop(scroller, 350); // 50%
@@ -236,7 +243,7 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, deferred_timeline_attached_display_none);
+    await inflate(t, deferred_timeline_attached_display_none);
     let scroller = main.querySelector('.scroller');
     let target = main.querySelector('.target');
     await scrollTop(scroller, 350); // 50%
@@ -262,7 +269,7 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, deferred_timeline_appearing);
+    await inflate(t, deferred_timeline_appearing);
     let container = main.querySelector('.container');
     let scroller = main.querySelector('.scroller');
     let target = main.querySelector('.target');
@@ -294,7 +301,7 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, deferred_timeline_on_self);
+    await inflate(t, deferred_timeline_on_self);
     let scroller = main.querySelector('.scroller');
     let target = main.querySelector('.target');
     await scrollTop(scroller, 525); // 75%
@@ -311,4 +318,5 @@
     // to the non-deferred timeline.
     assert_equals(getComputedStyle(target).width, '150px'); // 0px => 200px, 75%
   }, 'Animations prefer non-deferred timelines');
+
 </script>

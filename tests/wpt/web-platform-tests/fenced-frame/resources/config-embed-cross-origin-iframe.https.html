@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<title>Fenced frame attribution reporting self navigation test</title>
+
+<body>
+<script>
+// This helper function will navigate a child iframe to a remote origin page.
+// It will then check to make sure that window.fence APIs are not allowed after
+// the navigation. This code is meant to run in a fenced frame.
+const [key] = parseKeylist();
+
+const configs = window.fence.getNestedConfigs();
+const next_url = getRemoteOriginURL(generateURL(
+    "config-cross-origin-iframe.https.html", [key]));
+attachIFrame(next_url);
+</script>
+</body>

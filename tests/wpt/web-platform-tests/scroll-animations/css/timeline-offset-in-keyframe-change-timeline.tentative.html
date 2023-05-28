@@ -27,7 +27,7 @@
     overflow-x: hidden;
     width: 300px;
     height: 200px;
-    view-timeline: --sibling defer;
+    timeline-scope: --sibling;
   }
   #sibling {
     margin-top: 800px;
@@ -36,7 +36,7 @@
     width:  100px;
     height:  50px;
     background-color:  blue;
-    view-timeline: --sibling block ancestor;
+    view-timeline: --sibling block;
   }
   #target {
     margin-bottom: 800px;
@@ -86,7 +86,6 @@
           marginRight: "0px", opacity: "1" }
       ];
       assert_frame_lists_equal(frames, expected);
-
       // Once a view-timeline is added, the kefyrames must update to reflect
       // the new keyframe offsets.
       target.classList.add('with-view-timeline');

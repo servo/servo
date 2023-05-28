@@ -19,10 +19,9 @@
 var t = async_test("createRadialGradient() throws INDEX_SIZE_ERR if either radius is negative");
 _addTest(function(canvas, ctx) {
 
-assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, -0.1, 0, 0, 1); });
-assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, 1, 0, 0, -0.1); });
-assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, -0.1, 0, 0, -0.1); });
-
+  assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, -0.1, 0, 0, 1); });
+  assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, 1, 0, 0, -0.1); });
+  assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createRadialGradient(0, 0, -0.1, 0, 0, -0.1); });
 
 });
 </script>

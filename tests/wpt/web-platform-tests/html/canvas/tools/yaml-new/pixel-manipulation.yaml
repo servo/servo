@@ -818,7 +818,7 @@
 
 - name: 2d.imageData.put.cross
   desc: putImageData() accepts image data got from a different canvas
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');

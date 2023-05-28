@@ -45,7 +45,6 @@ def assert_timing_info(timing_info):
             "connectStart": any_int,
             "connectEnd": any_int,
             "tlsStart": any_int,
-            "tlsEnd": any_int,
             "requestStart": any_int,
             "responseStart": any_int,
             "responseEnd": any_int,

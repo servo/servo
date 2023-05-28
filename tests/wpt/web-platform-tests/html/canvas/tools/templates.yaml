@@ -18,10 +18,11 @@ offscreen: |
     });
     t.step(function() {
 
-    var canvas = new OffscreenCanvas(%(width)s, %(height)s);
-    var ctx = canvas.getContext(%(context_args)s);
+      var canvas = new OffscreenCanvas(%(width)s, %(height)s);
+      var ctx = canvas.getContext(%(context_args)s);
 
     %(code)s
+
     });
     </script>
 
@@ -42,8 +43,8 @@ worker: |
     });
     t.step(function() {
 
-    var canvas = new OffscreenCanvas(%(width)s, %(height)s);
-    var ctx = canvas.getContext(%(context_args)s);
+      var canvas = new OffscreenCanvas(%(width)s, %(height)s);
+      var ctx = canvas.getContext(%(context_args)s);
 
     %(code)s
     });

@@ -26,17 +26,16 @@
 var t = async_test("Non-space characters are not converted to U+0020 and collapsed");
 _addTest(function(canvas, ctx) {
 
-ctx.font = '50px CanvasTest';
-deferTest();
-step_timeout(t.step_func_done(function () {
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.fillStyle = '#0f0';
-    ctx.fillText('E\x0b EE', -150, 37.5);
-    _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
-    _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
-}), 500);
-
+  ctx.font = '50px CanvasTest';
+  deferTest();
+  step_timeout(t.step_func_done(function () {
+      ctx.fillStyle = '#f00';
+      ctx.fillRect(0, 0, 100, 50);
+      ctx.fillStyle = '#0f0';
+      ctx.fillText('E\x0b EE', -150, 37.5);
+      _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
+      _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
+  }), 500);
 
 });
 </script>

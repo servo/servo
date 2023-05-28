@@ -13,30 +13,29 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.fillStyle = '#0f0';
-ctx.fillRect(0, 0, 100, 50);
-ctx.shadowOffsetY = 50;
-ctx.shadowColor = '#f00';
-var promise = new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", '/images/redtransparent.png');
-    xhr.responseType = 'blob';
-    xhr.send();
-    xhr.onload = function() {
-        resolve(xhr.response);
-    };
-});
-promise.then(function(response) {
-    createImageBitmap(response).then(bitmap => {
-        ctx.drawImage(bitmap, 50, 0, 50, 50, 0, -50, 50, 50);
-        _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
-        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-        _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
-    }, t_fail);
-}).then(t_pass, t_fail);
-
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.shadowOffsetY = 50;
+  ctx.shadowColor = '#f00';
+  var promise = new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", '/images/redtransparent.png');
+      xhr.responseType = 'blob';
+      xhr.send();
+      xhr.onload = function() {
+          resolve(xhr.response);
+      };
+  });
+  promise.then(function(response) {
+      createImageBitmap(response).then(bitmap => {
+          ctx.drawImage(bitmap, 50, 0, 50, 50, 0, -50, 50, 50);
+          _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
+          _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+          _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
+      }, t_fail);
+  }).then(t_pass, t_fail);
 });
 done();

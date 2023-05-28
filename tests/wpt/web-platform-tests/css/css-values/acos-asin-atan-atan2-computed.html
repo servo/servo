@@ -43,7 +43,6 @@ test_math_used('calc(atan2(-1,1))', '-45deg', {type:'angle', approx:0.1});
 
 // Test nesting
 test_math_used('calc(cos(sin(acos(cos(pi)))))', '1', {type:'number', approx:0.1});
-test_math_used('calc(sin(atan(tan(pi/2))))', '1', {type:'number', approx:0.1});
 
 // Test types for atan2
 test_math_used('atan2(1px, -1px)', '135deg', {type:'angle', approx:0.1});

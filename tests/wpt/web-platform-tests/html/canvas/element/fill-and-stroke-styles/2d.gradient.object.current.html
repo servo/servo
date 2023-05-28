@@ -19,18 +19,17 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-canvas.setAttribute('style', 'color: #f00');
+  canvas.setAttribute('style', 'color: #f00');
 
-ctx.fillStyle = '#f00';
-ctx.fillRect(0, 0, 100, 50);
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
 
-var g = ctx.createLinearGradient(0, 0, 100, 0);
-g.addColorStop(0, 'currentColor');
-g.addColorStop(1, 'currentColor');
-ctx.fillStyle = g;
-ctx.fillRect(0, 0, 100, 50);
-_assertPixelApprox(canvas, 50,25, 0,0,0,255, 2);
-
+  var g = ctx.createLinearGradient(0, 0, 100, 0);
+  g.addColorStop(0, 'currentColor');
+  g.addColorStop(1, 'currentColor');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixelApprox(canvas, 50,25, 0,0,0,255, 2);
 
 });
 </script>

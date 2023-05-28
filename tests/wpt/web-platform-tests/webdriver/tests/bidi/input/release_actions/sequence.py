@@ -1,5 +1,5 @@
 import pytest
-from webdriver.bidi.modules.input import Actions
+from webdriver.bidi.modules.input import Actions, get_element_origin
 from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.helpers import filter_dict, filter_supported_key_events
@@ -52,7 +52,7 @@ async def test_release_mouse_sequence_resets_dblclick_state(
 
     actions = Actions()
     actions.add_pointer(pointer_type="mouse").pointer_move(
-        x=0, y=0, origin=reporter["value"]
+        x=0, y=0, origin=get_element_origin(reporter)
     ).pointer_down(button=0).pointer_up(button=0)
     await bidi_session.input.perform_actions(
         actions=actions, context=top_context["context"]

@@ -17,21 +17,11 @@ promise_test(async t => {
 
   ctx.fillStyle = '#0f0';
   ctx.fillRect(0, 0, 100, 50);
-  var promise = new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", '/images/red-zerowidth.svg');
-    xhr.responseType = 'blob';
-    xhr.send();
-    xhr.onload = function() {
-      resolve(xhr.response);
-    };
-  });
-  promise.then(function(response) {
-    createImageBitmap(response).then(bitmap => {
-      ctx.drawImage(bitmap, 0, 0, 100, 50);
-      _assertPixel(canvas, 50,25, 0,255,0,255);
-    });
-  });
+  const response = await fetch('/images/red-zerowidth.svg');
+  const blob = await response.blob();
+  const bitmap = await createImageBitmap(blob);
+  ctx.drawImage(bitmap, 0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,255,0,255);
 
 }, "drawImage with zero-sized source rectangle from image draws nothing without exception");
 </script>

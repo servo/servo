@@ -152,8 +152,8 @@ GPUDevice includes GPUObjectBase;
 
 [Exposed=(Window, DedicatedWorker), SecureContext]
 interface GPUBuffer {
-    readonly attribute GPUSize64 size;
-    readonly attribute GPUBufferUsageFlags usage;
+    readonly attribute GPUSize64Out size;
+    readonly attribute GPUFlagsConstant usage;
 
     readonly attribute GPUBufferMapState mapState;
 
@@ -206,14 +206,14 @@ interface GPUTexture {
 
     undefined destroy();
 
-    readonly attribute GPUIntegerCoordinate width;
-    readonly attribute GPUIntegerCoordinate height;
-    readonly attribute GPUIntegerCoordinate depthOrArrayLayers;
-    readonly attribute GPUIntegerCoordinate mipLevelCount;
-    readonly attribute GPUSize32 sampleCount;
+    readonly attribute GPUIntegerCoordinateOut width;
+    readonly attribute GPUIntegerCoordinateOut height;
+    readonly attribute GPUIntegerCoordinateOut depthOrArrayLayers;
+    readonly attribute GPUIntegerCoordinateOut mipLevelCount;
+    readonly attribute GPUSize32Out sampleCount;
     readonly attribute GPUTextureDimension dimension;
     readonly attribute GPUTextureFormat format;
-    readonly attribute GPUTextureUsageFlags usage;
+    readonly attribute GPUFlagsConstant usage;
 };
 GPUTexture includes GPUObjectBase;
 
@@ -1141,7 +1141,7 @@ interface GPUQuerySet {
     undefined destroy();
 
     readonly attribute GPUQueryType type;
-    readonly attribute GPUSize32 count;
+    readonly attribute GPUSize32Out count;
 };
 GPUQuerySet includes GPUObjectBase;
 
@@ -1257,6 +1257,10 @@ typedef [EnforceRange] unsigned long GPUIntegerCoordinate;
 typedef [EnforceRange] unsigned long GPUIndex32;
 typedef [EnforceRange] unsigned long GPUSize32;
 typedef [EnforceRange] long GPUSignedOffset32;
+
+typedef unsigned long long GPUSize64Out;
+typedef unsigned long GPUIntegerCoordinateOut;
+typedef unsigned long GPUSize32Out;
 
 typedef unsigned long GPUFlagsConstant;
 

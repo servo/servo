@@ -2,7 +2,7 @@
 <html>
 <meta charset="utf-8">
 <title>Timeline offset in Animation Keyframes</title>
-<link rel="help" href="https://w3c.github.io/csswg-drafts/scroll-animations-1/#named-range-keyframes">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#named-range-keyframes">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
@@ -48,6 +48,8 @@
 
   function runTests() {
     promise_test(async t => {
+      await waitForNextFrame();
+
       // scrollTop=200 to 400 is the entry range
       container.scrollTop = 200;
       await waitForNextFrame();

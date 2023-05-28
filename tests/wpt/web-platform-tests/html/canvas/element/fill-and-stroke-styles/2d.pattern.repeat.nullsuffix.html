@@ -19,8 +19,7 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-assert_throws_dom("SYNTAX_ERR", function() { ctx.createPattern(canvas, "repeat\0"); });
-
+  assert_throws_dom("SYNTAX_ERR", function() { ctx.createPattern(canvas, "repeat\0"); });
 
 });
 </script>

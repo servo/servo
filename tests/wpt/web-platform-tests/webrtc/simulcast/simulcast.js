@@ -9,8 +9,8 @@
  */
 
 const ridExtensions = [
-  "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
-  "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id",
+  'urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id',
+  'urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id',
 ];
 
 function ridToMid(description, rids) {
@@ -18,28 +18,28 @@ function ridToMid(description, rids) {
   const dtls = SDPUtils.getDtlsParameters(sections[1], sections[0]);
   const ice = SDPUtils.getIceParameters(sections[1], sections[0]);
   const rtpParameters = SDPUtils.parseRtpParameters(sections[1]);
-  const setupValue = description.sdp.match(/a=setup:(.*)/)[1];
-  const directionValue =
-    sections[1].match(/a=sendrecv|a=sendonly|a=recvonly|a=inactive/)[0];
+  const setupValue = SDPUtils.matchPrefix(description.sdp, 'a=setup:')[0].substring(8);
+  const direction = SDPUtils.getDirection(sections[1]);
   const mline = SDPUtils.parseMLine(sections[1]);
 
   // Skip mid extension; we are replacing it with the rid extmap
   rtpParameters.headerExtensions = rtpParameters.headerExtensions.filter(
-    ext => ext.uri != "urn:ietf:params:rtp-hdrext:sdes:mid"
+    ext => ext.uri != 'urn:ietf:params:rtp-hdrext:sdes:mid'
   );
 
   for (const ext of rtpParameters.headerExtensions) {
-    if (ext.uri == "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id") {
-      ext.uri = "urn:ietf:params:rtp-hdrext:sdes:mid";
+    if (ext.uri === 'urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id') {
+      ext.uri = 'urn:ietf:params:rtp-hdrext:sdes:mid';
     }
   }
 
   // Filter rtx as we have no way to (re)interpret rrid.
   // Not doing this makes probing use RTX, it's not understood and ramp-up is slower.
   rtpParameters.codecs = rtpParameters.codecs.filter(c => c.name.toUpperCase() !== 'RTX');
-
   if (!rids) {
-    rids = Array.from(description.sdp.matchAll(/a=rid:(.*) send/g)).map(r => r[1]);
+    rids = SDPUtils.matchPrefix(sections[1], 'a=rid:')
+      .filter(line => line.endsWith(' send'))
+      .map(line => line.substring(6).split(' ')[0]);
   }
 
   let sdp = SDPUtils.writeSessionBoilerplate() +
@@ -51,7 +51,7 @@ function ridToMid(description, rids) {
     sdp += baseRtpDescription +
         'a=mid:' + rid + '\r\n' +
         'a=msid:rid-' + rid + ' rid-' + rid + '\r\n';
-    sdp += directionValue + "\r\n";
+    sdp += 'a=' + direction + '\r\n';
   }
   return sdp;
 }
@@ -62,8 +62,7 @@ function midToRid(description, localDescription, rids) {
   const ice = SDPUtils.getIceParameters(sections[1], sections[0]);
   const rtpParameters = SDPUtils.parseRtpParameters(sections[1]);
   const setupValue = description.sdp.match(/a=setup:(.*)/)[1];
-  const directionValue =
-    sections[1].match(/a=sendrecv|a=sendonly|a=recvonly|a=inactive/)[0];
+  const direction = SDPUtils.getDirection(sections[1]);
   const mline = SDPUtils.parseMLine(sections[1]);
 
   // Skip rid extensions; we are replacing them with the mid extmap
@@ -72,12 +71,12 @@ function midToRid(description, localDescription, rids) {
   );
 
   for (const ext of rtpParameters.headerExtensions) {
-    if (ext.uri == "urn:ietf:params:rtp-hdrext:sdes:mid") {
-      ext.uri = "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id";
+    if (ext.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid') {
+      ext.uri = 'urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id';
     }
   }
 
-  const localMid = localDescription ? SDPUtils.getMid(SDPUtils.splitSections(localDescription.sdp)[1]) : "0";
+  const localMid = localDescription ? SDPUtils.getMid(SDPUtils.splitSections(localDescription.sdp)[1]) : '0';
 
   if (!rids) {
     rids = [];
@@ -94,11 +93,11 @@ function midToRid(description, localDescription, rids) {
   // Although we are converting mids to rids, we still need a mid.
   // The first one will be consistent with trickle ICE candidates.
   sdp += 'a=mid:' + localMid + '\r\n';
-  sdp += directionValue + "\r\n";
+  sdp += 'a=' + direction + '\r\n';
 
   for (const rid of rids) {
     const stringrid = String(rid); // allow integers
-    const choices = stringrid.split(",");
+    const choices = stringrid.split(',');
     choices.forEach(choice => {
       sdp += 'a=rid:' + choice + ' recv\r\n';
     });
@@ -120,22 +119,21 @@ async function doOfferToSendSimulcast(offerer, answerer) {
     // Renegotiation. Mids must be the same as before, because renegotiation
     // can never remove or reorder mids, nor can it expand the simulcast
     // envelope.
-    mids = [...answerer.localDescription.sdp.matchAll(/a=mid:(.*)/g)].map(
-      e => e[1]
-    );
+    const sections = SDPUtils.splitSections(answerer.localDescription.sdp);
+    sections.shift();
+    mids = sections.map(section => SDPUtils.getMid(section));
   } else {
     // First negotiation; the mids will be exactly the same as the rids
-    const simulcastAttr = offerer.localDescription.sdp.match(
-      /a=simulcast:send (.*)/
-    );
+    const simulcastAttr = SDPUtils.matchPrefix(offerer.localDescription.sdp,
+      'a=simulcast:send ')[0];
     if (simulcastAttr) {
-      mids = simulcastAttr[1].split(";");
+      mids = simulcastAttr.split(' ')[1].split(';');
     }
   }
 
   const nonSimulcastOffer = ridToMid(offerer.localDescription, mids);
   await answerer.setRemoteDescription({
-    type: "offer",
+    type: 'offer',
     sdp: nonSimulcastOffer,
   });
 }
@@ -147,7 +145,7 @@ async function doAnswerToRecvSimulcast(offerer, answerer, rids) {
     offerer.localDescription,
     rids
   );
-  await offerer.setRemoteDescription({ type: "answer", sdp: simulcastAnswer });
+  await offerer.setRemoteDescription({ type: 'answer', sdp: simulcastAnswer });
 }
 
 async function doOfferToRecvSimulcast(offerer, answerer, rids) {
@@ -157,20 +155,20 @@ async function doOfferToRecvSimulcast(offerer, answerer, rids) {
     answerer.localDescription,
     rids
   );
-  await answerer.setRemoteDescription({ type: "offer", sdp: simulcastOffer });
+  await answerer.setRemoteDescription({ type: 'offer', sdp: simulcastOffer });
 }
 
 async function doAnswerToSendSimulcast(offerer, answerer) {
   await answerer.setLocalDescription();
 
-  // See which mids the offerer had; it will barf if we remove or reorder them
-  const mids = [...offerer.localDescription.sdp.matchAll(/a=mid:(.*)/g)].map(
-    e => e[1]
-  );
+  // See which mids the offerer had; it will barf if we remove or reorder them.
+  const sections = SDPUtils.splitSections(offerer.localDescription.sdp);
+  sections.shift();
+  const mids = sections.map(section => SDPUtils.getMid(section));
 
   const nonSimulcastAnswer = ridToMid(answerer.localDescription, mids);
   await offerer.setRemoteDescription({
-    type: "answer",
+    type: 'answer',
     sdp: nonSimulcastAnswer,
   });
 }

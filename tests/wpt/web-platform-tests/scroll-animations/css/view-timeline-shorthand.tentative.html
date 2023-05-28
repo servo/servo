@@ -22,8 +22,6 @@ test_valid_value('view-timeline', '--x block', '--x');
 test_valid_value('view-timeline', '--a, --b, --c');
 test_valid_value('view-timeline', '--a inline, --b block, --c y', '--a inline, --b, --c y');
 test_valid_value('view-timeline', '--auto');
-test_valid_value('view-timeline', '--abc defer y', '--abc y defer');
-test_valid_value('view-timeline', '--abc y defer');
 
 test_invalid_value('view-timeline', '--abc --abc');
 test_invalid_value('view-timeline', 'block none');
@@ -41,32 +39,26 @@ test_computed_value('view-timeline', '--y block', '--y');
 test_computed_value('view-timeline', '--x block', '--x');
 test_computed_value('view-timeline', '--a, --b, --c');
 test_computed_value('view-timeline', '--a inline, --b block, --c y', '--a inline, --b, --c y');
-test_computed_value('view-timeline', '--abc defer y', '--abc y defer');
-test_computed_value('view-timeline', '--abc y defer');
 
 test_shorthand_value('view-timeline', '--abc y',
 {
   'view-timeline-name': '--abc',
   'view-timeline-axis': 'y',
-  'view-timeline-attachment': 'local',
 });
-test_shorthand_value('view-timeline', '--abc y defer, --def',
+test_shorthand_value('view-timeline', '--abc y, --def',
 {
   'view-timeline-name': '--abc, --def',
   'view-timeline-axis': 'y, block',
-  'view-timeline-attachment': 'defer, local',
 });
 test_shorthand_value('view-timeline', '--abc, --def',
 {
   'view-timeline-name': '--abc, --def',
   'view-timeline-axis': 'block, block',
-  'view-timeline-attachment': 'local, local',
 });
-test_shorthand_value('view-timeline', '--inline x ancestor',
+test_shorthand_value('view-timeline', '--inline x',
 {
   'view-timeline-name': '--inline',
   'view-timeline-axis': 'x',
-  'view-timeline-attachment': 'ancestor',
 });
 
 function test_shorthand_contraction(shorthand, longhands, expected) {
@@ -86,19 +78,16 @@ function test_shorthand_contraction(shorthand, longhands, expected) {
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': '--abc',
   'view-timeline-axis': 'inline',
-  'view-timeline-attachment': 'ancestor',
-}, '--abc inline ancestor');
+}, '--abc inline');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': '--a, --b',
   'view-timeline-axis': 'inline, block',
-  'view-timeline-attachment': 'defer, local',
-}, '--a inline defer, --b');
+}, '--a inline, --b');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': 'none, none',
   'view-timeline-axis': 'block, block',
-  'view-timeline-attachment': 'local, local',
 }, 'none, none');
 
 // Longhands with different lengths:
@@ -106,12 +95,10 @@ test_shorthand_contraction('view-timeline', {
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': '--a, --b, --c',
   'view-timeline-axis': 'inline, inline',
-  'view-timeline-attachment': 'local, local',
 }, '');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': '--a, --b',
   'view-timeline-axis': 'inline, inline, inline',
-  'view-timeline-attachment': 'local, local',
 }, '');
 </script>

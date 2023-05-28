@@ -1,9 +1,12 @@
 # mypy: allow-untyped-defs
 
+import logging
 import os
 import shutil
+import site
 import sys
-import logging
+import sysconfig
+from pathlib import Path
 from shutil import which
 
 # The `pkg_resources` module is provided by `setuptools`, which is itself a
@@ -27,9 +30,7 @@ class Virtualenv:
         self.path = path
         self.skip_virtualenv_setup = skip_virtualenv_setup
         if not skip_virtualenv_setup:
-            self.virtualenv = which("virtualenv")
-            if not self.virtualenv:
-                raise ValueError("virtualenv must be installed and on the PATH")
+            self.virtualenv = [sys.executable, "-m", "venv"]
             self._working_set = None
 
     @property
@@ -47,7 +48,7 @@ class Virtualenv:
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
             self._working_set = None
-        call(self.virtualenv, self.path, "-p", sys.executable)
+        call(*self.virtualenv, self.path)
 
     @property
     def bin_path(self):
@@ -59,7 +60,9 @@ class Virtualenv:
     def pip_path(self):
         path = which("pip3", path=self.bin_path)
         if path is None:
-            raise ValueError("pip3 not found")
+            path = which("pip", path=self.bin_path)
+        if path is None:
+            raise ValueError("pip3 or pip not found")
         return path
 
     @property
@@ -100,9 +103,37 @@ class Virtualenv:
             # https://github.com/web-platform-tests/wpt/issues/27377
             # https://github.com/python/cpython/pull/9516
             os.environ.pop('__PYVENV_LAUNCHER__', None)
-        path = os.path.join(self.bin_path, "activate_this.py")
-        with open(path) as f:
-            exec(f.read(), {"__file__": path})
+
+        # Setup the path and site packages as if we'd launched with the virtualenv active
+        bin_dir = os.path.join(self.path, "bin")
+        os.environ["PATH"] = os.pathsep.join([bin_dir] + os.environ.get("PATH", "").split(os.pathsep))
+        os.environ["VIRTUAL_ENV"] = self.path
+
+        prev_length = len(sys.path)
+
+        schemes = sysconfig.get_scheme_names()
+        if "venv" in schemes:
+            scheme = "venv"
+        else:
+            scheme = "nt_user" if os.name == "nt" else "posix_user"
+        sys_paths = sysconfig.get_paths(scheme)
+        data_path = sys_paths["data"]
+        added = set()
+        # Add the venv library paths as sitedirs.
+        # This converts system paths like /usr/local/lib/python3.10/site-packages
+        # to venv-relative paths like {self.path}/lib/python3.10/site-packages and adds
+        # those paths as site dirs to be used for module import.
+        for key in ["purelib", "platlib"]:
+            host_path = Path(sys_paths[key])
+            relative_path = host_path.relative_to(data_path)
+            site_dir = os.path.normpath(os.path.normcase(Path(self.path) / relative_path))
+            if site_dir not in added:
+                site.addsitedir(site_dir)
+                added.add(site_dir)
+        sys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]
+
+        sys.real_prefix = sys.prefix
+        sys.prefix = self.path
 
     def start(self):
         if not self.exists or self.broken_link:

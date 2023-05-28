@@ -19,12 +19,11 @@
 var t = async_test("CanvasRenderingContext2D.canvas is readonly");
 _addTest(function(canvas, ctx) {
 
-var c = document.createElement('canvas');
-var d = ctx.canvas;
-_assertDifferent(c, d, "c", "d");
-ctx.canvas = c;
-_assertSame(ctx.canvas, d, "ctx.canvas", "d");
-
+  var c = document.createElement('canvas');
+  var d = ctx.canvas;
+  _assertDifferent(c, d, "c", "d");
+  ctx.canvas = c;
+  _assertSame(ctx.canvas, d, "ctx.canvas", "d");
 
 });
 </script>

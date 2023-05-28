@@ -19,14 +19,13 @@
 var t = async_test("Measurement should follow text direction");
 _addTest(function(canvas, ctx) {
 
-ctx.direction = "ltr";
-metrics = ctx.measureText('hello');
-_assert(metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight");
+  ctx.direction = "ltr";
+  metrics = ctx.measureText('hello');
+  _assert(metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight");
 
-ctx.direction = "rtl";
-metrics = ctx.measureText('hello');
-_assert(metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight");
-
+  ctx.direction = "rtl";
+  metrics = ctx.measureText('hello');
+  _assert(metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight");
 
 });
 </script>

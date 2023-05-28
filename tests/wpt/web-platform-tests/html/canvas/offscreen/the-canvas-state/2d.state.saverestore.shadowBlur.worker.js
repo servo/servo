@@ -13,25 +13,24 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-// Test that restore() undoes any modifications
-var old = ctx.shadowBlur;
-ctx.save();
-ctx.shadowBlur = 5;
-ctx.restore();
-_assertSame(ctx.shadowBlur, old, "ctx.shadowBlur", "old");
+  // Test that restore() undoes any modifications
+  var old = ctx.shadowBlur;
+  ctx.save();
+  ctx.shadowBlur = 5;
+  ctx.restore();
+  _assertSame(ctx.shadowBlur, old, "ctx.shadowBlur", "old");
 
-// Also test that save() doesn't modify the values
-ctx.shadowBlur = 5;
-old = ctx.shadowBlur;
-    // we're not interested in failures caused by get(set(x)) != x (e.g.
-    // from rounding), so compare against 'old' instead of against 5
-ctx.save();
-_assertSame(ctx.shadowBlur, old, "ctx.shadowBlur", "old");
-ctx.restore();
-t.done();
-
+  // Also test that save() doesn't modify the values
+  ctx.shadowBlur = 5;
+  old = ctx.shadowBlur;
+      // we're not interested in failures caused by get(set(x)) != x (e.g.
+      // from rounding), so compare against 'old' instead of against 5
+  ctx.save();
+  _assertSame(ctx.shadowBlur, old, "ctx.shadowBlur", "old");
+  ctx.restore();
+  t.done();
 });
 done();

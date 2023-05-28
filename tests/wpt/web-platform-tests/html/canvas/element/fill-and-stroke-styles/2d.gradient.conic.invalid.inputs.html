@@ -19,26 +19,25 @@
 var t = async_test("Conic gradient function with invalid inputs");
 _addTest(function(canvas, ctx) {
 
-assert_throws_js(TypeError, function() { ctx.createConicGradient(Infinity, 0, 1); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(-Infinity, 0, 1); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(NaN, 0, 1); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(0, Infinity, 1); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(0, -Infinity, 1); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(0, NaN, 1); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(0, 0, Infinity); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(0, 0, -Infinity); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(0, 0, NaN); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(Infinity, Infinity, 1); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(Infinity, Infinity, Infinity); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(Infinity, 0, Infinity); });
-assert_throws_js(TypeError, function() { ctx.createConicGradient(0, Infinity, Infinity); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(Infinity, 0, 1); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(-Infinity, 0, 1); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(NaN, 0, 1); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(0, Infinity, 1); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(0, -Infinity, 1); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(0, NaN, 1); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(0, 0, Infinity); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(0, 0, -Infinity); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(0, 0, NaN); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(Infinity, Infinity, 1); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(Infinity, Infinity, Infinity); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(Infinity, 0, Infinity); });
+  assert_throws_js(TypeError, function() { ctx.createConicGradient(0, Infinity, Infinity); });
 
-const g = ctx.createConicGradient(0, 0, 25);
-assert_throws_js(TypeError, function() { g.addColorStop(-Infinity, '#f00'); });
-assert_throws_js(TypeError, function() { g.addColorStop(NaN, '#f00'); });
-assert_throws_dom("SYNTAX_ERR", function() { g.addColorStop(0, -Infinity); });
-assert_throws_dom("SYNTAX_ERR", function() { g.addColorStop(0, NaN); });
-
+  const g = ctx.createConicGradient(0, 0, 25);
+  assert_throws_js(TypeError, function() { g.addColorStop(-Infinity, '#f00'); });
+  assert_throws_js(TypeError, function() { g.addColorStop(NaN, '#f00'); });
+  assert_throws_dom("SYNTAX_ERR", function() { g.addColorStop(0, -Infinity); });
+  assert_throws_dom("SYNTAX_ERR", function() { g.addColorStop(0, NaN); });
 
 });
 </script>

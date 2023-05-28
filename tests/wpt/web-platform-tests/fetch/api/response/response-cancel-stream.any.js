@@ -55,3 +55,10 @@ promise_test(function() {
         return readAll(reader).then(() => reader.cancel());
     });
 }, "Cancelling a closed Response stream");
+
+promise_test(async () => {
+    const response = await fetch(RESOURCES_DIR + "top.txt");
+    const { body } = response;
+    await body.cancel();
+    assert_equals(body, response.body, ".body should not change after cancellation");
+}, "Accessing .body after canceling it");

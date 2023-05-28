@@ -13,17 +13,16 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.fillStyle = '#000';
-ctx.fillRect(0, 0, 100, 50);
-ctx.strokeStyle = '#0f0';
-ctx.fillStyle = '#f00';
-ctx.lineWidth = 1;
-ctx.font = '35px Arial, sans-serif';
-ctx.strokeText('PASS', 5, 35);
-t.done();
-
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.strokeStyle = '#0f0';
+  ctx.fillStyle = '#f00';
+  ctx.lineWidth = 1;
+  ctx.font = '35px Arial, sans-serif';
+  ctx.strokeText('PASS', 5, 35);
+  t.done();
 });
 done();

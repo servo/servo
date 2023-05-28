@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Text test: justification with white-space:pre-wrap</title>
+<link rel="author" title="Jonathan Kew" href="jkew@mozilla.com">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#text-align-property">
+<link rel="match" href="reference/white-space-pre-wrap-justify-004-ref.html">
+
+<style>
+div {
+  border: 1px solid gray;
+  font: 22px monospace;
+  width: 22ch;
+  margin: 1em;
+}
+.test {
+  white-space: pre-wrap;
+  text-align: justify;
+}
+.ref {
+  white-space: normal;
+  text-align: justify;
+  text-align-last: right;
+}
+</style>
+
+<p>Test passes if the two blocks are rendered identically</p>
+
+<div dir=rtl class=test>one, two, three,
+four, five, six, seven, eight, nine!</div>
+
+<div class=ref>,one, two, three<br>four, five, six, !seven, eight, nine</div>

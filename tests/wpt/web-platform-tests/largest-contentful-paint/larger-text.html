@@ -14,10 +14,10 @@
 
   </style>
   <!-- These are some text and some tiny images. We care about the largest text. -->
-  <img id='green1' />
+  <img id='image1' />
   <div id='text1'></div>
   <div id='text2'></div>
-  <img id='green2' />
+  <img id='image2' />
   <script>
     const load_image = async (id, url) => {
       await new Promise(resolve => {
@@ -37,13 +37,13 @@
       let beforeRender = performance.now();
 
       // Load images and add texts.
-      await load_image('green1', '/images/green-1x1.png');
+      await load_image('image1', '/images/lcp-1x1.png');
 
       load_text('text1', 'This is some text.');
 
       load_text('text2', 'This is more text so it will be the Largest Contentful Paint!');
 
-      await load_image('green2', '/images/green-2x2.png');
+      await load_image('image2', '/images/lcp-2x2.png');
 
       await new Promise(resolve => {
         new PerformanceObserver(

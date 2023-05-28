@@ -75,8 +75,8 @@ async function assertNotRestoredFromBFCache(
   }
   collectReason(result);
 
-  assert_equals(notRestoredReasonsSet.length,
-      expectedNotRestoredReasonsSet.length);
+  assert_equals(notRestoredReasonsSet.size,
+      expectedNotRestoredReasonsSet.size);
 
   for (let reason of expectedNotRestoredReasonsSet) {
     assert_true(notRestoredReasonsSet.has(reason));

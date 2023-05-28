@@ -26,9 +26,6 @@
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   await animation.ready;
 
@@ -46,26 +43,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
-  animation.play();
-  await animation.ready;
-
-  animation.pause();
-  assert_not_equals(animation.startTime, null,
-                    'The start time is resolved when pause-pending');
-
-  animation.play();
-  assert_not_equals(animation.startTime, null,
-                    'The start time is preserved when a pause is aborted');
-}, 'Aborting a pause preserves the start time');
-
-promise_test(async t => {
-  const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   const promise = animation.ready;
   animation.pause();
@@ -80,9 +57,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   // Let animation start roughly half-way through
   animation.currentTime = CSSNumericValue.parse("50%");
@@ -94,9 +68,9 @@ promise_test(async t => {
 
   await animation.ready;
   // If the current time was updated using the new playback rate it will jump
-  // back to 25s but if we correctly used the old playback rate the current time
-  // will be >= 50s.
-  assert_greater_than_equal(animation.currentTime.value, 50);
+  // back to 25% but if we correctly used the old playback rate the current time
+  // will be > 50%.
+  assert_percents_equal(animation.currentTime, 50);
 }, 'A pause-pending animation maintains the current time when applying a'
    + ' pending playback rate');
 
@@ -107,9 +81,6 @@ promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
   const scroller = animation.timeline.source;
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   await animation.ready;
 
@@ -129,9 +100,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
 
   const originalReadyPromise = animation.ready;
@@ -170,8 +138,8 @@ promise_test(async t => {
   animation.pause();
   assert_equals(animation.currentTime, null,
                 'The current time is null when the timeline is inactive.');
-  assert_percents_equal(animation.startTime, 0,
-                        'The start time is zero in Pending state.');
+  assert_equals(animation.startTime, null,
+                        'The start time is null in Pending state.');
   await waitForNextFrame();
   assert_true(animation.pending,
       'Animation has pause pending task while the timeline is inactive.');

@@ -2,7 +2,7 @@
 <body>
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
-  <script src=/browsing-topics/resources/navigation-header-util.sub.js></script>
+  <script src=/browsing-topics/resources/header-util.sub.js></script>
   <script src=/browsing-topics/resources/permissions-policy-util.sub.js></script>
   <script>
     'use strict';
@@ -30,7 +30,7 @@
     promise_test(async t => {
       let response = await fetch(same_origin_url, {browsingTopics: true});
       let topics_header = await response.text();
-      assert_equals(topics_header, "");
+      assert_equals(topics_header, EMPTY_TOPICS_HEADER);
     }, header + 'allows the \'Sec-Browsing-Topics\' header to be sent for the same-origin topics fetch request.');
 
     promise_test(async t => {
@@ -42,7 +42,7 @@
     promise_test(async t => {
       let response = await fetch('/common/redirect.py?location=' + same_origin_url, {browsingTopics: true});
       let topics_header = await response.text();
-      assert_equals(topics_header, "");
+      assert_equals(topics_header, EMPTY_TOPICS_HEADER);
     }, header + 'allows the \'Sec-Browsing-Topics\' header to be sent for the redirect of a topics fetch request, where the redirect has a same-origin URL.');
 
     promise_test(async t => {

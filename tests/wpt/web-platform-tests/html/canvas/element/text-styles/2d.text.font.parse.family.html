@@ -19,9 +19,8 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-ctx.font = '20px cursive,fantasy,monospace,sans-serif,serif,UnquotedFont,"QuotedFont\\\\\\","';
-_assertSame(ctx.font, '20px cursive, fantasy, monospace, sans-serif, serif, UnquotedFont, "QuotedFont\\\\\\","', "ctx.font", "'20px cursive, fantasy, monospace, sans-serif, serif, UnquotedFont, \"QuotedFont\\\\\\\\\\\\\",\"'");
-
+  ctx.font = '20px cursive,fantasy,monospace,sans-serif,serif,UnquotedFont,"QuotedFont\\\\\\","';
+  _assertSame(ctx.font, '20px cursive, fantasy, monospace, sans-serif, serif, UnquotedFont, "QuotedFont\\\\\\","', "ctx.font", "'20px cursive, fantasy, monospace, sans-serif, serif, UnquotedFont, \"QuotedFont\\\\\\\\\\\\\",\"'");
 
 });
 </script>

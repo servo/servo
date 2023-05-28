@@ -67,18 +67,25 @@
   }, 'A device can be opened twice with different resolutions requested');
 
   promise_test(async t => {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const inputDevices = devices.filter(d => d.kind != "audiooutput");
-    assert_greater_than(inputDevices.length, 0);
-    for (const device of inputDevices) {
-      const device_id_constraint = {deviceId: {exact: device.deviceId}};
-      const constraints = device.kind == "audioinput"
-        ? {audio: device_id_constraint}
-        : {video: device_id_constraint};
+    // getUserMedia needs to be called before deviceIds and groupIds are exposed
+    const afterGum = await navigator.mediaDevices.getUserMedia({
+      video: true, audio: true
+    });
+    afterGum.getTracks().forEach(track => track.stop());
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      assert_true(stream.getTracks()[0].getSettings().groupId === device.groupId, "device groupId");
-      assert_greater_than(device.groupId.length, 0);
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputDevices = devices.filter(({kind}) => kind != "audiooutput");
+    assert_greater_than(inputDevices.length, 1, "have at least 2 test devices");
+    for (const {kind, deviceId, groupId} of inputDevices) {
+      const type = {videoinput: "video", audioinput: "audio"}[kind];
+      const stream = await navigator.mediaDevices.getUserMedia({
+        [type]: {deviceId: {exact: deviceId}}
+      });
+      const [track] = stream.getTracks();
+      const settings = track.getSettings();
+      track.stop();
+      assert_true(settings.groupId == groupId, "device groupId");
+      assert_greater_than(settings.groupId.length, 0, "groupId is not empty");
     }
   }, 'groupId is correctly reported by getSettings() for all input devices');
 

@@ -19,14 +19,13 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-var img = new Image();
-img.src = '../images/red.png';
-// This triggers the "update the image data" algorithm.
-// The image will not go to the "completely available" state
-// until a fetch task in the networking task source is processed,
-// so the image must not be fully decodable yet:
-_assertSame(ctx.createPattern(img, 'repeat'), null, "ctx.createPattern(img, 'repeat')", "null");
-
+  var img = new Image();
+  img.src = '../images/red.png';
+  // This triggers the "update the image data" algorithm.
+  // The image will not go to the "completely available" state
+  // until a fetch task in the networking task source is processed,
+  // so the image must not be fully decodable yet:
+  _assertSame(ctx.createPattern(img, 'repeat'), null, "ctx.createPattern(img, 'repeat')", "null");
 
 });
 </script>

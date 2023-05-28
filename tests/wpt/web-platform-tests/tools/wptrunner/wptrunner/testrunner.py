@@ -1,9 +1,11 @@
 # mypy: allow-untyped-defs
 
 import threading
+import time
 import traceback
 from queue import Empty
 from collections import namedtuple
+from typing import Optional
 
 from mozlog import structuredlog, capture
 
@@ -962,10 +964,19 @@ class ManagerGroup:
             self.pool.add(manager)
         self.wait()
 
-    def wait(self):
-        """Wait for all the managers in the group to finish"""
+    def wait(self, timeout: Optional[float] = None) -> None:
+        """Wait for all the managers in the group to finish.
+
+        Arguments:
+            timeout: Overall timeout (in seconds) for all threads to join. The
+                default value indicates an indefinite timeout.
+        """
+        deadline = None if timeout is None else time.time() + timeout
         for manager in self.pool:
-            manager.join()
+            manager_timeout = None
+            if deadline is not None:
+                manager_timeout = max(0, deadline - time.time())
+            manager.join(manager_timeout)
 
     def stop(self):
         """Set the stop flag so that all managers in the group stop as soon

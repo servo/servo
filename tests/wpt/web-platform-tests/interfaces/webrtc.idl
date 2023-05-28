@@ -441,13 +441,13 @@ enum RTCIceGathererState {
 };
 
 enum RTCIceTransportState {
+  "closed",
+  "failed",
+  "disconnected",
   "new",
   "checking",
-  "connected",
   "completed",
-  "disconnected",
-  "failed",
-  "closed"
+  "connected"
 };
 
 enum RTCIceRole {

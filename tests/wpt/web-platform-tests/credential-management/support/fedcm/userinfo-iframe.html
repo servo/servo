@@ -22,7 +22,10 @@ credential-management/support/fedcm/manifest.py`;
     let results = {
       result: "Pass",
       numAccounts: user_info.length,
-      firstAccountEmail: user_info[0].email
+      firstAccountEmail: user_info[0].email,
+      firstAccountName: user_info[0].name,
+      firstAccountGivenName: user_info[0].givenName,
+      firstAccountPicture: user_info[0].picture
     };
     window.top.postMessage(results, '*');
   } catch (error) {

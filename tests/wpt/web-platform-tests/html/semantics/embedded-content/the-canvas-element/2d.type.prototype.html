@@ -19,17 +19,16 @@
 var t = async_test("window.CanvasRenderingContext2D.prototype are not [[Writable]] and not [[Configurable]], and its methods are [[Configurable]].");
 _addTest(function(canvas, ctx) {
 
-_assert(window.CanvasRenderingContext2D.prototype, "window.CanvasRenderingContext2D.prototype");
-_assert(window.CanvasRenderingContext2D.prototype.fill, "window.CanvasRenderingContext2D.prototype.fill");
-window.CanvasRenderingContext2D.prototype = null;
-_assert(window.CanvasRenderingContext2D.prototype, "window.CanvasRenderingContext2D.prototype");
-delete window.CanvasRenderingContext2D.prototype;
-_assert(window.CanvasRenderingContext2D.prototype, "window.CanvasRenderingContext2D.prototype");
-window.CanvasRenderingContext2D.prototype.fill = 1;
-_assertSame(window.CanvasRenderingContext2D.prototype.fill, 1, "window.CanvasRenderingContext2D.prototype.fill", "1");
-delete window.CanvasRenderingContext2D.prototype.fill;
-_assertSame(window.CanvasRenderingContext2D.prototype.fill, undefined, "window.CanvasRenderingContext2D.prototype.fill", "undefined");
-
+  _assert(window.CanvasRenderingContext2D.prototype, "window.CanvasRenderingContext2D.prototype");
+  _assert(window.CanvasRenderingContext2D.prototype.fill, "window.CanvasRenderingContext2D.prototype.fill");
+  window.CanvasRenderingContext2D.prototype = null;
+  _assert(window.CanvasRenderingContext2D.prototype, "window.CanvasRenderingContext2D.prototype");
+  delete window.CanvasRenderingContext2D.prototype;
+  _assert(window.CanvasRenderingContext2D.prototype, "window.CanvasRenderingContext2D.prototype");
+  window.CanvasRenderingContext2D.prototype.fill = 1;
+  _assertSame(window.CanvasRenderingContext2D.prototype.fill, 1, "window.CanvasRenderingContext2D.prototype.fill", "1");
+  delete window.CanvasRenderingContext2D.prototype.fill;
+  _assertSame(window.CanvasRenderingContext2D.prototype.fill, undefined, "window.CanvasRenderingContext2D.prototype.fill", "undefined");
 
 });
 </script>

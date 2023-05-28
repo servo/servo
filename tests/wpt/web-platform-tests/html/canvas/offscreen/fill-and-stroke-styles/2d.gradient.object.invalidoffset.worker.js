@@ -13,16 +13,15 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-var g = ctx.createLinearGradient(0, 0, 100, 0);
-assert_throws_dom("INDEX_SIZE_ERR", function() { g.addColorStop(-1, '#000'); });
-assert_throws_dom("INDEX_SIZE_ERR", function() { g.addColorStop(2, '#000'); });
-assert_throws_js(TypeError, function() { g.addColorStop(Infinity, '#000'); });
-assert_throws_js(TypeError, function() { g.addColorStop(-Infinity, '#000'); });
-assert_throws_js(TypeError, function() { g.addColorStop(NaN, '#000'); });
-t.done();
-
+  var g = ctx.createLinearGradient(0, 0, 100, 0);
+  assert_throws_dom("INDEX_SIZE_ERR", function() { g.addColorStop(-1, '#000'); });
+  assert_throws_dom("INDEX_SIZE_ERR", function() { g.addColorStop(2, '#000'); });
+  assert_throws_js(TypeError, function() { g.addColorStop(Infinity, '#000'); });
+  assert_throws_js(TypeError, function() { g.addColorStop(-Infinity, '#000'); });
+  assert_throws_js(TypeError, function() { g.addColorStop(NaN, '#000'); });
+  t.done();
 });
 done();

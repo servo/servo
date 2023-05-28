@@ -4,7 +4,7 @@
 // META: script=/bluetooth/resources/bluetooth-fake-devices.js
 'use strict';
 const test_desc = 'A unicode device namePrefix of 248 bytes is valid.';
-// \u00A1's UTF-8 respresentation is 2 bytes long.
+// \u00A1's UTF-8 representation is 2 bytes long.
 // 124 chars * 2 bytes/char = 248 bytes
 const DEVICE_NAME = '\u00A1'.repeat(124);
 

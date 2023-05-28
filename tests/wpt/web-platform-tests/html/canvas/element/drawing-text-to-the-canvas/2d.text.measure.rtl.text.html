@@ -26,12 +26,11 @@
 var t = async_test("Measurement should follow canvas direction instead text direction");
 _addTest(function(canvas, ctx) {
 
-metrics = ctx.measureText('اَلْعَرَبِيَّةُ');
-_assert(metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight");
+  metrics = ctx.measureText('اَلْعَرَبِيَّةُ');
+  _assert(metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight");
 
-metrics = ctx.measureText('hello');
-_assert(metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight");
-
+  metrics = ctx.measureText('hello');
+  _assert(metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight");
 
 });
 </script>

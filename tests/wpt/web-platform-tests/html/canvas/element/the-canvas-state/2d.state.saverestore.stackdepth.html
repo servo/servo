@@ -19,18 +19,17 @@
 var t = async_test("save()/restore() stack depth is not unreasonably limited");
 _addTest(function(canvas, ctx) {
 
-var limit = 512;
-for (var i = 1; i < limit; ++i)
-{
-    ctx.save();
-    ctx.lineWidth = i;
-}
-for (var i = limit-1; i > 0; --i)
-{
-    _assertSame(ctx.lineWidth, i, "ctx.lineWidth", "i");
-    ctx.restore();
-}
-
+  var limit = 512;
+  for (var i = 1; i < limit; ++i)
+  {
+      ctx.save();
+      ctx.lineWidth = i;
+  }
+  for (var i = limit-1; i > 0; --i)
+  {
+      _assertSame(ctx.lineWidth, i, "ctx.lineWidth", "i");
+      ctx.restore();
+  }
 
 });
 </script>

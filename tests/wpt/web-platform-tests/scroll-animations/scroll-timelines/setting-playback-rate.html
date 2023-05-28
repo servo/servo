@@ -33,6 +33,7 @@
 
     animation.playbackRate = 0.5;
     animation.play();
+    await animation.ready;
 
     assert_percents_equal(animation.currentTime, 0,
         'Zero current time is not affected by playbackRate change.');
@@ -49,6 +50,7 @@
     await waitForNextFrame();
 
     animation.play();
+    await animation.ready;
     animation.playbackRate = 0.5;
 
     assert_percents_equal(animation.currentTime, 0,
@@ -134,63 +136,39 @@
   }, 'The playback rate affects the rate of progress of the current time' +
      ' when scrolling');
 
-    promise_test(async t => {
-    const animation = createScrollLinkedAnimation(t);
-    const scroller = animation.timeline.source;
-    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-    scroller.scrollTop = 0.25 * maxScroll;
-    // Wait for new animation frame  which allows the timeline to compute new
-    // current time.
-    await waitForNextFrame();
-    animation.play();
-
-    animation.playbackRate = 2;
-
-    assert_equals(animation.playState, "running");
-    assert_true(animation.pending);
-    assert_percents_equal(animation.currentTime, 50);
-  }, 'Setting the playback rate while play-pending scales the current time' +
-    ' from scrollTimeline.');
-
-  test(t => {
+  promise_test(async t => {
     const animation = createScrollLinkedAnimation(t);
     animation.play();
+    // Setting the current time while play-pending sets the hold time and not
+    // the start time. currentTime is unaffected by playback rate until no
+    // longer pending.
     animation.currentTime = CSSNumericValue.parse("25%");
     animation.playbackRate = 2;
 
     assert_equals(animation.playState, "running");
     assert_true(animation.pending);
-    assert_percents_equal(animation.currentTime, 50);
-  }, 'Setting the playback rate while play-pending scales the set current' +
-    ' time.');
+    assert_percents_equal(animation.currentTime, 25);
+    await animation.ready;
+    assert_percents_equal(animation.currentTime, 25);
+  }, 'Setting the playback rate while play-pending does not scale current ' +
+     'time.');
 
   promise_test(async t => {
     const animation = createScrollLinkedAnimation(t);
     const scroller = animation.timeline.source;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
     scroller.scrollTop = 0.25 * maxScroll;
-    // Wait for new animation frame  which allows the timeline to compute new
-    // current time.
-    await waitForNextFrame();
     animation.play();
-    assert_percents_equal(animation.currentTime, 25);
-
     await animation.ready;
     animation.playbackRate = 2;
 
     assert_percents_equal(animation.currentTime, 50);
-  }, 'Setting the playback rate while playing scales the current time' +
-    ' from scrollTimeline.');
+  }, 'Setting the playback rate while playing scales current time.');
 
   promise_test(async t => {
     const animation = createScrollLinkedAnimation(t);
 
-    /* Wait for animation frame is here for now to avoid a renderer crash
-    caused by crbug.com/1042924. Once that is fixed, these can be removed */
-    await waitForAnimationFrames(2);
-
     animation.play();
-
     animation.currentTime = CSSNumericValue.parse("25%");
     await animation.ready;
     animation.playbackRate = 2;
@@ -220,9 +198,6 @@
     const scroller = animation.timeline.source;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
     scroller.scrollTop = 0.5 * maxScroll;
-    // Wait for new animation frame  which allows the timeline to compute new
-    // current time.
-    await waitForNextFrame();
     animation.play();
 
     await animation.ready;

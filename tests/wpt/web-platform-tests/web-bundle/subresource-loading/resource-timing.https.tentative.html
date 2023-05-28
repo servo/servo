@@ -11,14 +11,12 @@
     });
 
     promise_test(async (t) => {
-      const frame_id = "uuid-in-package:429fcc4e-0696-4bad-b099-ee9175f023ae";
       const script_id = "uuid-in-package:020111b3-437a-4c5c-ae07-adb6bbffb720";
       const element = createWebBundleElement(
         "../resources/wbn/uuid-in-package.wbn",
-        /*resources=*/ [frame_id, script_id]
+        /*resources=*/ [script_id]
       );
       document.body.appendChild(element);
-      let iframe_entries = 0;
       let script_entries = 0;
       // Declare the report_result function as outputting into stderr
       // because it is used in the WebBundle script to report the script load.
@@ -33,19 +31,15 @@
                 continue;
               }
 
-              if (entries[i].name === frame_id) ++iframe_entries;
               if (entries[i].name === script_id) ++script_entries;
             }
-            if (iframe_entries == 1 && script_entries == 1) {
+            if (script_entries == 1) {
               resolve();
             }
           })
         ).observe({ entryTypes: ["resource"] });
       });
-      // Add iframe and the script so we get the ResourceTiming
-      const iframe = document.createElement("iframe");
-      iframe.src = frame_id;
-      document.body.appendChild(iframe);
+      // Add the script so we get the ResourceTiming
       const script = document.createElement("script");
       script.src = script_id;
       document.body.appendChild(script);

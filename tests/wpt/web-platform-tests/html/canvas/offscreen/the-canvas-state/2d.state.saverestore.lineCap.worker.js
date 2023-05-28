@@ -13,25 +13,24 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-// Test that restore() undoes any modifications
-var old = ctx.lineCap;
-ctx.save();
-ctx.lineCap = "round";
-ctx.restore();
-_assertSame(ctx.lineCap, old, "ctx.lineCap", "old");
+  // Test that restore() undoes any modifications
+  var old = ctx.lineCap;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.restore();
+  _assertSame(ctx.lineCap, old, "ctx.lineCap", "old");
 
-// Also test that save() doesn't modify the values
-ctx.lineCap = "round";
-old = ctx.lineCap;
-    // we're not interested in failures caused by get(set(x)) != x (e.g.
-    // from rounding), so compare against 'old' instead of against "round"
-ctx.save();
-_assertSame(ctx.lineCap, old, "ctx.lineCap", "old");
-ctx.restore();
-t.done();
-
+  // Also test that save() doesn't modify the values
+  ctx.lineCap = "round";
+  old = ctx.lineCap;
+      // we're not interested in failures caused by get(set(x)) != x (e.g.
+      // from rounding), so compare against 'old' instead of against "round"
+  ctx.save();
+  _assertSame(ctx.lineCap, old, "ctx.lineCap", "old");
+  ctx.restore();
+  t.done();
 });
 done();

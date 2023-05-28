@@ -616,6 +616,52 @@ class SPCTransactionsProtocolPart(ProtocolPart):
         pass
 
 
+class FedCMProtocolPart(ProtocolPart):
+    """Protocol part for Federated Credential Management"""
+    __metaclass__ = ABCMeta
+
+    name = "fedcm"
+
+    @abstractmethod
+    def cancel_fedcm_dialog(self):
+        """Cancel the FedCM dialog"""
+        pass
+
+    @abstractmethod
+    def select_fedcm_account(self, account_index):
+        """Select a FedCM account
+
+        :param int account_index: The index of the account to select"""
+        pass
+
+    @abstractmethod
+    def get_fedcm_account_list(self):
+        """Get the FedCM account list"""
+        pass
+
+    @abstractmethod
+    def get_fedcm_dialog_title(self):
+        """Get the FedCM dialog title"""
+        pass
+
+    @abstractmethod
+    def get_fedcm_dialog_type(self):
+        """Get the FedCM dialog type"""
+        pass
+
+    @abstractmethod
+    def set_fedcm_delay_enabled(self, enabled):
+        """Sets the FedCM delay as enabled or disabled
+
+        :param bool enabled: The delay to set"""
+        pass
+
+    @abstractmethod
+    def reset_fedcm_cooldown(self):
+        """Set the FedCM cooldown"""
+        pass
+
+
 class PrintProtocolPart(ProtocolPart):
     """Protocol part for rendering to a PDF."""
     __metaclass__ = ABCMeta

@@ -14,8 +14,6 @@
       'unsafe-inline';
     img-src
       https://web-platform.test:8444/web-bundle/resources/wbn/subresource.wbn;
-    frame-src
-      urn:;
     report-to
       csp-group"
 />
@@ -31,8 +29,7 @@
   <script type="webbundle">
     {
       "source": "../resources/wbn/uuid-in-package.wbn",
-      "resources": ["uuid-in-package:020111b3-437a-4c5c-ae07-adb6bbffb720",
-                    "uuid-in-package:429fcc4e-0696-4bad-b099-ee9175f023ae"]
+      "resources": ["uuid-in-package:020111b3-437a-4c5c-ae07-adb6bbffb720"]
     }
   </script>
   <script>
@@ -108,33 +105,6 @@
         assert_equals(e.violatedDirective, "script-src-elem");
       }, "URL matching of script-src CSP should be done based on the bundle URL " +
          `when the subresource URL is ${params.prefix} URL.`);
-
-      promise_test(async () => {
-        const urn_uuid = params.prefix + "429fcc4e-0696-4bad-b099-ee9175f023ae";
-        const p = expect_violation();
-        const iframe = document.createElement("iframe");
-        iframe.src = urn_uuid;
-        const load_promise = new Promise((resolve) => {
-          iframe.addEventListener("load", resolve);
-        });
-        document.body.appendChild(iframe);
-        const e = await p;
-        // Currently Chromium is reporting the bundle URL.
-        // TODO(crbug.com/1208659): Consider deeper integration with CSP for
-        // providing the both URLs.
-        assert_equals(e.blockedURI, params.bundle_url);
-        assert_equals(e.violatedDirective, "frame-src");
-
-        // Make sure that the blocked iframe load is finished.
-        await load_promise;
-
-        // The blocked iframe is cross-origin. So accessing
-        // iframe.contentWindow.location should throw a SecurityError.
-        assert_throws_dom("SecurityError", () => {
-          iframe.contentWindow.location.href;
-        });
-      }, "URL matching of frame-src CSP should be done based on the bundle URL " +
-         `when the frame URL is ${params.prefix} URL.`);
     }
 
     promise_test(async () => {
@@ -144,19 +114,16 @@
       const reports = await (await fetch(retrieve_report_url)).json();
       sortReportsByEffectiveDirective(reports);
 
-      assert_equals(reports.length, 3, "Report count.");
-
-      assert_equals(reports[0].body.blockedURL, uuid_bundle_url);
-      assert_equals(reports[0].body.effectiveDirective, "frame-src");
+      assert_equals(reports.length, 2, "Report count.");
 
       assert_equals(
-        reports[1].body.blockedURL,
+        reports[0].body.blockedURL,
         "https://web-platform.test:8444/web-bundle/resources/wbn/fail.png"
       );
-      assert_equals(reports[1].body.effectiveDirective, "img-src");
+      assert_equals(reports[0].body.effectiveDirective, "img-src");
 
-      assert_equals(reports[2].body.blockedURL, uuid_bundle_url);
-      assert_equals(reports[2].body.effectiveDirective, "script-src-elem");
+      assert_equals(reports[1].body.blockedURL, uuid_bundle_url);
+      assert_equals(reports[1].body.effectiveDirective, "script-src-elem");
     }, "Check the CSP violation reports.");
   </script>
 </body>

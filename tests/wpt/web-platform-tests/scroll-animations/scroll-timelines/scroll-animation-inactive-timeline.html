@@ -42,8 +42,8 @@ promise_test(async t => {
     animation.play();
     assert_equals(animation.currentTime, null,
                   'The current time is null when the timeline is inactive.');
-    assert_percents_equal(animation.startTime, 0,
-                          'The start time is zero in Pending state.');
+    assert_equals(animation.startTime, null,
+                  'The start time is unresolved while play-pending.');
     await waitForNextFrame();
     assert_true(animation.pending,
                 'Animation has play pending task while timeline is inactive.');

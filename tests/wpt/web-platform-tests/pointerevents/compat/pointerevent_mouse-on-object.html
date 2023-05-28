@@ -62,6 +62,12 @@ var previous_done_clicked = 0;
   });
 });
 
+// Simple test to check that passive listeners can't prevent compatibility events.
+target.addEventListener("pointerdown", function(event) {
+    event.preventDefault();
+  },
+  { passive: true, once: true });
+
 document.getElementById('done').addEventListener('click', (e) => done_clicked++);
 
 // Need to prevent the default behaviour for firefox

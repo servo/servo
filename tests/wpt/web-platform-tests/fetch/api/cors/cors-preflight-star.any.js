@@ -80,3 +80,7 @@ preflightTest(true, true, "PATCH", "*", "PATCH", [])
 preflightTest(false, true, "PATCH", "*", "patch", [])
 preflightTest(false, true, "patch", "*", "PATCH", [])
 preflightTest(true, true, "patch", "*", "patch", [])
+
+// "Authorization" header can't be wildcarded.
+preflightTest(false, false, "*", "*", "POST", ["Authorization", "123"])
+preflightTest(true, false, "*", "*, Authorization", "POST", ["Authorization", "123"])

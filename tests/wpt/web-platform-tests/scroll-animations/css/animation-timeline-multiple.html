@@ -6,15 +6,13 @@
 <script src="/web-animations/testcommon.js"></script>
 <style>
   main {
-    scroll-timeline-attachment: defer;
-    scroll-timeline-name: --top_timeline, --bottom_timeline, --left_timeline, --right_timeline;
+    timeline-scope: --top_timeline, --bottom_timeline, --left_timeline, --right_timeline;
   }
 
   .scroller {
     overflow: hidden;
     width: 100px;
     height: 100px;
-    scroll-timeline-attachment: ancestor;
   }
   .scroller > div {
     height: 200px;
@@ -74,23 +72,17 @@
   <div id=element></div>
 </main>
 <script>
-  // Force layout of scrollers.
-  top_scroller.offsetTop;
-  bottom_scroller.offsetTop;
-  left_scroller.offsetTop;
-  right_scroller.offsetTop;
-
-  top_scroller.scrollTop = 20;
-  top_scroller.scrollLeft = 40;
-  bottom_scroller.scrollTop = 20;
-  bottom_scroller.scrollLeft = 40;
-  left_scroller.scrollTop = 60;
-  left_scroller.scrollLeft = 80;
-  right_scroller.scrollTop = 60;
-  right_scroller.scrollLeft = 80;
-
   promise_test(async (t) => {
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      top_scroller.scrollTop = 20;
+      top_scroller.scrollLeft = 40;
+      bottom_scroller.scrollTop = 20;
+      bottom_scroller.scrollLeft = 40;
+      left_scroller.scrollTop = 60;
+      left_scroller.scrollLeft = 80;
+      right_scroller.scrollTop = 60;
+      right_scroller.scrollLeft = 80;
+    });
     assert_equals(getComputedStyle(element).top, '120px');
     assert_equals(getComputedStyle(element).bottom, '140px');
     assert_equals(getComputedStyle(element).left, '160px');

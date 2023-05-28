@@ -19,12 +19,11 @@
 var t = async_test("");
 _addTest(function(canvas, ctx) {
 
-var canvas2 = document.createElement('canvas');
-canvas2.width = 100;
-canvas2.height = 50;
-var pattern = ctx.createPattern(canvas2, 'no-repeat');
-assert_throws_js(TypeError, function() { pattern.setTransform({a: 1, m11: 2}); });
-
+  var canvas2 = document.createElement('canvas');
+  canvas2.width = 100;
+  canvas2.height = 50;
+  var pattern = ctx.createPattern(canvas2, 'no-repeat');
+  assert_throws_js(TypeError, function() { pattern.setTransform({a: 1, m11: 2}); });
 
 });
 </script>

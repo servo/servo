@@ -680,6 +680,134 @@
         set_spc_transaction_mode: function(mode, context=null) {
           return window.test_driver_internal.set_spc_transaction_mode(mode, context);
         },
+
+        /**
+         * Cancels the Federated Credential Management dialog
+         *
+         * Matches the `Cancel dialog
+         * <https://fedidcg.github.io/FedCM/#webdriver-canceldialog>`_
+         * WebDriver command.
+         *
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} Fulfilled after the dialog is canceled, or rejected
+         *                    in case the WebDriver command errors
+         */
+        cancel_fedcm_dialog: function(context=null) {
+            return window.test_driver_internal.cancel_fedcm_dialog(context);
+        },
+
+        /**
+         * Selects an account from the Federated Credential Management dialog
+         *
+         * Matches the `Select account
+         * <https://fedidcg.github.io/FedCM/#webdriver-selectaccount>`_
+         * WebDriver command.
+         *
+         * @param {number} account_index - Index of the account to select.
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} Fulfilled after the account is selected,
+         *                    or rejected in case the WebDriver command errors
+         */
+        select_fedcm_account: function(account_index, context=null) {
+          return window.test_driver_internal.select_fedcm_account(account_index, context);
+        },
+
+        /**
+         * Gets the account list from the Federated Credential Management dialog
+         *
+         * Matches the `Account list
+         * <https://fedidcg.github.io/FedCM/#webdriver-accountlist>`_
+         * WebDriver command.
+         *
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} fulfilled after the account list is returned, or
+         *                    rejected in case the WebDriver command errors
+         */
+        get_fedcm_account_list: function(context=null) {
+          return window.test_driver_internal.get_fedcm_account_list(context);
+        },
+
+        /**
+         * Gets the title of the Federated Credential Management dialog
+         *
+         * Matches the `Get title
+         * <https://fedidcg.github.io/FedCM/#webdriver-gettitle>`_
+         * WebDriver command.
+         *
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} Fulfilled after the title is returned, or rejected
+         *                    in case the WebDriver command errors
+         */
+        get_fedcm_dialog_title: function(context=null) {
+          return window.test_driver_internal.get_fedcm_dialog_title(context);
+        },
+
+        /**
+         * Gets the type of the Federated Credential Management dialog
+         *
+         * Matches the `Get dialog type
+         * <https://fedidcg.github.io/FedCM/#webdriver-getdialogtype>`_
+         * WebDriver command.
+         *
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} Fulfilled after the dialog type is returned, or
+         *                    rejected in case the WebDriver command errors
+         */
+        get_fedcm_dialog_type: function(context=null) {
+          return window.test_driver_internal.get_fedcm_dialog_type(context);
+        },
+
+        /**
+         * Sets whether promise rejection delay is enabled for the Federated Credential Management dialog
+         *
+         * Matches the `Set delay enabled
+         * <https://fedidcg.github.io/FedCM/#webdriver-setdelayenabled>`_
+         * WebDriver command.
+         *
+         * @param {boolean} enabled - Whether to delay FedCM promise rejection.
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} Fulfilled after the delay has been enabled or disabled,
+         *                    or rejected in case the WebDriver command errors
+         */
+        set_fedcm_delay_enabled: function(enabled, context=null) {
+          return window.test_driver_internal.set_fedcm_delay_enabled(enabled, context);
+        },
+
+        /**
+         * Resets the Federated Credential Management dialog's cooldown
+         *
+         * Matches the `Reset cooldown
+         * <https://fedidcg.github.io/FedCM/#webdriver-resetcooldown>`_
+         * WebDriver command.
+         *
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} Fulfilled after the cooldown has been reset,
+         *                    or rejected in case the WebDriver command errors
+         */
+        reset_fedcm_cooldown: function(context=null) {
+          return window.test_driver_internal.reset_fedcm_cooldown(context);
+        }
     };
 
     window.test_driver_internal = {
@@ -805,5 +933,32 @@
             throw new Error("set_spc_transaction_mode() is not implemented by testdriver-vendor.js");
         },
 
+        async cancel_fedcm_dialog(context=null) {
+            throw new Error("cancel_fedcm_dialog() is not implemented by testdriver-vendor.js");
+        },
+
+        async select_fedcm_account(account_index, context=null) {
+            throw new Error("select_fedcm_account() is not implemented by testdriver-vendor.js");
+        },
+
+        async get_fedcm_account_list(context=null) {
+            throw new Error("get_fedcm_account_list() is not implemented by testdriver-vendor.js");
+        },
+
+        async get_fedcm_dialog_title(context=null) {
+            throw new Error("get_fedcm_dialog_title() is not implemented by testdriver-vendor.js");
+        },
+
+        async get_fedcm_dialog_type(context=null) {
+            throw new Error("get_fedcm_dialog_type() is not implemented by testdriver-vendor.js");
+        },
+
+        async set_fedcm_delay_enabled(enabled, context=null) {
+            throw new Error("set_fedcm_delay_enabled() is not implemented by testdriver-vendor.js");
+        },
+
+        async reset_fedcm_cooldown(context=null) {
+            throw new Error("reset_fedcm_cooldown() is not implemented by testdriver-vendor.js");
+        }
     };
 })();

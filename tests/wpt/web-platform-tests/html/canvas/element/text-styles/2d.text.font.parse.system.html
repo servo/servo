@@ -19,9 +19,8 @@
 var t = async_test("System fonts must be computed to explicit values");
 _addTest(function(canvas, ctx) {
 
-ctx.font = 'message-box';
-_assertDifferent(ctx.font, 'message-box', "ctx.font", "'message-box'");
-
+  ctx.font = 'message-box';
+  _assertDifferent(ctx.font, 'message-box', "ctx.font", "'message-box'");
 
 });
 </script>

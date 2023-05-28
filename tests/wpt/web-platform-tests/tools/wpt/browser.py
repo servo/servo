@@ -81,6 +81,12 @@ class Browser:
     def __init__(self, logger):
         self.logger = logger
 
+    def _get_browser_download_dir(self, dest, channel):
+        if dest is None:
+            return self._get_browser_binary_dir(dest, channel)
+
+        return dest
+
     def _get_browser_binary_dir(self, dest, channel):
         if dest is None:
             # os.getcwd() doesn't include the venv path
@@ -108,7 +114,7 @@ class Browser:
         """
         self.logger.info("Downloading from %s" % url)
 
-        dest = self._get_browser_binary_dir(dest, channel)
+        dest = self._get_browser_download_dir(dest, channel)
 
         resp = get(url)
         filename = get_download_filename(resp, default_name)
@@ -235,8 +241,7 @@ class Firefox(Browser):
         }
         os_key = (self.platform, uname[4])
 
-        if dest is None:
-            dest = self._get_browser_binary_dir(None, channel)
+        dest = self._get_browser_download_dir(dest, channel)
 
         if channel not in product:
             raise ValueError("Unrecognised release channel: %s" % channel)
@@ -848,8 +853,7 @@ class Chromium(ChromeChromiumBase):
         return self._build_snapshots_url(revision, filename)
 
     def download(self, dest=None, channel=None, rename=None, version=None, revision=None):
-        if dest is None:
-            dest = self._get_browser_binary_dir(None, channel)
+        dest = self._get_browser_download_dir(dest, channel)
 
         filename = f"{self._chromium_package_name}.zip"
 
@@ -1739,8 +1743,7 @@ class Safari(Browser):
         if channel != "preview":
             raise ValueError(f"can only install 'preview', not '{channel}'")
 
-        if dest is None:
-            dest = self._get_browser_binary_dir(None, channel)
+        dest = self._get_browser_download_dir(dest, channel)
 
         stp_downloads = self._find_downloads()
 
@@ -2019,7 +2022,7 @@ class WebKitTestRunner(Browser):
 
     def version(self, binary=None, webdriver_binary=None):
         dirname = os.path.dirname(binary)
-        identifier = os.path.join(dirname, "identifier")
+        identifier = os.path.join(dirname, "..", "identifier")
         if not os.path.exists(identifier):
             return None
 
@@ -2057,8 +2060,7 @@ class WebKitGTKMiniBrowser(WebKit):
         bundle_filename = response.text.strip()
         bundle_url = base_download_dir + bundle_filename
 
-        if dest is None:
-            dest = self._get_browser_binary_dir(None, channel)
+        dest = self._get_browser_download_dir(dest, channel)
         bundle_file_path = os.path.join(dest, bundle_filename)
 
         self.logger.info("Downloading WebKitGTK MiniBrowser bundle from %s" % bundle_url)

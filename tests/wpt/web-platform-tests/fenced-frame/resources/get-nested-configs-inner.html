@@ -4,7 +4,7 @@
 <script>
 const [key] = parseKeylist();
 const configs = window.fence.getNestedConfigs();
-const data_to_send = [configs.length, configs.length > 0 ? configs[0].url : "N/a"];
+const data_to_send = [configs.length];
 writeValueToServer(key, data_to_send.join(","));
 </script>
 </html>

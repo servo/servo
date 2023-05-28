@@ -4,7 +4,7 @@ components:
     workerType: ci
     schedulerId: taskcluster-github
     deadline: "24 hours"
-    image: webplatformtests/wpt:0.53
+    image: webplatformtests/wpt:0.54
     maxRunTime: 7200
     artifacts:
       public/results:
@@ -116,6 +116,7 @@ components:
       - python3.7
       - python3.7-distutils
       - python3.7-dev
+      - python3.7-venv
 
   tox-python3_10:
     env:
@@ -125,6 +126,7 @@ components:
       - python3.10
       - python3.10-distutils
       - python3.10-dev
+      - python3.10-venv
 
   tests-affected:
     options:

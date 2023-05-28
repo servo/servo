@@ -21,6 +21,7 @@ trigger:
 - triggers/edge_canary
 - triggers/safari_stable
 - triggers/safari_preview
+- triggers/wktr_preview
 
 # Set safaridriver_diagnose to true to enable safaridriver diagnostics. The
 # logs won't appear in `./wpt run` output but will be uploaded as an artifact.
@@ -575,7 +576,7 @@ jobs:
   - script: |
       set -eux -o pipefail
       export SYSTEM_VERSION_COMPAT=0
-      ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-mach - --log-mach-level info --channel main --install-browser wktr
+      ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-mach - --log-mach-level info --channel experimental --install-browser --yes wktr
     displayName: 'Run tests'
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'

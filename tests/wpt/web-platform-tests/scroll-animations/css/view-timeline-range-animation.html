@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<title>Animations using named timeline ranges</title>
+<title>View timelines and animation attachment ranges</title>
 <link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#animation-range">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
@@ -16,22 +17,35 @@
     width: 200px;
     height: 200px;
   }
-  #target {
+  #scroller > div {
     margin: 800px 0px;
     width: 100px;
     height: 100px;
-    z-index: -1;
-    background-color: green;
+  }
+  #target {
     font-size: 10px;
+    background-color: green;
+    z-index: -1;
   }
 </style>
 <main id=main>
 </main>
-<template>
+
+<template id=template_without_scope>
   <div id=scroller>
-    <div id=target></div>
+    <div id=target class=timeline></div>
   </div>
 </template>
+
+<template id=template_with_scope>
+  <div id=scope>
+    <div id=target></div>
+    <div id=scroller>
+      <div class=timeline></div>
+    </div>
+  </div>
+</template>
+
 <script>
   setup(assert_implements_animation_timeline);
 
@@ -45,24 +59,31 @@
   }
   async function waitForAnimationReady(target) {
     await waitForNextFrame();
-    await Promise.all(target.getAnimations().map(x => x.promise));
+    await Promise.all(target.getAnimations().map(x => x.ready));
   }
   async function assertValueAt(scroller, target, args) {
     await waitForAnimationReady(target);
     await scrollTop(scroller, args.scrollTop);
     assert_equals(getComputedStyle(target).zIndex, args.expected.toString());
   }
-  function test_animation_delay(options) {
+  function test_animation_range(options, template, desc_suffix) {
+    if (template === undefined)
+      template = template_without_scope;
+    if (desc_suffix === undefined)
+      desc_suffix = '';
+
     promise_test(async (t) => {
-      inflate(t, document.querySelector('template'));
+      inflate(t, template);
       let scroller = main.querySelector('#scroller');
       let target = main.querySelector('#target');
+      let timeline = main.querySelector('.timeline');
+      let scope = main.querySelector('#scope');
 
-      target.style.viewTimeline = '--t1 block';
-      // TODO(crbug.com/1375998): Create the timeline in a separate frame to
-      // work around a bug.
-      await waitForNextFrame();
+      if (scope != null) {
+        scope.style.timelineScope = '--t1';
+      }
 
+      timeline.style.viewTimeline = '--t1';
       target.style.animation = 'anim auto linear';
       target.style.animationTimeline = '--t1';
       target.style.animationRangeStart = options.rangeStart;
@@ -91,24 +112,24 @@
       await assertValueAt(scroller, target,
           { scrollTop: (options.startOffset + options.endOffset) / 2, expected: 50 });
 
-    }, `Animation with ranges [${options.rangeStart}, ${options.rangeEnd}]`);
+    }, `Animation with ranges [${options.rangeStart}, ${options.rangeEnd}] ${desc_suffix}`.trim());
   }
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'initial',
     rangeEnd: 'initial',
     startOffset: 600,
     endOffset: 900
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'cover 0%',
     rangeEnd: 'cover 100%',
     startOffset: 600,
     endOffset: 900
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'contain 0%',
     rangeEnd: 'contain 100%',
     startOffset: 700,
@@ -116,88 +137,96 @@
   });
 
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'entry 0%',
     rangeEnd: 'entry 100%',
     startOffset: 600,
     endOffset: 700
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'exit 0%',
     rangeEnd: 'exit 100%',
     startOffset: 800,
     endOffset: 900
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'contain -50%',
     rangeEnd: 'entry 200%',
     startOffset: 650,
     endOffset: 800
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'entry 0%',
     rangeEnd: 'exit 100%',
     startOffset: 600,
     endOffset: 900
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'cover 20px',
     rangeEnd: 'cover 100px',
     startOffset: 620,
     endOffset: 700
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'contain 20px',
     rangeEnd: 'contain 100px',
     startOffset: 720,
     endOffset: 800
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'entry 20px',
     rangeEnd: 'entry 100px',
     startOffset: 620,
     endOffset: 700
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'entry-crossing 20px',
     rangeEnd: 'entry-crossing 100px',
     startOffset: 620,
     endOffset: 700
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'exit 20px',
     rangeEnd: 'exit 80px',
     startOffset: 820,
     endOffset: 880
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'exit-crossing 20px',
     rangeEnd: 'exit-crossing 80px',
     startOffset: 820,
     endOffset: 880
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'contain 20px',
     rangeEnd: 'contain calc(100px - 10%)',
     startOffset: 720,
     endOffset: 790
   });
 
-  test_animation_delay({
+  test_animation_range({
     rangeStart: 'exit 2em',
     rangeEnd: 'exit 8em',
     startOffset: 820,
     endOffset: 880
   });
+
+  // Test animation-range via timeline-scope.
+  test_animation_range({
+    rangeStart: 'exit 2em',
+    rangeEnd: 'exit 8em',
+    startOffset: 820,
+    endOffset: 880
+  }, template_with_scope, '(scoped)');
 
 </script>

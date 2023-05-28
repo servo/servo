@@ -45,7 +45,8 @@ function CreateViewTimelineOpacityAnimation(test, target, options) {
 //   endOffset: 900
 // });
 async function runTimelineBoundsTest(t, options, message) {
-  container.scrollLeft = 0;
+  const scrollOffsetProp = options.axis == 'block' ? 'scrollTop' : 'scrollLeft';
+  container[scrollOffsetProp] = 0;
   await waitForNextFrame();
 
   const anim =
@@ -58,19 +59,19 @@ async function runTimelineBoundsTest(t, options, message) {
   await anim.ready;
 
   // Advance to the start offset, which triggers entry to the active phase.
-  container.scrollLeft = options.startOffset;
+  container[scrollOffsetProp] = options.startOffset;
   await waitForNextFrame();
   assert_equals(getComputedStyle(target).opacity, '0.3',
                 `Effect at the start of the active phase: ${message}`);
 
   // Advance to the midpoint of the animation.
-  container.scrollLeft = (options.startOffset + options.endOffset) / 2;
+  container[scrollOffsetProp] = (options.startOffset + options.endOffset) / 2;
   await waitForNextFrame();
   assert_equals(getComputedStyle(target).opacity,'0.5',
                 `Effect at the midpoint of the active range: ${message}`);
 
   // Advance to the end of the animation.
-  container.scrollLeft = options.endOffset;
+  container[scrollOffsetProp] = options.endOffset;
   await waitForNextFrame();
   assert_equals(getComputedStyle(target).opacity, '0.7',
                 `Effect is in the active phase at effect end time: ${message}`);
@@ -103,7 +104,7 @@ async function runTimelineRangeTest(t, options) {
      `${rangeToString(options.rangeEnd)}`;
 
   options.timeline = {
-    axis: 'inline'
+    axis: options.axis || 'inline'
   };
   options.animation = {
     rangeStart: options.rangeStart,

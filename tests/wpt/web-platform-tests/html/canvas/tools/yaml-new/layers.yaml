@@ -317,7 +317,7 @@
   variants:
     convertToBlob:
       test_type: "promise"
-      canvasType: ['OffscreenCanvas']
+      canvasType: ['OffscreenCanvas', 'Worker']
       flush_canvas: |-
         await canvas.convertToBlob();
     createImageBitmap:
@@ -352,7 +352,7 @@
 - name: 2d.layer.render-opportunities.transferToImageBitmap
   desc: Checks that transferToImageBitmap flushes and rebuilds the state stack.
   size: 200, 200
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     ctx.fillStyle = 'purple';
     ctx.fillRect(60, 60, 75, 50);

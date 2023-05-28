@@ -19,27 +19,26 @@
 var t = async_test("Testing letter spacing and word spacing");
 _addTest(function(canvas, ctx) {
 
-_assertSame(ctx.letterSpacing, '0px', "ctx.letterSpacing", "'0px'");
-_assertSame(ctx.wordSpacing, '0px', "ctx.wordSpacing", "'0px'");
+  _assertSame(ctx.letterSpacing, '0px', "ctx.letterSpacing", "'0px'");
+  _assertSame(ctx.wordSpacing, '0px', "ctx.wordSpacing", "'0px'");
 
-ctx.letterSpacing = '3px';
-_assertSame(ctx.letterSpacing, '3px', "ctx.letterSpacing", "'3px'");
-_assertSame(ctx.wordSpacing, '0px', "ctx.wordSpacing", "'0px'");
+  ctx.letterSpacing = '3px';
+  _assertSame(ctx.letterSpacing, '3px', "ctx.letterSpacing", "'3px'");
+  _assertSame(ctx.wordSpacing, '0px', "ctx.wordSpacing", "'0px'");
 
-ctx.wordSpacing = '5px';
-_assertSame(ctx.letterSpacing, '3px', "ctx.letterSpacing", "'3px'");
-_assertSame(ctx.wordSpacing, '5px', "ctx.wordSpacing", "'5px'");
+  ctx.wordSpacing = '5px';
+  _assertSame(ctx.letterSpacing, '3px', "ctx.letterSpacing", "'3px'");
+  _assertSame(ctx.wordSpacing, '5px', "ctx.wordSpacing", "'5px'");
 
-ctx.letterSpacing = '-1px';
-ctx.wordSpacing = '-1px';
-_assertSame(ctx.letterSpacing, '-1px', "ctx.letterSpacing", "'-1px'");
-_assertSame(ctx.wordSpacing, '-1px', "ctx.wordSpacing", "'-1px'");
+  ctx.letterSpacing = '-1px';
+  ctx.wordSpacing = '-1px';
+  _assertSame(ctx.letterSpacing, '-1px', "ctx.letterSpacing", "'-1px'");
+  _assertSame(ctx.wordSpacing, '-1px', "ctx.wordSpacing", "'-1px'");
 
-ctx.letterSpacing = '1PX';
-ctx.wordSpacing = '1EM';
-_assertSame(ctx.letterSpacing, '1px', "ctx.letterSpacing", "'1px'");
-_assertSame(ctx.wordSpacing, '1em', "ctx.wordSpacing", "'1em'");
-
+  ctx.letterSpacing = '1PX';
+  ctx.wordSpacing = '1EM';
+  _assertSame(ctx.letterSpacing, '1px', "ctx.letterSpacing", "'1px'");
+  _assertSame(ctx.wordSpacing, '1em', "ctx.wordSpacing", "'1em'");
 
 });
 </script>

@@ -19,41 +19,40 @@
 var t = async_test("CSSRGB works as color input");
 _addTest(function(canvas, ctx) {
 
-ctx.fillStyle = new CSSRGB(1, 0, 1);
-_assertSame(ctx.fillStyle, '#ff00ff', "ctx.fillStyle", "'#ff00ff'");
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 255,0,255,255);
+  ctx.fillStyle = new CSSRGB(1, 0, 1);
+  _assertSame(ctx.fillStyle, '#ff00ff', "ctx.fillStyle", "'#ff00ff'");
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 255,0,255,255);
 
-const color = new CSSRGB(0, CSS.percent(50), 0);
-ctx.fillStyle = color;
-_assertSame(ctx.fillStyle, '#008000', "ctx.fillStyle", "'#008000'");
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,128,0,255);
-color.g = 0;
-ctx.fillStyle = color;
-_assertSame(ctx.fillStyle, '#000000', "ctx.fillStyle", "'#000000'");
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,0,0,255);
+  const color = new CSSRGB(0, CSS.percent(50), 0);
+  ctx.fillStyle = color;
+  _assertSame(ctx.fillStyle, '#008000', "ctx.fillStyle", "'#008000'");
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,128,0,255);
+  color.g = 0;
+  ctx.fillStyle = color;
+  _assertSame(ctx.fillStyle, '#000000', "ctx.fillStyle", "'#000000'");
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,0,0,255);
 
-color.alpha = 0;
-ctx.fillStyle = color;
-_assertSame(ctx.fillStyle, 'rgba(0, 0, 0, 0)', "ctx.fillStyle", "'rgba(0, 0, 0, 0)'");
-ctx.reset();
-color.alpha = 0.5;
-ctx.fillStyle = color;
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,0,0,128);
+  color.alpha = 0;
+  ctx.fillStyle = color;
+  _assertSame(ctx.fillStyle, 'rgba(0, 0, 0, 0)', "ctx.fillStyle", "'rgba(0, 0, 0, 0)'");
+  ctx.reset();
+  color.alpha = 0.5;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,0,0,128);
 
-ctx.fillStyle = new CSSHSL(CSS.deg(0), 1, 1).toRGB();
-_assertSame(ctx.fillStyle, '#ffffff', "ctx.fillStyle", "'#ffffff'");
-ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 255,255,255,255);
+  ctx.fillStyle = new CSSHSL(CSS.deg(0), 1, 1).toRGB();
+  _assertSame(ctx.fillStyle, '#ffffff', "ctx.fillStyle", "'#ffffff'");
+  ctx.fillRect(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 255,255,255,255);
 
-color.alpha = 1;
-color.g = 1;
-ctx.fillStyle = color;
-ctx.fillRect(0, 0, 100, 50);
-
+  color.alpha = 1;
+  color.g = 1;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 100, 50);
 
 });
 </script>

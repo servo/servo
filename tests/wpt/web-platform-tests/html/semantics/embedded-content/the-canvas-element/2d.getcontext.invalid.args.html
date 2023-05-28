@@ -19,16 +19,15 @@
 var t = async_test("Calling getContext with invalid arguments.");
 _addTest(function(canvas, ctx) {
 
-_assertSame(canvas.getContext(''), null, "canvas.getContext('')", "null");
-_assertSame(canvas.getContext('2d#'), null, "canvas.getContext('2d#')", "null");
-_assertSame(canvas.getContext('This is clearly not a valid context name.'), null, "canvas.getContext('This is clearly not a valid context name.')", "null");
-_assertSame(canvas.getContext('2d\0'), null, "canvas.getContext('2d\\0')", "null");
-_assertSame(canvas.getContext('2\uFF44'), null, "canvas.getContext('2\\uFF44')", "null");
-_assertSame(canvas.getContext('2D'), null, "canvas.getContext('2D')", "null");
-assert_throws_js(TypeError, function() { canvas.getContext(); });
-_assertSame(canvas.getContext('null'), null, "canvas.getContext('null')", "null");
-_assertSame(canvas.getContext('undefined'), null, "canvas.getContext('undefined')", "null");
-
+  _assertSame(canvas.getContext(''), null, "canvas.getContext('')", "null");
+  _assertSame(canvas.getContext('2d#'), null, "canvas.getContext('2d#')", "null");
+  _assertSame(canvas.getContext('This is clearly not a valid context name.'), null, "canvas.getContext('This is clearly not a valid context name.')", "null");
+  _assertSame(canvas.getContext('2d\0'), null, "canvas.getContext('2d\\0')", "null");
+  _assertSame(canvas.getContext('2\uFF44'), null, "canvas.getContext('2\\uFF44')", "null");
+  _assertSame(canvas.getContext('2D'), null, "canvas.getContext('2D')", "null");
+  assert_throws_js(TypeError, function() { canvas.getContext(); });
+  _assertSame(canvas.getContext('null'), null, "canvas.getContext('null')", "null");
+  _assertSame(canvas.getContext('undefined'), null, "canvas.getContext('undefined')", "null");
 
 });
 </script>

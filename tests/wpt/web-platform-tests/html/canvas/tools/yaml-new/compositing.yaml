@@ -173,7 +173,7 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.canvas
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');
@@ -203,7 +203,7 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.canvaspattern
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');
@@ -218,7 +218,7 @@
     @assert pixel 50,25 ==~ 2,253,0,255;
 
 - name: 2d.composite.globalAlpha.canvascopy
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');

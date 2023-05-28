@@ -164,6 +164,14 @@ function waitForAnimationFramesWithDelay(minDelay) {
   });
 }
 
+function runAndWaitForFrameUpdate(callback) {
+  return new Promise(resolve => {
+    window.requestAnimationFrame(() => {
+      callback();
+      window.requestAnimationFrame(resolve);
+    });
+  });
+}
 
 // Waits for a requestAnimationFrame callback in the next refresh driver tick.
 function waitForNextFrame() {
@@ -321,3 +329,4 @@ async function waitForCompositorReady(target) {
       document.body.animate({ opacity: [ 1, 1 ] }, {duration: 1 });
   return animation.finished;
 }
+

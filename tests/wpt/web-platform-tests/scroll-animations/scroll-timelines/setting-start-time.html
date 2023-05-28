@@ -249,40 +249,14 @@ promise_test(async t => {
   // Sanity check
   assert_true(animation.pending, 'Animation is pending');
   assert_equals(animation.playState, 'running', 'Animation is play-pending');
-  assert_percents_equal(animation.startTime, 0, 'Start time is zero');
-
-  // Setting start time should cancel the pending task.
-  animation.startTime = null;
-  assert_false(animation.pending, 'Animation is no longer pending');
-  assert_equals(animation.playState, 'paused', 'Animation is paused');
-}, 'Setting an unresolved start time on a play-pending animation makes it'
-   + ' paused');
-
-promise_test(async t => {
-  const animation = createScrollLinkedAnimation(t);
-  const scroller = animation.timeline.source;
-  // Make the scroll timeline inactive.
-  scroller.style.overflow = 'visible';
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
-  assert_equals(animation.timeline.currentTime, null,
-                'Sanity check the timeline is inactive');
-
-  // Put the animation in the play-pending state
-  animation.play();
-
-  // Sanity check
-  assert_true(animation.pending, 'Animation is pending');
-  assert_equals(animation.playState, 'running', 'Animation is play-pending');
-  assert_percents_equal(animation.startTime, 0, 'Start time is zero');
+  assert_equals(animation.startTime, null, 'Start time is unresolved');
 
   // Setting start time should cancel the pending task.
   animation.startTime = null;
   assert_false(animation.pending, 'Animation is no longer pending');
   assert_equals(animation.playState, 'idle', 'Animation is idle');
 }, 'Setting an unresolved start time on a play-pending animation makes it'
-   + ' idle when the timeline is inactive');
+   + ' idle');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
@@ -315,9 +289,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
 
   await animation.ready;
@@ -333,9 +304,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   await animation.ready;
 
@@ -353,9 +321,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   let readyPromiseCallbackCalled = false;
   animation.ready.then(() => { readyPromiseCallbackCalled = true; } );
   animation.pause();
@@ -407,9 +372,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const anim = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   anim.play();
   await anim.ready;
 

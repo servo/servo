@@ -747,7 +747,7 @@ const gCSSProperties2 = {
     types: [ 'color' ]
   },
   'line-height': {
-    // https://w3c.github.io/csswg-drafts/css-inline/#line-height-property
+    // https://drafts.csswg.org/css-inline/#line-height-property
     types: [
         { type: 'discrete', options: [ [ 'normal', '10px' ],
                                        [ 'normal', '10', 'normal', '100px' ] ] }
@@ -1172,6 +1172,18 @@ const gCSSProperties2 = {
       { type: 'discrete', options: [ [ 'auto', 'smooth' ] ] }
     ]
   },
+  'scrollbar-gutter': {
+    // https://drafts.csswg.org/css-overflow/#propdef-scrollbar-gutter
+    types: [
+      { type: 'discrete', options: [ [ 'auto', 'stable' ], [ 'auto', 'stable both-edges' ], [ 'stable', 'stable both-edges' ] ] }
+    ]
+  },
+  'scrollbar-width': {
+    // https://drafts.csswg.org/css-scrollbars/#propdef-scrollbar-width
+    types: [
+      { type: 'discrete', options: [ [ 'auto', 'thin' ], [ 'auto', 'none' ], [ 'thin', 'none' ] ] }
+    ]
+  },
   'shape-outside': {
     // http://dev.w3.org/csswg/css-shapes/#propdef-shape-outside
     types: [
@@ -1263,6 +1275,12 @@ const gCSSProperties2 = {
       { type: 'discrete', options: [ [ 'middle', 'end' ] ] }
     ]
   },
+  'text-autospace': {
+    // https://drafts.csswg.org/css-text-4/#text-spacing-property
+    types: [
+      { type: 'discrete', options: [ [ 'auto', 'no-autospace' ] ] }
+    ]
+  },
   'text-decoration-color': {
     // https://drafts.csswg.org/css-text-decor-3/#propdef-text-decoration-color
     types: [ 'color' ]
@@ -1326,6 +1344,12 @@ const gCSSProperties2 = {
       element.style.color = 'green';
       return element;
     }
+  },
+  'text-spacing-trim': {
+    // https://svgwg.org/svg2-draft/painting.html#TextRenderingProperty
+    types: [
+      { type: 'discrete', options: [ [ 'auto', 'space-all' ] ] }
+    ]
   },
   'text-transform': {
     // https://drafts.csswg.org/css-text-3/#propdef-text-transform
@@ -1409,6 +1433,12 @@ const gCSSProperties2 = {
     // https://drafts.csswg.org/css-text-4/#propdef-white-space
     types: [
       { type: 'discrete', options: [ [ 'pre', 'nowrap' ] ] }
+    ]
+  },
+  'white-space-collapse': {
+    // https://drafts.csswg.org/css-text-4/#propdef-white-space-collapse
+    types: [
+      { type: 'discrete', options: [ [ 'collapse', 'preserve' ] ] }
     ]
   },
   'width': {

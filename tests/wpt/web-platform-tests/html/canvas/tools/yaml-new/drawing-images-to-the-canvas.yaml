@@ -343,7 +343,7 @@
     @assert pixel 99,49 ==~ 0,255,0,255;
 
 - name: 2d.drawImage.canvas
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');
@@ -357,7 +357,7 @@
     @assert pixel 99,49 ==~ 0,255,0,255;
 
 - name: 2d.drawImage.zerocanvas
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(0, 10);
     @assert throws INVALID_STATE_ERR ctx.drawImage(offscreenCanvas2, 0, 0);
@@ -424,25 +424,15 @@
 - name: 2d.drawImage.zerosource.image
   desc: drawImage with zero-sized source rectangle from image draws nothing without exception
   test_type: promise
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", '/images/red-zerowidth.svg');
-      xhr.responseType = 'blob';
-      xhr.send();
-      xhr.onload = function() {
-        resolve(xhr.response);
-      };
-    });
-    promise.then(function(response) {
-      createImageBitmap(response).then(bitmap => {
-        ctx.drawImage(bitmap, 0, 0, 100, 50);
-        _assertPixel(canvas, 50,25, 0,255,0,255);
-      });
-    });
+    const response = await fetch('/images/red-zerowidth.svg');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 0, 0, 100, 50);
+    _assertPixel(canvas, 50,25, 0,255,0,255);
   expected: green
 
 - name: 2d.drawImage.negativesource
@@ -519,7 +509,7 @@
 
 - name: 2d.drawImage.outsidesource
   DISABLED: fix this to match the current spec (transparent black outside source)
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     const response_red = await fetch('/images/red.png');
     const blob_red = await response_red.blob();
@@ -572,23 +562,13 @@
 - name: 2d.drawImage.svg
   desc: drawImage() of an SVG image
   test_type: promise
-  canvasType: ['OffscreenCanvas']
+  canvasType: ['OffscreenCanvas', 'Worker']
   code: |
-    var promise = new Promise(function(resolve, reject) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", '/images/green.svg');
-      xhr.responseType = 'blob';
-      xhr.send();
-      xhr.onload = function() {
-        resolve(xhr.response);
-      };
-    });
-    promise.then(function(response) {
-      createImageBitmap(response).then(bitmap => {
-        ctx.drawImage(bitmap, 0, 0);
-        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-      });
-    });
+    const response = await fetch('/images/green.svg');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 0, 0);
+    _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
   expected: green
 
 - name: 2d.drawImage.animated.poster

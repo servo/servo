@@ -5,13 +5,13 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/largest-contentful-paint-helpers.js"></script>
-<img src='/images/green-1x1.png' id='image_id' width="133" height="106"/>
+<img src='/images/lcp-1x1.png' id='image_id' width="133" height="106"/>
 <script>
   async_test(function (t) {
     assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     let beforeLoad = performance.now();
-    document.getElementById('image_id').src = '/images/blue.png';
-    const url = window.location.origin + '/images/blue.png';
+    document.getElementById('image_id').src = '/images/lcp-133x106.png';
+    const url = window.location.origin + '/images/lcp-133x106.png';
     const observer = new PerformanceObserver(
       t.step_func(function(entryList) {
         let entries = entryList.getEntries().filter(e => e.url === url);
@@ -19,7 +19,6 @@
           return;
         assert_equals(entries.length, 1);
         const entry = entries[0];
-        // blue.png is 133 by 106.
         const size = 133 * 106;
         checkImage(entry, url, 'image_id', size, beforeLoad);
         t.done();

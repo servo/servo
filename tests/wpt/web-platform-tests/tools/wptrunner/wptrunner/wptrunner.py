@@ -267,8 +267,11 @@ def run_test_iteration(test_status, test_loader, test_source_kwargs, test_source
                 handle_interrupt_signals()
                 manager_group.run(tests_to_run)
             except KeyboardInterrupt:
-                logger.critical("Main thread got signal")
+                logger.critical(
+                    "Main thread got signal; "
+                    "waiting for TestRunnerManager threads to exit.")
                 manager_group.stop()
+                manager_group.wait(timeout=10)
                 raise
 
             test_status.total_tests += manager_group.test_count()
@@ -277,10 +280,9 @@ def run_test_iteration(test_status, test_loader, test_source_kwargs, test_source
 
     test_status.unexpected += len(unexpected_tests)
     test_status.unexpected_pass += len(unexpected_pass_tests)
-
     logger.suite_end()
-
     return True
+
 
 def handle_interrupt_signals():
     def termination_handler(_signum, _unused_frame):

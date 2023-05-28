@@ -13,15 +13,14 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-ctx.font = '20px serif';
-_assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
+  ctx.font = '20px serif';
+  _assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
 
-ctx.font = '20PX   SERIF';
-_assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
-t.done();
-
+  ctx.font = '20PX   SERIF';
+  _assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
+  t.done();
 });
 done();

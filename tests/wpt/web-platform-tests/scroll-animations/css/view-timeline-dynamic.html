@@ -14,7 +14,6 @@
     overflow: hidden;
     width: 100px;
     height: 100px;
-    view-timeline: --t1 defer;
   }
   .scroller > div {
     height: 100px;
@@ -43,10 +42,13 @@
   }
 </script>
 
-<template id=dynamic_view_timeline_name>
+<template id=dynamic_view_timeline_attachment>
   <style>
+    #scroller {
+      timeline-scope: --t1;
+    }
     .timeline {
-      view-timeline: --t1 ancestor;
+      view-timeline: --t1;
     }
     #target {
       animation: anim 1s linear;
@@ -62,7 +64,7 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, dynamic_view_timeline_name);
+    inflate(t, dynamic_view_timeline_attachment);
 
     await scrollTop(scroller, 50);
 
@@ -97,16 +99,16 @@
     div25.classList.add('timeline');
     await waitForCSSScrollTimelineStyle();
     assert_equals(getComputedStyle(target).zIndex, '75', 'div25 again');
-  }, 'Dynamically changing view-timeline-name');
+  }, 'Dynamically changing view-timeline attachment');
 </script>
 
 <template id=dynamic_view_timeline_axis>
   <style>
     #timeline {
+      view-timeline: --t1;
       width: 100px;
       height: 100px;
       margin: 100px;
-      view-timeline: --t1 ancestor;
     }
     #target {
       animation: anim 1s linear;
@@ -114,8 +116,9 @@
     }
   </style>
   <div id=scroller class=scroller>
-    <div id=timeline style="background: red;"></div>
-    <div id=target></div>
+    <div id=timeline style="background: red;">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -138,7 +141,7 @@
       width: 100px;
       height: 100px;
       margin: 100px;
-      view-timeline: --t1 ancestor;
+      view-timeline: --t1;
     }
     #target {
       animation: anim 1s linear;
@@ -146,8 +149,9 @@
     }
   </style>
   <div id=scroller class=scroller>
-    <div id=timeline style="background: red;"></div>
-    <div id=target></div>
+    <div id=timeline style="background: red;">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -165,8 +169,11 @@
 
 <template id=timeline_display_none>
   <style>
+    #scroller {
+      timeline-scope: --t1;
+    }
     #timeline {
-      view-timeline: --t1 ancestor;
+      view-timeline: --t1;
     }
     #target {
       animation: anim 1s linear;
@@ -189,5 +196,5 @@
     await waitForNextFrame();
     // The timeline became inactive.
     assert_equals(getComputedStyle(target).zIndex, '-1', 'display:none');
-  }, 'Element with view-timeline becoming display:none');
+  }, 'Element with scoped view-timeline becoming display:none');
 </script>

@@ -28,6 +28,9 @@ function integrity(desc, url, integrity, initRequestMode, shouldPass) {
 const topSha256 = "sha256-KHIDZcXnR2oBHk9DrAA+5fFiR6JjudYjqoXtMR1zvzk=";
 const topSha384 = "sha384-MgZYnnAzPM/MjhqfOIMfQK5qcFvGZsGLzx4Phd7/A8fHTqqLqXqKo8cNzY3xEPTL";
 const topSha512 = "sha512-D6yns0qxG0E7+TwkevZ4Jt5t7Iy3ugmAajG/dlf6Pado1JqTyneKXICDiqFIkLMRExgtvg8PlxbKTkYfRejSOg==";
+const topSha512wrongpadding = "sha512-D6yns0qxG0E7+TwkevZ4Jt5t7Iy3ugmAajG/dlf6Pado1JqTyneKXICDiqFIkLMRExgtvg8PlxbKTkYfRejSOg";
+const topSha512base64url = "sha512-D6yns0qxG0E7-TwkevZ4Jt5t7Iy3ugmAajG_dlf6Pado1JqTyneKXICDiqFIkLMRExgtvg8PlxbKTkYfRejSOg==";
+const topSha512base64url_nopadding = "sha512-D6yns0qxG0E7-TwkevZ4Jt5t7Iy3ugmAajG_dlf6Pado1JqTyneKXICDiqFIkLMRExgtvg8PlxbKTkYfRejSOg";
 const invalidSha256 = "sha256-dKUcPOn/AlUjWIwcHeHNqYXPlvyGiq+2dWOdFcE+24I=";
 const invalidSha512 = "sha512-oUceBRNxPxnY60g/VtPCj2syT4wo4EZh2CgYdWy9veW8+OsReTXoh7dizMGZafvx9+QhMS39L/gIkxnPIn41Zg==";
 
@@ -38,13 +41,20 @@ const corsUrl =
 const corsUrl2 = `https://{{host}}:{{ports[https][0]}}${path}`
 
 integrity("Empty string integrity", url, "", /* initRequestMode */ undefined,
-          /* shouldPass */ true);
+         /* shouldPass */ true);
 integrity("SHA-256 integrity", url, topSha256, /* initRequestMode */ undefined,
           /* shouldPass */ true);
 integrity("SHA-384 integrity", url, topSha384, /* initRequestMode */ undefined,
           /* shouldPass */ true);
 integrity("SHA-512 integrity", url, topSha512, /* initRequestMode */ undefined,
           /* shouldPass */ true);
+integrity("SHA-512 integrity with missing padding", url, topSha512wrongpadding,
+          /* initRequestMode */ undefined, /* shouldPass */ true);
+integrity("SHA-512 integrity base64url encoded", url, topSha512base64url,
+           /* initRequestMode */ undefined, /* shouldPass */ true);
+integrity("SHA-512 integrity base64url encoded with missing padding", url,
+            topSha512base64url_nopadding, /* initRequestMode */ undefined,
+            /* shouldPass */ true);
 integrity("Invalid integrity", url, invalidSha256,
           /* initRequestMode */ undefined, /* shouldPass */  false);
 integrity("Multiple integrities: valid stronger than invalid", url,

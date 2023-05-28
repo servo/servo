@@ -19,15 +19,14 @@
 var t = async_test("Interface methods can be added");
 _addTest(function(canvas, ctx) {
 
-window.CanvasRenderingContext2D.prototype.fillRectGreen = function (x, y, w, h)
-{
-    this.fillStyle = '#0f0';
-    this.fillRect(x, y, w, h);
-};
-ctx.fillStyle = '#f00';
-ctx.fillRectGreen(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255);
-
+  window.CanvasRenderingContext2D.prototype.fillRectGreen = function (x, y, w, h)
+  {
+      this.fillStyle = '#0f0';
+      this.fillRect(x, y, w, h);
+  };
+  ctx.fillStyle = '#f00';
+  ctx.fillRectGreen(0, 0, 100, 50);
+  _assertPixel(canvas, 50,25, 0,255,0,255);
 
 });
 </script>

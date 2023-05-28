@@ -35,8 +35,15 @@
     <bdo dir="auto" id=bdo3>HEBREW</bdo>
     <bdo dir="auto" id=bdo4>إيان</bdo>
     <bdo dir="ltr" id=bdo5>עברית</bdo>
+    <textarea dir="auto" id="ta1">إيان</textarea>
+    <textarea dir="auto" id="ta2">HEBREWإيان</textarea>
+    <textarea dir="auto" id="ta3">إيان</textarea>
+    <pre dir="auto" id="pre1">إيان</pre>
+    <pre dir="auto" id="pre2">HEBREWإيان</pre>
 
     <script id=script4>
+      ta3.value = "HEBREW";
+
       const rtlElements = [
         "bdo1",
         "bdi2",
@@ -46,6 +53,8 @@
         "span7",
         "input-tel3",
         "bdo4",
+        "ta1",
+        "pre1",
       ];
 
       testSelectorIdsMatch(":dir(rtl)", rtlElements, "':dir(rtl)' matches all elements whose directionality is 'rtl'.");
@@ -74,6 +83,9 @@
         "input-tel2",
         "bdo3",
         "bdo5",
+        "ta2",
+        "ta3",
+        "pre2",
         "script4",
       ];
 

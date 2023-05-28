@@ -11,10 +11,7 @@
   test(() => {
     assert_equals(getComputedStyle(dialog).overlay, "none",
                   "Computed overlay");
-    // dialog::backdrop {} UA rule always sets overlay to 'auto' even if
-    // ::backdrop pseudo is not generated. ::backdrop is only generated when the
-    // dialog is in the top layer.
-    assert_equals(getComputedStyle(dialog, "::backdrop").overlay, "auto",
+    assert_equals(getComputedStyle(dialog, "::backdrop").overlay, "none",
                   "Computed overlay for ::backdrop");
   }, "dialog computed overlay initially 'none'");
 
@@ -23,15 +20,17 @@
 
     assert_equals(getComputedStyle(dialog).overlay, "auto",
                   "Computed overlay on open dialog");
-    assert_equals(getComputedStyle(dialog, "::backdrop").overlay, "auto",
+    // ::backdrop pseudo element is always rendered in the top layer when its
+    // originating element is. It does not get its overlay property changed,
+    // though.
+    assert_equals(getComputedStyle(dialog, "::backdrop").overlay, "none",
                   "Computed overlay for ::backdrop");
 
     dialog.close();
 
     assert_equals(getComputedStyle(dialog).overlay, "none",
                   "Computed overlay on closed dialog");
-    // ::backdrop is always overlay:auto. See comment above.
-    assert_equals(getComputedStyle(dialog, "::backdrop").overlay, "auto",
+    assert_equals(getComputedStyle(dialog, "::backdrop").overlay, "none",
                   "Computed overlay for ::backdrop");
   }, "Opening and closing a modal dialog changes computed overlay to 'auto' and back to 'none'");
 </script>

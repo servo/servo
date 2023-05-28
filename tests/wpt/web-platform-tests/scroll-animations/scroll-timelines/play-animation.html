@@ -26,48 +26,104 @@
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
-  animation.currentTime = CSSNumericValue.parse("10%");
-  assert_percents_equal(animation.currentTime, 10);
+  assert_equals(animation.startTime, null);
+  await animation.ready;
+  assert_percents_equal(animation.startTime, 0);
+
+  animation.cancel();
+  const scroller = animation.timeline.source;
+  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  scroller.scrollTop = maxScroll / 2;
   animation.play();
-  assert_percents_equal(animation.currentTime, 10);
-}, 'Playing a running animation leaves the current time unchanged');
+  await animation.ready;
+  assert_percents_equal(animation.currentTime, 50);
+
+}, 'Playing an animations aligns the start time with the start of the active ' +
+   'range');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
+  animation.playbackRate = -1;
+  animation.play();
+  await animation.ready;
+  assert_percents_equal(animation.startTime, 100);
+}, 'Playing an animations with a negative playback rate aligns the start ' +
+   'time with the end of the active range');
+
+promise_test(async t => {
+  const animation = createScrollLinkedAnimation(t);
+  animation.play();
+  animation.startTime = CSSNumericValue.parse("10%");
+  await animation.ready;
+  assert_percents_equal(animation.startTime, 10);
+}, 'Start time set while play pending is preserved.');
+
+promise_test(async t => {
+  const animation = createScrollLinkedAnimation(t);
+  animation.play();
+  animation.currentTime = CSSNumericValue.parse("10%");
+  await animation.ready;
+  assert_percents_equal(animation.currentTime, 10);
+}, 'Current time set while play pending is preserved.');
+
+promise_test(async t => {
+  const animation = createScrollLinkedAnimation(t);
+  animation.play();
+  await animation.ready;
+  animation.currentTime = CSSNumericValue.parse("10%");
+  assert_percents_equal(animation.currentTime, 10);
+  animation.play();
+  await animation.ready;
+  assert_percents_equal(animation.currentTime, 0);
+}, 'Playing a running animation resets a sticky start time');
+
+promise_test(async t => {
+  const animation = createScrollLinkedAnimation(t);
   animation.play();
   animation.finish();
   assert_percents_equal(animation.currentTime, 100);
   animation.play();
+  await animation.ready;
   assert_percents_equal(animation.currentTime, 0);
-}, 'Playing a finished animation seeks back to the start');
+}, 'Playing a finished animation restarts the animation aligned at the start');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   animation.playbackRate = -1;
   animation.currentTime = CSSNumericValue.parse("0%");
   assert_percents_equal(animation.currentTime, 0);
   animation.play();
+  await animation.ready;
+
   assert_percents_equal(animation.currentTime, 100);
-}, 'Playing a finished and reversed animation seeks to end');
+}, 'Playing a finished and reversed animation restarts the animation aligned ' +
+   'at the end');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   animation.finish();
+  await animation.finished;
+
+  // Start time is now sticky since modified by an explicit API call.
+  // All current time calculations will be based on the new start time
+  // while running.
+  assert_percents_equal(animation.startTime, -100,
+                        'start time when finished');
+  assert_percents_equal(animation.currentTime, 100,
+                        'current time when finished');
+
+  const scroller = animation.timeline.source;
+  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  scroller.scrollTop = maxScroll / 2;
+  await waitForNextFrame();
+  assert_percents_equal(animation.startTime, -100,
+                        'start time after scrolling a finished animation');
+  // Clamped at effect end time.
+  assert_percents_equal(animation.currentTime, 100,
+                        'current time after scrolling a finished animation');
 
   // Initiate a pause then abort it
   animation.pause();
@@ -76,30 +132,29 @@ promise_test(async t => {
   // Wait to return to running state
   await animation.ready;
 
-  assert_percents_equal(animation.currentTime, 0,
-      'After aborting a pause when finished, the current time should jump ' +
-      'back to the start of the animation');
-}, 'Playing a pause-pending but previously finished animation seeks back to'
-   + ' to the start');
+  assert_percents_equal(animation.startTime, 0,
+      'After aborting a pause when finished, the start time should no ' +
+      'longer be sticky');
+  assert_percents_equal(animation.currentTime, 50,
+      'After aborting a pause when finished, the current time should realign ' +
+      'with the scroll position');
+}, 'Playing a pause-pending but previously finished animation realigns'
+   + ' with the scroll position');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   animation.finish();
   await animation.ready;
 
   animation.play();
+  assert_equals(animation.startTime, null);
+  await animation.ready;
   assert_percents_equal(animation.startTime, 0, 'start time is zero');
 }, 'Playing a finished animation clears the start time');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   animation.cancel();
   const promise = animation.ready;
@@ -110,9 +165,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   const promise = animation.ready;
   const promiseResult = await promise;
@@ -123,31 +175,25 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   animation.currentTime = CSSNumericValue.parse("50%");
   await animation.ready;
 
+  assert_percents_equal(animation.currentTime, 50);
+
   animation.pause();
   await animation.ready;
 
-  const holdTime = animation.currentTime;
+  assert_percents_equal(animation.currentTime, 50);
 
   animation.play();
   await animation.ready;
 
-  assert_percents_equal(
-      animation.startTime,
-      animation.timeline.currentTime.value - holdTime.value);
-}, 'Resuming an animation from paused calculates start time from hold time');
+  assert_percents_equal(animation.startTime, 0);
+}, 'Resuming an animation from paused realigns with scroll position.');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   await animation.ready;
 
@@ -171,29 +217,29 @@ promise_test(async t => {
 promise_test(async t => {
   // Seek animation beyond target end
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   animation.currentTime = CSSNumericValue.parse("-100%");
   await animation.ready;
+  assert_percents_equal(animation.currentTime, -100);
 
   // Set pending playback rate to the opposite direction
   animation.updatePlaybackRate(-1);
   assert_true(animation.pending);
+  // Note: Updating the playback rate calls play without rewind. For a
+  // scroll-timeline, this will immediately apply the playback rate.
+  // TODO: Determine if we should defer applying the new playback rate.
   assert_equals(animation.playbackRate, 1);
 
-  // When we play, we should seek to the target end, NOT to zero (which
+  // When we play, we should align to the target end, NOT to zero (which
   // is where we would seek to if we used the playbackRate of 1.
   animation.play();
+  await animation.ready;
+  assert_percents_equal(animation.startTime, 100);
   assert_percents_equal(animation.currentTime, 100);
-}, 'A pending playback rate is used when determining auto-rewind behavior');
+}, 'A pending playback rate is used when determining timeline range alignment');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   animation.cancel();
   assert_equals(animation.startTime, null,
@@ -211,9 +257,6 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
   animation.play();
   animation.playbackRate = -1;
   animation.cancel();

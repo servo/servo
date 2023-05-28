@@ -17,34 +17,34 @@ typedef DOMString Base64URLString;
 typedef (RegistrationResponseJSON or AuthenticationResponseJSON) PublicKeyCredentialJSON;
 
 dictionary RegistrationResponseJSON {
-    Base64URLString id;
-    Base64URLString rawId;
-    AuthenticatorAttestationResponseJSON response;
-    DOMString? authenticatorAttachment;
-    AuthenticationExtensionsClientOutputsJSON clientExtensionResults;
-    DOMString type;
+    required Base64URLString id;
+    required Base64URLString rawId;
+    required AuthenticatorAttestationResponseJSON response;
+    DOMString authenticatorAttachment;
+    required AuthenticationExtensionsClientOutputsJSON clientExtensionResults;
+    required DOMString type;
 };
 
 dictionary AuthenticatorAttestationResponseJSON {
-    Base64URLString clientDataJSON;
-    Base64URLString attestationObject;
-    sequence<DOMString> transports;
+    required Base64URLString clientDataJSON;
+    required Base64URLString attestationObject;
+    required sequence<DOMString> transports;
 };
 
 dictionary AuthenticationResponseJSON {
-    Base64URLString id;
-    Base64URLString rawId;
-    AuthenticatorAssertionResponseJSON response;
-    DOMString? authenticatorAttachment;
-    AuthenticationExtensionsClientOutputsJSON clientExtensionResults;
-    DOMString type;
+    required Base64URLString id;
+    required Base64URLString rawId;
+    required AuthenticatorAssertionResponseJSON response;
+    DOMString authenticatorAttachment;
+    required AuthenticationExtensionsClientOutputsJSON clientExtensionResults;
+    required DOMString type;
 };
 
 dictionary AuthenticatorAssertionResponseJSON {
-    Base64URLString clientDataJSON;
-    Base64URLString authenticatorData;
-    Base64URLString signature;
-    Base64URLString? userHandle;
+    required Base64URLString clientDataJSON;
+    required Base64URLString authenticatorData;
+    required Base64URLString signature;
+    Base64URLString userHandle;
 };
 
 dictionary AuthenticationExtensionsClientOutputsJSON {

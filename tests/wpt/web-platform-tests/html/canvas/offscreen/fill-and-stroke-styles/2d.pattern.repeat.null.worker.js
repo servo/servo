@@ -13,11 +13,10 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-_assert(ctx.createPattern(canvas, null) != null, "ctx.createPattern(canvas, null) != null");
-t.done();
-
+  _assert(ctx.createPattern(canvas, null) != null, "ctx.createPattern(canvas, null) != null");
+  t.done();
 });
 done();

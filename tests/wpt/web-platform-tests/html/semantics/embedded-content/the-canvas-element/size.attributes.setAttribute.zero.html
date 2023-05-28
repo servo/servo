@@ -19,14 +19,13 @@
 var t = async_test("Parsing of non-negative integers in setAttribute");
 _addTest(function(canvas, ctx) {
 
-canvas.setAttribute('width', '0');
-canvas.setAttribute('height', '0');
-_assertSame(canvas.width, 0, "canvas.width", "0");
-_assertSame(canvas.height, 0, "canvas.height", "0");
-_assertSame(window.getComputedStyle(canvas, null).getPropertyValue("width"), "0px", "window.getComputedStyle(canvas, null).getPropertyValue(\"width\")", "\"0px\"");
-_assertSame(canvas.getAttribute('width'), '0', "canvas.getAttribute('width')", "'0'");
-_assertSame(canvas.getAttribute('height'), '0', "canvas.getAttribute('height')", "'0'");
-
+  canvas.setAttribute('width', '0');
+  canvas.setAttribute('height', '0');
+  _assertSame(canvas.width, 0, "canvas.width", "0");
+  _assertSame(canvas.height, 0, "canvas.height", "0");
+  _assertSame(window.getComputedStyle(canvas, null).getPropertyValue("width"), "0px", "window.getComputedStyle(canvas, null).getPropertyValue(\"width\")", "\"0px\"");
+  _assertSame(canvas.getAttribute('width'), '0', "canvas.getAttribute('width')", "'0'");
+  _assertSame(canvas.getAttribute('height'), '0', "canvas.getAttribute('height')", "'0'");
 
 });
 </script>

@@ -50,8 +50,6 @@
   async function runTest() {
     await waitForCompositorReady();
 
-    const anim = target.getAnimations()[0];
-
     // Scroll to exit 60%.
     scroller.scrollTop = 860;
     await waitForNextFrame();

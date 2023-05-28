@@ -13,16 +13,15 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var canvas = new OffscreenCanvas(100, 50);
-var ctx = canvas.getContext('2d');
+  var canvas = new OffscreenCanvas(100, 50);
+  var ctx = canvas.getContext('2d');
 
-_assertDifferent(canvas.getContext('2d', false, {}, [], 1, "2"), null, "canvas.getContext('2d', false, {}, [], 1, \"2\")", "null");
-_assertDifferent(canvas.getContext('2d', 123), null, "canvas.getContext('2d', 123)", "null");
-_assertDifferent(canvas.getContext('2d', "test"), null, "canvas.getContext('2d', \"test\")", "null");
-_assertDifferent(canvas.getContext('2d', undefined), null, "canvas.getContext('2d', undefined)", "null");
-_assertDifferent(canvas.getContext('2d', null), null, "canvas.getContext('2d', null)", "null");
-_assertDifferent(canvas.getContext('2d', Symbol.hasInstance), null, "canvas.getContext('2d', Symbol.hasInstance)", "null");
-t.done();
-
+  _assertDifferent(canvas.getContext('2d', false, {}, [], 1, "2"), null, "canvas.getContext('2d', false, {}, [], 1, \"2\")", "null");
+  _assertDifferent(canvas.getContext('2d', 123), null, "canvas.getContext('2d', 123)", "null");
+  _assertDifferent(canvas.getContext('2d', "test"), null, "canvas.getContext('2d', \"test\")", "null");
+  _assertDifferent(canvas.getContext('2d', undefined), null, "canvas.getContext('2d', undefined)", "null");
+  _assertDifferent(canvas.getContext('2d', null), null, "canvas.getContext('2d', null)", "null");
+  _assertDifferent(canvas.getContext('2d', Symbol.hasInstance), null, "canvas.getContext('2d', Symbol.hasInstance)", "null");
+  t.done();
 });
 done();

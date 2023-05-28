@@ -32,10 +32,7 @@
       "resources": [
         "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/no-corp.js",
         "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp-same-origin.js",
-        "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp-cross-origin.js",
-        "uuid-in-package:5eafff38-e0a0-4661-bde0-434255aa9d93",
-        "uuid-in-package:7e13b47a-8b91-4a0e-997c-993a5e2f3a34",
-        "uuid-in-package:86d5b696-8867-4454-8b07-51239a0817f7"
+        "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp-cross-origin.js"
       ]
     }
   </script>
@@ -64,11 +61,6 @@
 
     const prefix =
       "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/";
-    const no_corp_url = "uuid-in-package:5eafff38-e0a0-4661-bde0-434255aa9d93";
-    const corp_same_origin_url =
-      "uuid-in-package:7e13b47a-8b91-4a0e-997c-993a5e2f3a34";
-    const corp_cross_origin_url =
-      "uuid-in-package:86d5b696-8867-4454-8b07-51239a0817f7";
 
     promise_test(async () => {
       const report = await expectCOEPReport(async () => {
@@ -88,40 +80,5 @@
       await addScriptAndWaitForExecution(prefix + "corp-cross-origin.js");
     }, "Cross-origin subresource with Cross-Origin-Resource-Policy: cross-origin should be loaded.");
 
-    promise_test(async () => {
-      const report = await expectCOEPReport(async () => {
-        const iframe = document.createElement("iframe");
-        iframe.src = no_corp_url;
-        document.body.appendChild(iframe);
-      });
-
-      assert_equals(report.body.blockedURL, no_corp_url);
-      assert_equals(report.body.type, "corp");
-      assert_equals(report.body.disposition, "enforce");
-      assert_equals(report.body.destination, "iframe");
-    }, "uuid-in-package iframe without Cross-Origin-Resource-Policy: header should be blocked and generate a report.");
-
-    promise_test(async () => {
-      const report = await expectCOEPReport(async () => {
-        const iframe = document.createElement("iframe");
-        iframe.src = corp_same_origin_url;
-        document.body.appendChild(iframe);
-      });
-
-      assert_equals(report.body.blockedURL, corp_same_origin_url);
-      assert_equals(report.body.type, "corp");
-      assert_equals(report.body.disposition, "enforce");
-      assert_equals(report.body.destination, "iframe");
-    }, "uuid-in-package iframe with Cross-Origin-Resource-Policy: same-origin should be blocked and generate a report.");
-
-    promise_test(async () => {
-      const iframe = document.createElement("iframe");
-      iframe.src = corp_cross_origin_url;
-      await addElementAndWaitForLoad(iframe);
-      assert_equals(
-        await evalInIframe(iframe, "location.href"),
-        corp_cross_origin_url
-      );
-    }, "uuid-in-package iframe with Cross-Origin-Resource-Policy: cross-origin should not be blocked.");
   </script>
 </body>

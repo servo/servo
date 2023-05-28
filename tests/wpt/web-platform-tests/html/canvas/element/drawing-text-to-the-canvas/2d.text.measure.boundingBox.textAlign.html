@@ -19,14 +19,13 @@
 var t = async_test("Measurement should be related to textAlignment");
 _addTest(function(canvas, ctx) {
 
-ctx.textAlign = "right";
-metrics = ctx.measureText('hello');
-_assert(metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight");
+  ctx.textAlign = "right";
+  metrics = ctx.measureText('hello');
+  _assert(metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight");
 
-ctx.textAlign = "left"
-metrics = ctx.measureText('hello');
-_assert(metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight");
-
+  ctx.textAlign = "left"
+  metrics = ctx.measureText('hello');
+  _assert(metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight, "metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight");
 
 });
 </script>

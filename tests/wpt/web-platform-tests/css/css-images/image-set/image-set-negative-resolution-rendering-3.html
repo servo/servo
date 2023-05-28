@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Image set negative resolution rendering</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
+<link rel="match" href="/css/reference/blank.html">
+<meta name="assert" content="image-set rendering with negative resolution">
+<style>
+  #test {
+    background-image: url("/images/red.png");
+    background-image: image-set(url("/images/red.png") calc(-1 * 1x));
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="test"></div>
