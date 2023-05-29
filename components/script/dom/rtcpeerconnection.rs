@@ -18,7 +18,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
@@ -41,7 +41,7 @@ use crate::task::TaskCanceller;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-
+use js::rust::HandleObject;
 use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
 use servo_media::webrtc::{
@@ -193,8 +193,8 @@ impl RTCPeerConnection {
         }
     }
 
-    pub fn new(global: &GlobalScope, config: &RTCConfiguration) -> DomRoot<RTCPeerConnection> {
-        let this = reflect_dom_object(Box::new(RTCPeerConnection::new_inherited()), global);
+    fn new(global: &GlobalScope, proto: Option<HandleObject>, config: &RTCConfiguration) -> DomRoot<RTCPeerConnection> {
+        let this = reflect_dom_object2(Box::new(RTCPeerConnection::new_inherited()), global, proto);
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));
         if let Some(ref servers) = config.iceServers {
@@ -223,9 +223,10 @@ impl RTCPeerConnection {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         config: &RTCConfiguration,
     ) -> Fallible<DomRoot<RTCPeerConnection>> {
-        Ok(RTCPeerConnection::new(&window.global(), config))
+        Ok(RTCPeerConnection::new(&window.global(), proto, config))
     }
 
     pub fn get_webrtc_controller(&self) -> &DomRefCell<Option<WebRtcController>> {
@@ -638,7 +639,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
                             // dance between pending/current local/remote descriptions
                             let this = this.root();
                             let desc = desc.into();
-                            let desc = RTCSessionDescription::Constructor(&this.global().as_window(), &desc).unwrap();
+                            let desc = RTCSessionDescription::Constructor(&this.global().as_window(), None, &desc).unwrap();
                             this.local_description.set(Some(&desc));
                             trusted_promise.root().resolve_native(&())
                         }),
@@ -671,7 +672,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
                             // dance between pending/current local/remote descriptions
                             let this = this.root();
                             let desc = desc.into();
-                            let desc = RTCSessionDescription::Constructor(&this.global().as_window(), &desc).unwrap();
+                            let desc = RTCSessionDescription::Constructor(&this.global().as_window(), None, &desc).unwrap();
                             this.remote_description.set(Some(&desc));
                             trusted_promise.root().resolve_native(&())
                         }),

@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelEventBinding::RTCDataChannelEventInit;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelEventBinding::RTCDataChannelEventMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -14,6 +14,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcdatachannel::RTCDataChannel;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 
 #[dom_struct]
@@ -37,9 +38,21 @@ impl RTCDataChannelEvent {
         cancelable: bool,
         channel: &RTCDataChannel,
     ) -> DomRoot<RTCDataChannelEvent> {
-        let event = reflect_dom_object(
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, channel)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        channel: &RTCDataChannel,
+    ) -> DomRoot<RTCDataChannelEvent> {
+        let event = reflect_dom_object2(
             Box::new(RTCDataChannelEvent::new_inherited(&channel)),
             global,
+            proto,
         );
         {
             let event = event.upcast::<Event>();
@@ -51,11 +64,13 @@ impl RTCDataChannelEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &RTCDataChannelEventInit,
     ) -> DomRoot<RTCDataChannelEvent> {
-        RTCDataChannelEvent::new(
+        RTCDataChannelEvent::new_with_proto(
             &window.global(),
+            proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,

@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethod
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -18,7 +18,7 @@ use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
-use js::rust::HandleValue;
+use js::rust::{HandleObject, HandleValue};
 use servo_atoms::Atom;
 use std::cell::Cell;
 
@@ -45,8 +45,8 @@ impl ErrorEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<ErrorEvent> {
-        reflect_dom_object(Box::new(ErrorEvent::new_inherited()), global)
+    fn new_uninitialized(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<ErrorEvent> {
+        reflect_dom_object2(Box::new(ErrorEvent::new_inherited()), global, proto)
     }
 
     pub fn new(
@@ -60,7 +60,33 @@ impl ErrorEvent {
         colno: u32,
         error: HandleValue,
     ) -> DomRoot<ErrorEvent> {
-        let ev = ErrorEvent::new_uninitialized(global);
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            message,
+            filename,
+            lineno,
+            colno,
+            error,
+        )
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        message: DOMString,
+        filename: DOMString,
+        lineno: u32,
+        colno: u32,
+        error: HandleValue,
+    ) -> DomRoot<ErrorEvent> {
+        let ev = ErrorEvent::new_uninitialized(global, proto);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -76,6 +102,7 @@ impl ErrorEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: RootedTraceableBox<ErrorEventBinding::ErrorEventInit>,
     ) -> Fallible<DomRoot<ErrorEvent>> {
@@ -97,8 +124,9 @@ impl ErrorEvent {
 
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
-        let event = ErrorEvent::new(
+        let event = ErrorEvent::new_with_proto(
             global,
+            proto,
             Atom::from(type_),
             bubbles,
             cancelable,

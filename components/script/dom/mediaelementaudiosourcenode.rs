@@ -7,11 +7,12 @@ use crate::dom::audionode::AudioNode;
 use crate::dom::bindings::codegen::Bindings::MediaElementAudioSourceNodeBinding::MediaElementAudioSourceNodeMethods;
 use crate::dom::bindings::codegen::Bindings::MediaElementAudioSourceNodeBinding::MediaElementAudioSourceOptions;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_media::audio::media_element_source_node::MediaElementSourceNodeMessage;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 use std::sync::mpsc;
@@ -48,23 +49,33 @@ impl MediaElementAudioSourceNode {
         })
     }
 
-    #[allow(unrooted_must_root)]
     pub fn new(
         window: &Window,
         context: &AudioContext,
         media_element: &HTMLMediaElement,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
+        Self::new_with_proto(window, None, context, media_element)
+    }
+
+    #[allow(unrooted_must_root)]
+    fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        context: &AudioContext,
+        media_element: &HTMLMediaElement,
+    ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
         let node = MediaElementAudioSourceNode::new_inherited(context, media_element)?;
-        Ok(reflect_dom_object(Box::new(node), window))
+        Ok(reflect_dom_object2(Box::new(node), window, proto))
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         context: &AudioContext,
         options: &MediaElementAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        MediaElementAudioSourceNode::new(window, context, &*options.mediaElement)
+        MediaElementAudioSourceNode::new_with_proto(window, proto, context, &*options.mediaElement)
     }
 }
 

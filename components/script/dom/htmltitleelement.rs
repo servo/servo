@@ -13,6 +13,7 @@ use crate::dom::node::{BindContext, ChildrenMutation, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLTitleElement {
@@ -35,12 +36,14 @@ impl HTMLTitleElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTitleElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLTitleElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 }

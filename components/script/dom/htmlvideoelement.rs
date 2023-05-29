@@ -26,6 +26,7 @@ use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js::rust::HandleObject;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
     UsePlaceholder,
@@ -84,12 +85,14 @@ impl HTMLVideoElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLVideoElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLVideoElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 

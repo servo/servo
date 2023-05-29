@@ -7,13 +7,14 @@ use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct RTCSessionDescription {
@@ -31,24 +32,28 @@ impl RTCSessionDescription {
         }
     }
 
-    pub fn new(
+    fn new(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         ty: RTCSdpType,
         sdp: DOMString,
     ) -> DomRoot<RTCSessionDescription> {
-        reflect_dom_object(
+        reflect_dom_object2(
             Box::new(RTCSessionDescription::new_inherited(ty, sdp)),
             global,
+            proto,
         )
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         config: &RTCSessionDescriptionInit,
     ) -> Fallible<DomRoot<RTCSessionDescription>> {
         Ok(RTCSessionDescription::new(
             &window.global(),
+            proto,
             config.type_,
             config.sdp.clone(),
         ))

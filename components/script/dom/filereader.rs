@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrObject;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -31,6 +31,7 @@ use encoding_rs::{Encoding, UTF_8};
 use js::jsapi::Heap;
 use js::jsapi::JSObject;
 use js::jsval::{self, JSVal};
+use js::rust::HandleObject;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime};
 use servo_atoms::Atom;
@@ -151,13 +152,13 @@ impl FileReader {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<FileReader> {
-        reflect_dom_object(Box::new(FileReader::new_inherited()), global)
+    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<FileReader> {
+        reflect_dom_object2(Box::new(FileReader::new_inherited()), global, proto)
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReader>> {
-        Ok(FileReader::new(global))
+    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>) -> Fallible<DomRoot<FileReader>> {
+        Ok(FileReader::new(global, proto))
     }
 
     //https://w3c.github.io/FileAPI/#dfn-error-steps

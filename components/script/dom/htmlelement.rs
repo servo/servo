@@ -36,6 +36,7 @@ use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use script_layout_interface::message::QueryMsg;
 use std::collections::HashSet;
 use std::default::Default;
@@ -83,10 +84,12 @@ impl HTMLElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLElement::new_inherited(local_name, prefix, document)),
             document,
+            proto,
         )
     }
 
@@ -487,7 +490,7 @@ impl HTMLElementMethods for HTMLElement {
                         text = String::new();
                     }
 
-                    let br = HTMLBRElement::new(local_name!("br"), None, &document);
+                    let br = HTMLBRElement::new(local_name!("br"), None, &document, None);
                     fragment.upcast::<Node>().AppendChild(&br.upcast()).unwrap();
                 },
                 _ => {

@@ -13,10 +13,11 @@ use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilt
 use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterOptions;
 use crate::dom::bindings::codegen::Bindings::BiquadFilterNodeBinding::BiquadFilterType;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_media::audio::biquad_filter_node::BiquadFilterNodeMessage;
 use servo_media::audio::biquad_filter_node::{BiquadFilterNodeOptions, FilterType};
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
@@ -104,23 +105,33 @@ impl BiquadFilterNode {
         })
     }
 
-    #[allow(unrooted_must_root)]
     pub fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
+        Self::new_with_proto(window, None, context, options)
+    }
+
+    #[allow(unrooted_must_root)]
+    fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        context: &BaseAudioContext,
+        options: &BiquadFilterOptions,
+    ) -> Fallible<DomRoot<BiquadFilterNode>> {
         let node = BiquadFilterNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(Box::new(node), window))
+        Ok(reflect_dom_object2(Box::new(node), window, proto))
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
-        BiquadFilterNode::new(window, context, options)
+        BiquadFilterNode::new_with_proto(window, proto, context, options)
     }
 }
 

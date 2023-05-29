@@ -6147,9 +6147,7 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
         else:
             name = self.constructor.identifier.name
             nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-            args = ["&global"]
-            if self.descriptor.interface.identifier.name == "EventTarget":
-                args += ["desired_proto.handle()"]
+            args = ["&global", "Some(desired_proto.handle())"]
             constructorCall = CGMethodCall(args, nativeName, True,
                                            self.descriptor, self.constructor)
         return CGList([preamble, constructorCall])

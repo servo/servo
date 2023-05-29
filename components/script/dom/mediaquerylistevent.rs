@@ -7,13 +7,14 @@ use crate::dom::bindings::codegen::Bindings::MediaQueryListEventBinding::MediaQu
 use crate::dom::bindings::codegen::Bindings::MediaQueryListEventBinding::MediaQueryListEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 use std::cell::Cell;
 
@@ -26,8 +27,9 @@ pub struct MediaQueryListEvent {
 }
 
 impl MediaQueryListEvent {
-    pub fn new_initialized(
+    fn new_initialized(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         media: DOMString,
         matches: bool,
     ) -> DomRoot<MediaQueryListEvent> {
@@ -36,7 +38,7 @@ impl MediaQueryListEvent {
             media: media,
             matches: Cell::new(matches),
         });
-        reflect_dom_object(ev, global)
+        reflect_dom_object2(ev, global, proto)
     }
 
     pub fn new(
@@ -47,7 +49,19 @@ impl MediaQueryListEvent {
         media: DOMString,
         matches: bool,
     ) -> DomRoot<MediaQueryListEvent> {
-        let ev = MediaQueryListEvent::new_initialized(global, media, matches);
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, media, matches)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        media: DOMString,
+        matches: bool,
+    ) -> DomRoot<MediaQueryListEvent> {
+        let ev = MediaQueryListEvent::new_initialized(global, proto, media, matches);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -58,12 +72,14 @@ impl MediaQueryListEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &MediaQueryListEventInit,
     ) -> Fallible<DomRoot<MediaQueryListEvent>> {
         let global = window.upcast::<GlobalScope>();
-        Ok(MediaQueryListEvent::new(
+        Ok(MediaQueryListEvent::new_with_proto(
             global,
+            proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,

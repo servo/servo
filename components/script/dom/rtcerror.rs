@@ -5,13 +5,14 @@
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::RTCErrorDetailType;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::RTCErrorInit;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::RTCErrorMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct RTCError {
@@ -41,19 +42,25 @@ impl RTCError {
     }
 
     pub fn new(global: &GlobalScope, init: &RTCErrorInit, message: DOMString) -> DomRoot<RTCError> {
-        reflect_dom_object(
+        Self::new_with_proto(global, None, init, message)
+    }
+
+    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, init: &RTCErrorInit, message: DOMString) -> DomRoot<RTCError> {
+        reflect_dom_object2(
             Box::new(RTCError::new_inherited(global, init, message)),
             global,
+            proto,
         )
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         init: &RTCErrorInit,
         message: DOMString,
     ) -> DomRoot<RTCError> {
-        RTCError::new(&window.global(), init, message)
+        RTCError::new_with_proto(&window.global(), proto, init, message)
     }
 }
 

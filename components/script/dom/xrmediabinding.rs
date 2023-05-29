@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaBindi
 use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaLayerInit;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::root::DomRoot;
@@ -17,6 +17,7 @@ use crate::dom::xrequirectlayer::XREquirectLayer;
 use crate::dom::xrquadlayer::XRQuadLayer;
 use crate::dom::xrsession::XRSession;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct XRMediaBinding {
@@ -32,12 +33,12 @@ impl XRMediaBinding {
         }
     }
 
-    pub fn new(global: &Window, session: &XRSession) -> DomRoot<XRMediaBinding> {
-        reflect_dom_object(Box::new(XRMediaBinding::new_inherited(session)), global)
+    fn new(global: &Window, proto: Option<HandleObject>, session: &XRSession) -> DomRoot<XRMediaBinding> {
+        reflect_dom_object2(Box::new(XRMediaBinding::new_inherited(session)), global, proto)
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &Window, session: &XRSession) -> Fallible<DomRoot<XRMediaBinding>> {
+    pub fn Constructor(global: &Window, proto: Option<HandleObject>, session: &XRSession) -> Fallible<DomRoot<XRMediaBinding>> {
         // Step 1.
         if session.is_ended() {
             return Err(Error::InvalidState);
@@ -49,7 +50,7 @@ impl XRMediaBinding {
         }
 
         // Steps 3-5.
-        Ok(XRMediaBinding::new(global, session))
+        Ok(XRMediaBinding::new(global, proto, session))
     }
 }
 

@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -30,6 +30,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
+use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FilteredMetadata};
@@ -459,10 +460,11 @@ impl EventSource {
         }
     }
 
-    fn new(global: &GlobalScope, url: ServoUrl, with_credentials: bool) -> DomRoot<EventSource> {
-        reflect_dom_object(
+    fn new(global: &GlobalScope, proto: Option<HandleObject>, url: ServoUrl, with_credentials: bool) -> DomRoot<EventSource> {
+        reflect_dom_object2(
             Box::new(EventSource::new_inherited(url, with_credentials)),
             global,
+            proto,
         )
     }
 
@@ -501,6 +503,7 @@ impl EventSource {
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         url: DOMString,
         event_source_init: &EventSourceInit,
     ) -> Fallible<DomRoot<EventSource>> {
@@ -515,6 +518,7 @@ impl EventSource {
         // Step 1, 5
         let ev = EventSource::new(
             global,
+            proto,
             url_record.clone(),
             event_source_init.withCredentials,
         );

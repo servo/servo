@@ -26,13 +26,13 @@ where
     unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, None, obj) }
 }
 
-pub fn reflect_dom_object2<T, U>(obj: Box<T>, global: &U, proto: HandleObject) -> DomRoot<T>
+pub fn reflect_dom_object2<T, U>(obj: Box<T>, global: &U, proto: Option<HandleObject>) -> DomRoot<T>
 where
     T: DomObject + DomObjectWrap,
     U: DerivedFrom<GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, Some(proto), obj) }
+    unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, proto, obj) }
 }
 
 /// A struct to store a reference to the reflector of a DOM object.

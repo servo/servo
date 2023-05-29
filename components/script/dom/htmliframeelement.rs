@@ -28,6 +28,7 @@ use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
+use js::rust::HandleObject;
 use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use profile_traits::ipc as ProfiledIpc;
 use script_layout_interface::message::ReflowGoal;
@@ -441,12 +442,14 @@ impl HTMLIFrameElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLIFrameElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLIFrameElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 

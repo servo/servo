@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::UnionTypes::EventListenerOptionsOrBoolean;
 use crate::dom::bindings::codegen::UnionTypes::EventOrString;
 use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
@@ -355,13 +355,13 @@ impl EventTarget {
         }
     }
 
-    fn new(global: &GlobalScope) -> DomRoot<EventTarget> {
-        reflect_dom_object(Box::new(EventTarget::new_inherited()), global)
+    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<EventTarget> {
+        reflect_dom_object2(Box::new(EventTarget::new_inherited()), global, proto)
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope, proto: HandleObject) -> Fallible<DomRoot<EventTarget>> {
-        Ok(reflect_dom_object2(Box::new(EventTarget::new_inherited()), global, proto))
+    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>) -> Fallible<DomRoot<EventTarget>> {
+        Ok(EventTarget::new(global, proto))
     }
 
     pub fn has_listeners_for(&self, type_: &Atom) -> bool {

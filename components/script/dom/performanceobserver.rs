@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::Perform
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::console::Console;
@@ -20,6 +20,7 @@ use crate::dom::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsval::JSVal;
+use js::rust::HandleObject;
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -63,22 +64,32 @@ impl PerformanceObserver {
         }
     }
 
-    #[allow(unrooted_must_root)]
     pub fn new(
         global: &GlobalScope,
         callback: Rc<PerformanceObserverCallback>,
         entries: DOMPerformanceEntryList,
     ) -> DomRoot<PerformanceObserver> {
+        Self::new_with_proto(global, None, callback, entries)
+    }
+
+    #[allow(unrooted_must_root)]
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        callback: Rc<PerformanceObserverCallback>,
+        entries: DOMPerformanceEntryList,
+    ) -> DomRoot<PerformanceObserver> {
         let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
-        reflect_dom_object(Box::new(observer), global)
+        reflect_dom_object2(Box::new(observer), global, proto)
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         callback: Rc<PerformanceObserverCallback>,
     ) -> Fallible<DomRoot<PerformanceObserver>> {
-        Ok(PerformanceObserver::new(global, callback, Vec::new()))
+        Ok(PerformanceObserver::new_with_proto(global, proto, callback, Vec::new()))
     }
 
     /// Buffer a new performance entry.

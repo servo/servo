@@ -4,10 +4,11 @@
 
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -30,28 +31,31 @@ impl DOMRectReadOnly {
         }
     }
 
-    pub fn new(
+    fn new(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
     ) -> DomRoot<DOMRectReadOnly> {
-        reflect_dom_object(
+        reflect_dom_object2(
             Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
             global,
+            proto,
         )
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
     ) -> Fallible<DomRoot<DOMRectReadOnly>> {
-        Ok(DOMRectReadOnly::new(global, x, y, width, height))
+        Ok(DOMRectReadOnly::new(global, proto, x, y, width, height))
     }
 
     pub fn set_x(&self, value: f64) {

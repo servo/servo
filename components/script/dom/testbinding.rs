@@ -40,7 +40,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::record::Record;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -84,22 +84,22 @@ impl TestBinding {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<TestBinding> {
-        reflect_dom_object(Box::new(TestBinding::new_inherited()), global)
+    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBinding> {
+        reflect_dom_object2(Box::new(TestBinding::new_inherited()), global, proto)
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global))
-    }
-
-    #[allow(unused_variables)]
-    pub fn Constructor_(global: &GlobalScope, nums: Vec<f64>) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global))
+    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>) -> Fallible<DomRoot<TestBinding>> {
+        Ok(TestBinding::new(global, proto))
     }
 
     #[allow(unused_variables)]
-    pub fn Constructor__(global: &GlobalScope, num: f64) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global))
+    pub fn Constructor_(global: &GlobalScope, proto: Option<HandleObject>, nums: Vec<f64>) -> Fallible<DomRoot<TestBinding>> {
+        Ok(TestBinding::new(global, proto))
+    }
+
+    #[allow(unused_variables)]
+    pub fn Constructor__(global: &GlobalScope, proto: Option<HandleObject>, num: f64) -> Fallible<DomRoot<TestBinding>> {
+        Ok(TestBinding::new(global, proto))
     }
 }
 

@@ -7,12 +7,13 @@ use crate::dom::bindings::codegen::Bindings::CompositionEventBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object2};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct CompositionEvent {
@@ -41,12 +42,35 @@ impl CompositionEvent {
         detail: i32,
         data: DOMString,
     ) -> DomRoot<CompositionEvent> {
-        let ev = reflect_dom_object(
+        Self::new_with_proto(
+            window,
+            None,
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            data,
+        )
+    }
+
+    fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        type_: DOMString,
+        can_bubble: bool,
+        cancelable: bool,
+        view: Option<&Window>,
+        detail: i32,
+        data: DOMString,
+    ) -> DomRoot<CompositionEvent> {
+        let ev = reflect_dom_object2(
             Box::new(CompositionEvent {
                 uievent: UIEvent::new_inherited(),
                 data: data,
             }),
             window,
+            proto,
         );
         ev.uievent
             .InitUIEvent(type_, can_bubble, cancelable, view, detail);
@@ -56,11 +80,13 @@ impl CompositionEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &CompositionEventBinding::CompositionEventInit,
     ) -> Fallible<DomRoot<CompositionEvent>> {
-        let event = CompositionEvent::new(
+        let event = CompositionEvent::new_with_proto(
             window,
+            proto,
             type_,
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,

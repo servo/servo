@@ -5,7 +5,7 @@
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -13,6 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
 
@@ -32,7 +33,11 @@ impl MediaStream {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<MediaStream> {
-        reflect_dom_object(Box::new(MediaStream::new_inherited()), global)
+        Self::new_with_proto(global, None)
+    }
+
+    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<MediaStream> {
+        reflect_dom_object2(Box::new(MediaStream::new_inherited()), global, proto)
     }
 
     pub fn new_single(
@@ -46,19 +51,20 @@ impl MediaStream {
         this
     }
 
-    pub fn Constructor(global: &Window) -> Fallible<DomRoot<MediaStream>> {
-        Ok(MediaStream::new(&global.global()))
+    pub fn Constructor(global: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<MediaStream>> {
+        Ok(MediaStream::new_with_proto(&global.global(), proto))
     }
 
-    pub fn Constructor_(_: &Window, stream: &MediaStream) -> Fallible<DomRoot<MediaStream>> {
-        Ok(stream.Clone())
+    pub fn Constructor_(_: &Window, proto: Option<HandleObject>, stream: &MediaStream) -> Fallible<DomRoot<MediaStream>> {
+        Ok(stream.clone_with_proto(proto))
     }
 
     pub fn Constructor__(
         global: &Window,
+        proto: Option<HandleObject>,
         tracks: Vec<DomRoot<MediaStreamTrack>>,
     ) -> Fallible<DomRoot<MediaStream>> {
-        let new = MediaStream::new(&global.global());
+        let new = MediaStream::new_with_proto(&global.global(), proto);
         for track in tracks {
             // this is quadratic, but shouldn't matter much
             // if this becomes a problem we can use a hash map
@@ -132,7 +138,13 @@ impl MediaStreamMethods for MediaStream {
 
     /// https://w3c.github.io/mediacapture-main/#dom-mediastream-clone
     fn Clone(&self) -> DomRoot<MediaStream> {
-        let new = MediaStream::new(&self.global());
+        self.clone_with_proto(None)
+    }
+}
+
+impl MediaStream {
+    fn clone_with_proto(&self, proto: Option<HandleObject>) -> DomRoot<MediaStream> {
+        let new = MediaStream::new_with_proto(&self.global(), proto);
         for track in &*self.tracks.borrow() {
             new.add_track(&track)
         }

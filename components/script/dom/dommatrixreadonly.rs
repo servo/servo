@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrUnrestrictedDoubleSequenc
 use crate::dom::bindings::error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
@@ -21,7 +21,7 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::{default::Transform3D, Angle};
 use js::jsapi::JSObject;
-use js::rust::CustomAutoRooterGuard;
+use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::CreateWith;
 use js::typedarray::{Float32Array, Float64Array};
 use std::cell::Cell;
@@ -40,10 +40,14 @@ pub struct DOMMatrixReadOnly {
 
 #[allow(non_snake_case)]
 impl DOMMatrixReadOnly {
-    #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
+        Self::new_with_proto(global, None, is2D, matrix)
+    }
+
+    #[allow(unrooted_must_root)]
+    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
-        reflect_dom_object(Box::new(dommatrix), global)
+        reflect_dom_object2(Box::new(dommatrix), global, proto)
     }
 
     pub fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {
@@ -57,10 +61,11 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         init: Option<StringOrUnrestrictedDoubleSequence>,
     ) -> Fallible<DomRoot<Self>> {
         if init.is_none() {
-            return Ok(Self::new(global, true, Transform3D::identity()));
+            return Ok(Self::new_with_proto(global, proto, true, Transform3D::identity()));
         }
         match init.unwrap() {
             StringOrUnrestrictedDoubleSequence::String(ref s) => {
@@ -73,11 +78,11 @@ impl DOMMatrixReadOnly {
                     return Ok(Self::new(global, true, Transform3D::identity()));
                 }
                 transform_to_matrix(s.to_string())
-                    .map(|(is2D, matrix)| Self::new(global, is2D, matrix))
+                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix))
             },
             StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
                 entries_to_matrix(&entries[..])
-                    .map(|(is2D, matrix)| Self::new(global, is2D, matrix))
+                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix))
             },
         }
     }
@@ -392,6 +397,7 @@ impl DOMMatrixReadOnly {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
         DOMMatrixReadOnly::Constructor(
             global,
+            None,
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
@@ -405,6 +411,7 @@ impl DOMMatrixReadOnly {
         let vec: Vec<f64> = array.to_vec();
         DOMMatrixReadOnly::Constructor(
             global,
+            None,
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }

@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourcesChangeEventBinding::{
     self, XRInputSourcesChangeEventMethods,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -21,6 +21,7 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 
 #[dom_struct]
@@ -44,7 +45,6 @@ impl XRInputSourcesChangeEvent {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
         type_: Atom,
@@ -54,9 +54,33 @@ impl XRInputSourcesChangeEvent {
         added: &[DomRoot<XRInputSource>],
         removed: &[DomRoot<XRInputSource>],
     ) -> DomRoot<XRInputSourcesChangeEvent> {
-        let changeevent = reflect_dom_object(
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            session,
+            added,
+            removed,
+        )
+    }
+
+    #[allow(unsafe_code)]
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        session: &XRSession,
+        added: &[DomRoot<XRInputSource>],
+        removed: &[DomRoot<XRInputSource>],
+    ) -> DomRoot<XRInputSourcesChangeEvent> {
+        let changeevent = reflect_dom_object2(
             Box::new(XRInputSourcesChangeEvent::new_inherited(session)),
             global,
+            proto,
         );
         {
             let event = changeevent.upcast::<Event>();
@@ -79,11 +103,13 @@ impl XRInputSourcesChangeEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &XRInputSourcesChangeEventBinding::XRInputSourcesChangeEventInit,
     ) -> DomRoot<XRInputSourcesChangeEvent> {
-        XRInputSourcesChangeEvent::new(
+        XRInputSourcesChangeEvent::new_with_proto(
             &window.global(),
+            proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,

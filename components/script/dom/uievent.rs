@@ -7,12 +7,13 @@ use crate::dom::bindings::codegen::Bindings::UIEventBinding;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
@@ -35,7 +36,11 @@ impl UIEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<UIEvent> {
-        reflect_dom_object(Box::new(UIEvent::new_inherited()), window)
+        Self::new_uninitialized_with_proto(window, None)
+    }
+
+    fn new_uninitialized_with_proto(window: &Window, proto: Option<HandleObject>) -> DomRoot<UIEvent> {
+        reflect_dom_object2(Box::new(UIEvent::new_inherited()), window, proto)
     }
 
     pub fn new(
@@ -46,7 +51,19 @@ impl UIEvent {
         view: Option<&Window>,
         detail: i32,
     ) -> DomRoot<UIEvent> {
-        let ev = UIEvent::new_uninitialized(window);
+        Self::new_with_proto(window, None, type_, can_bubble, cancelable, view, detail)
+    }
+
+    fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+    ) -> DomRoot<UIEvent> {
+        let ev = UIEvent::new_uninitialized_with_proto(window, proto);
         ev.InitUIEvent(
             type_,
             bool::from(can_bubble),
@@ -60,13 +77,15 @@ impl UIEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &UIEventBinding::UIEventInit,
     ) -> Fallible<DomRoot<UIEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let event = UIEvent::new(
+        let event = UIEvent::new_with_proto(
             window,
+            proto,
             type_,
             bubbles,
             cancelable,

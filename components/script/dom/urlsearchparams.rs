@@ -7,13 +7,14 @@ use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchPa
 use crate::dom::bindings::codegen::UnionTypes::USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::url::URL;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use url::form_urlencoded;
 
 // https://url.spec.whatwg.org/#interface-urlsearchparams
@@ -36,17 +37,22 @@ impl URLSearchParams {
     }
 
     pub fn new(global: &GlobalScope, url: Option<&URL>) -> DomRoot<URLSearchParams> {
-        reflect_dom_object(Box::new(URLSearchParams::new_inherited(url)), global)
+        Self::new_with_proto(global, None, url)
+    }
+
+    pub fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, url: Option<&URL>) -> DomRoot<URLSearchParams> {
+        reflect_dom_object2(Box::new(URLSearchParams::new_inherited(url)), global, proto)
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         init: USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString,
     ) -> Fallible<DomRoot<URLSearchParams>> {
         // Step 1.
-        let query = URLSearchParams::new(global, None);
+        let query = URLSearchParams::new_with_proto(global, proto, None);
         match init {
             USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVStringSequenceSequence(init) => {
                 // Step 2.

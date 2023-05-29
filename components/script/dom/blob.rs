@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::str::DOMString;
@@ -20,6 +20,7 @@ use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use js::jsapi::JSObject;
+use js::rust::HandleObject;
 use msg::constellation_msg::{BlobId, BlobIndex, PipelineNamespaceId};
 use net_traits::filemanager_thread::RelativePos;
 use script_traits::serializable::BlobImpl;
@@ -38,7 +39,11 @@ pub struct Blob {
 
 impl Blob {
     pub fn new(global: &GlobalScope, blob_impl: BlobImpl) -> DomRoot<Blob> {
-        let dom_blob = reflect_dom_object(Box::new(Blob::new_inherited(&blob_impl)), global);
+        Self::new_with_proto(global, None, blob_impl)
+    }
+
+    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, blob_impl: BlobImpl) -> DomRoot<Blob> {
+        let dom_blob = reflect_dom_object2(Box::new(Blob::new_inherited(&blob_impl)), global, proto);
         global.track_blob(&dom_blob, blob_impl);
         dom_blob
     }
@@ -55,6 +60,7 @@ impl Blob {
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
         blobPropertyBag: &BlobBinding::BlobPropertyBag,
     ) -> Fallible<DomRoot<Blob>> {
@@ -69,7 +75,7 @@ impl Blob {
         let type_string = normalize_type_string(&blobPropertyBag.type_.to_string());
         let blob_impl = BlobImpl::new_from_bytes(bytes, type_string);
 
-        Ok(Blob::new(global, blob_impl))
+        Ok(Blob::new_with_proto(global, proto, blob_impl))
     }
 
     /// Get a slice to inner data, this might incur synchronous read and caching

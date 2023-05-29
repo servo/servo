@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::GamepadEventBinding;
 use crate::dom::bindings::codegen::Bindings::GamepadEventBinding::GamepadEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -15,6 +15,7 @@ use crate::dom::gamepad::Gamepad;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 
 #[dom_struct]
@@ -43,7 +44,18 @@ impl GamepadEvent {
         cancelable: bool,
         gamepad: &Gamepad,
     ) -> DomRoot<GamepadEvent> {
-        let ev = reflect_dom_object(Box::new(GamepadEvent::new_inherited(&gamepad)), global);
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, gamepad)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        gamepad: &Gamepad,
+    ) -> DomRoot<GamepadEvent> {
+        let ev = reflect_dom_object2(Box::new(GamepadEvent::new_inherited(&gamepad)), global, proto);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -68,11 +80,13 @@ impl GamepadEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &GamepadEventBinding::GamepadEventInit,
     ) -> Fallible<DomRoot<GamepadEvent>> {
-        Ok(GamepadEvent::new(
+        Ok(GamepadEvent::new_with_proto(
             &window.global(),
+            proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,

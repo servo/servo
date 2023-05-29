@@ -23,6 +23,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use std::cell::Cell;
 use style::attr::{parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto};
 
@@ -69,12 +70,14 @@ impl HTMLTableElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTableElement> {
-        let n = Node::reflect_node(
+        let n = Node::reflect_node_with_proto(
             Box::new(HTMLTableElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
@@ -135,7 +138,7 @@ impl HTMLTableElement {
             return section;
         }
 
-        let section = HTMLTableSectionElement::new(atom.clone(), None, &document_from_node(self));
+        let section = HTMLTableSectionElement::new(atom.clone(), None, &document_from_node(self), None);
         match atom {
             &local_name!("thead") => self.SetTHead(Some(&section)),
             &local_name!("tfoot") => self.SetTFoot(Some(&section)),
@@ -205,6 +208,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
                     local_name!("caption"),
                     None,
                     &document_from_node(self),
+                    None,
                 );
                 self.SetCaption(Some(&caption));
                 caption
@@ -296,7 +300,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
     fn CreateTBody(&self) -> DomRoot<HTMLTableSectionElement> {
         let tbody =
-            HTMLTableSectionElement::new(local_name!("tbody"), None, &document_from_node(self));
+            HTMLTableSectionElement::new(local_name!("tbody"), None, &document_from_node(self), None);
         let node = self.upcast::<Node>();
         let last_tbody = node
             .rev_children()
@@ -318,7 +322,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
             return Err(Error::IndexSize);
         }
 
-        let new_row = HTMLTableRowElement::new(local_name!("tr"), None, &document_from_node(self));
+        let new_row = HTMLTableRowElement::new(local_name!("tr"), None, &document_from_node(self), None);
         let node = self.upcast::<Node>();
 
         if number_of_row_elements == 0 {

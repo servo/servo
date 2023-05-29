@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::ExtendableMessageEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -22,7 +22,7 @@ use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
-use js::rust::HandleValue;
+use js::rust::{HandleObject, HandleValue};
 use servo_atoms::Atom;
 
 #[dom_struct]
@@ -73,12 +73,36 @@ impl ExtendableMessageEvent {
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<ExtendableMessageEvent> {
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            data,
+            origin,
+            lastEventId,
+            ports,
+        )
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        data: HandleValue,
+        origin: DOMString,
+        lastEventId: DOMString,
+        ports: Vec<DomRoot<MessagePort>>,
+    ) -> DomRoot<ExtendableMessageEvent> {
         let ev = Box::new(ExtendableMessageEvent::new_inherited(
             origin,
             lastEventId,
             ports,
         ));
-        let ev = reflect_dom_object(ev, global);
+        let ev = reflect_dom_object2(ev, global, proto);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -90,12 +114,14 @@ impl ExtendableMessageEvent {
 
     pub fn Constructor(
         worker: &ServiceWorkerGlobalScope,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>,
     ) -> Fallible<DomRoot<ExtendableMessageEvent>> {
         let global = worker.upcast::<GlobalScope>();
-        let ev = ExtendableMessageEvent::new(
+        let ev = ExtendableMessageEvent::new_with_proto(
             global,
+            proto,
             Atom::from(type_),
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,

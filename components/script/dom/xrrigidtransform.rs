@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTra
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::utils::create_typed_array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
@@ -18,6 +18,7 @@ use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 use js::jsapi::{Heap, JSObject};
+use js::rust::HandleObject;
 use std::ptr::NonNull;
 
 #[dom_struct]
@@ -45,7 +46,11 @@ impl XRRigidTransform {
     }
 
     pub fn new(global: &GlobalScope, transform: ApiRigidTransform) -> DomRoot<XRRigidTransform> {
-        reflect_dom_object(Box::new(XRRigidTransform::new_inherited(transform)), global)
+        Self::new_with_proto(global, None, transform)
+    }
+
+    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, transform: ApiRigidTransform) -> DomRoot<XRRigidTransform> {
+        reflect_dom_object2(Box::new(XRRigidTransform::new_inherited(transform)), global, proto)
     }
 
     pub fn identity(window: &GlobalScope) -> DomRoot<XRRigidTransform> {
@@ -57,6 +62,7 @@ impl XRRigidTransform {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         position: &DOMPointInit,
         orientation: &DOMPointInit,
     ) -> Fallible<DomRoot<Self>> {
@@ -81,7 +87,7 @@ impl XRRigidTransform {
             return Err(Error::InvalidState);
         }
         let transform = RigidTransform3D::new(rotate, translate);
-        Ok(XRRigidTransform::new(&window.global(), transform))
+        Ok(XRRigidTransform::new_with_proto(&window.global(), proto, transform))
     }
 }
 

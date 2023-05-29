@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::globalscope::GlobalScope;
@@ -27,6 +27,7 @@ use http::header::HeaderMap as HyperHeaders;
 use http::StatusCode;
 use hyper_serde::Serde;
 use js::jsapi::JSObject;
+use js::rust::HandleObject;
 use servo_url::ServoUrl;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -74,12 +75,17 @@ impl Response {
 
     // https://fetch.spec.whatwg.org/#dom-response
     pub fn new(global: &GlobalScope) -> DomRoot<Response> {
-        reflect_dom_object(Box::new(Response::new_inherited(global)), global)
+        Self::new_with_proto(global, None)
+    }
+
+    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Response> {
+        reflect_dom_object2(Box::new(Response::new_inherited(global)), global, proto)
     }
 
     // https://fetch.spec.whatwg.org/#initialize-a-response
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         body: Option<BodyInit>,
         init: &ResponseBinding::ResponseInit,
     ) -> Fallible<DomRoot<Response>> {
@@ -99,7 +105,7 @@ impl Response {
             ));
         }
 
-        let r = Response::new(global);
+        let r = Response::new_with_proto(global, proto);
 
         // Step 3
         *r.status.borrow_mut() = Some(StatusCode::from_u16(init.status).unwrap());

@@ -857,7 +857,7 @@ impl FetchResponseListener for ParserContext {
 
                 let doc = &parser.document;
                 let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
-                let img = HTMLImageElement::new(local_name!("img"), None, doc);
+                let img = HTMLImageElement::new(local_name!("img"), None, doc, None);
                 img.SetSrc(USVString(self.url.to_string()));
                 doc_body
                     .AppendChild(&DomRoot::upcast::<Node>(img))
@@ -1119,7 +1119,7 @@ impl TreeSink for Sink {
     }
 
     fn create_comment(&mut self, text: StrTendril) -> Dom<Node> {
-        let comment = Comment::new(DOMString::from(String::from(text)), &*self.document);
+        let comment = Comment::new(DOMString::from(String::from(text)), &*self.document, None);
         Dom::from_ref(comment.upcast())
     }
 
@@ -1329,7 +1329,7 @@ fn create_element_for_token(
         CustomElementCreationMode::Asynchronous
     };
 
-    let element = Element::create(name, is, document, creator, creation_mode);
+    let element = Element::create(name, is, document, creator, creation_mode, None);
 
     // https://html.spec.whatwg.org/multipage#the-input-element:value-sanitization-algorithm-3
     // says to invoke sanitization "when an input element is first created";

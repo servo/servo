@@ -31,7 +31,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -123,6 +123,7 @@ use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSObject;
+use js::rust::HandleObject;
 use keyboard_types::{Code, Key, KeyState};
 use metrics::{
     InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
@@ -3248,11 +3249,12 @@ impl Document {
 
     // https://dom.spec.whatwg.org/#dom-document-document
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window) -> Fallible<DomRoot<Document>> {
+    pub fn Constructor(window: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<Document>> {
         let doc = window.Document();
         let docloader = DocumentLoader::new(&*doc.loader());
-        Ok(Document::new(
+        Ok(Document::new_with_proto(
             window,
+            proto,
             HasBrowsingContext::No,
             None,
             doc.origin().clone(),
@@ -3283,7 +3285,41 @@ impl Document {
         referrer_policy: Option<ReferrerPolicy>,
         canceller: FetchCanceller,
     ) -> DomRoot<Document> {
-        let document = reflect_dom_object(
+        Self::new_with_proto(
+            window,
+            None,
+            has_browsing_context,
+            url,
+            origin,
+            doctype,
+            content_type,
+            last_modified,
+            activity,
+            source,
+            doc_loader,
+            referrer,
+            referrer_policy,
+            canceller,
+        )
+    }
+
+    fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        has_browsing_context: HasBrowsingContext,
+        url: Option<ServoUrl>,
+        origin: MutableOrigin,
+        doctype: IsHTMLDocument,
+        content_type: Option<Mime>,
+        last_modified: Option<String>,
+        activity: DocumentActivity,
+        source: DocumentSource,
+        doc_loader: DocumentLoader,
+        referrer: Option<String>,
+        referrer_policy: Option<ReferrerPolicy>,
+        canceller: FetchCanceller,
+    ) -> DomRoot<Document> {
+        let document = reflect_dom_object2(
             Box::new(Document::new_inherited(
                 window,
                 has_browsing_context,
@@ -3300,6 +3336,7 @@ impl Document {
                 canceller,
             )),
             window,
+            proto,
         );
         {
             let node = document.upcast::<Node>();
@@ -4143,6 +4180,7 @@ impl DocumentMethods for Document {
             self,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
+            None,
         ))
     }
 
@@ -4167,6 +4205,7 @@ impl DocumentMethods for Document {
             self,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
+            None,
         ))
     }
 
@@ -4241,7 +4280,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-createcomment
     fn CreateComment(&self, data: DOMString) -> DomRoot<Comment> {
-        Comment::new(data, self)
+        Comment::new(data, self, None)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
@@ -4361,7 +4400,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-createrange
     fn CreateRange(&self) -> DomRoot<Range> {
-        Range::new_with_doc(self)
+        Range::new_with_doc(self, None)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter
@@ -4434,6 +4473,7 @@ impl DocumentMethods for Document {
                         self,
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Synchronous,
+                        None,
                     );
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
@@ -4458,6 +4498,7 @@ impl DocumentMethods for Document {
                             self,
                             ElementCreator::ScriptCreated,
                             CustomElementCreationMode::Synchronous,
+                            None,
                         );
                         head.upcast::<Node>().AppendChild(elem.upcast()).unwrap()
                     },

@@ -6,14 +6,14 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::{self, EventMethods};
 use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::rust::HandleValue;
+use js::rust::{HandleObject, HandleValue};
 use servo_atoms::Atom;
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
@@ -31,13 +31,24 @@ impl ExtendableEvent {
             extensions_allowed: true,
         }
     }
+
     pub fn new(
         worker: &ServiceWorkerGlobalScope,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
     ) -> DomRoot<ExtendableEvent> {
-        let ev = reflect_dom_object(Box::new(ExtendableEvent::new_inherited()), worker);
+        Self::new_with_proto(worker, None, type_, bubbles, cancelable)
+    }
+
+    fn new_with_proto(
+        worker: &ServiceWorkerGlobalScope,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+    ) -> DomRoot<ExtendableEvent> {
+        let ev = reflect_dom_object2(Box::new(ExtendableEvent::new_inherited()), worker, proto);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -47,11 +58,13 @@ impl ExtendableEvent {
 
     pub fn Constructor(
         worker: &ServiceWorkerGlobalScope,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &ExtendableEventBinding::ExtendableEventInit,
     ) -> Fallible<DomRoot<ExtendableEvent>> {
-        Ok(ExtendableEvent::new(
+        Ok(ExtendableEvent::new_with_proto(
             worker,
+            proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,

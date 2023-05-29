@@ -6,12 +6,13 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VTTRegionBinding::{ScrollSetting, VTTRegionMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -28,7 +29,7 @@ pub struct VTTRegion {
 }
 
 impl VTTRegion {
-    pub fn new_inherited() -> Self {
+    fn new_inherited() -> Self {
         VTTRegion {
             reflector_: Reflector::new(),
             id: DomRefCell::new(DOMString::default()),
@@ -42,13 +43,13 @@ impl VTTRegion {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited()), global)
+    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Self> {
+        reflect_dom_object2(Box::new(Self::new_inherited()), global, proto)
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window) -> Fallible<DomRoot<Self>> {
-        Ok(VTTRegion::new(&window.global()))
+    pub fn Constructor(window: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<Self>> {
+        Ok(VTTRegion::new(&window.global(), proto))
     }
 }
 

@@ -3,11 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::MessageChannelBinding::MessageChannelMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct MessageChannel {
@@ -19,12 +20,12 @@ pub struct MessageChannel {
 impl MessageChannel {
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope) -> DomRoot<MessageChannel> {
-        MessageChannel::new(global)
+    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<MessageChannel> {
+        MessageChannel::new(global, proto)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
-    pub fn new(incumbent: &GlobalScope) -> DomRoot<MessageChannel> {
+    fn new(incumbent: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<MessageChannel> {
         // Step 1
         let port1 = MessagePort::new(&incumbent);
 
@@ -41,9 +42,10 @@ impl MessageChannel {
         );
 
         // Steps 4-6
-        reflect_dom_object(
+        reflect_dom_object2(
             Box::new(MessageChannel::new_inherited(&*port1, &*port2)),
             incumbent,
+            proto,
         )
     }
 

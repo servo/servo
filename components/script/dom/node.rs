@@ -26,7 +26,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, DomObjectWrap};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, DomObjectWrap};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
@@ -70,6 +70,7 @@ use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use html5ever::{Namespace, Prefix, QualName};
 use js::jsapi::JSObject;
+use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
@@ -1756,8 +1757,15 @@ impl Node {
     where
         N: DerivedFrom<Node> + DomObject + DomObjectWrap,
     {
+        Self::reflect_node_with_proto(node, document, None)
+    }
+
+    pub fn reflect_node_with_proto<N>(node: Box<N>, document: &Document, proto: Option<HandleObject>) -> DomRoot<N>
+    where
+        N: DerivedFrom<Node> + DomObject + DomObjectWrap,
+    {
         let window = document.window();
-        reflect_dom_object(node, window)
+        reflect_dom_object2(node, window, proto)
     }
 
     pub fn new_inherited(doc: &Document) -> Node {
@@ -2290,6 +2298,7 @@ impl Node {
                     &document,
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
+                    None,
                 );
                 DomRoot::upcast::<Node>(element)
             },

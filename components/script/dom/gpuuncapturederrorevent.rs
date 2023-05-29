@@ -7,12 +7,13 @@ use crate::dom::bindings::codegen::Bindings::GPUUncapturedErrorEventBinding::{
     GPUUncapturedErrorEventInit, GPUUncapturedErrorEventMethods,
 };
 use crate::dom::bindings::codegen::Bindings::GPUValidationErrorBinding::GPUError;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 
 #[dom_struct]
@@ -35,9 +36,19 @@ impl GPUUncapturedErrorEvent {
         type_: DOMString,
         init: &GPUUncapturedErrorEventInit,
     ) -> DomRoot<Self> {
-        let ev = reflect_dom_object(
+        Self::new_with_proto(global, None, type_, init)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        type_: DOMString,
+        init: &GPUUncapturedErrorEventInit,
+    ) -> DomRoot<Self> {
+        let ev = reflect_dom_object2(
             Box::new(GPUUncapturedErrorEvent::new_inherited(init)),
             global,
+            proto,
         );
         ev.event.init_event(
             Atom::from(type_),
@@ -51,10 +62,11 @@ impl GPUUncapturedErrorEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &GPUUncapturedErrorEventInit,
     ) -> DomRoot<Self> {
-        GPUUncapturedErrorEvent::new(global, type_, init)
+        GPUUncapturedErrorEvent::new_with_proto(global, proto, type_, init)
     }
 }
 

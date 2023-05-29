@@ -6,12 +6,13 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataInit;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::mediasession::MediaSession;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct MediaMetadata {
@@ -34,16 +35,21 @@ impl MediaMetadata {
     }
 
     pub fn new(global: &Window, init: &MediaMetadataInit) -> DomRoot<MediaMetadata> {
-        reflect_dom_object(Box::new(MediaMetadata::new_inherited(init)), global)
+        Self::new_with_proto(global, None, init)
+    }
+
+    fn new_with_proto(global: &Window, proto: Option<HandleObject>, init: &MediaMetadataInit) -> DomRoot<MediaMetadata> {
+        reflect_dom_object2(Box::new(MediaMetadata::new_inherited(init)), global, proto)
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediametadata-mediametadata
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         init: &MediaMetadataInit,
     ) -> Fallible<DomRoot<MediaMetadata>> {
-        Ok(MediaMetadata::new(window, init))
+        Ok(MediaMetadata::new_with_proto(window, proto, init))
     }
 
     fn queue_update_metadata_algorithm(&self) {

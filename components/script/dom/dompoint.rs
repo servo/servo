@@ -5,11 +5,12 @@
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object2;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]
@@ -26,17 +27,22 @@ impl DOMPoint {
     }
 
     pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPoint> {
-        reflect_dom_object(Box::new(DOMPoint::new_inherited(x, y, z, w)), global)
+        Self::new_with_proto(global, None, x, y, z, w)
+    }
+
+    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPoint> {
+        reflect_dom_object2(Box::new(DOMPoint::new_inherited(x, y, z, w)), global, proto)
     }
 
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         x: f64,
         y: f64,
         z: f64,
         w: f64,
     ) -> Fallible<DomRoot<DOMPoint>> {
-        Ok(DOMPoint::new(global, x, y, z, w))
+        Ok(DOMPoint::new_with_proto(global, proto, x, y, z, w))
     }
 
     // https://drafts.fxtf.org/geometry/#dom-dompoint-frompoint

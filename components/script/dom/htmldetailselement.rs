@@ -16,6 +16,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -41,12 +42,14 @@ impl HTMLDetailsElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLDetailsElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLDetailsElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 

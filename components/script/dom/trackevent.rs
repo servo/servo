@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::TrackEventBinding::TrackEventMethod
 use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -18,6 +18,7 @@ use crate::dom::texttrack::TextTrack;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 
 #[unrooted_must_root_lint::must_root]
@@ -64,7 +65,18 @@ impl TrackEvent {
         cancelable: bool,
         track: &Option<VideoTrackOrAudioTrackOrTextTrack>,
     ) -> DomRoot<TrackEvent> {
-        let te = reflect_dom_object(Box::new(TrackEvent::new_inherited(&track)), global);
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, track)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        track: &Option<VideoTrackOrAudioTrackOrTextTrack>,
+    ) -> DomRoot<TrackEvent> {
+        let te = reflect_dom_object2(Box::new(TrackEvent::new_inherited(&track)), global, proto);
         {
             let event = te.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -74,11 +86,13 @@ impl TrackEvent {
 
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &TrackEventBinding::TrackEventInit,
     ) -> Fallible<DomRoot<TrackEvent>> {
-        Ok(TrackEvent::new(
+        Ok(TrackEvent::new_with_proto(
             &window.global(),
+            proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,

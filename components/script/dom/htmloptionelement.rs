@@ -26,6 +26,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName};
+use js::rust::HandleObject;
 use std::cell::Cell;
 use std::convert::TryInto;
 use style::element_state::ElementState;
@@ -65,12 +66,14 @@ impl HTMLOptionElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLOptionElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLOptionElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 
@@ -78,6 +81,7 @@ impl HTMLOptionElement {
     #[allow(non_snake_case)]
     pub fn Option(
         window: &Window,
+        proto: Option<HandleObject>,
         text: DOMString,
         value: Option<DOMString>,
         default_selected: bool,
@@ -89,6 +93,7 @@ impl HTMLOptionElement {
             &window.Document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
+            proto,
         );
 
         let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();

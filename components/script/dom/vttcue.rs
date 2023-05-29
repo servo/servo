@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::VTTCueBinding::{
 };
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::documentfragment::DocumentFragment;
@@ -18,6 +18,7 @@ use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::vttregion::VTTRegion;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -57,26 +58,29 @@ impl VTTCue {
         }
     }
 
-    pub fn new(
+    fn new(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         start_time: f64,
         end_time: f64,
         text: DOMString,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object2(
             Box::new(Self::new_inherited(start_time, end_time, text)),
             global,
+            proto,
         )
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         start_time: Finite<f64>,
         end_time: Finite<f64>,
         text: DOMString,
     ) -> DomRoot<Self> {
-        VTTCue::new(&window.global(), *start_time, *end_time, text)
+        VTTCue::new(&window.global(), proto, *start_time, *end_time, text)
     }
 }
 
