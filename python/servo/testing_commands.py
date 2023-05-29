@@ -20,7 +20,6 @@ import time
 import shutil
 import subprocess
 from xml.etree.ElementTree import XML
-from six import iteritems
 
 import wpt
 import wpt.manifestupdate
@@ -62,7 +61,7 @@ TEST_SUITES = OrderedDict([
               "include_arg": "test_name"}),
 ])
 
-TEST_SUITES_BY_PREFIX = {path: k for k, v in iteritems(TEST_SUITES) if "paths" in v for path in v["paths"]}
+TEST_SUITES_BY_PREFIX = {path: k for k, v in TEST_SUITES.items() if "paths" in v for path in v["paths"]}
 
 
 @CommandProvider
@@ -133,7 +132,7 @@ class MachCommands(CommandBase):
                 return 1
 
         test_start = time.time()
-        for suite, tests in iteritems(selected_suites):
+        for suite, tests in selected_suites.items():
             props = suites[suite]
             kwargs = props.get("kwargs", {})
             if tests:
@@ -149,7 +148,7 @@ class MachCommands(CommandBase):
     def suite_for_path(self, path_arg):
         if os.path.exists(path.abspath(path_arg)):
             abs_path = path.abspath(path_arg)
-            for prefix, suite in iteritems(TEST_SUITES_BY_PREFIX):
+            for prefix, suite in TEST_SUITES_BY_PREFIX.items():
                 if abs_path.startswith(prefix):
                     return suite
         return None
