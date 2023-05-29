@@ -145,8 +145,6 @@ pub struct XMLHttpRequest {
     #[ignore_malloc_size_of = "Defined in hyper"]
     #[no_trace]
     override_mime_type: DomRefCell<Option<Mime>>,
-    #[no_trace]
-    override_charset: DomRefCell<Option<&'static Encoding>>,
 
     // Associated concepts
     #[ignore_malloc_size_of = "Defined in hyper"]
@@ -201,7 +199,6 @@ impl XMLHttpRequest {
             response_json: Heap::default(),
             response_headers: DomRefCell::new(HeaderMap::new()),
             override_mime_type: DomRefCell::new(None),
-            override_charset: DomRefCell::new(None),
 
             request_method: DomRefCell::new(Method::GET),
             request_url: DomRefCell::new(None),
@@ -1599,19 +1596,23 @@ impl XMLHttpRequest {
         Ok(())
     }
 
+    /// <https://xhr.spec.whatwg.org/#final-charset>
     fn final_charset(&self) -> Option<&'static Encoding> {
-        if self.override_charset.borrow().is_some() {
-            self.override_charset.borrow().clone()
-        } else {
-            match self.response_headers.borrow().typed_get::<ContentType>() {
-                Some(ct) => {
-                    let mime: Mime = ct.into();
-                    let value = mime.get_param(mime::CHARSET);
-                    value.and_then(|value| Encoding::for_label(value.as_ref().as_bytes()))
-                },
-                None => None,
-            }
-        }
+        // Step 2-3.
+        let response_charset = self
+            .response_mime_type()
+            .and_then(|mime| mime.get_param(mime::CHARSET).map(|c| c.to_string()));
+
+        // Step 4.
+        let override_charset = self
+            .override_mime_type
+            .borrow()
+            .as_ref()
+            .and_then(|mime| mime.get_param(mime::CHARSET).map(|c| c.to_string()));
+
+        response_charset
+            .or(override_charset)
+            .and_then(|charset| Encoding::for_label(&charset.as_bytes()))
     }
 
     /// <https://xhr.spec.whatwg.org/#response-mime-type>
