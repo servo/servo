@@ -46,8 +46,16 @@ impl FormData {
         Self::new_with_proto(form_datums, global, None)
     }
 
-    fn new_with_proto(form_datums: Option<Vec<FormDatum>>, global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<FormData> {
-        reflect_dom_object2(Box::new(FormData::new_inherited(form_datums)), global, proto)
+    fn new_with_proto(
+        form_datums: Option<Vec<FormDatum>>,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<FormData> {
+        reflect_dom_object2(
+            Box::new(FormData::new_inherited(form_datums)),
+            global,
+            proto,
+        )
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata

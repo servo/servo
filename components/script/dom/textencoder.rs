@@ -34,7 +34,10 @@ impl TextEncoder {
 
     // https://encoding.spec.whatwg.org/#dom-textencoder
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>) -> Fallible<DomRoot<TextEncoder>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<TextEncoder>> {
         Ok(TextEncoder::new(global, proto))
     }
 }

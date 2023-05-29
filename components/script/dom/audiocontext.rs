@@ -80,7 +80,11 @@ impl AudioContext {
     }
 
     #[allow(unrooted_must_root)]
-    fn new(window: &Window, proto: Option<HandleObject>, options: &AudioContextOptions) -> DomRoot<AudioContext> {
+    fn new(
+        window: &Window,
+        proto: Option<HandleObject>,
+        options: &AudioContextOptions,
+    ) -> DomRoot<AudioContext> {
         let pipeline_id = window.pipeline_id();
         let context = AudioContext::new_inherited(options, pipeline_id);
         let context = reflect_dom_object2(Box::new(context), window, proto);

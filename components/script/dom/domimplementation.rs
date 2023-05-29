@@ -167,14 +167,22 @@ impl DOMImplementationMethods for DOMImplementation {
         {
             // Step 4.
             let doc_node = doc.upcast::<Node>();
-            let doc_html =
-                DomRoot::upcast::<Node>(HTMLHtmlElement::new(local_name!("html"), None, &doc, None));
+            let doc_html = DomRoot::upcast::<Node>(HTMLHtmlElement::new(
+                local_name!("html"),
+                None,
+                &doc,
+                None,
+            ));
             doc_node.AppendChild(&doc_html).expect("Appending failed");
 
             {
                 // Step 5.
-                let doc_head =
-                    DomRoot::upcast::<Node>(HTMLHeadElement::new(local_name!("head"), None, &doc, None));
+                let doc_head = DomRoot::upcast::<Node>(HTMLHeadElement::new(
+                    local_name!("head"),
+                    None,
+                    &doc,
+                    None,
+                ));
                 doc_html.AppendChild(&doc_head).unwrap();
 
                 // Step 6.

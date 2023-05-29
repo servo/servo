@@ -51,7 +51,11 @@ impl HTMLAudioElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-audio
     #[allow(non_snake_case)]
-    pub fn Audio(window: &Window, proto: Option<HandleObject>, src: Option<DOMString>) -> Fallible<DomRoot<HTMLAudioElement>> {
+    pub fn Audio(
+        window: &Window,
+        proto: Option<HandleObject>,
+        src: Option<DOMString>,
+    ) -> Fallible<DomRoot<HTMLAudioElement>> {
         let element = Element::create(
             QualName::new(None, ns!(html), local_name!("audio")),
             None,

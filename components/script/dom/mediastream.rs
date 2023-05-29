@@ -51,11 +51,18 @@ impl MediaStream {
         this
     }
 
-    pub fn Constructor(global: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<MediaStream>> {
+    pub fn Constructor(
+        global: &Window,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<MediaStream>> {
         Ok(MediaStream::new_with_proto(&global.global(), proto))
     }
 
-    pub fn Constructor_(_: &Window, proto: Option<HandleObject>, stream: &MediaStream) -> Fallible<DomRoot<MediaStream>> {
+    pub fn Constructor_(
+        _: &Window,
+        proto: Option<HandleObject>,
+        stream: &MediaStream,
+    ) -> Fallible<DomRoot<MediaStream>> {
         Ok(stream.clone_with_proto(proto))
     }
 

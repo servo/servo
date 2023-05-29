@@ -36,7 +36,10 @@ impl FocusEvent {
         Self::new_uninitialized_with_proto(window, None)
     }
 
-    pub fn new_uninitialized_with_proto(window: &Window, proto: Option<HandleObject>) -> DomRoot<FocusEvent> {
+    pub fn new_uninitialized_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<FocusEvent> {
         reflect_dom_object2(Box::new(FocusEvent::new_inherited()), window, proto)
     }
 

@@ -50,7 +50,11 @@ impl SubmitEvent {
         cancelable: bool,
         submitter: Option<DomRoot<HTMLElement>>,
     ) -> DomRoot<SubmitEvent> {
-        let ev = reflect_dom_object2(Box::new(SubmitEvent::new_inherited(submitter)), global, proto);
+        let ev = reflect_dom_object2(
+            Box::new(SubmitEvent::new_inherited(submitter)),
+            global,
+            proto,
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

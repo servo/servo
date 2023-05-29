@@ -440,7 +440,11 @@ impl Request {
 }
 
 impl Request {
-    fn from_net_request(global: &GlobalScope, proto: Option<HandleObject>, net_request: NetTraitsRequest) -> DomRoot<Request> {
+    fn from_net_request(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        net_request: NetTraitsRequest,
+    ) -> DomRoot<Request> {
         let r = Request::new(global, proto, net_request.current_url());
         *r.request.borrow_mut() = net_request;
         r

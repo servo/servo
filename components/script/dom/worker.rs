@@ -69,7 +69,11 @@ impl Worker {
         sender: Sender<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
     ) -> DomRoot<Worker> {
-        reflect_dom_object2(Box::new(Worker::new_inherited(sender, closing)), global, proto)
+        reflect_dom_object2(
+            Box::new(Worker::new_inherited(sender, closing)),
+            global,
+            proto,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker

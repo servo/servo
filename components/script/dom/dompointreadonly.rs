@@ -38,7 +38,14 @@ impl DOMPointReadOnly {
         Self::new_with_proto(global, None, x, y, z, w)
     }
 
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPointReadOnly> {
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        x: f64,
+        y: f64,
+        z: f64,
+        w: f64,
+    ) -> DomRoot<DOMPointReadOnly> {
         reflect_dom_object2(
             Box::new(DOMPointReadOnly::new_inherited(x, y, z, w)),
             global,

@@ -28,13 +28,25 @@ impl GPUValidationError {
         Self::new_with_proto(global, None, message)
     }
 
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, message: DOMString) -> DomRoot<Self> {
-        reflect_dom_object2(Box::new(GPUValidationError::new_inherited(message)), global, proto)
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        message: DOMString,
+    ) -> DomRoot<Self> {
+        reflect_dom_object2(
+            Box::new(GPUValidationError::new_inherited(message)),
+            global,
+            proto,
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuvalidationerror-gpuvalidationerror
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>, message: DOMString) -> DomRoot<Self> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        message: DOMString,
+    ) -> DomRoot<Self> {
         GPUValidationError::new_with_proto(global, proto, message)
     }
 }

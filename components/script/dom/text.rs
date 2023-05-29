@@ -35,12 +35,24 @@ impl Text {
         Self::new_with_proto(text, document, None)
     }
 
-    fn new_with_proto(text: DOMString, document: &Document, proto: Option<HandleObject>) -> DomRoot<Text> {
-        Node::reflect_node_with_proto(Box::new(Text::new_inherited(text, document)), document, proto)
+    fn new_with_proto(
+        text: DOMString,
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<Text> {
+        Node::reflect_node_with_proto(
+            Box::new(Text::new_inherited(text, document)),
+            document,
+            proto,
+        )
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window, proto: Option<HandleObject>, text: DOMString) -> Fallible<DomRoot<Text>> {
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        text: DOMString,
+    ) -> Fallible<DomRoot<Text>> {
         let document = window.Document();
         Ok(Text::new_with_proto(text, &document, proto))
     }

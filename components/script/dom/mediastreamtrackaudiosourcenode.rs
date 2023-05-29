@@ -66,6 +66,11 @@ impl MediaStreamTrackAudioSourceNode {
         context: &AudioContext,
         options: &MediaStreamTrackAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
-        MediaStreamTrackAudioSourceNode::new_with_proto(window, proto, context, &options.mediaStreamTrack)
+        MediaStreamTrackAudioSourceNode::new_with_proto(
+            window,
+            proto,
+            context,
+            &options.mediaStreamTrack,
+        )
     }
 }

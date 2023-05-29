@@ -42,7 +42,10 @@ impl DOMParser {
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<DOMParser>> {
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<DOMParser>> {
         Ok(DOMParser::new(window, proto))
     }
 }

@@ -39,7 +39,10 @@ impl UIEvent {
         Self::new_uninitialized_with_proto(window, None)
     }
 
-    fn new_uninitialized_with_proto(window: &Window, proto: Option<HandleObject>) -> DomRoot<UIEvent> {
+    fn new_uninitialized_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<UIEvent> {
         reflect_dom_object2(Box::new(UIEvent::new_inherited()), window, proto)
     }
 

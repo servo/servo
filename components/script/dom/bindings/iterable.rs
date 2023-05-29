@@ -20,7 +20,7 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
-use js::rust::{HandleValue, MutableHandleObject, HandleObject};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 use std::cell::Cell;
 use std::ptr;
 use std::ptr::NonNull;
@@ -118,7 +118,12 @@ impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> IterableIterator<T> {
 }
 
 impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> DomObjectWrap for IterableIterator<T> {
-    const WRAP: unsafe fn(JSContext, &GlobalScope, Option<HandleObject>, Box<Self>) -> Root<Dom<Self>> = T::ITER_WRAP;
+    const WRAP: unsafe fn(
+        JSContext,
+        &GlobalScope,
+        Option<HandleObject>,
+        Box<Self>,
+    ) -> Root<Dom<Self>> = T::ITER_WRAP;
 }
 
 fn dict_return(

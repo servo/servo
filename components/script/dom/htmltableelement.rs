@@ -138,7 +138,8 @@ impl HTMLTableElement {
             return section;
         }
 
-        let section = HTMLTableSectionElement::new(atom.clone(), None, &document_from_node(self), None);
+        let section =
+            HTMLTableSectionElement::new(atom.clone(), None, &document_from_node(self), None);
         match atom {
             &local_name!("thead") => self.SetTHead(Some(&section)),
             &local_name!("tfoot") => self.SetTFoot(Some(&section)),
@@ -299,8 +300,12 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
     fn CreateTBody(&self) -> DomRoot<HTMLTableSectionElement> {
-        let tbody =
-            HTMLTableSectionElement::new(local_name!("tbody"), None, &document_from_node(self), None);
+        let tbody = HTMLTableSectionElement::new(
+            local_name!("tbody"),
+            None,
+            &document_from_node(self),
+            None,
+        );
         let node = self.upcast::<Node>();
         let last_tbody = node
             .rev_children()
@@ -322,7 +327,8 @@ impl HTMLTableElementMethods for HTMLTableElement {
             return Err(Error::IndexSize);
         }
 
-        let new_row = HTMLTableRowElement::new(local_name!("tr"), None, &document_from_node(self), None);
+        let new_row =
+            HTMLTableRowElement::new(local_name!("tr"), None, &document_from_node(self), None);
         let node = self.upcast::<Node>();
 
         if number_of_row_elements == 0 {

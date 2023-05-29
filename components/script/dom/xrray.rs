@@ -38,7 +38,11 @@ impl XRRay {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>, ray: Ray<ApiSpace>) -> DomRoot<XRRay> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        ray: Ray<ApiSpace>,
+    ) -> DomRoot<XRRay> {
         reflect_dom_object2(Box::new(XRRay::new_inherited(ray)), global, proto)
     }
 
@@ -70,19 +74,31 @@ impl XRRay {
         )
         .normalize();
 
-        Ok(Self::new(&window.global(), proto, Ray { origin, direction }))
+        Ok(Self::new(
+            &window.global(),
+            proto,
+            Ray { origin, direction },
+        ))
     }
 
     #[allow(non_snake_case)]
     /// https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform
-    pub fn Constructor_(window: &Window, proto: Option<HandleObject>, transform: &XRRigidTransform) -> Fallible<DomRoot<Self>> {
+    pub fn Constructor_(
+        window: &Window,
+        proto: Option<HandleObject>,
+        transform: &XRRigidTransform,
+    ) -> Fallible<DomRoot<Self>> {
         let transform = transform.transform();
         let origin = transform.translation;
         let direction = transform
             .rotation
             .transform_vector3d(Vector3D::new(0., 0., -1.));
 
-        Ok(Self::new(&window.global(), proto, Ray { origin, direction }))
+        Ok(Self::new(
+            &window.global(),
+            proto,
+            Ray { origin, direction },
+        ))
     }
 
     pub fn ray(&self) -> Ray<ApiSpace> {

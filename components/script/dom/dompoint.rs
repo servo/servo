@@ -30,7 +30,14 @@ impl DOMPoint {
         Self::new_with_proto(global, None, x, y, z, w)
     }
 
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPoint> {
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        x: f64,
+        y: f64,
+        z: f64,
+        w: f64,
+    ) -> DomRoot<DOMPoint> {
         reflect_dom_object2(Box::new(DOMPoint::new_inherited(x, y, z, w)), global, proto)
     }
 

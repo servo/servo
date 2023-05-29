@@ -118,7 +118,12 @@ impl MutDomObject for Reflector {
 /// A trait to provide a function pointer to wrap function for DOM objects.
 pub trait DomObjectWrap: Sized + DomObject {
     /// Function pointer to the general wrap function type
-    const WRAP: unsafe fn(JSContext, &GlobalScope, Option<HandleObject>, Box<Self>) -> Root<Dom<Self>>;
+    const WRAP: unsafe fn(
+        JSContext,
+        &GlobalScope,
+        Option<HandleObject>,
+        Box<Self>,
+    ) -> Root<Dom<Self>>;
 }
 
 /// A trait to provide a function pointer to wrap function for

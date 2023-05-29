@@ -460,7 +460,12 @@ impl EventSource {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>, url: ServoUrl, with_credentials: bool) -> DomRoot<EventSource> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        url: ServoUrl,
+        with_credentials: bool,
+    ) -> DomRoot<EventSource> {
         reflect_dom_object2(
             Box::new(EventSource::new_inherited(url, with_credentials)),
             global,

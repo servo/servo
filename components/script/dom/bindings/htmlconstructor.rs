@@ -230,7 +230,13 @@ unsafe fn html_constructor(
             let element = if definition.is_autonomous() {
                 DomRoot::upcast(HTMLElement::new(name.local, None, &*document, None))
             } else {
-                create_native_html_element(name, None, &*document, ElementCreator::ScriptCreated, None)
+                create_native_html_element(
+                    name,
+                    None,
+                    &*document,
+                    ElementCreator::ScriptCreated,
+                    None,
+                )
             };
 
             // Step 8.2 is performed in the generated caller code.

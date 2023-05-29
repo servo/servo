@@ -193,7 +193,11 @@ impl RTCPeerConnection {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>, config: &RTCConfiguration) -> DomRoot<RTCPeerConnection> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        config: &RTCConfiguration,
+    ) -> DomRoot<RTCPeerConnection> {
         let this = reflect_dom_object2(Box::new(RTCPeerConnection::new_inherited()), global, proto);
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));
@@ -632,20 +636,28 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
             .borrow_mut()
             .as_ref()
             .unwrap()
-            .set_local_description(desc.clone(), (move || {
+            .set_local_description(
+                desc.clone(),
+                (move || {
                     let _ = task_source.queue_with_canceller(
                         task!(local_description_set: move || {
                             // XXXManishearth spec actually asks for an intricate
                             // dance between pending/current local/remote descriptions
                             let this = this.root();
                             let desc = desc.into();
-                            let desc = RTCSessionDescription::Constructor(&this.global().as_window(), None, &desc).unwrap();
+                            let desc = RTCSessionDescription::Constructor(
+                                &this.global().as_window(),
+                                None,
+                                &desc,
+                            ).unwrap();
                             this.local_description.set(Some(&desc));
                             trusted_promise.root().resolve_native(&())
                         }),
                         &canceller,
                     );
-            }).into());
+                })
+                .into(),
+            );
         p
     }
 
@@ -665,20 +677,28 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
             .borrow_mut()
             .as_ref()
             .unwrap()
-            .set_remote_description(desc.clone(), (move || {
+            .set_remote_description(
+                desc.clone(),
+                (move || {
                     let _ = task_source.queue_with_canceller(
                         task!(remote_description_set: move || {
                             // XXXManishearth spec actually asks for an intricate
                             // dance between pending/current local/remote descriptions
                             let this = this.root();
                             let desc = desc.into();
-                            let desc = RTCSessionDescription::Constructor(&this.global().as_window(), None, &desc).unwrap();
+                            let desc = RTCSessionDescription::Constructor(
+                                &this.global().as_window(),
+                                None,
+                                &desc,
+                            ).unwrap();
                             this.remote_description.set(Some(&desc));
                             trusted_promise.root().resolve_native(&())
                         }),
                         &canceller,
                     );
-            }).into());
+                })
+                .into(),
+            );
         p
     }
 

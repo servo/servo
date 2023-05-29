@@ -55,16 +55,7 @@ impl WheelEvent {
         delta_mode: u32,
     ) -> DomRoot<WheelEvent> {
         Self::new_with_proto(
-            window,
-            None,
-            type_,
-            can_bubble,
-            cancelable,
-            view,
-            detail,
-            delta_x,
-            delta_y,
-            delta_z,
+            window, None, type_, can_bubble, cancelable, view, detail, delta_x, delta_y, delta_z,
             delta_mode,
         )
     }

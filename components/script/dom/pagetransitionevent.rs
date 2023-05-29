@@ -32,8 +32,15 @@ impl PageTransitionEvent {
         }
     }
 
-    fn new_uninitialized(window: &Window, proto: Option<HandleObject>) -> DomRoot<PageTransitionEvent> {
-        reflect_dom_object2(Box::new(PageTransitionEvent::new_inherited()), window, proto)
+    fn new_uninitialized(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<PageTransitionEvent> {
+        reflect_dom_object2(
+            Box::new(PageTransitionEvent::new_inherited()),
+            window,
+            proto,
+        )
     }
 
     pub fn new(

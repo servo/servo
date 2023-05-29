@@ -31,7 +31,7 @@ impl HTMLBRElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
-        proto: Option<HandleObject>
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLBRElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLBRElement::new_inherited(local_name, prefix, document)),

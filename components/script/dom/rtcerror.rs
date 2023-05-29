@@ -45,7 +45,12 @@ impl RTCError {
         Self::new_with_proto(global, None, init, message)
     }
 
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, init: &RTCErrorInit, message: DOMString) -> DomRoot<RTCError> {
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        init: &RTCErrorInit,
+        message: DOMString,
+    ) -> DomRoot<RTCError> {
         reflect_dom_object2(
             Box::new(RTCError::new_inherited(global, init, message)),
             global,

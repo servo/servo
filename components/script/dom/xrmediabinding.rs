@@ -33,12 +33,24 @@ impl XRMediaBinding {
         }
     }
 
-    fn new(global: &Window, proto: Option<HandleObject>, session: &XRSession) -> DomRoot<XRMediaBinding> {
-        reflect_dom_object2(Box::new(XRMediaBinding::new_inherited(session)), global, proto)
+    fn new(
+        global: &Window,
+        proto: Option<HandleObject>,
+        session: &XRSession,
+    ) -> DomRoot<XRMediaBinding> {
+        reflect_dom_object2(
+            Box::new(XRMediaBinding::new_inherited(session)),
+            global,
+            proto,
+        )
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &Window, proto: Option<HandleObject>, session: &XRSession) -> Fallible<DomRoot<XRMediaBinding>> {
+    pub fn Constructor(
+        global: &Window,
+        proto: Option<HandleObject>,
+        session: &XRSession,
+    ) -> Fallible<DomRoot<XRMediaBinding>> {
         // Step 1.
         if session.is_ended() {
             return Err(Error::InvalidState);

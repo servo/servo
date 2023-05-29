@@ -51,7 +51,11 @@ impl StorageEvent {
         Self::new_uninitialized_with_proto(window, None, url)
     }
 
-    fn new_uninitialized_with_proto(window: &Window, proto: Option<HandleObject>, url: DOMString) -> DomRoot<StorageEvent> {
+    fn new_uninitialized_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        url: DOMString,
+    ) -> DomRoot<StorageEvent> {
         reflect_dom_object2(
             Box::new(StorageEvent::new_inherited(None, None, None, url, None)),
             window,

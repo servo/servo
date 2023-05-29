@@ -50,7 +50,11 @@ impl TransitionEvent {
         type_: Atom,
         init: &TransitionEventInit,
     ) -> DomRoot<TransitionEvent> {
-        let ev = reflect_dom_object2(Box::new(TransitionEvent::new_inherited(init)), window, proto);
+        let ev = reflect_dom_object2(
+            Box::new(TransitionEvent::new_inherited(init)),
+            window,
+            proto,
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, init.parent.bubbles, init.parent.cancelable);
@@ -65,7 +69,12 @@ impl TransitionEvent {
         type_: DOMString,
         init: &TransitionEventInit,
     ) -> Fallible<DomRoot<TransitionEvent>> {
-        Ok(TransitionEvent::new_with_proto(window, proto, Atom::from(type_), init))
+        Ok(TransitionEvent::new_with_proto(
+            window,
+            proto,
+            Atom::from(type_),
+            init,
+        ))
     }
 }
 

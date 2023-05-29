@@ -15,8 +15,8 @@ use crate::dom::event::Event;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use keyboard_types::{Key, Modifiers};
 use js::rust::HandleObject;
+use keyboard_types::{Key, Modifiers};
 use std::cell::Cell;
 
 unsafe_no_jsmanaged_fields!(Key);
@@ -56,7 +56,10 @@ impl KeyboardEvent {
         Self::new_uninitialized_with_proto(window, None)
     }
 
-    fn new_uninitialized_with_proto(window: &Window, proto: Option<HandleObject>) -> DomRoot<KeyboardEvent> {
+    fn new_uninitialized_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<KeyboardEvent> {
         reflect_dom_object2(Box::new(KeyboardEvent::new_inherited()), window, proto)
     }
 

@@ -36,7 +36,10 @@ impl FileReaderSync {
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>) -> Fallible<DomRoot<FileReaderSync>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<FileReaderSync>> {
         Ok(FileReaderSync::new(global, proto))
     }
 

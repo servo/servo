@@ -33,14 +33,7 @@ impl FormDataEvent {
         cancelable: EventCancelable,
         form_data: &FormData,
     ) -> DomRoot<FormDataEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            can_bubble,
-            cancelable,
-            form_data,
-        )
+        Self::new_with_proto(global, None, type_, can_bubble, cancelable, form_data)
     }
 
     fn new_with_proto(

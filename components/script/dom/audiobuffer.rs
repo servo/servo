@@ -84,7 +84,14 @@ impl AudioBuffer {
         sample_rate: f32,
         initial_data: Option<&[Vec<f32>]>,
     ) -> DomRoot<AudioBuffer> {
-        Self::new_with_proto(global, None, number_of_channels, length, sample_rate, initial_data)
+        Self::new_with_proto(
+            global,
+            None,
+            number_of_channels,
+            length,
+            sample_rate,
+            initial_data,
+        )
     }
 
     #[allow(unrooted_must_root)]

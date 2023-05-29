@@ -25,7 +25,11 @@ impl GPUOutOfMemoryError {
     }
 
     fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Self> {
-        reflect_dom_object2(Box::new(GPUOutOfMemoryError::new_inherited()), global, proto)
+        reflect_dom_object2(
+            Box::new(GPUOutOfMemoryError::new_inherited()),
+            global,
+            proto,
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuoutofmemoryerror-gpuoutofmemoryerror

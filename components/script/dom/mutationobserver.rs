@@ -65,7 +65,11 @@ pub struct ObserverOptions {
 }
 
 impl MutationObserver {
-    fn new_with_proto(global: &Window, proto: Option<HandleObject>, callback: Rc<MutationCallback>) -> DomRoot<MutationObserver> {
+    fn new_with_proto(
+        global: &Window,
+        proto: Option<HandleObject>,
+        callback: Rc<MutationCallback>,
+    ) -> DomRoot<MutationObserver> {
         let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
         reflect_dom_object2(boxed_observer, global, proto)
     }

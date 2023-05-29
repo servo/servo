@@ -131,7 +131,11 @@ impl WebSocket {
         url: ServoUrl,
         sender: IpcSender<WebSocketDomAction>,
     ) -> DomRoot<WebSocket> {
-        reflect_dom_object2(Box::new(WebSocket::new_inherited(url, sender)), global, proto)
+        reflect_dom_object2(
+            Box::new(WebSocket::new_inherited(url, sender)),
+            global,
+            proto,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket>

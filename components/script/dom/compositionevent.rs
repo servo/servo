@@ -43,14 +43,7 @@ impl CompositionEvent {
         data: DOMString,
     ) -> DomRoot<CompositionEvent> {
         Self::new_with_proto(
-            window,
-            None,
-            type_,
-            can_bubble,
-            cancelable,
-            view,
-            detail,
-            data,
+            window, None, type_, can_bubble, cancelable, view, detail, data,
         )
     }
 

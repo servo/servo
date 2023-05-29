@@ -28,11 +28,18 @@ impl XMLSerializer {
     }
 
     pub fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<XMLSerializer> {
-        reflect_dom_object2(Box::new(XMLSerializer::new_inherited(window)), window, proto)
+        reflect_dom_object2(
+            Box::new(XMLSerializer::new_inherited(window)),
+            window,
+            proto,
+        )
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<XMLSerializer>> {
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<XMLSerializer>> {
         Ok(XMLSerializer::new(window, proto))
     }
 }

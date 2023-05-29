@@ -42,7 +42,10 @@ impl DocumentFragment {
         Self::new_with_proto(document, None)
     }
 
-    fn new_with_proto(document: &Document, proto: Option<HandleObject>) -> DomRoot<DocumentFragment> {
+    fn new_with_proto(
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<DocumentFragment> {
         Node::reflect_node_with_proto(
             Box::new(DocumentFragment::new_inherited(document)),
             document,
@@ -51,7 +54,10 @@ impl DocumentFragment {
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<DocumentFragment>> {
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<DocumentFragment>> {
         let document = window.Document();
 
         Ok(DocumentFragment::new_with_proto(&document, proto))

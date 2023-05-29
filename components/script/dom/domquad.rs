@@ -54,7 +54,11 @@ impl DOMQuad {
         p3: &DOMPoint,
         p4: &DOMPoint,
     ) -> DomRoot<DOMQuad> {
-        reflect_dom_object2(Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)), global, proto)
+        reflect_dom_object2(
+            Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
+            global,
+            proto,
+        )
     }
 
     pub fn Constructor(

@@ -28,7 +28,14 @@ impl DOMRect {
         Self::new_with_proto(global, None, x, y, width, height)
     }
 
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, x: f64, y: f64, width: f64, height: f64) -> DomRoot<DOMRect> {
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+    ) -> DomRoot<DOMRect> {
         reflect_dom_object2(
             Box::new(DOMRect::new_inherited(x, y, width, height)),
             global,

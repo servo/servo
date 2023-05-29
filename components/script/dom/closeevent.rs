@@ -45,14 +45,7 @@ impl CloseEvent {
         reason: DOMString,
     ) -> DomRoot<CloseEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            wasClean,
-            code,
-            reason,
+            global, None, type_, bubbles, cancelable, wasClean, code, reason,
         )
     }
 

@@ -40,7 +40,11 @@ impl URLSearchParams {
         Self::new_with_proto(global, None, url)
     }
 
-    pub fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, url: Option<&URL>) -> DomRoot<URLSearchParams> {
+    pub fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        url: Option<&URL>,
+    ) -> DomRoot<URLSearchParams> {
         reflect_dom_object2(Box::new(URLSearchParams::new_inherited(url)), global, proto)
     }
 

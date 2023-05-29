@@ -11,18 +11,24 @@ use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::principals::ServoJSPrincipals;
 use crate::dom::bindings::utils::{
-    get_proto_or_iface_array, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL,
-    DOMJSClass,
+    get_proto_or_iface_array, DOMJSClass, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL,
 };
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
+use js::jsapi::CheckedUnwrapStatic;
+use js::jsapi::CurrentGlobalOrNull;
+use js::jsapi::GetFunctionRealm;
+use js::jsapi::GetNonCCWObjectGlobal;
+use js::jsapi::GetRealmGlobalOrNull;
 use js::jsapi::GetWellKnownSymbol;
 use js::jsapi::HandleObject as RawHandleObject;
+use js::jsapi::JS_GetProperty;
+use js::jsapi::JS_WrapObject;
 use js::jsapi::{jsid, JSClass, JSClassOps};
 use js::jsapi::{
-    Compartment, CompartmentSpecifier, IsSharableCompartment, IsSystemCompartment,
-    JS_IterateCompartments, JS::CompartmentIterResult, CallArgs,
+    CallArgs, Compartment, CompartmentSpecifier, IsSharableCompartment, IsSystemCompartment,
+    JS_IterateCompartments, JS::CompartmentIterResult,
 };
 use js::jsapi::{JSAutoRealm, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JS_AtomizeAndPinString};
@@ -32,15 +38,8 @@ use js::jsapi::{JS_NewStringCopyN, JS_SetReservedSlot};
 use js::jsapi::{ObjectOps, OnNewGlobalHookOption, SymbolCode};
 use js::jsapi::{TrueHandleValue, Value};
 use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
-use js::jsapi::CheckedUnwrapStatic;
-use js::jsapi::JS_GetProperty;
-use js::jsapi::GetFunctionRealm;
-use js::jsapi::GetRealmGlobalOrNull;
-use js::jsapi::GetNonCCWObjectGlobal;
-use js::jsapi::JS_WrapObject;
-use js::jsapi::CurrentGlobalOrNull;
-use js::jsval::{JSVal, PrivateValue};
 use js::jsval::NullValue;
+use js::jsval::{JSVal, PrivateValue};
 use js::rust::is_dom_class;
 use js::rust::wrappers::JS_FireOnNewGlobalObject;
 use js::rust::wrappers::RUST_SYMBOL_TO_JSID;
@@ -603,9 +602,7 @@ pub fn define_dom_interface(
     assert!(!proto.is_null());
 }
 
-fn get_proto_id_for_new_target(
-    new_target: HandleObject,
-) -> Option<PrototypeList::ID> {
+fn get_proto_id_for_new_target(new_target: HandleObject) -> Option<PrototypeList::ID> {
     unsafe {
         let new_target_class = get_object_class(*new_target);
         if is_dom_class(&*new_target_class) {
@@ -644,18 +641,17 @@ pub fn get_desired_proto(
         rooted!(in(*cx) let original_new_target = *new_target);
         // See whether we have a known DOM constructor here, such that we can take a
         // fast path.
-        let target_proto_id = get_proto_id_for_new_target(new_target.handle())
-            .or_else(|| {
-                // We might still have a cross-compartment wrapper for a known DOM
-                // constructor.  CheckedUnwrapStatic is fine here, because we're looking for
-                // DOM constructors and those can't be cross-origin objects.
-                *new_target = CheckedUnwrapStatic(*new_target);
-                if !new_target.is_null() && &*new_target != &*original_new_target {
-                    get_proto_id_for_new_target(new_target.handle())
-                } else {
-                    None
-                }
-            });
+        let target_proto_id = get_proto_id_for_new_target(new_target.handle()).or_else(|| {
+            // We might still have a cross-compartment wrapper for a known DOM
+            // constructor.  CheckedUnwrapStatic is fine here, because we're looking for
+            // DOM constructors and those can't be cross-origin objects.
+            *new_target = CheckedUnwrapStatic(*new_target);
+            if !new_target.is_null() && &*new_target != &*original_new_target {
+                get_proto_id_for_new_target(new_target.handle())
+            } else {
+                None
+            }
+        });
 
         if let Some(proto_id) = target_proto_id {
             let global = GetNonCCWObjectGlobal(*new_target);
@@ -663,7 +659,7 @@ pub fn get_desired_proto(
             desired_proto.set((*proto_or_iface_cache)[proto_id as usize]);
             if &*new_target != &*original_new_target {
                 if !JS_WrapObject(*cx, desired_proto.into()) {
-                   return Err(());
+                    return Err(());
                 }
             }
             return Ok(());
@@ -674,7 +670,12 @@ pub fn get_desired_proto(
         // the fallback prototype we determine the fallback based on the proto id we
         // were handed.
         rooted!(in(*cx) let mut proto_val = NullValue());
-        if !JS_GetProperty(*cx, original_new_target.handle().into(), b"prototype\0".as_ptr() as *const libc::c_char, proto_val.handle_mut().into()) {
+        if !JS_GetProperty(
+            *cx,
+            original_new_target.handle().into(),
+            b"prototype\0".as_ptr() as *const libc::c_char,
+            proto_val.handle_mut().into(),
+        ) {
             return Err(());
         }
 
@@ -699,7 +700,7 @@ pub fn get_desired_proto(
                 global.handle(),
                 ProtoOrIfaceIndex::ID(proto_id),
                 creator,
-                desired_proto
+                desired_proto,
             );
             if desired_proto.is_null() {
                 return Err(());
@@ -707,6 +708,6 @@ pub fn get_desired_proto(
         }
 
         maybe_wrap_object(*cx, desired_proto);
-        return Ok(())
+        return Ok(());
     }
 }

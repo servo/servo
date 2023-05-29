@@ -88,17 +88,28 @@ impl TestBinding {
         reflect_dom_object2(Box::new(TestBinding::new_inherited()), global, proto)
     }
 
-    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>) -> Fallible<DomRoot<TestBinding>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<TestBinding>> {
         Ok(TestBinding::new(global, proto))
     }
 
     #[allow(unused_variables)]
-    pub fn Constructor_(global: &GlobalScope, proto: Option<HandleObject>, nums: Vec<f64>) -> Fallible<DomRoot<TestBinding>> {
+    pub fn Constructor_(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        nums: Vec<f64>,
+    ) -> Fallible<DomRoot<TestBinding>> {
         Ok(TestBinding::new(global, proto))
     }
 
     #[allow(unused_variables)]
-    pub fn Constructor__(global: &GlobalScope, proto: Option<HandleObject>, num: f64) -> Fallible<DomRoot<TestBinding>> {
+    pub fn Constructor__(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        num: f64,
+    ) -> Fallible<DomRoot<TestBinding>> {
         Ok(TestBinding::new(global, proto))
     }
 }

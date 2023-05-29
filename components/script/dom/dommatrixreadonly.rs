@@ -45,7 +45,12 @@ impl DOMMatrixReadOnly {
     }
 
     #[allow(unrooted_must_root)]
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        is2D: bool,
+        matrix: Transform3D<f64>,
+    ) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
         reflect_dom_object2(Box::new(dommatrix), global, proto)
     }
@@ -65,7 +70,12 @@ impl DOMMatrixReadOnly {
         init: Option<StringOrUnrestrictedDoubleSequence>,
     ) -> Fallible<DomRoot<Self>> {
         if init.is_none() {
-            return Ok(Self::new_with_proto(global, proto, true, Transform3D::identity()));
+            return Ok(Self::new_with_proto(
+                global,
+                proto,
+                true,
+                Transform3D::identity(),
+            ));
         }
         match init.unwrap() {
             StringOrUnrestrictedDoubleSequence::String(ref s) => {

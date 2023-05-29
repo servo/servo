@@ -94,7 +94,10 @@ impl MessageEvent {
         Self::new_uninitialized_with_proto(global, None)
     }
 
-    fn new_uninitialized_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<MessageEvent> {
+    fn new_uninitialized_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<MessageEvent> {
         MessageEvent::new_initialized(
             global,
             proto,
@@ -164,7 +167,8 @@ impl MessageEvent {
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<MessageEvent> {
-        let ev = MessageEvent::new_initialized(global, proto, data, origin, source, lastEventId, ports);
+        let ev =
+            MessageEvent::new_initialized(global, proto, data, origin, source, lastEventId, ports);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

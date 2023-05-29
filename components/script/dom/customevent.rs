@@ -41,7 +41,10 @@ impl CustomEvent {
         Self::new_uninitialized_with_proto(global, None)
     }
 
-    fn new_uninitialized_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<CustomEvent> {
+    fn new_uninitialized_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<CustomEvent> {
         reflect_dom_object2(Box::new(CustomEvent::new_inherited()), global, proto)
     }
 

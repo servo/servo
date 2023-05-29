@@ -63,7 +63,7 @@ impl HTMLAnchorElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
-        proto: Option<HandleObject>, 
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLAnchorElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLAnchorElement::new_inherited(

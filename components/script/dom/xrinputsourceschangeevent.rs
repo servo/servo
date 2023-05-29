@@ -55,14 +55,7 @@ impl XRInputSourcesChangeEvent {
         removed: &[DomRoot<XRInputSource>],
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            session,
-            added,
-            removed,
+            global, None, type_, bubbles, cancelable, session, added, removed,
         )
     }
 

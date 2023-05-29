@@ -26,12 +26,24 @@ impl Comment {
         }
     }
 
-    pub fn new(text: DOMString, document: &Document, proto: Option<HandleObject>) -> DomRoot<Comment> {
-        Node::reflect_node_with_proto(Box::new(Comment::new_inherited(text, document)), document, proto)
+    pub fn new(
+        text: DOMString,
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<Comment> {
+        Node::reflect_node_with_proto(
+            Box::new(Comment::new_inherited(text, document)),
+            document,
+            proto,
+        )
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window, proto: Option<HandleObject>, data: DOMString) -> Fallible<DomRoot<Comment>> {
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        data: DOMString,
+    ) -> Fallible<DomRoot<Comment>> {
         let document = window.Document();
         Ok(Comment::new(data, &document, proto))
     }

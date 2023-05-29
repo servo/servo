@@ -45,8 +45,8 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{CanCompileOffThread, CompileToStencilOffThread1, OffThreadToken};
 use js::jsval::UndefinedValue;
 use js::rust::{
-    transform_str_to_source_text, CompileOptionsWrapper, FinishOffThreadStencil, Stencil,
-    HandleObject,
+    transform_str_to_source_text, CompileOptionsWrapper, FinishOffThreadStencil, HandleObject,
+    Stencil,
 };
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{

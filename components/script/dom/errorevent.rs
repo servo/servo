@@ -61,16 +61,7 @@ impl ErrorEvent {
         error: HandleValue,
     ) -> DomRoot<ErrorEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            message,
-            filename,
-            lineno,
-            colno,
-            error,
+            global, None, type_, bubbles, cancelable, message, filename, lineno, colno, error,
         )
     }
 

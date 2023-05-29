@@ -1760,7 +1760,11 @@ impl Node {
         Self::reflect_node_with_proto(node, document, None)
     }
 
-    pub fn reflect_node_with_proto<N>(node: Box<N>, document: &Document, proto: Option<HandleObject>) -> DomRoot<N>
+    pub fn reflect_node_with_proto<N>(
+        node: Box<N>,
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<N>
     where
         N: DerivedFrom<Node> + DomObject + DomObjectWrap,
     {

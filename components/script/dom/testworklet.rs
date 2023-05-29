@@ -38,11 +38,18 @@ impl TestWorklet {
 
     fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<TestWorklet> {
         let worklet = Worklet::new(window, WorkletGlobalScopeType::Test);
-        reflect_dom_object2(Box::new(TestWorklet::new_inherited(&*worklet)), window, proto)
+        reflect_dom_object2(
+            Box::new(TestWorklet::new_inherited(&*worklet)),
+            window,
+            proto,
+        )
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<TestWorklet>> {
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<TestWorklet>> {
         Ok(TestWorklet::new(window, proto))
     }
 }

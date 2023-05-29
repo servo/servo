@@ -50,7 +50,11 @@ impl RTCTrackEvent {
         cancelable: bool,
         track: &MediaStreamTrack,
     ) -> DomRoot<RTCTrackEvent> {
-        let trackevent = reflect_dom_object2(Box::new(RTCTrackEvent::new_inherited(&track)), global, proto);
+        let trackevent = reflect_dom_object2(
+            Box::new(RTCTrackEvent::new_inherited(&track)),
+            global,
+            proto,
+        );
         {
             let event = trackevent.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

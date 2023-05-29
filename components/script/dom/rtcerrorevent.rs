@@ -49,7 +49,11 @@ impl RTCErrorEvent {
         cancelable: bool,
         error: &RTCError,
     ) -> DomRoot<RTCErrorEvent> {
-        let event = reflect_dom_object2(Box::new(RTCErrorEvent::new_inherited(&error)), global, proto);
+        let event = reflect_dom_object2(
+            Box::new(RTCErrorEvent::new_inherited(&error)),
+            global,
+            proto,
+        );
         {
             let event = event.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

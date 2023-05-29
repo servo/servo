@@ -1821,7 +1821,12 @@ impl Element {
             {
                 DomRoot::from_ref(elem)
             },
-            _ => DomRoot::upcast(HTMLBodyElement::new(local_name!("body"), None, owner_doc, None)),
+            _ => DomRoot::upcast(HTMLBodyElement::new(
+                local_name!("body"),
+                None,
+                owner_doc,
+                None,
+            )),
         }
     }
 

@@ -89,7 +89,12 @@ impl PerformanceObserver {
         proto: Option<HandleObject>,
         callback: Rc<PerformanceObserverCallback>,
     ) -> Fallible<DomRoot<PerformanceObserver>> {
-        Ok(PerformanceObserver::new_with_proto(global, proto, callback, Vec::new()))
+        Ok(PerformanceObserver::new_with_proto(
+            global,
+            proto,
+            callback,
+            Vec::new(),
+        ))
     }
 
     /// Buffer a new performance entry.

@@ -42,8 +42,13 @@ impl Blob {
         Self::new_with_proto(global, None, blob_impl)
     }
 
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, blob_impl: BlobImpl) -> DomRoot<Blob> {
-        let dom_blob = reflect_dom_object2(Box::new(Blob::new_inherited(&blob_impl)), global, proto);
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        blob_impl: BlobImpl,
+    ) -> DomRoot<Blob> {
+        let dom_blob =
+            reflect_dom_object2(Box::new(Blob::new_inherited(&blob_impl)), global, proto);
         global.track_blob(&dom_blob, blob_impl);
         dom_blob
     }

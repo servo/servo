@@ -76,7 +76,10 @@ impl Event {
         Self::new_uninitialized_with_proto(global, None)
     }
 
-    pub fn new_uninitialized_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Event> {
+    pub fn new_uninitialized_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<Event> {
         reflect_dom_object2(Box::new(Event::new_inherited()), global, proto)
     }
 
@@ -110,7 +113,13 @@ impl Event {
     ) -> Fallible<DomRoot<Event>> {
         let bubbles = EventBubbles::from(init.bubbles);
         let cancelable = EventCancelable::from(init.cancelable);
-        Ok(Event::new_with_proto(global, proto, Atom::from(type_), bubbles, cancelable))
+        Ok(Event::new_with_proto(
+            global,
+            proto,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+        ))
     }
 
     pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {

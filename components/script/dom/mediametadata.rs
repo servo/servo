@@ -38,7 +38,11 @@ impl MediaMetadata {
         Self::new_with_proto(global, None, init)
     }
 
-    fn new_with_proto(global: &Window, proto: Option<HandleObject>, init: &MediaMetadataInit) -> DomRoot<MediaMetadata> {
+    fn new_with_proto(
+        global: &Window,
+        proto: Option<HandleObject>,
+        init: &MediaMetadataInit,
+    ) -> DomRoot<MediaMetadata> {
         reflect_dom_object2(Box::new(MediaMetadata::new_inherited(init)), global, proto)
     }
 

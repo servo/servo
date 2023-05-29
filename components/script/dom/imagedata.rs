@@ -123,7 +123,12 @@ impl ImageData {
     }
     // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3
     #[allow(unsafe_code, non_snake_case)]
-    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>, width: u32, height: u32) -> Fallible<DomRoot<Self>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        width: u32,
+        height: u32,
+    ) -> Fallible<DomRoot<Self>> {
         unsafe { Self::new_without_jsobject(global, proto, width, height) }
     }
 

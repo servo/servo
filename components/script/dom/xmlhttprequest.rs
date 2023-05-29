@@ -52,8 +52,8 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
-use js::rust::HandleObject;
 use js::rust::wrappers::JS_ParseJSON;
+use js::rust::HandleObject;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime, Name};
 use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
@@ -216,12 +216,19 @@ impl XMLHttpRequest {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<XMLHttpRequest> {
-        reflect_dom_object2(Box::new(XMLHttpRequest::new_inherited(global)), global, proto)
+        reflect_dom_object2(
+            Box::new(XMLHttpRequest::new_inherited(global)),
+            global,
+            proto,
+        )
     }
 
     // https://xhr.spec.whatwg.org/#constructors
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>) -> Fallible<DomRoot<XMLHttpRequest>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global, proto))
     }
 

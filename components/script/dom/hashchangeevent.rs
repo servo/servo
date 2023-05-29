@@ -37,7 +37,10 @@ impl HashChangeEvent {
         Self::new_uninitialized_with_proto(window, None)
     }
 
-    fn new_uninitialized_with_proto(window: &Window, proto: Option<HandleObject>) -> DomRoot<HashChangeEvent> {
+    fn new_uninitialized_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<HashChangeEvent> {
         reflect_dom_object2(
             Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
             window,

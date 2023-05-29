@@ -49,8 +49,16 @@ impl XRRigidTransform {
         Self::new_with_proto(global, None, transform)
     }
 
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>, transform: ApiRigidTransform) -> DomRoot<XRRigidTransform> {
-        reflect_dom_object2(Box::new(XRRigidTransform::new_inherited(transform)), global, proto)
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        transform: ApiRigidTransform,
+    ) -> DomRoot<XRRigidTransform> {
+        reflect_dom_object2(
+            Box::new(XRRigidTransform::new_inherited(transform)),
+            global,
+            proto,
+        )
     }
 
     pub fn identity(window: &GlobalScope) -> DomRoot<XRRigidTransform> {
@@ -87,7 +95,11 @@ impl XRRigidTransform {
             return Err(Error::InvalidState);
         }
         let transform = RigidTransform3D::new(rotate, translate);
-        Ok(XRRigidTransform::new_with_proto(&window.global(), proto, transform))
+        Ok(XRRigidTransform::new_with_proto(
+            &window.global(),
+            proto,
+            transform,
+        ))
     }
 }
 

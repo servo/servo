@@ -39,7 +39,12 @@ impl AnimationEvent {
         Self::new_with_proto(window, None, type_, init)
     }
 
-    fn new_with_proto(window: &Window, proto: Option<HandleObject>, type_: Atom, init: &AnimationEventInit) -> DomRoot<AnimationEvent> {
+    fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        init: &AnimationEventInit,
+    ) -> DomRoot<AnimationEvent> {
         let ev = reflect_dom_object2(Box::new(AnimationEvent::new_inherited(init)), window, proto);
         {
             let event = ev.upcast::<Event>();

@@ -39,7 +39,7 @@ use fnv::FnvHasher;
 use js::jsapi::JS_GetFunctionObject;
 use js::rust::transform_u16_to_source_text;
 use js::rust::wrappers::CompileFunction;
-use js::rust::{CompileOptionsWrapper, RootedObjectVectorWrapper, HandleObject};
+use js::rust::{CompileOptionsWrapper, HandleObject, RootedObjectVectorWrapper};
 use libc::c_char;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -360,7 +360,10 @@ impl EventTarget {
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>) -> Fallible<DomRoot<EventTarget>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<EventTarget>> {
         Ok(EventTarget::new(global, proto))
     }
 
