@@ -901,22 +901,17 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             },
             _ => {},
         }
-        // Step 2
-        let override_mime = mime.parse::<Mime>().map_err(|_| Error::Syntax)?;
-        // Step 3
-        let mime_str = override_mime.as_ref();
-        let mime_parts: Vec<&str> = mime_str.split(";").collect();
-        let mime_no_params = if mime_parts.len() > 1 {
-            mime_parts[0].parse().unwrap()
-        } else {
-            override_mime.clone()
+
+        // Step 2-3.
+        let override_mime = match mime.parse::<Mime>() {
+            Ok(mime) => mime,
+            Err(_) => "application/octet-stream"
+                .parse::<Mime>()
+                .map_err(|_| Error::Syntax)?,
         };
 
-        *self.override_mime_type.borrow_mut() = Some(mime_no_params);
-        // Step 4
-        let value = override_mime.get_param(mime::CHARSET);
-        *self.override_charset.borrow_mut() =
-            value.and_then(|value| Encoding::for_label(value.as_ref().as_bytes()));
+        *self.override_mime_type.borrow_mut() = Some(override_mime);
+
         Ok(())
     }
 
