@@ -131,31 +131,11 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
         os.rename(temp_file, dest_archive)
 
 
-def normalize_env(env):
-    # There is a bug in Py2 subprocess where it doesn't like unicode types in
-    # environment variables. Here, ensure all unicode are converted to
-    # native string type. utf-8 is our globally assumed default. If the caller
-    # doesn't want UTF-8, they shouldn't pass in a unicode instance.
-    normalized_env = {}
-    for k, v in env.items():
-        if isinstance(k, six.text_type):
-            k = six.ensure_str(k, 'utf-8', 'strict')
-
-        if isinstance(v, six.text_type):
-            v = six.ensure_str(v, 'utf-8', 'strict')
-
-        normalized_env[k] = v
-
-    return normalized_env
-
-
 def call(*args, **kwargs):
     """Wrap `subprocess.call`, printing the command if verbose=True."""
     verbose = kwargs.pop('verbose', False)
     if verbose:
         print(' '.join(args[0]))
-    if 'env' in kwargs:
-        kwargs['env'] = normalize_env(kwargs['env'])
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
     return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
@@ -166,8 +146,6 @@ def check_output(*args, **kwargs):
     verbose = kwargs.pop('verbose', False)
     if verbose:
         print(' '.join(args[0]))
-    if 'env' in kwargs:
-        kwargs['env'] = normalize_env(kwargs['env'])
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
     return subprocess.check_output(*args, shell=sys.platform == 'win32', **kwargs)
@@ -178,9 +156,6 @@ def check_call(*args, **kwargs):
 
     Also fix any unicode-containing `env`, for subprocess """
     verbose = kwargs.pop('verbose', False)
-
-    if 'env' in kwargs:
-        kwargs['env'] = normalize_env(kwargs['env'])
 
     if verbose:
         print(' '.join(args[0]))

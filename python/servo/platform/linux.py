@@ -13,7 +13,6 @@ import tempfile
 from typing import Optional, Tuple
 
 import distro
-import six
 from .. import util
 from .base import Base
 
@@ -65,8 +64,8 @@ class Linux(Base):
 
     @staticmethod
     def get_distro_and_version() -> Tuple[str, str]:
-        distrib = six.ensure_str(distro.name())
-        version = six.ensure_str(distro.version())
+        distrib = distro.name()
+        version = distro.version()
 
         if distrib in ['LinuxMint', 'Linux Mint', 'KDE neon', 'Pop!_OS']:
             if '.' in version:
