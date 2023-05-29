@@ -876,8 +876,8 @@ class CommandBase(object):
         if self.cross_compile_target:
             args += ["--target", self.cross_compile_target]
 
-        features = list(self.features)
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
+            features = list(self.features)
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
 
@@ -902,11 +902,10 @@ class CommandBase(object):
                 features.append("webgl-backtrace")
             if self.config["build"]["dom-backtrace"]:
                 features.append("dom-backtrace")
+            args += ["--features", " ".join(features)]
+
         if with_debug_assertions or self.config["build"]["debug-assertions"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
-
-        assert "--features" not in cargo_args
-        args += ["--features", " ".join(features)]
 
         if self.is_uwp_build:
             cargo_args += ["-Z", "build-std"]
