@@ -839,7 +839,7 @@ ${helpers.four_sides_shorthand(
     "inset",
     "%s",
     "specified::LengthPercentageOrAuto::parse",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     spec="https://drafts.csswg.org/css-logical/#propdef-inset",
     allow_quirks="No",
 )}
