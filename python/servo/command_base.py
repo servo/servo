@@ -789,7 +789,7 @@ class CommandBase(object):
 
             self.features = kwargs.get("features", None) or []
             self.configure_media_stack(kwargs['media_stack'])
-            original_function(self, *args, **kwargs)
+            return original_function(self, *args, **kwargs)
 
         decorators.reverse()
         decorated_function = configuration_decorator
