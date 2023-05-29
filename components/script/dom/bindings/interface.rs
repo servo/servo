@@ -686,14 +686,14 @@ pub fn get_desired_proto(
 
         // Fall back to getting the proto for our given proto id in the realm that
         // GetFunctionRealm(newTarget) returns.
-        rooted!(in(*cx) let realm = GetFunctionRealm(*cx, new_target.handle().into()));
+        let realm = GetFunctionRealm(*cx, new_target.handle().into());
 
-        if (*realm).is_null() {
+        if realm.is_null() {
             return Err(());
         }
 
         {
-            let _realm = JSAutoRealm::new(*cx, GetRealmGlobalOrNull(*realm));
+            let _realm = JSAutoRealm::new(*cx, GetRealmGlobalOrNull(realm));
             rooted!(in(*cx) let global = CurrentGlobalOrNull(*cx));
             get_per_interface_object_handle(
                 cx,
