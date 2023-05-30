@@ -430,7 +430,7 @@ fn tweak_when_ignoring_colors(
             // widget background color's rgb channels but not alpha...
             let alpha = alpha_channel(color, context);
             if alpha != 0 {
-                let mut color = context.builder.device.default_background_color();
+                let mut color = context.builder.device.default_background_color_for_forced_colors();
                 color.alpha = alpha;
                 declarations_to_apply_unless_overriden
                     .push(PropertyDeclaration::BackgroundColor(color.into()))
@@ -448,7 +448,7 @@ fn tweak_when_ignoring_colors(
             // override this with a non-transparent color, then override it with
             // the default color. Otherwise just let it inherit through.
             if context.builder.get_parent_inherited_text().clone_color().alpha == 0 {
-                let color = context.builder.device.default_color();
+                let color = context.builder.device.default_color_for_forced_colors();
                 declarations_to_apply_unless_overriden.push(PropertyDeclaration::Color(
                     specified::ColorPropertyValue(color.into()),
                 ))
