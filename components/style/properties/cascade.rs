@@ -370,7 +370,7 @@ where
             } else {
                 LonghandIdSet::late_group()
             }
-        }
+        },
     };
 
     cascade.apply_properties(
@@ -430,7 +430,10 @@ fn tweak_when_ignoring_colors(
 
     // Always honor colors if forced-color-adjust is set to none.
     #[cfg(feature = "gecko")] {
-        let forced = context.builder.get_inherited_text().clone_forced_color_adjust();
+        let forced = context
+            .builder
+            .get_inherited_text()
+            .clone_forced_color_adjust();
         if forced == computed::ForcedColorAdjust::None {
             return;
         }
@@ -439,7 +442,10 @@ fn tweak_when_ignoring_colors(
     // Don't override background-color on ::-moz-color-swatch. It is set as an
     // author style (via the style attribute), but it's pretty important for it
     // to show up for obvious reasons :)
-    if context.builder.pseudo.map_or(false, |p| p.is_color_swatch()) &&
+    if context
+        .builder
+        .pseudo
+        .map_or(false, |p| p.is_color_swatch()) &&
         longhand_id == LonghandId::BackgroundColor
     {
         return;
@@ -482,13 +488,22 @@ fn tweak_when_ignoring_colors(
         },
         PropertyDeclaration::Color(ref color) => {
             // We honor color: transparent and system colors.
-            if color.0.honored_in_forced_colors_mode(/* allow_transparent = */ true) {
+            if color
+                .0
+                .honored_in_forced_colors_mode(/* allow_transparent = */ true)
+            {
                 return;
             }
             // If the inherited color would be transparent, but we would
             // override this with a non-transparent color, then override it with
             // the default color. Otherwise just let it inherit through.
-            if context.builder.get_parent_inherited_text().clone_color().alpha == 0.0 {
+            if context
+                .builder
+                .get_parent_inherited_text()
+                .clone_color()
+                .alpha ==
+                0.0
+            {
                 let color = context.builder.device.default_color();
                 declarations_to_apply_unless_overriden.push(PropertyDeclaration::Color(
                     specified::ColorPropertyValue(color.into()),
@@ -500,7 +515,11 @@ fn tweak_when_ignoring_colors(
         PropertyDeclaration::BackgroundImage(ref bkg) => {
             use crate::values::generics::image::Image;
             if static_prefs::pref!("browser.display.permit_backplate") {
-                if bkg.0.iter().all(|image| matches!(*image, Image::Url(..) | Image::None)) {
+                if bkg
+                    .0
+                    .iter()
+                    .all(|image| matches!(*image, Image::Url(..) | Image::None))
+                {
                     return;
                 }
             }
@@ -632,7 +651,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             return false;
         }
 
-        let can_have_logical_properties = can_have_logical_properties == CanHaveLogicalProperties::Yes;
+        let can_have_logical_properties =
+            can_have_logical_properties == CanHaveLogicalProperties::Yes;
 
         let ignore_colors = !self.context.builder.device.use_document_colors();
         let mut declarations_to_apply_unless_overriden = DeclarationsToApplyUnlessOverriden::new();
@@ -662,7 +682,9 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             }
 
             if self.reverted_set.contains(physical_longhand_id) {
-                if let Some(&(reverted_priority, is_origin_revert)) = self.reverted.get(&physical_longhand_id) {
+                if let Some(&(reverted_priority, is_origin_revert)) =
+                    self.reverted.get(&physical_longhand_id)
+                {
                     if !reverted_priority.allows_when_reverted(&priority, is_origin_revert) {
                         continue;
                     }
@@ -691,14 +713,14 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
             let is_unset = match declaration.get_css_wide_keyword() {
                 Some(keyword) => match keyword {
-                    CSSWideKeyword::RevertLayer |
-                    CSSWideKeyword::Revert => {
+                    CSSWideKeyword::RevertLayer | CSSWideKeyword::Revert => {
                         let origin_revert = keyword == CSSWideKeyword::Revert;
                         // We intentionally don't want to insert it into
                         // `self.seen`, `reverted` takes care of rejecting other
                         // declarations as needed.
                         self.reverted_set.insert(physical_longhand_id);
-                        self.reverted.insert(physical_longhand_id, (priority, origin_revert));
+                        self.reverted
+                            .insert(physical_longhand_id, (priority, origin_revert));
                         continue;
                     },
                     CSSWideKeyword::Unset => true,
@@ -834,12 +856,18 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         }
 
         #[cfg(feature = "gecko")]
-        if self.author_specified.contains(LonghandId::FontSynthesisWeight) {
+        if self
+            .author_specified
+            .contains(LonghandId::FontSynthesisWeight)
+        {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_WEIGHT);
         }
 
         #[cfg(feature = "gecko")]
-        if self.author_specified.contains(LonghandId::FontSynthesisStyle) {
+        if self
+            .author_specified
+            .contains(LonghandId::FontSynthesisStyle)
+        {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_STYLE);
         }
 
@@ -918,7 +946,10 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             };
 
             let initial_generic = font.mFont.family.families.single_generic();
-            debug_assert!(initial_generic.is_some(), "Initial font should be just one generic font");
+            debug_assert!(
+                initial_generic.is_some(),
+                "Initial font should be just one generic font"
+            );
             if initial_generic == Some(default_font_type) {
                 return;
             }
@@ -927,7 +958,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         };
 
         // NOTE: Leaves is_initial untouched.
-        builder.mutate_font().mFont.family.families = FontFamily::generic(default_font_type).families.clone();
+        builder.mutate_font().mFont.family.families =
+            FontFamily::generic(default_font_type).families.clone();
     }
 
     /// Prioritize user fonts if needed by pref.
@@ -1107,7 +1139,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             let mut b = computed_math_depth;
             let c = SCALE_FACTOR_WHEN_INCREMENTING_MATH_DEPTH_BY_ONE;
             let scale_between_0_and_1 = parent_script_percent_scale_down.unwrap_or_else(|| c);
-            let scale_between_0_and_2 = parent_script_script_percent_scale_down.unwrap_or_else(|| c * c);
+            let scale_between_0_and_2 =
+                parent_script_script_percent_scale_down.unwrap_or_else(|| c * c);
             let mut s = 1.0;
             let mut invert_scale_factor = false;
             if a == b {
@@ -1156,7 +1189,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             // the default scale, use MathML3's implementation for backward
             // compatibility. Otherwise, follow MathML Core's algorithm.
             let scale = if parent_font.mScriptSizeMultiplier !=
-                SCALE_FACTOR_WHEN_INCREMENTING_MATH_DEPTH_BY_ONE {
+                SCALE_FACTOR_WHEN_INCREMENTING_MATH_DEPTH_BY_ONE
+            {
                 (parent_font.mScriptSizeMultiplier as f32).powi(delta as i32)
             } else {
                 // Script scale factors are independent of orientation.

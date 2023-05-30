@@ -658,10 +658,13 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     }
 
     fn ampersand() -> Self {
-        Self(ThinArc::from_header_and_iter(SpecificityAndFlags {
-            specificity: 0,
-            flags: SelectorFlags::HAS_PARENT,
-        }, std::iter::once(Component::ParentSelector)))
+        Self(ThinArc::from_header_and_iter(
+            SpecificityAndFlags {
+                specificity: 0,
+                flags: SelectorFlags::HAS_PARENT,
+            },
+            std::iter::once(Component::ParentSelector),
+        ))
     }
 
     #[inline]
@@ -977,8 +980,12 @@ impl<Impl: SelectorImpl> Selector<Impl> {
             specificity += parent_specificity;
             let iter = iter
                 .cloned()
-                .chain(std::iter::once(Component::Combinator(Combinator::Descendant)))
-                .chain(std::iter::once(Component::Is(parent.to_vec().into_boxed_slice())));
+                .chain(std::iter::once(Component::Combinator(
+                    Combinator::Descendant,
+                )))
+                .chain(std::iter::once(Component::Is(
+                    parent.to_vec().into_boxed_slice(),
+                )));
             let header = HeaderWithLength::new(specificity_and_flags, len);
             UniqueArc::from_header_and_iter_with_size(header, iter, len)
         } else {
@@ -4081,25 +4088,19 @@ pub mod tests {
         let parent = parse(".bar, div .baz").unwrap();
         let child = parse("#foo &.bar").unwrap();
         assert_eq!(
-            SelectorList::from_vec(vec![child.0[0]
-                .replace_parent_selector(&parent.0)
-            ]),
+            SelectorList::from_vec(vec![child.0[0].replace_parent_selector(&parent.0)]),
             parse("#foo :is(.bar, div .baz).bar").unwrap()
         );
 
         let has_child = parse("#foo:has(&.bar)").unwrap();
         assert_eq!(
-            SelectorList::from_vec(vec![has_child.0[0]
-                .replace_parent_selector(&parent.0)
-                ]),
+            SelectorList::from_vec(vec![has_child.0[0].replace_parent_selector(&parent.0)]),
             parse("#foo:has(:is(.bar, div .baz).bar)").unwrap()
         );
 
         let child = parse("#foo").unwrap();
         assert_eq!(
-            SelectorList::from_vec(vec![child.0[0]
-                .replace_parent_selector(&parent.0)
-                ]),
+            SelectorList::from_vec(vec![child.0[0].replace_parent_selector(&parent.0)]),
             parse(":is(.bar, div .baz) #foo").unwrap()
         );
     }

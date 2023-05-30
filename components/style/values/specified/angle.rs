@@ -73,7 +73,7 @@ impl AngleDimension {
             AngleDimension::Deg(_) => "deg",
             AngleDimension::Rad(_) => "rad",
             AngleDimension::Turn(_) => "turn",
-            AngleDimension::Grad(_) => "grad"
+            AngleDimension::Grad(_) => "grad",
         }
     }
 }
@@ -105,7 +105,12 @@ impl ToCss for Angle {
     where
         W: Write,
     {
-        crate::values::serialize_specified_dimension(self.value.unitless_value(), self.value.unit(), self.was_calc, dest)
+        crate::values::serialize_specified_dimension(
+            self.value.unitless_value(),
+            self.value.unit(),
+            self.was_calc,
+            dest,
+        )
     }
 }
 
@@ -117,11 +122,7 @@ impl ToComputedValue for Angle {
         let degrees = self.degrees();
 
         // NaN and +-infinity should degenerate to 0: https://github.com/w3c/csswg-drafts/issues/6105
-        ComputedAngle::from_degrees(if degrees.is_finite() {
-            degrees
-        } else {
-            0.0
-        })
+        ComputedAngle::from_degrees(if degrees.is_finite() { degrees } else { 0.0 })
     }
 
     #[inline]

@@ -403,7 +403,10 @@ impl<T> MallocShallowSizeOf for thin_vec::ThinVec<T> {
             return 0;
         }
 
-        assert_eq!(std::mem::size_of::<Self>(), std::mem::size_of::<*const ()>());
+        assert_eq!(
+            std::mem::size_of::<Self>(),
+            std::mem::size_of::<*const ()>()
+        );
         unsafe { ops.malloc_size_of(*(self as *const Self as *const *const ())) }
     }
 }

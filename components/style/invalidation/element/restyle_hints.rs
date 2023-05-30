@@ -143,7 +143,11 @@ impl RestyleHint {
     /// be replaced.
     #[inline]
     pub fn has_animation_hint_or_recascade(&self) -> bool {
-        self.intersects(Self::for_animations() | Self::RECASCADE_SELF | Self::RECASCADE_SELF_IF_INHERIT_RESET_STYLE)
+        self.intersects(
+            Self::for_animations() |
+                Self::RECASCADE_SELF |
+                Self::RECASCADE_SELF_IF_INHERIT_RESET_STYLE,
+        )
     }
 
     /// Returns whether the hint specifies some restyle work other than an

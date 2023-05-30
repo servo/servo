@@ -22,9 +22,9 @@ use crate::{Zero, ZeroNoPercent};
 use app_units::Au;
 use cssparser::{Parser, Token};
 use std::cmp;
-use style_traits::values::specified::AllowedNumericType;
 use std::fmt::{self, Write};
-use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind, CssWriter, ToCss};
+use style_traits::values::specified::AllowedNumericType;
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 pub use super::image::Image;
 pub use super::image::{EndingShape as GradientEndingShape, Gradient};
@@ -89,12 +89,9 @@ impl FontRelativeLength {
     /// Return the unitless, raw value.
     fn unitless_value(&self) -> CSSFloat {
         match *self {
-            Self::Em(v) |
-            Self::Ex(v) |
-            Self::Ch(v) |
-            Self::Cap(v) |
-            Self::Ic(v) |
-            Self::Rem(v) => v,
+            Self::Em(v) | Self::Ex(v) | Self::Ch(v) | Self::Cap(v) | Self::Ic(v) | Self::Rem(v) => {
+                v
+            },
         }
     }
 
@@ -574,7 +571,12 @@ impl ViewportPercentageLength {
         // See bug 989802. We truncate so that adding multiple viewport units
         // that add up to 100 does not overflow due to rounding differences
         let trunc_scaled = ((length.0 as f64) * factor as f64 / 100.).trunc();
-        Au::from_f64_au(if trunc_scaled.is_nan() { 0.0f64 } else { trunc_scaled }).into()
+        Au::from_f64_au(if trunc_scaled.is_nan() {
+            0.0f64
+        } else {
+            trunc_scaled
+        })
+        .into()
     }
 }
 
@@ -901,11 +903,8 @@ impl NoCalcLength {
     /// because the font they're relative to should be zoomed already.
     pub fn should_zoom_text(&self) -> bool {
         match *self {
-            Self::Absolute(..) |
-            Self::ViewportPercentage(..) |
-            Self::ContainerRelative(..) => true,
-            Self::ServoCharacterWidth(..) |
-            Self::FontRelative(..) => false,
+            Self::Absolute(..) | Self::ViewportPercentage(..) | Self::ContainerRelative(..) => true,
+            Self::ServoCharacterWidth(..) | Self::FontRelative(..) => false,
         }
     }
 
@@ -1101,7 +1100,12 @@ impl ToCss for NoCalcLength {
     where
         W: Write,
     {
-        crate::values::serialize_specified_dimension(self.unitless_value(), self.unit(), false, dest)
+        crate::values::serialize_specified_dimension(
+            self.unitless_value(),
+            self.unit(),
+            false,
+            dest,
+        )
     }
 }
 

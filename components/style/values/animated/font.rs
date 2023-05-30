@@ -16,7 +16,8 @@ use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 impl Animate for FontVariationSettings {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let result: Vec<_> = super::lists::by_computed_value::animate(&self.0, &other.0, procedure)?;
+        let result: Vec<_> =
+            super::lists::by_computed_value::animate(&self.0, &other.0, procedure)?;
         Ok(Self(result.into_boxed_slice()))
     }
 }

@@ -10,8 +10,8 @@ use super::{Device, MediaQuery, Qualifier};
 use crate::context::QuirksMode;
 use crate::error_reporting::ContextualParseError;
 use crate::parser::ParserContext;
-use crate::values::computed;
 use crate::queries::condition::KleeneValue;
+use crate::values::computed;
 use cssparser::{Delimiter, Parser};
 use cssparser::{ParserInput, Token};
 
@@ -83,7 +83,9 @@ impl MediaList {
         computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
             self.media_queries.iter().any(|mq| {
                 let mut query_match = if mq.media_type.matches(device.media_type()) {
-                    mq.condition.as_ref().map_or(KleeneValue::True, |c| c.matches(context))
+                    mq.condition
+                        .as_ref()
+                        .map_or(KleeneValue::True, |c| c.matches(context))
                 } else {
                     KleeneValue::False
                 };

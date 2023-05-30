@@ -36,7 +36,10 @@ where
     let usage = data.styles.viewport_unit_usage();
     let uses_viewport_units = usage != ViewportUnitUsage::None;
     if uses_viewport_units {
-        debug!("invalidate_recursively: {:?} uses viewport units {:?}", element, usage);
+        debug!(
+            "invalidate_recursively: {:?} uses viewport units {:?}",
+            element, usage
+        );
     }
 
     match usage {
@@ -46,7 +49,7 @@ where
         },
         ViewportUnitUsage::FromDeclaration => {
             data.hint.insert(RestyleHint::RECASCADE_SELF);
-        }
+        },
     }
 
     let mut any_children_invalid = false;

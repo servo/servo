@@ -6,7 +6,9 @@
 
 use crate::dom::TElement;
 use crate::gecko_bindings::bindings;
-use crate::gecko_bindings::structs::{self, ServoStyleSetSizes, StyleSheet as DomStyleSheet, StyleSheetInfo};
+use crate::gecko_bindings::structs::{
+    self, ServoStyleSetSizes, StyleSheet as DomStyleSheet, StyleSheetInfo,
+};
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use crate::media_queries::{Device, MediaList};
 use crate::properties::ComputedValues;

@@ -27,8 +27,8 @@ use crate::values::specified::NonNegativePercentage;
 #[cfg(feature = "gecko")]
 use cssparser::UnicodeRange;
 use cssparser::{
-    AtRuleParser, CowRcStr, RuleBodyParser, RuleBodyItemParser, DeclarationParser, Parser,
-    QualifiedRuleParser, SourceLocation,
+    AtRuleParser, CowRcStr, DeclarationParser, Parser, QualifiedRuleParser, RuleBodyItemParser,
+    RuleBodyParser, SourceLocation,
 };
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
@@ -566,9 +566,15 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
     type Error = StyleParseErrorKind<'i>;
 }
 
-impl<'a, 'b, 'i> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>> for FontFaceRuleParser<'a, 'b> {
-    fn parse_qualified(&self) -> bool { false }
-    fn parse_declarations(&self) -> bool { true }
+impl<'a, 'b, 'i> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>>
+    for FontFaceRuleParser<'a, 'b>
+{
+    fn parse_qualified(&self) -> bool {
+        false
+    }
+    fn parse_declarations(&self) -> bool {
+        true
+    }
 }
 
 fn font_tech_enabled() -> bool {

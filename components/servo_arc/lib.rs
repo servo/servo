@@ -1045,11 +1045,17 @@ impl<H, T> UniqueArc<HeaderSliceWithLength<H, [T]>> {
     }
 
     #[inline]
-    pub fn from_header_and_iter_with_size<I>(header: HeaderWithLength<H>, items: I, num_items: usize) -> Self
+    pub fn from_header_and_iter_with_size<I>(
+        header: HeaderWithLength<H>,
+        items: I,
+        num_items: usize,
+    ) -> Self
     where
         I: Iterator<Item = T>,
     {
-        Self(Arc::from_header_and_iter_with_size(header, items, num_items))
+        Self(Arc::from_header_and_iter_with_size(
+            header, items, num_items,
+        ))
     }
 
     /// Returns a mutable reference to the header.

@@ -66,8 +66,8 @@
 
 use crate::applicable_declarations::ApplicableDeclarationBlock;
 use crate::bloom::StyleBloom;
-use crate::context::{SharedStyleContext, StyleContext};
 use crate::computed_value_flags::ComputedValueFlags;
+use crate::context::{SharedStyleContext, StyleContext};
 use crate::dom::{SendElement, TElement};
 use crate::properties::ComputedValues;
 use crate::rule_tree::StrongRuleNode;

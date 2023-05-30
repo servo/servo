@@ -94,11 +94,7 @@ impl_locked_arc_ffi!(
     Servo_MediaList_AddRef,
     Servo_MediaList_Release
 );
-impl_simple_arc_ffi!(
-    MediaRule,
-    Servo_MediaRule_AddRef,
-    Servo_MediaRule_Release
-);
+impl_simple_arc_ffi!(MediaRule, Servo_MediaRule_AddRef, Servo_MediaRule_Release);
 impl_simple_arc_ffi!(
     NamespaceRule,
     Servo_NamespaceRule_AddRef,

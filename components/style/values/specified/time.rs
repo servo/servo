@@ -33,7 +33,10 @@ pub enum TimeUnit {
 
 impl Time {
     /// Returns a time value that represents `seconds` seconds.
-    pub fn from_seconds_with_calc_clamping_mode(seconds: CSSFloat, calc_clamping_mode: Option<AllowedNumericType>) -> Self {
+    pub fn from_seconds_with_calc_clamping_mode(
+        seconds: CSSFloat,
+        calc_clamping_mode: Option<AllowedNumericType>,
+    ) -> Self {
         Time {
             seconds,
             unit: TimeUnit::Second,
@@ -61,7 +64,7 @@ impl Time {
     pub fn unit(&self) -> &'static str {
         match self.unit {
             TimeUnit::Second => "s",
-            TimeUnit::Millisecond => "ms"
+            TimeUnit::Millisecond => "ms",
         }
     }
 
@@ -69,7 +72,7 @@ impl Time {
     fn unitless_value(&self) -> CSSFloat {
         match self.unit {
             TimeUnit::Second => self.seconds,
-            TimeUnit::Millisecond => self.seconds * 1000.
+            TimeUnit::Millisecond => self.seconds * 1000.,
         }
     }
 
@@ -129,7 +132,8 @@ impl ToComputedValue for Time {
     type ComputedValue = ComputedTime;
 
     fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
-        let seconds = self.calc_clamping_mode
+        let seconds = self
+            .calc_clamping_mode
             .map_or(self.seconds(), |mode| mode.clamp(self.seconds()));
 
         ComputedTime::from_seconds(crate::values::normalize(seconds))
@@ -158,7 +162,12 @@ impl ToCss for Time {
     where
         W: Write,
     {
-        crate::values::serialize_specified_dimension(self.unitless_value(), self.unit(), self.calc_clamping_mode.is_some(), dest)
+        crate::values::serialize_specified_dimension(
+            self.unitless_value(),
+            self.unit(),
+            self.calc_clamping_mode.is_some(),
+            dest,
+        )
     }
 }
 

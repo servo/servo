@@ -237,7 +237,16 @@ impl<Image> Content<Image> {
 
 /// Items for the `content` property.
 #[derive(
-    Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
+    Clone,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    SpecifiedValueInfo,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum GenericContentItem<I> {

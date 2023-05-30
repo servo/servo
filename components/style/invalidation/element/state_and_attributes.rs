@@ -136,7 +136,11 @@ where
             return;
         }
     }
-    debug_assert!(false, "Should've found {:?} as an ancestor of {:?}", ancestor, child);
+    debug_assert!(
+        false,
+        "Should've found {:?} as an ancestor of {:?}",
+        ancestor, child
+    );
 }
 
 /// Propagates the bits after invalidating a descendant child, if needed.
@@ -169,13 +173,20 @@ pub fn invalidated_sibling<E>(element: E, of: E)
 where
     E: TElement,
 {
-    debug_assert_eq!(element.as_node().parent_node(), of.as_node().parent_node(), "Should be siblings");
+    debug_assert_eq!(
+        element.as_node().parent_node(),
+        of.as_node().parent_node(),
+        "Should be siblings"
+    );
     if !invalidated_self(element) {
         return;
     }
     if element.traversal_parent() != of.traversal_parent() {
         let parent = element.as_node().parent_element_or_host();
-        debug_assert!(parent.is_some(), "How can we have siblings without parent nodes?");
+        debug_assert!(
+            parent.is_some(),
+            "How can we have siblings without parent nodes?"
+        );
         if let Some(e) = parent {
             propagate_dirty_bit_up_to(e, element)
         }

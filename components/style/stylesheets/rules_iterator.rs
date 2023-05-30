@@ -74,7 +74,10 @@ where
             CssRule::FontPaletteValues(_) => None,
             CssRule::Style(ref style_rule) => {
                 let style_rule = style_rule.read_with(guard);
-                style_rule.rules.as_ref().map(|r| r.read_with(guard).0.iter())
+                style_rule
+                    .rules
+                    .as_ref()
+                    .map(|r| r.read_with(guard).0.iter())
             },
             CssRule::Import(ref import_rule) => {
                 let import_rule = import_rule.read_with(guard);
@@ -108,9 +111,7 @@ where
                 }
                 Some(supports_rule.rules.read_with(guard).0.iter())
             },
-            CssRule::LayerBlock(ref layer_rule) => {
-                Some(layer_rule.rules.read_with(guard).0.iter())
-            },
+            CssRule::LayerBlock(ref layer_rule) => Some(layer_rule.rules.read_with(guard).0.iter()),
         }
     }
 }

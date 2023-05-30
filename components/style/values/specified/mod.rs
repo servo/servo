@@ -30,12 +30,15 @@ pub use self::align::{AlignContent, AlignItems, AlignSelf, AlignTracks, ContentD
 #[cfg(feature = "gecko")]
 pub use self::align::{JustifyContent, JustifyItems, JustifySelf, JustifyTracks, SelfAlignment};
 pub use self::angle::{AllowUnitlessZeroAngle, Angle};
+pub use self::animation::{AnimationIterationCount, AnimationName, AnimationTimeline};
+pub use self::animation::{ScrollAxis, ScrollTimelineName, TransitionProperty, ViewTimelineInset};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, ContainerName, ContainerType};
+pub use self::box_::{BaselineSource, TouchAction, VerticalAlign, WillChange};
 pub use self::box_::{
     Clear, ContainIntrinsicSize, ContentVisibility, Float, LineClamp, Overflow, OverflowAnchor,
 };
@@ -43,7 +46,6 @@ pub use self::box_::{Contain, Display};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
 pub use self::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
 pub use self::box_::{ScrollSnapStrictness, ScrollSnapType};
-pub use self::box_::{BaselineSource, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{
     Color, ColorOrAuto, ColorPropertyValue, ColorScheme, ForcedColorAdjust, PrintColorAdjust,
 };
@@ -100,8 +102,6 @@ pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
 pub use self::ui::{BoolInteger, Cursor, UserSelect};
-pub use self::animation::{AnimationIterationCount, AnimationName, AnimationTimeline};
-pub use self::animation::{ScrollAxis, ScrollTimelineName, TransitionProperty, ViewTimelineInset};
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 #[cfg(feature = "gecko")]

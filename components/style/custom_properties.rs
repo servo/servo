@@ -149,10 +149,7 @@ static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 6] = [
         atom!("-moz-content-preferred-color-scheme"),
         get_content_preferred_color_scheme
     ),
-    make_variable!(
-        atom!("scrollbar-inline-size"),
-        get_scrollbar_inline_size
-    ),
+    make_variable!(atom!("scrollbar-inline-size"), get_scrollbar_inline_size),
 ];
 
 impl CssEnvironment {

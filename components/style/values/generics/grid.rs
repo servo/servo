@@ -699,10 +699,8 @@ impl Parse for LineNameList {
                     // FIXME(emilio): we shouldn't expand repeat() at
                     // parse time for subgrid. (bug 1583429)
                     RepeatCount::Number(num) => {
-                        let n = handle_size(
-                            num.value() as usize * names_list.len());
-                        line_names.extend(
-                            names_list.iter().cloned().cycle().take(n));
+                        let n = handle_size(num.value() as usize * names_list.len());
+                        line_names.extend(names_list.iter().cloned().cycle().take(n));
                     },
                     RepeatCount::AutoFill if fill_data.is_none() => {
                         let fill_idx = line_names.len();

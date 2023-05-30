@@ -82,7 +82,11 @@ impl Animate for generics::TrackRepeat<LengthPercentage, Integer> {
         }
 
         let count = self.count;
-        let track_sizes = super::lists::by_computed_value::animate(&self.track_sizes, &other.track_sizes, procedure)?;
+        let track_sizes = super::lists::by_computed_value::animate(
+            &self.track_sizes,
+            &other.track_sizes,
+            procedure,
+        )?;
 
         // The length of |line_names| is always 0 or N+1, where N is the length
         // of |track_sizes|. Besides, <line-names> is always discrete.
@@ -120,7 +124,8 @@ impl Animate for TrackList {
             return Err(());
         }
 
-        let values = super::lists::by_computed_value::animate(&self.values, &other.values, procedure)?;
+        let values =
+            super::lists::by_computed_value::animate(&self.values, &other.values, procedure)?;
 
         // The length of |line_names| is always 0 or N+1, where N is the length
         // of |track_sizes|. Besides, <line-names> is always discrete.

@@ -310,9 +310,10 @@ impl QueryCondition {
                         // We're about to swallow the error in a `<general-enclosed>`
                         // condition, so report it while we can.
                         let loc = e.location;
-                        let error = ContextualParseError::InvalidMediaRule(input.slice_from(start), e);
+                        let error =
+                            ContextualParseError::InvalidMediaRule(input.slice_from(start), e);
                         context.log_css_error(loc, error);
-                    }
+                    },
                 }
             },
             Token::Function(..) => {

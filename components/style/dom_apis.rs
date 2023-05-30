@@ -7,10 +7,10 @@
 
 use crate::context::QuirksMode;
 use crate::dom::{TDocument, TElement, TNode, TShadowRoot};
-use crate::selector_parser::SelectorImpl;
 use crate::invalidation::element::invalidation_map::Dependency;
 use crate::invalidation::element::invalidator::{DescendantInvalidationLists, Invalidation};
 use crate::invalidation::element::invalidator::{InvalidationProcessor, InvalidationVector};
+use crate::selector_parser::SelectorImpl;
 use crate::values::AtomIdent;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{self, MatchingContext, MatchingMode, NeedsSelectorFlags};
@@ -381,7 +381,12 @@ fn get_id(component: &Component<SelectorImpl>) -> Option<&AtomIdent> {
     use selectors::attr::AttrSelectorOperator;
     Some(match component {
         Component::ID(ref id) => id,
-        Component::AttributeInNoNamespace { ref operator, ref local_name, ref value, .. } => {
+        Component::AttributeInNoNamespace {
+            ref operator,
+            ref local_name,
+            ref value,
+            ..
+        } => {
             if *local_name != local_name!("id") {
                 return None;
             }
@@ -510,9 +515,19 @@ where
                         if combinator.is_none() {
                             // In the rightmost compound, just find descendants of root that match
                             // the selector list with that id.
-                            collect_elements_with_id::<E, Q, _>(root, id, results, quirks_mode, |e| {
-                                matching::matches_selector_list(selector_list, &e, matching_context)
-                            });
+                            collect_elements_with_id::<E, Q, _>(
+                                root,
+                                id,
+                                results,
+                                quirks_mode,
+                                |e| {
+                                    matching::matches_selector_list(
+                                        selector_list,
+                                        &e,
+                                        matching_context,
+                                    )
+                                },
+                            );
                             return Ok(());
                         }
 

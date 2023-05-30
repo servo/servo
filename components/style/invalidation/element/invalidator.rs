@@ -402,7 +402,9 @@ where
             );
 
             if invalidated_sibling {
-                sibling_invalidator.processor.invalidated_sibling(sibling, self.element);
+                sibling_invalidator
+                    .processor
+                    .invalidated_sibling(sibling, self.element);
             }
 
             any_invalidated |= invalidated_sibling;

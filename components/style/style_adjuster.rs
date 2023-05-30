@@ -293,10 +293,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .add_flags(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE);
         }
 
-        if box_style
-            .clone_container_type()
-            .is_size_container_type()
-        {
+        if box_style.clone_container_type().is_size_container_type() {
             self.style
                 .add_flags(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE);
         }
@@ -446,7 +443,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if !column_style.column_rule_has_nonzero_width() {
             return;
         }
-        self.style.mutate_column().set_column_rule_width(crate::Zero::zero());
+        self.style
+            .mutate_column()
+            .set_column_rule_width(crate::Zero::zero());
     }
 
     /// outline-style: none causes a computed outline-width of zero at computed
@@ -459,7 +458,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if !outline.outline_has_nonzero_width() {
             return;
         }
-        self.style.mutate_outline().set_outline_width(crate::Zero::zero());
+        self.style
+            .mutate_outline()
+            .set_outline_width(crate::Zero::zero());
     }
 
     /// CSS overflow-x and overflow-y require some fixup as well in some cases.
@@ -484,7 +485,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn adjust_for_contain(&mut self) {
         let box_style = self.style.get_box();
-        debug_assert_eq!(box_style.clone_contain(), box_style.clone_effective_containment());
+        debug_assert_eq!(
+            box_style.clone_contain(),
+            box_style.clone_effective_containment()
+        );
         let container_type = box_style.clone_container_type();
         let content_visibility = box_style.clone_content_visibility();
         if container_type == ContainerType::Normal &&
@@ -499,28 +503,33 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             // `content-visibility:auto` also applies size containment when content
             // is not relevant (and therefore skipped). This is checked in
             // nsIFrame::GetContainSizeAxes.
-            ContentVisibility::Auto => new_contain.insert(
-                Contain::LAYOUT | Contain::PAINT | Contain::STYLE),
-            ContentVisibility::Hidden => new_contain.insert(
-                Contain::LAYOUT | Contain::PAINT | Contain::SIZE | Contain::STYLE),
+            ContentVisibility::Auto => {
+                new_contain.insert(Contain::LAYOUT | Contain::PAINT | Contain::STYLE)
+            },
+            ContentVisibility::Hidden => new_contain
+                .insert(Contain::LAYOUT | Contain::PAINT | Contain::SIZE | Contain::STYLE),
         }
         match container_type {
             ContainerType::Normal => {},
             // https://drafts.csswg.org/css-contain-3/#valdef-container-type-inline-size:
             //     Applies layout containment, style containment, and inline-size
             //     containment to the principal box.
-            ContainerType::InlineSize => new_contain.insert(
-                Contain::LAYOUT | Contain::STYLE | Contain::INLINE_SIZE),
+            ContainerType::InlineSize => {
+                new_contain.insert(Contain::LAYOUT | Contain::STYLE | Contain::INLINE_SIZE)
+            },
             // https://drafts.csswg.org/css-contain-3/#valdef-container-type-size:
             //     Applies layout containment, style containment, and size
             //     containment to the principal box.
-            ContainerType::Size => new_contain.insert(
-                Contain::LAYOUT | Contain::STYLE | Contain::SIZE),
+            ContainerType::Size => {
+                new_contain.insert(Contain::LAYOUT | Contain::STYLE | Contain::SIZE)
+            },
         }
         if new_contain == old_contain {
             return;
         }
-        self.style.mutate_box().set_effective_containment(new_contain);
+        self.style
+            .mutate_box()
+            .set_effective_containment(new_contain);
     }
 
     /// Handles the relevant sections in:

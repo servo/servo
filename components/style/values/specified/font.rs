@@ -19,7 +19,7 @@ use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, PX_PER_PT};
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
 use crate::values::specified::{NoCalcLength, NonNegativeNumber, NonNegativePercentage, Number};
-use crate::values::{CustomIdent, SelectorParseErrorKind, serialize_atom_identifier};
+use crate::values::{serialize_atom_identifier, CustomIdent, SelectorParseErrorKind};
 use crate::Atom;
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
@@ -1034,7 +1034,15 @@ bitflags! {
 }
 
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToComputedValue, ToResolvedValue, ToShmem,
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C, u8)]
 /// Set of variant alternates
@@ -1817,9 +1825,15 @@ pub struct FontPalette(Atom);
 
 #[allow(missing_docs)]
 impl FontPalette {
-    pub fn normal() -> Self { Self(atom!("normal")) }
-    pub fn light() -> Self { Self(atom!("light")) }
-    pub fn dark() -> Self { Self(atom!("dark")) }
+    pub fn normal() -> Self {
+        Self(atom!("normal"))
+    }
+    pub fn light() -> Self {
+        Self(atom!("light"))
+    }
+    pub fn dark() -> Self {
+        Self(atom!("dark"))
+    }
 }
 
 impl Parse for FontPalette {

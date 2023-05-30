@@ -22,9 +22,9 @@ use std::cmp;
 
 pub mod color;
 pub mod effects;
-pub mod lists;
 mod font;
 mod grid;
+pub mod lists;
 mod svg;
 pub mod transform;
 

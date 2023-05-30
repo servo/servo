@@ -537,7 +537,12 @@ impl Stylesheet {
 
         let source_map_url = input.current_source_map_url().map(String::from);
         let source_url = input.current_source_url().map(String::from);
-        (rule_parser.context.namespaces.into_owned(), rule_parser.rules, source_map_url, source_url)
+        (
+            rule_parser.context.namespaces.into_owned(),
+            rule_parser.rules,
+            source_map_url,
+            source_url,
+        )
     }
 
     /// Creates an empty stylesheet and parses it with a given base url, origin

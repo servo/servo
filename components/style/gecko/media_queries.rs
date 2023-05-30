@@ -73,10 +73,7 @@ impl fmt::Debug for Device {
 
         let mut doc_uri = nsCString::new();
         unsafe {
-            bindings::Gecko_nsIURI_Debug(
-                (*self.document()).mDocumentURI.raw(),
-                &mut doc_uri,
-            )
+            bindings::Gecko_nsIURI_Debug((*self.document()).mDocumentURI.raw(), &mut doc_uri)
         };
 
         f.debug_struct("Device")
@@ -132,12 +129,11 @@ impl Device {
                 pres_context.map_or(std::ptr::null(), |pc| pc),
                 vertical,
                 &**font,
-                element.map_or(std::ptr::null(), |e| e.0)
+                element.map_or(std::ptr::null(), |e| e.0),
             )
         });
         NonNegativeLength::new(au.to_f32_px())
     }
-
 
     /// Tells the device that a new viewport rule has been found, and stores the
     /// relevant viewport constraints.
@@ -208,9 +204,7 @@ impl Device {
             // XXX: we could have a more reasonable default perhaps.
             None => return Length::new(0.0),
         };
-        Length::new(unsafe {
-            bindings::Gecko_GetScrollbarInlineSize(pc)
-        })
+        Length::new(unsafe { bindings::Gecko_GetScrollbarInlineSize(pc) })
     }
 
     /// Queries font metrics

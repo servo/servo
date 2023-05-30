@@ -225,10 +225,7 @@ impl fmt::Debug for UrlExtraData {
         formatter
             .debug_struct("URLExtraData")
             .field("chrome_rules_enabled", &self.chrome_rules_enabled())
-            .field(
-                "base",
-                &DebugURI(self.as_ref().mBaseURI.raw()),
-            )
+            .field("base", &DebugURI(self.as_ref().mBaseURI.raw()))
             .field(
                 "referrer",
                 &DebugReferrerInfo(self.as_ref().mReferrerInfo.raw()),
@@ -481,9 +478,7 @@ impl DeepCloneWithLock for CssRule {
         params: &DeepCloneParams,
     ) -> CssRule {
         match *self {
-            CssRule::Namespace(ref arc) => {
-                CssRule::Namespace(arc.clone())
-            },
+            CssRule::Namespace(ref arc) => CssRule::Namespace(arc.clone()),
             CssRule::Import(ref arc) => {
                 let rule = arc
                     .read_with(guard)
@@ -506,19 +501,13 @@ impl DeepCloneWithLock for CssRule {
                 let rule = arc.read_with(guard);
                 CssRule::FontFace(Arc::new(lock.wrap(rule.clone())))
             },
-            CssRule::FontFeatureValues(ref arc) => {
-                CssRule::FontFeatureValues(arc.clone())
-            },
-            CssRule::FontPaletteValues(ref arc) => {
-                CssRule::FontPaletteValues(arc.clone())
-            },
+            CssRule::FontFeatureValues(ref arc) => CssRule::FontFeatureValues(arc.clone()),
+            CssRule::FontPaletteValues(ref arc) => CssRule::FontPaletteValues(arc.clone()),
             CssRule::CounterStyle(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::CounterStyle(Arc::new(lock.wrap(rule.clone())))
             },
-            CssRule::Viewport(ref arc) => {
-                CssRule::Viewport(arc.clone())
-            },
+            CssRule::Viewport(ref arc) => CssRule::Viewport(arc.clone()),
             CssRule::Keyframes(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::Keyframes(Arc::new(
@@ -542,9 +531,7 @@ impl DeepCloneWithLock for CssRule {
             CssRule::Document(ref arc) => {
                 CssRule::Document(Arc::new(arc.deep_clone_with_lock(lock, guard, params)))
             },
-            CssRule::LayerStatement(ref arc) => {
-                CssRule::LayerStatement(arc.clone())
-            },
+            CssRule::LayerStatement(ref arc) => CssRule::LayerStatement(arc.clone()),
             CssRule::LayerBlock(ref arc) => {
                 CssRule::LayerBlock(Arc::new(arc.deep_clone_with_lock(lock, guard, params)))
             },

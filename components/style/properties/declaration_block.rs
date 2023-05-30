@@ -594,9 +594,8 @@ impl PropertyDeclarationBlock {
                 .all_shorthand
                 .declarations()
                 .any(|decl| {
-                    !self.contains(decl.id())
-                        || self
-                            .declarations
+                    !self.contains(decl.id()) ||
+                        self.declarations
                             .iter()
                             .enumerate()
                             .find(|&(_, ref d)| d.id() == decl.id())
@@ -638,9 +637,9 @@ impl PropertyDeclarationBlock {
                                     }
                                     return DeclarationUpdate::UpdateInPlace { pos };
                                 }
-                                if !needs_append
-                                    && id.logical_group() == Some(logical_group)
-                                    && id.is_logical() != longhand_id.is_logical()
+                                if !needs_append &&
+                                    id.logical_group() == Some(logical_group) &&
+                                    id.is_logical() != longhand_id.is_logical()
                                 {
                                     needs_append = true;
                                 }
@@ -1428,7 +1427,8 @@ impl<'i> DeclarationParserState<'i> {
         };
         // In case there is still unparsed text in the declaration, we should roll back.
         input.expect_exhausted()?;
-        self.output_block.extend(self.declarations.drain(), self.importance);
+        self.output_block
+            .extend(self.declarations.drain(), self.importance);
         // We've successfully parsed a declaration, so forget about
         // `last_parsed_property_id`. It'd be wrong to associate any
         // following error with this property.
