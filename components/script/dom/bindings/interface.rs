@@ -12,6 +12,7 @@ use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::principals::ServoJSPrincipals;
 use crate::dom::bindings::utils::{
     get_proto_or_iface_array, DOMJSClass, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL,
+    callargs_is_constructing,
 };
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::error::throw_type_error;
@@ -626,7 +627,7 @@ pub fn get_desired_proto(
         // https://heycam.github.io/webidl/#internally-create-a-new-object-implementing-the-interface
         // step 3.
 
-        //assert!(args.is_constructing())
+        assert!(callargs_is_constructing(args));
 
         // The desired prototype depends on the actual constructor that was invoked,
         // which is passed to us as the newTarget in the callargs.  We want to do
