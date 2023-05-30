@@ -3234,7 +3234,7 @@ impl ComputedValues {
                 let mut s = String::new();
                 self.get_resolved_value(
                     id,
-                    &mut CssWriter::new(&mut s)
+                    &mut s
                 ).unwrap();
                 s
             }
