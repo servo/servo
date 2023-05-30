@@ -52,6 +52,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                             AncestorHashes::new(s, QuirksMode::NoQuirks),
                             locked.clone(),
                             i as u32,
+                            0
                         )
                     })
                     .collect()
