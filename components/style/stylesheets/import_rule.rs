@@ -13,8 +13,8 @@ use crate::shared_lock::{
 };
 use crate::str::CssStringWriter;
 use crate::stylesheets::{
-    layer_rule::LayerName, supports_rule::SupportsCondition, CssRule,
-    CssRuleType, StylesheetInDocument,
+    layer_rule::LayerName, supports_rule::SupportsCondition, CssRule, CssRuleType,
+    StylesheetInDocument,
 };
 use crate::values::CssUrl;
 use cssparser::{Parser, SourceLocation};
@@ -258,7 +258,8 @@ impl ImportRule {
                         .parse_nested_block(|input| LayerName::parse(context, input))
                         .map(|name| ImportLayer::Named(name))
                 })
-                .ok().unwrap_or(ImportLayer::None)
+                .ok()
+                .unwrap_or(ImportLayer::None)
         };
 
         #[cfg(feature = "gecko")]
@@ -272,9 +273,8 @@ impl ImportRule {
             input
                 .try_parse(SupportsCondition::parse_for_import)
                 .map(|condition| {
-                    let enabled = context.nest_for_rule(CssRuleType::Style, |context| {
-                        condition.eval(context)
-                    });
+                    let enabled = context
+                        .nest_for_rule(CssRuleType::Style, |context| condition.eval(context));
                     ImportSupportsCondition { condition, enabled }
                 })
                 .ok()

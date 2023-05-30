@@ -4,8 +4,8 @@
 
 //! Supported CSS properties and the cascade.
 
-pub mod declaration_block;
 pub mod cascade;
+pub mod declaration_block;
 
 /// The CSS properties supported by the style system.
 /// Generated from the properties.mako.rs template by build.rs

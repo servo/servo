@@ -310,9 +310,15 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
     }
 }
 
-impl<'a, 'b, 'i> RuleBodyItemParser<'i, ViewportDeclarations, StyleParseErrorKind<'i>> for ViewportRuleParser<'a, 'b> {
-    fn parse_declarations(&self) -> bool { true }
-    fn parse_qualified(&self) -> bool { false }
+impl<'a, 'b, 'i> RuleBodyItemParser<'i, ViewportDeclarations, StyleParseErrorKind<'i>>
+    for ViewportRuleParser<'a, 'b>
+{
+    fn parse_declarations(&self) -> bool {
+        true
+    }
+    fn parse_qualified(&self) -> bool {
+        false
+    }
 }
 
 /// A `@viewport` rule.

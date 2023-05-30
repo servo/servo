@@ -13,7 +13,9 @@ use crate::str::CssStringWriter;
 use crate::values::specified::Integer;
 use crate::values::CustomIdent;
 use crate::Atom;
-use cssparser::{AtRuleParser, RuleBodyParser, RuleBodyItemParser, DeclarationParser, QualifiedRuleParser};
+use cssparser::{
+    AtRuleParser, DeclarationParser, QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser,
+};
 use cssparser::{CowRcStr, Parser, SourceLocation, Token};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
@@ -159,9 +161,15 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
     type Error = StyleParseErrorKind<'i>;
 }
 
-impl<'a, 'b, 'i> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>> for CounterStyleRuleParser<'a, 'b> {
-    fn parse_qualified(&self) -> bool { false }
-    fn parse_declarations(&self) -> bool { true }
+impl<'a, 'b, 'i> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>>
+    for CounterStyleRuleParser<'a, 'b>
+{
+    fn parse_qualified(&self) -> bool {
+        false
+    }
+    fn parse_declarations(&self) -> bool {
+        true
+    }
 }
 
 macro_rules! checker {

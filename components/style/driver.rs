@@ -137,10 +137,7 @@ where
             continue;
         }
         depth += 1;
-        if pool.is_some() &&
-            discovered.len() > parallelism_threshold &&
-            parallelism_threshold > 0
-        {
+        if pool.is_some() && discovered.len() > parallelism_threshold && parallelism_threshold > 0 {
             let pool = pool.unwrap();
             let tls = ScopedTLS::<ThreadLocalStyleContext<E>>::new(pool);
             let root_opaque = root.as_node().opaque();

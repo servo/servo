@@ -239,8 +239,9 @@ fn eval_prefers_reduced_transparency(
     context: &Context,
     query_value: Option<PrefersReducedTransparency>,
 ) -> bool {
-    let prefers_reduced =
-        unsafe { bindings::Gecko_MediaFeatures_PrefersReducedTransparency(context.device().document()) };
+    let prefers_reduced = unsafe {
+        bindings::Gecko_MediaFeatures_PrefersReducedTransparency(context.device().document())
+    };
     let query_value = match query_value {
         Some(v) => v,
         None => return prefers_reduced,
@@ -309,10 +310,7 @@ enum InvertedColors {
 }
 
 /// https://drafts.csswg.org/mediaqueries-5/#inverted
-fn eval_inverted_colors(
-    context: &Context,
-    query_value: Option<InvertedColors>,
-) -> bool {
+fn eval_inverted_colors(context: &Context, query_value: Option<InvertedColors>) -> bool {
     let inverted_colors =
         unsafe { bindings::Gecko_MediaFeatures_InvertedColors(context.device().document()) };
     let query_value = match query_value {
@@ -604,13 +602,12 @@ pub enum Scripting {
     /// See: https://github.com/w3c/csswg-drafts/issues/8621
     InitialOnly,
     /// Scripting is supported and enabled
-    Enabled
+    Enabled,
 }
 
 /// https://drafts.csswg.org/mediaqueries-5/#scripting
 fn eval_scripting(context: &Context, query_value: Option<Scripting>) -> bool {
-    let scripting =
-        unsafe { bindings::Gecko_MediaFeatures_Scripting(context.device().document()) };
+    let scripting = unsafe { bindings::Gecko_MediaFeatures_Scripting(context.device().document()) };
     match query_value {
         Some(v) => v == scripting,
         None => scripting != Scripting::None,
@@ -824,7 +821,10 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 67] = [
     feature!(
         atom!("prefers-reduced-transparency"),
         AllowsRanges::No,
-        keyword_evaluator!(eval_prefers_reduced_transparency, PrefersReducedTransparency),
+        keyword_evaluator!(
+            eval_prefers_reduced_transparency,
+            PrefersReducedTransparency
+        ),
         FeatureFlags::empty(),
     ),
     feature!(

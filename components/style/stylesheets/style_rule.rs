@@ -6,9 +6,11 @@
 
 use crate::properties::PropertyDeclarationBlock;
 use crate::selector_parser::SelectorImpl;
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
-use crate::stylesheets::CssRules;
+use crate::shared_lock::{
+    DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
+};
 use crate::str::CssStringWriter;
+use crate::stylesheets::CssRules;
 use cssparser::SourceLocation;
 #[cfg(feature = "gecko")]
 use malloc_size_of::MallocUnconditionalShallowSizeOf;
@@ -60,7 +62,8 @@ impl StyleRule {
         n += self.block.unconditional_shallow_size_of(ops) +
             self.block.read_with(guard).size_of(ops);
         if let Some(ref rules) = self.rules {
-            n += rules.unconditional_shallow_size_of(ops) + rules.read_with(guard).size_of(guard, ops)
+            n += rules.unconditional_shallow_size_of(ops) +
+                rules.read_with(guard).size_of(guard, ops)
         }
         n
     }
@@ -87,7 +90,7 @@ impl ToCssWithGuard for StyleRule {
                     dest.write_str("\n  ")?;
                     declaration_block.to_css(dest)?;
                 }
-                return rules.to_css_block_without_opening(guard, dest)
+                return rules.to_css_block_without_opening(guard, dest);
             }
         }
 

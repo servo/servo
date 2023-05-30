@@ -50,7 +50,9 @@ use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
 use selectors::matching::VisitedHandlingMode;
 use selectors::matching::{matches_selector, MatchingContext, MatchingMode, NeedsSelectorFlags};
-use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorList, SelectorIter};
+use selectors::parser::{
+    AncestorHashes, Combinator, Component, Selector, SelectorIter, SelectorList,
+};
 use selectors::visitor::{SelectorListKind, SelectorVisitor};
 use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
@@ -593,7 +595,8 @@ impl<'a> ContainingRuleState<'a> {
     fn restore(&mut self, saved: &SavedContainingRuleState) {
         debug_assert!(self.layer_name.0.len() >= saved.layer_name_len);
         debug_assert!(self.ancestor_selector_lists.len() >= saved.ancestor_selector_lists_len);
-        self.ancestor_selector_lists.truncate(saved.ancestor_selector_lists_len);
+        self.ancestor_selector_lists
+            .truncate(saved.ancestor_selector_lists_len);
         self.layer_name.0.truncate(saved.layer_name_len);
         self.layer_id = saved.layer_id;
         self.container_condition_id = saved.container_condition_id;
@@ -1154,8 +1157,7 @@ impl Stylist {
         );
 
         matching_context.pseudo_element_matching_fn = matching_fn;
-        matching_context.extra_data.originating_element_style =
-            Some(originating_element_style);
+        matching_context.extra_data.originating_element_style = Some(originating_element_style);
 
         self.push_applicable_declarations(
             element,
@@ -1188,8 +1190,7 @@ impl Stylist {
                 needs_selector_flags,
             );
             matching_context.pseudo_element_matching_fn = matching_fn;
-            matching_context.extra_data.originating_element_style =
-                Some(originating_element_style);
+            matching_context.extra_data.originating_element_style = Some(originating_element_style);
 
             self.push_applicable_declarations(
                 element,
@@ -1733,20 +1734,12 @@ impl ExtraStyleData {
     }
 
     /// Add the given @font-feature-values rule.
-    fn add_font_feature_values(
-        &mut self,
-        rule: &Arc<FontFeatureValuesRule>,
-        layer: LayerId,
-    ) {
+    fn add_font_feature_values(&mut self, rule: &Arc<FontFeatureValuesRule>, layer: LayerId) {
         self.font_feature_values.push(rule.clone(), layer);
     }
 
     /// Add the given @font-palette-values rule.
-    fn add_font_palette_values(
-        &mut self,
-        rule: &Arc<FontPaletteValuesRule>,
-        layer: LayerId,
-    ) {
+    fn add_font_palette_values(&mut self, rule: &Arc<FontPaletteValuesRule>, layer: LayerId) {
         self.font_palette_values.push(rule.clone(), layer);
     }
 
@@ -2666,13 +2659,11 @@ impl CascadeData {
                     let has_nested_rules = style_rule.rules.is_some();
                     let ancestor_selectors = containing_rule_state.ancestor_selector_lists.last();
                     if has_nested_rules {
-                        selectors_for_nested_rules = Some(
-                            if ancestor_selectors.is_some() {
-                                Cow::Owned(SelectorList(Default::default()))
-                            } else {
-                                Cow::Borrowed(&style_rule.selectors)
-                            }
-                        );
+                        selectors_for_nested_rules = Some(if ancestor_selectors.is_some() {
+                            Cow::Owned(SelectorList(Default::default()))
+                        } else {
+                            Cow::Borrowed(&style_rule.selectors)
+                        });
                     }
 
                     for selector in &style_rule.selectors.0 {
@@ -2721,12 +2712,15 @@ impl CascadeData {
                             containing_rule_state.container_condition_id,
                         );
 
-                        if let Some(Cow::Owned(ref mut nested_selectors)) = selectors_for_nested_rules {
+                        if let Some(Cow::Owned(ref mut nested_selectors)) =
+                            selectors_for_nested_rules
+                        {
                             nested_selectors.0.push(rule.selector.clone())
                         }
 
                         if rebuild_kind.should_rebuild_invalidation() {
-                            self.invalidation_map.note_selector(&rule.selector, quirks_mode)?;
+                            self.invalidation_map
+                                .note_selector(&rule.selector, quirks_mode)?;
                             let mut needs_revalidation = false;
                             let mut visitor = StylistSelectorVisitor {
                                 needs_revalidation: &mut needs_revalidation,
@@ -2777,17 +2771,19 @@ impl CascadeData {
                             // NOTE(emilio): It's fine to look at :host and then at
                             // ::slotted(..), since :host::slotted(..) could never
                             // possibly match, as <slot> is not a valid shadow host.
-                            let rules =
-                                if rule.selector.is_featureless_host_selector_or_pseudo_element() {
-                                    self.host_rules
-                                        .get_or_insert_with(|| Box::new(Default::default()))
-                                } else if rule.selector.is_slotted() {
-                                    self.slotted_rules
-                                        .get_or_insert_with(|| Box::new(Default::default()))
-                                } else {
-                                    &mut self.normal_rules
-                                }
-                                .for_insertion(pseudo_element);
+                            let rules = if rule
+                                .selector
+                                .is_featureless_host_selector_or_pseudo_element()
+                            {
+                                self.host_rules
+                                    .get_or_insert_with(|| Box::new(Default::default()))
+                            } else if rule.selector.is_slotted() {
+                                self.slotted_rules
+                                    .get_or_insert_with(|| Box::new(Default::default()))
+                            } else {
+                                &mut self.normal_rules
+                            }
+                            .for_insertion(pseudo_element);
                             rules.insert(rule, quirks_mode)?;
                         }
                     }
@@ -2946,14 +2942,19 @@ impl CascadeData {
                             .saw_effective(import_rule);
                     }
                     match import_rule.layer {
-                        ImportLayer::Named(ref name) => maybe_register_layers(self, Some(name), containing_rule_state),
-                        ImportLayer::Anonymous => maybe_register_layers(self, None, containing_rule_state),
+                        ImportLayer::Named(ref name) => {
+                            maybe_register_layers(self, Some(name), containing_rule_state)
+                        },
+                        ImportLayer::Anonymous => {
+                            maybe_register_layers(self, None, containing_rule_state)
+                        },
                         ImportLayer::None => {},
                     }
                 },
                 CssRule::Media(ref media_rule) => {
                     if rebuild_kind.should_rebuild_invalidation() {
-                        self.effective_media_query_results.saw_effective(&**media_rule);
+                        self.effective_media_query_results
+                            .saw_effective(&**media_rule);
                     }
                 },
                 CssRule::LayerBlock(ref rule) => {
@@ -2970,7 +2971,7 @@ impl CascadeData {
                     if let Some(s) = selectors_for_nested_rules {
                         containing_rule_state.ancestor_selector_lists.push(s);
                     }
-                }
+                },
                 CssRule::Container(ref rule) => {
                     let id = ContainerConditionId(self.container_conditions.len() as u16);
                     self.container_conditions.push(ContainerConditionReference {
@@ -3122,8 +3123,9 @@ impl CascadeData {
                 CssRule::Media(ref media_rule) => {
                     let mq = media_rule.media_queries.read_with(guard);
                     let effective_now = mq.evaluate(device, quirks_mode);
-                    let effective_then =
-                        self.effective_media_query_results.was_effective(&**media_rule);
+                    let effective_then = self
+                        .effective_media_query_results
+                        .was_effective(&**media_rule);
 
                     if effective_now != effective_then {
                         debug!(

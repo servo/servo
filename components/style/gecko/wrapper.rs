@@ -59,8 +59,8 @@ use crate::selector_parser::{AttrValue, Lang};
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::stylist::CascadeData;
-use crate::values::{AtomIdent, AtomString};
 use crate::values::computed::Display;
+use crate::values::{AtomIdent, AtomString};
 use crate::CaseSensitivityExt;
 use crate::LocalName;
 use app_units::Au;
@@ -321,7 +321,7 @@ impl<'ln> GeckoNode<'ln> {
     #[inline]
     fn is_in_shadow_tree(&self) -> bool {
         use crate::gecko_bindings::structs::NODE_IS_IN_SHADOW_TREE;
-        self.flags() & NODE_IS_IN_SHADOW_TREE  != 0
+        self.flags() & NODE_IS_IN_SHADOW_TREE != 0
     }
 
     /// Returns true if we know for sure that `flattened_tree_parent` and `parent_node` return the
@@ -824,9 +824,8 @@ impl<'le> GeckoElement<'le> {
         let mut map = FxHashMap::with_capacity_and_hasher(collection_length, Default::default());
 
         for i in 0..collection_length {
-            let end_value = unsafe {
-                Arc::from_raw_addrefed(Gecko_ElementTransitions_EndValueAt(self.0, i))
-            };
+            let end_value =
+                unsafe { Arc::from_raw_addrefed(Gecko_ElementTransitions_EndValueAt(self.0, i)) };
             let property = end_value.id();
             debug_assert!(!property.is_logical());
             map.insert(property, end_value);
@@ -918,13 +917,7 @@ fn get_animation_rule(
         effect_count.min(ANIMATABLE_PROPERTY_COUNT),
         Default::default(),
     );
-    if unsafe {
-        Gecko_GetAnimationRule(
-            element.0,
-            cascade_level,
-            &mut animation_values,
-        )
-    } {
+    if unsafe { Gecko_GetAnimationRule(element.0, cascade_level, &mut animation_values) } {
         let shared_lock = &GLOBAL_STYLE_DATA.shared_lock;
         Some(Arc::new(shared_lock.wrap(
             PropertyDeclarationBlock::from_animation_value_map(&animation_values),
@@ -1326,9 +1319,12 @@ impl<'le> TElement for GeckoElement<'le> {
     /// pseudo-elements).
     #[inline]
     fn matches_user_and_content_rules(&self) -> bool {
-        use crate::gecko_bindings::structs::{NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE, NODE_HAS_BEEN_IN_UA_WIDGET};
+        use crate::gecko_bindings::structs::{
+            NODE_HAS_BEEN_IN_UA_WIDGET, NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE,
+        };
         let flags = self.flags();
-        (flags & NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE) == 0 || (flags & NODE_HAS_BEEN_IN_UA_WIDGET) != 0
+        (flags & NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE) == 0 ||
+            (flags & NODE_HAS_BEEN_IN_UA_WIDGET) != 0
     }
 
     #[inline]
@@ -1508,7 +1504,9 @@ impl<'le> TElement for GeckoElement<'le> {
             transitions_to_keep.insert(physical_longhand);
             if self.needs_transitions_update_per_property(
                 physical_longhand,
-                after_change_ui_style.transition_combined_duration_at(transition_property.index).seconds(),
+                after_change_ui_style
+                    .transition_combined_duration_at(transition_property.index)
+                    .seconds(),
                 before_change_style,
                 after_change_style,
                 &existing_transitions,
@@ -2096,7 +2094,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                     );
                     return false;
                 }
-                if context.extra_data.invalidation_data.document_state.intersects(state_bit) {
+                if context
+                    .extra_data
+                    .invalidation_data
+                    .document_state
+                    .intersects(state_bit)
+                {
                     return !context.in_negation();
                 }
                 self.document_state().contains(state_bit)

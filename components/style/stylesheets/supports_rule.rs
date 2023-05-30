@@ -329,9 +329,7 @@ impl ToCss for SupportsCondition {
                 }
                 Ok(())
             },
-            SupportsCondition::Declaration(ref decl) => {
-                decl.to_css(dest)
-            },
+            SupportsCondition::Declaration(ref decl) => decl.to_css(dest),
             SupportsCondition::Selector(ref selector) => {
                 dest.write_str("selector(")?;
                 selector.to_css(dest)?;

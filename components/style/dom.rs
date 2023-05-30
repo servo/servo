@@ -17,8 +17,8 @@ use crate::properties::{AnimationDeclarations, ComputedValues, PropertyDeclarati
 use crate::selector_parser::{AttrValue, Lang, PseudoElement, SelectorImpl};
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::stylist::CascadeData;
-use crate::values::AtomIdent;
 use crate::values::computed::Display;
+use crate::values::AtomIdent;
 use crate::{LocalName, Namespace, WeakAtom};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use selectors::matching::{QuirksMode, VisitedHandlingMode};
@@ -199,7 +199,10 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
                 return Some(s);
             }
 
-            debug_assert!(current.parent_node().is_some(), "Not a descendant of the scope?");
+            debug_assert!(
+                current.parent_node().is_some(),
+                "Not a descendant of the scope?"
+            );
             current = current.parent_node()?;
         }
     }
@@ -893,7 +896,10 @@ pub trait TElement:
     /// Returns the size of the element to be used in container size queries.
     /// This will usually be the size of the content area of the primary box,
     /// but can be None if there is no box or if some axis lacks size containment.
-    fn query_container_size(&self, display: &Display) -> euclid::default::Size2D<Option<app_units::Au>>;
+    fn query_container_size(
+        &self,
+        display: &Display,
+    ) -> euclid::default::Size2D<Option<app_units::Au>>;
 
     /// Returns true if this element anchors a relative selector, now or after
     /// a DOM mutation.

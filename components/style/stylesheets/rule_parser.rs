@@ -147,8 +147,8 @@ impl<'a, 'i> TopLevelRuleParser<'a, 'i> {
         // If there's anything that isn't a namespace rule (or import rule, but
         // we checked that already at the beginning), reject with a
         // StateError.
-        if new_state == State::Namespaces
-            && ctx.rule_list[ctx.index..]
+        if new_state == State::Namespaces &&
+            ctx.rule_list[ctx.index..]
                 .iter()
                 .any(|r| !matches!(*r, CssRule::Namespace(..)))
         {
@@ -356,12 +356,11 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a, 'i> {
                 };
 
                 self.state = State::Namespaces;
-                self.rules
-                    .push(CssRule::Namespace(Arc::new(NamespaceRule {
-                        prefix,
-                        url,
-                        source_location: start.source_location(),
-                    })));
+                self.rules.push(CssRule::Namespace(Arc::new(NamespaceRule {
+                    prefix,
+                    url,
+                    source_location: start.source_location(),
+                })));
             },
             AtRulePrelude::Layer(..) => {
                 AtRuleParser::rule_without_block(&mut self.nested(), prelude, start)?;
@@ -489,7 +488,11 @@ impl<'a, 'b, 'i> NestedRuleParser<'a, 'b, 'i> {
                     Ok(()) => {},
                     Err((error, slice)) => {
                         if parse_declarations {
-                            iter.parser.declaration_parser_state.did_error(iter.parser.context, error, slice);
+                            iter.parser.declaration_parser_state.did_error(
+                                iter.parser.context,
+                                error,
+                                slice,
+                            );
                         } else {
                             let location = error.location;
                             let error = ContextualParseError::InvalidRule(slice, error);
@@ -541,7 +544,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self::Prelude, ParseError<'i>> {
         if !self.allow_at_and_qualified_rules() {
-            return Err(input.new_error(BasicParseErrorKind::AtRuleInvalid(name)))
+            return Err(input.new_error(BasicParseErrorKind::AtRuleInvalid(name)));
         }
         Ok(match_ignore_ascii_case! { &*name,
             "media" => {
@@ -874,7 +877,8 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for NestedRuleParser<'a, 'b, 'i> {
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>,
     ) -> Result<(), ParseError<'i>> {
-        self.declaration_parser_state.parse_value(self.context, name, input)
+        self.declaration_parser_state
+            .parse_value(self.context, name, input)
     }
 }
 

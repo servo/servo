@@ -398,7 +398,9 @@ impl ElementData {
 
         let needs_to_recascade_self = hint.intersects(RestyleHint::RECASCADE_SELF) ||
             (hint.intersects(RestyleHint::RECASCADE_SELF_IF_INHERIT_RESET_STYLE) &&
-                style.flags.contains(ComputedValueFlags::INHERITS_RESET_STYLE));
+                style
+                    .flags
+                    .contains(ComputedValueFlags::INHERITS_RESET_STYLE));
         if needs_to_recascade_self {
             return Some(RestyleKind::CascadeOnly);
         }
@@ -442,7 +444,9 @@ impl ElementData {
 
         let needs_to_recascade_self = hint.intersects(RestyleHint::RECASCADE_SELF) ||
             (hint.intersects(RestyleHint::RECASCADE_SELF_IF_INHERIT_RESET_STYLE) &&
-                style.flags.contains(ComputedValueFlags::INHERITS_RESET_STYLE));
+                style
+                    .flags
+                    .contains(ComputedValueFlags::INHERITS_RESET_STYLE));
         if needs_to_recascade_self {
             return Some(RestyleKind::CascadeOnly);
         }

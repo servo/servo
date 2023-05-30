@@ -85,7 +85,11 @@ impl<'a> ParserContext<'a> {
     }
 
     /// Temporarily sets the rule_type and executes the callback function, returning its result.
-    pub fn nest_for_rule<R>(&mut self, rule_type: CssRuleType, cb: impl FnOnce(&mut Self) -> R) -> R {
+    pub fn nest_for_rule<R>(
+        &mut self,
+        rule_type: CssRuleType,
+        cb: impl FnOnce(&mut Self) -> R,
+    ) -> R {
         let old_rule_types = self.rule_types;
         self.rule_types.insert(rule_type);
         let r = cb(self);

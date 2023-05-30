@@ -4,11 +4,11 @@
 
 //! Query features.
 
+use super::condition::KleeneValue;
 use crate::parser::ParserContext;
 use crate::values::computed::{self, CSSPixelLength, Ratio, Resolution};
 use crate::Atom;
 use cssparser::Parser;
-use super::condition::KleeneValue;
 use std::fmt;
 use style_traits::ParseError;
 

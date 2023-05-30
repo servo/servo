@@ -48,18 +48,11 @@ impl specified::NoCalcLength {
     ) -> Length {
         match *self {
             Self::Absolute(length) => length.to_computed_value(context),
-            Self::FontRelative(length) => {
-                length.to_computed_value(context, base_size)
-            },
-            Self::ViewportPercentage(length) => {
-                length.to_computed_value(context)
-            },
-            Self::ContainerRelative(length) => {
-                length.to_computed_value(context)
-            },
-            Self::ServoCharacterWidth(length) => {
-                length.to_computed_value(context.style().get_font().clone_font_size().computed_size())
-            },
+            Self::FontRelative(length) => length.to_computed_value(context, base_size),
+            Self::ViewportPercentage(length) => length.to_computed_value(context),
+            Self::ContainerRelative(length) => length.to_computed_value(context),
+            Self::ServoCharacterWidth(length) => length
+                .to_computed_value(context.style().get_font().clone_font_size().computed_size()),
         }
     }
 }
@@ -71,9 +64,7 @@ impl ToComputedValue for specified::Length {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             Self::NoCalc(l) => l.to_computed_value(context),
-            Self::Calc(ref calc) => {
-                calc.to_computed_value(context).to_length().unwrap()
-            },
+            Self::Calc(ref calc) => calc.to_computed_value(context).to_length().unwrap(),
         }
     }
 
@@ -92,9 +83,7 @@ macro_rules! computed_length_percentage_or_auto {
         pub fn to_used_value(&self, percentage_basis: Au) -> Option<Au> {
             match *self {
                 Self::Auto => None,
-                Self::LengthPercentage(ref lp) => {
-                    Some(lp.to_used_value(percentage_basis))
-                },
+                Self::LengthPercentage(ref lp) => Some(lp.to_used_value(percentage_basis)),
             }
         }
 

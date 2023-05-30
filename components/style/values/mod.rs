@@ -100,7 +100,12 @@ fn nan_inf_enabled() -> bool {
 }
 
 /// Serialize a specified dimension with unit, calc, and NaN/infinity handling (if enabled)
-pub fn serialize_specified_dimension<W>(v: f32, unit: &str, was_calc: bool, dest: &mut CssWriter<W>) -> fmt::Result
+pub fn serialize_specified_dimension<W>(
+    v: f32,
+    unit: &str,
+    was_calc: bool,
+    dest: &mut CssWriter<W>,
+) -> fmt::Result
 where
     W: Write,
 {
@@ -567,7 +572,10 @@ impl ToCss for CustomIdent {
 pub struct DashedIdent(pub Atom);
 
 impl Parse for DashedIdent {
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
         if ident.starts_with("--") {

@@ -19,8 +19,8 @@ use crate::values::computed::font::FamilyName;
 use crate::values::serialize_atom_identifier;
 use crate::Atom;
 use cssparser::{
-    AtRuleParser, BasicParseErrorKind, CowRcStr, RuleBodyParser, RuleBodyItemParser, Parser,
-    ParserState, QualifiedRuleParser, DeclarationParser, SourceLocation, Token,
+    AtRuleParser, BasicParseErrorKind, CowRcStr, DeclarationParser, Parser, ParserState,
+    QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser, SourceLocation, Token,
 };
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -222,12 +222,17 @@ where
     }
 }
 
-impl<'a, 'b, 'i, T> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>> for FFVDeclarationsParser<'a, 'b, T>
+impl<'a, 'b, 'i, T> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>>
+    for FFVDeclarationsParser<'a, 'b, T>
 where
     T: Parse,
 {
-    fn parse_declarations(&self) -> bool { true }
-    fn parse_qualified(&self) -> bool { false }
+    fn parse_declarations(&self) -> bool {
+        true
+    }
+    fn parse_qualified(&self) -> bool {
+        false
+    }
 }
 
 macro_rules! font_feature_values_blocks {

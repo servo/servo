@@ -74,7 +74,18 @@ impl PaperSize {
 ///
 /// https://drafts.csswg.org/css-page-3/#page-orientation-prop
 #[derive(
-    Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum PageOrientation {
@@ -128,7 +139,10 @@ pub enum GenericPageSize<S> {
     /// An orientation with no size.
     Orientation(PageSizeOrientation),
     /// Paper size by name
-    PaperSize(PaperSize, #[css(skip_if = "is_portrait")] PageSizeOrientation),
+    PaperSize(
+        PaperSize,
+        #[css(skip_if = "is_portrait")] PageSizeOrientation,
+    ),
 }
 
 pub use self::GenericPageSize as PageSize;
