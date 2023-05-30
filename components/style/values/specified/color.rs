@@ -427,6 +427,10 @@ pub enum SystemColor {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozAccentColorForeground,
 
+    /// The background-color for :autofill-ed inputs.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozAutofillBackground,
+
     /// Media rebar text.
     MozWinMediatext,
     /// Communications rebar text.
