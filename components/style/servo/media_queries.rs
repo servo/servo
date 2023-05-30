@@ -190,12 +190,12 @@ impl Device {
     }
 
     /// Returns the default background color.
-    pub fn default_background_color(&self) -> RGBA {
+    pub fn default_background_color_for_forced_colors(&self) -> RGBA {
         RGBA::new(255, 255, 255, 255)
     }
 
-    /// Returns the default color color.
-    pub fn default_color(&self) -> RGBA {
+    /// Returns the default foreground color.
+    pub fn default_color_for_forced_colors(&self) -> RGBA {
         RGBA::new(0, 0, 0, 255)
     }
 
