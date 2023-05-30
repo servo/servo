@@ -471,28 +471,17 @@ impl SystemColor {
     fn compute(&self, cx: &Context) -> ComputedColor {
         use crate::gecko_bindings::bindings;
 
-        let colors = &cx.device().pref_sheet_prefs().mColors;
-        let style_color_scheme = cx.style().get_inherited_ui().clone_color_scheme();
-
-        // TODO: At least Canvas / CanvasText should be color-scheme aware
-        // (probably the link colors too).
-        convert_nscolor_to_computedcolor(match *self {
-            SystemColor::Canvastext => colors.mDefault,
-            SystemColor::Canvas => colors.mDefaultBackground,
-            SystemColor::Linktext => colors.mLink,
-            SystemColor::Activetext => colors.mActiveLink,
-            SystemColor::Visitedtext => colors.mVisitedLink,
-
-            _ => {
-                let color = unsafe {
-                    bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document(), &style_color_scheme)
-                };
-                if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
-                    return ComputedColor::currentcolor();
-                }
-                color
-            },
-        })
+        // TODO: We should avoid cloning here most likely, though it's
+        // cheap-ish.
+        let style_color_scheme =
+            cx.style().get_inherited_ui().clone_color_scheme();
+        let color = unsafe {
+            bindings::Gecko_ComputeSystemColor(*self, cx.device().document(), &style_color_scheme)
+        };
+        if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
+            return ComputedColor::currentcolor();
+        }
+        convert_nscolor_to_computedcolor(color)
     }
 }
 
