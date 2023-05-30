@@ -3089,27 +3089,28 @@ impl ComputedValues {
     ///
     /// TODO(emilio): We should move all the special resolution from
     /// nsComputedDOMStyle to ToResolvedValue instead.
-    pub fn get_resolved_value<W>(
+    pub fn get_resolved_value(
         &self,
         property_id: LonghandId,
-        dest: &mut CssWriter<W>
-    ) -> fmt::Result
-    where
-        W: Write,
-    {
+        dest: &mut CssStringWriter,
+    ) -> fmt::Result {
         use crate::values::resolved::ToResolvedValue;
 
+        let mut dest = CssWriter::new(dest);
         let context = resolved::Context {
             style: self,
         };
-
-        // TODO(emilio): Is it worth to merge branches here just like
-        // PropertyDeclaration::to_css does?
         match property_id {
-            % for prop in data.longhands:
-            LonghandId::${prop.camel_case} => {
-                let value = self.clone_${prop.ident}();
-                value.to_resolved_value(&context).to_css(dest)
+            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
+            <% props = list(props) %>
+            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
+                let value = match property_id {
+                    % for prop in props:
+                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
+                    % endfor
+                    _ => unsafe { debug_unreachable!() },
+                };
+                value.to_resolved_value(&context).to_css(&mut dest)
             }
             % endfor
         }
@@ -3125,16 +3126,36 @@ impl ComputedValues {
         };
 
         match property_id {
-            % for prop in data.longhands:
-            LonghandId::${prop.camel_case} => {
-                let value = self.clone_${prop.ident}();
+            % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
+            <% props = list(props) %>
+            ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
+                let value = match property_id {
+                    % for prop in props:
+                    LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
+                    % endfor
+                    _ => unsafe { debug_unreachable!() },
+                };
                 let resolved = value.to_resolved_value(&context);
-                %if prop.boxed:
-                let resolved = Box::new(resolved);
-                %endif
                 let computed = ToResolvedValue::from_resolved_value(resolved);
                 let specified = ToComputedValue::from_computed_value(&computed);
-                PropertyDeclaration::${prop.camel_case}(specified)
+                % if props[0].boxed:
+                let specified = Box::new(specified);
+                % endif
+                % if len(props) == 1:
+                PropertyDeclaration::${props[0].camel_case}(specified)
+                % else:
+                unsafe {
+                    let mut out = mem::MaybeUninit::uninit();
+                    ptr::write(
+                        out.as_mut_ptr() as *mut PropertyDeclarationVariantRepr<${specified_type}>,
+                        PropertyDeclarationVariantRepr {
+                            tag: property_id as u16,
+                            value: specified,
+                        },
+                    );
+                    out.assume_init()
+                }
+                % endif
             }
             % endfor
         }
