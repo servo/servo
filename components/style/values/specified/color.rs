@@ -243,10 +243,6 @@ pub enum SystemColor {
     Widget3DHighlight,
     #[css(skip)]
     Widget3DShadow,
-    #[css(skip)]
-    TextBackground,
-    #[css(skip)]
-    TextForeground,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectBackgroundDisabled,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
