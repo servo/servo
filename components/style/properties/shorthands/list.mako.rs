@@ -110,7 +110,11 @@
             use longhands::list_style_type::SpecifiedValue as ListStyleType;
             use longhands::list_style_image::SpecifiedValue as ListStyleImage;
             let mut have_one_non_initial_value = false;
-            if self.list_style_position != &ListStylePosition::Outside {
+            #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
+            let position_is_initial = self.list_style_position == &ListStylePosition::Outside;
+            #[cfg(feature = "servo-layout-2020")]
+            let position_is_initial = self.list_style_position == Some(&ListStylePosition::Outside);
+            if !position_is_initial {
                 self.list_style_position.to_css(dest)?;
                 have_one_non_initial_value = true;
             }
@@ -121,7 +125,11 @@
                 self.list_style_image.to_css(dest)?;
                 have_one_non_initial_value = true;
             }
-            if self.list_style_type != &ListStyleType::disc() {
+            #[cfg(feature = "gecko")]
+            let type_is_initial = self.list_style_type == &ListStyleType::disc();
+            #[cfg(feature = "servo")]
+            let type_is_initial = self.list_style_type == &ListStyleType::Disc;
+            if !type_is_initial {
                 if have_one_non_initial_value {
                     dest.write_str(" ")?;
                 }
