@@ -637,3 +637,7 @@ impl AsCCharPtrPtr for [u8] {
         self as *const [u8] as *const c_char
     }
 }
+
+pub unsafe fn callargs_is_constructing(args: &CallArgs) -> bool {
+    (*args.argv_.offset(-1)).is_magic()
+}

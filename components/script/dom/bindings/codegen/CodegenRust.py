@@ -3963,6 +3963,17 @@ let global = GlobalScope::from_object(args.callee());
         raise NotImplementedError  # Override me!
 
 
+def GetConstructorNameForReporting(descriptor, ctor):
+    # Figure out the name of our constructor for reporting purposes.
+    # For unnamed webidl constructors, identifier.name is "constructor" but
+    # the name JS sees is the interface name; for legacy factory functions
+    # identifier.name is the actual name.
+    ctorName = ctor.identifier.name
+    if ctorName == "constructor":
+        return descriptor.interface.identifier.name
+    return ctorName
+
+
 class CGSpecializedMethod(CGAbstractExternMethod):
     """
     A class for generating the C++ code for a specialized method that the JIT
@@ -6117,24 +6128,11 @@ class CGClassConstructHook(CGAbstractExternMethod):
         preamble = """let cx = SafeJSContext::from_ptr(cx);
 let args = CallArgs::from_vp(vp, argc);
 let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
-rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
-let proto_result = get_desired_proto(
-  cx,
-  &args,
-  PrototypeList::ID::%s,
-  CreateInterfaceObjects,
-  desired_proto.handle_mut(),
-);
-        assert!(proto_result.is_ok());
-if proto_result.is_err() {
-  return false;
-}
-""" % (MakeNativeName(self.descriptor.name))
+"""
         if len(self.exposureSet) == 1:
             preamble += """\
 let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
 """ % list(self.exposureSet)[0]
-        preamble = CGGeneric(preamble)
         if self.constructor.isHTMLConstructor():
             signatures = self.constructor.signatures()
             assert len(signatures) == 1
@@ -6145,12 +6143,32 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
                 GetProtoObject,
             )""" % self.descriptor.name)
         else:
+            ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
+            preamble += """
+if !callargs_is_constructing(&args) {
+  throw_constructor_without_new(*cx, "%s");
+  return false;
+}
+
+rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
+let proto_result = get_desired_proto(
+  cx,
+  &args,
+  PrototypeList::ID::%s,
+  CreateInterfaceObjects,
+  desired_proto.handle_mut(),
+);
+assert!(proto_result.is_ok());
+if proto_result.is_err() {
+  return false;
+}
+""" % (ctorName, MakeNativeName(self.descriptor.name))
             name = self.constructor.identifier.name
             nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
             args = ["&global", "Some(desired_proto.handle())"]
             constructorCall = CGMethodCall(args, nativeName, True,
                                            self.descriptor, self.constructor)
-        return CGList([preamble, constructorCall])
+        return CGList([CGGeneric(preamble), constructorCall])
 
 
 class CGClassFinalizeHook(CGAbstractClassHook):
@@ -6490,6 +6508,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT',
         'crate::dom::bindings::utils::JSCLASS_DOM_GLOBAL',
         'crate::dom::bindings::utils::ProtoOrIfaceArray',
+        'crate::dom::bindings::utils::callargs_is_constructing',
         'crate::dom::bindings::utils::enumerate_global',
         'crate::dom::bindings::utils::finalize_global',
         'crate::dom::bindings::utils::generic_getter',
@@ -6540,6 +6559,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::error::Fallible',
         'crate::dom::bindings::error::Error::JSFailed',
         'crate::dom::bindings::error::throw_dom_exception',
+        'crate::dom::bindings::error::throw_constructor_without_new',
         'crate::dom::bindings::guard::Condition',
         'crate::dom::bindings::guard::Guard',
         'crate::dom::bindings::inheritance::Castable',
