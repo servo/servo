@@ -3211,7 +3211,7 @@ impl ComputedValues {
         match property {
             PropertyDeclarationId::Longhand(id) => {
                 let mut s = String::new();
-                self.get_longhand_property_value(
+                self.get_resolved_value(
                     id,
                     &mut CssWriter::new(&mut s)
                 ).unwrap();
