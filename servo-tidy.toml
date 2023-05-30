@@ -71,7 +71,6 @@ packages = [
   "block-buffer",
   "digest",
   "generic-array",
-  "sha-1",
 
   # Duplicated by winit/surfman update.
   "raw-window-handle",
