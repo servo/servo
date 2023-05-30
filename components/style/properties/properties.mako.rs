@@ -3086,7 +3086,10 @@ impl ComputedValues {
     ///
     /// Note that the value will usually be the computed value, except for
     /// colors, where it's resolved.
-    pub fn get_longhand_property_value<W>(
+    ///
+    /// TODO(emilio): We should move all the special resolution from
+    /// nsComputedDOMStyle to ToResolvedValue instead.
+    pub fn get_resolved_value<W>(
         &self,
         property_id: LonghandId,
         dest: &mut CssWriter<W>
@@ -3107,6 +3110,31 @@ impl ComputedValues {
             LonghandId::${prop.camel_case} => {
                 let value = self.clone_${prop.ident}();
                 value.to_resolved_value(&context).to_css(dest)
+            }
+            % endfor
+        }
+    }
+
+    /// Returns the given longhand's resolved value as a property declaration.
+    pub fn resolved_declaration(&self, property_id: LonghandId) -> PropertyDeclaration {
+        use crate::values::resolved::ToResolvedValue;
+        use crate::values::computed::ToComputedValue;
+
+        let context = resolved::Context {
+            style: self,
+        };
+
+        match property_id {
+            % for prop in data.longhands:
+            LonghandId::${prop.camel_case} => {
+                let value = self.clone_${prop.ident}();
+                let resolved = value.to_resolved_value(&context);
+                %if prop.boxed:
+                let resolved = Box::new(resolved);
+                %endif
+                let computed = ToResolvedValue::from_resolved_value(resolved);
+                let specified = ToComputedValue::from_computed_value(&computed);
+                PropertyDeclaration::${prop.camel_case}(specified)
             }
             % endfor
         }
