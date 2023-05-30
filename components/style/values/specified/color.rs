@@ -958,6 +958,11 @@ impl ColorScheme {
             bits: ColorSchemeFlags::empty(),
         }
     }
+
+    /// Returns the raw bitfield.
+    pub fn raw_bits(&self) -> u8 {
+        self.bits.bits
+    }
 }
 
 impl Parse for ColorScheme {
