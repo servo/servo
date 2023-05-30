@@ -15,6 +15,7 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
+use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::StyleRule;
 use style::stylist::needs_revalidation_for_testing;
 use style::stylist::{Rule, Stylist};
@@ -52,7 +53,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                             AncestorHashes::new(s, QuirksMode::NoQuirks),
                             locked.clone(),
                             i as u32,
-                            0
+                            LayerOrder::top_level(),
                         )
                     })
                     .collect()
