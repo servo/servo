@@ -284,10 +284,9 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "-webkit-text-stroke-width",
     "BorderSideWidth",
-    "crate::values::computed::NonNegativeLength::new(0.)",
+    "app_units::Au(0)",
     engines="gecko",
     initial_specified_value="specified::BorderSideWidth::zero()",
-    computed_type="crate::values::computed::NonNegativeLength",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
     animation_value_type="discrete",
 )}

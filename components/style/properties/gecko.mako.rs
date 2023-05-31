@@ -28,7 +28,6 @@ use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
 use crate::gecko_bindings::structs::mozilla::PseudoStyleType;
 use crate::gecko::data::PerDocumentStyleData;
-use crate::gecko::values::round_border_to_device_pixels;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
 use crate::properties::longhands;
@@ -398,28 +397,16 @@ def set_gecko_property(ffi_name, expr):
 <%call expr="impl_simple_clone(ident, gecko_ffi_name)"></%call>
 </%def>
 
-<%def name="impl_non_negative_length(ident, gecko_ffi_name, inherit_from=None,
-                                     round_to_pixels=False)">
+<%def name="impl_border_width(ident, gecko_ffi_name, inherit_from)">
     #[allow(non_snake_case)]
-    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        let value = {
-            % if round_to_pixels:
-            let au_per_device_px = Au(self.mTwipsPerPixel);
-            round_border_to_device_pixels(Au::from(v), au_per_device_px).0
-            % else:
-            v.0.to_i32_au()
-            % endif
-        };
-
-        % if inherit_from:
+    pub fn set_${ident}(&mut self, v: Au) {
+        let value = v.0;
         self.${inherit_from} = value;
-        % endif
         self.${gecko_ffi_name} = value;
     }
 
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
-        % if inherit_from:
         self.${inherit_from} = other.${inherit_from};
         // NOTE: This is needed to easily handle the `unset` and `initial`
         // keywords, which are implemented calling this function.
@@ -430,9 +417,6 @@ def set_gecko_property(ffi_name, expr):
         // FIXME(emilio): We could clean this up a bit special-casing the reset_
         // function below.
         self.${gecko_ffi_name} = other.${inherit_from};
-        % else:
-        self.${gecko_ffi_name} = other.${gecko_ffi_name};
-        % endif
     }
 
     #[allow(non_snake_case)]
@@ -441,8 +425,8 @@ def set_gecko_property(ffi_name, expr):
     }
 
     #[allow(non_snake_case)]
-    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        Au(self.${gecko_ffi_name}).into()
+    pub fn clone_${ident}(&self) -> Au {
+        Au(self.${gecko_ffi_name})
     }
 </%def>
 
@@ -678,7 +662,7 @@ fn static_assert() {
 
 <% skip_border_longhands = " ".join(["border-{0}-{1}".format(x.ident, y)
                                      for x in SIDES
-                                     for y in ["color", "style", "width"]] +
+                                     for y in ["style", "width"]] +
                                     ["border-{0}-radius".format(x.replace("_", "-"))
                                      for x in CORNERS]) %>
 
@@ -733,12 +717,7 @@ fn static_assert() {
         self.mBorderStyle[${side.index}]
     }
 
-    <% impl_simple("border_%s_color" % side.ident, "mBorder%sColor" % side.name) %>
-
-    <% impl_non_negative_length("border_%s_width" % side.ident,
-                                "mComputedBorder.%s" % side.ident,
-                                inherit_from="mBorder.%s" % side.ident,
-                                round_to_pixels=True) %>
+    ${impl_border_width("border_%s_width" % side.ident, "mComputedBorder.%s" % side.ident, "mBorder.%s" % side.ident)}
 
     pub fn border_${side.ident}_has_nonzero_width(&self) -> bool {
         self.mComputedBorder.${side.ident} != 0
@@ -862,9 +841,7 @@ fn static_assert() {
         self.mOutlineStyle.clone()
     }
 
-    <% impl_non_negative_length("outline_width", "mActualOutlineWidth",
-                                inherit_from="mOutlineWidth",
-                                round_to_pixels=True) %>
+    ${impl_border_width("outline_width", "mActualOutlineWidth", "mOutlineWidth")}
 
     pub fn outline_has_nonzero_width(&self) -> bool {
         self.mActualOutlineWidth != 0
@@ -1601,10 +1578,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 
-<%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="-webkit-text-stroke-width">
-    ${impl_non_negative_length('_webkit_text_stroke_width',
-                               'mWebkitTextStrokeWidth')}
+<%self:impl_trait style_struct_name="InheritedText">
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text" skip_longhands="initial-letter">
@@ -1713,9 +1687,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         self.mColumnRuleStyle.clone()
     }
 
-    <% impl_non_negative_length("column_rule_width", "mActualColumnRuleWidth",
-                                inherit_from="mColumnRuleWidth",
-                                round_to_pixels=True) %>
+    ${impl_border_width("column_rule_width", "mActualColumnRuleWidth", "mColumnRuleWidth")}
 
     pub fn column_rule_has_nonzero_width(&self) -> bool {
         self.mActualColumnRuleWidth != 0

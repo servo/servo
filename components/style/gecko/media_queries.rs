@@ -451,6 +451,14 @@ impl Device {
         unsafe { bindings::Gecko_VisitedStylesEnabled(self.document()) }
     }
 
+    /// Returns the number of app units per device pixel we're using currently.
+    pub fn app_units_per_device_pixel(&self) -> i32 {
+        match self.pres_context() {
+            Some(pc) => pc.mCurAppUnitsPerDevPixel,
+            None => AU_PER_PX,
+        }
+    }
+
     /// Returns the device pixel ratio.
     pub fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         let pc = match self.pres_context() {

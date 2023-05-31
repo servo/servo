@@ -10,7 +10,6 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-#[cfg(feature = "servo")]
 use app_units::Au;
 use arrayvec::{ArrayVec, Drain as ArrayVecDrain};
 use servo_arc::{Arc, UniqueArc};
@@ -40,12 +39,9 @@ use to_shmem::impl_trivial_to_shmem;
 use crate::stylesheets::{CssRuleType, CssRuleTypes, Origin, UrlExtraData};
 use crate::use_counters::UseCounters;
 use crate::values::generics::text::LineHeight;
-use crate::values::{computed, resolved};
-use crate::values::computed::NonNegativeLength;
-use crate::values::serialize_atom_name;
+use crate::values::{computed, resolved, serialize_atom_name};
 use crate::values::specified::font::SystemFont;
 use crate::rule_tree::StrongRuleNode;
-use crate::Zero;
 use crate::str::{CssString, CssStringWriter};
 use std::cell::Cell;
 use super::declaration_block::AppendableValue;
@@ -4156,7 +4152,7 @@ pub fn adjust_border_width(style: &mut StyleBuilder) {
         // Like calling to_computed_value, which wouldn't type check.
         if style.get_border().clone_border_${side}_style().none_or_hidden() &&
            style.get_border().border_${side}_has_nonzero_width() {
-            style.set_border_${side}_width(NonNegativeLength::zero());
+            style.set_border_${side}_width(Au(0));
         }
     % endfor
 }
