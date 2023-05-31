@@ -67,7 +67,8 @@ ${helpers.predefined_type(
 ${helpers.single_keyword(
     "column-span",
     "none all",
-    engines="gecko",
+    engines="gecko servo-2020",
+    servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="discrete",
     gecko_enum_prefix="StyleColumnSpan",
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-span",
