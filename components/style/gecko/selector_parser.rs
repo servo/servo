@@ -162,7 +162,7 @@ impl NonTSPseudoClass {
             ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
-                    NonTSPseudoClass::Dir(..) |
+                    NonTSPseudoClass::Dir(ref dir) => dir.element_state(),
                     NonTSPseudoClass::MozLocaleDir(..) |
                     NonTSPseudoClass::Lang(..) => ElementState::empty(),
                 }
@@ -186,10 +186,8 @@ impl NonTSPseudoClass {
         self.state_flag().is_empty() &&
             !matches!(
                 *self,
-                // :dir() depends on state only, but doesn't use state_flag
-                // because its semantics don't quite match.  Nevertheless, it
-                // doesn't need cache revalidation, because we already compare
-                // states for elements and candidates.
+                // :dir() depends on state only, but may have an empty
+                // state_flag for invalid arguments.
                 NonTSPseudoClass::Dir(_) |
                       // :-moz-is-html only depends on the state of the document and
                       // the namespace of the element; the former is invariant

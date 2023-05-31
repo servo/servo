@@ -494,11 +494,7 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
                 }
             },
             Component::NonTSPseudoClass(ref pc) => {
-                self.compound_state.element_state |= match *pc {
-                    #[cfg(feature = "gecko")]
-                    NonTSPseudoClass::Dir(ref dir) => dir.element_state(),
-                    _ => pc.state_flag(),
-                };
+                self.compound_state.element_state |= pc.state_flag();
                 *self.document_state |= pc.document_state_flag();
 
                 let attr_name = match *pc {
