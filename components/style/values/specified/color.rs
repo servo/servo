@@ -5,8 +5,6 @@
 //! Specified color values.
 
 use super::AllowQuirks;
-#[cfg(feature = "gecko")]
-use crate::gecko_bindings::structs::nscolor;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
 use crate::values::generics::color::{GenericCaretColor, GenericColorOrAuto};
@@ -456,18 +454,17 @@ impl SystemColor {
     #[inline]
     fn compute(&self, cx: &Context) -> ComputedColor {
         use crate::gecko_bindings::bindings;
+        use crate::gecko::values::convert_nscolor_to_rgba;
 
         // TODO: We should avoid cloning here most likely, though it's
         // cheap-ish.
         let style_color_scheme =
             cx.style().get_inherited_ui().clone_color_scheme();
-        let color = unsafe {
-            bindings::Gecko_ComputeSystemColor(*self, cx.device().document(), &style_color_scheme)
-        };
+        let color = cx.device().system_nscolor(*self, &style_color_scheme);
         if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
             return ComputedColor::currentcolor();
         }
-        convert_nscolor_to_computedcolor(color)
+        ComputedColor::rgba(convert_nscolor_to_rgba(color))
     }
 }
 
@@ -739,12 +736,6 @@ impl Color {
         parse_hash_color(&serialization)
             .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
-}
-
-#[cfg(feature = "gecko")]
-fn convert_nscolor_to_computedcolor(color: nscolor) -> ComputedColor {
-    use crate::gecko::values::convert_nscolor_to_rgba;
-    ComputedColor::rgba(convert_nscolor_to_rgba(color))
 }
 
 impl Color {

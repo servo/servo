@@ -14,7 +14,8 @@ use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
 use crate::values::computed::font::GenericFontFamily;
-use crate::values::computed::Length;
+use crate::values::computed::{Length, ColorScheme};
+use crate::values::specified::color::SystemColor;
 use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::{CustomIdent, KeyframesName};
 use app_units::{Au, AU_PER_PX};
@@ -387,19 +388,28 @@ impl Device {
         self.pref_sheet_prefs().mUseDocumentColors
     }
 
+    /// Computes a system color and returns it as an nscolor.
+    pub(crate) fn system_nscolor(&self, system_color: SystemColor, color_scheme: &ColorScheme) -> u32 {
+        unsafe {
+            bindings::Gecko_ComputeSystemColor(system_color, self.document(), color_scheme)
+        }
+    }
+
     /// Returns the default background color.
     ///
     /// This is only for forced-colors/high-contrast, so looking at light colors
     /// is ok.
-    pub fn default_background_color_for_forced_colors(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.pref_sheet_prefs().mLightColors.mDefaultBackground)
+    pub fn default_background_color(&self) -> RGBA {
+        let normal = ColorScheme::normal();
+        convert_nscolor_to_rgba(self.system_nscolor(SystemColor::Canvas, &normal))
     }
 
     /// Returns the default foreground color.
     ///
     /// See above for looking at light colors only.
-    pub fn default_color_for_forced_colors(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.pref_sheet_prefs().mLightColors.mDefault)
+    pub fn default_color(&self) -> RGBA {
+        let normal = ColorScheme::normal();
+        convert_nscolor_to_rgba(self.system_nscolor(SystemColor::Canvastext, &normal))
     }
 
     /// Returns the current effective text zoom.
