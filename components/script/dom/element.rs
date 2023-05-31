@@ -2700,12 +2700,14 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        let selectors = match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+        let doc = document_from_node(self);
+        let url = doc.url();
+        let selectors = match SelectorParser::parse_author_origin_no_namespace(&selectors, &url) {
             Err(_) => return Err(Error::Syntax),
             Ok(selectors) => selectors,
         };
 
-        let quirks_mode = document_from_node(self).quirks_mode();
+        let quirks_mode = doc.quirks_mode();
         let element = DomRoot::from_ref(self);
 
         Ok(dom_apis::element_matches(&element, &selectors, quirks_mode))
@@ -2718,12 +2720,14 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        let selectors = match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+        let doc = document_from_node(self);
+        let url = doc.url();
+        let selectors = match SelectorParser::parse_author_origin_no_namespace(&selectors, &url) {
             Err(_) => return Err(Error::Syntax),
             Ok(selectors) => selectors,
         };
 
-        let quirks_mode = document_from_node(self).quirks_mode();
+        let quirks_mode = doc.quirks_mode();
         Ok(dom_apis::element_closest(
             DomRoot::from_ref(self),
             &selectors,

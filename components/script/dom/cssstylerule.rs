@@ -96,19 +96,15 @@ impl CSSStyleRuleMethods for CSSStyleRule {
 
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext
     fn SetSelectorText(&self, value: DOMString) {
+        let contents = &self.cssrule.parent_stylesheet().style_stylesheet().contents;
         // It's not clear from the spec if we should use the stylesheet's namespaces.
         // https://github.com/w3c/csswg-drafts/issues/1511
-        let namespaces = self
-            .cssrule
-            .parent_stylesheet()
-            .style_stylesheet()
-            .contents
-            .namespaces
-            .read();
+        let namespaces = contents.namespaces.read();
+        let url_data = contents.url_data.read();
         let parser = SelectorParser {
             stylesheet_origin: Origin::Author,
             namespaces: &namespaces,
-            url_data: None,
+            url_data: &url_data,
         };
         let mut css_parser = CssParserInput::new(&*value);
         let mut css_parser = CssParser::new(&mut css_parser);
