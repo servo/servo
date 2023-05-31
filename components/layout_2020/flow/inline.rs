@@ -461,7 +461,7 @@ impl InlineBox {
             margin.inline_start = Length::zero();
         }
         let mut start_corner = Vec2 {
-            block: padding.block_start + border.block_start + margin.block_start,
+            block: Length::zero(),
             inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
         };
         if style.clone_position().is_relative() {
@@ -533,12 +533,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
         }
         self.parent_nesting_level
             .max_block_size_of_fragments_so_far
-            .max_assign(
-                fragment.content_rect.size.block +
-                    fragment.padding.block_sum() +
-                    fragment.border.block_sum() +
-                    fragment.margin.block_sum(),
-            );
+            .max_assign(fragment.content_rect.size.block);
 
         if let Some(context) = nesting_level.positioning_context.as_mut() {
             context.layout_collected_children(layout_context, &mut fragment);
