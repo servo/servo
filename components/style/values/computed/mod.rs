@@ -52,7 +52,7 @@ pub use self::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness, Scro
 pub use self::box_::{TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, ColorScheme};
 pub use self::column::ColumnCount;
-pub use self::counters::{Content, ContentItem, CounterIncrement, CounterSetOrReset};
+pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset, CounterSet};
 pub use self::easing::TimingFunction;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;

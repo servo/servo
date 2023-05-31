@@ -44,7 +44,7 @@ pub use self::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness, Scro
 pub use self::box_::{TouchAction, TransitionProperty, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, ColorScheme};
 pub use self::column::ColumnCount;
-pub use self::counters::{Content, ContentItem, CounterIncrement, CounterSetOrReset};
+pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset, CounterSet};
 pub use self::easing::TimingFunction;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
@@ -574,6 +574,12 @@ impl One for Integer {
     #[inline]
     fn is_one(&self) -> bool {
         self.value() == 1
+    }
+}
+
+impl PartialEq<i32> for Integer {
+    fn eq(&self, value: &i32) -> bool {
+        self.value() == *value
     }
 }
 

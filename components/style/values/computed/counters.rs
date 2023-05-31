@@ -7,13 +7,17 @@
 use crate::values::computed::image::Image;
 use crate::values::generics::counters as generics;
 use crate::values::generics::counters::CounterIncrement as GenericCounterIncrement;
-use crate::values::generics::counters::CounterSetOrReset as GenericCounterSetOrReset;
+use crate::values::generics::counters::CounterReset as GenericCounterReset;
+use crate::values::generics::counters::CounterSet as GenericCounterSet;
 
 /// A computed value for the `counter-increment` property.
 pub type CounterIncrement = GenericCounterIncrement<i32>;
 
-/// A computed value for the `counter-set` and `counter-reset` properties.
-pub type CounterSetOrReset = GenericCounterSetOrReset<i32>;
+/// A computed value for the `counter-reset` property.
+pub type CounterReset = GenericCounterReset<i32>;
+
+/// A computed value for the `counter-set` property.
+pub type CounterSet = GenericCounterSet<i32>;
 
 /// A computed value for the `content` property.
 pub type Content = generics::GenericContent<Image>;
