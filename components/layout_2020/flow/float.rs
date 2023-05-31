@@ -40,17 +40,17 @@ pub(crate) struct FloatBox {
 /// elements relative to their containing blocks. This data structure is used to
 /// help map between these two coordinate systems.
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct ContainingBlockPositionInfo {
+pub struct ContainingBlockPositionInfo {
     /// The distance from the block start of the independent block formatting
     /// context that contains the floats and the block start of the current
     /// containing block, excluding uncollapsed block start margins. Note that
     /// this does not include uncollapsed block start margins because we don't
     /// know the value of collapsed margins until we lay out children.
-    pub block_start: Length,
+    pub(crate) block_start: Length,
     /// Any uncollapsed block start margins that we have collected between the
     /// block start of the float containing independent block formatting context
     /// and this containing block, including for this containing block.
-    pub block_start_margins_not_collapsed: CollapsedMargin,
+    pub(crate) block_start_margins_not_collapsed: CollapsedMargin,
     /// The distance from the inline start position of the float containing
     /// independent formatting context and the inline start of this containing
     /// block.
@@ -61,13 +61,23 @@ pub(crate) struct ContainingBlockPositionInfo {
     pub inline_end: Length,
 }
 
-impl ContainingBlockPositionInfo {
-    fn new() -> ContainingBlockPositionInfo {
-        ContainingBlockPositionInfo {
+impl Default for ContainingBlockPositionInfo {
+    fn default() -> Self {
+        Self {
             block_start: Length::zero(),
             block_start_margins_not_collapsed: CollapsedMargin::zero(),
             inline_start: Length::zero(),
             inline_end: Length::new(f32::INFINITY),
+        }
+    }
+}
+
+impl ContainingBlockPositionInfo {
+    pub fn new_with_inline_offsets(inline_start: Length, inline_end: Length) -> Self {
+        Self {
+            inline_start,
+            inline_end,
+            ..Default::default()
         }
     }
 }
@@ -77,7 +87,7 @@ impl ContainingBlockPositionInfo {
 /// This is a persistent data structure. Each float has its own private copy of the float context,
 /// although such copies may share portions of the `bands` tree.
 #[derive(Clone, Debug)]
-pub(crate) struct FloatContext {
+pub struct FloatContext {
     /// A persistent AA tree of float bands.
     ///
     /// This tree is immutable; modification operations return the new tree, which may share nodes
@@ -114,7 +124,7 @@ impl FloatContext {
         FloatContext {
             bands,
             ceiling: Length::zero(),
-            containing_block_info: ContainingBlockPositionInfo::new(),
+            containing_block_info: Default::default(),
             clear_left_position: Length::zero(),
             clear_right_position: Length::zero(),
         }
