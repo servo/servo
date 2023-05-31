@@ -232,9 +232,11 @@ pub enum Color {
 #[repr(u8)]
 pub enum SystemColor {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    TextSelectBackgroundDisabled,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    TextSelectBackgroundAttention,
+    TextSelectDisabledBackground,
+    #[css(skip)]
+    TextSelectAttentionBackground,
+    #[css(skip)]
+    TextSelectAttentionForeground,
     #[css(skip)]
     TextHighlightBackground,
     #[css(skip)]
