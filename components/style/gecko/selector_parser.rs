@@ -8,7 +8,7 @@ use crate::element_state::{DocumentState, ElementState};
 use crate::gecko_bindings::structs::RawServoSelectorList;
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
-use crate::selector_parser::{Direction, SelectorParser};
+use crate::selector_parser::{Direction, HorizontalDirection, SelectorParser};
 use crate::str::starts_with_ignore_ascii_case;
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::values::{AtomIdent, AtomString};
@@ -174,8 +174,17 @@ impl NonTSPseudoClass {
     /// Get the document state flag associated with a pseudo-class, if any.
     pub fn document_state_flag(&self) -> DocumentState {
         match *self {
-            NonTSPseudoClass::MozLocaleDir(..) => DocumentState::NS_DOCUMENT_STATE_RTL_LOCALE,
-            NonTSPseudoClass::MozWindowInactive => DocumentState::NS_DOCUMENT_STATE_WINDOW_INACTIVE,
+            NonTSPseudoClass::MozLocaleDir(ref dir) => {
+                match dir.as_horizontal_direction() {
+                    Some(HorizontalDirection::Ltr) => DocumentState::LTR_LOCALE,
+                    Some(HorizontalDirection::Rtl) => DocumentState::RTL_LOCALE,
+                    None => DocumentState::empty(),
+                }
+            },
+            NonTSPseudoClass::MozWindowInactive => DocumentState::WINDOW_INACTIVE,
+            NonTSPseudoClass::MozLWTheme => DocumentState::LWTHEME,
+            NonTSPseudoClass::MozLWThemeBrightText => DocumentState::LWTHEME_BRIGHTTEXT,
+            NonTSPseudoClass::MozLWThemeDarkText => DocumentState::LWTHEME_DARKTEXT,
             _ => DocumentState::empty(),
         }
     }

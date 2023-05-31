@@ -137,9 +137,17 @@ bitflags! {
     /// dom/base/Document.h.
     #[derive(MallocSizeOf)]
     pub struct DocumentState: u64 {
-        /// RTL locale: specific to the XUL localedir attribute
-        const NS_DOCUMENT_STATE_RTL_LOCALE = 1 << 0;
         /// Window activation status
-        const NS_DOCUMENT_STATE_WINDOW_INACTIVE = 1 << 1;
+        const WINDOW_INACTIVE = 1 << 0;
+        /// RTL locale: specific to the XUL localedir attribute
+        const RTL_LOCALE = 1 << 1;
+        /// LTR locale: specific to the XUL localedir attribute
+        const LTR_LOCALE = 1 << 2;
+        /// LWTheme status
+        const LWTHEME = 1 << 3;
+        /// LWTheme status
+        const LWTHEME_BRIGHTTEXT = 1 << 4;
+        /// LWTheme status
+        const LWTHEME_DARKTEXT = 1 << 5;
     }
 }
