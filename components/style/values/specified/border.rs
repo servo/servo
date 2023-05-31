@@ -4,8 +4,9 @@
 
 //! Specified types for CSS values related to borders.
 
+use app_units::Au;
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::{self, Context, ToComputedValue};
+use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use crate::values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use crate::values::generics::border::BorderImageSlice as GenericBorderImageSlice;
@@ -144,25 +145,31 @@ impl Parse for BorderSideWidth {
 }
 
 impl ToComputedValue for BorderSideWidth {
-    type ComputedValue = computed::NonNegativeLength;
+    type ComputedValue = app_units::Au;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        // We choose the pixel length of the keyword values the same as both spec and gecko.
-        // Spec: https://drafts.csswg.org/css-backgrounds-3/#line-width
-        // Gecko: https://bugzilla.mozilla.org/show_bug.cgi?id=1312155#c0
-        match *self {
-            BorderSideWidth::Thin => NonNegativeLength::from_px(1.).to_computed_value(context),
-            BorderSideWidth::Medium => NonNegativeLength::from_px(3.).to_computed_value(context),
-            BorderSideWidth::Thick => NonNegativeLength::from_px(5.).to_computed_value(context),
-            BorderSideWidth::Length(ref length) => length.to_computed_value(context),
+        let width = match *self {
+            // https://drafts.csswg.org/css-backgrounds-3/#line-width
+            BorderSideWidth::Thin => Au::from_px(1),
+            BorderSideWidth::Medium => Au::from_px(3),
+            BorderSideWidth::Thick => Au::from_px(5),
+            BorderSideWidth::Length(ref length) => Au::from_f32_px(length.to_computed_value(context).px()),
+        };
+
+        // Round `width` down to the nearest device pixel, but any non-zero value that would round
+        // down to zero is clamped to 1 device pixel.
+        if width == Au(0) {
+            return width;
         }
-        .into()
+
+        let au_per_dev_px = context.device().app_units_per_device_pixel();
+        std::cmp::max(Au(au_per_dev_px), Au(width.0 / au_per_dev_px * au_per_dev_px))
     }
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        BorderSideWidth::Length(ToComputedValue::from_computed_value(computed))
+        BorderSideWidth::Length(NonNegativeLength::from_px(computed.to_f32_px()))
     }
 }
 

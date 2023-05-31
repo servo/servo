@@ -46,19 +46,16 @@ pub use self::animation::{AnimationIterationCount, AnimationName, AnimationTimel
 pub use self::animation::{ScrollAxis, ScrollTimelineName, TransitionProperty, ViewTimelineInset};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
-pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
-pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
-pub use self::border::{BorderImageSlice, BorderImageWidth};
-pub use self::box_::{
-    Appearance, BreakBetween, BreakWithin, Clear, ContainIntrinsicSize, ContentVisibility, Float,
+pub use self::border::{
+    BorderCornerRadius, BorderImageRepeat, BorderImageSideWidth, BorderImageSlice,
+    BorderImageWidth, BorderRadius, BorderSideWidth, BorderSpacing,
 };
-pub use self::box_::{BaselineSource, TouchAction, VerticalAlign, WillChange};
 pub use self::box_::{
-    Contain, ContainerName, ContainerType, Display, LineClamp, Overflow, OverflowAnchor,
-};
-pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
-pub use self::box_::{
-    ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop, ScrollSnapStrictness, ScrollSnapType,
+    Appearance, BaselineSource, BreakBetween, BreakWithin, Clear, Contain, ContainIntrinsicSize,
+    ContainerName, ContainerType, ContentVisibility, Display, Float, LineClamp, Overflow,
+    OverflowAnchor, OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollSnapAlign,
+    ScrollSnapAxis, ScrollSnapStop, ScrollSnapStrictness, ScrollSnapType, ScrollbarGutter,
+    TouchAction, VerticalAlign, WillChange,
 };
 pub use self::color::{
     Color, ColorOrAuto, ColorPropertyValue, ColorScheme, ForcedColorAdjust, PrintColorAdjust,

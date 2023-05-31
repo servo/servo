@@ -47,9 +47,8 @@
     ${helpers.predefined_type(
         "border-%s-width" % side_name,
         "BorderSideWidth",
-        "crate::values::computed::NonNegativeLength::new(3.)",
+        "app_units::Au::from_px(3)",
         engines="gecko servo",
-        computed_type="crate::values::computed::NonNegativeLength",
         aliases=maybe_moz_logical_alias(engine, side, "-moz-border-%s-width"),
         spec=maybe_logical_spec(side, "width"),
         animation_value_type="NonNegativeLength",
