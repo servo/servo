@@ -1958,7 +1958,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::InRange |
             NonTSPseudoClass::OutOfRange |
             NonTSPseudoClass::Default |
-            NonTSPseudoClass::MozSubmitInvalid |
             NonTSPseudoClass::UserValid |
             NonTSPseudoClass::UserInvalid |
             NonTSPseudoClass::MozMeterOptimum |

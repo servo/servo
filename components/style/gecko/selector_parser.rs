@@ -139,12 +139,6 @@ impl NonTSPseudoClass {
     /// Returns whether the pseudo-class is enabled in content sheets.
     #[inline]
     fn is_enabled_in_content(&self) -> bool {
-        if let NonTSPseudoClass::Autofill = *self {
-            return static_prefs::pref!("layout.css.autofill.enabled");
-        }
-        if let NonTSPseudoClass::MozSubmitInvalid = *self {
-            return static_prefs::pref!("layout.css.moz-submit-invalid.enabled");
-        }
         if matches!(*self, Self::MozLWTheme | Self::MozLWThemeBrightText | Self::MozLWThemeDarkText) {
             return static_prefs::pref!("layout.css.moz-lwtheme.content.enabled");
         }

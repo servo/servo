@@ -80,8 +80,6 @@ bitflags! {
         const IN_READWRITE_STATE = 1 << 25;
         /// <https://html.spec.whatwg.org/multipage/#selector-default>
         const IN_DEFAULT_STATE = 1 << 26;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-submit-invalid
-        const IN_MOZ_SUBMITINVALID_STATE = 1 << 27;
         /// Non-standard & undocumented.
         const IN_OPTIMUM_STATE = 1 << 28;
         /// Non-standard & undocumented.
