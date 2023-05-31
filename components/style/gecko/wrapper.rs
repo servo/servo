@@ -1016,7 +1016,7 @@ impl<'le> TElement for GeckoElement<'le> {
     #[inline]
     fn namespace(&self) -> &WeakNamespace {
         unsafe {
-            let namespace_manager = structs::nsContentUtils_sNameSpaceManager;
+            let namespace_manager = structs::nsNameSpaceManager_sInstance.mRawPtr;
             WeakNamespace::new((*namespace_manager).mURIArray[self.namespace_id() as usize].mRawPtr)
         }
     }

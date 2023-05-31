@@ -6,6 +6,7 @@
 
 use crate::properties::PropertyDeclarationBlock;
 use crate::rule_tree::{CascadeLevel, StyleSource};
+use crate::stylesheets::layer_rule::LayerOrder;
 use crate::shared_lock::Locked;
 use servo_arc::Arc;
 use smallvec::SmallVec;
@@ -69,8 +70,10 @@ pub struct ApplicableDeclarationBlock {
     /// The bits containing the source order, cascade level, and shadow cascade
     /// order.
     bits: ApplicableDeclarationBits,
-    /// The specificity of the selector this block is represented by.
+    /// The specificity of the selector.
     pub specificity: u32,
+    /// The layer order of the selector.
+    pub layer_order: LayerOrder,
 }
 
 impl ApplicableDeclarationBlock {
@@ -85,16 +88,24 @@ impl ApplicableDeclarationBlock {
             source: StyleSource::from_declarations(declarations),
             bits: ApplicableDeclarationBits::new(0, level),
             specificity: 0,
+            layer_order: LayerOrder::root(),
         }
     }
 
-    /// Constructs an applicable declaration block from the given components
+    /// Constructs an applicable declaration block from the given components.
     #[inline]
-    pub fn new(source: StyleSource, order: u32, level: CascadeLevel, specificity: u32) -> Self {
+    pub fn new(
+        source: StyleSource,
+        source_order: u32,
+        level: CascadeLevel,
+        specificity: u32,
+        layer_order: LayerOrder,
+    ) -> Self {
         ApplicableDeclarationBlock {
             source,
-            bits: ApplicableDeclarationBits::new(order, level),
+            bits: ApplicableDeclarationBits::new(source_order, level),
             specificity,
+            layer_order,
         }
     }
 

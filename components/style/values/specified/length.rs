@@ -1235,7 +1235,7 @@ macro_rules! parse_size_non_length {
                 #[cfg(feature = "gecko")]
                 "max-content" | "-moz-max-content" => $size::MaxContent,
                 #[cfg(feature = "gecko")]
-                "-moz-fit-content" => $size::MozFitContent,
+                "fit-content" | "-moz-fit-content" => $size::FitContent,
                 #[cfg(feature = "gecko")]
                 "-moz-available" => $size::MozAvailable,
                 $auto_or_none => $size::$auto_or_none_ident,

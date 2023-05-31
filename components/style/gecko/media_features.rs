@@ -406,45 +406,6 @@ fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorSc
     }
 }
 
-/// Values for the -moz-toolbar-prefers-color-scheme media feature.
-#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
-#[repr(u8)]
-enum ToolbarPrefersColorScheme {
-    Dark,
-    Light,
-    System,
-}
-
-/// The color-scheme of the toolbar in the current Firefox theme. This is based
-/// on a pref managed by the front-end.
-fn eval_toolbar_prefers_color_scheme(d: &Device, query_value: Option<ToolbarPrefersColorScheme>) -> bool {
-    let toolbar_value = match static_prefs::pref!("browser.theme.toolbar-theme") {
-        0 => ToolbarPrefersColorScheme::Dark,
-        1 => ToolbarPrefersColorScheme::Light,
-        _ => ToolbarPrefersColorScheme::System,
-    };
-
-    let query_value = match query_value {
-        Some(v) => v,
-        None => return true,
-    };
-
-    if query_value == toolbar_value {
-        return true;
-    }
-
-    if toolbar_value != ToolbarPrefersColorScheme::System {
-        return false;
-    }
-
-    // System might match light and dark as well.
-    match query_value {
-        ToolbarPrefersColorScheme::Dark => eval_prefers_color_scheme(d, Some(PrefersColorScheme::Dark)),
-        ToolbarPrefersColorScheme::Light => eval_prefers_color_scheme(d, Some(PrefersColorScheme::Light)),
-        ToolbarPrefersColorScheme::System => true,
-    }
-}
-
 bitflags! {
     /// https://drafts.csswg.org/mediaqueries-4/#mf-interaction
     struct PointerCapabilities: u8 {
@@ -607,6 +568,16 @@ fn eval_moz_windows_non_native_menus(
     query_value.map_or(use_non_native_menus, |v| v == use_non_native_menus)
 }
 
+fn eval_moz_overlay_scrollbars(
+    device: &Device,
+    query_value: Option<bool>,
+    _: Option<RangeOrOperator>,
+) -> bool {
+    let use_overlay =
+        unsafe { bindings::Gecko_MediaFeatures_UseOverlayScrollbars(device.document()) };
+    query_value.map_or(use_overlay, |v| v == use_overlay)
+}
+
 fn get_lnf_int(int_id: i32) -> i32 {
     unsafe { bindings::Gecko_GetLookAndFeelInt(int_id) }
 }
@@ -680,7 +651,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [MediaFeatureDescription; 60] = [
+pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -891,15 +862,15 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 60] = [
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
     feature!(
-        atom!("-moz-toolbar-prefers-color-scheme"),
-        AllowsRanges::No,
-        keyword_evaluator!(eval_toolbar_prefers_color_scheme, ToolbarPrefersColorScheme),
-        ParsingRequirements::CHROME_AND_UA_ONLY,
-    ),
-    feature!(
         atom!("-moz-windows-non-native-menus"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_moz_windows_non_native_menus),
+        ParsingRequirements::CHROME_AND_UA_ONLY,
+    ),
+    feature!(
+        atom!("-moz-overlay-scrollbars"),
+        AllowsRanges::No,
+        Evaluator::BoolInteger(eval_moz_overlay_scrollbars),
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
 
@@ -908,19 +879,17 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 60] = [
     lnf_int_feature!(atom!("-moz-scrollbar-end-backward"), ScrollArrowStyle, get_scrollbar_end_backward),
     lnf_int_feature!(atom!("-moz-scrollbar-end-forward"), ScrollArrowStyle, get_scrollbar_end_forward),
     lnf_int_feature!(atom!("-moz-scrollbar-thumb-proportional"), ScrollSliderStyle),
-    lnf_int_feature!(atom!("-moz-overlay-scrollbars"), UseOverlayScrollbars),
     lnf_int_feature!(atom!("-moz-menubar-drag"), MenuBarDrag),
     lnf_int_feature!(atom!("-moz-windows-default-theme"), WindowsDefaultTheme),
     lnf_int_feature!(atom!("-moz-mac-graphite-theme"), MacGraphiteTheme),
     lnf_int_feature!(atom!("-moz-mac-big-sur-theme"), MacBigSurTheme),
+    lnf_int_feature!(atom!("-moz-mac-rtl"), MacRTL),
     lnf_int_feature!(atom!("-moz-windows-accent-color-in-titlebar"), WindowsAccentColorInTitlebar),
     lnf_int_feature!(atom!("-moz-windows-compositor"), DWMCompositor),
     lnf_int_feature!(atom!("-moz-windows-classic"), WindowsClassic),
     lnf_int_feature!(atom!("-moz-windows-glass"), WindowsGlass),
     lnf_int_feature!(atom!("-moz-swipe-animation-enabled"), SwipeAnimationEnabled),
     lnf_int_feature!(atom!("-moz-gtk-csd-available"), GTKCSDAvailable),
-    lnf_int_feature!(atom!("-moz-gtk-csd-hide-titlebar-by-default"), GTKCSDHideTitlebarByDefault),
-    lnf_int_feature!(atom!("-moz-gtk-csd-transparent-background"), GTKCSDTransparentBackground),
     lnf_int_feature!(atom!("-moz-gtk-csd-minimize-button"), GTKCSDMinimizeButton),
     lnf_int_feature!(atom!("-moz-gtk-csd-maximize-button"), GTKCSDMaximizeButton),
     lnf_int_feature!(atom!("-moz-gtk-csd-close-button"), GTKCSDCloseButton),

@@ -439,6 +439,26 @@ pub enum GenericFontFamily {
     MozEmoji,
 }
 
+impl GenericFontFamily {
+    /// When we disallow websites to override fonts, we ignore some generic
+    /// families that the website might specify, since they're not configured by
+    /// the user. See bug 789788 and bug 1730098.
+    #[cfg(feature = "gecko")]
+    pub (crate) fn valid_for_user_font_prioritization(self) -> bool {
+        match self {
+            Self::None |
+            Self::Fantasy |
+            Self::Cursive |
+            Self::SystemUi |
+            Self::MozEmoji => false,
+
+            Self::Serif |
+            Self::SansSerif |
+            Self::Monospace => true,
+        }
+    }
+}
+
 impl Parse for SingleFontFamily {
     /// Parse a font-family value.
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -579,14 +599,14 @@ impl FontFamilyList {
         self.list = crate::ArcSlice::from_iter(new_list.into_iter());
     }
 
-    /// If there's a generic font family on the list (which isn't cursive or
-    /// fantasy), then move it to the front of the list. Otherwise, prepend the
-    /// default generic.
+    /// If there's a generic font family on the list which is suitable for user
+    /// font prioritization, then move it to the front of the list. Otherwise,
+    /// prepend the default generic.
     #[cfg(feature = "gecko")]
     pub (crate) fn prioritize_first_generic_or_prepend(&mut self, generic: GenericFontFamily) {
         let index_of_first_generic = self.iter().position(|f| {
             match *f {
-                SingleFontFamily::Generic(f) => f != GenericFontFamily::Cursive && f != GenericFontFamily::Fantasy,
+                SingleFontFamily::Generic(f) => f.valid_for_user_font_prioritization(),
                 _ => false,
             }
         });

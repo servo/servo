@@ -82,7 +82,12 @@ files = [
   # These are ignored to avoid diverging from Gecko
   "./components/style/counter_style/mod.rs",
   "./components/style/properties/helpers.mako.rs",
+  "./components/style/rule_collector.rs",
+  "./components/style/selector_map.rs",
+  "./components/style/stylesheets/import_rule.rs",
+  "./components/style/stylesheets/layer_rule.rs",
   "./components/style/stylesheets/rule_parser.rs",
+  "./components/style/stylesheets/scroll_timeline_rule.rs",
   "./components/style/stylist.rs",
   "./components/style/values/computed/font.rs",
   "./components/style/values/computed/image.rs",

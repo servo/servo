@@ -71,10 +71,29 @@ static ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
     make_variable!(atom!("safe-area-inset-right"), get_safearea_inset_right),
 ];
 
+fn get_titlebar_radius(device: &Device) -> VariableValue {
+    VariableValue::pixel(device.titlebar_radius())
+}
+
+fn get_menu_radius(device: &Device) -> VariableValue {
+    VariableValue::pixel(device.menu_radius())
+}
+
+static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 2] = [
+    make_variable!(atom!("-moz-gtk-csd-titlebar-radius"), get_titlebar_radius),
+    make_variable!(atom!("-moz-gtk-menu-radius"), get_menu_radius),
+];
+
 impl CssEnvironment {
     #[inline]
     fn get(&self, name: &Atom, device: &Device) -> Option<VariableValue> {
-        let var = ENVIRONMENT_VARIABLES.iter().find(|var| var.name == *name)?;
+        if let Some(var) = ENVIRONMENT_VARIABLES.iter().find(|var| var.name == *name) {
+            return Some((var.evaluator)(device));
+        }
+        if !device.is_chrome_document() {
+            return None;
+        }
+        let var = CHROME_ENVIRONMENT_VARIABLES.iter().find(|var| var.name == *name)?;
         Some((var.evaluator)(device))
     }
 }

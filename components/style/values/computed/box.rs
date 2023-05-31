@@ -11,14 +11,12 @@ use crate::values::generics::box_::Perspective as GenericPerspective;
 use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use crate::values::specified::box_ as specified;
 
-pub use crate::values::specified::box_::Clear as SpecifiedClear;
-pub use crate::values::specified::box_::{AnimationName, Appearance, BreakBetween, BreakWithin};
-pub use crate::values::specified::box_::{Contain, Display, Float as SpecifiedFloat, Overflow};
-pub use crate::values::specified::box_::{OverflowAnchor, OverflowClipBox, OverscrollBehavior};
 pub use crate::values::specified::box_::{
-    ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness, ScrollSnapType,
+    AnimationName, AnimationTimeline, Appearance, BreakBetween, BreakWithin,
+    Clear as SpecifiedClear, Contain, Display, Float as SpecifiedFloat, Overflow, OverflowAnchor,
+    OverflowClipBox, OverscrollBehavior, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness,
+    ScrollSnapType, TouchAction, TransitionProperty, WillChange,
 };
-pub use crate::values::specified::box_::{TouchAction, TransitionProperty, WillChange};
 
 /// A computed value for the `vertical-align` property.
 pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;

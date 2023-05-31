@@ -543,6 +543,7 @@ impl StylesheetInvalidationSet {
             FontFeatureValues(..) |
             FontFace(..) |
             Keyframes(..) |
+            ScrollTimeline(..) |
             Style(..) => {
                 if is_generic_change {
                     // TODO(emilio): We need to do this for selector / keyframe
@@ -555,7 +556,7 @@ impl StylesheetInvalidationSet {
 
                 self.collect_invalidations_for_rule(rule, guard, device, quirks_mode)
             },
-            Document(..) | Import(..) | Media(..) | Supports(..) => {
+            Document(..) | Import(..) | Media(..) | Supports(..) | Layer(..) => {
                 if !is_generic_change &&
                     !EffectiveRules::is_effective(guard, device, quirks_mode, rule)
                 {
@@ -596,7 +597,7 @@ impl StylesheetInvalidationSet {
                     }
                 }
             },
-            Document(..) | Namespace(..) | Import(..) | Media(..) | Supports(..) => {
+            Document(..) | Namespace(..) | Import(..) | Media(..) | Supports(..) | Layer(..) => {
                 // Do nothing, relevant nested rules are visited as part of the
                 // iteration.
             },
@@ -617,6 +618,10 @@ impl StylesheetInvalidationSet {
                     // Do nothing, this animation can't affect the style of
                     // existing elements.
                 }
+            },
+            ScrollTimeline(..) => {
+                // TODO: Bug 1676784: check if animation-timeline name is referenced.
+                // Now we do nothing.
             },
             CounterStyle(..) | Page(..) | Viewport(..) | FontFeatureValues(..) => {
                 debug!(

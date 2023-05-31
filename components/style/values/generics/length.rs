@@ -157,7 +157,7 @@ pub enum GenericSize<LengthPercent> {
     MinContent,
     #[cfg(feature = "gecko")]
     #[animation(error)]
-    MozFitContent,
+    FitContent,
     #[cfg(feature = "gecko")]
     #[animation(error)]
     MozAvailable,
@@ -207,15 +207,13 @@ pub enum GenericMaxSize<LengthPercent> {
     None,
     #[cfg(feature = "gecko")]
     #[animation(error)]
-    #[parse(aliases = "-moz-max-content")]
     MaxContent,
     #[cfg(feature = "gecko")]
     #[animation(error)]
-    #[parse(aliases = "-moz-min-content")]
     MinContent,
     #[cfg(feature = "gecko")]
     #[animation(error)]
-    MozFitContent,
+    FitContent,
     #[cfg(feature = "gecko")]
     #[animation(error)]
     MozAvailable,

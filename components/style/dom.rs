@@ -520,10 +520,9 @@ pub trait TElement:
     }
 
     /// Internal iterator for the attribute names of this element.
-    #[cfg(feature = "gecko")]
     fn each_attr_name<F>(&self, callback: F)
     where
-        F: FnMut(&AtomIdent);
+        F: FnMut(&LocalName);
 
     /// Internal iterator for the part names that this element exports for a
     /// given part name.

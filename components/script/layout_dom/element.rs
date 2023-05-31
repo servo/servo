@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{
     CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId,
 };
@@ -261,6 +262,16 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
             for class in *classes {
                 callback(AtomIdent::cast(class))
             }
+        }
+    }
+
+    #[inline(always)]
+    fn each_attr_name<F>(&self, mut callback: F)
+    where
+        F: FnMut(&style::LocalName),
+    {
+        for attr in self.element.attrs() {
+            callback(style::values::GenericAtomIdent::cast(attr.local_name()))
         }
     }
 

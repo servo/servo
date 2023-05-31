@@ -93,7 +93,9 @@ impl Device {
             document,
             default_values: ComputedValues::default_values(doc),
             root_font_size: AtomicU32::new(FONT_MEDIUM_PX.to_bits()),
-            body_text_color: AtomicUsize::new(prefs.mColors.mDefault as usize),
+            // This gets updated when we see the <body>, so it doesn't really
+            // matter which color-scheme we look at here.
+            body_text_color: AtomicUsize::new(prefs.mLightColors.mDefault as usize),
             used_root_font_size: AtomicBool::new(false),
             used_font_metrics: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
@@ -386,13 +388,18 @@ impl Device {
     }
 
     /// Returns the default background color.
-    pub fn default_background_color(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.pref_sheet_prefs().mColors.mDefaultBackground)
+    ///
+    /// This is only for forced-colors/high-contrast, so looking at light colors
+    /// is ok.
+    pub fn default_background_color_for_forced_colors(&self) -> RGBA {
+        convert_nscolor_to_rgba(self.pref_sheet_prefs().mLightColors.mDefaultBackground)
     }
 
     /// Returns the default foreground color.
-    pub fn default_color(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.pref_sheet_prefs().mColors.mDefault)
+    ///
+    /// See above for looking at light colors only.
+    pub fn default_color_for_forced_colors(&self) -> RGBA {
+        convert_nscolor_to_rgba(self.pref_sheet_prefs().mLightColors.mDefault)
     }
 
     /// Returns the current effective text zoom.
@@ -438,5 +445,25 @@ impl Device {
         unsafe {
             bindings::Gecko_IsSupportedImageMimeType(mime_type.as_ptr(), mime_type.len() as u32)
         }
+    }
+
+    /// Returns the gtk titlebar radius in CSS pixels.
+    pub fn titlebar_radius(&self) -> f32 {
+        unsafe {
+            bindings::Gecko_GetLookAndFeelInt(bindings::LookAndFeel_IntID::TitlebarRadius as i32) as f32
+        }
+    }
+
+    /// Returns the gtk menu radius in CSS pixels.
+    pub fn menu_radius(&self) -> f32 {
+        unsafe {
+            bindings::Gecko_GetLookAndFeelInt(bindings::LookAndFeel_IntID::GtkMenuRadius as i32) as f32
+        }
+    }
+
+    /// Return whether the document is a chrome document.
+    #[inline]
+    pub fn is_chrome_document(&self) -> bool {
+        self.pref_sheet_prefs().mIsChrome
     }
 }

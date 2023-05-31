@@ -104,6 +104,8 @@ ${helpers.predefined_type(
     gecko_pref="layout.css.color-scheme.enabled",
     animation_value_type="discrete",
     has_effect_on_gecko_scrollbars=False,
+    ignored_when_colors_disabled=True,
+    enabled_in="chrome",
 )}
 
 ${helpers.predefined_type(

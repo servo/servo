@@ -84,12 +84,6 @@ bitflags! {
         /// https://github.com/w3c/csswg-drafts/issues/4777#issuecomment-604424845
         const HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND = 1 << 14;
 
-        /// Whether there are author-specified rules for padding-* properties.
-        ///
-        /// FIXME(emilio): Try to merge this with BORDER_BACKGROUND, see
-        /// https://github.com/w3c/csswg-drafts/issues/4777
-        const HAS_AUTHOR_SPECIFIED_PADDING = 1 << 15;
-
         /// Whether there are author-specified rules for `font-family`.
         const HAS_AUTHOR_SPECIFIED_FONT_FAMILY = 1 << 16;
 

@@ -13,7 +13,7 @@ use crate::values::generics::box_::Perspective as GenericPerspective;
 use crate::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use crate::values::specified::length::{LengthPercentage, NonNegativeLength};
 use crate::values::specified::{AllowQuirks, Number};
-use crate::values::{CustomIdent, KeyframesName};
+use crate::values::{CustomIdent, KeyframesName, TimelineName};
 use crate::Atom;
 use cssparser::Parser;
 use num_traits::FromPrimitive;
@@ -109,8 +109,6 @@ pub enum DisplayInside {
     WebkitBox,
     #[cfg(feature = "gecko")]
     MozBox,
-    #[cfg(feature = "gecko")]
-    MozStack,
     #[cfg(feature = "gecko")]
     MozDeck,
     #[cfg(feature = "gecko")]
@@ -225,8 +223,6 @@ impl Display {
     pub const MozBox: Self = Self::new(DisplayOutside::Block, DisplayInside::MozBox);
     #[cfg(feature = "gecko")]
     pub const MozInlineBox: Self = Self::new(DisplayOutside::Inline, DisplayInside::MozBox);
-    #[cfg(feature = "gecko")]
-    pub const MozStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozStack);
     #[cfg(feature = "gecko")]
     pub const MozDeck: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozDeck);
     #[cfg(feature = "gecko")]
@@ -608,8 +604,6 @@ impl Parse for Display {
             #[cfg(feature = "gecko")]
             "-moz-inline-box" if moz_box_display_values_enabled(context) => Display::MozInlineBox,
             #[cfg(feature = "gecko")]
-            "-moz-stack" if moz_display_values_enabled(context) => Display::MozStack,
-            #[cfg(feature = "gecko")]
             "-moz-deck" if moz_display_values_enabled(context) => Display::MozDeck,
             #[cfg(feature = "gecko")]
             "-moz-popup" if moz_display_values_enabled(context) => Display::MozPopup,
@@ -765,6 +759,67 @@ impl Parse for AnimationName {
 
         input.expect_ident_matching("none")?;
         Ok(AnimationName(None))
+    }
+}
+
+/// A value for the <single-animation-timeline>.
+///
+/// https://drafts.csswg.org/css-animations-2/#typedef-single-animation-timeline
+/// cbindgen:private-default-tagged-enum-constructor=false
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum AnimationTimeline {
+    /// Use default timeline. The animation’s timeline is a DocumentTimeline.
+    Auto,
+    /// The animation is not associated with a timeline.
+    None,
+    /// The scroll-timeline name
+    Timeline(TimelineName),
+}
+
+impl AnimationTimeline {
+    /// Returns the `auto` value.
+    pub fn auto() -> Self {
+        Self::Auto
+    }
+
+    /// Returns true if it is auto (i.e. the default value).
+    pub fn is_auto(&self) -> bool {
+        matches!(self, Self::Auto)
+    }
+}
+
+impl Parse for AnimationTimeline {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        // We are using the same parser for TimelineName and KeyframesName, but animation-timeline
+        // accepts "auto", so need to manually parse this. (We can not derive Parse because
+        // TimelineName excludes only "none" keyword.)
+        // FIXME: Bug 1733260: we may drop None based on the spec issue:
+        // Note: https://github.com/w3c/csswg-drafts/issues/6674.
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
+            return Ok(Self::Auto);
+        }
+
+        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(Self::None);
+        }
+
+        TimelineName::parse(context, input).map(AnimationTimeline::Timeline)
     }
 }
 

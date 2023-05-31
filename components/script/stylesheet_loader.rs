@@ -38,7 +38,7 @@ use std::sync::Mutex;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::import_rule::ImportSheet;
+use style::stylesheets::import_rule::{ImportLayer, ImportSheet};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::{CssRules, ImportRule, Origin, Stylesheet, StylesheetContents};
 use style::values::CssUrl;
@@ -358,6 +358,7 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
         context: &ParserContext,
         lock: &SharedRwLock,
         media: Arc<Locked<MediaList>>,
+        layer: Option<ImportLayer>,
     ) -> Arc<Locked<ImportRule>> {
         let sheet = Arc::new(Stylesheet {
             contents: StylesheetContents::from_shared_data(
@@ -374,8 +375,9 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
         let stylesheet = ImportSheet(sheet.clone());
         let import = ImportRule {
             url,
-            source_location,
             stylesheet,
+            layer,
+            source_location,
         };
 
         let url = match import.url.url().cloned() {

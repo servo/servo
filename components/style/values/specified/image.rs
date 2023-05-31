@@ -1226,3 +1226,42 @@ impl MozImageRect {
         })
     }
 }
+
+/// https://drafts.csswg.org/css-images/#propdef-image-rendering
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum ImageRendering {
+    Auto,
+    #[cfg(feature = "gecko")]
+    Smooth,
+    #[parse(aliases = "-moz-crisp-edges")]
+    CrispEdges,
+    Pixelated,
+    // From the spec:
+    //
+    //     This property previously accepted the values optimizeSpeed and
+    //     optimizeQuality. These are now deprecated; a user agent must accept
+    //     them as valid values but must treat them as having the same behavior
+    //     as crisp-edges and smooth respectively, and authors must not use
+    //     them.
+    //
+    #[cfg(feature = "gecko")]
+    Optimizespeed,
+    #[cfg(feature = "gecko")]
+    Optimizequality,
+}

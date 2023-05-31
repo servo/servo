@@ -278,15 +278,8 @@ pub trait StylesheetInDocument: ::std::fmt::Debug {
 
     rule_filter! {
         effective_style_rules(Style => StyleRule),
-        effective_media_rules(Media => MediaRule),
         effective_font_face_rules(FontFace => FontFaceRule),
-        effective_font_face_feature_values_rules(FontFeatureValues => FontFeatureValuesRule),
-        effective_counter_style_rules(CounterStyle => CounterStyleRule),
         effective_viewport_rules(Viewport => ViewportRule),
-        effective_keyframes_rules(Keyframes => KeyframesRule),
-        effective_supports_rules(Supports => SupportsRule),
-        effective_page_rules(Page => PageRule),
-        effective_document_rules(Document => DocumentRule),
     }
 }
 
@@ -367,7 +360,10 @@ impl SanitizationKind {
             CssRule::Document(..) |
             CssRule::Media(..) |
             CssRule::Supports(..) |
-            CssRule::Import(..) => false,
+            CssRule::Import(..) |
+            // TODO(emilio): Perhaps Layer should not be always sanitized? But
+            // we sanitize @media and co, so this seems safer for now.
+            CssRule::Layer(..) => false,
 
             CssRule::FontFace(..) | CssRule::Namespace(..) | CssRule::Style(..) => true,
 
@@ -375,7 +371,8 @@ impl SanitizationKind {
             CssRule::Page(..) |
             CssRule::FontFeatureValues(..) |
             CssRule::Viewport(..) |
-            CssRule::CounterStyle(..) => !is_standard,
+            CssRule::CounterStyle(..) |
+            CssRule::ScrollTimeline(..) => !is_standard,
         }
     }
 }
