@@ -11,7 +11,7 @@ use crate::flow::inline::{InlineBox, InlineFormattingContext, InlineLevelBox, Te
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
-use crate::style_ext::{DisplayGeneratingBox, DisplayInside, DisplayOutside};
+use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
@@ -591,7 +591,9 @@ where
 
         let kind = match contents.try_into() {
             Ok(contents) => match display_inside {
-                DisplayInside::Flow { is_list_item } => {
+                DisplayInside::Flow { is_list_item }
+                    if !info.style.establishes_block_formatting_context() =>
+                {
                     BlockLevelCreator::SameFormattingContextBlock(
                         IntermediateBlockContainer::Deferred {
                             contents,
