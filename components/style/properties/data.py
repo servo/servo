@@ -486,7 +486,6 @@ class Longhand(Property):
                 "MasonryAutoFlow",
                 "MozForceBrokenImageIcon",
                 "text::MozControlCharacterVisibility",
-                "MozListReversed",
                 "MathDepth",
                 "MozScriptMinSize",
                 "MozScriptSizeMultiplier",

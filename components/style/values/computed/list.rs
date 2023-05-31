@@ -6,7 +6,6 @@
 
 #[cfg(feature = "gecko")]
 pub use crate::values::specified::list::ListStyleType;
-pub use crate::values::specified::list::MozListReversed;
 pub use crate::values::specified::list::Quotes;
 
 impl Quotes {

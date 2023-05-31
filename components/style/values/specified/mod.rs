@@ -66,7 +66,6 @@ pub use self::length::{
 };
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
-pub use self::list::MozListReversed;
 pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
