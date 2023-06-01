@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::TextDecoderBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
@@ -62,7 +62,7 @@ impl TextDecoder {
         fatal: bool,
         ignoreBOM: bool,
     ) -> DomRoot<TextDecoder> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(TextDecoder::new_inherited(encoding, fatal, ignoreBOM)),
             global,
             proto,

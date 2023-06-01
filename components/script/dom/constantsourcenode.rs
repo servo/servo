@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::ConstantSourceNodeMethods;
 use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::ConstantSourceOptions;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -74,7 +74,7 @@ impl ConstantSourceNode {
         options: &ConstantSourceOptions,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
         let node = ConstantSourceNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object2(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
     }
 
     #[allow(non_snake_case)]

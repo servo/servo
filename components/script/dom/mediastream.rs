@@ -5,7 +5,7 @@
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -37,7 +37,7 @@ impl MediaStream {
     }
 
     fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<MediaStream> {
-        reflect_dom_object2(Box::new(MediaStream::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(Box::new(MediaStream::new_inherited()), global, proto)
     }
 
     pub fn new_single(

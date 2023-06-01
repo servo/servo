@@ -31,7 +31,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -3322,7 +3322,7 @@ impl Document {
         referrer_policy: Option<ReferrerPolicy>,
         canceller: FetchCanceller,
     ) -> DomRoot<Document> {
-        let document = reflect_dom_object2(
+        let document = reflect_dom_object_with_proto(
             Box::new(Document::new_inherited(
                 window,
                 has_browsing_context,

@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::globalscope::GlobalScope;
@@ -36,7 +36,7 @@ impl DOMRect {
         width: f64,
         height: f64,
     ) -> DomRoot<DOMRect> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(DOMRect::new_inherited(x, y, width, height)),
             global,
             proto,

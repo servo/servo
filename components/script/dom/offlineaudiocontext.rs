@@ -13,7 +13,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
@@ -87,7 +87,11 @@ impl OfflineAudioContext {
         let pipeline_id = window.pipeline_id();
         let context =
             OfflineAudioContext::new_inherited(channel_count, length, sample_rate, pipeline_id);
-        Ok(reflect_dom_object2(Box::new(context), window, proto))
+        Ok(reflect_dom_object_with_proto(
+            Box::new(context),
+            window,
+            proto,
+        ))
     }
 
     pub fn Constructor(

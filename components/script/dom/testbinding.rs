@@ -40,7 +40,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::record::Record;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -85,7 +85,7 @@ impl TestBinding {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBinding> {
-        reflect_dom_object2(Box::new(TestBinding::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(Box::new(TestBinding::new_inherited()), global, proto)
     }
 
     pub fn Constructor(

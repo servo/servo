@@ -7,7 +7,7 @@ use crate::dom::audionode::AudioNode;
 use crate::dom::bindings::codegen::Bindings::MediaStreamTrackAudioSourceNodeBinding::MediaStreamTrackAudioSourceOptions;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
@@ -56,7 +56,7 @@ impl MediaStreamTrackAudioSourceNode {
         track: &MediaStreamTrack,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
         let node = MediaStreamTrackAudioSourceNode::new_inherited(context, track)?;
-        Ok(reflect_dom_object2(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
     }
 
     #[allow(non_snake_case)]

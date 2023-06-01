@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataInit;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::mediasession::MediaSession;
@@ -43,7 +43,7 @@ impl MediaMetadata {
         proto: Option<HandleObject>,
         init: &MediaMetadataInit,
     ) -> DomRoot<MediaMetadata> {
-        reflect_dom_object2(Box::new(MediaMetadata::new_inherited(init)), global, proto)
+        reflect_dom_object_with_proto(Box::new(MediaMetadata::new_inherited(init)), global, proto)
     }
 
     /// https://w3c.github.io/mediasession/#dom-mediametadata-mediametadata

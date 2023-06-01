@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMeth
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -45,7 +45,7 @@ impl CustomEvent {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<CustomEvent> {
-        reflect_dom_object2(Box::new(CustomEvent::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(Box::new(CustomEvent::new_inherited()), global, proto)
     }
 
     fn new(

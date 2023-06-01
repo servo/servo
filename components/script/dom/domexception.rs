@@ -5,7 +5,9 @@
 use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants;
 use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{
+    reflect_dom_object, reflect_dom_object_with_proto, Reflector,
+};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -144,7 +146,7 @@ impl DOMException {
         message: DOMString,
         name: DOMString,
     ) -> Result<DomRoot<DOMException>, Error> {
-        Ok(reflect_dom_object2(
+        Ok(reflect_dom_object_with_proto(
             Box::new(DOMException::new_inherited(message, name)),
             global,
             proto,

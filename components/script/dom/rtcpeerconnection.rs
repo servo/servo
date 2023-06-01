@@ -18,7 +18,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
@@ -198,7 +198,11 @@ impl RTCPeerConnection {
         proto: Option<HandleObject>,
         config: &RTCConfiguration,
     ) -> DomRoot<RTCPeerConnection> {
-        let this = reflect_dom_object2(Box::new(RTCPeerConnection::new_inherited()), global, proto);
+        let this = reflect_dom_object_with_proto(
+            Box::new(RTCPeerConnection::new_inherited()),
+            global,
+            proto,
+        );
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));
         if let Some(ref servers) = config.iceServers {

@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::FocusEventBinding::FocusEventMethod
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
@@ -40,7 +40,7 @@ impl FocusEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<FocusEvent> {
-        reflect_dom_object2(Box::new(FocusEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(Box::new(FocusEvent::new_inherited()), window, proto)
     }
 
     pub fn new(

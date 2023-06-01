@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding;
 use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding::PromiseRejectionEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -62,7 +62,7 @@ impl PromiseRejectionEvent {
         promise: Rc<Promise>,
         reason: HandleValue,
     ) -> DomRoot<Self> {
-        let ev = reflect_dom_object2(
+        let ev = reflect_dom_object_with_proto(
             Box::new(PromiseRejectionEvent::new_inherited(promise)),
             global,
             proto,

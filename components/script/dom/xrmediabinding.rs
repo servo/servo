@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaBindi
 use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaLayerInit;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::root::DomRoot;
@@ -38,7 +38,7 @@ impl XRMediaBinding {
         proto: Option<HandleObject>,
         session: &XRSession,
     ) -> DomRoot<XRMediaBinding> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(XRMediaBinding::new_inherited(session)),
             global,
             proto,

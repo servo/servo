@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::CompositionEventBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object2};
+use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::uievent::UIEvent;
@@ -57,7 +57,7 @@ impl CompositionEvent {
         detail: i32,
         data: DOMString,
     ) -> DomRoot<CompositionEvent> {
-        let ev = reflect_dom_object2(
+        let ev = reflect_dom_object_with_proto(
             Box::new(CompositionEvent {
                 uievent: UIEvent::new_inherited(),
                 data: data,

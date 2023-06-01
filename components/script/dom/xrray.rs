@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, XRRayMethods};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::create_typed_array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
@@ -43,7 +43,7 @@ impl XRRay {
         proto: Option<HandleObject>,
         ray: Ray<ApiSpace>,
     ) -> DomRoot<XRRay> {
-        reflect_dom_object2(Box::new(XRRay::new_inherited(ray)), global, proto)
+        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), global, proto)
     }
 
     #[allow(non_snake_case)]

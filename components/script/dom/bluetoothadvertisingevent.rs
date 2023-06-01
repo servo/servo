@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::B
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetoothdevice::BluetoothDevice;
@@ -60,7 +60,7 @@ impl BluetoothAdvertisingEvent {
         txPower: Option<i8>,
         rssi: Option<i8>,
     ) -> DomRoot<BluetoothAdvertisingEvent> {
-        let ev = reflect_dom_object2(
+        let ev = reflect_dom_object_with_proto(
             Box::new(BluetoothAdvertisingEvent::new_inherited(
                 device, name, appearance, txPower, rssi,
             )),

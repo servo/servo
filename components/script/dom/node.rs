@@ -26,7 +26,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId};
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, DomObjectWrap};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, DomObjectWrap};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
@@ -1769,7 +1769,7 @@ impl Node {
         N: DerivedFrom<Node> + DomObject + DomObjectWrap,
     {
         let window = document.window();
-        reflect_dom_object2(node, window, proto)
+        reflect_dom_object_with_proto(node, window, proto)
     }
 
     pub fn new_inherited(doc: &Document) -> Node {

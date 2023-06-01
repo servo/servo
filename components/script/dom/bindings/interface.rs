@@ -11,8 +11,8 @@ use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::principals::ServoJSPrincipals;
 use crate::dom::bindings::utils::{
-    get_proto_or_iface_array, DOMJSClass, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL,
-    callargs_is_constructing,
+    callargs_is_constructing, get_proto_or_iface_array, DOMJSClass, ProtoOrIfaceArray,
+    DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL,
 };
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::error::throw_type_error;

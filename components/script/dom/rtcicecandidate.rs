@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -64,7 +64,7 @@ impl RTCIceCandidate {
         sdp_m_line_index: Option<u16>,
         username_fragment: Option<DOMString>,
     ) -> DomRoot<RTCIceCandidate> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(RTCIceCandidate::new_inherited(
                 candidate,
                 sdp_m_id,

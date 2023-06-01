@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::RTCErrorDetailType;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::RTCErrorInit;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::RTCErrorMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -51,7 +51,7 @@ impl RTCError {
         init: &RTCErrorInit,
         message: DOMString,
     ) -> DomRoot<RTCError> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(RTCError::new_inherited(global, init, message)),
             global,
             proto,

@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::VTTCueBinding::{
 };
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::documentfragment::DocumentFragment;
@@ -65,7 +65,7 @@ impl VTTCue {
         end_time: f64,
         text: DOMString,
     ) -> DomRoot<Self> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(Self::new_inherited(start_time, end_time, text)),
             global,
             proto,

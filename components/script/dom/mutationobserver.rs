@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCa
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::mutationrecord::MutationRecord;
@@ -71,7 +71,7 @@ impl MutationObserver {
         callback: Rc<MutationCallback>,
     ) -> DomRoot<MutationObserver> {
         let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
-        reflect_dom_object2(boxed_observer, global, proto)
+        reflect_dom_object_with_proto(boxed_observer, global, proto)
     }
 
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {

@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourcesChangeEventBinding::{
     self, XRInputSourcesChangeEventMethods,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -70,7 +70,7 @@ impl XRInputSourcesChangeEvent {
         added: &[DomRoot<XRInputSource>],
         removed: &[DomRoot<XRInputSource>],
     ) -> DomRoot<XRInputSourcesChangeEvent> {
-        let changeevent = reflect_dom_object2(
+        let changeevent = reflect_dom_object_with_proto(
             Box::new(XRInputSourcesChangeEvent::new_inherited(session)),
             global,
             proto,

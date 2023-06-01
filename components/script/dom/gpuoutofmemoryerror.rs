@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -25,7 +25,7 @@ impl GPUOutOfMemoryError {
     }
 
     fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Self> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(GPUOutOfMemoryError::new_inherited()),
             global,
             proto,

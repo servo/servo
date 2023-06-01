@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
@@ -91,7 +91,7 @@ impl ImageData {
 
         (*imagedata).data.set(jsobject);
 
-        Ok(reflect_dom_object2(imagedata, global, proto))
+        Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
 
     #[allow(unsafe_code)]
@@ -119,7 +119,7 @@ impl ImageData {
             .unwrap();
         (*imagedata).data.set(array.get());
 
-        Ok(reflect_dom_object2(imagedata, global, proto))
+        Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
     // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3
     #[allow(unsafe_code, non_snake_case)]

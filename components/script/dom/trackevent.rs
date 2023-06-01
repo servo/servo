@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::TrackEventBinding::TrackEventMethod
 use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -76,7 +76,11 @@ impl TrackEvent {
         cancelable: bool,
         track: &Option<VideoTrackOrAudioTrackOrTextTrack>,
     ) -> DomRoot<TrackEvent> {
-        let te = reflect_dom_object2(Box::new(TrackEvent::new_inherited(&track)), global, proto);
+        let te = reflect_dom_object_with_proto(
+            Box::new(TrackEvent::new_inherited(&track)),
+            global,
+            proto,
+        );
         {
             let event = te.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

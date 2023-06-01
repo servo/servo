@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -104,7 +104,7 @@ impl AudioBuffer {
         initial_data: Option<&[Vec<f32>]>,
     ) -> DomRoot<AudioBuffer> {
         let buffer = AudioBuffer::new_inherited(number_of_channels, length, sample_rate);
-        let buffer = reflect_dom_object2(Box::new(buffer), global, proto);
+        let buffer = reflect_dom_object_with_proto(Box::new(buffer), global, proto);
         buffer.set_initial_data(initial_data);
         buffer
     }

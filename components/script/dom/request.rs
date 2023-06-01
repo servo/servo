@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -64,7 +64,7 @@ impl Request {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>, url: ServoUrl) -> DomRoot<Request> {
-        reflect_dom_object2(Box::new(Request::new_inherited(global, url)), global, proto)
+        reflect_dom_object_with_proto(Box::new(Request::new_inherited(global, url)), global, proto)
     }
 
     // https://fetch.spec.whatwg.org/#dom-request

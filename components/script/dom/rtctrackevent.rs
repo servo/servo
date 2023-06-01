@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMe
 use crate::dom::bindings::codegen::Bindings::RTCTrackEventBinding::{self, RTCTrackEventMethods};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -50,7 +50,7 @@ impl RTCTrackEvent {
         cancelable: bool,
         track: &MediaStreamTrack,
     ) -> DomRoot<RTCTrackEvent> {
-        let trackevent = reflect_dom_object2(
+        let trackevent = reflect_dom_object_with_proto(
             Box::new(RTCTrackEvent::new_inherited(&track)),
             global,
             proto,

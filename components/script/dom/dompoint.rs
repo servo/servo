@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 use crate::dom::globalscope::GlobalScope;
@@ -38,7 +38,7 @@ impl DOMPoint {
         z: f64,
         w: f64,
     ) -> DomRoot<DOMPoint> {
-        reflect_dom_object2(Box::new(DOMPoint::new_inherited(x, y, z, w)), global, proto)
+        reflect_dom_object_with_proto(Box::new(DOMPoint::new_inherited(x, y, z, w)), global, proto)
     }
 
     pub fn Constructor(

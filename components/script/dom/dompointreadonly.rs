@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -46,7 +46,7 @@ impl DOMPointReadOnly {
         z: f64,
         w: f64,
     ) -> DomRoot<DOMPointReadOnly> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(DOMPointReadOnly::new_inherited(x, y, z, w)),
             global,
             proto,

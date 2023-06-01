@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::StorageEventBinding;
 use crate::dom::bindings::codegen::Bindings::StorageEventBinding::StorageEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -56,7 +56,7 @@ impl StorageEvent {
         proto: Option<HandleObject>,
         url: DOMString,
     ) -> DomRoot<StorageEvent> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(StorageEvent::new_inherited(None, None, None, url, None)),
             window,
             proto,
@@ -100,7 +100,7 @@ impl StorageEvent {
         url: DOMString,
         storageArea: Option<&Storage>,
     ) -> DomRoot<StorageEvent> {
-        let ev = reflect_dom_object2(
+        let ev = reflect_dom_object_with_proto(
             Box::new(StorageEvent::new_inherited(
                 key,
                 oldValue,

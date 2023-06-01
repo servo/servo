@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::FormDataEventBinding;
 use crate::dom::bindings::codegen::Bindings::FormDataEventBinding::FormDataEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -44,7 +44,7 @@ impl FormDataEvent {
         cancelable: EventCancelable,
         form_data: &FormData,
     ) -> DomRoot<FormDataEvent> {
-        let ev = reflect_dom_object2(
+        let ev = reflect_dom_object_with_proto(
             Box::new(FormDataEvent {
                 event: Event::new_inherited(),
                 form_data: Dom::from_ref(form_data),

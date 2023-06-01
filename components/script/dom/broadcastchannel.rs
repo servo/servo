@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
@@ -41,7 +41,7 @@ impl BroadcastChannel {
         proto: Option<HandleObject>,
         name: DOMString,
     ) -> DomRoot<BroadcastChannel> {
-        let channel = reflect_dom_object2(
+        let channel = reflect_dom_object_with_proto(
             Box::new(BroadcastChannel::new_inherited(name)),
             global,
             proto,

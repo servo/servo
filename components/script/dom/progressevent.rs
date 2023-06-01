@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::ProgressEventBinding;
 use crate::dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -65,7 +65,7 @@ impl ProgressEvent {
         loaded: u64,
         total: u64,
     ) -> DomRoot<ProgressEvent> {
-        let ev = reflect_dom_object2(
+        let ev = reflect_dom_object_with_proto(
             Box::new(ProgressEvent::new_inherited(
                 length_computable,
                 loaded,

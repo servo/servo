@@ -26,7 +26,11 @@ where
     unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, None, obj) }
 }
 
-pub fn reflect_dom_object2<T, U>(obj: Box<T>, global: &U, proto: Option<HandleObject>) -> DomRoot<T>
+pub fn reflect_dom_object_with_proto<T, U>(
+    obj: Box<T>,
+    global: &U,
+    proto: Option<HandleObject>,
+) -> DomRoot<T>
 where
     T: DomObject + DomObjectWrap,
     U: DerivedFrom<GlobalScope>,

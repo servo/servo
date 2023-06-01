@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::AnimationEventBinding::{
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -45,7 +45,11 @@ impl AnimationEvent {
         type_: Atom,
         init: &AnimationEventInit,
     ) -> DomRoot<AnimationEvent> {
-        let ev = reflect_dom_object2(Box::new(AnimationEvent::new_inherited(init)), window, proto);
+        let ev = reflect_dom_object_with_proto(
+            Box::new(AnimationEvent::new_inherited(init)),
+            window,
+            proto,
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, init.parent.bubbles, init.parent.cancelable);

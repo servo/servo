@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethod
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -46,7 +46,7 @@ impl ErrorEvent {
     }
 
     fn new_uninitialized(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<ErrorEvent> {
-        reflect_dom_object2(Box::new(ErrorEvent::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(Box::new(ErrorEvent::new_inherited()), global, proto)
     }
 
     pub fn new(

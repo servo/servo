@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionIceEventBinding::R
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionIceEventBinding::RTCPeerConnectionIceEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -56,7 +56,7 @@ impl RTCPeerConnectionIceEvent {
         url: Option<DOMString>,
         trusted: bool,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
-        let e = reflect_dom_object2(
+        let e = reflect_dom_object_with_proto(
             Box::new(RTCPeerConnectionIceEvent::new_inherited(candidate, url)),
             global,
             proto,

@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::WheelEventBinding::WheelEventMethod
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -39,7 +39,7 @@ impl WheelEvent {
     }
 
     fn new_unintialized(window: &Window, proto: Option<HandleObject>) -> DomRoot<WheelEvent> {
-        reflect_dom_object2(Box::new(WheelEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(Box::new(WheelEvent::new_inherited()), window, proto)
     }
 
     pub fn new(

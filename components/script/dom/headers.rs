@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{is_token, ByteString};
 use crate::dom::globalscope::GlobalScope;
@@ -52,7 +52,7 @@ impl Headers {
     }
 
     fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Headers> {
-        reflect_dom_object2(Box::new(Headers::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(Box::new(Headers::new_inherited()), global, proto)
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers

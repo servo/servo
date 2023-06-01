@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::str::DOMString;
@@ -48,7 +48,7 @@ impl Blob {
         blob_impl: BlobImpl,
     ) -> DomRoot<Blob> {
         let dom_blob =
-            reflect_dom_object2(Box::new(Blob::new_inherited(&blob_impl)), global, proto);
+            reflect_dom_object_with_proto(Box::new(Blob::new_inherited(&blob_impl)), global, proto);
         global.track_blob(&dom_blob, blob_impl);
         dom_blob
     }

@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::globalscope::GlobalScope;
@@ -79,7 +79,7 @@ impl Response {
     }
 
     fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Response> {
-        reflect_dom_object2(Box::new(Response::new_inherited(global)), global, proto)
+        reflect_dom_object_with_proto(Box::new(Response::new_inherited(global)), global, proto)
     }
 
     // https://fetch.spec.whatwg.org/#initialize-a-response

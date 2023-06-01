@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTra
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::utils::create_typed_array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
@@ -54,7 +54,7 @@ impl XRRigidTransform {
         proto: Option<HandleObject>,
         transform: ApiRigidTransform,
     ) -> DomRoot<XRRigidTransform> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(XRRigidTransform::new_inherited(transform)),
             global,
             proto,

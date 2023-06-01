@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VTTRegionBinding::{ScrollSetting, VTTRegionMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -44,7 +44,7 @@ impl VTTRegion {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Self> {
-        reflect_dom_object2(Box::new(Self::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(Box::new(Self::new_inherited()), global, proto)
     }
 
     #[allow(non_snake_case)]

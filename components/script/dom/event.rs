@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -80,7 +80,7 @@ impl Event {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Event> {
-        reflect_dom_object2(Box::new(Event::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(Box::new(Event::new_inherited()), global, proto)
     }
 
     pub fn new(

@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLRenderi
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
@@ -88,7 +88,7 @@ impl XRWebGLLayer {
         framebuffer: Option<&WebGLFramebuffer>,
         layer_id: Option<LayerId>,
     ) -> DomRoot<XRWebGLLayer> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(XRWebGLLayer::new_inherited(
                 session,
                 context,

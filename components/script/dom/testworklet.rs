@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMeth
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletBinding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -38,7 +38,7 @@ impl TestWorklet {
 
     fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<TestWorklet> {
         let worklet = Worklet::new(window, WorkletGlobalScopeType::Test);
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(TestWorklet::new_inherited(&*worklet)),
             window,
             proto,

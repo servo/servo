@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::OfflineAudioCompletionEventBinding:
 use crate::dom::bindings::codegen::Bindings::OfflineAudioCompletionEventBinding::OfflineAudioCompletionEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -50,7 +50,7 @@ impl OfflineAudioCompletionEvent {
         rendered_buffer: &AudioBuffer,
     ) -> DomRoot<OfflineAudioCompletionEvent> {
         let event = Box::new(OfflineAudioCompletionEvent::new_inherited(rendered_buffer));
-        let ev = reflect_dom_object2(event, window, proto);
+        let ev = reflect_dom_object_with_proto(event, window, proto);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));

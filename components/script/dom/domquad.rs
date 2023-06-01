@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOM
 use crate::dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods};
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::domrect::DOMRect;
@@ -54,7 +54,7 @@ impl DOMQuad {
         p3: &DOMPoint,
         p4: &DOMPoint,
     ) -> DomRoot<DOMQuad> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
             global,
             proto,

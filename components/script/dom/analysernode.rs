@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
@@ -105,7 +105,7 @@ impl AnalyserNode {
         options: &AnalyserOptions,
     ) -> Fallible<DomRoot<AnalyserNode>> {
         let (node, recv) = AnalyserNode::new_inherited(window, context, options)?;
-        let object = reflect_dom_object2(Box::new(node), window, proto);
+        let object = reflect_dom_object_with_proto(Box::new(node), window, proto);
         let (source, canceller) = window
             .task_manager()
             .dom_manipulation_task_source_with_canceller();

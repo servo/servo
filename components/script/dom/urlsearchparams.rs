@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchPa
 use crate::dom::bindings::codegen::UnionTypes::USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::weakref::MutableWeakRef;
@@ -45,7 +45,7 @@ impl URLSearchParams {
         proto: Option<HandleObject>,
         url: Option<&URL>,
     ) -> DomRoot<URLSearchParams> {
-        reflect_dom_object2(Box::new(URLSearchParams::new_inherited(url)), global, proto)
+        reflect_dom_object_with_proto(Box::new(URLSearchParams::new_inherited(url)), global, proto)
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams

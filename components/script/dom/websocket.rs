@@ -10,7 +10,7 @@ use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{is_token, DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -131,7 +131,7 @@ impl WebSocket {
         url: ServoUrl,
         sender: IpcSender<WebSocketDomAction>,
     ) -> DomRoot<WebSocket> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(WebSocket::new_inherited(url, sender)),
             global,
             proto,

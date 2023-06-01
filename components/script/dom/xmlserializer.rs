@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
@@ -28,7 +28,7 @@ impl XMLSerializer {
     }
 
     pub fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<XMLSerializer> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(XMLSerializer::new_inherited(window)),
             window,
             proto,

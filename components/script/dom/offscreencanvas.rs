@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     OffscreenCanvasMethods, OffscreenRenderingContext,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -63,7 +63,7 @@ impl OffscreenCanvas {
         height: u64,
         placeholder: Option<&HTMLCanvasElement>,
     ) -> DomRoot<OffscreenCanvas> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(OffscreenCanvas::new_inherited(width, height, placeholder)),
             global,
             proto,

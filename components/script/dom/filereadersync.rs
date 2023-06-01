@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::FileReaderSyncMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
@@ -32,7 +32,7 @@ impl FileReaderSync {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<FileReaderSync> {
-        reflect_dom_object2(Box::new(FileReaderSync::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(Box::new(FileReaderSync::new_inherited()), global, proto)
     }
 
     #[allow(non_snake_case)]

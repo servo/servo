@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::Au
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
@@ -109,7 +109,7 @@ impl AudioBufferSourceNode {
         options: &AudioBufferSourceOptions,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         let node = AudioBufferSourceNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object2(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
     }
 
     #[allow(non_snake_case)]

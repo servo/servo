@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrUnrestrictedDoubleSequenc
 use crate::dom::bindings::error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
@@ -52,7 +52,7 @@ impl DOMMatrixReadOnly {
         matrix: Transform3D<f64>,
     ) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
-        reflect_dom_object2(Box::new(dommatrix), global, proto)
+        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto)
     }
 
     pub fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {

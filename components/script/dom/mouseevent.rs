@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethod
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -79,7 +79,7 @@ impl MouseEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<MouseEvent> {
-        reflect_dom_object2(Box::new(MouseEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(Box::new(MouseEvent::new_inherited()), window, proto)
     }
 
     pub fn new(

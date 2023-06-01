@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelEventBinding::RTCDataChannelEventInit;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelEventBinding::RTCDataChannelEventMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -49,7 +49,7 @@ impl RTCDataChannelEvent {
         cancelable: bool,
         channel: &RTCDataChannel,
     ) -> DomRoot<RTCDataChannelEvent> {
-        let event = reflect_dom_object2(
+        let event = reflect_dom_object_with_proto(
             Box::new(RTCDataChannelEvent::new_inherited(&channel)),
             global,
             proto,

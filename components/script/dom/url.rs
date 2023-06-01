@@ -5,7 +5,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -44,7 +44,7 @@ impl URL {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>, url: ServoUrl) -> DomRoot<URL> {
-        reflect_dom_object2(Box::new(URL::new_inherited(url)), global, proto)
+        reflect_dom_object_with_proto(Box::new(URL::new_inherited(url)), global, proto)
     }
 
     pub fn query_pairs(&self) -> Vec<(String, String)> {

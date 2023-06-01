@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -51,7 +51,7 @@ impl FormData {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<FormData> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(FormData::new_inherited(form_datums)),
             global,
             proto,

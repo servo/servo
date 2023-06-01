@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 use crate::dom::bindings::codegen::Bindings::MediaStreamAudioDestinationNodeBinding::MediaStreamAudioDestinationNodeMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::mediastream::MediaStream;
 use crate::dom::window::Window;
@@ -70,7 +70,7 @@ impl MediaStreamAudioDestinationNode {
         options: &AudioNodeOptions,
     ) -> Fallible<DomRoot<MediaStreamAudioDestinationNode>> {
         let node = MediaStreamAudioDestinationNode::new_inherited(context, options)?;
-        Ok(reflect_dom_object2(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
     }
 
     #[allow(non_snake_case)]

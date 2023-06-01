@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::MediaQueryListEventBinding::MediaQu
 use crate::dom::bindings::codegen::Bindings::MediaQueryListEventBinding::MediaQueryListEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -38,7 +38,7 @@ impl MediaQueryListEvent {
             media: media,
             matches: Cell::new(matches),
         });
-        reflect_dom_object2(ev, global, proto)
+        reflect_dom_object_with_proto(ev, global, proto)
     }
 
     pub fn new(

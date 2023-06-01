@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -50,7 +50,7 @@ impl TransitionEvent {
         type_: Atom,
         init: &TransitionEventInit,
     ) -> DomRoot<TransitionEvent> {
-        let ev = reflect_dom_object2(
+        let ev = reflect_dom_object_with_proto(
             Box::new(TransitionEvent::new_inherited(init)),
             window,
             proto,

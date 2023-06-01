@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::{blob_parts_to_bytes, normalize_type_string, Blob};
@@ -59,7 +59,7 @@ impl File {
         name: DOMString,
         modified: Option<i64>,
     ) -> DomRoot<File> {
-        let file = reflect_dom_object2(
+        let file = reflect_dom_object_with_proto(
             Box::new(File::new_inherited(&blob_impl, name, modified)),
             global,
             proto,

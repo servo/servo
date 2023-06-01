@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::XRLayerEventBinding::XRLayerEventInit;
 use crate::dom::bindings::codegen::Bindings::XRLayerEventBinding::XRLayerEventMethods;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -32,7 +32,7 @@ impl XRLayerEvent {
     }
 
     fn new(window: &Window, proto: Option<HandleObject>, layer: &XRLayer) -> DomRoot<XRLayerEvent> {
-        reflect_dom_object2(Box::new(XRLayerEvent::new_inherited(layer)), window, proto)
+        reflect_dom_object_with_proto(Box::new(XRLayerEvent::new_inherited(layer)), window, proto)
     }
 
     #[allow(non_snake_case)]

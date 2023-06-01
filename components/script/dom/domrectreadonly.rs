@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -39,7 +39,7 @@ impl DOMRectReadOnly {
         width: f64,
         height: f64,
     ) -> DomRoot<DOMRectReadOnly> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
             global,
             proto,

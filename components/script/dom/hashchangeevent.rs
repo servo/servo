@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::HashChangeEventBinding;
 use crate::dom::bindings::codegen::Bindings::HashChangeEventBinding::HashChangeEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::event::Event;
@@ -41,7 +41,7 @@ impl HashChangeEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<HashChangeEvent> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
             window,
             proto,
@@ -68,7 +68,7 @@ impl HashChangeEvent {
         old_url: String,
         new_url: String,
     ) -> DomRoot<HashChangeEvent> {
-        let ev = reflect_dom_object2(
+        let ev = reflect_dom_object_with_proto(
             Box::new(HashChangeEvent::new_inherited(old_url, new_url)),
             window,
             proto,

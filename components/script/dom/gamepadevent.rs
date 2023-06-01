@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::GamepadEventBinding;
 use crate::dom::bindings::codegen::Bindings::GamepadEventBinding::GamepadEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object2, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -55,7 +55,7 @@ impl GamepadEvent {
         cancelable: bool,
         gamepad: &Gamepad,
     ) -> DomRoot<GamepadEvent> {
-        let ev = reflect_dom_object2(
+        let ev = reflect_dom_object_with_proto(
             Box::new(GamepadEvent::new_inherited(&gamepad)),
             global,
             proto,

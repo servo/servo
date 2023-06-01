@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEventMethods};
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::uievent::UIEvent;
@@ -32,7 +32,7 @@ impl InputEvent {
         data: Option<DOMString>,
         is_composing: bool,
     ) -> DomRoot<InputEvent> {
-        let ev = reflect_dom_object2(
+        let ev = reflect_dom_object_with_proto(
             Box::new(InputEvent {
                 uievent: UIEvent::new_inherited(),
                 data: data,

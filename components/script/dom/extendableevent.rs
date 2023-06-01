@@ -6,7 +6,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::{self, EventMethods};
 use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -48,7 +48,11 @@ impl ExtendableEvent {
         bubbles: bool,
         cancelable: bool,
     ) -> DomRoot<ExtendableEvent> {
-        let ev = reflect_dom_object2(Box::new(ExtendableEvent::new_inherited()), worker, proto);
+        let ev = reflect_dom_object_with_proto(
+            Box::new(ExtendableEvent::new_inherited()),
+            worker,
+            proto,
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

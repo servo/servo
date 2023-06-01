@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLCont
 use crate::dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object2;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -60,7 +60,7 @@ impl WebGLContextEvent {
         cancelable: EventCancelable,
         status_message: DOMString,
     ) -> DomRoot<WebGLContextEvent> {
-        let event = reflect_dom_object2(
+        let event = reflect_dom_object_with_proto(
             Box::new(WebGLContextEvent::new_inherited(status_message)),
             window,
             proto,

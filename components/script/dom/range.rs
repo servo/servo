@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
@@ -97,7 +97,7 @@ impl Range {
         end_container: &Node,
         end_offset: u32,
     ) -> DomRoot<Range> {
-        let range = reflect_dom_object2(
+        let range = reflect_dom_object_with_proto(
             Box::new(Range::new_inherited(
                 start_container,
                 start_offset,

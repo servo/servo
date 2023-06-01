@@ -7,7 +7,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TestBindingIterableBinding::TestBindingIterableMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object2, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -22,7 +22,7 @@ pub struct TestBindingIterable {
 
 impl TestBindingIterable {
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBindingIterable> {
-        reflect_dom_object2(
+        reflect_dom_object_with_proto(
             Box::new(TestBindingIterable {
                 reflector: Reflector::new(),
                 vals: DomRefCell::new(vec![]),
