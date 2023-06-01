@@ -152,9 +152,8 @@ ${helpers.two_properties_shorthand(
                     gecko_pref="layout.css.motion-path.enabled",
                     spec="https://drafts.fxtf.org/motion-1/#offset-shorthand">
     use crate::parser::Parse;
-    use crate::values::specified::motion::{OffsetPath, OffsetRotate};
-    use crate::values::specified::position::PositionOrAuto;
-    use crate::values::specified::LengthPercentage;
+    use crate::values::specified::motion::{OffsetPath, OffsetPosition, OffsetRotate};
+    use crate::values::specified::{LengthPercentage, PositionOrAuto};
     use crate::Zero;
 
     pub fn parse_value<'i, 't>(
@@ -163,7 +162,7 @@ ${helpers.two_properties_shorthand(
     ) -> Result<Longhands, ParseError<'i>> {
         let offset_position =
             if static_prefs::pref!("layout.css.motion-path-offset-position.enabled") {
-                input.try_parse(|i| PositionOrAuto::parse(context, i)).ok()
+                input.try_parse(|i| OffsetPosition::parse(context, i)).ok()
             } else {
                 None
             };
@@ -171,6 +170,8 @@ ${helpers.two_properties_shorthand(
         let offset_path = input.try_parse(|i| OffsetPath::parse(context, i)).ok();
 
         // Must have one of [offset-position, offset-path].
+        // FIXME: The syntax is out-of-date after the update of the spec.
+        // https://github.com/w3c/fxtf-drafts/issues/515
         if offset_position.is_none() && offset_path.is_none() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
@@ -202,7 +203,7 @@ ${helpers.two_properties_shorthand(
         }).ok();
 
         Ok(expanded! {
-            offset_position: offset_position.unwrap_or(PositionOrAuto::auto()),
+            offset_position: offset_position.unwrap_or(OffsetPosition::auto()),
             offset_path: offset_path.unwrap_or(OffsetPath::none()),
             offset_distance: offset_distance.unwrap_or(LengthPercentage::zero()),
             offset_rotate: offset_rotate.unwrap_or(OffsetRotate::auto()),
@@ -217,7 +218,7 @@ ${helpers.two_properties_shorthand(
                 // offset-path group means "offset-path offset-distance offset-rotate".
                 let must_serialize_path = *self.offset_path != OffsetPath::None
                     || (!self.offset_distance.is_zero() || !self.offset_rotate.is_auto());
-                let position_is_default = *offset_position == PositionOrAuto::auto();
+                let position_is_default = matches!(offset_position, OffsetPosition::Auto);
                 if !position_is_default || !must_serialize_path {
                     offset_position.to_css(dest)?;
                 }

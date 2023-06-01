@@ -4,6 +4,7 @@
 
 //! Generic types for CSS Motion Path.
 
+use crate::values::generics::position::GenericPosition;
 use crate::values::specified::SVGPathData;
 
 /// The <size> in ray() function.
@@ -121,5 +122,53 @@ impl<Angle> OffsetPath<Angle> {
     #[inline]
     pub fn none() -> Self {
         OffsetPath::None
+    }
+}
+
+/// The offset-position property, which specifies the offset starting position that is used by the
+/// <offset-path> functions if they don’t specify their own starting position.
+///
+/// https://drafts.fxtf.org/motion-1/#offset-position-property
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    Deserialize,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    Serialize,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum GenericOffsetPosition<H, V> {
+    /// The element does not have an offset starting position.
+    Normal,
+    /// The offset starting position is the top-left corner of the box.
+    Auto,
+    /// The offset starting position is the result of using the <position> to position a 0x0 object
+    /// area within the box’s containing block.
+    Position(
+        #[css(field_bound)]
+        #[parse(field_bound)]
+        GenericPosition<H, V>,
+    ),
+}
+
+pub use self::GenericOffsetPosition as OffsetPosition;
+
+impl<H, V> OffsetPosition<H, V> {
+    /// Returns the initial value, auto.
+    #[inline]
+    pub fn auto() -> Self {
+        Self::Auto
     }
 }

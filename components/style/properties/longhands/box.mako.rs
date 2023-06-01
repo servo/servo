@@ -268,8 +268,8 @@ ${helpers.predefined_type(
 // Motion Path Module Level 1
 ${helpers.predefined_type(
     "offset-position",
-    "PositionOrAuto",
-    "computed::PositionOrAuto::auto()",
+    "OffsetPosition",
+    "computed::OffsetPosition::auto()",
     engines="gecko",
     animation_value_type="ComputedValue",
     gecko_pref="layout.css.motion-path-offset-position.enabled",
