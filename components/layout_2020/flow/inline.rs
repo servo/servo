@@ -7,9 +7,9 @@ use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::BaseFragmentInfo;
-use crate::fragments::{
-    AnonymousFragment, BoxFragment, CollapsedBlockMargins, FontMetrics, Fragment, TextFragment,
+use crate::fragment_tree::{
+    AnonymousFragment, BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, FontMetrics, Fragment,
+    TextFragment,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{

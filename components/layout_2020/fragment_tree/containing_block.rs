@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::fragments::Fragment;
+use crate::fragment_tree::Fragment;
 use style::computed_values::position::T as ComputedPosition;
 
 /// A data structure used to track the containing block when recursing

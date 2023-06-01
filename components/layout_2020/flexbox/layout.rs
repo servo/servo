@@ -8,7 +8,7 @@ use super::geom::{
 use super::{FlexContainer, FlexLevelBox};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
-use crate::fragments::{BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::LengthOrAuto;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};

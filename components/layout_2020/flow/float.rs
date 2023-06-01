@@ -10,7 +10,7 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::{
+use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, FloatFragment, Fragment,
 };
 use crate::geom::flow_relative::{Rect, Vec2};

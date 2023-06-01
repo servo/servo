@@ -18,7 +18,6 @@ mod flexbox;
 pub mod flow;
 mod formatting_contexts;
 mod fragment_tree;
-mod fragments;
 pub mod geom;
 #[macro_use]
 pub mod layout_debug;
@@ -30,7 +29,8 @@ mod sizing;
 mod style_ext;
 pub mod traversal;
 
-pub use flow::{BoxTree, FragmentTree};
+pub use flow::BoxTree;
+pub use fragment_tree::FragmentTree;
 
 use crate::geom::flow_relative::Vec2;
 use style::properties::ComputedValues;

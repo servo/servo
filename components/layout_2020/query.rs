@@ -4,9 +4,7 @@
 
 //! Utilities for querying the layout, as needed by the layout thread.
 use crate::context::LayoutContext;
-use crate::flow::FragmentTree;
-use crate::fragment_tree::{FragmentFlags, Tag};
-use crate::fragments::Fragment;
+use crate::fragment_tree::{Fragment, FragmentFlags, FragmentTree, Tag};
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
