@@ -4,13 +4,14 @@
 
 use crate::dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsapi::JSObject;
+use js::rust::HandleObject;
 use js::typedarray::{CreateWith, Uint8Array};
 use std::ptr;
 use std::ptr::NonNull;
@@ -27,14 +28,17 @@ impl TextEncoder {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<TextEncoder> {
-        reflect_dom_object(Box::new(TextEncoder::new_inherited()), global)
+    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TextEncoder> {
+        reflect_dom_object_with_proto(Box::new(TextEncoder::new_inherited()), global, proto)
     }
 
     // https://encoding.spec.whatwg.org/#dom-textencoder
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TextEncoder>> {
-        Ok(TextEncoder::new(global))
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<TextEncoder>> {
+        Ok(TextEncoder::new(global, proto))
     }
 }
 

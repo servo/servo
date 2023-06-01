@@ -146,7 +146,7 @@ pub fn Fetch(
     let response = Response::new(global);
 
     // Step 2
-    let request = match Request::Constructor(global, input, init) {
+    let request = match Request::Constructor(global, None, input, init) {
         Err(e) => {
             response.error_stream(e.clone());
             promise.reject_error(e);

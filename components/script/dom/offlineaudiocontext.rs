@@ -13,7 +13,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
@@ -22,6 +22,7 @@ use crate::dom::window::Window;
 use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use msg::constellation_msg::PipelineId;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 use std::cell::Cell;
@@ -70,6 +71,7 @@ impl OfflineAudioContext {
     #[allow(unrooted_must_root)]
     fn new(
         window: &Window,
+        proto: Option<HandleObject>,
         channel_count: u32,
         length: u32,
         sample_rate: f32,
@@ -85,15 +87,21 @@ impl OfflineAudioContext {
         let pipeline_id = window.pipeline_id();
         let context =
             OfflineAudioContext::new_inherited(channel_count, length, sample_rate, pipeline_id);
-        Ok(reflect_dom_object(Box::new(context), window))
+        Ok(reflect_dom_object_with_proto(
+            Box::new(context),
+            window,
+            proto,
+        ))
     }
 
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         options: &OfflineAudioContextOptions,
     ) -> Fallible<DomRoot<OfflineAudioContext>> {
         OfflineAudioContext::new(
             window,
+            proto,
             options.numberOfChannels,
             options.length,
             *options.sampleRate,
@@ -102,11 +110,12 @@ impl OfflineAudioContext {
 
     pub fn Constructor_(
         window: &Window,
+        proto: Option<HandleObject>,
         number_of_channels: u32,
         length: u32,
         sample_rate: Finite<f32>,
     ) -> Fallible<DomRoot<OfflineAudioContext>> {
-        OfflineAudioContext::new(window, number_of_channels, length, *sample_rate)
+        OfflineAudioContext::new(window, proto, number_of_channels, length, *sample_rate)
     }
 }
 

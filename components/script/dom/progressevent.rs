@@ -7,12 +7,13 @@ use crate::dom::bindings::codegen::Bindings::ProgressEventBinding;
 use crate::dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 
 #[dom_struct]
@@ -32,6 +33,7 @@ impl ProgressEvent {
             total: total,
         }
     }
+
     pub fn new(
         global: &GlobalScope,
         type_: Atom,
@@ -41,13 +43,36 @@ impl ProgressEvent {
         loaded: u64,
         total: u64,
     ) -> DomRoot<ProgressEvent> {
-        let ev = reflect_dom_object(
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            can_bubble,
+            cancelable,
+            length_computable,
+            loaded,
+            total,
+        )
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        length_computable: bool,
+        loaded: u64,
+        total: u64,
+    ) -> DomRoot<ProgressEvent> {
+        let ev = reflect_dom_object_with_proto(
             Box::new(ProgressEvent::new_inherited(
                 length_computable,
                 loaded,
                 total,
             )),
             global,
+            proto,
         );
         {
             let event = ev.upcast::<Event>();
@@ -59,13 +84,15 @@ impl ProgressEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &ProgressEventBinding::ProgressEventInit,
     ) -> Fallible<DomRoot<ProgressEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let ev = ProgressEvent::new(
+        let ev = ProgressEvent::new_with_proto(
             global,
+            proto,
             Atom::from(type_),
             bubbles,
             cancelable,

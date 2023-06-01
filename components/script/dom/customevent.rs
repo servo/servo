@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMeth
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -17,6 +17,7 @@ use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
+use js::rust::HandleObject;
 use js::rust::HandleValue;
 use servo_atoms::Atom;
 
@@ -37,16 +38,25 @@ impl CustomEvent {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CustomEvent> {
-        reflect_dom_object(Box::new(CustomEvent::new_inherited()), global)
+        Self::new_uninitialized_with_proto(global, None)
     }
-    pub fn new(
+
+    fn new_uninitialized_with_proto(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<CustomEvent> {
+        reflect_dom_object_with_proto(Box::new(CustomEvent::new_inherited()), global, proto)
+    }
+
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         detail: HandleValue,
     ) -> DomRoot<CustomEvent> {
-        let ev = CustomEvent::new_uninitialized(global);
+        let ev = CustomEvent::new_uninitialized_with_proto(global, proto);
         ev.init_custom_event(type_, bubbles, cancelable, detail);
         ev
     }
@@ -54,11 +64,13 @@ impl CustomEvent {
     #[allow(unsafe_code, non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: RootedTraceableBox<CustomEventBinding::CustomEventInit>,
     ) -> Fallible<DomRoot<CustomEvent>> {
         Ok(CustomEvent::new(
             global,
+            proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,

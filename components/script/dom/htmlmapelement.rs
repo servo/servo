@@ -10,6 +10,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, ShadowIncluding};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLMapElement {
@@ -32,10 +33,12 @@ impl HTMLMapElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLMapElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLMapElement::new_inherited(local_name, prefix, document)),
             document,
+            proto,
         )
     }
 

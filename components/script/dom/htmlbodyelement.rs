@@ -18,6 +18,7 @@ use cssparser::RGBA;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 
@@ -46,10 +47,12 @@ impl HTMLBodyElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLBodyElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLBodyElement::new_inherited(local_name, prefix, document)),
             document,
+            proto,
         )
     }
 

@@ -37,6 +37,7 @@ use crate::textinput::{
 };
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use script_traits::ScriptToConstellationChan;
 use std::cell::Cell;
 use std::default::Default;
@@ -174,12 +175,14 @@ impl HTMLTextAreaElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTextAreaElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLTextAreaElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 

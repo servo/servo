@@ -15,6 +15,7 @@ use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLLegendElement {
@@ -39,12 +40,14 @@ impl HTMLLegendElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLLegendElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLLegendElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 }

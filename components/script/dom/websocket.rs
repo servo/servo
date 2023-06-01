@@ -10,7 +10,7 @@ use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{is_token, DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -29,7 +29,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
-use js::rust::CustomAutoRooterGuard;
+use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
 use net_traits::MessageData;
@@ -127,16 +127,22 @@ impl WebSocket {
 
     fn new(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         url: ServoUrl,
         sender: IpcSender<WebSocketDomAction>,
     ) -> DomRoot<WebSocket> {
-        reflect_dom_object(Box::new(WebSocket::new_inherited(url, sender)), global)
+        reflect_dom_object_with_proto(
+            Box::new(WebSocket::new_inherited(url, sender)),
+            global,
+            proto,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket>
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         url: DOMString,
         protocols: Option<StringOrStringSequence>,
     ) -> Fallible<DomRoot<WebSocket>> {
@@ -190,7 +196,7 @@ impl WebSocket {
             ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>,
         ) = ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
-        let ws = WebSocket::new(global, url_record.clone(), dom_action_sender);
+        let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender);
         let address = Trusted::new(&*ws);
 
         // Step 8.

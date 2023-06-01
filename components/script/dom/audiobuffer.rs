@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -20,6 +20,7 @@ use js::jsapi::JS_GetArrayBufferViewBuffer;
 use js::jsapi::{Heap, JSObject};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::CustomAutoRooterGuard;
+use js::rust::HandleObject;
 use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 use std::cmp::min;
@@ -76,7 +77,6 @@ impl AudioBuffer {
         }
     }
 
-    #[allow(unrooted_must_root)]
     pub fn new(
         global: &Window,
         number_of_channels: u32,
@@ -84,8 +84,27 @@ impl AudioBuffer {
         sample_rate: f32,
         initial_data: Option<&[Vec<f32>]>,
     ) -> DomRoot<AudioBuffer> {
+        Self::new_with_proto(
+            global,
+            None,
+            number_of_channels,
+            length,
+            sample_rate,
+            initial_data,
+        )
+    }
+
+    #[allow(unrooted_must_root)]
+    fn new_with_proto(
+        global: &Window,
+        proto: Option<HandleObject>,
+        number_of_channels: u32,
+        length: u32,
+        sample_rate: f32,
+        initial_data: Option<&[Vec<f32>]>,
+    ) -> DomRoot<AudioBuffer> {
         let buffer = AudioBuffer::new_inherited(number_of_channels, length, sample_rate);
-        let buffer = reflect_dom_object(Box::new(buffer), global);
+        let buffer = reflect_dom_object_with_proto(Box::new(buffer), global, proto);
         buffer.set_initial_data(initial_data);
         buffer
     }
@@ -94,6 +113,7 @@ impl AudioBuffer {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         options: &AudioBufferOptions,
     ) -> Fallible<DomRoot<AudioBuffer>> {
         if options.length <= 0 ||
@@ -104,8 +124,9 @@ impl AudioBuffer {
         {
             return Err(Error::NotSupported);
         }
-        Ok(AudioBuffer::new(
+        Ok(AudioBuffer::new_with_proto(
             window,
+            proto,
             options.numberOfChannels,
             options.length,
             *options.sampleRate,

@@ -95,6 +95,7 @@ use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{LocalName, Namespace, Prefix, QualName};
 use js::jsapi::Heap;
 use js::jsval::JSVal;
+use js::rust::HandleObject;
 use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
 use net_traits::ReferrerPolicy;
@@ -241,8 +242,9 @@ impl Element {
         document: &Document,
         creator: ElementCreator,
         mode: CustomElementCreationMode,
+        proto: Option<HandleObject>,
     ) -> DomRoot<Element> {
-        create_element(name, is, document, creator, mode)
+        create_element(name, is, document, creator, mode, proto)
     }
 
     pub fn new_inherited(
@@ -290,12 +292,14 @@ impl Element {
         namespace: Namespace,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<Element> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(Element::new_inherited(
                 local_name, namespace, prefix, document,
             )),
             document,
+            proto,
         )
     }
 
@@ -1817,7 +1821,12 @@ impl Element {
             {
                 DomRoot::from_ref(elem)
             },
-            _ => DomRoot::upcast(HTMLBodyElement::new(local_name!("body"), None, owner_doc)),
+            _ => DomRoot::upcast(HTMLBodyElement::new(
+                local_name!("body"),
+                None,
+                owner_doc,
+                None,
+            )),
         }
     }
 
@@ -2588,6 +2597,7 @@ impl ElementMethods for Element {
                     &context_document,
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Synchronous,
+                    None,
                 );
                 DomRoot::upcast(body_elem)
             },

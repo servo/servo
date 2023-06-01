@@ -21,6 +21,7 @@ use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use servo_arc::Arc;
 use std::cell::Cell;
@@ -67,13 +68,15 @@ impl HTMLStyleElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
         creator: ElementCreator,
     ) -> DomRoot<HTMLStyleElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLStyleElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,
+            proto,
         )
     }
 

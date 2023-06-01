@@ -8,12 +8,13 @@ use crate::dom::bindings::codegen::Bindings::TextDecoderBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use encoding_rs::{Decoder, DecoderResult, Encoding};
+use js::rust::HandleObject;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 
@@ -54,21 +55,24 @@ impl TextDecoder {
         ))
     }
 
-    pub fn new(
+    fn new(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         encoding: &'static Encoding,
         fatal: bool,
         ignoreBOM: bool,
     ) -> DomRoot<TextDecoder> {
-        reflect_dom_object(
+        reflect_dom_object_with_proto(
             Box::new(TextDecoder::new_inherited(encoding, fatal, ignoreBOM)),
             global,
+            proto,
         )
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder>
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         label: DOMString,
         options: &TextDecoderBinding::TextDecoderOptions,
     ) -> Fallible<DomRoot<TextDecoder>> {
@@ -78,6 +82,7 @@ impl TextDecoder {
         };
         Ok(TextDecoder::new(
             global,
+            proto,
             encoding,
             options.fatal,
             options.ignoreBOM,

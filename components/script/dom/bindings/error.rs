@@ -312,6 +312,12 @@ pub unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
     throw_type_error(cx, &error);
 }
 
+pub unsafe fn throw_constructor_without_new(cx: *mut JSContext, name: &str) {
+    debug_assert!(!JS_IsExceptionPending(cx));
+    let error = format!("{} constructor: 'new' is required", name);
+    throw_type_error(cx, &error);
+}
+
 impl Error {
     /// Convert this error value to a JS value, consuming it in the process.
     pub unsafe fn to_jsval(

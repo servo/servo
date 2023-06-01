@@ -17,7 +17,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediaelementaudiosourcenode::MediaElementAudioSourceNode;
@@ -31,6 +31,7 @@ use crate::dom::window::Window;
 use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use msg::constellation_msg::PipelineId;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 use std::rc::Rc;
@@ -79,10 +80,14 @@ impl AudioContext {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, options: &AudioContextOptions) -> DomRoot<AudioContext> {
+    fn new(
+        window: &Window,
+        proto: Option<HandleObject>,
+        options: &AudioContextOptions,
+    ) -> DomRoot<AudioContext> {
         let pipeline_id = window.pipeline_id();
         let context = AudioContext::new_inherited(options, pipeline_id);
-        let context = reflect_dom_object(Box::new(context), window);
+        let context = reflect_dom_object_with_proto(Box::new(context), window, proto);
         context.resume();
         context
     }
@@ -91,9 +96,10 @@ impl AudioContext {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         options: &AudioContextOptions,
     ) -> Fallible<DomRoot<AudioContext>> {
-        Ok(AudioContext::new(window, options))
+        Ok(AudioContext::new(window, proto, options))
     }
 
     fn resume(&self) {

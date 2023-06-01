@@ -19,6 +19,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 use std::default::Default;
 use std::f32;
@@ -253,10 +254,12 @@ impl HTMLAreaElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLAreaElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLAreaElement::new_inherited(local_name, prefix, document)),
             document,
+            proto,
         )
     }
 

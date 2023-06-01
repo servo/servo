@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::Te
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::DocumentSource;
@@ -20,6 +20,7 @@ use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use script_traits::DocumentActivity;
 
 #[dom_struct]
@@ -36,13 +37,16 @@ impl DOMParser {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<DOMParser> {
-        reflect_dom_object(Box::new(DOMParser::new_inherited(window)), window)
+    fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<DOMParser> {
+        reflect_dom_object_with_proto(Box::new(DOMParser::new_inherited(window)), window, proto)
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window) -> Fallible<DomRoot<DOMParser>> {
-        Ok(DOMParser::new(window))
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<DOMParser>> {
+        Ok(DOMParser::new(window, proto))
     }
 }
 

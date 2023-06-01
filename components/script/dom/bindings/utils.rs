@@ -99,6 +99,9 @@ pub struct DOMClass {
     /// derivedness.
     pub interface_chain: [PrototypeList::ID; MAX_PROTO_CHAIN_LENGTH],
 
+    /// The last valid index of `interface_chain`.
+    pub depth: u8,
+
     /// The type ID of that interface.
     pub type_id: TopTypeId,
 
@@ -112,6 +115,7 @@ unsafe impl Sync for DOMClass {}
 
 /// The JSClass used for DOM object reflectors.
 #[derive(Copy)]
+#[repr(C)]
 pub struct DOMJSClass {
     /// The actual JSClass.
     pub base: js::jsapi::JSClass,
@@ -632,4 +636,8 @@ impl AsCCharPtrPtr for [u8] {
     fn as_c_char_ptr(&self) -> *const c_char {
         self as *const [u8] as *const c_char
     }
+}
+
+pub unsafe fn callargs_is_constructing(args: &CallArgs) -> bool {
+    (*args.argv_.offset(-1)).is_magic()
 }

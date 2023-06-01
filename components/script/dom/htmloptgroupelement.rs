@@ -14,6 +14,7 @@ use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use style::element_state::ElementState;
 
 #[dom_struct]
@@ -42,12 +43,14 @@ impl HTMLOptGroupElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLOptGroupElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLOptGroupElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 }

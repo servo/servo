@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
@@ -30,6 +30,7 @@ use crate::dom::text::Text;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::JSTracer;
+use js::rust::HandleObject;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::cell::{Cell, UnsafeCell};
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
@@ -66,9 +67,9 @@ impl Range {
         }
     }
 
-    pub fn new_with_doc(document: &Document) -> DomRoot<Range> {
+    pub fn new_with_doc(document: &Document, proto: Option<HandleObject>) -> DomRoot<Range> {
         let root = document.upcast();
-        Range::new(document, root, 0, root, 0)
+        Range::new_with_proto(document, proto, root, 0, root, 0)
     }
 
     pub fn new(
@@ -78,7 +79,25 @@ impl Range {
         end_container: &Node,
         end_offset: u32,
     ) -> DomRoot<Range> {
-        let range = reflect_dom_object(
+        Self::new_with_proto(
+            document,
+            None,
+            start_container,
+            start_offset,
+            end_container,
+            end_offset,
+        )
+    }
+
+    fn new_with_proto(
+        document: &Document,
+        proto: Option<HandleObject>,
+        start_container: &Node,
+        start_offset: u32,
+        end_container: &Node,
+        end_offset: u32,
+    ) -> DomRoot<Range> {
+        let range = reflect_dom_object_with_proto(
             Box::new(Range::new_inherited(
                 start_container,
                 start_offset,
@@ -86,6 +105,7 @@ impl Range {
                 end_offset,
             )),
             document.window(),
+            proto,
         );
         start_container.ranges().push(WeakRef::new(&range));
         if start_container != end_container {
@@ -96,9 +116,9 @@ impl Range {
 
     // https://dom.spec.whatwg.org/#dom-range
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window) -> Fallible<DomRoot<Range>> {
+    pub fn Constructor(window: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<Range>> {
         let document = window.Document();
-        Ok(Range::new_with_doc(&document))
+        Ok(Range::new_with_doc(&document, proto))
     }
 
     // https://dom.spec.whatwg.org/#contained

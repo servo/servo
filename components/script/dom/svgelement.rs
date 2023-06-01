@@ -13,6 +13,7 @@ use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use style::element_state::ElementState;
 
 #[dom_struct]
@@ -46,10 +47,12 @@ impl SVGElement {
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<SVGElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(SVGElement::new_inherited(tag_name, prefix, document)),
             document,
+            proto,
         )
     }
 }

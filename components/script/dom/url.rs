@@ -5,7 +5,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -13,6 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::urlsearchparams::URLSearchParams;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
@@ -42,8 +43,8 @@ impl URL {
         }
     }
 
-    pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<URL> {
-        reflect_dom_object(Box::new(URL::new_inherited(url)), global)
+    fn new(global: &GlobalScope, proto: Option<HandleObject>, url: ServoUrl) -> DomRoot<URL> {
+        reflect_dom_object_with_proto(Box::new(URL::new_inherited(url)), global, proto)
     }
 
     pub fn query_pairs(&self) -> Vec<(String, String)> {
@@ -74,6 +75,7 @@ impl URL {
     // https://url.spec.whatwg.org/#constructors
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         url: USVString,
         base: Option<USVString>,
     ) -> Fallible<DomRoot<URL>> {
@@ -108,7 +110,7 @@ impl URL {
         // Step 7. Set this’s query object’s URL object to this.
 
         // Step 4. Set this’s URL to parsedURL.
-        Ok(URL::new(global, parsed_url))
+        Ok(URL::new(global, proto, parsed_url))
     }
 
     // https://url.spec.whatwg.org/#dom-url-canparse

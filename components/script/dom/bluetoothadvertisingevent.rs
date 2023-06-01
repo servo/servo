@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::B
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetoothdevice::BluetoothDevice;
@@ -15,6 +15,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothadvertisingevent
@@ -47,8 +48,9 @@ impl BluetoothAdvertisingEvent {
         }
     }
 
-    pub fn new(
+    fn new(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
@@ -58,11 +60,12 @@ impl BluetoothAdvertisingEvent {
         txPower: Option<i8>,
         rssi: Option<i8>,
     ) -> DomRoot<BluetoothAdvertisingEvent> {
-        let ev = reflect_dom_object(
+        let ev = reflect_dom_object_with_proto(
             Box::new(BluetoothAdvertisingEvent::new_inherited(
                 device, name, appearance, txPower, rssi,
             )),
             global,
+            proto,
         );
         {
             let event = ev.upcast::<Event>();
@@ -74,6 +77,7 @@ impl BluetoothAdvertisingEvent {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-bluetoothadvertisingevent
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &BluetoothAdvertisingEventInit,
     ) -> Fallible<DomRoot<BluetoothAdvertisingEvent>> {
@@ -86,6 +90,7 @@ impl BluetoothAdvertisingEvent {
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(BluetoothAdvertisingEvent::new(
             global,
+            proto,
             Atom::from(type_),
             bubbles,
             cancelable,

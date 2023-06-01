@@ -7,11 +7,12 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TestBindingIterableBinding::TestBindingIterableMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct TestBindingIterable {
@@ -20,19 +21,23 @@ pub struct TestBindingIterable {
 }
 
 impl TestBindingIterable {
-    fn new(global: &GlobalScope) -> DomRoot<TestBindingIterable> {
-        reflect_dom_object(
+    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBindingIterable> {
+        reflect_dom_object_with_proto(
             Box::new(TestBindingIterable {
                 reflector: Reflector::new(),
                 vals: DomRefCell::new(vec![]),
             }),
             global,
+            proto,
         )
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBindingIterable>> {
-        Ok(TestBindingIterable::new(global))
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<TestBindingIterable>> {
+        Ok(TestBindingIterable::new(global, proto))
     }
 }
 

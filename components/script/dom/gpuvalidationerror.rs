@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::GPUValidationErrorBinding::GPUValidationErrorMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct GPUValidationError {
@@ -24,13 +25,29 @@ impl GPUValidationError {
     }
 
     pub fn new(global: &GlobalScope, message: DOMString) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(GPUValidationError::new_inherited(message)), global)
+        Self::new_with_proto(global, None, message)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        message: DOMString,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_proto(
+            Box::new(GPUValidationError::new_inherited(message)),
+            global,
+            proto,
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuvalidationerror-gpuvalidationerror
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope, message: DOMString) -> DomRoot<Self> {
-        GPUValidationError::new(global, message)
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        message: DOMString,
+    ) -> DomRoot<Self> {
+        GPUValidationError::new_with_proto(global, proto, message)
     }
 }
 

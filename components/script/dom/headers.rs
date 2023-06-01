@@ -6,13 +6,14 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{is_token, ByteString};
 use crate::dom::globalscope::GlobalScope;
 use data_url::mime::Mime as DataUrlMime;
 use dom_struct::dom_struct;
 use http::header::{HeaderMap as HyperHeaders, HeaderName, HeaderValue};
+use js::rust::HandleObject;
 use net_traits::{
     fetch::headers::get_value_from_header_list, request::is_cors_safelisted_request_header,
 };
@@ -47,16 +48,21 @@ impl Headers {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Headers> {
-        reflect_dom_object(Box::new(Headers::new_inherited()), global)
+        Self::new_with_proto(global, None)
+    }
+
+    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Headers> {
+        reflect_dom_object_with_proto(Box::new(Headers::new_inherited()), global, proto)
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         init: Option<HeadersInit>,
     ) -> Fallible<DomRoot<Headers>> {
-        let dom_headers_new = Headers::new(global);
+        let dom_headers_new = Headers::new_with_proto(global, proto);
         dom_headers_new.fill(init)?;
         Ok(dom_headers_new)
     }

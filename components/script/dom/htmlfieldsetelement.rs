@@ -19,6 +19,7 @@ use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use std::default::Default;
 use style::element_state::ElementState;
 
@@ -52,12 +53,14 @@ impl HTMLFieldSetElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLFieldSetElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLFieldSetElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 }

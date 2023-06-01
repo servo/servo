@@ -330,12 +330,14 @@ impl HTMLInputElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLInputElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLInputElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 

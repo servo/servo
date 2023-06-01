@@ -58,6 +58,7 @@ use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
+use js::rust::HandleObject;
 use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -1246,17 +1247,20 @@ impl HTMLImageElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLImageElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLImageElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 
     pub fn Image(
         window: &Window,
+        proto: Option<HandleObject>,
         width: Option<u32>,
         height: Option<u32>,
     ) -> Fallible<DomRoot<HTMLImageElement>> {
@@ -1266,6 +1270,7 @@ impl HTMLImageElement {
             &window.Document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
+            proto,
         );
 
         let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();

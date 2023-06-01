@@ -45,7 +45,8 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{CanCompileOffThread, CompileToStencilOffThread1, OffThreadToken};
 use js::jsval::UndefinedValue;
 use js::rust::{
-    transform_str_to_source_text, CompileOptionsWrapper, FinishOffThreadStencil, Stencil,
+    transform_str_to_source_text, CompileOptionsWrapper, FinishOffThreadStencil, HandleObject,
+    Stencil,
 };
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{
@@ -194,13 +195,15 @@ impl HTMLScriptElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
         creator: ElementCreator,
     ) -> DomRoot<HTMLScriptElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLScriptElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,
+            proto,
         )
     }
 

@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
@@ -12,7 +12,7 @@ use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::{Heap, JSObject};
-use js::rust::Runtime;
+use js::rust::{HandleObject, Runtime};
 use js::typedarray::{CreateWith, Uint8ClampedArray};
 use std::borrow::Cow;
 use std::default::Default;
@@ -45,9 +45,9 @@ impl ImageData {
                 d.resize(len as usize, 0);
                 let data = CreateWith::Slice(&d[..]);
                 Uint8ClampedArray::create(*cx, data, js_object.handle_mut()).unwrap();
-                Self::new_with_jsobject(global, width, Some(height), js_object.get())
+                Self::new_with_jsobject(global, None, width, Some(height), js_object.get())
             } else {
-                Self::new_without_jsobject(global, width, height)
+                Self::new_without_jsobject(global, None, width, height)
             }
         }
     }
@@ -55,6 +55,7 @@ impl ImageData {
     #[allow(unsafe_code)]
     unsafe fn new_with_jsobject(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         width: u32,
         opt_height: Option<u32>,
         jsobject: *mut JSObject,
@@ -90,12 +91,13 @@ impl ImageData {
 
         (*imagedata).data.set(jsobject);
 
-        Ok(reflect_dom_object(imagedata, global))
+        Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
 
     #[allow(unsafe_code)]
     unsafe fn new_without_jsobject(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         width: u32,
         height: u32,
     ) -> Fallible<DomRoot<ImageData>> {
@@ -117,12 +119,17 @@ impl ImageData {
             .unwrap();
         (*imagedata).data.set(array.get());
 
-        Ok(reflect_dom_object(imagedata, global))
+        Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
     // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3
     #[allow(unsafe_code, non_snake_case)]
-    pub fn Constructor(global: &GlobalScope, width: u32, height: u32) -> Fallible<DomRoot<Self>> {
-        unsafe { Self::new_without_jsobject(global, width, height) }
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        width: u32,
+        height: u32,
+    ) -> Fallible<DomRoot<Self>> {
+        unsafe { Self::new_without_jsobject(global, proto, width, height) }
     }
 
     // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4
@@ -130,11 +137,12 @@ impl ImageData {
     pub unsafe fn Constructor_(
         cx: JSContext,
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         jsobject: *mut JSObject,
         width: u32,
         opt_height: Option<u32>,
     ) -> Fallible<DomRoot<Self>> {
-        Self::new_with_jsobject(global, width, opt_height, jsobject)
+        Self::new_with_jsobject(global, proto, width, opt_height, jsobject)
     }
 
     /// Nothing must change the array on the JS side while the slice is live.

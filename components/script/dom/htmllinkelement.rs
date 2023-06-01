@@ -29,6 +29,7 @@ use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -94,13 +95,15 @@ impl HTMLLinkElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
         creator: ElementCreator,
     ) -> DomRoot<HTMLLinkElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLLinkElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,
+            proto,
         )
     }
 

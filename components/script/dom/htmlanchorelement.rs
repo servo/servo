@@ -29,6 +29,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use net_traits::request::Referrer;
 use num_traits::ToPrimitive;
 use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
@@ -62,12 +63,14 @@ impl HTMLAnchorElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLAnchorElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLAnchorElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 

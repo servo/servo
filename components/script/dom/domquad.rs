@@ -6,12 +6,13 @@ use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOM
 use crate::dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods};
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::domrect::DOMRect;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 // https://drafts.fxtf.org/geometry/#DOMQuad
 #[dom_struct]
@@ -42,18 +43,35 @@ impl DOMQuad {
         p3: &DOMPoint,
         p4: &DOMPoint,
     ) -> DomRoot<DOMQuad> {
-        reflect_dom_object(Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)), global)
+        Self::new_with_proto(global, None, p1, p2, p3, p4)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        p1: &DOMPoint,
+        p2: &DOMPoint,
+        p3: &DOMPoint,
+        p4: &DOMPoint,
+    ) -> DomRoot<DOMQuad> {
+        reflect_dom_object_with_proto(
+            Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
+            global,
+            proto,
+        )
     }
 
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         p1: &DOMPointInit,
         p2: &DOMPointInit,
         p3: &DOMPointInit,
         p4: &DOMPointInit,
     ) -> Fallible<DomRoot<DOMQuad>> {
-        Ok(DOMQuad::new(
+        Ok(DOMQuad::new_with_proto(
             global,
+            proto,
             &*DOMPoint::new_from_init(global, p1),
             &*DOMPoint::new_from_init(global, p2),
             &*DOMPoint::new_from_init(global, p3),

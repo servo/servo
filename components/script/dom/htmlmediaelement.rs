@@ -1865,6 +1865,7 @@ impl HTMLMediaElement {
             local_name!("script"),
             None,
             &document,
+            None,
             ElementCreator::ScriptCreated,
         );
         let mut media_controls_script = resources::read_string(EmbedderResource::MediaControlsJS);
@@ -1892,6 +1893,7 @@ impl HTMLMediaElement {
             local_name!("script"),
             None,
             &document,
+            None,
             ElementCreator::ScriptCreated,
         );
         style

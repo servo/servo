@@ -13,6 +13,7 @@ use crate::dom::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use script_layout_interface::SVGSVGData;
 use style::attr::AttrValue;
 
@@ -40,10 +41,12 @@ impl SVGSVGElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<SVGSVGElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
             document,
+            proto,
         )
     }
 }
