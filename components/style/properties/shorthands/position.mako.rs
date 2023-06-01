@@ -849,7 +849,7 @@ ${helpers.two_properties_shorthand(
     "inset-block-start",
     "inset-block-end",
     "specified::LengthPercentageOrAuto::parse",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     spec="https://drafts.csswg.org/css-logical/#propdef-inset-block"
 )}
 
@@ -858,6 +858,6 @@ ${helpers.two_properties_shorthand(
     "inset-inline-start",
     "inset-inline-end",
     "specified::LengthPercentageOrAuto::parse",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     spec="https://drafts.csswg.org/css-logical/#propdef-inset-inline"
 )}
