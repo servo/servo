@@ -581,7 +581,7 @@ fn layout_in_flow_replaced_block_level<'a>(
     replaced: &ReplacedContent,
 ) -> BoxFragment {
     let pbm = style.padding_border_margin(containing_block);
-    let size = replaced.used_size_as_if_inline_element(containing_block, style, &pbm);
+    let size = replaced.used_size_as_if_inline_element(containing_block, style, None, &pbm);
 
     let (margin_inline_start, margin_inline_end) =
         solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, size.inline);

@@ -1003,9 +1003,17 @@ impl<'a> FlexItem<'a> {
                         let pbm = replaced
                             .style
                             .padding_border_margin(flex_context.containing_block);
+                        let box_size = used_cross_size_override.map(|size| Vec2 {
+                            inline: replaced
+                                .style
+                                .content_box_size(flex_context.containing_block, &pbm)
+                                .inline,
+                            block: LengthOrAuto::LengthPercentage(size),
+                        });
                         let size = replaced.contents.used_size_as_if_inline_element(
                             flex_context.containing_block,
                             &replaced.style,
+                            box_size,
                             &pbm,
                         );
                         let cross_size = flex_context.vec2_to_flex_relative(size.clone()).cross;

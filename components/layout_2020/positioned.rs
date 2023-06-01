@@ -439,6 +439,7 @@ impl HoistedAbsolutelyPositionedBox {
                 let used_size = replaced.contents.used_size_as_if_inline_element(
                     &containing_block.into(),
                     &replaced.style,
+                    None,
                     &pbm,
                 );
                 Vec2 {
