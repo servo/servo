@@ -73,7 +73,7 @@ pub use self::length::{
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
 pub use self::list::Quotes;
-pub use self::motion::{OffsetPath, OffsetRotate};
+pub use self::motion::{OffsetPath, OffsetPosition, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::page::{PageName, PageOrientation, PageSize, PageSizeOrientation, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};

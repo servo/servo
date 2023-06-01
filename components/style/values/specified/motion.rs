@@ -7,7 +7,10 @@
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::motion::OffsetRotate as ComputedOffsetRotate;
 use crate::values::computed::{Context, ToComputedValue};
-use crate::values::generics::motion::{GenericOffsetPath, RayFunction, RaySize};
+use crate::values::generics::motion::{
+    GenericOffsetPath, GenericOffsetPosition, RayFunction, RaySize,
+};
+use crate::values::specified::position::{HorizontalPosition, VerticalPosition};
 use crate::values::specified::{Angle, SVGPathData};
 use crate::Zero;
 use cssparser::Parser;
@@ -15,6 +18,9 @@ use style_traits::{ParseError, StyleParseErrorKind};
 
 /// The specified value of `offset-path`.
 pub type OffsetPath = GenericOffsetPath<Angle>;
+
+/// The specified value of `offset-position`.
+pub type OffsetPosition = GenericOffsetPosition<HorizontalPosition, VerticalPosition>;
 
 #[cfg(feature = "gecko")]
 fn is_ray_enabled() -> bool {
