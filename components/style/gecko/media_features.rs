@@ -556,7 +556,8 @@ fn eval_moz_windows_non_native_menus(
     query_value: Option<bool>,
     _: Option<RangeOrOperator>,
 ) -> bool {
-    let use_non_native_menus = match static_prefs::pref!("browser.display.windows.non_native_menus") {
+    let use_non_native_menus = match static_prefs::pref!("browser.display.windows.non_native_menus")
+    {
         0 => false,
         1 => true,
         _ => {
@@ -873,18 +874,39 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
         Evaluator::BoolInteger(eval_moz_overlay_scrollbars),
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
-
-    lnf_int_feature!(atom!("-moz-scrollbar-start-backward"), ScrollArrowStyle, get_scrollbar_start_backward),
-    lnf_int_feature!(atom!("-moz-scrollbar-start-forward"), ScrollArrowStyle, get_scrollbar_start_forward),
-    lnf_int_feature!(atom!("-moz-scrollbar-end-backward"), ScrollArrowStyle, get_scrollbar_end_backward),
-    lnf_int_feature!(atom!("-moz-scrollbar-end-forward"), ScrollArrowStyle, get_scrollbar_end_forward),
-    lnf_int_feature!(atom!("-moz-scrollbar-thumb-proportional"), ScrollSliderStyle),
+    lnf_int_feature!(
+        atom!("-moz-scrollbar-start-backward"),
+        ScrollArrowStyle,
+        get_scrollbar_start_backward
+    ),
+    lnf_int_feature!(
+        atom!("-moz-scrollbar-start-forward"),
+        ScrollArrowStyle,
+        get_scrollbar_start_forward
+    ),
+    lnf_int_feature!(
+        atom!("-moz-scrollbar-end-backward"),
+        ScrollArrowStyle,
+        get_scrollbar_end_backward
+    ),
+    lnf_int_feature!(
+        atom!("-moz-scrollbar-end-forward"),
+        ScrollArrowStyle,
+        get_scrollbar_end_forward
+    ),
+    lnf_int_feature!(
+        atom!("-moz-scrollbar-thumb-proportional"),
+        ScrollSliderStyle
+    ),
     lnf_int_feature!(atom!("-moz-menubar-drag"), MenuBarDrag),
     lnf_int_feature!(atom!("-moz-windows-default-theme"), WindowsDefaultTheme),
     lnf_int_feature!(atom!("-moz-mac-graphite-theme"), MacGraphiteTheme),
     lnf_int_feature!(atom!("-moz-mac-big-sur-theme"), MacBigSurTheme),
     lnf_int_feature!(atom!("-moz-mac-rtl"), MacRTL),
-    lnf_int_feature!(atom!("-moz-windows-accent-color-in-titlebar"), WindowsAccentColorInTitlebar),
+    lnf_int_feature!(
+        atom!("-moz-windows-accent-color-in-titlebar"),
+        WindowsAccentColorInTitlebar
+    ),
     lnf_int_feature!(atom!("-moz-windows-compositor"), DWMCompositor),
     lnf_int_feature!(atom!("-moz-windows-classic"), WindowsClassic),
     lnf_int_feature!(atom!("-moz-windows-glass"), WindowsGlass),
@@ -893,8 +915,14 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
     lnf_int_feature!(atom!("-moz-gtk-csd-minimize-button"), GTKCSDMinimizeButton),
     lnf_int_feature!(atom!("-moz-gtk-csd-maximize-button"), GTKCSDMaximizeButton),
     lnf_int_feature!(atom!("-moz-gtk-csd-close-button"), GTKCSDCloseButton),
-    lnf_int_feature!(atom!("-moz-gtk-csd-reversed-placement"), GTKCSDReversedPlacement),
+    lnf_int_feature!(
+        atom!("-moz-gtk-csd-reversed-placement"),
+        GTKCSDReversedPlacement
+    ),
     lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
     bool_pref_feature!(atom!("-moz-proton"), "browser.proton.enabled"),
-    bool_pref_feature!(atom!("-moz-proton-places-tooltip"), "browser.proton.places-tooltip.enabled"),
+    bool_pref_feature!(
+        atom!("-moz-proton-places-tooltip"),
+        "browser.proton.places-tooltip.enabled"
+    ),
 ];

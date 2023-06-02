@@ -85,7 +85,7 @@ impl SVGPathData {
                         absolute: IsAbsolute::new(seg_type == PATHSEG_MOVETO_ABS),
                     });
                     i = i + 2;
-                }
+                },
                 PATHSEG_LINETO_ABS | PATHSEG_LINETO_REL => {
                     debug_assert!(i + 1 < path.len());
                     result.push(PathCommand::LineTo {
@@ -93,7 +93,7 @@ impl SVGPathData {
                         absolute: IsAbsolute::new(seg_type == PATHSEG_LINETO_ABS),
                     });
                     i = i + 2;
-                }
+                },
                 PATHSEG_CURVETO_CUBIC_ABS | PATHSEG_CURVETO_CUBIC_REL => {
                     debug_assert!(i + 5 < path.len());
                     result.push(PathCommand::CurveTo {
@@ -103,7 +103,7 @@ impl SVGPathData {
                         absolute: IsAbsolute::new(seg_type == PATHSEG_CURVETO_CUBIC_ABS),
                     });
                     i = i + 6;
-                }
+                },
                 PATHSEG_CURVETO_QUADRATIC_ABS | PATHSEG_CURVETO_QUADRATIC_REL => {
                     debug_assert!(i + 3 < path.len());
                     result.push(PathCommand::QuadBezierCurveTo {
@@ -112,7 +112,7 @@ impl SVGPathData {
                         absolute: IsAbsolute::new(seg_type == PATHSEG_CURVETO_QUADRATIC_ABS),
                     });
                     i = i + 4;
-                }
+                },
                 PATHSEG_ARC_ABS | PATHSEG_ARC_REL => {
                     debug_assert!(i + 6 < path.len());
                     result.push(PathCommand::EllipticalArc {
@@ -125,7 +125,7 @@ impl SVGPathData {
                         absolute: IsAbsolute::new(seg_type == PATHSEG_ARC_ABS),
                     });
                     i = i + 7;
-                }
+                },
                 PATHSEG_LINETO_HORIZONTAL_ABS | PATHSEG_LINETO_HORIZONTAL_REL => {
                     debug_assert!(i < path.len());
                     result.push(PathCommand::HorizontalLineTo {
@@ -133,7 +133,7 @@ impl SVGPathData {
                         absolute: IsAbsolute::new(seg_type == PATHSEG_LINETO_HORIZONTAL_ABS),
                     });
                     i = i + 1;
-                }
+                },
                 PATHSEG_LINETO_VERTICAL_ABS | PATHSEG_LINETO_VERTICAL_REL => {
                     debug_assert!(i < path.len());
                     result.push(PathCommand::VerticalLineTo {
@@ -141,7 +141,7 @@ impl SVGPathData {
                         absolute: IsAbsolute::new(seg_type == PATHSEG_LINETO_VERTICAL_ABS),
                     });
                     i = i + 1;
-                }
+                },
                 PATHSEG_CURVETO_CUBIC_SMOOTH_ABS | PATHSEG_CURVETO_CUBIC_SMOOTH_REL => {
                     debug_assert!(i + 3 < path.len());
                     result.push(PathCommand::SmoothCurveTo {
@@ -150,7 +150,7 @@ impl SVGPathData {
                         absolute: IsAbsolute::new(seg_type == PATHSEG_CURVETO_CUBIC_SMOOTH_ABS),
                     });
                     i = i + 4;
-                }
+                },
                 PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS | PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL => {
                     debug_assert!(i + 1 < path.len());
                     result.push(PathCommand::SmoothQuadBezierCurveTo {
@@ -158,7 +158,7 @@ impl SVGPathData {
                         absolute: IsAbsolute::new(seg_type == PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS),
                     });
                     i = i + 2;
-                }
+                },
                 PATHSEG_UNKNOWN | _ => return Err(()),
             }
         }

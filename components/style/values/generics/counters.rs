@@ -11,8 +11,8 @@ use crate::values::generics::CounterStyle;
 #[cfg(any(feature = "gecko", feature = "servo-layout-2020"))]
 use crate::values::specified::Attr;
 use crate::values::CustomIdent;
-use std::ops::Deref;
 use std::fmt::{self, Write};
+use std::ops::Deref;
 use style_traits::{CssWriter, ToCss};
 
 /// A name / value pair for counters.
@@ -238,15 +238,7 @@ impl<Image> Content<Image> {
 
 /// Items for the `content` property.
 #[derive(
-    Clone,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
 #[repr(u8)]
 pub enum GenericContentItem<I> {

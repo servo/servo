@@ -55,7 +55,7 @@ pub use self::font::{FontVariantAlternates, FontWeight};
 pub use self::font::{FontVariantEastAsian, FontVariationSettings};
 pub use self::font::{MathDepth, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::image::{EndingShape as GradientEndingShape, Gradient};
-pub use self::image::{Image, MozImageRect, ImageRendering};
+pub use self::image::{Image, ImageRendering, MozImageRect};
 pub use self::length::{AbsoluteLength, CalcLengthPercentage, CharacterWidth};
 pub use self::length::{FontRelativeLength, Length, LengthOrNumber, NonNegativeLengthOrNumber};
 pub use self::length::{LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
@@ -70,7 +70,7 @@ pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::page::{Orientation, PageSize, PaperSize};
-pub use self::percentage::{Percentage, NonNegativePercentage};
+pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::AspectRatio;
 pub use self::position::{
     GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto,
@@ -83,9 +83,9 @@ pub use self::svg::{DProperty, MozContextProperties};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg_path::SVGPathData;
+pub use self::text::RubyPosition;
 pub use self::text::TextAlignLast;
 pub use self::text::TextUnderlinePosition;
-pub use self::text::RubyPosition;
 pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight, TextAlign};
 pub use self::text::{OverflowWrap, TextEmphasisPosition, TextEmphasisStyle, WordBreak};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};

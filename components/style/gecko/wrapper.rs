@@ -27,6 +27,7 @@ use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::bindings::Gecko_ElementHasAnimations;
 use crate::gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use crate::gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
+use crate::gecko_bindings::bindings::Gecko_ElementState;
 use crate::gecko_bindings::bindings::Gecko_GetActiveLinkAttrDeclarationBlock;
 use crate::gecko_bindings::bindings::Gecko_GetAnimationEffectCount;
 use crate::gecko_bindings::bindings::Gecko_GetAnimationRule;
@@ -39,7 +40,6 @@ use crate::gecko_bindings::bindings::Gecko_IsSignificantChild;
 use crate::gecko_bindings::bindings::Gecko_MatchLang;
 use crate::gecko_bindings::bindings::Gecko_UnsetDirtyStyleAttr;
 use crate::gecko_bindings::bindings::Gecko_UpdateAnimations;
-use crate::gecko_bindings::bindings::Gecko_ElementState;
 use crate::gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsChangeHint;
@@ -1196,7 +1196,11 @@ impl<'le> TElement for GeckoElement<'le> {
     where
         F: FnMut(&AtomIdent),
     {
-        for attr in self.non_mapped_attrs().iter().chain(self.mapped_attrs().iter()) {
+        for attr in self
+            .non_mapped_attrs()
+            .iter()
+            .chain(self.mapped_attrs().iter())
+        {
             let is_nodeinfo = attr.mName.mBits & 1 != 0;
             unsafe {
                 let atom = if is_nodeinfo {
@@ -1972,9 +1976,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::MozAutofillPreview |
-            NonTSPseudoClass::Dir(..) => {
-                self.state().intersects(pseudo_class.state_flag())
-            },
+            NonTSPseudoClass::Dir(..) => self.state().intersects(pseudo_class.state_flag()),
             NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Link => {
                 self.is_link() && context.visited_handling().matches_unvisited()
@@ -2033,7 +2035,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozWindowInactive => {
                 let state_bit = pseudo_class.document_state_flag();
                 if state_bit.is_empty() {
-                    debug_assert!(matches!(pseudo_class, NonTSPseudoClass::MozLocaleDir(..)), "Only moz-locale-dir should ever return an empty state");
+                    debug_assert!(
+                        matches!(pseudo_class, NonTSPseudoClass::MozLocaleDir(..)),
+                        "Only moz-locale-dir should ever return an empty state"
+                    );
                     return false;
                 }
                 if context.extra_data.document_state.intersects(state_bit) {

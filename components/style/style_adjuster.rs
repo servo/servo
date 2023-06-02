@@ -760,9 +760,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// the same font as its fallback ('list-style-type') in case it fails to load.
     #[cfg(feature = "gecko")]
     fn adjust_for_marker_pseudo(&mut self) {
+        use crate::values::computed::counters::Content;
         use crate::values::computed::font::{FontFamily, FontSynthesis};
         use crate::values::computed::text::{LetterSpacing, WordSpacing};
-        use crate::values::computed::counters::{Content};
 
         let is_legacy_marker = self.style.pseudo.map_or(false, |p| p.is_marker()) &&
             self.style.get_list().clone_list_style_type().is_bullet() &&
@@ -770,21 +770,49 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if !is_legacy_marker {
             return;
         }
-        if !self.style.flags.get().contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY) {
-            self.style.mutate_font().set_font_family(FontFamily::moz_bullet().clone());
+        if !self
+            .style
+            .flags
+            .get()
+            .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY)
+        {
+            self.style
+                .mutate_font()
+                .set_font_family(FontFamily::moz_bullet().clone());
 
             // FIXME(mats): We can remove this if support for font-synthesis is added to @font-face rules.
             // Then we can add it to the @font-face rule in html.css instead.
             // https://github.com/w3c/csswg-drafts/issues/6081
-            if !self.style.flags.get().contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS) {
-                self.style.mutate_font().set_font_synthesis(FontSynthesis::none());
+            if !self
+                .style
+                .flags
+                .get()
+                .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS)
+            {
+                self.style
+                    .mutate_font()
+                    .set_font_synthesis(FontSynthesis::none());
             }
         }
-        if !self.style.flags.get().contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING) {
-            self.style.mutate_inherited_text().set_letter_spacing(LetterSpacing::normal());
+        if !self
+            .style
+            .flags
+            .get()
+            .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING)
+        {
+            self.style
+                .mutate_inherited_text()
+                .set_letter_spacing(LetterSpacing::normal());
         }
-        if !self.style.flags.get().contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING) {
-            self.style.mutate_inherited_text().set_word_spacing(WordSpacing::normal());
+        if !self
+            .style
+            .flags
+            .get()
+            .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING)
+        {
+            self.style
+                .mutate_inherited_text()
+                .set_word_spacing(WordSpacing::normal());
         }
     }
 

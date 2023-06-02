@@ -12,7 +12,7 @@ use crate::hash::map as hash_map;
 use crate::hash::{HashMap, HashSet};
 use crate::rule_tree::CascadeLevel;
 use crate::selector_parser::SelectorImpl;
-use crate::stylist::{Rule, CascadeData};
+use crate::stylist::{CascadeData, Rule};
 use crate::{Atom, LocalName, Namespace, WeakAtom};
 use fallible::FallibleVec;
 use hashglobe::FailedAllocationError;
@@ -313,7 +313,8 @@ impl SelectorMap<Rule> {
                 context,
                 flags_setter,
             ) {
-                matching_rules.push(rule.to_applicable_declaration_block(cascade_level, cascade_data));
+                matching_rules
+                    .push(rule.to_applicable_declaration_block(cascade_level, cascade_data));
             }
         }
     }
@@ -366,14 +367,11 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
                             &mut self.local_name_hash
                         };
                         if name != lower_name {
-                            hash
-                                .try_entry(lower_name.clone())?
+                            hash.try_entry(lower_name.clone())?
                                 .or_insert_with(SmallVec::new)
                                 .try_push($entry.clone())?;
                         }
-                        hash
-                            .try_entry(name.clone())?
-                            .or_insert_with(SmallVec::new)
+                        hash.try_entry(name.clone())?.or_insert_with(SmallVec::new)
                     },
                     Bucket::Namespace(url) => self
                         .namespace_hash
@@ -387,7 +385,11 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
 
         let bucket = {
             let mut disjoint_buckets = SmallVec::new();
-            let bucket = find_bucket(entry.selector(), &mut disjoint_buckets, self.bucket_attributes);
+            let bucket = find_bucket(
+                entry.selector(),
+                &mut disjoint_buckets,
+                self.bucket_attributes,
+            );
 
             // See if inserting this selector in multiple entries in the
             // selector map would be worth it. Consider a case like:
@@ -619,11 +621,16 @@ fn specific_bucket_for<'a>(
         Component::Root => Bucket::Root,
         Component::ID(ref id) => Bucket::ID(id),
         Component::Class(ref class) => Bucket::Class(class),
-        Component::AttributeInNoNamespace { ref local_name, .. } if bucket_attributes => Bucket::Attribute {
-            name: local_name,
-            lower_name: local_name,
+        Component::AttributeInNoNamespace { ref local_name, .. } if bucket_attributes => {
+            Bucket::Attribute {
+                name: local_name,
+                lower_name: local_name,
+            }
         },
-        Component::AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } if bucket_attributes => Bucket::Attribute {
+        Component::AttributeInNoNamespaceExists {
+            ref local_name,
+            ref local_name_lower,
+        } if bucket_attributes => Bucket::Attribute {
             name: local_name,
             lower_name: local_name_lower,
         },
@@ -656,8 +663,12 @@ fn specific_bucket_for<'a>(
         //
         // So inserting `span` in the rule hash makes sense since we want to
         // match the slotted <span>.
-        Component::Slotted(ref selector) => find_bucket(selector.iter(), disjoint_buckets, bucket_attributes),
-        Component::Host(Some(ref selector)) => find_bucket(selector.iter(), disjoint_buckets, bucket_attributes),
+        Component::Slotted(ref selector) => {
+            find_bucket(selector.iter(), disjoint_buckets, bucket_attributes)
+        },
+        Component::Host(Some(ref selector)) => {
+            find_bucket(selector.iter(), disjoint_buckets, bucket_attributes)
+        },
         Component::Is(ref list) | Component::Where(ref list) => {
             if list.len() == 1 {
                 find_bucket(list[0].iter(), disjoint_buckets, bucket_attributes)

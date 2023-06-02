@@ -139,7 +139,10 @@ impl NonTSPseudoClass {
     /// Returns whether the pseudo-class is enabled in content sheets.
     #[inline]
     fn is_enabled_in_content(&self) -> bool {
-        if matches!(*self, Self::MozLWTheme | Self::MozLWThemeBrightText | Self::MozLWThemeDarkText) {
+        if matches!(
+            *self,
+            Self::MozLWTheme | Self::MozLWThemeBrightText | Self::MozLWThemeDarkText
+        ) {
             return static_prefs::pref!("layout.css.moz-lwtheme.content.enabled");
         }
         if let NonTSPseudoClass::MozLocaleDir(..) = *self {
@@ -174,12 +177,10 @@ impl NonTSPseudoClass {
     /// Get the document state flag associated with a pseudo-class, if any.
     pub fn document_state_flag(&self) -> DocumentState {
         match *self {
-            NonTSPseudoClass::MozLocaleDir(ref dir) => {
-                match dir.as_horizontal_direction() {
-                    Some(HorizontalDirection::Ltr) => DocumentState::LTR_LOCALE,
-                    Some(HorizontalDirection::Rtl) => DocumentState::RTL_LOCALE,
-                    None => DocumentState::empty(),
-                }
+            NonTSPseudoClass::MozLocaleDir(ref dir) => match dir.as_horizontal_direction() {
+                Some(HorizontalDirection::Ltr) => DocumentState::LTR_LOCALE,
+                Some(HorizontalDirection::Rtl) => DocumentState::RTL_LOCALE,
+                None => DocumentState::empty(),
             },
             NonTSPseudoClass::MozWindowInactive => DocumentState::WINDOW_INACTIVE,
             NonTSPseudoClass::MozLWTheme => DocumentState::LWTHEME,

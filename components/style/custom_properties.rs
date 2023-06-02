@@ -93,7 +93,9 @@ impl CssEnvironment {
         if !device.is_chrome_document() {
             return None;
         }
-        let var = CHROME_ENVIRONMENT_VARIABLES.iter().find(|var| var.name == *name)?;
+        let var = CHROME_ENVIRONMENT_VARIABLES
+            .iter()
+            .find(|var| var.name == *name)?;
         Some((var.evaluator)(device))
     }
 }
@@ -682,10 +684,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
 /// (meaning we should use the inherited value).
 ///
 /// It does cycle dependencies removal at the same time as substitution.
-fn substitute_all(
-    custom_properties_map: &mut CustomPropertiesMap,
-    device: &Device,
-) {
+fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Device) {
     // The cycle dependencies removal in this function is a variant
     // of Tarjan's algorithm. It is mostly based on the pseudo-code
     // listed in
@@ -999,7 +998,9 @@ fn substitute_block<'i>(
                         let first_token_type = input
                             .next_including_whitespace_and_comments()
                             .ok()
-                            .map_or_else(TokenSerializationType::nothing, |t| t.serialization_type());
+                            .map_or_else(TokenSerializationType::nothing, |t| {
+                                t.serialization_type()
+                            });
                         input.reset(&after_comma);
                         let mut position = (after_comma.position(), first_token_type);
                         last_token_type = substitute_block(

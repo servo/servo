@@ -147,8 +147,9 @@ where
         self.context.current_host = host.map(|e| e.opaque());
         f(self);
         if start != self.rules.len() {
-            self.rules[start..]
-                .sort_unstable_by_key(|block| (block.layer_order, block.specificity, block.source_order()));
+            self.rules[start..].sort_unstable_by_key(|block| {
+                (block.layer_order, block.specificity, block.source_order())
+            });
         }
         self.context.current_host = old_host;
         self.in_sort_scope = false;
@@ -214,7 +215,12 @@ where
     }
 
     #[inline]
-    fn collect_rules_in_list(&mut self, part_rules: &[Rule], cascade_level: CascadeLevel, cascade_data: &CascadeData) {
+    fn collect_rules_in_list(
+        &mut self,
+        part_rules: &[Rule],
+        cascade_level: CascadeLevel,
+        cascade_data: &CascadeData,
+    ) {
         debug_assert!(self.in_sort_scope, "Rules gotta be sorted");
         SelectorMap::get_matching_rules(
             self.element,
@@ -228,7 +234,12 @@ where
     }
 
     #[inline]
-    fn collect_rules_in_map(&mut self, map: &SelectorMap<Rule>, cascade_level: CascadeLevel, cascade_data: &CascadeData) {
+    fn collect_rules_in_map(
+        &mut self,
+        map: &SelectorMap<Rule>,
+        cascade_level: CascadeLevel,
+        cascade_data: &CascadeData,
+    ) {
         debug_assert!(self.in_sort_scope, "Rules gotta be sorted");
         map.get_all_matching_rules(
             self.element,
@@ -390,10 +401,10 @@ where
             let outer_shadow = inner_shadow_host.containing_shadow();
             let cascade_data = match outer_shadow {
                 Some(shadow) => shadow.style_data(),
-                None => Some(self
-                    .stylist
-                    .cascade_data()
-                    .borrow_for_origin(Origin::Author)
+                None => Some(
+                    self.stylist
+                        .cascade_data()
+                        .borrow_for_origin(Origin::Author),
                 ),
             };
 
@@ -406,7 +417,11 @@ where
                     self.in_tree(containing_host, |collector| {
                         for p in &parts {
                             if let Some(part_rules) = part_rules.get(&p.0) {
-                                collector.collect_rules_in_list(part_rules, cascade_level, cascade_data);
+                                collector.collect_rules_in_list(
+                                    part_rules,
+                                    cascade_level,
+                                    cascade_data,
+                                );
                             }
                         }
                     });

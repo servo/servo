@@ -179,13 +179,20 @@ impl ElementStyles {
     pub fn uses_viewport_units(&self) -> bool {
         use crate::computed_value_flags::ComputedValueFlags;
 
-        if self.primary().flags.intersects(ComputedValueFlags::USES_VIEWPORT_UNITS) {
+        if self
+            .primary()
+            .flags
+            .intersects(ComputedValueFlags::USES_VIEWPORT_UNITS)
+        {
             return true;
         }
 
         for pseudo_style in self.pseudos.as_array() {
             if let Some(ref pseudo_style) = pseudo_style {
-                if pseudo_style.flags.intersects(ComputedValueFlags::USES_VIEWPORT_UNITS) {
+                if pseudo_style
+                    .flags
+                    .intersects(ComputedValueFlags::USES_VIEWPORT_UNITS)
+                {
                     return true;
                 }
             }

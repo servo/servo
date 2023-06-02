@@ -733,7 +733,7 @@ where
                         dest.write_char(' ')?;
                         z.to_css(dest)?;
                         dest.write_char(' ')?;
-                    }
+                    },
                 }
                 angle.to_css(dest)
             },

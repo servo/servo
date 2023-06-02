@@ -6,8 +6,8 @@
 
 use crate::properties::PropertyDeclarationBlock;
 use crate::rule_tree::{CascadeLevel, StyleSource};
-use crate::stylesheets::layer_rule::LayerOrder;
 use crate::shared_lock::Locked;
+use crate::stylesheets::layer_rule::LayerOrder;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 

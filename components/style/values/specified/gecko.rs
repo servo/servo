@@ -52,7 +52,9 @@ impl Parse for IntersectionObserverRootMargin {
         use crate::Zero;
         if input.is_exhausted() {
             // If there are zero elements in tokens, set tokens to ["0px"].
-            return Ok(IntersectionObserverRootMargin(Rect::all(LengthPercentage::zero())));
+            return Ok(IntersectionObserverRootMargin(Rect::all(
+                LengthPercentage::zero(),
+            )));
         }
         let rect = Rect::parse_with(context, input, parse_pixel_or_percent)?;
         Ok(IntersectionObserverRootMargin(rect))

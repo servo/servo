@@ -22,7 +22,11 @@ use selectors::parser::SelectorParseErrorKind;
 use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 
 #[derive(PartialEq)]
-enum CounterType { Increment, Set, Reset, }
+enum CounterType {
+    Increment,
+    Set,
+    Reset,
+}
 
 impl CounterType {
     fn default_value(&self) -> i32 {
@@ -41,7 +45,11 @@ impl Parse for CounterIncrement {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Ok(Self::new(parse_counters(context, input, CounterType::Increment)?))
+        Ok(Self::new(parse_counters(
+            context,
+            input,
+            CounterType::Increment,
+        )?))
     }
 }
 
@@ -65,7 +73,11 @@ impl Parse for CounterReset {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Ok(Self::new(parse_counters(context, input, CounterType::Reset)?))
+        Ok(Self::new(parse_counters(
+            context,
+            input,
+            CounterType::Reset,
+        )?))
     }
 }
 
@@ -85,13 +97,20 @@ fn parse_counters<'i, 't>(
     loop {
         let location = input.current_source_location();
         let (name, is_reversed) = match input.next() {
-            Ok(&Token::Ident(ref ident)) => (CustomIdent::from_ident(location, ident, &["none"])?, false),
-            Ok(&Token::Function(ref name)) if counter_type == CounterType::Reset && name.eq_ignore_ascii_case("reversed") => {
+            Ok(&Token::Ident(ref ident)) => {
+                (CustomIdent::from_ident(location, ident, &["none"])?, false)
+            },
+            Ok(&Token::Function(ref name))
+                if counter_type == CounterType::Reset && name.eq_ignore_ascii_case("reversed") =>
+            {
                 input.parse_nested_block(|input| {
                     let location = input.current_source_location();
-                    Ok((CustomIdent::from_ident(location, input.expect_ident()?, &["none"])?, true))
+                    Ok((
+                        CustomIdent::from_ident(location, input.expect_ident()?, &["none"])?,
+                        true,
+                    ))
                 })?
-            }
+            },
             Ok(t) => {
                 let t = t.clone();
                 return Err(location.new_unexpected_token_error(t));
@@ -100,7 +119,7 @@ fn parse_counters<'i, 't>(
         };
 
         let value = match input.try_parse(|input| Integer::parse(context, input)) {
-            Ok(start) =>
+            Ok(start) => {
                 if start.value == i32::min_value() {
                     // The spec says that values must be clamped to the valid range,
                     // and we reserve i32::min_value() as an internal magic value.
@@ -108,10 +127,19 @@ fn parse_counters<'i, 't>(
                     Integer::new(i32::min_value() + 1)
                 } else {
                     start
-                },
-            _ => Integer::new(if is_reversed { i32::min_value() } else { counter_type.default_value() }),
+                }
+            },
+            _ => Integer::new(if is_reversed {
+                i32::min_value()
+            } else {
+                counter_type.default_value()
+            }),
         };
-        counters.push(CounterPair { name, value, is_reversed });
+        counters.push(CounterPair {
+            name,
+            value,
+            is_reversed,
+        });
     }
 
     if !counters.is_empty() {

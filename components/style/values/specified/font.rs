@@ -8,16 +8,18 @@
 use crate::context::QuirksMode;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
+use crate::values::computed::FontSizeAdjust as ComputedFontSizeAdjust;
 use crate::values::computed::{font as computed, Length, NonNegativeLength};
 use crate::values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
 use crate::values::computed::{CSSPixelLength, Context, ToComputedValue};
-use crate::values::computed::FontSizeAdjust as ComputedFontSizeAdjust;
 use crate::values::generics::font::VariationValue;
-use crate::values::generics::font::{self as generics, FeatureTagValue, FontSettings, FontTag, GenericFontSizeAdjust};
+use crate::values::generics::font::{
+    self as generics, FeatureTagValue, FontSettings, FontTag, GenericFontSizeAdjust,
+};
 use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, PX_PER_PT};
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
-use crate::values::specified::{NoCalcLength, NonNegativeNumber, Number, NonNegativePercentage};
+use crate::values::specified::{NoCalcLength, NonNegativeNumber, NonNegativePercentage, Number};
 use crate::values::CustomIdent;
 use crate::Atom;
 use cssparser::{Parser, Token};
@@ -406,7 +408,9 @@ impl ToComputedValue for FontStyle {
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(
+    Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
+)]
 #[repr(u8)]
 pub enum FontStretch {
     Stretch(NonNegativePercentage),
@@ -510,7 +514,9 @@ impl ToComputedValue for FontStretch {
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        FontStretch::Stretch(NonNegativePercentage::from_computed_value(&NonNegative((computed.0).0)))
+        FontStretch::Stretch(NonNegativePercentage::from_computed_value(&NonNegative(
+            (computed.0).0,
+        )))
     }
 }
 
@@ -723,7 +729,8 @@ impl Parse for FontFamily {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<FontFamily, ParseError<'i>> {
-        let values = input.parse_comma_separated(|input| SingleFontFamily::parse(context, input))?;
+        let values =
+            input.parse_comma_separated(|input| SingleFontFamily::parse(context, input))?;
         Ok(FontFamily::Values(FontFamilyList {
             #[cfg(feature = "gecko")]
             list: crate::ArcSlice::from_iter(values.into_iter()),
@@ -755,9 +762,7 @@ impl Parse for FamilyName {
 }
 
 /// Preserve the readability of text when font fallback occurs
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
-)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 #[allow(missing_docs)]
 pub enum FontSizeAdjust {
     Value(GenericFontSizeAdjust<NonNegativeNumber>),
@@ -804,7 +809,9 @@ impl Parse for FontSizeAdjust {
         }
         // Without a basis keyword, the number refers to the 'ex-height' metric.
         let value = NonNegativeNumber::parse(context, input)?;
-        Ok(FontSizeAdjust::Value(GenericFontSizeAdjust::ExHeight(value)))
+        Ok(FontSizeAdjust::Value(GenericFontSizeAdjust::ExHeight(
+            value,
+        )))
     }
 }
 
@@ -1985,14 +1992,7 @@ impl Parse for FontFeatureSettings {
 }
 
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
 )]
 /// Whether user agents are allowed to synthesize bold or oblique font faces
 /// when a font family lacks those faces, or a small-caps variant when this is
@@ -2102,11 +2102,7 @@ impl ToCss for FontSynthesis {
 
 impl SpecifiedValueInfo for FontSynthesis {
     fn collect_completion_keywords(f: KeywordsCollectFn) {
-        f(&[
-            "none",
-            "weight",
-            "style",
-        ]);
+        f(&["none", "weight", "style"]);
         if allow_font_synthesis_small_caps() {
             f(&["small-caps"]);
         }
@@ -2319,7 +2315,9 @@ impl Parse for VariationValue<Number> {
 /// A metrics override value for a @font-face descriptor
 ///
 /// https://drafts.csswg.org/css-fonts/#font-metrics-override-desc
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(
+    Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
+)]
 pub enum MetricsOverride {
     /// A non-negative `<percentage>` of the computed font size
     Override(NonNegativePercentage),

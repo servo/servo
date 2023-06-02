@@ -547,9 +547,7 @@ impl Parse for TimelineOrKeyframesName {
                 s,
                 &["none"],
             )?)),
-            Token::QuotedString(ref s) => {
-                Ok(Self::QuotedString(Atom::from(s.as_ref())))
-            },
+            Token::QuotedString(ref s) => Ok(Self::QuotedString(Atom::from(s.as_ref()))),
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
     }

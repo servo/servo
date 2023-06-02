@@ -453,13 +453,12 @@ pub enum SystemColor {
 impl SystemColor {
     #[inline]
     fn compute(&self, cx: &Context) -> ComputedColor {
-        use crate::gecko_bindings::bindings;
         use crate::gecko::values::convert_nscolor_to_rgba;
+        use crate::gecko_bindings::bindings;
 
         // TODO: We should avoid cloning here most likely, though it's
         // cheap-ish.
-        let style_color_scheme =
-            cx.style().get_inherited_ui().clone_color_scheme();
+        let style_color_scheme = cx.style().get_inherited_ui().clone_color_scheme();
         let color = cx.device().system_nscolor(*self, &style_color_scheme);
         if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
             return ComputedColor::currentcolor();
@@ -932,7 +931,10 @@ impl ColorScheme {
 }
 
 impl Parse for ColorScheme {
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let mut idents = vec![];
         let mut bits = ColorSchemeFlags::empty();
 

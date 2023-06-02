@@ -509,11 +509,11 @@ impl DeepCloneWithLock for CssRule {
                 CssRule::Layer(Arc::new(
                     lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
                 ))
-            }
+            },
             CssRule::ScrollTimeline(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::ScrollTimeline(Arc::new(lock.wrap(rule.clone())))
-            }
+            },
         }
     }
 }

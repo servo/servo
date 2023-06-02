@@ -106,7 +106,7 @@ impl CounterStyle {
                     name == &atom!("square") ||
                     name == &atom!("disclosure-closed") ||
                     name == &atom!("disclosure-open")
-            }
+            },
             _ => false,
         }
     }

@@ -289,7 +289,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         &mut self,
         prelude: AtRulePrelude,
         start: &ParserState,
-    ) -> Result<Self::AtRule, ()>  {
+    ) -> Result<Self::AtRule, ()> {
         let rule = match prelude {
             AtRulePrelude::Import(url, media, layer) => {
                 let loader = self
@@ -613,15 +613,13 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     0 | 1 => names.into_iter().next(),
                     _ => return Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid)),
                 };
-                Ok(CssRule::Layer(Arc::new(self.shared_lock.wrap(
-                    LayerRule {
-                        kind: LayerRuleKind::Block {
-                            name,
-                            rules: self.parse_nested_rules(input, CssRuleType::Layer),
-                        },
-                        source_location: start.source_location(),
+                Ok(CssRule::Layer(Arc::new(self.shared_lock.wrap(LayerRule {
+                    kind: LayerRuleKind::Block {
+                        name,
+                        rules: self.parse_nested_rules(input, CssRuleType::Layer),
                     },
-                ))))
+                    source_location: start.source_location(),
+                }))))
             },
             AtRulePrelude::Import(..) | AtRulePrelude::Namespace(..) => {
                 // These rules don't have blocks.
@@ -650,7 +648,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
         &mut self,
         prelude: AtRulePrelude,
         start: &ParserState,
-    ) -> Result<Self::AtRule, ()>  {
+    ) -> Result<Self::AtRule, ()> {
         Ok(match prelude {
             AtRulePrelude::Layer(names) => {
                 if names.is_empty() {
@@ -687,7 +685,10 @@ fn check_for_useless_selector(
                 }
                 if found_host && found_non_host {
                     let location = input.current_source_location();
-                    context.log_css_error(location, ContextualParseError::NeverMatchingHostSelector(selector.to_css_string()));
+                    context.log_css_error(
+                        location,
+                        ContextualParseError::NeverMatchingHostSelector(selector.to_css_string()),
+                    );
                     continue 'selector_loop;
                 }
             }

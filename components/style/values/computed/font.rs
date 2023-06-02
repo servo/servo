@@ -202,7 +202,6 @@ macro_rules! static_font_family {
     };
 }
 
-
 impl FontFamily {
     #[inline]
     /// Get default font family as `serif` which is a generic font-family
@@ -213,10 +212,13 @@ impl FontFamily {
     /// Returns the font family for `-moz-bullet-font`.
     #[cfg(feature = "gecko")]
     pub(crate) fn moz_bullet() -> &'static Self {
-        static_font_family!(MOZ_BULLET, SingleFontFamily::FamilyName(FamilyName {
-            name: atom!("-moz-bullet-font"),
-            syntax: FontFamilyNameSyntax::Identifiers,
-        }));
+        static_font_family!(
+            MOZ_BULLET,
+            SingleFontFamily::FamilyName(FamilyName {
+                name: atom!("-moz-bullet-font"),
+                syntax: FontFamilyNameSyntax::Identifiers,
+            })
+        );
 
         &*MOZ_BULLET
     }
@@ -226,10 +228,12 @@ impl FontFamily {
     pub fn for_system_font(name: &str) -> Self {
         Self {
             families: FontFamilyList {
-                list: crate::ArcSlice::from_iter(std::iter::once(SingleFontFamily::FamilyName(FamilyName {
-                    name: Atom::from(name),
-                    syntax: FontFamilyNameSyntax::Identifiers,
-                }))),
+                list: crate::ArcSlice::from_iter(std::iter::once(SingleFontFamily::FamilyName(
+                    FamilyName {
+                        name: Atom::from(name),
+                        syntax: FontFamilyNameSyntax::Identifiers,
+                    },
+                ))),
                 fallback: GenericFontFamily::None,
             },
             is_system_font: true,
@@ -240,8 +244,11 @@ impl FontFamily {
     pub fn generic(generic: GenericFontFamily) -> &'static Self {
         macro_rules! generic_font_family {
             ($ident:ident, $family:ident) => {
-                static_font_family!($ident, SingleFontFamily::Generic(GenericFontFamily::$family))
-            }
+                static_font_family!(
+                    $ident,
+                    SingleFontFamily::Generic(GenericFontFamily::$family)
+                )
+            };
         }
 
         generic_font_family!(SERIF, Serif);
@@ -257,7 +264,7 @@ impl FontFamily {
             GenericFontFamily::None => {
                 debug_assert!(false, "Bogus caller!");
                 &*SERIF
-            }
+            },
             GenericFontFamily::Serif => &*SERIF,
             GenericFontFamily::SansSerif => &*SANS_SERIF,
             GenericFontFamily::Monospace => &*MONOSPACE,
@@ -444,24 +451,21 @@ impl GenericFontFamily {
     /// families that the website might specify, since they're not configured by
     /// the user. See bug 789788 and bug 1730098.
     #[cfg(feature = "gecko")]
-    pub (crate) fn valid_for_user_font_prioritization(self) -> bool {
+    pub(crate) fn valid_for_user_font_prioritization(self) -> bool {
         match self {
-            Self::None |
-            Self::Fantasy |
-            Self::Cursive |
-            Self::SystemUi |
-            Self::MozEmoji => false,
+            Self::None | Self::Fantasy | Self::Cursive | Self::SystemUi | Self::MozEmoji => false,
 
-            Self::Serif |
-            Self::SansSerif |
-            Self::Monospace => true,
+            Self::Serif | Self::SansSerif | Self::Monospace => true,
         }
     }
 }
 
 impl Parse for SingleFontFamily {
     /// Parse a font-family value.
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(value) = input.try_parse(|i| i.expect_string_cloned()) {
             return Ok(SingleFontFamily::FamilyName(FamilyName {
                 name: Atom::from(&*value),
@@ -603,13 +607,11 @@ impl FontFamilyList {
     /// font prioritization, then move it to the front of the list. Otherwise,
     /// prepend the default generic.
     #[cfg(feature = "gecko")]
-    pub (crate) fn prioritize_first_generic_or_prepend(&mut self, generic: GenericFontFamily) {
-        let index_of_first_generic = self.iter().position(|f| {
-            match *f {
-                SingleFontFamily::Generic(f) => f.valid_for_user_font_prioritization(),
-                _ => false,
-            }
-        });
+    pub(crate) fn prioritize_first_generic_or_prepend(&mut self, generic: GenericFontFamily) {
+        let index_of_first_generic = self.iter().position(|f| match *f {
+            SingleFontFamily::Generic(f) => f.valid_for_user_font_prioritization(),
+            _ => false,
+         });
 
         if let Some(0) = index_of_first_generic {
             return; // Already first

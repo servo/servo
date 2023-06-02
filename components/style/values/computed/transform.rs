@@ -520,7 +520,7 @@ impl ToAnimatedZero for TransformOperation {
                 Ok(generic::TransformOperation::Rotate(Angle::zero()))
             },
             generic::TransformOperation::Perspective(_) => Ok(
-                generic::TransformOperation::Perspective(generic::PerspectiveFunction::None)
+                generic::TransformOperation::Perspective(generic::PerspectiveFunction::None),
             ),
             generic::TransformOperation::AccumulateMatrix { .. } |
             generic::TransformOperation::InterpolateMatrix { .. } => {

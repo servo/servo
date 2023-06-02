@@ -214,7 +214,7 @@ impl<'a> fmt::Display for ContextualParseError<'a> {
             ContextualParseError::UnsupportedValue(_value, ref err) => parse_error_to_str(err, f),
             ContextualParseError::NeverMatchingHostSelector(ref selector) => {
                 write!(f, ":host selector is not featureless: {}", selector)
-            }
+            },
         }
     }
 }

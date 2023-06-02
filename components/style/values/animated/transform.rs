@@ -1122,7 +1122,7 @@ impl Animate for ComputedTransformOperation {
                             1.
                         } else {
                             -1. / perspective_z
-                        }
+                        },
                     ))
                 };
                 Ok(TransformOperation::Perspective(used_value))
@@ -1204,10 +1204,9 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
             (
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
-            ) => {
-                fd.infinity_or(|l| l.px())
-                    .compute_squared_distance(&td.infinity_or(|l| l.px()))
-            },
+            ) => fd
+                .infinity_or(|l| l.px())
+                .compute_squared_distance(&td.infinity_or(|l| l.px())),
             (&TransformOperation::Perspective(ref p), &TransformOperation::Matrix3D(ref m)) |
             (&TransformOperation::Matrix3D(ref m), &TransformOperation::Perspective(ref p)) => {
                 // FIXME(emilio): Is this right? Why interpolating this with

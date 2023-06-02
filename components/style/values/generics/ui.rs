@@ -56,15 +56,7 @@ impl<Image: ToCss> ToCss for Cursor<Image> {
 }
 
 /// A generic value for item of `image cursors`.
-#[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
-)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(C)]
 pub struct GenericCursorImage<Image, Number> {
     /// The url to parse images from.
