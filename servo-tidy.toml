@@ -109,6 +109,8 @@ files = [
   "./support/android/openssl.sh",
   # Upstream code from Khronos/WebGL uses tabs for indentation
   "./tests/wpt/webgl/tests",
+  # Vendored from upstream
+  "./tests/wpt/webgpu/tests",
   # Our import script is not currently respecting the lint.
   "./tests/wpt/webgl/tools/import-conformance-tests.py",
   # Ignore those files since the issues reported are on purpose

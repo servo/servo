@@ -1,58 +1,73 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { DefaultTestFileLoader } from '../framework/file_loader.js';
-import { Logger } from '../framework/logging/logger.js';
-import { parseQuery } from '../framework/query/parseQuery.js';
-
-import { AsyncMutex } from '../framework/util/async_mutex.js';
-import { assert } from '../framework/util/util.js';
+ **/ // Implements the wpt-embedded test runner (see also: wpt/cts.https.html).
+import { globalTestConfig } from '../framework/test_config.js';
+import { DefaultTestFileLoader } from '../internal/file_loader.js';
+import { prettyPrintLog } from '../internal/logging/log_message.js';
+import { Logger } from '../internal/logging/logger.js';
+import { parseQuery } from '../internal/query/parseQuery.js';
+import { parseExpectationsForTestQuery, relativeQueryString } from '../internal/query/query.js';
+import { assert } from '../util/util.js';
 
 import { optionEnabled } from './helper/options.js';
 import { TestWorker } from './helper/test_worker.js';
 
-(async () => {
+// testharness.js API (https://web-platform-tests.org/writing-tests/testharness-api.html)
+
+setup({
+  // It's convenient for us to asynchronously add tests to the page. Prevent done() from being
+  // called implicitly when the page is finished loading.
+  explicit_done: true,
+});
+
+void (async () => {
+  const workerEnabled = optionEnabled('worker');
+  const worker = workerEnabled ? new TestWorker(false) : undefined;
+
+  globalTestConfig.unrollConstEvalLoops = optionEnabled('unroll_const_eval_loops');
+
+  const failOnWarnings =
+    typeof shouldWebGPUCTSFailOnWarnings !== 'undefined' && (await shouldWebGPUCTSFailOnWarnings);
+
   const loader = new DefaultTestFileLoader();
   const qs = new URLSearchParams(window.location.search).getAll('q');
   assert(qs.length === 1, 'currently, there must be exactly one ?q=');
-  const testcases = await loader.loadCases(parseQuery(qs[0]));
+  const filterQuery = parseQuery(qs[0]);
+  const testcases = await loader.loadCases(filterQuery);
 
-  await addWPTTests(testcases);
-})();
+  const expectations =
+    typeof loadWebGPUExpectations !== 'undefined'
+      ? parseExpectationsForTestQuery(
+          await loadWebGPUExpectations,
+          filterQuery,
+          new URL(window.location.href)
+        )
+      : [];
 
-// Note: `async_test`s must ALL be added within the same task. This function *must not* be async.
-function addWPTTests(testcases) {
-  const worker = optionEnabled('worker') ? new TestWorker(false) : undefined;
-
-  const log = new Logger(false);
-  const mutex = new AsyncMutex();
-  const running = [];
+  const log = new Logger();
 
   for (const testcase of testcases) {
     const name = testcase.query.toString();
-    const wpt_fn = function () {
-      const p = mutex.with(async () => {
-        const [rec, res] = log.record(name);
-        if (worker) {
-          await worker.run(rec, name);
-        } else {
-          await testcase.run(rec);
-        }
+    // For brevity, display the case name "relative" to the ?q= path.
+    const shortName = relativeQueryString(filterQuery, testcase.query) || '(case)';
 
-        this.step(() => {
-          // Unfortunately, it seems not possible to surface any logs for warn/skip.
-          if (res.status === 'fail') {
-            throw (res.logs || []).map(s => s.toJSON()).join('\n\n');
-          }
-        });
-        this.done();
-      });
+    const wpt_fn = async () => {
+      const [rec, res] = log.record(name);
+      if (worker) {
+        await worker.run(rec, name, expectations);
+      } else {
+        await testcase.run(rec, expectations);
+      }
 
-      running.push(p);
-      return p;
+      // Unfortunately, it seems not possible to surface any logs for warn/skip.
+      if (res.status === 'fail' || (res.status === 'warn' && failOnWarnings)) {
+        const logs = (res.logs ?? []).map(prettyPrintLog);
+        assert_unreached('\n' + logs.join('\n') + '\n');
+      }
     };
 
-    async_test(wpt_fn, name);
+    promise_test(wpt_fn, shortName);
   }
 
-  return Promise.all(running).then(() => log);
-}
+  done();
+})();
