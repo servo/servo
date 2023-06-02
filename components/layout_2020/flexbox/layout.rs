@@ -444,7 +444,77 @@ impl<'a> FlexItem<'a> {
         let max_size = box_style.content_max_box_size(containing_block, &pbm);
         let min_size = box_style.content_min_box_size(containing_block, &pbm);
 
-        let min_size = min_size.auto_is(|| automatic_min_size(box_));
+        // https://drafts.csswg.org/css-flexbox/#min-size-auto
+        let automatic_min_size = || {
+            // FIXME(stshine): Consider more situations when auto min size is not needed.
+            if box_style.get_box().overflow_x.is_scrollable() {
+                return Length::zero();
+            }
+
+            if cross_axis_is_item_block_axis {
+                let specified_size_suggestion = content_box_size.inline;
+
+                let transferred_size_suggestion = match box_ {
+                    IndependentFormattingContext::NonReplaced(_) => None,
+                    IndependentFormattingContext::Replaced(ref bfc) => {
+                        match (
+                            bfc.contents
+                                .inline_size_over_block_size_intrinsic_ratio(box_style),
+                            content_box_size.block,
+                        ) {
+                            (Some(ratio), LengthOrAuto::LengthPercentage(block_size)) => {
+                                let block_size = block_size.clamp_between_extremums(
+                                    min_size.block.auto_is(|| Length::zero()),
+                                    max_size.block,
+                                );
+                                Some(block_size * ratio)
+                            },
+                            _ => None,
+                        }
+                    },
+                };
+
+                let inline_content_size = box_
+                    .inline_content_sizes(&flex_context.layout_context)
+                    .min_content;
+                let content_size_suggestion = match box_ {
+                    IndependentFormattingContext::NonReplaced(_) => inline_content_size,
+                    IndependentFormattingContext::Replaced(ref replaced) => {
+                        if let Some(ratio) = replaced
+                            .contents
+                            .inline_size_over_block_size_intrinsic_ratio(box_style)
+                        {
+                            inline_content_size.clamp_between_extremums(
+                                min_size.block.auto_is(|| Length::zero()) * ratio,
+                                max_size.block.map(|l| l * ratio),
+                            )
+                        } else {
+                            inline_content_size
+                        }
+                    },
+                };
+
+                let result = match specified_size_suggestion {
+                    LengthOrAuto::LengthPercentage(l) => l.min(content_size_suggestion),
+                    LengthOrAuto::Auto => {
+                        if let Some(l) = transferred_size_suggestion {
+                            l.min(content_size_suggestion)
+                        } else {
+                            content_size_suggestion
+                        }
+                    },
+                };
+                result.clamp_below_max(max_size.inline)
+            } else {
+                // FIXME(stshine): Implement this when main axis is item's block axis.
+                Length::zero()
+            }
+        };
+
+        let min_size = Vec2 {
+            inline: min_size.inline.auto_is(automatic_min_size),
+            block: min_size.block.auto_is(|| Length::zero()),
+        };
         let margin_auto_is_zero = pbm.margin.auto_is(Length::zero);
 
         let content_box_size = flex_context.vec2_to_flex_relative(content_box_size);
@@ -486,12 +556,6 @@ impl<'a> FlexItem<'a> {
             align_self,
         }
     }
-}
-
-/// https://drafts.csswg.org/css-flexbox/#min-size-auto
-fn automatic_min_size(_box: &IndependentFormattingContext) -> Length {
-    // FIMXE: implement the actual algorithm
-    Length::zero() // Give an incorrect value rather than panicking
 }
 
 /// https://drafts.csswg.org/css-flexbox/#algo-main-item

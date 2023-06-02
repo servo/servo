@@ -138,7 +138,7 @@ impl IndependentFormattingContext {
         }
     }
 
-    pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
+    pub fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
         match self {
             Self::NonReplaced(inner) => inner
                 .contents
