@@ -136,8 +136,14 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///    computed to 'absolute' if the element is in a top layer.
     ///
     fn adjust_for_top_layer(&mut self) {
-        if !self.style.is_absolutely_positioned() && self.style.in_top_layer() {
+        if !self.style.in_top_layer() {
+            return;
+        }
+        if !self.style.is_absolutely_positioned() {
             self.style.mutate_box().set_position(Position::Absolute);
+        }
+        if self.style.get_box().clone_display().is_contents() {
+            self.style.mutate_box().set_display(Display::Block);
         }
     }
 
