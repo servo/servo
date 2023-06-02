@@ -112,6 +112,7 @@ class Linux(Base):
         if self.distro.lower() not in [
             'arch linux',
             'arch',
+            'artix',
             'centos linux',
             'centos',
             'debian gnu/linux',
