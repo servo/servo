@@ -627,12 +627,20 @@ impl FontFamilyList {
         self.list = crate::ArcSlice::from_iter(new_list.into_iter());
     }
 
+    /// Returns whether we need to prioritize user fonts.
+    pub (crate) fn needs_user_font_prioritization(&self) -> bool {
+        self.iter().next().map_or(true, |f| match f {
+            SingleFontFamily::Generic(f) => !f.valid_for_user_font_prioritization(),
+            _ => true,
+        })
+    }
+
     /// Return the generic ID if it is a single generic font
     pub fn single_generic(&self) -> Option<GenericFontFamily> {
         let mut iter = self.iter();
         if let Some(SingleFontFamily::Generic(f)) = iter.next() {
             if iter.next().is_none() {
-                return Some(f.clone());
+                return Some(*f);
             }
         }
         None

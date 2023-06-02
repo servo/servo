@@ -890,7 +890,6 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             return;
         }
 
-        let use_document_fonts = static_prefs::pref!("browser.display.use_document_fonts") != 0;
         let builder = &mut self.context.builder;
         let (default_font_type, prioritize_user_fonts) = {
             let font = builder.get_font().gecko();
@@ -905,22 +904,23 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 return;
             }
 
-            let generic = font.mFont.family.families.single_generic().unwrap_or(GenericFontFamily::None);
             let default_font_type = unsafe {
-                bindings::Gecko_nsStyleFont_ComputeDefaultFontType(
+                bindings::Gecko_nsStyleFont_ComputeFallbackFontTypeForLanguage(
                     builder.device.document(),
-                    generic,
                     font.mLanguage.mRawPtr,
                 )
             };
+
+            let use_document_fonts = static_prefs::pref!("browser.display.use_document_fonts") != 0;
 
             // We prioritize user fonts over document fonts if the pref is set,
             // and we don't have a generic family already (or we're using
             // cursive or fantasy, since they're ignored, see bug 789788), and
             // we have a generic family to actually replace it with.
-            let prioritize_user_fonts = !use_document_fonts &&
+            let prioritize_user_fonts =
+                !use_document_fonts &&
                 default_font_type != GenericFontFamily::None &&
-                !generic.valid_for_user_font_prioritization();
+                font.mFont.family.families.needs_user_font_prioritization();
 
             if !prioritize_user_fonts && default_font_type == font.mFont.family.families.fallback {
                 // Nothing to do.
