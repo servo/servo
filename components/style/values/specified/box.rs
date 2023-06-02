@@ -2095,3 +2095,73 @@ impl Overflow {
         }
     }
 }
+
+bitflags! {
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[value_info(other_values = "auto,stable,both-edges")]
+    #[repr(C)]
+    /// Values for scrollbar-gutter:
+    /// <https://drafts.csswg.org/css-overflow-3/#scrollbar-gutter-property>
+    pub struct ScrollbarGutter: u8 {
+        /// `auto` variant. Just for convenience if there is no flag set.
+        const AUTO = 0;
+        /// `stable` variant.
+        const STABLE = 1 << 0;
+        /// `both-edges` variant.
+        const BOTH_EDGES = 1 << 1;
+    }
+}
+
+impl ToCss for ScrollbarGutter {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.is_empty() {
+            return dest.write_str("auto");
+        }
+
+        debug_assert!(
+            self.contains(ScrollbarGutter::STABLE),
+            "We failed to parse the syntax!"
+        );
+        dest.write_str("stable")?;
+        if self.contains(ScrollbarGutter::BOTH_EDGES) {
+            dest.write_str(" both-edges")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl Parse for ScrollbarGutter {
+    /// auto | stable && both-edges?
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<ScrollbarGutter, ParseError<'i>> {
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
+            return Ok(ScrollbarGutter::AUTO);
+        }
+
+        let mut result = ScrollbarGutter::empty();
+        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
+            let flag = match_ignore_ascii_case! { &ident,
+                "stable" => Some(ScrollbarGutter::STABLE),
+                "both-edges" => Some(ScrollbarGutter::BOTH_EDGES),
+                _ => None
+            };
+
+            match flag {
+                Some(flag) if !result.contains(flag) => result.insert(flag),
+                _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+            }
+        }
+
+        if result.contains(ScrollbarGutter::STABLE) {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}

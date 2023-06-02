@@ -505,6 +505,7 @@ class Longhand(Property):
                 "RubyPosition",
                 "SVGOpacity",
                 "SVGPaintOrder",
+                "ScrollbarGutter",
                 "ScrollSnapAlign",
                 "ScrollSnapAxis",
                 "ScrollSnapStrictness",

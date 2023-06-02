@@ -706,3 +706,13 @@ ${helpers.predefined_type(
     animation_value_type="Integer",
     spec="https://drafts.csswg.org/css-overflow-3/#line-clamp",
 )}
+
+${helpers.predefined_type(
+    "scrollbar-gutter",
+    "ScrollbarGutter",
+    "computed::ScrollbarGutter::AUTO",
+    engines="gecko",
+    gecko_pref="layout.css.scrollbar-gutter.enabled",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-overflow-3/#scrollbar-gutter-property",
+)}
