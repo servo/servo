@@ -379,6 +379,14 @@ impl PositioningContext {
             )
         }
     }
+
+    pub(crate) fn clear(&mut self) {
+        self.for_nearest_containing_block_for_all_descendants
+            .clear();
+        self.for_nearest_positioned_ancestor
+            .as_mut()
+            .map(|v| v.clear());
+    }
 }
 
 impl HoistedAbsolutelyPositionedBox {
@@ -564,6 +572,13 @@ impl HoistedAbsolutelyPositionedBox {
                             "Mixed writing modes are not supported yet"
                         );
                         let dummy_tree_rank = 0;
+
+                        // Clear the context since we will lay out the same descendants
+                        // more than once. Otherwise, absolute descendants will create
+                        // multiple fragments which could later lead to double-borrow
+                        // errors.
+                        positioning_context.clear();
+
                         let independent_layout = non_replaced.layout(
                             layout_context,
                             &mut positioning_context,
