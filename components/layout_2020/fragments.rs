@@ -26,6 +26,12 @@ use webrender_api::{FontInstanceKey, ImageKey};
 #[derive(Serialize)]
 pub(crate) enum Fragment {
     Box(BoxFragment),
+    /// Floating content. A floated fragment is very similar to a normal
+    /// [BoxFragment] but it isn't positioned using normal in block flow
+    /// positioning rules (margin collapse, etc). Instead, they are laid out by
+    /// the [SequentialLayoutState] of their float containing block formatting
+    /// context.
+    Float(BoxFragment),
     Anonymous(AnonymousFragment),
     /// Absolute and fixed position fragments are hoisted up so that they
     /// are children of the BoxFragment that establishes their containing
@@ -57,6 +63,8 @@ pub(crate) struct BoxFragment {
     pub border: Sides<Length>,
     pub margin: Sides<Length>,
 
+    pub clearance: Length,
+
     pub block_margins_collapsed_with_children: CollapsedBlockMargins,
 
     /// The scrollable overflow of this box fragment.
@@ -67,13 +75,18 @@ pub(crate) struct BoxFragment {
 }
 
 #[derive(Serialize)]
+pub(crate) struct FloatFragment {
+    pub box_fragment: BoxFragment,
+}
+
+#[derive(Serialize)]
 pub(crate) struct CollapsedBlockMargins {
     pub collapsed_through: bool,
     pub start: CollapsedMargin,
     pub end: CollapsedMargin,
 }
 
-#[derive(Clone, Copy, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub(crate) struct CollapsedMargin {
     max_positive: Length,
     min_negative: Length,
@@ -152,7 +165,7 @@ impl Fragment {
     pub fn offset_inline(&mut self, offset: &Length) {
         let position = match self {
             Fragment::Box(f) => &mut f.content_rect.start_corner,
-            Fragment::AbsoluteOrFixedPositioned(_) => return,
+            Fragment::Float(_) | Fragment::AbsoluteOrFixedPositioned(_) => return,
             Fragment::Anonymous(f) => &mut f.rect.start_corner,
             Fragment::Text(f) => &mut f.rect.start_corner,
             Fragment::Image(f) => &mut f.rect.start_corner,
@@ -170,6 +183,7 @@ impl Fragment {
             Fragment::Anonymous(fragment) => &fragment.base,
             Fragment::Image(fragment) => &fragment.base,
             Fragment::IFrame(fragment) => &fragment.base,
+            Fragment::Float(fragment) => &fragment.base,
         })
     }
 
@@ -180,6 +194,11 @@ impl Fragment {
     pub fn print(&self, tree: &mut PrintTree) {
         match self {
             Fragment::Box(fragment) => fragment.print(tree),
+            Fragment::Float(fragment) => {
+                tree.new_level(format!("Float"));
+                fragment.print(tree);
+                tree.end_level();
+            },
             Fragment::AbsoluteOrFixedPositioned(_) => {
                 tree.add_item("AbsoluteOrFixedPositioned".to_string());
             },
@@ -195,7 +214,9 @@ impl Fragment {
         containing_block: &PhysicalRect<Length>,
     ) -> PhysicalRect<Length> {
         match self {
-            Fragment::Box(fragment) => fragment.scrollable_overflow_for_parent(&containing_block),
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                fragment.scrollable_overflow_for_parent(&containing_block)
+            },
             Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
             Fragment::Anonymous(fragment) => fragment.scrollable_overflow.clone(),
             Fragment::Text(fragment) => fragment
@@ -222,7 +243,7 @@ impl Fragment {
         }
 
         match self {
-            Fragment::Box(fragment) => {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 let content_rect = fragment
                     .content_rect
                     .to_physical(fragment.style.writing_mode, containing_block)
@@ -267,16 +288,6 @@ impl Fragment {
 }
 
 impl AnonymousFragment {
-    pub fn no_op(mode: WritingMode) -> Self {
-        Self {
-            base: BaseFragment::anonymous(),
-            children: vec![],
-            rect: Rect::zero(),
-            mode,
-            scrollable_overflow: PhysicalRect::zero(),
-        }
-    }
-
     pub fn new(rect: Rect<Length>, children: Vec<Fragment>, mode: WritingMode) -> Self {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.
@@ -325,6 +336,7 @@ impl BoxFragment {
         padding: Sides<Length>,
         border: Sides<Length>,
         margin: Sides<Length>,
+        clearance: Length,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
     ) -> BoxFragment {
         let position = style.get_box().position;
@@ -344,6 +356,7 @@ impl BoxFragment {
             padding,
             border,
             margin,
+            clearance,
             block_margins_collapsed_with_children,
             PhysicalSize::new(width_overconstrained, height_overconstrained),
         )
@@ -357,6 +370,7 @@ impl BoxFragment {
         padding: Sides<Length>,
         border: Sides<Length>,
         margin: Sides<Length>,
+        clearance: Length,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
         overconstrained: PhysicalSize<bool>,
     ) -> BoxFragment {
@@ -379,6 +393,7 @@ impl BoxFragment {
             padding,
             border,
             margin,
+            clearance,
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
             overconstrained,
@@ -419,19 +434,17 @@ impl BoxFragment {
                 \ncontent={:?}\
                 \npadding rect={:?}\
                 \nborder rect={:?}\
+                \nclearance={:?}\
                 \nscrollable_overflow={:?}\
-                \noverflow={:?} / {:?}\
-                \noverconstrained={:?}
-                \nstyle={:p}",
+                \noverflow={:?} / {:?}",
             self.base,
             self.content_rect,
             self.padding_rect(),
             self.border_rect(),
+            self.clearance,
             self.scrollable_overflow(&PhysicalRect::zero()),
             self.style.get_box().overflow_x,
             self.style.get_box().overflow_y,
-            self.overconstrained,
-            self.style,
         ));
 
         for child in &self.children {

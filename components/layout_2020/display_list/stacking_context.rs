@@ -531,7 +531,7 @@ impl Fragment {
     ) {
         let containing_block = containing_block_info.get_containing_block_for_fragment(self);
         match self {
-            Fragment::Box(fragment) => {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 if mode == StackingContextBuildMode::SkipHoisted &&
                     fragment.style.clone_position().is_absolutely_positioned()
                 {
