@@ -201,7 +201,7 @@ impl ReplacedContent {
         Vec2::from_physical_size(&intrinsic_size, style.writing_mode)
     }
 
-    fn inline_size_over_block_size_intrinsic_ratio(
+    pub fn inline_size_over_block_size_intrinsic_ratio(
         &self,
         style: &ComputedValues,
     ) -> Option<CSSFloat> {
