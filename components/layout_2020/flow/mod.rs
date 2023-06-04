@@ -482,7 +482,7 @@ fn layout_in_flow_non_replaced_block_level(
     let end_margin_can_collapse_with_children = block_is_same_formatting_context &&
         pbm.padding.block_end == Length::zero() &&
         pbm.border.block_end == Length::zero() &&
-        block_size == LengthOrAuto::Auto &&
+        block_size.auto_is(|| Length::zero()) == Length::zero() &&
         min_box_size.block == Length::zero();
 
     let mut clearance = Length::zero();
