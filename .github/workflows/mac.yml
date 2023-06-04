@@ -54,15 +54,6 @@ jobs:
           fetch-depth: 2
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
-      # TODO: Remove this step when the compatibility issue between mozjs and
-      #       Homebrew's Python 3.10 formula (servo/rust-mozjs#559) is fixed
-      - name: Select Python 3.9
-        run: |
-          brew install python@3.9
-          cd $(dirname $(which python3.9))
-          rm -f python3 pip3
-          ln -s python3.9 python3
-          ln -s pip3.9 pip3
       - name: Bootstrap
         run: |
           python3 -m pip install --upgrade pip virtualenv
