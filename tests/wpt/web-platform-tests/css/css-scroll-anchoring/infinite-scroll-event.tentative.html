@@ -18,20 +18,23 @@
 <div class="content"></div>
 <div class="content"></div>
 <script>
-let first = true;
-const t = async_test("Scroll adjustments don't happen if triggered from scroll event listeners");
+let count = 0;
+const t = async_test("Scroll adjustments don't keep happening with 0-length adjustments triggered by a single scroll operation");
 onscroll = t.step_func(function() {
-  assert_true(first, "Should only get one event");
-  first = false;
+  ++count;
   hidden.style.display = "block";
   hidden.offsetTop;
   hidden.style.display = "none";
+  let currentCount = count;
   requestAnimationFrame(t.step_func(function() {
     requestAnimationFrame(t.step_func(function() {
-      t.done();
+      if (currentCount == count) {
+        t.done();
+      }
     }));
   }));
 });
+
 window.onload = t.step_func(function() {
   window.scrollTo(0, document.documentElement.scrollHeight);
   window.scrollBy(0, -200);

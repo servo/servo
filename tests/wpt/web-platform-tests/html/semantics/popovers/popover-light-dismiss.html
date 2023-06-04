@@ -587,3 +587,30 @@ promise_test(async () => {
   p20.hidePopover(); // Cleanup
 },'Show an unrelated popover during "hide popover"');
 </script>
+
+<div id=p21 popover>21
+  <div id=p22 popover>22</div>
+  <div id=p23 popover>23</div>
+  <div id=p24 popover>24</div>
+</div>
+
+<script>
+promise_test(async () => {
+  p21.showPopover();
+  p22.showPopover();
+  let events = [];
+  const logEvents = (e) => { events.push(`${e.newState === 'open' ? 'show' : 'hide'} ${e.target.id}`) };
+  p22.addEventListener('beforetoggle', (e) => {
+    logEvents(e);
+    p24.showPopover()
+  });
+  p23.addEventListener('beforetoggle', logEvents);
+  p24.addEventListener('beforetoggle', logEvents);
+  p23.showPopover();
+  assert_array_equals(events, ['show p23', 'hide p22', 'show p24'], 'hiding p24 does not fire event');
+  assert_false(p22.matches(':popover-open'));
+  assert_true(p23.matches(':popover-open'));
+  assert_false(p24.matches(':popover-open'));
+  p21.hidePopover(); // Cleanup
+},'Show other auto popover during "hide all popover until"');
+</script>

@@ -8,7 +8,7 @@ importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
 {# Promise vs. async test header: #}
-{% if promise_test %}
+{% if test_type == 'promise' %}
 promise_test(async t => {
 {% else %}
 var t = async_test("{{ desc | double_quote_escape }}");
@@ -20,14 +20,14 @@ t.step(function() {
 {% endif %}
 
 {# Test body: #}
-  var canvas = new OffscreenCanvas({{ width }}, {{ height }});
+  var canvas = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
   var ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
 
   {{ code | trim | indent(2)}}
   t.done();
 
 {#- Promise vs. async test footer: +#}
-{% if promise_test %}
+{% if test_type == 'promise' %}
 }, "{{ desc }}");
 {% else %}
 });

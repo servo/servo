@@ -29,7 +29,7 @@ test(function(t) {
   getComputedStyle(div).shapeOutside;
 
   div.style.shapeOutside = 'circle(26px)';
-  assert_equals(getComputedStyle(div).shapeOutside, 'circle(0px at 50% 50%)',
+  assert_equals(getComputedStyle(div).shapeOutside, 'circle(0px)',
                 'The radius of circle is clamped to zero at 61%');
 }, 'Test circle with negative easing on shape-outside');
 
@@ -42,7 +42,7 @@ test(function(t) {
 
   div.style.shapeOutside = 'ellipse(26px 26px)';
   assert_equals(getComputedStyle(div).shapeOutside,
-                'ellipse(0px 0px at 50% 50%)',
+                'ellipse(0px 0px)',
                 'The radius of ellipse is clamped to zero at 61%');
 }, 'Test ellipse with negative easing on shape-outside');
 

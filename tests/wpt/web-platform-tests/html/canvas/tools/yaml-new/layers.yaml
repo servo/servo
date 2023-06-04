@@ -1,6 +1,6 @@
 - name: 2d.layer.global-states
   desc: Checks that layers correctly use global render states.
-  size: 200, 200
+  size: [200, 200]
   code: |
     ctx.fillStyle = 'rgba(0, 0, 255, 1)';
 
@@ -8,7 +8,7 @@
     circle.arc(90, 90, 45, 0, 2 * Math.PI);
     ctx.fill(circle);
 
-    %(render-states)s
+    {{ render_states }}
 
     ctx.beginLayer();
 
@@ -29,7 +29,7 @@
     circle.arc(90, 90, 45, 0, 2 * Math.PI);
     ctx.fill(circle);
 
-    %(render-states)s
+    {{ render_states }}
 
     canvas2 = document.createElement("canvas");
     ctx2 = canvas2.getContext("2d");
@@ -43,54 +43,54 @@
     ctx.drawImage(canvas2, 0, 0);
   variants: &global-state-variants
     no-global-states:
-      render-states: // No global states.
+      render_states: // No global states.
     alpha:
-      render-states: ctx.globalAlpha = 0.6;
+      render_states: ctx.globalAlpha = 0.6;
     blending:
-      render-states: ctx.globalCompositeOperation = 'multiply';
+      render_states: ctx.globalCompositeOperation = 'multiply';
     composite:
-      render-states: ctx.globalCompositeOperation = 'source-in';
+      render_states: ctx.globalCompositeOperation = 'source-in';
     shadow:
-      render-states: |-
+      render_states: |-
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
     alpha.blending:
-      render-states: |-
+      render_states: |-
         ctx.globalAlpha = 0.6;
         ctx.globalCompositeOperation = 'multiply';
     alpha.composite:
-      render-states: |-
+      render_states: |-
         ctx.globalAlpha = 0.6;
         ctx.globalCompositeOperation = 'source-in';
     alpha.shadow:
-      render-states: |-
+      render_states: |-
         ctx.globalAlpha = 0.5;
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
     alpha.blending.shadow:
-      render-states: |-
+      render_states: |-
         ctx.globalAlpha = 0.6;
         ctx.globalCompositeOperation = 'multiply';
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
     alpha.composite.shadow:
-      render-states: |-
+      render_states: |-
         ctx.globalAlpha = 0.6;
         ctx.globalCompositeOperation = 'source-in';
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
     blending.shadow:
-      render-states: |-
+      render_states: |-
         ctx.globalCompositeOperation = 'multiply';
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
     composite.shadow:
-      render-states: |-
+      render_states: |-
         ctx.globalCompositeOperation = 'source-in';
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
@@ -99,7 +99,7 @@
 
 - name: 2d.layer.global-states.filter
   desc: Checks that layers with filters correctly use global render states.
-  size: 200, 200
+  size: [200, 200]
   code: |
     ctx.fillStyle = 'rgba(0, 0, 255, 1)';
 
@@ -107,7 +107,7 @@
     circle.arc(90, 90, 45, 0, 2 * Math.PI);
     ctx.fill(circle);
 
-    %(render-states)s
+    {{ render_states }}
 
     ctx.beginLayer([
         {filter: 'colorMatrix', values: [0.393, 0.769, 0.189, 0, 0,
@@ -127,9 +127,9 @@
   reference: |
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg"
-            width="200" height="200"
+            width="{{ size[0] }}" height="{{ size[1] }}"
             color-interpolation-filters="sRGB">
-        <filter id="filter" x="-100%%" y="-100%%" width="300%%" height="300%%">
+        <filter id="filter" x="-100%" y="-100%" width="300%" height="300%">
           <feColorMatrix
               type="matrix"
               values="0.393 0.769 0.189 0 0
@@ -148,8 +148,8 @@
       </svg>`;
 
     const img = new Image();
-    img.width = 200;
-    img.height = 200;
+    img.width = {{ size[0] }};
+    img.height = {{ size[1] }};
     img.onload = () => {
       ctx.fillStyle = 'rgba(0, 0, 255, 1)';
 
@@ -157,7 +157,7 @@
       circle.arc(90, 90, 45, 0, 2 * Math.PI);
       ctx.fill(circle);
 
-      %(render-states)s
+      {{ render_states }}
 
       ctx.drawImage(img, 0, 0);
     };
@@ -167,7 +167,7 @@
 
 - name: 2d.layer.nested
   desc: Tests nested canvas layers.
-  size: 200, 200
+  size: [200, 200]
   code: |
     var circle = new Path2D();
     circle.arc(90, 90, 40, 0, 2 * Math.PI);
@@ -220,7 +220,7 @@
 
 - name: 2d.layer.restore-style
   desc: Test that ensure layers restores style values upon endLayer.
-  size: 200, 200
+  size: [200, 200]
   fuzzy: maxDifference=0-1; totalPixels=0-950
   code: |
     ctx.fillStyle = 'rgba(0,0,255,1)';
@@ -249,7 +249,7 @@
 
 - name: 2d.layer.unclosed
   desc: Check that layers are rendered even if not closed.
-  size: 200, 200
+  size: [200, 200]
   code: |
     ctx.fillStyle = 'purple';
     ctx.fillRect(60, 60, 75, 50);
@@ -274,7 +274,7 @@
 
 - name: 2d.layer.render-opportunities
   desc: Check that layers state stack is flushed and rebuilt on frame renders.
-  size: 200, 200
+  size: [200, 200]
   code: |
     ctx.fillStyle = 'purple';
     ctx.fillRect(60, 60, 75, 50);
@@ -286,7 +286,7 @@
     ctx.fillRect(50, 50, 75, 50);
 
     // Force a flush and restoration of the state stack:
-    %(flush_canvas)s
+    {{ flush_canvas }}
 
     ctx.fillRect(70, 70, 75, 50);
     ctx.fillStyle = 'orange';
@@ -324,11 +324,11 @@
       flush_canvas: createImageBitmap(canvas);
     drawImage:
       flush_canvas: |-
-        const canvas2 = new OffscreenCanvas(200, 200);
+        const canvas2 = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
         const ctx2 = canvas2.getContext('2d');
         ctx2.drawImage(canvas, 0, 0);
     getImageData:
-      flush_canvas: ctx.getImageData(0, 0, 200, 200);
+      flush_canvas: ctx.getImageData(0, 0, {{ size[0] }}, {{ size[1] }});
     requestAnimationFrame:
       canvasType: ['HTMLCanvas']
       test_type: "promise"
@@ -336,7 +336,7 @@
         await new Promise(resolve => requestAnimationFrame(resolve));
     putImageData:
       flush_canvas: |-
-        const canvas2 = new OffscreenCanvas(200, 200);
+        const canvas2 = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
         const ctx2 = canvas2.getContext('2d');
         ctx.putImageData(ctx2.getImageData(0, 0, 1, 1), 0, 0);
     toBlob:
@@ -351,7 +351,7 @@
 
 - name: 2d.layer.render-opportunities.transferToImageBitmap
   desc: Checks that transferToImageBitmap flushes and rebuilds the state stack.
-  size: 200, 200
+  size: [200, 200]
   canvasType: ['OffscreenCanvas', 'Worker']
   code: |
     ctx.fillStyle = 'purple';
@@ -391,7 +391,7 @@
   desc: >-
     Test to ensure beginlayer works for filter, alpha and shadow, even with
     consecutive layers.
-  size: 500, 500
+  size: [500, 500]
   fuzzy: maxDifference=0-3; totalPixels=0-6318
   code: |
     ctx.fillStyle = 'rgba(0, 0, 255, 1)';
@@ -441,7 +441,7 @@
   desc: >-
     A test to make sure an unmatched endLayer is a no-op and has no effect on
     the code following it.
-  size: 200, 200
+  size: [200, 200]
   code: |
     ctx.fillStyle = 'rgba(0, 0, 255, 1)';
     ctx.fillRect(60, 60, 75, 50);
@@ -473,7 +473,7 @@
 
 - name: 2d.layer.endlayer.alone
   desc: A test to make sure a single endLayer with no beginLayer is a no-op.
-  size: 200, 200
+  size: [200, 200]
   code: |
     ctx.fillStyle = 'rgba(0, 0, 255, 1)';
     ctx.fillRect(60, 60, 75, 50);

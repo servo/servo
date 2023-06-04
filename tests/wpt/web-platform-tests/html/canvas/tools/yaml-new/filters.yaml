@@ -349,13 +349,13 @@
 
 - name: 2d.filter.canvasFilterObject.dropShadow.tentative
   desc: Test CanvasFilter() dropShadow object.
-  size: 520, 420
+  size: [520, 420]
   code: |
     ctx.fillStyle = 'teal';
-    ctx.fillRect(0, 0, 520, 50);
-    ctx.fillRect(0, 100, 520, 50);
-    ctx.fillRect(0, 200, 520, 50);
-    ctx.fillRect(0, 300, 520, 50);
+    ctx.fillRect(0, 0, {{ size[0] }}, 50);
+    ctx.fillRect(0, 100, {{ size[0] }}, 50);
+    ctx.fillRect(0, 200, {{ size[0] }}, 50);
+    ctx.fillRect(0, 300, {{ size[0] }}, 50);
 
     ctx.fillStyle = 'crimson';
 
@@ -446,7 +446,7 @@
     ctx.fillRect(210, 310, 80, 80);
   html_reference: |
     <svg xmlns="http://www.w3.org/2000/svg"
-         width=520 height=420
+         width={{ size[0] }} height={{ size[1] }}
          color-interpolation-filters="sRGB">
       <rect x=0 y=0 width=100% height=50 fill="teal" />
       <rect x=0 y=100 width=100% height=50 fill="teal" />

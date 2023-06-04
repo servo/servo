@@ -115,7 +115,7 @@ class Virtualenv:
         if "venv" in schemes:
             scheme = "venv"
         else:
-            scheme = "nt_user" if os.name == "nt" else "posix_user"
+            scheme = "nt" if os.name == "nt" else "posix_user"
         sys_paths = sysconfig.get_paths(scheme)
         data_path = sys_paths["data"]
         added = set()

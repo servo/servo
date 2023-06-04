@@ -500,6 +500,7 @@ jobs:
       export SYSTEM_VERSION_COMPAT=0
       ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-mach - --log-mach-level info --channel stable --kill-safari safari
     displayName: 'Run tests'
+    retryCountOnTaskFailure: 2
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:
@@ -540,6 +541,7 @@ jobs:
       export SYSTEM_VERSION_COMPAT=0
       ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-mach - --log-mach-level info --channel preview --kill-safari safari
     displayName: 'Run tests'
+    retryCountOnTaskFailure: 2
   - task: PublishBuildArtifacts@1
     displayName: 'Publish results'
     inputs:

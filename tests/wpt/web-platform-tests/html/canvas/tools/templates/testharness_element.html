@@ -15,14 +15,16 @@
 
 {% endif %}
 <p class="output">Actual output:</p>
-<canvas id="c" class="output" width="{{ width }}" height="{{ height }}"
+<canvas id="c" class="output" width="{{ size[0] }}" height="{{ size[1] }}"
   {{- canvas}}><p class="fallback">FAIL (fallback content)</p></canvas>
-{{ expected }}
+{% if expected_img %}
+<p class="output expectedtext">Expected output:<p><img src="{{ expected_img }}" class="output expected" id="expected" alt="">
+{%- endif +%}
 <ul id="d"></ul>
 <script>
 
 {#- Promise vs. async test header: +#}
-{% if promise_test %}
+{% if test_type == 'promise' %}
 promise_test(async t => {
 
   var canvas = document.getElementById('c');
@@ -36,11 +38,16 @@ _addTest(function(canvas, ctx) {
   {{ code | trim | indent(2) }}
 
 {# Promise vs. async test footer: #}
-{% if promise_test %}
+{% if test_type == 'promise' %}
 }, "{{ desc }}");
 {% else %}
 }{% if attributes %}, {{ attributes }}{% endif %});
 {% endif -%}
 
 </script>
-{{ images }}
+{% for image in images %}
+<img src="/images/{{ image }}" id="{{ image }}" class="resource">
+{% endfor -%}
+{% for svgimage in svgimages %}
+<svg><image xlink:href="/images/{{ svgimage }}" id="{{ svgimage }}" class="resource"></svg>
+{% endfor +%}

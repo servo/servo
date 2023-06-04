@@ -12,6 +12,11 @@
 <body>
 <script>
 test_invalid_value('font-variant', 'normal none');
+test_invalid_value('font-variant', 'none normal');
+test_invalid_value('font-variant', 'small-caps normal');
+test_invalid_value('font-variant', 'normal small-caps');
+test_invalid_value('font-variant', 'small-caps none');
+test_invalid_value('font-variant', 'none small-caps');
 
 // <common-lig-values>
 test_invalid_value('font-variant', 'common-ligatures no-common-ligatures');

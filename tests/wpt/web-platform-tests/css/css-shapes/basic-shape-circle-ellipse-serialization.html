@@ -25,14 +25,14 @@ checkEquals("ellipse(at right calc(10% + 5px))",
             "ellipse(at 100% calc(10% + 5px))");
 
 // Only 2 or 4 value form allowed
-checkEquals("circle()", "circle(at 50% 50%)");
-checkEquals("circle(0px)", "circle(0px at 50% 50%)");
-checkEquals("circle(closest-side)", "circle(at 50% 50%)");
+checkEquals("circle()", "circle()");
+checkEquals("circle(0px)", "circle(0px)");
+checkEquals("circle(closest-side)", "circle()");
 checkEquals("circle(farthest-side)",
-            "circle(farthest-side at 50% 50%)");
-checkEquals("ellipse()", "ellipse(at 50% 50%)");
+            "circle(farthest-side)");
+checkEquals("ellipse()", "ellipse()");
 checkEquals("ellipse(closest-side farthest-side)",
-            "ellipse(closest-side farthest-side at 50% 50%)");
+            "ellipse(closest-side farthest-side)");
 
 
 checkEquals("circle(at top 0% right 5px)", "circle(at right 5px top 0%)");

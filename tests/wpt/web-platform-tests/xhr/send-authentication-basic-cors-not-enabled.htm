@@ -5,6 +5,7 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/common/utils.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol[1]/li[9]/ol[1]/li[1] following::ol[1]/li[9]/ol[1]/li[2]" />
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::code[contains(@title,'http-authorization')]/.." />
   </head>
@@ -13,10 +14,10 @@
     <script>
       test(function() {
         var client = new XMLHttpRequest(),
-          urlstart = 'www1.'+location.host + location.pathname.replace(/\/[^\/]*$/, '/')
+          urlstart = get_host_info().REMOTE_ORIGIN + location.pathname.replace(/\/[^\/]*$/, '/')
         client.withCredentials = true
         user = token()
-        client.open("GET", location.protocol+'//'+urlstart + "resources/auth10/auth.py", false, user, 'pass')
+        client.open("GET", urlstart + "resources/auth10/auth.py", false, user, 'pass')
         client.setRequestHeader("x-user", user)
         assert_throws_dom("NetworkError", function(){ client.send(null) })
         assert_equals(client.responseText, '')

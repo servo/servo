@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<style>
+  body { margin: 0 }
+  .content {
+    height: 200px;
+    background: lightblue;
+  }
+  .spacer {
+    height: 300vh;
+  }
+</style>
+<div class="content"></div>
+<div class="content" style="background: green"></div>
+<div class="spacer"></div>
+<script>
+const anchor = document.querySelectorAll(".content")[1];
+
+const t = async_test("Scroll adjustments happen even if it's triggered from scroll event listeners");
+window.addEventListener("scroll", t.step_func(function() {
+  // Forcibly flush layout, this will flush the pending the node insertion.
+  let scrollPosition = window.scrollY;
+
+  requestAnimationFrame(t.step_func(function() {
+    requestAnimationFrame(t.step_func(function() {
+      assert_equals(window.scrollY, 400);
+      t.done();
+    }));
+  }));
+}), { once: true });
+
+window.onload = t.step_func(function() {
+  requestAnimationFrame(t.step_func(function() {
+    // Scroll to the anchor node in a requestAnimationFrame callback so that
+    // it queues a scroll event which will be fired in the next event loop.
+    anchor.scrollIntoView({ behavior: "instant" });
+
+    // Then in a setTimeout callback insert an element just right before the
+    // anchor node, it will run before firing the scroll event.
+    t.step_timeout(function() {
+      const content = document.createElement("div");
+      content.classList.add("content");
+      content.style.background = "red";
+      anchor.before(content);
+    }, 0);
+  }));
+});
+
+</script>

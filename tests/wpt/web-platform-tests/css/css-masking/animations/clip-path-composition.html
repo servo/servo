@@ -92,8 +92,8 @@ test_composition({
   addFrom: 'ellipse()',
   addTo: 'ellipse(closest-side farthest-side)',
 }, [
-  {at: 0.25, expect: 'ellipse(at 50% 50%)'},
-  {at: 0.75, expect: 'ellipse(closest-side farthest-side at 50% 50%)'},
+  {at: 0.25, expect: 'ellipse()'},
+  {at: 0.75, expect: 'ellipse(closest-side farthest-side)'},
 ]);
 
 test_composition({

@@ -7907,6 +7907,22 @@
     "search": "",
     "hash": ""
   },
+  "Percent-encoded http: in blob:",
+  {
+    "input": "blob:http%3a//example.org/",
+    "base": null,
+    "href": "blob:http%3a//example.org/",
+    "origin": "null",
+    "protocol": "blob:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": "http%3a//example.org/",
+    "search": "",
+    "hash": ""
+  },
   "Invalid IPv4 radix digits",
   {
     "input": "http://0x7f.0.0.0x7g",
@@ -9484,5 +9500,35 @@
     "input": "stun://[:1]",
     "base": null,
     "failure": true
+  },
+  {
+    "input": "w://x:0",
+    "base": null,
+    "href": "w://x:0",
+    "origin": "null",
+    "protocol": "w:",
+    "username": "",
+    "password": "",
+    "host": "x:0",
+    "hostname": "x",
+    "port": "0",
+    "pathname": "",
+    "search": "",
+    "hash": ""
+  },
+  {
+    "input": "west://x:0",
+    "base": null,
+    "href": "west://x:0",
+    "origin": "null",
+    "protocol": "west:",
+    "username": "",
+    "password": "",
+    "host": "x:0",
+    "hostname": "x",
+    "port": "0",
+    "pathname": "",
+    "search": "",
+    "hash": ""
   }
 ]

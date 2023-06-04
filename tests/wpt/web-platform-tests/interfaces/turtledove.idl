@@ -95,6 +95,7 @@ interface InterestGroupScoringScriptRunnerGlobalScope
 interface InterestGroupReportingScriptRunnerGlobalScope
         : InterestGroupScriptRunnerGlobalScope {
   undefined sendReportTo(DOMString url);
+  undefined registerAdBeacon(record<DOMString, USVString> map);
 };
 
 dictionary AdRender {

@@ -27,7 +27,7 @@ typedef [EnforceRange] unsigned long long SmallCryptoKeyID;
 typedef (SmallCryptoKeyID or bigint) CryptoKeyID;
 
 [Exposed=(Window,DedicatedWorker)]
-interface SFrameTransform {
+interface SFrameTransform : EventTarget {
     constructor(optional SFrameTransformOptions options = {});
     Promise<undefined> setEncryptionKey(CryptoKey key, optional CryptoKeyID keyID);
     attribute EventHandler onerror;

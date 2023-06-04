@@ -17,7 +17,7 @@
         {
             var xhr = new XMLHttpRequest();
 
-            xhr.open("POST", "http://nonexistent.{{host}}:{{ports[http][0]}}", false);
+            xhr.open("POST", "http://{{host}}:1", false); // Bad port.
 
             assert_throws_dom("NetworkError", function()
             {

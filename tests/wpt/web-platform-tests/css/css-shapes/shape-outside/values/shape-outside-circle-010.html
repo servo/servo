@@ -20,7 +20,7 @@
         <script type="text/javascript">
             var circle_calc_tests = [];
             ParsingUtils.calcTestValues.forEach(function(value) {
-                testCase = ['circle('+ value[0] +')', 'circle('+ value[1] + ' at 50% 50%)'];
+                testCase = ['circle('+ value[0] + ' at 50% 50%)', 'circle('+ value[1] + ' at 50% 50%)'];
                 if(Object.prototype.toString.call( value[2] ) === '[object Array]' && value[2].length == 2) {
                     testCase.push([ 'circle('+ value[2][0] + ' at 50% 50%)', 'circle('+ value[2][1] + ' at 50% 50%)']);
                 } else {

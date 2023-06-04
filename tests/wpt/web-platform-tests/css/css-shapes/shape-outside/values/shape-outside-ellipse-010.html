@@ -21,7 +21,7 @@
             var ellipse_calc_tests = [];
             var defaultPosition = ' at 50% 50%';
             ParsingUtils.calcTestValues.forEach(function(value) {
-                testCase = ['ellipse(farthest-side '+ value[0] +')',
+                testCase = ['ellipse(farthest-side '+ value[0] + defaultPosition + ')',
                             'ellipse(farthest-side '+ value[1] + defaultPosition +')'];
                 if(Object.prototype.toString.call( value[2] ) === '[object Array]' && value[2].length == 2) {
                     testCase.push([
@@ -34,7 +34,7 @@
                 ellipse_calc_tests.push(testCase);
             });
             ParsingUtils.calcTestValues.forEach(function(value) {
-                testCase = ['ellipse('+ value[0] +' '+ value[0] +')',
+                testCase = ['ellipse('+ value[0] +' '+ value[0] + defaultPosition + ')',
                             'ellipse('+ value[1] +' '+ value[1] + defaultPosition +')'];
                 if(Object.prototype.toString.call( value[2] ) === '[object Array]' && value[2].length == 2) {
                     testCase.push([
