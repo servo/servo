@@ -700,16 +700,17 @@ class TestRunnerManager(threading.Thread):
 
         self.test_count += 1
         is_unexpected = expected != status and status not in known_intermittent
+        is_pass_or_expected = status in ["OK", "PASS"] or (not is_unexpected)
 
         if is_unexpected or subtest_unexpected:
             self.unexpected_tests.add(test.id)
 
         # A result is unexpected pass if the test or any subtest run
-        # unexpectedly, and the overall status is OK (for test harness test), or
-        # PASS (for reftest), and all unexpected results for subtests (if any) are
-        # unexpected pass.
+        # unexpectedly, and the overall status is expected or passing (OK for test
+        # harness test, or PASS for reftest), and all unexpected results for
+        # subtests (if any) are unexpected pass.
         is_unexpected_pass = ((is_unexpected or subtest_unexpected) and
-                              status in ["OK", "PASS"] and subtest_all_pass_or_expected)
+                              is_pass_or_expected and subtest_all_pass_or_expected)
         if is_unexpected_pass:
             self.unexpected_pass_tests.add(test.id)
 

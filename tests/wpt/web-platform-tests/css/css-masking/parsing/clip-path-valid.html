@@ -25,15 +25,15 @@ test_valid_value("clip-path", "inset(0px round 0px 1px 2%)");
 test_valid_value("clip-path", "inset(0px round 0px 1px 2% 3em)");
 test_valid_value("clip-path", "inset(10px round 20% / 0px 1px 2% 3em)");
 
-test_valid_value("clip-path", "circle()", "circle(at 50% 50%)");
-test_valid_value("clip-path", "circle(1px)", "circle(1px at 50% 50%)");
-test_valid_value("clip-path", "circle(closest-side)", "circle(at 50% 50%)");
+test_valid_value("clip-path", "circle()");
+test_valid_value("clip-path", "circle(1px)", "circle(1px)");
+test_valid_value("clip-path", "circle(closest-side)", "circle()");
 test_valid_value("clip-path", "circle(at 10% 20%)");
 test_valid_value("clip-path", "circle(farthest-side at center top)", "circle(farthest-side at 50% 0%)");
 test_valid_value("clip-path", "circle(4% at top right)", "circle(4% at 100% 0%)");
 
-test_valid_value("clip-path", "ellipse()", "ellipse(at 50% 50%)");
-test_valid_value("clip-path", "ellipse(1px closest-side)", "ellipse(1px closest-side at 50% 50%)");
+test_valid_value("clip-path", "ellipse()");
+test_valid_value("clip-path", "ellipse(1px closest-side)");
 test_valid_value("clip-path", "ellipse(at 10% 20%)");
 test_valid_value("clip-path", "ellipse(closest-side closest-side at 10% 20%)", "ellipse(at 10% 20%)");
 test_valid_value("clip-path", "ellipse(farthest-side 4% at bottom left)", "ellipse(farthest-side 4% at 0% 100%)");

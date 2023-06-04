@@ -140,13 +140,16 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     if test_type == "wdspec":
         options = {"args": []}
         if kwargs["binary"]:
-            options["binary"] = kwargs["binary"]
+            if "webdriver_args" not in executor_kwargs:
+                executor_kwargs["webdriver_args"] = []
+            executor_kwargs["webdriver_args"].extend(["--binary", kwargs["binary"]])
         if kwargs["binary_args"]:
             options["args"] = kwargs["binary_args"]
 
         if not kwargs["binary"] and kwargs["headless"] and "--headless" not in options["args"]:
             options["args"].append("--headless")
 
+        executor_kwargs["binary_args"] = options["args"]
         capabilities["moz:firefoxOptions"] = options
 
     if kwargs["certutil_binary"] is None:

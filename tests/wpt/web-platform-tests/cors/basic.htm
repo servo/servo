@@ -43,12 +43,12 @@ function cors(desc, scheme, subdomain = "", port = location.port) {
 }
 
 cors("Same domain basic usage");
-cors("Cross domain basic usage", "http", "www1");
+cors("Cross domain basic usage", "http", "www1.");
 cors("Same domain different port", "http", undefined, PORT);
 
-cors("Cross domain different port", "http", "www1", PORT);
+cors("Cross domain different port", "http", "www1.", PORT);
 
-cors("Cross domain different protocol", "https", "www1", PORTS);
+cors("Cross domain different protocol", "https", "www1.", PORTS);
 
 cors("Same domain different protocol different port", "https", undefined, PORTS);
 

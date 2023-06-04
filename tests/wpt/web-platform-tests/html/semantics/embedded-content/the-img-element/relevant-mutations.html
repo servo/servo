@@ -3,6 +3,7 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="support/relevant-mutations.js"></script>
 <div id=log></div>
 
 <!-- should invoke update the image data -->
@@ -152,22 +153,6 @@
 
 
 <script>
-setup({explicit_done:true});
-
-function t(desc, func, expect) {
-  async_test(function() {
-    var img = document.querySelector('[data-desc="' + desc + '"]');
-    img.onload = img.onerror = this.unreached_func('update the image data was run');
-    if (expect == 'timeout') {
-      setTimeout(this.step_func_done(), 1000);
-    } else {
-      img['on' + expect] = this.step_func_done();
-      setTimeout(this.unreached_func('update the image data didn\'t run'), 1000);
-    }
-    func.call(this, img);
-  }, desc);
-}
-
 onload = function() {
 
   t('src set', function(img) {

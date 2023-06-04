@@ -65,7 +65,7 @@
           element.setAttribute('id', 'element');
           container.append(element);
         });
-        func();
+        await func();
       } finally {
         while (container.firstChild)
           container.firstChild.remove();
@@ -73,63 +73,81 @@
     }, description);
   }
 
-  test_animation_timeline(() => {
+  test_animation_timeline(async () => {
+    let animation = element.getAnimations()[0];
     assert_equals(getComputedStyle(element).width, '120px');
     element.style = 'animation-timeline:--timeline2';
+    await animation.ready;
+
     assert_equals(getComputedStyle(element).width, '140px');
   }, 'Changing animation-timeline changes the timeline (sanity check)');
 
-  test_animation_timeline(() => {
+  test_animation_timeline(async () => {
+    let animation = element.getAnimations()[0];
     assert_equals(getComputedStyle(element).width, '120px');
 
     // Set a (non-CSS) ScrollTimeline on the CSSAnimation.
     let timeline4 = new ScrollTimeline({ source: scroller4 });
 
-    element.getAnimations()[0].timeline = timeline4;
+    animation.timeline = timeline4;
+    await animation.ready;
     assert_equals(getComputedStyle(element).width, '180px');
 
     // Changing the animation-timeline property should have no effect.
     element.style = 'animation-timeline:--timeline2';
+    await animation.ready;
+
     assert_equals(getComputedStyle(element).width, '180px');
   }, 'animation-timeline ignored after setting timeline with JS ' +
      '(ScrollTimeline from JS)');
 
-  test_animation_timeline(() => {
+  test_animation_timeline(async () => {
+    let animation = element.getAnimations()[0];
     assert_equals(getComputedStyle(element).width, '120px');
 
-    let animation = element.getAnimations()[0];
     let timeline1 = animation.timeline;
     element.style = 'animation-timeline:--timeline2';
+    await animation.ready;
     assert_equals(getComputedStyle(element).width, '140px');
 
     animation.timeline = timeline1;
+    await animation.ready;
+
     assert_equals(getComputedStyle(element).width, '120px');
 
     // Should have no effect.
     element.style = 'animation-timeline:--timeline3';
+    await animation.ready;
+
     assert_equals(getComputedStyle(element).width, '120px');
   }, 'animation-timeline ignored after setting timeline with JS ' +
      '(ScrollTimeline from CSS)');
 
-  test_animation_timeline(() => {
+  test_animation_timeline(async () => {
+    let animation = element.getAnimations()[0];
     assert_equals(getComputedStyle(element).width, '120px');
-    element.getAnimations()[0].timeline = document.timeline;
+    animation.timeline = document.timeline;
+    await animation.ready;
 
     // (The animation continues from where the previous timeline left it).
     assert_equals(getComputedStyle(element).width, '120px');
 
     // Changing the animation-timeline property should have no effect.
     element.style = 'animation-timeline:--timeline2';
+    await animation.ready;
     assert_equals(getComputedStyle(element).width, '120px');
   }, 'animation-timeline ignored after setting timeline with JS (document timeline)');
 
-  test_animation_timeline(() => {
+  test_animation_timeline(async () => {
+    let animation = element.getAnimations()[0];
     assert_equals(getComputedStyle(element).width, '120px');
-    element.getAnimations()[0].timeline = null;
+    animation.timeline = null;
+    assert_false(animation.pending);
     assert_equals(getComputedStyle(element).width, '120px');
 
     // Changing the animation-timeline property should have no effect.
     element.style = 'animation-timeline:--timeline2';
+    assert_false(animation.pending);
     assert_equals(getComputedStyle(element).width, '120px');
   }, 'animation-timeline ignored after setting timeline with JS (null)');
 </script>

@@ -12,11 +12,11 @@
 <body>
 <div id="target"></div>
 <script>
-test_computed_value('list-style', 'none', 'outside none none');
+test_computed_value('list-style', 'outside none none', 'none');
 
-test_computed_value('list-style', 'inside', 'inside none disc');
-test_computed_value('list-style', 'url("https://{{host}}/")', 'outside url("https://{{host}}/") disc');
-test_computed_value('list-style', 'square', 'outside none square');
+test_computed_value('list-style', 'inside none disc', 'inside');
+test_computed_value('list-style', 'outside url("https://{{host}}/") disc', 'url("https://{{host}}/")');
+test_computed_value('list-style', 'outside none square', 'square');
 
 test_computed_value('list-style', 'inside url("https://{{host}}/") square');
 </script>

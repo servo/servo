@@ -3,14 +3,22 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+function createMarker() {
+  let markerElement = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+  markerElement.setAttribute("markerUnits", "userSpaceOnUse");
+  markerElement.setAttribute("orient", "auto");
+  return markerElement;
+}
+
+function createSVGAngle() {
+  let svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  return svgElement.createSVGAngle();
+}
+
 test(function() {
   // This test checks the use of SVGAnimatedEnumeration within SVGMarkerElement.
 
-  var markerElement = document.createElementNS("http://www.w3.org/2000/svg", "marker");
-  markerElement.setAttribute("markerUnits", "userSpaceOnUse");
-  markerElement.setAttribute("orient", "auto");
-
-  var svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  let markerElement = createMarker();
 
   // markerUnits
   // Check initial 'markerUnits' value.
@@ -40,6 +48,10 @@ test(function() {
   markerElement.markerUnits.baseVal = SVGMarkerElement.SVG_MARKERUNITS_USERSPACEONUSE;
   assert_equals(markerElement.markerUnits.baseVal, SVGMarkerElement.SVG_MARKERUNITS_USERSPACEONUSE);
   assert_equals(markerElement.getAttribute('markerUnits'), "userSpaceOnUse");
+}, "Test SVGAnimatedEnumeration");
+
+test(function() {
+  let markerElement = createMarker();
 
   // orientType
   // Check initial 'orient' value.
@@ -50,7 +62,7 @@ test(function() {
   assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_AUTO);
 
   // Switch to 'Pi/2 rad' value - via setOrientToAngle().
-  anglePiHalfRad = svgElement.createSVGAngle();
+  let anglePiHalfRad = createSVGAngle();
   anglePiHalfRad.newValueSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_RAD, (Math.PI / 2).toFixed(2));
   markerElement.setOrientToAngle(anglePiHalfRad);
   assert_equals(markerElement.orientAngle.baseVal.value.toFixed(1), "90.0");
@@ -66,7 +78,7 @@ test(function() {
   assert_equals(markerElement.getAttribute('orient'), "auto");
 
   // Switch to '20deg' value - via setOrientToAngle().
-  angle20deg = svgElement.createSVGAngle();
+  let angle20deg = createSVGAngle();
   angle20deg.newValueSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_DEG, 20);
   markerElement.setOrientToAngle(angle20deg);
   assert_equals(markerElement.orientAngle.baseVal.value, 20);
@@ -90,15 +102,6 @@ test(function() {
 
   markerElement.setAttribute('orient', '10deg');
 
-  // Switch to 'auto-start-reverse' value - by modifying orientType.
-  markerElement.orientType.baseVal = SVGMarkerElement.SVG_MARKER_ORIENT_AUTO_START_REVERSE;
-  assert_equals(markerElement.orientAngle.baseVal.value, 0);
-  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_UNSPECIFIED);
-  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_AUTO_START_REVERSE);
-  assert_equals(markerElement.getAttribute('orient'), "auto-start-reverse");
-
-  markerElement.setAttribute('orient', '10deg');
-
   // Try setting invalid values.
   assert_throws_js(TypeError, function() { markerElement.orientType.baseVal = 4; });
   assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
@@ -118,5 +121,38 @@ test(function() {
   assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_UNSPECIFIED);
   assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_AUTO);
   assert_equals(markerElement.getAttribute('orient'), "auto");
-});
+}, "Test SVGOrient");
+
+test(function() {
+  let markerElement = createMarker();
+
+  markerElement.setAttribute('orient', '400grad');
+  assert_equals(markerElement.orientAngle.baseVal.value, 360);
+  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_GRAD);
+}, "Test grad units");
+
+test(function() {
+  let markerElement = createMarker();
+
+  markerElement.setAttribute('orient', '1turn');
+  assert_equals(markerElement.orientAngle.baseVal.value, 360);
+  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_UNKNOWN);
+
+  let angle = createSVGAngle();
+  angle = markerElement.orientAngle.baseVal;
+  angle.value = 720;
+  markerElement.setOrientToAngle(angle);
+  assert_equals(markerElement.getAttribute('orient'), "2turn");
+}, "Test turn units");
+
+test(function() {
+  let markerElement = createMarker();
+
+  // Switch to 'auto-start-reverse' value - by modifying orientType.
+  markerElement.orientType.baseVal = SVGMarkerElement.SVG_MARKER_ORIENT_AUTO_START_REVERSE;
+  assert_equals(markerElement.orientAngle.baseVal.value, 0);
+  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_UNSPECIFIED);
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_AUTO_START_REVERSE);
+  assert_equals(markerElement.getAttribute('orient'), "auto-start-reverse");
+}, "Test auto-start-reverse");
 </script>

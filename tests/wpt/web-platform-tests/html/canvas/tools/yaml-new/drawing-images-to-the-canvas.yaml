@@ -187,19 +187,6 @@
     }), 500);
   expected: green
 
-- name: 2d.drawImage.animated.apng
-  desc: drawImage() of an APNG with no poster frame draws the first frame
-  canvasType: ['HTMLCanvas']
-  images:
-  - anim-gr.png
-  code: |
-    deferTest();
-    step_timeout(t.step_func_done(function () {
-        ctx.drawImage(document.getElementById('anim-gr.png'), 0, 0);
-        @assert pixel 50,25 ==~ 0,255,0,255;
-    }), 500);
-  expected: green
-
 # TODO: drawImage shadows
 
 - name: 2d.drawImage.3arg
@@ -398,7 +385,7 @@
 - name: 2d.drawImage.zerosource.image
   desc: drawImage with zero-sized source rectangle from image draws nothing without exception
   test_type: promise
-  canvasType: ['HTMLCanvas']
+  canvasType: ['HTMLCanvas', 'OffscreenCanvas']
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -421,19 +408,6 @@
     _assertPixel(canvas, 50, 25, 0, 255, 0, 255);
   expected: green
 
-- name: 2d.drawImage.zerosource.image
-  desc: drawImage with zero-sized source rectangle from image draws nothing without exception
-  test_type: promise
-  canvasType: ['OffscreenCanvas', 'Worker']
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    const response = await fetch('/images/red-zerowidth.svg');
-    const blob = await response.blob();
-    const bitmap = await createImageBitmap(blob);
-    ctx.drawImage(bitmap, 0, 0, 100, 50);
-    _assertPixel(canvas, 50,25, 0,255,0,255);
-  expected: green
 
 - name: 2d.drawImage.negativesource
   desc: Negative source width/height represents the correct rectangle
@@ -544,7 +518,7 @@
 - name: 2d.drawImage.svg
   desc: drawImage() of an SVG image
   test_type: promise
-  canvasType: ['HTMLCanvas']
+  canvasType: ['HTMLCanvas', 'OffscreenCanvas']
   code: |
     const img = new Image();
     const imageLoadPromise = new Promise((resolve, reject) => {
@@ -556,31 +530,6 @@
 
     ctx.drawImage(img, 0, 0);
     _assertPixelApprox(canvas, 50, 25, 0, 255, 0, 255, 2);
-  expected: green
-
-
-- name: 2d.drawImage.svg
-  desc: drawImage() of an SVG image
-  test_type: promise
-  canvasType: ['OffscreenCanvas', 'Worker']
-  code: |
-    const response = await fetch('/images/green.svg');
-    const blob = await response.blob();
-    const bitmap = await createImageBitmap(blob);
-    ctx.drawImage(bitmap, 0, 0);
-    _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-  expected: green
-
-- name: 2d.drawImage.animated.poster
-  desc: drawImage() of an APNG draws the poster frame
-  test_type: promise
-  code: |
-    const response = await fetch('/images/anim-poster-gr.png');
-    const blob = await response.blob();
-    const bitmap = await createImageBitmap(blob);
-
-    ctx.drawImage(bitmap, 0, 0);
-    @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
   expected: green
 
 - name: 2d.drawImage.path

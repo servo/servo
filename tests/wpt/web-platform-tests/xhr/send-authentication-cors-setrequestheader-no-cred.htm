@@ -5,6 +5,7 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/common/utils.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
     <!-- These spec references do not make much sense simply because the spec doesn't say very much about this.. -->
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method" data-tested-assertations="following::ol[1]/li[6]" />
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::code[contains(@title,'http-authorization')]/.." />
@@ -16,9 +17,9 @@
       var test = async_test(desc)
       test.step(function() {
         var client = new XMLHttpRequest(),
-            urlstart = location.host + location.pathname.replace(/\/[^\/]*$/, '/'),
+            urlstart = get_host_info().REMOTE_ORIGIN + location.pathname.replace(/\/[^\/]*$/, '/'),
             user = token()
-        client.open("GET", location.protocol + "//www1." + urlstart + "resources/" + pathsuffix, false)
+        client.open("GET", urlstart + "resources/" + pathsuffix, false)
         client.setRequestHeader("x-user", user)
         client.setRequestHeader("x-pass", 'pass')
         client.setRequestHeader("Authorization", "Basic " + btoa(user + ":pass"))

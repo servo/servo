@@ -11,7 +11,7 @@
   </head>
   <body>
 
-  <p>Verifies Fallback Roles from <a href="https://w3c.github.io/aria/#document-handling_author-errors_roles">9.1 Roles - handling author errors</a></p>
+  <p>Tests <a href="https://w3c.github.io/aria/#host_general_role">8.1 Role Attribute</a> role token list selection and <a href="https://w3c.github.io/aria/#document-handling_author-errors_roles">9.1 Roles - handling author errors</a>.</p>
 
   <nav role="region group" data-testname="fallback role w/ region with no label" data-expectedrole="group" class="ex">x</nav>
   <nav role="region group" data-testname="fallback role w/ region with label" aria-label="x" data-expectedrole="region" class="ex">x</nav>
@@ -19,7 +19,7 @@
 <!-- todo: additional fallback roles:
 
 - valid/valid "switch checkbox"
-- valid/invalid "foo group"
+- invalid/valid "foo group"
 - unicode char tests with fallback
 - whitespace tests with fallback
 - unicode char tests with fallback

@@ -77,6 +77,25 @@ function midToRid(description, localDescription, rids) {
   }
 
   const localMid = localDescription ? SDPUtils.getMid(SDPUtils.splitSections(localDescription.sdp)[1]) : '0';
+  if (localDescription) {
+    const localVideoSection = SDPUtils.splitSections(localDescription.sdp)[1];
+    const localParameters = SDPUtils.parseRtpParameters(localVideoSection);
+
+    const localMidExtension = localParameters.headerExtensions
+      .find(ext => ext.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid');
+    if (localMidExtension) {
+      rtpParameters.headerExtensions.push(localMidExtension);
+    }
+  } else {
+    // Find unused id in remote description to formally have a mid.
+    for (let id = 1; id < 15; id++) {
+      if (rtpParameters.headerExtensions.find(ext => ext.id === id) === undefined) {
+        rtpParameters.headerExtensions.push(
+          {id, uri: 'urn:ietf:params:rtp-hdrext:sdes:mid'});
+        break;
+      }
+    }
+  }
 
   if (!rids) {
     rids = [];
@@ -165,8 +184,15 @@ async function doAnswerToSendSimulcast(offerer, answerer) {
   const sections = SDPUtils.splitSections(offerer.localDescription.sdp);
   sections.shift();
   const mids = sections.map(section => SDPUtils.getMid(section));
+  let nonSimulcastAnswer = ridToMid(answerer.localDescription, mids);
+  // Restore MID RTP header extension.
+  const localParameters = SDPUtils.parseRtpParameters(sections[0]);
 
-  const nonSimulcastAnswer = ridToMid(answerer.localDescription, mids);
+  const localMidExtension = localParameters.headerExtensions
+    .find(ext => ext.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid');
+  if (localMidExtension) {
+    nonSimulcastAnswer += SDPUtils.writeExtmap(localMidExtension);
+  }
   await offerer.setRemoteDescription({
     type: 'answer',
     sdp: nonSimulcastAnswer,

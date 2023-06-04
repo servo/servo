@@ -1,4 +1,4 @@
-const EMPTY_TOPICS_HEADER = 't=(), p=P000000000000000000000000000';
+const EMPTY_TOPICS_HEADER = '();p=P0000000000000000000000000000000';
 
 function test_topics_iframe_navigation_header(
     test, has_browsing_topics_attribute, is_same_origin, expect_topics_header_available_func) {

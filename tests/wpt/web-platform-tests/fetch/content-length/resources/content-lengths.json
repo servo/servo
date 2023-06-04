@@ -32,6 +32,22 @@
     "output": 30
   },
   {
+    "input": "Content-Length: 30,30\r\nContent-Length: 30,30",
+    "output": 30
+  },
+  {
+    "input": "Content-Length: 30,30,  30  \r\nContent-Length: 30  ",
+    "output": 30
+  },
+  {
+    "input": "Content-Length: 30,42\r\nContent-Length: 30",
+    "output": null
+  },
+  {
+    "input": "Content-Length: 30,42\r\nContent-Length: 30,42",
+    "output": null
+  },
+  {
     "input": "Content-Length: 42,30",
     "output": null
   },

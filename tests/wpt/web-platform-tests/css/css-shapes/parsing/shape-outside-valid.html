@@ -25,17 +25,17 @@ test_valid_value("shape-outside", "inset(0px round 0px 1px 2%)");
 test_valid_value("shape-outside", "inset(0px round 0px 1px 2% 3em)");
 test_valid_value("shape-outside", "inset(10px round 20% / 0px 1px 2% 3em)");
 
-test_valid_value("shape-outside", "circle()", "circle(at 50% 50%)");
-test_valid_value("shape-outside", "circle(1px)", "circle(1px at 50% 50%)");
-test_valid_value("shape-outside", "circle(closest-side)", "circle(at 50% 50%)");
+test_valid_value("shape-outside", "circle()");
+test_valid_value("shape-outside", "circle(1px)");
+test_valid_value("shape-outside", "circle(closest-side)", "circle()");
 test_valid_value("shape-outside", "circle(at 10% 20%)");
 test_valid_value("shape-outside", "circle(farthest-side at center top)", "circle(farthest-side at 50% 0%)");
 test_valid_value("shape-outside", "circle(4% at top right)", "circle(4% at 100% 0%)");
 
-test_valid_value("shape-outside", "ellipse()", "ellipse(at 50% 50%)");
-test_valid_value("shape-outside", "ellipse(3% 2%)", "ellipse(3% 2% at 50% 50%)");
-test_valid_value("shape-outside", "ellipse(closest-side 1px)", "ellipse(closest-side 1px at 50% 50%)");
-test_valid_value("shape-outside", "ellipse(10% closest-side)", "ellipse(10% closest-side at 50% 50%)");
+test_valid_value("shape-outside", "ellipse()", "ellipse()");
+test_valid_value("shape-outside", "ellipse(3% 2%)");
+test_valid_value("shape-outside", "ellipse(closest-side 1px)");
+test_valid_value("shape-outside", "ellipse(10% closest-side)");
 test_valid_value("shape-outside", "ellipse(closest-side closest-side at 60% 70%)", "ellipse(at 60% 70%)");
 test_valid_value("shape-outside", "ellipse(at 10% 20%)");
 test_valid_value("shape-outside", "ellipse(farthest-side 4% at bottom left)", "ellipse(farthest-side 4% at 0% 100%)");

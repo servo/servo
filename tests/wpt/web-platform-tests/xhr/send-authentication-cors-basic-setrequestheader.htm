@@ -5,15 +5,16 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/common/utils.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
   </head>
   <body>
     <div id="log"></div>
     <script>
       async_test(test => {
         var client = new XMLHttpRequest(),
-            urlstart = location.host + location.pathname.replace(/\/[^\/]*$/, '/'),
+            urlstart = get_host_info().REMOTE_ORIGIN + location.pathname.replace(/\/[^\/]*$/, '/'),
             user = token()
-        client.open("GET", location.protocol+'//www1.'+urlstart + "resources/auth2/corsenabled.py", false)
+        client.open("GET", urlstart + "resources/auth2/corsenabled.py", false)
         client.withCredentials = true
         client.setRequestHeader("x-user", user)
         client.setRequestHeader("x-pass", 'pass')

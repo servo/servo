@@ -31,15 +31,23 @@ async function runDefaultEnabledFeaturesTest(t, should_load, fenced_origin,
         "frame loaded using FLEDGE or shared storage.");
 
     if (generator_api == "fledge") {
-      assert_false(
+      assert_true(
             document.featurePolicy.allowsFeature('shared-storage'),
-            "Shared storage should be disallowed if the fenced " +
+            "Shared Storage should be allowed if the fenced " +
+            "frame loaded using FLEDGE.");
+      assert_true(
+            document.featurePolicy.allowsFeature('private-aggregation'),
+            "Private Aggregation should be allowed if the fenced " +
             "frame loaded using FLEDGE.");
     } else {
       assert_true(
             document.featurePolicy.allowsFeature('shared-storage'),
-            "Shared storage should be allowed if the fenced " +
-            "frame loaded using shared storage.");
+            "Shared Storage should be allowed if the fenced " +
+            "frame loaded using Shared Storage.");
+      assert_false(
+            document.featurePolicy.allowsFeature('private-aggregation'),
+            "Private Aggregation should be disabled if the fenced " +
+            "frame loaded using Shared Storage.");
     }
   }, [generator_api]);
 }

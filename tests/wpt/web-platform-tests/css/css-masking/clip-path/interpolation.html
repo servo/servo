@@ -28,7 +28,7 @@ test(function(t) {
   getComputedStyle(div).clipPath;
 
   div.style.clipPath = 'circle(26px)';
-  assert_equals(getComputedStyle(div).clipPath, 'circle(0px at 50% 50%)',
+  assert_equals(getComputedStyle(div).clipPath, 'circle(0px)',
                 'The radius of circle is clamped to zero at 61%');
 }, 'Test circle with negative easing on clip-path');
 
@@ -40,7 +40,7 @@ test(function(t) {
   getComputedStyle(div).clipPath;
 
   div.style.clipPath = 'ellipse(26px 26px)';
-  assert_equals(getComputedStyle(div).clipPath, 'ellipse(0px 0px at 50% 50%)',
+  assert_equals(getComputedStyle(div).clipPath, 'ellipse(0px 0px)',
                 'The radius of ellipse is clamped to zero at 61%');
 }, 'Test ellipse with negative easing on clip-path');
 

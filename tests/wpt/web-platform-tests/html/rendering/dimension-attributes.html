@@ -137,17 +137,10 @@ const tests = [
   [ newElem("img"), "height", "height", true ],
   [ newElem("td"), "width", "width", false ],
   [ newElem("td"), "height", "height", false ],
-  // https://github.com/whatwg/html/issues/4715 tracks the fact that for
-  // <table width> and <table height> the "0 is valid" boolean should probably
-  // be true.
   [ newElem("table"), "width", "width", false ],
-  [ newElem("table"), "height", "height", false ],
-  // https://github.com/whatwg/html/issues/4716 tracks the fact that for the
-  // <tr height> case that "0 is valid" boolean should probably be true.
-  [ newElem("tr"), "height", "height", false ],
-  // https://github.com/whatwg/html/issues/4717 tracks the fact that for the
-  // <col width> case that "0 is valid" boolean should probably be true.
-  [ newElem("col"), "width", "width", false ],
+  [ newElem("table"), "height", "height", true ],
+  [ newElem("tr"), "height", "height", true ],
+  [ newElem("col"), "width", "width", true ],
   [ newElem("embed"), "hspace", "marginLeft", true ],
   [ newElem("embed"), "hspace", "marginRight", true ],
   [ newElem("embed"), "vspace", "marginTop", true ],

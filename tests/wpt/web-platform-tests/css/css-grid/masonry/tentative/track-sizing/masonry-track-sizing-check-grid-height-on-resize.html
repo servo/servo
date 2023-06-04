@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+<link rel="author" title="Brandon Stewart" href="mailto:brandonstewart@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="masonry-track-sizing-check-grid-height-on-resize-ref.html">
+<meta name="assert" content="When the height of an element in the grid changes, ensure the grid is properly resized">
+</head>
+
+<style>
+  grid {
+    display: grid;
+    grid-template-rows: masonry;
+    grid-template-columns: auto;
+    grid-gap: 10px;
+    border: 10px;
+    border-style: solid;
+  }
+  item {
+    background-color: grey;
+    height: 250px;
+    width: 250px;
+  }
+</style>
+</head>
+<body>
+  <grid>
+    <item>1</item>
+    <item>2</item>
+  </grid>
+</body>
+<script>
+    /* Force a relayout */
+    document.body.offsetHeight;
+    document.querySelector("item").style["height"] = "125px";
+</script>
+</html>

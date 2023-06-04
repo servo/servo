@@ -112,6 +112,19 @@
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus on hide, or if focus didn\'t shift on show, focus should stay where it was');
       assert_false(isElementVisible(popover));
 
+      // Manual popover does not restore focus
+      popover.popover = 'manual';
+      priorFocus.focus();
+      assert_equals(document.activeElement, priorFocus);
+      popover.showPopover();
+      assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by popover.showPopover()`);
+      popover.hidePopover();
+      if (!popover.hasAttribute('data-no-focus')) {
+        assert_not_equals(document.activeElement, priorFocus, 'prior element should *not* get focus when the popover is manual');
+      }
+      assert_false(isElementVisible(popover));
+      popover.popover = 'auto';
+
       // Hit Escape:
       priorFocus.focus();
       assert_equals(document.activeElement, priorFocus);

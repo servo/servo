@@ -36,6 +36,7 @@ def executor_kwargs(test_type, test_environment, run_info_data, **kwargs):
 
     if test_type == "wdspec":
         executor_kwargs["binary"] = kwargs.get("binary")
+        executor_kwargs["binary_args"] = kwargs.get("args")
         executor_kwargs["webdriver_binary"] = kwargs.get("webdriver_binary")
         executor_kwargs["webdriver_args"] = kwargs.get("webdriver_args")
 
@@ -609,7 +610,7 @@ class WdspecExecutor(TestExecutor):
 
     def __init__(self, logger, browser, server_config, webdriver_binary,
                  webdriver_args, timeout_multiplier=1, capabilities=None,
-                 debug_info=None, **kwargs):
+                 debug_info=None, binary=None, binary_args=None, **kwargs):
         super().__init__(logger, browser, server_config,
                          timeout_multiplier=timeout_multiplier,
                          debug_info=debug_info)
@@ -617,6 +618,8 @@ class WdspecExecutor(TestExecutor):
         self.webdriver_args = webdriver_args
         self.timeout_multiplier = timeout_multiplier
         self.capabilities = capabilities
+        self.binary = binary
+        self.binary_args = binary_args
 
     def setup(self, runner):
         self.protocol = self.protocol_cls(self, self.browser)
@@ -645,6 +648,10 @@ class WdspecExecutor(TestExecutor):
                           "port": self.browser.port,
                           "capabilities": self.capabilities,
                           "timeout_multiplier": self.timeout_multiplier,
+                          "browser": {
+                              "binary": self.binary,
+                              "args": self.binary_args
+                          },
                           "webdriver": {
                               "binary": self.webdriver_binary,
                               "args": self.webdriver_args
