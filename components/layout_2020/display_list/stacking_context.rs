@@ -6,11 +6,11 @@ use super::DisplayList;
 use crate::cell::ArcRefCell;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::DisplayListBuilder;
-use crate::fragment_tree::ContainingBlockManager;
-use crate::fragments::{AnonymousFragment, BoxFragment, Fragment};
+use crate::fragment_tree::{
+    AnonymousFragment, BoxFragment, ContainingBlockManager, Fragment, FragmentTree,
+};
 use crate::geom::PhysicalRect;
 use crate::style_ext::ComputedValuesExt;
-use crate::FragmentTree;
 use euclid::default::Rect;
 use script_traits::compositor::{ScrollTreeNodeId, ScrollableNodeInfo};
 use servo_arc::Arc as ServoArc;

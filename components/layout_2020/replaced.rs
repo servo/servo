@@ -4,8 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
-use crate::fragment_tree::BaseFragmentInfo;
-use crate::fragments::{Fragment, IFrameFragment, ImageFragment};
+use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::flow_relative::{Rect, Vec2};
 use crate::geom::PhysicalSize;
 use crate::sizing::ContentSizes;

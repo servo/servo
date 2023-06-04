@@ -5,12 +5,10 @@
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
-use crate::fragment_tree::Tag;
-use crate::fragments::{BoxFragment, Fragment, TextFragment};
+use crate::fragment_tree::{BoxFragment, Fragment, FragmentTree, Tag, TextFragment};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
 use crate::style_ext::ComputedValuesExt;
-use crate::FragmentTree;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use fnv::FnvHashMap;

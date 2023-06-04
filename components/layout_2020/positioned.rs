@@ -7,7 +7,9 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::{BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragment_tree::{
+    AbsoluteBoxOffsets, BoxFragment, CollapsedBlockMargins, Fragment, HoistedSharedFragment,
+};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{LengthOrAuto, LengthPercentageOrAuto};
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
@@ -16,7 +18,7 @@ use rayon::iter::{IntoParallelRefMutIterator, ParallelExtend};
 use rayon_croissant::ParallelIteratorExt;
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
-use style::values::computed::{CSSPixelLength, Length, LengthPercentage};
+use style::values::computed::{CSSPixelLength, Length};
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 
@@ -46,67 +48,6 @@ pub(crate) struct HoistedAbsolutelyPositionedBox {
     /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
     /// This will be used later in order to paint this hoisted box in tree order.
     pub fragment: ArcRefCell<HoistedSharedFragment>,
-}
-
-/// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`
-/// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
-/// This will be used later in order to paint this hoisted box in tree order.
-#[derive(Serialize)]
-pub(crate) struct HoistedSharedFragment {
-    pub(crate) fragment: Option<ArcRefCell<Fragment>>,
-    pub(crate) box_offsets: Vec2<AbsoluteBoxOffsets>,
-}
-
-impl HoistedSharedFragment {
-    pub(crate) fn new(box_offsets: Vec2<AbsoluteBoxOffsets>) -> Self {
-        HoistedSharedFragment {
-            fragment: None,
-            box_offsets,
-        }
-    }
-}
-
-impl HoistedSharedFragment {
-    /// In some cases `inset: auto`-positioned elements do not know their precise
-    /// position until after they're hoisted. This lets us adjust auto values
-    /// after the fact.
-    pub(crate) fn adjust_offsets(&mut self, offsets: Vec2<Length>) {
-        self.box_offsets.inline.adjust_offset(offsets.inline);
-        self.box_offsets.block.adjust_offset(offsets.block);
-    }
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub(crate) enum AbsoluteBoxOffsets {
-    StaticStart {
-        start: Length,
-    },
-    Start {
-        start: LengthPercentage,
-    },
-    End {
-        end: LengthPercentage,
-    },
-    Both {
-        start: LengthPercentage,
-        end: LengthPercentage,
-    },
-}
-
-impl AbsoluteBoxOffsets {
-    fn both_specified(&self) -> bool {
-        match self {
-            AbsoluteBoxOffsets::Both { .. } => return true,
-            _ => return false,
-        }
-    }
-
-    fn adjust_offset(&mut self, new_offset: Length) {
-        match *self {
-            AbsoluteBoxOffsets::StaticStart { ref mut start } => *start = new_offset,
-            _ => (),
-        }
-    }
 }
 
 impl AbsolutelyPositionedBox {

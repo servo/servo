@@ -13,8 +13,9 @@ use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
 };
-use crate::fragment_tree::BaseFragmentInfo;
-use crate::fragments::{BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment};
+use crate::fragment_tree::{
+    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
+};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContent;
@@ -34,7 +35,7 @@ pub mod float;
 pub mod inline;
 mod root;
 
-pub use root::{BoxTree, FragmentTree};
+pub use root::{BoxTree, CanvasBackground};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct BlockFormattingContext {
