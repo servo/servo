@@ -532,6 +532,32 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             .set_effective_containment(new_contain);
     }
 
+    /// content-visibility: auto should force contain-intrinsic-size to gain
+    /// an auto value
+    ///
+    /// <https://github.com/w3c/csswg-drafts/issues/8407>
+    fn adjust_for_contain_intrinsic_size(&mut self) {
+        let content_visibility = self.style.get_box().clone_content_visibility();
+        if content_visibility != ContentVisibility::Auto {
+            return;
+        }
+
+        let pos = self.style.get_position();
+        let new_width = pos.clone_contain_intrinsic_width().add_auto_if_needed();
+        let new_height = pos.clone_contain_intrinsic_height().add_auto_if_needed();
+        if new_width.is_none() && new_height.is_none() {
+            return;
+        }
+
+        let pos = self.style.mutate_position();
+        if let Some(width) = new_width {
+            pos.set_contain_intrinsic_width(width);
+        }
+        if let Some(height) = new_height {
+            pos.set_contain_intrinsic_height(height);
+        }
+    }
+
     /// Handles the relevant sections in:
     ///
     /// https://drafts.csswg.org/css-display/#unbox-html
@@ -952,6 +978,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_webkit_line_clamp();
         self.adjust_for_position();
         self.adjust_for_overflow();
+        self.adjust_for_contain_intrinsic_size();
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_contain();
