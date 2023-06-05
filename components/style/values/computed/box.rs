@@ -25,6 +25,20 @@ pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;
 /// A computed value for the `contain-intrinsic-size` property.
 pub type ContainIntrinsicSize = GenericContainIntrinsicSize<NonNegativeLength>;
 
+impl ContainIntrinsicSize {
+    /// Converts contain-intrinsic-size to auto style.
+    pub fn add_auto_if_needed(&self) -> Option<Self> {
+        use crate::Zero;
+        // TODO: support contain-intrinsic-size: auto none, see
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1835813
+        Some(match *self {
+            Self::None => Self::AutoLength(Zero::zero()),
+            Self::Length(ref l) => Self::AutoLength(*l),
+            Self::AutoLength(..) => return None,
+        })
+    }
+}
+
 /// A computed value for the `line-clamp` property.
 pub type LineClamp = GenericLineClamp<Integer>;
 
