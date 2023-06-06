@@ -628,6 +628,7 @@ impl FontFamilyList {
     }
 
     /// Returns whether we need to prioritize user fonts.
+    #[cfg(feature = "gecko")]
     pub (crate) fn needs_user_font_prioritization(&self) -> bool {
         self.iter().next().map_or(true, |f| match f {
             SingleFontFamily::Generic(f) => !f.valid_for_user_font_prioritization(),
