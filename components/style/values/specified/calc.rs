@@ -185,6 +185,7 @@ impl generic::CalcNodeLeaf for Leaf {
                     FontRelativeLength::Em(..) => SortKey::Em,
                     FontRelativeLength::Ex(..) => SortKey::Ex,
                     FontRelativeLength::Cap(..) => SortKey::Cap,
+                    FontRelativeLength::Ic(..) => SortKey::Ic,
                     FontRelativeLength::Rem(..) => SortKey::Rem,
                 },
                 NoCalcLength::ViewportPercentage(ref vp) => match *vp {
