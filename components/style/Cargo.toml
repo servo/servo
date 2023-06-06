@@ -17,7 +17,7 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["style_traits/gecko", "bindgen", "regex", "toml", "num_cpus"]
+gecko = ["style_traits/gecko", "bindgen", "regex", "toml", "num_cpus", "mozbuild"]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "servo_url",
          "string_cache", "to_shmem/servo",
@@ -79,6 +79,7 @@ void = "1.0.2"
 bindgen = { version = "0.62", optional = true, default-features = false }
 lazy_static = "1"
 log = "0.4"
+mozbuild = {version = "0.1", optional = true}
 regex = { version = "1.1", optional = true }
 toml = { version = "0.5", optional = true, default-features = false }
 walkdir = "2.1.4"
