@@ -2083,7 +2083,6 @@ impl BreakWithin {
     Eq,
     Hash,
     MallocSizeOf,
-    Parse,
     PartialEq,
     SpecifiedValueInfo,
     ToCss,
@@ -2098,8 +2097,26 @@ pub enum Overflow {
     Scroll,
     Auto,
     #[cfg(feature = "gecko")]
-    #[parse(aliases = "-moz-hidden-unscrollable")]
     Clip,
+}
+
+// This can be derived once we remove or keep `-moz-hidden-unscrollable`
+// indefinitely.
+impl Parse for Overflow {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "visible" => Self::Visible,
+            "hidden" => Self::Hidden,
+            "scroll" => Self::Scroll,
+            "auto" => Self::Auto,
+            #[cfg(feature = "gecko")]
+            "clip" => Self::Clip,
+            #[cfg(feature = "gecko")]
+            "-moz-hidden-unscrollable" if static_prefs::pref!("layout.css.overflow-moz-hidden-unscrollable.enabled") => {
+               Overflow::Clip
+            },
+        })
+    }
 }
 
 impl Overflow {
