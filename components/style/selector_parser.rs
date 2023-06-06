@@ -170,8 +170,13 @@ impl<T> PerPseudoElementMap<T> {
     }
 
     /// Get an iterator for the entries.
-    pub fn iter(&self) -> ::std::slice::Iter<Option<T>> {
+    pub fn iter(&self) -> std::slice::Iter<Option<T>> {
         self.entries.iter()
+    }
+
+    /// Get a mutable iterator for the entries.
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<Option<T>> {
+        self.entries.iter_mut()
     }
 }
 

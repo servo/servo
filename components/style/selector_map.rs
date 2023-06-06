@@ -12,7 +12,7 @@ use crate::rule_tree::CascadeLevel;
 use crate::selector_parser::SelectorImpl;
 use crate::stylist::{CascadeData, Rule};
 use crate::AllocErr;
-use crate::{Atom, LocalName, Namespace, WeakAtom};
+use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded, WeakAtom};
 use precomputed_hash::PrecomputedHash;
 use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext};
 use selectors::parser::{Combinator, Component, SelectorIter};
@@ -122,10 +122,7 @@ impl<T: 'static> Default for SelectorMap<T> {
     }
 }
 
-// FIXME(Manishearth) the 'static bound can be removed when
-// our HashMap fork (hashglobe) is able to use NonZero,
-// or when stdlib gets fallible collections
-impl<T: 'static> SelectorMap<T> {
+impl<T> SelectorMap<T> {
     /// Trivially constructs an empty `SelectorMap`.
     pub fn new() -> Self {
         SelectorMap {
@@ -150,6 +147,15 @@ impl<T: 'static> SelectorMap<T> {
         let mut ret = Self::new();
         ret.bucket_attributes = false;
         ret
+    }
+
+    /// Shrink the capacity of the map if needed.
+    pub fn shrink_if_needed(&mut self) {
+        self.id_hash.shrink_if_needed();
+        self.class_hash.shrink_if_needed();
+        self.attribute_hash.shrink_if_needed();
+        self.local_name_hash.shrink_if_needed();
+        self.namespace_hash.shrink_if_needed();
     }
 
     /// Clears the hashmap retaining storage.
@@ -715,24 +721,26 @@ fn find_bucket<'a>(
 
 /// Wrapper for PrecomputedHashMap that does ASCII-case-insensitive lookup in quirks mode.
 #[derive(Clone, Debug, MallocSizeOf)]
-pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V: 'static>(
+pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V>(
     PrecomputedHashMap<K, V>,
 );
 
-impl<V: 'static> Default for MaybeCaseInsensitiveHashMap<Atom, V> {
+impl<V> Default for MaybeCaseInsensitiveHashMap<Atom, V> {
     #[inline]
     fn default() -> Self {
         MaybeCaseInsensitiveHashMap(PrecomputedHashMap::default())
     }
 }
 
-// FIXME(Manishearth) the 'static bound can be removed when
-// our HashMap fork (hashglobe) is able to use NonZero,
-// or when stdlib gets fallible collections
-impl<V: 'static> MaybeCaseInsensitiveHashMap<Atom, V> {
+impl<V> MaybeCaseInsensitiveHashMap<Atom, V> {
     /// Empty map
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Shrink the capacity of the map if needed.
+    pub fn shrink_if_needed(&mut self) {
+        self.0.shrink_if_needed()
     }
 
     /// HashMap::try_entry

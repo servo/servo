@@ -157,6 +157,8 @@ pub use style_traits::arc_slice::ArcSlice;
 pub use style_traits::owned_slice::OwnedSlice;
 pub use style_traits::owned_str::OwnedStr;
 
+use std::hash::{Hash, BuildHasher};
+
 /// The CSS properties supported by the style system.
 /// Generated from the properties.mako.rs template by build.rs
 #[macro_use]
@@ -286,3 +288,44 @@ impl From<std::collections::TryReserveError> for AllocErr {
         Self
     }
 }
+
+/// Shrink the capacity of the collection if needed.
+pub (crate) trait ShrinkIfNeeded {
+    fn shrink_if_needed(&mut self);
+}
+
+/// We shrink the capacity of a collection if we're wasting more than a 25% of
+/// its capacity, and if the collection is arbitrarily big enough
+/// (>= CAPACITY_THRESHOLD entries).
+#[inline]
+fn should_shrink(len: usize, capacity: usize) -> bool {
+    const CAPACITY_THRESHOLD: usize = 64;
+    capacity >= CAPACITY_THRESHOLD && len + capacity / 4 < capacity
+}
+
+impl<K, V, H> ShrinkIfNeeded for std::collections::HashMap<K, V, H>
+where
+    K: Eq + Hash,
+    H: BuildHasher,
+{
+    fn shrink_if_needed(&mut self) {
+        if should_shrink(self.len(), self.capacity()) {
+            self.shrink_to_fit();
+        }
+    }
+}
+
+impl<T, H> ShrinkIfNeeded for std::collections::HashSet<T, H>
+where
+    T: Eq + Hash,
+    H: BuildHasher,
+{
+    fn shrink_if_needed(&mut self) {
+        if should_shrink(self.len(), self.capacity()) {
+            self.shrink_to_fit();
+        }
+    }
+}
+
+// TODO(emilio): Measure and see if we're wasting a lot of memory on Vec /
+// SmallVec, and if so consider shrinking those as well.

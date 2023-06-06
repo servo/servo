@@ -11,7 +11,7 @@ use crate::selector_map::{
 };
 use crate::selector_parser::SelectorImpl;
 use crate::AllocErr;
-use crate::{Atom, LocalName, Namespace};
+use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded};
 use selectors::attr::NamespaceConstraint;
 use selectors::parser::{Combinator, Component};
 use selectors::parser::{Selector, SelectorIter};
@@ -235,6 +235,14 @@ impl InvalidationMap {
         self.state_affecting_selectors.clear();
         self.document_state_selectors.clear();
         self.other_attribute_affecting_selectors.clear();
+    }
+
+    /// Shrink the capacity of hash maps if needed.
+    pub fn shrink_if_needed(&mut self) {
+        self.class_to_selector.shrink_if_needed();
+        self.id_to_selector.shrink_if_needed();
+        self.state_affecting_selectors.shrink_if_needed();
+        self.other_attribute_affecting_selectors.shrink_if_needed();
     }
 
     /// Adds a selector to this `InvalidationMap`.  Returns Err(..) to
