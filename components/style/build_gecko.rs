@@ -58,11 +58,11 @@ lazy_static! {
     };
     static ref INCLUDE_RE: Regex = Regex::new(r#"#include\s*"(.+?)""#).unwrap();
     static ref DISTDIR_PATH: PathBuf = {
-        let path = PathBuf::from(env::var_os("MOZ_DIST").unwrap());
+        let path = PathBuf::from(env::var_os("MOZ_TOPOBJDIR").unwrap());
         if !path.is_absolute() || !path.is_dir() {
-            panic!("MOZ_DIST must be an absolute directory, was: {}", path.display());
+            panic!("MOZ_TOPOBJDIR must be an absolute directory, was: {}", path.display());
         }
-        path
+        path.join("dist")
     };
     static ref SEARCH_PATHS: Vec<PathBuf> = vec![
         DISTDIR_PATH.join("include"),
