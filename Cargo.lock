@@ -3732,6 +3732,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "mozbuild"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
+
+[[package]]
 name = "mozjs"
 version = "0.14.1"
 source = "git+https://github.com/servo/mozjs#98b678283d1b0c6d263302ca2aff770aece0cb8e"
@@ -5962,6 +5968,7 @@ dependencies = [
  "malloc_size_of",
  "malloc_size_of_derive",
  "mime",
+ "mozbuild",
  "new_debug_unreachable",
  "num-derive",
  "num-integer",
