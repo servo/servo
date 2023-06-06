@@ -17,7 +17,6 @@ use crate::string_cache::Atom;
 use crate::values::serialize_atom_identifier;
 use cssparser::ToCss;
 use std::fmt;
-use thin_slice::ThinBoxedSlice;
 
 include!(concat!(
     env!("OUT_DIR"),
