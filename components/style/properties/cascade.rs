@@ -933,6 +933,10 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         let default_font_type = {
             let font = builder.get_font().gecko();
 
+            if font.mFont.family.is_system_font {
+                return;
+            }
+
             if !font.mFont.family.families.needs_user_font_prioritization() {
                 return;
             }
