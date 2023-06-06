@@ -468,7 +468,8 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 let name = KeyframesName::parse(self.context, input)?;
                 AtRulePrelude::Keyframes(name, prefix)
             },
-            "page" if cfg!(feature = "gecko") => {
+            #[cfg(feature = "gecko")]
+            "page" => {
                 AtRulePrelude::Page(if static_prefs::pref!("layout.css.named-pages.enabled") {
                     input.try_parse(|i| PageSelectors::parse(self.context, i)).unwrap_or_default()
                 } else {

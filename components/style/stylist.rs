@@ -33,19 +33,19 @@ use crate::stylesheets::layer_rule::{LayerId, LayerName, LayerOrder};
 use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 #[cfg(feature = "gecko")]
 use crate::stylesheets::{
-    CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule, ScrollTimelineRule,
+    CounterStyleRule, FontFaceRule, FontFeatureValuesRule, ScrollTimelineRule,
 };
 use crate::stylesheets::{
-    CssRule, EffectiveRulesIterator, Origin, OriginSet, PerOrigin, PerOriginIter,
+    CssRule, EffectiveRulesIterator, Origin, OriginSet, PageRule, PerOrigin, PerOriginIter,
 };
 use crate::stylesheets::{StyleRule, StylesheetContents, StylesheetInDocument};
 use crate::thread_state::{self, ThreadState};
 use crate::AllocErr;
 use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded, WeakAtom};
 use fxhash::FxHashMap;
-use malloc_size_of::MallocSizeOf;
+use malloc_size_of::{MallocSizeOf, MallocShallowSizeOf, MallocSizeOfOps};
 #[cfg(feature = "gecko")]
-use malloc_size_of::{MallocShallowSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
+use malloc_size_of::MallocUnconditionalShallowSizeOf;
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
 use selectors::matching::VisitedHandlingMode;
@@ -1644,6 +1644,7 @@ pub struct PageRuleMap {
     pub named: PrecomputedHashMap<Atom, SmallVec<[PageRuleData; 1]>>,
 }
 
+#[cfg(feature = "gecko")]
 impl PageRuleMap {
     #[inline]
     fn clear(&mut self) {
