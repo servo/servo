@@ -69,7 +69,7 @@ pub use self::list::ListStyleType;
 pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
-pub use self::page::{Orientation, PageSize, PaperSize};
+pub use self::page::{Orientation, PageName, PageSize, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::AspectRatio;
 pub use self::position::{

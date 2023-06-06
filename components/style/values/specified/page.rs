@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Specified @page at-rule properties
+//! Specified @page at-rule properties and named-page style properties
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::generics;
+use crate::values::{generics, CustomIdent};
 use crate::values::generics::size::Size2D;
 use crate::values::specified::length::NonNegativeLength;
 use cssparser::Parser;
@@ -44,5 +44,45 @@ impl Parse for PageSize {
         // auto value
         input.expect_ident_matching("auto")?;
         Ok(PageSize::Auto)
+    }
+}
+
+/// Page name value.
+///
+/// https://drafts.csswg.org/css-page-3/#using-named-pages
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToComputedValue, ToResolvedValue, ToShmem)]
+#[repr(C, u8)]
+pub enum PageName {
+    /// `auto` value.
+    Auto,
+    /// Page name value
+    PageName(CustomIdent),
+}
+
+impl Parse for PageName {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
+        let ident = input.expect_ident()?;
+        Ok(match_ignore_ascii_case! { ident,
+            "auto" => PageName::auto(),
+            _ => PageName::PageName(CustomIdent::from_ident(location, ident, &[])?),
+        })
+    }
+}
+
+impl PageName {
+    /// `auto` value.
+    #[inline]
+    pub fn auto() -> Self {
+        PageName::Auto
+    }
+
+    /// Whether this is the `auto` value.
+    #[inline]
+    pub fn is_auto(&self) -> bool {
+        matches!(*self, PageName::Auto)
     }
 }
