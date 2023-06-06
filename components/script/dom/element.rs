@@ -130,6 +130,7 @@ use style::selector_parser::{
     NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser,
 };
 use style::shared_lock::{Locked, SharedRwLock};
+use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::CssRuleType;
 use style::thread_state;
 use style::values::generics::NonNegative;
@@ -665,6 +666,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                     Importance::Normal,
                 ))),
                 CascadeLevel::PresHints,
+                LayerOrder::root(),
             )
         }
 
