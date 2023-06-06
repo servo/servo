@@ -63,6 +63,8 @@ macro_rules! apply_non_ts_list {
                 ("-moz-dir-attr-like-auto", MozDirAttrLikeAuto, IN_HAS_DIR_ATTR_LIKE_AUTO_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
 
                 ("-moz-autofill-preview", MozAutofillPreview, IN_AUTOFILL_PREVIEW_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-value-empty", MozValueEmpty, IN_VALUE_EMPTY_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
+                ("-moz-revealed", MozRevealed, IN_REVEALED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
 
                 ("-moz-math-increment-script-level", MozMathIncrementScriptLevel, IN_INCREMENT_SCRIPT_LEVEL_STATE, _),
 

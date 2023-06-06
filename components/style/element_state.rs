@@ -125,6 +125,11 @@ bitflags! {
         const IN_DEVTOOLS_HIGHLIGHTED_STATE = 1 << 45;
         /// Used for the devtools style editor. Probably should go away.
         const IN_STYLEEDITOR_TRANSITIONING_STATE = 1 << 46;
+        /// For :-moz-value-empty (to show widgets like the reveal password
+        /// button or the clear button).
+        const IN_VALUE_EMPTY_STATE = 1 << 47;
+        /// For :-moz-revealed.
+        const IN_REVEALED_STATE = 1 << 48;
     }
 }
 

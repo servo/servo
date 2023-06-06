@@ -1975,6 +1975,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::MozAutofillPreview |
+            NonTSPseudoClass::MozRevealed |
+            NonTSPseudoClass::MozValueEmpty |
             NonTSPseudoClass::Dir(..) => self.state().intersects(pseudo_class.state_flag()),
             NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Link => {
