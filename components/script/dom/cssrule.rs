@@ -105,7 +105,8 @@ impl CSSRule {
             },
             StyleCssRule::Page(_) => unreachable!(),
             StyleCssRule::Document(_) => unimplemented!(), // TODO
-            StyleCssRule::Layer(_) => unimplemented!(),    // TODO
+            StyleCssRule::LayerBlock(_) => unimplemented!(), // TODO
+            StyleCssRule::LayerStatement(_) => unimplemented!(), // TODO
             StyleCssRule::ScrollTimeline(_) => unimplemented!(), // TODO
         }
     }
