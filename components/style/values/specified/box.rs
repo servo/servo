@@ -1658,9 +1658,6 @@ pub enum Appearance {
     ButtonArrowPrevious,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ButtonArrowUp,
-    /// The focus outline box inside of a button.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    ButtonFocus,
     /// A dual toolbar button (e.g., a Back button with a dropdown)
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Dualbutton,
