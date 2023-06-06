@@ -1612,6 +1612,52 @@ impl<T: 'static> LayerOrderedMap<T> {
     }
 }
 
+/// Wrapper to allow better tracking of memory usage by page rule lists.
+///
+/// This includes the layer ID for use with the named page table.
+#[derive(Clone, Debug, MallocSizeOf)]
+pub struct PageRuleData {
+    /// Layer ID for sorting page rules after matching.
+    pub layer: LayerId,
+    /// Page rule
+    #[ignore_malloc_size_of = "Arc, stylesheet measures as primary ref"]
+    pub rule: Arc<Locked<PageRule>>,
+}
+
+/// Wrapper to allow better tracking of memory usage by page rule lists.
+///
+/// This is meant to be used by the global page rule list which are already
+/// sorted by layer ID, since all global page rules are less specific than all
+/// named page rules that match a certain page.
+#[derive(Clone, Debug, Deref, MallocSizeOf)]
+pub struct PageRuleDataNoLayer(
+    #[ignore_malloc_size_of = "Arc, stylesheet measures as primary ref"]
+    pub Arc<Locked<PageRule>>,
+);
+
+/// Stores page rules indexed by page names.
+#[derive(Clone, Debug, Default, MallocSizeOf)]
+pub struct PageRuleMap {
+    /// Global, unnamed page rules.
+    pub global: LayerOrderedVec<PageRuleDataNoLayer>,
+    /// Named page rules
+    pub named: PrecomputedHashMap<Atom, SmallVec<[PageRuleData; 1]>>,
+}
+
+impl PageRuleMap {
+    #[inline]
+    fn clear(&mut self) {
+        self.global.clear();
+        self.named.clear();
+    }
+}
+
+impl MallocShallowSizeOf for PageRuleMap {
+    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.global.size_of(ops) + self.named.shallow_size_of(ops)
+    }
+}
+
 /// This struct holds data which users of Stylist may want to extract
 /// from stylesheets which can be done at the same time as updating.
 #[derive(Clone, Debug, Default)]
@@ -1631,7 +1677,7 @@ pub struct ExtraStyleData {
 
     /// A map of effective page rules.
     #[cfg(feature = "gecko")]
-    pub pages: LayerOrderedVec<Arc<Locked<PageRule>>>,
+    pub pages: PageRuleMap,
 
     /// A map of effective scroll-timeline rules.
     #[cfg(feature = "gecko")]
@@ -1666,8 +1712,25 @@ impl ExtraStyleData {
     }
 
     /// Add the given @page rule.
-    fn add_page(&mut self, rule: &Arc<Locked<PageRule>>, layer: LayerId) {
-        self.pages.push(rule.clone(), layer);
+    fn add_page(
+        &mut self,
+        guard: &SharedRwLockReadGuard,
+        rule: &Arc<Locked<PageRule>>,
+        layer: LayerId,
+    ) -> Result<(), AllocErr> {
+        let page_rule = rule.read_with(guard);
+        if page_rule.selectors.0.is_empty() {
+            self.pages.global.push(PageRuleDataNoLayer(rule.clone()), layer);
+        } else {
+            // TODO: Handle pseudo-classes
+            self.pages.named.try_reserve(page_rule.selectors.0.len())?;
+            for name in page_rule.selectors.as_slice() {
+                let vec = self.pages.named.entry(name.0.0.clone()).or_default();
+                vec.try_reserve(1)?;
+                vec.push(PageRuleData{layer, rule: rule.clone()});
+            }
+        }
+        Ok(())
     }
 
     /// Add the given @scroll-timeline rule.
@@ -1685,7 +1748,7 @@ impl ExtraStyleData {
         self.font_faces.sort(layers);
         self.font_feature_values.sort(layers);
         self.counter_styles.sort(layers);
-        self.pages.sort(layers);
+        self.pages.global.sort(layers);
         self.scroll_timelines.sort(layers);
     }
 
@@ -2518,7 +2581,7 @@ impl CascadeData {
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::Page(ref rule) => {
-                    self.extra_data.add_page(rule, current_layer_id);
+                    self.extra_data.add_page(guard, rule, current_layer_id)?;
                 },
                 CssRule::Viewport(..) => {},
                 _ => {
