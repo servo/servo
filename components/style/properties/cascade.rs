@@ -428,17 +428,18 @@ fn tweak_when_ignoring_colors(
             // otherwise, this is needed to preserve semi-transparent
             // backgrounds.
             //
-            // FIXME(emilio, bug 1666059): We revert for alpha == 0, but maybe
-            // should consider not doing that even if it causes some issues like
-            // bug 1625036, or finding a performant way to preserve the original
-            // widget background color's rgb channels but not alpha...
+            // NOTE(emilio): We revert even for alpha == 0. Not doing so would
+            // be a bit special casey, even though it causes issues like
+            // bug 1625036. The reasoning is that the conditions that trigger
+            // that (having mismatched widget and default backgrounds) are both
+            // uncommon, and broken in other applications as well, and not
+            // honoring transparent makes stuff uglier or break unconditionally
+            // (bug 1666059, bug 1755713).
             let alpha = alpha_channel(color, context);
-            if alpha != 0 {
-                let mut color = context.builder.device.default_background_color();
-                color.alpha = alpha;
-                declarations_to_apply_unless_overriden
-                    .push(PropertyDeclaration::BackgroundColor(color.into()))
-            }
+            let mut color = context.builder.device.default_background_color();
+            color.alpha = alpha;
+            declarations_to_apply_unless_overriden
+                .push(PropertyDeclaration::BackgroundColor(color.into()))
         },
         PropertyDeclaration::Color(ref color) => {
             // We honor color: transparent and system colors.
