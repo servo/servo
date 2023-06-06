@@ -396,14 +396,29 @@ fn eval_overflow_inline(device: &Device, query_value: Option<OverflowInline>) ->
     }
 }
 
-/// https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme
-fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorScheme>) -> bool {
+fn do_eval_prefers_color_scheme(
+    device: &Device,
+    use_content: bool,
+    query_value: Option<PrefersColorScheme>,
+) -> bool {
     let prefers_color_scheme =
-        unsafe { bindings::Gecko_MediaFeatures_PrefersColorScheme(device.document()) };
+        unsafe { bindings::Gecko_MediaFeatures_PrefersColorScheme(device.document(), use_content) };
     match query_value {
         Some(v) => prefers_color_scheme == v,
         None => true,
     }
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme
+fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorScheme>) -> bool {
+    do_eval_prefers_color_scheme(device, /* use_content = */ false, query_value)
+}
+
+fn eval_content_prefers_color_scheme(
+    device: &Device,
+    query_value: Option<PrefersColorScheme>,
+) -> bool {
+    do_eval_prefers_color_scheme(device, /* use_content = */ true, query_value)
 }
 
 bitflags! {
@@ -652,7 +667,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [MediaFeatureDescription; 57] = [
+pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -804,6 +819,15 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 57] = [
         AllowsRanges::No,
         keyword_evaluator!(eval_prefers_color_scheme, PrefersColorScheme),
         ParsingRequirements::empty(),
+    ),
+    // Evaluates to the preferred color scheme for content. Only useful in
+    // chrome context, where the chrome color-scheme and the content
+    // color-scheme might differ.
+    feature!(
+        atom!("-moz-content-prefers-color-scheme"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_content_prefers_color_scheme, PrefersColorScheme),
+        ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
     feature!(
         atom!("pointer"),
