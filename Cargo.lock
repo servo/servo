@@ -1602,14 +1602,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 
 [[package]]
-name = "fallible"
-version = "0.0.1"
-dependencies = [
- "hashglobe",
- "smallvec",
-]
-
-[[package]]
 name = "fastrand"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2599,14 +2591,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7afe4a420e3fe79967a00898cc1f4db7c8a49a9333a29f8a4bd76a253d5cd04"
 
 [[package]]
-name = "hashglobe"
-version = "0.1.0"
-dependencies = [
- "libc",
- "rand 0.7.3",
-]
-
-[[package]]
 name = "headers"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3461,7 +3445,6 @@ dependencies = [
  "crossbeam-channel 0.4.4",
  "cssparser",
  "euclid",
- "hashglobe",
  "http",
  "hyper_serde",
  "keyboard-types",
@@ -5970,9 +5953,7 @@ dependencies = [
  "derive_more",
  "encoding_rs",
  "euclid",
- "fallible",
  "fxhash",
- "hashglobe",
  "html5ever",
  "indexmap",
  "itertools",

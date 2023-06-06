@@ -11,7 +11,6 @@ lint-scripts = ["./python/servo/lints/wpt_lint.py"]
 [blocked-packages]
 num = []
 rand = [
-  "hashglobe",     # Only used in tests
   "ipc-channel",
   "phf_generator",
   "quickcheck",    # Only used in tests
@@ -135,7 +134,6 @@ directories = [
   "./components/script/dom/bindings/codegen/ply",
   "./python/_virtualenv*",
   "./python/mach",
-  "./components/hashglobe/src",
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",
 ]
