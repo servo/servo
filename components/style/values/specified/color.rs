@@ -1006,3 +1006,13 @@ impl ToCss for ColorScheme {
         Ok(())
     }
 }
+
+/// https://drafts.csswg.org/css-color-adjust/#print-color-adjust
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToComputedValue, ToResolvedValue, ToShmem)]
+#[repr(u8)]
+pub enum PrintColorAdjust {
+    /// Ignore backgrounds and darken text.
+    Economy,
+    /// Respect specified colors.
+    Exact,
+}
