@@ -697,6 +697,7 @@ impl ToComputedValue for FontFamily {
             FontFamily::Values(ref list) => computed::FontFamily {
                 families: list.clone(),
                 is_system_font: false,
+                is_initial: false,
             },
             FontFamily::System(_) => self.compute_system(context),
         }
@@ -736,8 +737,6 @@ impl Parse for FontFamily {
             list: crate::ArcSlice::from_iter(values.into_iter()),
             #[cfg(feature = "servo")]
             list: values.into_boxed_slice(),
-            #[cfg(feature = "gecko")]
-            fallback: computed::GenericFontFamily::None,
         }))
     }
 }
