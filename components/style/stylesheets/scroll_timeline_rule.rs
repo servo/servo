@@ -324,7 +324,6 @@ impl ToCss for ScrollTimelineSelector {
     where
         W: Write,
     {
-        use crate::cssparser::ToCss as CssparserToCss;
         dest.write_str("selector(")?;
         dest.write_char('#')?;
         self.0.to_css(dest)?;

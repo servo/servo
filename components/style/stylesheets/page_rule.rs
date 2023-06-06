@@ -13,7 +13,7 @@ use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::values::{AtomIdent, CustomIdent};
 use style_traits::{CssWriter, ParseError, ToCss};
-use cssparser::{ToCss as CssParserToCss, Parser, SourceLocation};
+use cssparser::{Parser, SourceLocation};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use servo_arc::Arc;
@@ -23,7 +23,7 @@ use std::fmt::{self, Write};
 ///
 /// We do not support pseudo selectors yet.
 /// [page-selectors]: https://drafts.csswg.org/css2/page.html#page-selectors
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 pub struct PageSelector(pub AtomIdent);
 
 impl PageSelector {
@@ -43,15 +43,6 @@ impl Parse for PageSelector {
     ) -> Result<Self, ParseError<'i>> {
         let s = input.expect_ident()?;
         Ok(PageSelector(AtomIdent::from(&**s)))
-    }
-}
-
-impl ToCss for PageSelector {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write
-    {
-        (&self.0).to_css(dest)
     }
 }
 

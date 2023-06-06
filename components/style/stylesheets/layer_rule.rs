@@ -13,7 +13,7 @@ use crate::values::AtomIdent;
 
 use super::CssRules;
 
-use cssparser::{Parser, SourceLocation, ToCss as CssParserToCss, Token};
+use cssparser::{Parser, SourceLocation, Token};
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::fmt::{self, Write};
