@@ -459,22 +459,6 @@ impl Device {
         }
     }
 
-    /// Returns the gtk titlebar radius in CSS pixels.
-    pub fn titlebar_radius(&self) -> f32 {
-        unsafe {
-            bindings::Gecko_GetLookAndFeelInt(bindings::LookAndFeel_IntID::TitlebarRadius as i32)
-                as f32
-        }
-    }
-
-    /// Returns the gtk menu radius in CSS pixels.
-    pub fn menu_radius(&self) -> f32 {
-        unsafe {
-            bindings::Gecko_GetLookAndFeelInt(bindings::LookAndFeel_IntID::GtkMenuRadius as i32)
-                as f32
-        }
-    }
-
     /// Return whether the document is a chrome document.
     #[inline]
     pub fn is_chrome_document(&self) -> bool {
