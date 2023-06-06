@@ -37,6 +37,27 @@ pub type WordSpacing = Spacing<LengthPercentage>;
 /// A specified value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLengthPercentage>;
 
+/// A value for the `hyphenate-character` property.
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum HyphenateCharacter {
+    /// `auto`
+    Auto,
+    /// `<string>`
+    String(crate::OwnedStr),
+}
+
 impl Parse for InitialLetter {
     fn parse<'i, 't>(
         context: &ParserContext,
