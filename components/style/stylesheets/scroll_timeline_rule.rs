@@ -182,7 +182,8 @@ impl Default for Source {
 /// definition of ScrollTimelineOptions (WebIDL API).
 /// https://drafts.csswg.org/scroll-animations/#dom-scrolltimelineoptions-orientation
 #[derive(Clone, Copy, Debug, MallocSizeOf, Eq, Parse, PartialEq, PartialOrd, ToCss, ToShmem)]
-pub enum Orientation {
+#[repr(u8)]
+pub enum ScrollDirection {
     /// The initial value.
     Auto,
     /// The direction along the block axis. This is the default value.
@@ -195,11 +196,14 @@ pub enum Orientation {
     Vertical,
 }
 
-impl Default for Orientation {
+impl Default for ScrollDirection {
     fn default() -> Self {
-        Orientation::Auto
+        ScrollDirection::Auto
     }
 }
+
+// Avoid name collision in cbindgen with StyleOrientation.
+pub use self::ScrollDirection as Orientation;
 
 /// Scroll-timeline offsets. We treat None as an empty vector.
 /// value: none | <scroll-timeline-offset>#
