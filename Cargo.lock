@@ -3455,7 +3455,6 @@ dependencies = [
  "smallbitvec",
  "smallvec",
  "string_cache",
- "thin-slice",
  "time 0.1.45",
  "tokio",
  "url",
@@ -5984,7 +5983,6 @@ dependencies = [
  "string_cache",
  "style_derive",
  "style_traits",
- "thin-slice",
  "time 0.1.45",
  "to_shmem",
  "to_shmem_derive",
@@ -6198,12 +6196,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "thin-slice"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eaa81235c7058867fa8c0e7314f33dcce9c215f535d1913822a2b3f5e289f3c"
-
-[[package]]
 name = "thiserror"
 version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6352,7 +6344,6 @@ dependencies = [
  "smallbitvec",
  "smallvec",
  "string_cache",
- "thin-slice",
 ]
 
 [[package]]
