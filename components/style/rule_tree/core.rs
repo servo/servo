@@ -128,7 +128,7 @@ impl RuleTree {
             return;
         }
 
-        let mut children_count = crate::hash::FxHashMap::default();
+        let mut children_count = fxhash::FxHashMap::default();
 
         let mut stack = SmallVec::<[_; 32]>::new();
         stack.push(self.root.clone());

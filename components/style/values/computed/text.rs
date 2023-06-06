@@ -21,10 +21,10 @@ use style_traits::{CssWriter, ToCss};
 pub use crate::values::specified::text::{
     MozControlCharacterVisibility, TextAlignLast, TextUnderlinePosition,
 };
+pub use crate::values::specified::HyphenateCharacter;
 pub use crate::values::specified::{LineBreak, OverflowWrap, RubyPosition, WordBreak};
 pub use crate::values::specified::{TextDecorationLine, TextEmphasisPosition};
 pub use crate::values::specified::{TextDecorationSkipInk, TextJustify, TextTransform};
-pub use crate::values::specified::HyphenateCharacter;
 
 /// A computed value for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;

@@ -34,7 +34,6 @@ content-security-policy = { workspace = true, optional = true }
 crossbeam-channel = { workspace = true, optional = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
-hashglobe = { path = "../hashglobe" }
 http = { workspace = true, optional = true }
 hyper_serde = { workspace = true, optional = true }
 keyboard-types = { workspace = true, optional = true }

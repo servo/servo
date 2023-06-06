@@ -5,9 +5,9 @@
 //! Specified @page at-rule properties and named-page style properties
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::{generics, CustomIdent};
 use crate::values::generics::size::Size2D;
 use crate::values::specified::length::NonNegativeLength;
+use crate::values::{generics, CustomIdent};
 use cssparser::Parser;
 use style_traits::ParseError;
 
@@ -50,7 +50,17 @@ impl Parse for PageSize {
 /// Page name value.
 ///
 /// https://drafts.csswg.org/css-page-3/#using-named-pages
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(C, u8)]
 pub enum PageName {
     /// `auto` value.

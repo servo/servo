@@ -7,7 +7,6 @@
 //! [custom]: https://drafts.csswg.org/css-variables/
 
 use crate::applicable_declarations::CascadePriority;
-use crate::hash::map::Entry;
 use crate::media_queries::Device;
 use crate::properties::{CSSWideKeyword, CustomDeclaration, CustomDeclarationValue};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, PrecomputedHasher};
@@ -21,6 +20,7 @@ use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cmp;
+use std::collections::hash_map::Entry;
 use std::fmt::{self, Write};
 use std::hash::BuildHasherDefault;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};

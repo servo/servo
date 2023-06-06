@@ -17,7 +17,7 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["style_traits/gecko", "fallible/known_system_malloc", "bindgen", "regex", "toml",
+gecko = ["style_traits/gecko", "bindgen", "regex", "toml",
          "num_cpus", "thin-slice"]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "servo_url",
@@ -38,9 +38,7 @@ cssparser = "0.29"
 derive_more = "0.99"
 encoding_rs = { version = "0.8", optional = true }
 euclid = "0.22"
-fallible = { path = "../fallible" }
 fxhash = "0.2"
-hashglobe = { path = "../hashglobe" }
 html5ever = { version = "0.26", optional = true }
 indexmap = "1.0"
 itertools = "0.8"

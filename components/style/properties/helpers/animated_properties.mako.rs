@@ -19,7 +19,7 @@ use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::ptr;
 use std::mem;
-use crate::hash::FxHashMap;
+use fxhash::FxHashMap;
 use super::ComputedValues;
 use crate::values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use crate::values::animated::effects::AnimatedFilter;

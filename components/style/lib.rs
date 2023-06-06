@@ -97,7 +97,6 @@ pub mod font_metrics;
 #[allow(unsafe_code)]
 pub mod gecko_bindings;
 pub mod global_style_data;
-pub mod hash;
 pub mod invalidation;
 #[allow(missing_docs)] // TODO.
 pub mod logical_geometry;
@@ -261,5 +260,29 @@ where
 
     fn is_one(&self) -> bool {
         *self == One::one()
+    }
+}
+
+/// An allocation error.
+///
+/// TODO(emilio): Would be nice to have more information here, or for SmallVec
+/// to return the standard error type (and then we can just return that).
+///
+/// But given we use these mostly to bail out and ignore them, it's not a big
+/// deal.
+#[derive(Debug)]
+pub struct AllocErr;
+
+impl From<smallvec::CollectionAllocErr> for AllocErr {
+    #[inline]
+    fn from(_: smallvec::CollectionAllocErr) -> Self {
+        Self
+    }
+}
+
+impl From<std::collections::TryReserveError> for AllocErr {
+    #[inline]
+    fn from(_: std::collections::TryReserveError) -> Self {
+        Self
     }
 }

@@ -29,7 +29,7 @@ use crate::context::QuirksMode;
 use crate::logical_geometry::WritingMode;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::computed_value_flags::*;
-use crate::hash::FxHashMap;
+use fxhash::FxHashMap;
 use crate::media_queries::Device;
 use crate::parser::ParserContext;
 use crate::selector_parser::PseudoElement;

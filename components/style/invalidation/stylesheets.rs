@@ -484,16 +484,16 @@ impl StylesheetInvalidationSet {
             },
             Invalidation::LocalName { name, lower_name } => {
                 let insert_lower = name != lower_name;
-                let entry = match self.local_names.try_entry(name) {
-                    Ok(e) => e,
-                    Err(..) => return false,
-                };
+                if self.local_names.try_reserve(1).is_err() {
+                    return false;
+                }
+                let entry = self.local_names.entry(name);
                 *entry.or_insert(InvalidationKind::None) |= kind;
                 if insert_lower {
-                    let entry = match self.local_names.try_entry(lower_name) {
-                        Ok(e) => e,
-                        Err(..) => return false,
-                    };
+                    if self.local_names.try_reserve(1).is_err() {
+                        return false;
+                    }
+                    let entry = self.local_names.entry(lower_name);
                     *entry.or_insert(InvalidationKind::None) |= kind;
                 }
             },

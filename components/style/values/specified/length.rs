@@ -244,8 +244,11 @@ impl FontRelativeLength {
                 (reference_size, length)
             },
             FontRelativeLength::Ic(length) => {
-                let metrics =
-                    query_font_metrics(context, base_size, FontMetricsOrientation::MatchContextPreferVertical);
+                let metrics = query_font_metrics(
+                    context,
+                    base_size,
+                    FontMetricsOrientation::MatchContextPreferVertical,
+                );
                 let reference_size = metrics.ic_width.unwrap_or_else(|| {
                     // https://drafts.csswg.org/css-values/#ic
                     //
