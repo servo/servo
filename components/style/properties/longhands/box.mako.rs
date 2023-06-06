@@ -689,7 +689,6 @@ ${helpers.predefined_type(
     "TouchAction",
     "computed::TouchAction::auto()",
     engines="gecko",
-    gecko_pref="layout.css.touch_action.enabled",
     animation_value_type="discrete",
     spec="https://compat.spec.whatwg.org/#touch-action",
 )}
