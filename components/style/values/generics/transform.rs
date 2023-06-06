@@ -404,15 +404,7 @@ impl ToAbsoluteLength for ComputedLength {
 impl ToAbsoluteLength for ComputedLengthPercentage {
     #[inline]
     fn to_pixel_length(&self, containing_len: Option<ComputedLength>) -> Result<CSSFloat, ()> {
-        match containing_len {
-            Some(relative_len) => Ok(self.resolve(relative_len).px()),
-            // If we don't have reference box, we cannot resolve the used value,
-            // so only retrieve the length part. This will be used for computing
-            // distance without any layout info.
-            //
-            // FIXME(emilio): This looks wrong.
-            None => Ok(self.resolve(Zero::zero()).px()),
-        }
+        Ok(self.maybe_percentage_relative_to(containing_len).ok_or(())?.px())
     }
 }
 
@@ -572,11 +564,20 @@ impl<T> Transform<T> {
 
 impl<T: ToMatrix> Transform<T> {
     /// Return the equivalent 3d matrix of this transform list.
+    ///
     /// We return a pair: the first one is the transform matrix, and the second one
     /// indicates if there is any 3d transform function in this transform list.
     #[cfg_attr(rustfmt, rustfmt_skip)]
     pub fn to_transform_3d_matrix(
         &self,
+        reference_box: Option<&Rect<ComputedLength>>
+    ) -> Result<(Transform3D<CSSFloat>, bool), ()> {
+        Self::components_to_transform_3d_matrix(&self.0, reference_box)
+    }
+
+    /// Converts a series of components to a 3d matrix.
+    pub fn components_to_transform_3d_matrix(
+        ops: &[T],
         reference_box: Option<&Rect<ComputedLength>>
     ) -> Result<(Transform3D<CSSFloat>, bool), ()> {
         let cast_3d_transform = |m: Transform3D<f64>| -> Transform3D<CSSFloat> {
@@ -590,26 +591,27 @@ impl<T: ToMatrix> Transform<T> {
             )
         };
 
-        let (m, is_3d) = self.to_transform_3d_matrix_f64(reference_box)?;
+        let (m, is_3d) = Self::components_to_transform_3d_matrix_f64(ops, reference_box)?;
         Ok((cast_3d_transform(m), is_3d))
     }
 
     /// Same as Transform::to_transform_3d_matrix but a f64 version.
-    pub fn to_transform_3d_matrix_f64(
-        &self,
+    fn components_to_transform_3d_matrix_f64(
+        ops: &[T],
         reference_box: Option<&Rect<ComputedLength>>,
     ) -> Result<(Transform3D<f64>, bool), ()> {
-        // We intentionally use Transform3D<f64> during computation to avoid error propagation
-        // because using f32 to compute triangle functions (e.g. in rotation()) is not
-        // accurate enough. In Gecko, we also use "double" to compute the triangle functions.
-        // Therefore, let's use Transform3D<f64> during matrix computation and cast it into f32
-        // in the end.
+        // We intentionally use Transform3D<f64> during computation to avoid
+        // error propagation because using f32 to compute triangle functions
+        // (e.g. in rotation()) is not accurate enough. In Gecko, we also use
+        // "double" to compute the triangle functions. Therefore, let's use
+        // Transform3D<f64> during matrix computation and cast it into f32 in
+        // the end.
         let mut transform = Transform3D::<f64>::identity();
         let mut contain_3d = false;
 
-        for operation in &*self.0 {
+        for operation in ops {
             let matrix = operation.to_3d_matrix(reference_box)?;
-            contain_3d |= operation.is_3d();
+            contain_3d = contain_3d || operation.is_3d();
             transform = matrix.then(&transform);
         }
 

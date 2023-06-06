@@ -891,25 +891,8 @@ impl Animate for ComputedTransform {
         match (this_remainder, other_remainder) {
             // If there is a remainder from *both* lists we must have had mismatched functions.
             // => Add the remainders to a suitable ___Matrix function.
-            (Some(this_remainder), Some(other_remainder)) => match procedure {
-                Procedure::Add => {
-                    debug_assert!(false, "Should have already dealt with add by the point");
-                    return Err(());
-                },
-                Procedure::Interpolate { progress } => {
-                    result.push(TransformOperation::InterpolateMatrix {
-                        from_list: Transform(this_remainder.to_vec().into()),
-                        to_list: Transform(other_remainder.to_vec().into()),
-                        progress: Percentage(progress as f32),
-                    });
-                },
-                Procedure::Accumulate { count } => {
-                    result.push(TransformOperation::AccumulateMatrix {
-                        from_list: Transform(this_remainder.to_vec().into()),
-                        to_list: Transform(other_remainder.to_vec().into()),
-                        count: cmp::min(count, i32::max_value() as u64) as i32,
-                    });
-                },
+            (Some(this_remainder), Some(other_remainder)) => {
+                result.push(TransformOperation::animate_mismatched_transforms(this_remainder, other_remainder, procedure)?);
             },
             // If there is a remainder from just one list, then one list must be shorter but
             // completely match the type of the corresponding functions in the longer list.
@@ -923,36 +906,19 @@ impl Animate for ComputedTransform {
                             let identity = transform.to_animated_zero().unwrap();
 
                             match transform {
-                                // We can't interpolate/accumulate ___Matrix types directly with a
-                                // matrix. Instead we need to wrap it in another ___Matrix type.
                                 TransformOperation::AccumulateMatrix { .. } |
                                 TransformOperation::InterpolateMatrix { .. } => {
-                                    let transform_list = Transform(vec![transform.clone()].into());
-                                    let identity_list = Transform(vec![identity].into());
-                                    let (from_list, to_list) = if fill_right {
-                                        (transform_list, identity_list)
+                                    let (from, to) = if fill_right {
+                                        (transform, &identity)
                                     } else {
-                                        (identity_list, transform_list)
+                                        (&identity, transform)
                                     };
 
-                                    match procedure {
-                                        Procedure::Add => Err(()),
-                                        Procedure::Interpolate { progress } => {
-                                            Ok(TransformOperation::InterpolateMatrix {
-                                                from_list,
-                                                to_list,
-                                                progress: Percentage(progress as f32),
-                                            })
-                                        },
-                                        Procedure::Accumulate { count } => {
-                                            Ok(TransformOperation::AccumulateMatrix {
-                                                from_list,
-                                                to_list,
-                                                count: cmp::min(count, i32::max_value() as u64)
-                                                    as i32,
-                                            })
-                                        },
-                                    }
+                                    TransformOperation::animate_mismatched_transforms(
+                                        &[from.clone()],
+                                        &[to.clone()],
+                                        procedure,
+                                    )
                                 },
                                 _ => {
                                     let (lhs, rhs) = if fill_right {
@@ -981,9 +947,13 @@ impl ComputeSquaredDistance for ComputedTransform {
 
         // Roll back to matrix interpolation if there is any Err(()) in the
         // transform lists, such as mismatched transform functions.
+        //
+        // FIXME: Using a zero size here seems a bit sketchy but matches the
+        // previous behavior.
         if squared_dist.is_err() {
-            let matrix1: Matrix3D = self.to_transform_3d_matrix(None)?.0.into();
-            let matrix2: Matrix3D = other.to_transform_3d_matrix(None)?.0.into();
+            let rect = euclid::Rect::zero();
+            let matrix1: Matrix3D = self.to_transform_3d_matrix(Some(&rect))?.0.into();
+            let matrix2: Matrix3D = other.to_transform_3d_matrix(Some(&rect))?.0.into();
             return matrix1.compute_squared_distance(&matrix2);
         }
 
@@ -1138,6 +1108,52 @@ impl Animate for ComputedTransformOperation {
                 .animate(&other.to_rotate_3d(), procedure),
             _ => Err(()),
         }
+    }
+}
+
+impl ComputedTransformOperation {
+    /// If there are no size dependencies, we try to animate in-place, to avoid
+    /// creating deeply nested Interpolate* operations.
+    fn try_animate_mismatched_transforms_in_place(
+        left: &[Self],
+        right: &[Self],
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        let (left, _left_3d) = Transform::components_to_transform_3d_matrix(left, None)?;
+        let (right, _right_3d) = Transform::components_to_transform_3d_matrix(right, None)?;
+        ComputedTransformOperation::Matrix3D(left.into()).animate(&ComputedTransformOperation::Matrix3D(right.into()), procedure)
+    }
+
+    fn animate_mismatched_transforms(
+        left: &[Self],
+        right: &[Self],
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        if let Ok(op) = Self::try_animate_mismatched_transforms_in_place(left, right, procedure) {
+            return Ok(op);
+        }
+        let from_list = Transform(left.to_vec().into());
+        let to_list = Transform(right.to_vec().into());
+        Ok(match procedure {
+            Procedure::Add => {
+                debug_assert!(false, "Addition should've been handled earlier");
+                return Err(())
+            },
+            Procedure::Interpolate { progress } => {
+                Self::InterpolateMatrix {
+                    from_list,
+                    to_list,
+                    progress: Percentage(progress as f32),
+                }
+            }
+            Procedure::Accumulate { count } => {
+                Self::AccumulateMatrix {
+                    from_list,
+                    to_list,
+                    count: cmp::min(count, i32::max_value() as u64) as i32,
+                }
+            }
+        })
     }
 }
 
