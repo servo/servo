@@ -57,6 +57,7 @@ use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
+use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
 use std::{mem, ops};
@@ -1532,6 +1533,75 @@ impl Stylist {
     }
 }
 
+/// A vector that is sorted in layer order.
+#[derive(Clone, Debug, Deref, MallocSizeOf)]
+pub struct LayerOrderedVec<T>(Vec<(T, LayerId)>);
+impl<T> Default for LayerOrderedVec<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
+/// A map that is sorted in layer order.
+#[derive(Clone, Debug, Deref, MallocSizeOf)]
+pub struct LayerOrderedMap<T>(PrecomputedHashMap<Atom, SmallVec<[(T, LayerId); 1]>>);
+impl<T> Default for LayerOrderedMap<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
+impl<T: 'static> LayerOrderedVec<T> {
+    fn clear(&mut self) {
+        self.0.clear();
+    }
+    fn push(&mut self, v: T, id: LayerId) {
+        self.0.push((v, id));
+    }
+    fn sort(&mut self, layers: &[CascadeLayer]) {
+        self.0.sort_by_key(|&(_, ref id)| layers[id.0 as usize].order)
+    }
+}
+
+impl<T: 'static> LayerOrderedMap<T> {
+    fn clear(&mut self) {
+        self.0.clear();
+    }
+    fn try_insert(&mut self, name: Atom, v: T, id: LayerId) -> Result<(), FailedAllocationError> {
+        self.try_insert_with(name, v, id, |_, _| Ordering::Equal)
+    }
+    fn try_insert_with(&mut self, name: Atom, v: T, id: LayerId, cmp: impl Fn(&T, &T) -> Ordering) -> Result<(), FailedAllocationError> {
+        let vec = self.0.try_entry(name)?.or_insert_with(Default::default);
+        if let Some(&mut (ref mut val, ref last_id)) = vec.last_mut() {
+            if *last_id == id {
+                if cmp(&val, &v) != Ordering::Greater {
+                    *val = v;
+                }
+                return Ok(())
+            }
+        }
+        vec.push((v, id));
+        Ok(())
+    }
+    fn sort(&mut self, layers: &[CascadeLayer]) {
+        self.sort_with(layers, |_, _| Ordering::Equal)
+    }
+    fn sort_with(&mut self, layers: &[CascadeLayer], cmp: impl Fn(&T, &T) -> Ordering) {
+        for (_, v) in self.0.iter_mut() {
+            v.sort_by(|&(ref v1, ref id1), &(ref v2, ref id2)| {
+                let order1 = layers[id1.0 as usize].order;
+                let order2 = layers[id2.0 as usize].order;
+                order1.cmp(&order2).then_with(|| cmp(v1, v2))
+            })
+        }
+    }
+    /// Get an entry on the LayerOrderedMap by name.
+    pub fn get(&self, name: &Atom) -> Option<&T> {
+        let vec = self.0.get(name)?;
+        Some(&vec.last()?.0)
+    }
+}
+
 /// This struct holds data which users of Stylist may want to extract
 /// from stylesheets which can be done at the same time as updating.
 #[derive(Clone, Debug, Default)]
@@ -1539,35 +1609,35 @@ impl Stylist {
 pub struct ExtraStyleData {
     /// A list of effective font-face rules and their origin.
     #[cfg(feature = "gecko")]
-    pub font_faces: Vec<Arc<Locked<FontFaceRule>>>,
+    pub font_faces: LayerOrderedVec<Arc<Locked<FontFaceRule>>>,
 
     /// A list of effective font-feature-values rules.
     #[cfg(feature = "gecko")]
-    pub font_feature_values: Vec<Arc<Locked<FontFeatureValuesRule>>>,
+    pub font_feature_values: LayerOrderedVec<Arc<Locked<FontFeatureValuesRule>>>,
 
     /// A map of effective counter-style rules.
     #[cfg(feature = "gecko")]
-    pub counter_styles: PrecomputedHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
+    pub counter_styles: LayerOrderedMap<Arc<Locked<CounterStyleRule>>>,
 
     /// A map of effective page rules.
     #[cfg(feature = "gecko")]
-    pub pages: Vec<Arc<Locked<PageRule>>>,
+    pub pages: LayerOrderedVec<Arc<Locked<PageRule>>>,
 
     /// A map of effective scroll-timeline rules.
     #[cfg(feature = "gecko")]
-    pub scroll_timelines: PrecomputedHashMap<Atom, Arc<Locked<ScrollTimelineRule>>>,
+    pub scroll_timelines: LayerOrderedMap<Arc<Locked<ScrollTimelineRule>>>,
 }
 
 #[cfg(feature = "gecko")]
 impl ExtraStyleData {
     /// Add the given @font-face rule.
-    fn add_font_face(&mut self, rule: &Arc<Locked<FontFaceRule>>) {
-        self.font_faces.push(rule.clone());
+    fn add_font_face(&mut self, rule: &Arc<Locked<FontFaceRule>>, layer: LayerId) {
+        self.font_faces.push(rule.clone(), layer);
     }
 
     /// Add the given @font-feature-values rule.
-    fn add_font_feature_values(&mut self, rule: &Arc<Locked<FontFeatureValuesRule>>) {
-        self.font_feature_values.push(rule.clone());
+    fn add_font_feature_values(&mut self, rule: &Arc<Locked<FontFeatureValuesRule>>, layer: LayerId) {
+        self.font_feature_values.push(rule.clone(), layer);
     }
 
     /// Add the given @counter-style rule.
@@ -1575,14 +1645,15 @@ impl ExtraStyleData {
         &mut self,
         guard: &SharedRwLockReadGuard,
         rule: &Arc<Locked<CounterStyleRule>>,
-    ) {
+        layer: LayerId,
+    ) -> Result<(), FailedAllocationError> {
         let name = rule.read_with(guard).name().0.clone();
-        self.counter_styles.insert(name, rule.clone());
+        self.counter_styles.try_insert(name, rule.clone(), layer)
     }
 
     /// Add the given @page rule.
-    fn add_page(&mut self, rule: &Arc<Locked<PageRule>>) {
-        self.pages.push(rule.clone());
+    fn add_page(&mut self, rule: &Arc<Locked<PageRule>>, layer: LayerId) {
+        self.pages.push(rule.clone(), layer);
     }
 
     /// Add the given @scroll-timeline rule.
@@ -1590,15 +1661,20 @@ impl ExtraStyleData {
         &mut self,
         guard: &SharedRwLockReadGuard,
         rule: &Arc<Locked<ScrollTimelineRule>>,
+        layer: LayerId,
     ) -> Result<(), FailedAllocationError> {
         let name = rule.read_with(guard).name.as_atom().clone();
-        self.scroll_timelines
-            .try_insert(name, rule.clone())
-            .map(|_| {})
+        self.scroll_timelines.try_insert(name, rule.clone(), layer)
     }
-}
 
-impl ExtraStyleData {
+    fn sort_by_layer(&mut self, layers: &[CascadeLayer]) {
+        self.font_faces.sort(layers);
+        self.font_feature_values.sort(layers);
+        self.counter_styles.sort(layers);
+        self.pages.sort(layers);
+        self.scroll_timelines.sort(layers);
+    }
+
     fn clear(&mut self) {
         #[cfg(feature = "gecko")]
         {
@@ -1608,6 +1684,18 @@ impl ExtraStyleData {
             self.pages.clear();
             self.scroll_timelines.clear();
         }
+    }
+}
+
+// Don't let a prefixed keyframes animation override
+// a non-prefixed one.
+fn compare_keyframes_in_same_layer(v1: &KeyframesAnimation, v2: &KeyframesAnimation) -> Ordering {
+    if v1.vendor_prefix.is_some() == v2.vendor_prefix.is_some() {
+        Ordering::Equal
+    } else if v2.vendor_prefix.is_some() {
+        Ordering::Greater
+    } else {
+        Ordering::Less
     }
 }
 
@@ -1966,7 +2054,7 @@ pub struct CascadeData {
 
     /// A map with all the animations at this `CascadeData`'s origin, indexed
     /// by name.
-    animations: PrecomputedHashMap<Atom, KeyframesAnimation>,
+    animations: LayerOrderedMap<KeyframesAnimation>,
 
     /// A map from cascade layer name to layer order.
     layer_id: FxHashMap<LayerName, LayerId>,
@@ -2167,6 +2255,8 @@ impl CascadeData {
                 order.inc();
             }
         }
+        self.extra_data.sort_by_layer(&self.layers);
+        self.animations.sort_with(&self.layers, compare_keyframes_in_same_layer);
     }
 
     /// Collects all the applicable media query results into `results`.
@@ -2340,65 +2430,37 @@ impl CascadeData {
                     self.rules_source_order += 1;
                 },
                 CssRule::Keyframes(ref keyframes_rule) => {
-                    #[cfg(feature = "gecko")]
-                    use hashglobe::hash_map::Entry;
-                    #[cfg(feature = "servo")]
-                    use hashglobe::fake::Entry;
-
-                    let keyframes_rule = keyframes_rule.read_with(guard);
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
-                    match self
-                        .animations
-                        .try_entry(keyframes_rule.name.as_atom().clone())?
-                    {
-                        Entry::Vacant(e) => {
-                            e.insert(KeyframesAnimation::from_keyframes(
-                                &keyframes_rule.keyframes,
-                                keyframes_rule.vendor_prefix.clone(),
-                                current_layer_id,
-                                guard,
-                            ));
-                        },
-                        Entry::Occupied(mut e) => {
-                            // Don't let a prefixed keyframes animation override
-                            // a non-prefixed one.
-                            //
-                            // TODO(emilio): This will need to be harder for
-                            // layers.
-                            let needs_insert = keyframes_rule.vendor_prefix.is_none() ||
-                                e.get().vendor_prefix.is_some();
-                            if needs_insert {
-                                e.insert(KeyframesAnimation::from_keyframes(
-                                    &keyframes_rule.keyframes,
-                                    keyframes_rule.vendor_prefix.clone(),
-                                    current_layer_id,
-                                    guard,
-                                ));
-                            }
-                        },
-                    }
+                    let keyframes_rule = keyframes_rule.read_with(guard);
+                    let name = keyframes_rule.name.as_atom().clone();
+                    let animation = KeyframesAnimation::from_keyframes(
+                        &keyframes_rule.keyframes,
+                        keyframes_rule.vendor_prefix.clone(),
+                        guard,
+                    );
+                    self.animations.try_insert_with(name, animation, current_layer_id, compare_keyframes_in_same_layer)?;
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::ScrollTimeline(ref rule) => {
                     // Note: Bug 1733260: we may drop @scroll-timeline rule once this spec issue
                     // https://github.com/w3c/csswg-drafts/issues/6674 gets landed.
-                    self.extra_data.add_scroll_timeline(guard, rule)?;
+                    self.extra_data.add_scroll_timeline(guard, rule, current_layer_id)?;
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::FontFace(ref rule) => {
-                    self.extra_data.add_font_face(rule);
+                    self.extra_data.add_font_face(rule, current_layer_id);
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::FontFeatureValues(ref rule) => {
-                    self.extra_data.add_font_feature_values(rule);
+                    self.extra_data.add_font_feature_values(rule, current_layer_id);
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::CounterStyle(ref rule) => {
-                    self.extra_data.add_counter_style(guard, rule);
+                    self.extra_data.add_counter_style(guard, rule, current_layer_id);
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::Page(ref rule) => {
-                    self.extra_data.add_page(rule);
+                    self.extra_data.add_page(rule, current_layer_id);
                 },
                 CssRule::Viewport(..) => {},
                 _ => {
