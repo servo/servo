@@ -476,6 +476,7 @@
                                 context.builder.inherit_${property.ident}();
                             % endif
                         }
+                        CSSWideKeyword::RevertLayer |
                         CSSWideKeyword::Revert => unreachable!("Should never get here"),
                     }
                     return;

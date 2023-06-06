@@ -24,36 +24,102 @@ pub type ApplicableDeclarationList = SmallVec<[ApplicableDeclarationBlock; 16]>;
 /// That's a limit that could be reached in realistic webpages, so we use
 /// 24 bits and enforce defined behavior in the overflow case.
 ///
+/// Note that right now this restriction could be lifted if wanted (because we
+/// no longer stash the cascade level in the remaining bits), but we keep it in
+/// place in case we come up with a use-case for them, lacking reports of the
+/// current limit being too small.
+///
 /// [1] https://cs.chromium.org/chromium/src/third_party/WebKit/Source/core/css/
 ///     RuleSet.h?l=128&rcl=90140ab80b84d0f889abc253410f44ed54ae04f3
-const SOURCE_ORDER_SHIFT: usize = 0;
 const SOURCE_ORDER_BITS: usize = 24;
 const SOURCE_ORDER_MAX: u32 = (1 << SOURCE_ORDER_BITS) - 1;
-const SOURCE_ORDER_MASK: u32 = SOURCE_ORDER_MAX << SOURCE_ORDER_SHIFT;
+const SOURCE_ORDER_MASK: u32 = SOURCE_ORDER_MAX;
 
-/// We pack the cascade level in a single byte, see CascadeLevel::to_byte_lossy
-/// for the different trade-offs there.
-const CASCADE_LEVEL_SHIFT: usize = SOURCE_ORDER_BITS;
+/// The cascade-level+layer order of this declaration.
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub struct CascadePriority {
+    cascade_level: CascadeLevel,
+    layer_order: LayerOrder,
+}
 
-/// Stores the source order of a block, the cascade level it belongs to, and the
-/// counter needed to handle Shadow DOM cascade order properly.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
-struct ApplicableDeclarationBits(u32);
+#[allow(dead_code)]
+fn size_assert() {
+    #[allow(unsafe_code)]
+    unsafe { std::mem::transmute::<u32, CascadePriority>(0u32) };
+}
 
-impl ApplicableDeclarationBits {
-    fn new(source_order: u32, cascade_level: CascadeLevel) -> Self {
-        Self(
-            (source_order & SOURCE_ORDER_MASK) |
-                ((cascade_level.to_byte_lossy() as u32) << CASCADE_LEVEL_SHIFT),
-        )
+impl PartialOrd for CascadePriority {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for CascadePriority {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.cascade_level
+            .cmp(&other.cascade_level)
+            .then_with(|| {
+                let ordering = self.layer_order.cmp(&other.layer_order);
+                // https://drafts.csswg.org/css-cascade-5/#cascade-layering
+                //
+                //     Cascade layers (like declarations) are ordered by order
+                //     of appearance. When comparing declarations that belong to
+                //     different layers, then for normal rules the declaration
+                //     whose cascade layer is last wins, and for important rules
+                //     the declaration whose cascade layer is first wins.
+                //
+                // FIXME: This creates somewhat surprising behavior for the
+                // style attribute, see
+                // https://github.com/w3c/csswg-drafts/issues/6872
+                if self.cascade_level.is_important() {
+                    ordering.reverse()
+                } else {
+                    ordering
+                }
+            })
+    }
+}
+
+impl CascadePriority {
+    /// Construct a new CascadePriority for a given (level, order) pair.
+    pub fn new(cascade_level: CascadeLevel, layer_order: LayerOrder) -> Self {
+        Self { cascade_level, layer_order }
     }
 
-    fn source_order(&self) -> u32 {
-        self.0 & SOURCE_ORDER_MASK
+    /// Returns the layer order.
+    #[inline]
+    pub fn layer_order(&self) -> LayerOrder {
+        self.layer_order
     }
 
-    fn level(&self) -> CascadeLevel {
-        CascadeLevel::from_byte((self.0 >> CASCADE_LEVEL_SHIFT) as u8)
+    /// Returns the cascade level.
+    #[inline]
+    pub fn cascade_level(&self) -> CascadeLevel {
+        self.cascade_level
+    }
+
+    /// Whether this declaration should be allowed if `revert` or `revert-layer`
+    /// have been specified on a given origin.
+    ///
+    /// `self` is the priority at which the `revert` or `revert-layer` keyword
+    /// have been specified.
+    pub fn allows_when_reverted(&self, other: &Self, origin_revert: bool) -> bool {
+        if origin_revert {
+            other.cascade_level.origin() < self.cascade_level.origin()
+        } else {
+            other.unimportant() < self.unimportant()
+        }
+    }
+
+    /// Convert this priority from "important" to "non-important", if needed.
+    pub fn unimportant(&self) -> Self {
+        Self::new(self.cascade_level().unimportant(), self.layer_order())
+    }
+
+    /// Convert this priority from "non-important" to "important", if needed.
+    pub fn important(&self) -> Self {
+        Self::new(self.cascade_level().important(), self.layer_order())
     }
 }
 
@@ -69,11 +135,11 @@ pub struct ApplicableDeclarationBlock {
     pub source: StyleSource,
     /// The bits containing the source order, cascade level, and shadow cascade
     /// order.
-    bits: ApplicableDeclarationBits,
+    source_order: u32,
     /// The specificity of the selector.
     pub specificity: u32,
-    /// The layer order of the selector.
-    pub layer_order: LayerOrder,
+    /// The cascade priority of the rule.
+    pub cascade_priority: CascadePriority,
 }
 
 impl ApplicableDeclarationBlock {
@@ -86,9 +152,9 @@ impl ApplicableDeclarationBlock {
     ) -> Self {
         ApplicableDeclarationBlock {
             source: StyleSource::from_declarations(declarations),
-            bits: ApplicableDeclarationBits::new(0, level),
+            source_order: 0,
             specificity: 0,
-            layer_order: LayerOrder::root(),
+            cascade_priority: CascadePriority::new(level, LayerOrder::root()),
         }
     }
 
@@ -103,29 +169,34 @@ impl ApplicableDeclarationBlock {
     ) -> Self {
         ApplicableDeclarationBlock {
             source,
-            bits: ApplicableDeclarationBits::new(source_order, level),
+            source_order: source_order & SOURCE_ORDER_MASK,
             specificity,
-            layer_order,
+            cascade_priority: CascadePriority::new(level, layer_order),
         }
     }
 
     /// Returns the source order of the block.
     #[inline]
     pub fn source_order(&self) -> u32 {
-        self.bits.source_order()
+        self.source_order
     }
 
     /// Returns the cascade level of the block.
     #[inline]
     pub fn level(&self) -> CascadeLevel {
-        self.bits.level()
+        self.cascade_priority.cascade_level()
+    }
+
+    /// Returns the cascade level of the block.
+    #[inline]
+    pub fn layer_order(&self) -> LayerOrder {
+        self.cascade_priority.layer_order()
     }
 
     /// Convenience method to consume self and return the right thing for the
     /// rule tree to iterate over.
     #[inline]
-    pub fn for_rule_tree(self) -> (StyleSource, CascadeLevel) {
-        let level = self.level();
-        (self.source, level)
+    pub fn for_rule_tree(self) -> (StyleSource, CascadePriority) {
+        (self.source, self.cascade_priority)
     }
 }

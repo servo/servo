@@ -23,6 +23,7 @@ use crate::selector_parser::{PseudoElement, RestyleDamage};
 use crate::shared_lock::Locked;
 use crate::style_resolver::ResolvedElementStyles;
 use crate::style_resolver::{PseudoElementResolution, StyleResolverForElement};
+use crate::stylesheets::layer_rule::LayerOrder;
 use crate::stylist::RuleInclusion;
 use crate::traversal_flags::TraversalFlags;
 use selectors::matching::ElementSelectorFlags;
@@ -92,6 +93,7 @@ trait PrivateMatchMethods: TElement {
     fn replace_single_rule_node(
         context: &SharedStyleContext,
         level: CascadeLevel,
+        layer_order: LayerOrder,
         pdb: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
         path: &mut StrongRuleNode,
     ) -> bool {
@@ -101,6 +103,7 @@ trait PrivateMatchMethods: TElement {
         let mut important_rules_changed = false;
         let new_node = stylist.rule_tree().update_rule_at_level(
             level,
+            layer_order,
             pdb,
             path,
             guards,
@@ -145,12 +148,14 @@ trait PrivateMatchMethods: TElement {
                 result |= Self::replace_single_rule_node(
                     context.shared,
                     CascadeLevel::same_tree_author_normal(),
+                    LayerOrder::root(),
                     style_attribute,
                     primary_rules,
                 );
                 result |= Self::replace_single_rule_node(
                     context.shared,
                     CascadeLevel::same_tree_author_important(),
+                    LayerOrder::root(),
                     style_attribute,
                     primary_rules,
                 );
@@ -172,6 +177,7 @@ trait PrivateMatchMethods: TElement {
                 Self::replace_single_rule_node(
                     context.shared,
                     CascadeLevel::SMILOverride,
+                    LayerOrder::root(),
                     self.smil_override(),
                     primary_rules,
                 );
@@ -181,6 +187,7 @@ trait PrivateMatchMethods: TElement {
                 Self::replace_single_rule_node(
                     context.shared,
                     CascadeLevel::Transitions,
+                    LayerOrder::root(),
                     self.transition_rule(&context.shared)
                         .as_ref()
                         .map(|a| a.borrow_arc()),
@@ -192,6 +199,7 @@ trait PrivateMatchMethods: TElement {
                 Self::replace_single_rule_node(
                     context.shared,
                     CascadeLevel::Animations,
+                    LayerOrder::root(),
                     self.animation_rule(&context.shared)
                         .as_ref()
                         .map(|a| a.borrow_arc()),
@@ -589,12 +597,14 @@ trait PrivateMatchMethods: TElement {
         Self::replace_single_rule_node(
             &context.shared,
             CascadeLevel::Transitions,
+            LayerOrder::root(),
             declarations.transitions.as_ref().map(|a| a.borrow_arc()),
             &mut rule_node,
         );
         Self::replace_single_rule_node(
             &context.shared,
             CascadeLevel::Animations,
+            LayerOrder::root(),
             declarations.animations.as_ref().map(|a| a.borrow_arc()),
             &mut rule_node,
         );

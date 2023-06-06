@@ -19,14 +19,16 @@ use smallvec::SmallVec;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
-/// The order of a given layer.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd, Ord)]
-pub struct LayerOrder(u32);
+/// The order of a given layer. We use 16 bits so that we can pack LayerOrder
+/// and CascadeLevel in a single 32-bit struct. If we need more bits we can go
+/// back to packing CascadeLevel in a single byte as we did before.
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, PartialOrd, Ord)]
+pub struct LayerOrder(u16);
 
 impl LayerOrder {
     /// The order of the root layer.
     pub const fn root() -> Self {
-        Self(std::u32::MAX)
+        Self(std::u16::MAX)
     }
 
     /// The first cascade layer order.
@@ -37,7 +39,9 @@ impl LayerOrder {
     /// Increment the cascade layer order.
     #[inline]
     pub fn inc(&mut self) {
-        self.0 += 1;
+        if self.0 != std::u16::MAX {
+            self.0 += 1;
+        }
     }
 }
 

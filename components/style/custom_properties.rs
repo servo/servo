@@ -6,11 +6,11 @@
 //!
 //! [custom]: https://drafts.csswg.org/css-variables/
 
+use crate::applicable_declarations::CascadePriority;
 use crate::hash::map::Entry;
 use crate::media_queries::Device;
 use crate::properties::{CSSWideKeyword, CustomDeclaration, CustomDeclarationValue};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, PrecomputedHasher};
-use crate::stylesheets::{Origin, PerOrigin};
 use crate::Atom;
 use cssparser::{
     CowRcStr, Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType,
@@ -599,10 +599,10 @@ fn parse_env_function<'i, 't>(
 /// properties.
 pub struct CustomPropertiesBuilder<'a> {
     seen: PrecomputedHashSet<&'a Name>,
-    reverted: PerOrigin<PrecomputedHashSet<&'a Name>>,
     may_have_cycles: bool,
     custom_properties: Option<CustomPropertiesMap>,
     inherited: Option<&'a Arc<CustomPropertiesMap>>,
+    reverted: PrecomputedHashMap<&'a Name, (CascadePriority, bool)>,
     device: &'a Device,
 }
 
@@ -620,14 +620,16 @@ impl<'a> CustomPropertiesBuilder<'a> {
     }
 
     /// Cascade a given custom property declaration.
-    pub fn cascade(&mut self, declaration: &'a CustomDeclaration, origin: Origin) {
+    pub fn cascade(&mut self, declaration: &'a CustomDeclaration, priority: CascadePriority) {
         let CustomDeclaration {
             ref name,
             ref value,
         } = *declaration;
 
-        if self.reverted.borrow_for_origin(&origin).contains(&name) {
-            return;
+        if let Some(&(reverted_priority, is_origin_revert)) = self.reverted.get(&name) {
+            if !reverted_priority.allows_when_reverted(&priority, is_origin_revert) {
+                return;
+            }
         }
 
         let was_already_present = !self.seen.insert(name);
@@ -670,11 +672,10 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 map.insert(name.clone(), value);
             },
             CustomDeclarationValue::CSSWideKeyword(keyword) => match keyword {
-                CSSWideKeyword::Revert => {
+                CSSWideKeyword::RevertLayer | CSSWideKeyword::Revert => {
+                    let origin_revert = keyword == CSSWideKeyword::Revert;
                     self.seen.remove(name);
-                    for origin in origin.following_including() {
-                        self.reverted.borrow_mut_for_origin(&origin).insert(name);
-                    }
+                    self.reverted.insert(name, (priority, origin_revert));
                 },
                 CSSWideKeyword::Initial => {
                     map.remove(name);

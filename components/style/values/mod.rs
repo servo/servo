@@ -438,15 +438,22 @@ impl CustomIdent {
         ident: &CowRcStr<'i>,
         excluding: &[&str],
     ) -> Result<Self, ParseError<'i>> {
-        let valid = match_ignore_ascii_case! { ident,
-            "initial" | "inherit" | "unset" | "default" | "revert" => false,
-            _ => true
-        };
-        if !valid {
+        use crate::properties::CSSWideKeyword;
+        // https://drafts.csswg.org/css-values-4/#custom-idents:
+        //
+        //     The CSS-wide keywords are not valid <custom-ident>s. The default
+        //     keyword is reserved and is also not a valid <custom-ident>.
+        //
+        if CSSWideKeyword::from_ident(ident).is_ok() || ident.eq_ignore_ascii_case("default") {
             return Err(
                 location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
             );
         }
+
+        // https://drafts.csswg.org/css-values-4/#custom-idents:
+        //
+        //     Excluded keywords are excluded in all ASCII case permutations.
+        //
         if excluding.iter().any(|s| ident.eq_ignore_ascii_case(s)) {
             Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         } else {

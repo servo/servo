@@ -4,7 +4,9 @@
 
 //! Selector matching.
 
-use crate::applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
+use crate::applicable_declarations::{
+    ApplicableDeclarationBlock, ApplicableDeclarationList, CascadePriority,
+};
 use crate::context::{CascadeInputs, QuirksMode};
 use crate::dom::{TElement, TShadowRoot};
 use crate::element_state::{DocumentState, ElementState};
@@ -1474,9 +1476,15 @@ impl Stylist {
             /* pseudo = */ None,
             self.rule_tree.root(),
             guards,
-            block
-                .declaration_importance_iter()
-                .map(|(declaration, _)| (declaration, Origin::Author)),
+            block.declaration_importance_iter().map(|(declaration, _)| {
+                (
+                    declaration,
+                    CascadePriority::new(
+                        CascadeLevel::same_tree_author_normal(),
+                        LayerOrder::root(),
+                    ),
+                )
+            }),
             Some(parent_style),
             Some(parent_style),
             Some(parent_style),
@@ -1582,7 +1590,7 @@ impl ExtraStyleData {
         &mut self,
         guard: &SharedRwLockReadGuard,
         rule: &Arc<Locked<ScrollTimelineRule>>,
-    )-> Result<(), FailedAllocationError> {
+    ) -> Result<(), FailedAllocationError> {
         let name = rule.read_with(guard).name.as_atom().clone();
         self.scroll_timelines
             .try_insert(name, rule.clone())

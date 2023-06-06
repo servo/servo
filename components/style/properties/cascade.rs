@@ -4,6 +4,7 @@
 
 //! The main cascading algorithm of the style system.
 
+use crate::applicable_declarations::CascadePriority;
 use crate::context::QuirksMode;
 use crate::custom_properties::CustomPropertiesBuilder;
 use crate::dom::TElement;
@@ -15,12 +16,13 @@ use crate::properties::{
     ShorthandsWithPropertyReferencesCache, StyleBuilder, CASCADE_PROPERTY,
 };
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
-use crate::rule_tree::StrongRuleNode;
+use crate::rule_tree::{StrongRuleNode, CascadeLevel};
 use crate::selector_parser::PseudoElement;
 use crate::shared_lock::StylesheetGuards;
 use crate::style_adjuster::StyleAdjuster;
-use crate::stylesheets::{Origin, PerOrigin};
+use crate::stylesheets::{Origin, layer_rule::LayerOrder};
 use crate::values::{computed, specified};
+use fxhash::FxHashMap;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
@@ -115,6 +117,7 @@ struct DeclarationIterator<'a> {
     declarations: DeclarationImportanceIterator<'a>,
     origin: Origin,
     importance: Importance,
+    priority: CascadePriority,
 }
 
 impl<'a> DeclarationIterator<'a> {
@@ -128,8 +131,9 @@ impl<'a> DeclarationIterator<'a> {
         let mut iter = Self {
             guards,
             current_rule_node: Some(rule_node),
-            origin: Origin::Author,
+            origin: Origin::UserAgent,
             importance: Importance::Normal,
+            priority: CascadePriority::new(CascadeLevel::UANormal, LayerOrder::root()),
             declarations: DeclarationImportanceIterator::default(),
             restriction,
         };
@@ -138,10 +142,11 @@ impl<'a> DeclarationIterator<'a> {
     }
 
     fn update_for_node(&mut self, node: &'a StrongRuleNode) {
-        let origin = node.cascade_level().origin();
-        self.origin = origin;
-        self.importance = node.importance();
-        let guard = match origin {
+        self.priority = node.cascade_priority();
+        let level = self.priority.cascade_level();
+        self.origin = level.origin();
+        self.importance = level.importance();
+        let guard = match self.origin {
             Origin::Author => self.guards.author,
             Origin::User | Origin::UserAgent => self.guards.ua_or_user,
         };
@@ -153,7 +158,7 @@ impl<'a> DeclarationIterator<'a> {
 }
 
 impl<'a> Iterator for DeclarationIterator<'a> {
-    type Item = (&'a PropertyDeclaration, Origin);
+    type Item = (&'a PropertyDeclaration, CascadePriority);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -163,20 +168,19 @@ impl<'a> Iterator for DeclarationIterator<'a> {
                     continue;
                 }
 
-                let origin = self.origin;
                 if let Some(restriction) = self.restriction {
                     // decl.id() is either a longhand or a custom
                     // property.  Custom properties are always allowed, but
                     // longhands are only allowed if they have our
                     // restriction flag set.
                     if let PropertyDeclarationId::Longhand(id) = decl.id() {
-                        if !id.flags().contains(restriction) && origin != Origin::UserAgent {
+                        if !id.flags().contains(restriction) && self.origin != Origin::UserAgent {
                             continue;
                         }
                     }
                 }
 
-                return Some((decl, origin));
+                return Some((decl, self.priority));
             }
 
             let next_node = self.current_rule_node.take()?.parent()?;
@@ -259,7 +263,7 @@ pub fn apply_declarations<'a, E, I>(
 ) -> Arc<ComputedValues>
 where
     E: TElement,
-    I: Iterator<Item = (&'a PropertyDeclaration, Origin)>,
+    I: Iterator<Item = (&'a PropertyDeclaration, CascadePriority)>,
 {
     debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
     debug_assert_eq!(
@@ -278,14 +282,14 @@ where
 
     let inherited_style = parent_style.unwrap_or(device.default_computed_values());
 
-    let mut declarations = SmallVec::<[(&_, Origin); 32]>::new();
+    let mut declarations = SmallVec::<[(&_, CascadePriority); 32]>::new();
     let custom_properties = {
         let mut builder = CustomPropertiesBuilder::new(inherited_style.custom_properties(), device);
 
-        for (declaration, origin) in iter {
-            declarations.push((declaration, origin));
+        for (declaration, priority) in iter {
+            declarations.push((declaration, priority));
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
-                builder.cascade(declaration, origin);
+                builder.cascade(declaration, priority);
             }
         }
 
@@ -494,7 +498,8 @@ struct Cascade<'a, 'b: 'a> {
     cascade_mode: CascadeMode<'a>,
     seen: LonghandIdSet,
     author_specified: LonghandIdSet,
-    reverted: PerOrigin<LonghandIdSet>,
+    reverted_set: LonghandIdSet,
+    reverted: FxHashMap<LonghandId, (CascadePriority, bool)>,
 }
 
 impl<'a, 'b: 'a> Cascade<'a, 'b> {
@@ -504,6 +509,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             cascade_mode,
             seen: LonghandIdSet::default(),
             author_specified: LonghandIdSet::default(),
+            reverted_set: Default::default(),
             reverted: Default::default(),
         }
     }
@@ -575,7 +581,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         mut shorthand_cache: &mut ShorthandsWithPropertyReferencesCache,
     ) where
         Phase: CascadePhase,
-        I: Iterator<Item = (&'decls PropertyDeclaration, Origin)>,
+        I: Iterator<Item = (&'decls PropertyDeclaration, CascadePriority)>,
     {
         let apply_reset = apply_reset == ApplyResetProperties::Yes;
 
@@ -589,7 +595,9 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         let ignore_colors = !self.context.builder.device.use_document_colors();
         let mut declarations_to_apply_unless_overriden = DeclarationsToApplyUnlessOverriden::new();
 
-        for (declaration, origin) in declarations {
+        for (declaration, priority) in declarations {
+            let origin = priority.cascade_level().origin();
+
             let declaration_id = declaration.id();
             let longhand_id = match declaration_id {
                 PropertyDeclarationId::Longhand(id) => id,
@@ -616,12 +624,12 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 continue;
             }
 
-            if self
-                .reverted
-                .borrow_for_origin(&origin)
-                .contains(physical_longhand_id)
-            {
-                continue;
+            if self.reverted_set.contains(physical_longhand_id) {
+                if let Some(&(reverted_priority, is_origin_revert)) = self.reverted.get(&physical_longhand_id) {
+                    if !reverted_priority.allows_when_reverted(&priority, is_origin_revert) {
+                        continue;
+                    }
+                }
             }
 
             // Only a few properties are allowed to depend on the visited state
@@ -653,32 +661,31 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 );
             }
 
-            let css_wide_keyword = declaration.get_css_wide_keyword();
-            if let Some(CSSWideKeyword::Revert) = css_wide_keyword {
-                // We intentionally don't want to insert it into `self.seen`,
-                // `reverted` takes care of rejecting other declarations as
-                // needed.
-                for origin in origin.following_including() {
-                    self.reverted
-                        .borrow_mut_for_origin(&origin)
-                        .insert(physical_longhand_id);
-                }
-                continue;
-            }
+            let is_unset = match declaration.get_css_wide_keyword() {
+                Some(keyword) => match keyword {
+                    CSSWideKeyword::RevertLayer |
+                    CSSWideKeyword::Revert => {
+                        let origin_revert = keyword == CSSWideKeyword::Revert;
+                        // We intentionally don't want to insert it into
+                        // `self.seen`, `reverted` takes care of rejecting other
+                        // declarations as needed.
+                        self.reverted_set.insert(physical_longhand_id);
+                        self.reverted.insert(physical_longhand_id, (priority, origin_revert));
+                        continue;
+                    },
+                    CSSWideKeyword::Unset => true,
+                    CSSWideKeyword::Inherit => inherited,
+                    CSSWideKeyword::Initial => !inherited,
+                },
+                None => false,
+            };
 
             self.seen.insert(physical_longhand_id);
             if origin == Origin::Author {
                 self.author_specified.insert(physical_longhand_id);
             }
 
-            let unset = css_wide_keyword.map_or(false, |css_wide_keyword| match css_wide_keyword {
-                CSSWideKeyword::Unset => true,
-                CSSWideKeyword::Inherit => inherited,
-                CSSWideKeyword::Initial => !inherited,
-                CSSWideKeyword::Revert => unreachable!(),
-            });
-
-            if unset {
+            if is_unset {
                 continue;
             }
 
