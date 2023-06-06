@@ -71,6 +71,7 @@ static ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
     make_variable!(atom!("safe-area-inset-right"), get_safearea_inset_right),
 ];
 
+#[cfg(feature = "gecko")]
 macro_rules! lnf_int {
     ($id:ident) => {
         unsafe {
@@ -78,6 +79,14 @@ macro_rules! lnf_int {
                 crate::gecko_bindings::bindings::LookAndFeel_IntID::$id as i32,
             )
         }
+    };
+}
+
+#[cfg(feature = "servo")]
+macro_rules! lnf_int {
+    ($id:ident) => {
+        // TODO: implement this.
+        0
     };
 }
 
