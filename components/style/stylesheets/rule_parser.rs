@@ -17,14 +17,14 @@ use crate::stylesheets::document_rule::DocumentCondition;
 use crate::stylesheets::font_feature_values_rule::parse_family_name_list;
 use crate::stylesheets::import_rule::ImportLayer;
 use crate::stylesheets::keyframes_rule::parse_keyframe_list;
-use crate::stylesheets::layer_rule::{LayerName, LayerRuleKind};
+use crate::stylesheets::layer_rule::{LayerBlockRule, LayerName, LayerStatementRule};
 use crate::stylesheets::scroll_timeline_rule::ScrollTimelineDescriptors;
 use crate::stylesheets::stylesheet::Namespaces;
 use crate::stylesheets::supports_rule::SupportsCondition;
 use crate::stylesheets::{
     viewport_rule, AllowImportRules, CorsMode, CssRule, CssRuleType, CssRules, DocumentRule,
-    FontFeatureValuesRule, KeyframesRule, LayerRule, MediaRule, NamespaceRule, PageRule,
-    RulesMutateError, ScrollTimelineRule, StyleRule, StylesheetLoader, SupportsRule, ViewportRule,
+    FontFeatureValuesRule, KeyframesRule, MediaRule, NamespaceRule, PageRule, RulesMutateError,
+    ScrollTimelineRule, StyleRule, StylesheetLoader, SupportsRule, ViewportRule,
 };
 use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, KeyframesName, TimelineName};
@@ -613,13 +613,13 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     0 | 1 => names.into_iter().next(),
                     _ => return Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid)),
                 };
-                Ok(CssRule::Layer(Arc::new(self.shared_lock.wrap(LayerRule {
-                    kind: LayerRuleKind::Block {
+                Ok(CssRule::LayerBlock(Arc::new(self.shared_lock.wrap(
+                    LayerBlockRule {
                         name,
-                        rules: self.parse_nested_rules(input, CssRuleType::Layer),
+                        rules: self.parse_nested_rules(input, CssRuleType::LayerBlock),
+                        source_location: start.source_location(),
                     },
-                    source_location: start.source_location(),
-                }))))
+                ))))
             },
             AtRulePrelude::Import(..) | AtRulePrelude::Namespace(..) => {
                 // These rules don't have blocks.
@@ -654,8 +654,8 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 if names.is_empty() {
                     return Err(());
                 }
-                CssRule::Layer(Arc::new(self.shared_lock.wrap(LayerRule {
-                    kind: LayerRuleKind::Statement { names },
+                CssRule::LayerStatement(Arc::new(self.shared_lock.wrap(LayerStatementRule {
+                    names,
                     source_location: start.source_location(),
                 })))
             },

@@ -2516,35 +2516,25 @@ impl CascadeData {
                         self.effective_media_query_results.saw_effective(media_rule);
                     }
                 },
-                CssRule::Layer(ref lock) => {
-                    use crate::stylesheets::layer_rule::LayerRuleKind;
-
+                CssRule::LayerBlock(ref lock) => {
                     let layer_rule = lock.read_with(guard);
-                    match layer_rule.kind {
-                        LayerRuleKind::Block { ref name, .. } => {
-                            children_layer_id = maybe_register_layers(
-                                self,
-                                name.as_ref(),
-                                &mut current_layer,
-                                &mut layer_names_to_pop,
-                            );
-                        },
-                        LayerRuleKind::Statement { ref names } => {
-                            for name in &**names {
-                                let mut pushed = 0;
-                                // There are no children, so we can ignore the
-                                // return value.
-                                maybe_register_layers(
-                                    self,
-                                    Some(name),
-                                    &mut current_layer,
-                                    &mut pushed,
-                                );
-                                for _ in 0..pushed {
-                                    current_layer.0.pop();
-                                }
-                            }
-                        },
+                    children_layer_id = maybe_register_layers(
+                        self,
+                        layer_rule.name.as_ref(),
+                        &mut current_layer,
+                        &mut layer_names_to_pop,
+                    );
+                },
+                CssRule::LayerStatement(ref lock) => {
+                    let layer_rule = lock.read_with(guard);
+                    for name in &*layer_rule.names {
+                        let mut pushed = 0;
+                        // There are no children, so we can ignore the
+                        // return value.
+                        maybe_register_layers(self, Some(name), &mut current_layer, &mut pushed);
+                        for _ in 0..pushed {
+                            current_layer.0.pop();
+                        }
                     }
                 },
                 // We don't care about any other rule.
@@ -2660,7 +2650,8 @@ impl CascadeData {
                 CssRule::Page(..) |
                 CssRule::Viewport(..) |
                 CssRule::Document(..) |
-                CssRule::Layer(..) |
+                CssRule::LayerBlock(..) |
+                CssRule::LayerStatement(..) |
                 CssRule::FontFeatureValues(..) => {
                     // Not affected by device changes.
                     continue;

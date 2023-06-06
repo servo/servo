@@ -159,71 +159,34 @@ impl ToCss for LayerName {
     }
 }
 
-/// The kind of layer rule this is.
 #[derive(Debug, ToShmem)]
-pub enum LayerRuleKind {
-    /// A block `@layer <name>? { ... }`
-    Block {
-        /// The layer name, or `None` if anonymous.
-        name: Option<LayerName>,
-        /// The nested rules.
-        rules: Arc<Locked<CssRules>>,
-    },
-    /// A statement `@layer <name>, <name>, <name>;`
-    Statement {
-        /// The list of layers to sort.
-        names: Vec<LayerName>,
-    },
-}
-
-/// A [`@layer`][layer] rule.
-///
-/// [layer]: https://drafts.csswg.org/css-cascade-5/#layering
-#[derive(Debug, ToShmem)]
-pub struct LayerRule {
-    /// The kind of layer rule we are.
-    pub kind: LayerRuleKind,
-    /// The source position where this media rule was found.
+/// A block `@layer <name>? { ... }`
+/// https://drafts.csswg.org/css-cascade-5/#layer-block
+pub struct LayerBlockRule {
+    /// The layer name, or `None` if anonymous.
+    pub name: Option<LayerName>,
+    /// The nested rules.
+    pub rules: Arc<Locked<CssRules>>,
+    /// The source position where this rule was found.
     pub source_location: SourceLocation,
 }
 
-impl ToCssWithGuard for LayerRule {
+impl ToCssWithGuard for LayerBlockRule {
     fn to_css(
         &self,
         guard: &SharedRwLockReadGuard,
         dest: &mut crate::str::CssStringWriter,
     ) -> fmt::Result {
         dest.write_str("@layer")?;
-        match self.kind {
-            LayerRuleKind::Block {
-                ref name,
-                ref rules,
-            } => {
-                if let Some(ref name) = *name {
-                    dest.write_char(' ')?;
-                    name.to_css(&mut CssWriter::new(dest))?;
-                }
-                rules.read_with(guard).to_css_block(guard, dest)
-            },
-            LayerRuleKind::Statement { ref names } => {
-                let mut writer = CssWriter::new(dest);
-                let mut first = true;
-                for name in &**names {
-                    if first {
-                        writer.write_char(' ')?;
-                    } else {
-                        writer.write_str(", ")?;
-                    }
-                    first = false;
-                    name.to_css(&mut writer)?;
-                }
-                dest.write_char(';')
-            },
+        if let Some(ref name) = self.name {
+            dest.write_char(' ')?;
+            name.to_css(&mut CssWriter::new(dest))?;
         }
+        self.rules.read_with(guard).to_css_block(guard, dest)
     }
 }
 
-impl DeepCloneWithLock for LayerRule {
+impl DeepCloneWithLock for LayerBlockRule {
     fn deep_clone_with_lock(
         &self,
         lock: &SharedRwLock,
@@ -231,25 +194,57 @@ impl DeepCloneWithLock for LayerRule {
         params: &DeepCloneParams,
     ) -> Self {
         Self {
-            kind: match self.kind {
-                LayerRuleKind::Block {
-                    ref name,
-                    ref rules,
-                } => LayerRuleKind::Block {
-                    name: name.clone(),
-                    rules: Arc::new(
-                        lock.wrap(
-                            rules
-                                .read_with(guard)
-                                .deep_clone_with_lock(lock, guard, params),
-                        ),
-                    ),
-                },
-                LayerRuleKind::Statement { ref names } => LayerRuleKind::Statement {
-                    names: names.clone(),
-                },
-            },
+            name: self.name.clone(),
+            rules: Arc::new(
+                lock.wrap(
+                    self.rules
+                        .read_with(guard)
+                        .deep_clone_with_lock(lock, guard, params),
+                ),
+            ),
             source_location: self.source_location.clone(),
         }
+    }
+}
+
+/// A statement `@layer <name>, <name>, <name>;`
+///
+/// https://drafts.csswg.org/css-cascade-5/#layer-empty
+#[derive(Clone, Debug, ToShmem)]
+pub struct LayerStatementRule {
+    /// The list of layers to sort.
+    pub names: Vec<LayerName>,
+    /// The source position where this rule was found.
+    pub source_location: SourceLocation,
+}
+
+impl ToCssWithGuard for LayerStatementRule {
+    fn to_css(
+        &self,
+        _: &SharedRwLockReadGuard,
+        dest: &mut crate::str::CssStringWriter,
+    ) -> fmt::Result {
+        let mut writer = CssWriter::new(dest);
+        writer.write_str("@layer ")?;
+        let mut first = true;
+        for name in &*self.names {
+            if !first {
+                writer.write_str(", ")?;
+            }
+            first = false;
+            name.to_css(&mut writer)?;
+        }
+        writer.write_char(';')
+    }
+}
+
+impl DeepCloneWithLock for LayerStatementRule {
+    fn deep_clone_with_lock(
+        &self,
+        _: &SharedRwLock,
+        _: &SharedRwLockReadGuard,
+        _: &DeepCloneParams,
+    ) -> Self {
+        self.clone()
     }
 }

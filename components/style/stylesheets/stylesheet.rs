@@ -363,7 +363,8 @@ impl SanitizationKind {
             CssRule::Import(..) |
             // TODO(emilio): Perhaps Layer should not be always sanitized? But
             // we sanitize @media and co, so this seems safer for now.
-            CssRule::Layer(..) => false,
+            CssRule::LayerStatement(..) |
+            CssRule::LayerBlock(..) => false,
 
             CssRule::FontFace(..) | CssRule::Namespace(..) | CssRule::Style(..) => true,
 
