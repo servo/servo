@@ -829,7 +829,7 @@ impl SpecifiedValueInfo for Color {
         // should probably be handled that way as well.
         // XXX `currentColor` should really be `currentcolor`. But let's
         // keep it consistent with the old system for now.
-        f(&["rgb", "rgba", "hsl", "hsla", "currentColor", "transparent"]);
+        f(&["rgb", "rgba", "hsl", "hsla", "hwb", "hwba", "currentColor", "transparent"]);
     }
 }
 
