@@ -4,6 +4,7 @@
 
 //! Generic types for CSS Motion Path.
 
+use crate::values::animated::ToAnimatedZero;
 use crate::values::generics::position::GenericPosition;
 use crate::values::specified::SVGPathData;
 
@@ -21,7 +22,6 @@ use crate::values::specified::SVGPathData;
     PartialEq,
     Serialize,
     SpecifiedValueInfo,
-    ToAnimatedZero,
     ToComputedValue,
     ToCss,
     ToResolvedValue,
@@ -57,7 +57,6 @@ impl RaySize {
     PartialEq,
     Serialize,
     SpecifiedValueInfo,
-    ToAnimatedZero,
     ToComputedValue,
     ToCss,
     ToResolvedValue,
@@ -93,7 +92,6 @@ pub struct RayFunction<Angle> {
     PartialEq,
     Serialize,
     SpecifiedValueInfo,
-    ToAnimatedZero,
     ToComputedValue,
     ToCss,
     ToResolvedValue,
@@ -122,6 +120,13 @@ impl<Angle> OffsetPath<Angle> {
     #[inline]
     pub fn none() -> Self {
         OffsetPath::None
+    }
+}
+
+impl<Angle> ToAnimatedZero for OffsetPath<Angle> {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
     }
 }
 
