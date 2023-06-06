@@ -619,11 +619,12 @@ impl StylesheetInvalidationSet {
                     // existing elements.
                 }
             },
-            ScrollTimeline(..) => {
-                // TODO: Bug 1676784: check if animation-timeline name is referenced.
-                // Now we do nothing.
-            },
-            CounterStyle(..) | Page(..) | Viewport(..) | FontFeatureValues(..) => {
+            // TODO: Check if timeline name is referenced, though this might go away in bug 1737918.
+            ScrollTimeline(..) |
+            CounterStyle(..) |
+            Page(..) |
+            Viewport(..) |
+            FontFeatureValues(..) => {
                 debug!(
                     " > Found unsupported rule, marking the whole subtree \
                      invalid."

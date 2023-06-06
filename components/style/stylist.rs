@@ -30,7 +30,9 @@ use crate::stylesheets::keyframes_rule::KeyframesAnimation;
 use crate::stylesheets::layer_rule::{LayerId, LayerName, LayerOrder};
 use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 #[cfg(feature = "gecko")]
-use crate::stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
+use crate::stylesheets::{
+    CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule, ScrollTimelineRule,
+};
 use crate::stylesheets::{
     CssRule, EffectiveRulesIterator, Origin, OriginSet, PerOrigin, PerOriginIter,
 };
@@ -1542,6 +1544,10 @@ pub struct ExtraStyleData {
     /// A map of effective page rules.
     #[cfg(feature = "gecko")]
     pub pages: Vec<Arc<Locked<PageRule>>>,
+
+    /// A map of effective scroll-timeline rules.
+    #[cfg(feature = "gecko")]
+    pub scroll_timelines: PrecomputedHashMap<Atom, Arc<Locked<ScrollTimelineRule>>>,
 }
 
 #[cfg(feature = "gecko")]
@@ -1570,6 +1576,18 @@ impl ExtraStyleData {
     fn add_page(&mut self, rule: &Arc<Locked<PageRule>>) {
         self.pages.push(rule.clone());
     }
+
+    /// Add the given @scroll-timeline rule.
+    fn add_scroll_timeline(
+        &mut self,
+        guard: &SharedRwLockReadGuard,
+        rule: &Arc<Locked<ScrollTimelineRule>>,
+    )-> Result<(), FailedAllocationError> {
+        let name = rule.read_with(guard).name.as_atom().clone();
+        self.scroll_timelines
+            .try_insert(name, rule.clone())
+            .map(|_| {})
+    }
 }
 
 impl ExtraStyleData {
@@ -1580,6 +1598,7 @@ impl ExtraStyleData {
             self.font_feature_values.clear();
             self.counter_styles.clear();
             self.pages.clear();
+            self.scroll_timelines.clear();
         }
     }
 }
@@ -1604,6 +1623,7 @@ impl MallocSizeOf for ExtraStyleData {
         n += self.font_feature_values.shallow_size_of(ops);
         n += self.counter_styles.shallow_size_of(ops);
         n += self.pages.shallow_size_of(ops);
+        n += self.scroll_timelines.shallow_size_of(ops);
         n
     }
 }
@@ -2351,12 +2371,10 @@ impl CascadeData {
                     }
                 },
                 #[cfg(feature = "gecko")]
-                CssRule::ScrollTimeline(..) => {
-                    // TODO: Bug 1676791: set the timeline into animation.
-                    // https://phabricator.services.mozilla.com/D126452
-                    //
+                CssRule::ScrollTimeline(ref rule) => {
                     // Note: Bug 1733260: we may drop @scroll-timeline rule once this spec issue
                     // https://github.com/w3c/csswg-drafts/issues/6674 gets landed.
+                    self.extra_data.add_scroll_timeline(guard, rule)?;
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::FontFace(ref rule) => {
