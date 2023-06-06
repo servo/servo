@@ -28,7 +28,23 @@ pub struct LayerOrder(u16);
 impl LayerOrder {
     /// The order of the root layer.
     pub const fn root() -> Self {
+        Self(std::u16::MAX - 1)
+    }
+
+    /// The order of the style attribute layer.
+    pub const fn style_attribute() -> Self {
         Self(std::u16::MAX)
+    }
+
+    /// Returns whether this layer is for the style attribute, which behaves
+    /// differently in terms of !important, see
+    /// https://github.com/w3c/csswg-drafts/issues/6872
+    ///
+    /// (This is a bit silly, mind-you, but it's needed so that revert-layer
+    /// behaves correctly).
+    #[inline]
+    pub fn is_style_attribute_layer(&self) -> bool {
+        *self == Self::style_attribute()
     }
 
     /// The first cascade layer order.
@@ -39,7 +55,7 @@ impl LayerOrder {
     /// Increment the cascade layer order.
     #[inline]
     pub fn inc(&mut self) {
-        if self.0 != std::u16::MAX {
+        if self.0 != std::u16::MAX - 1 {
             self.0 += 1;
         }
     }

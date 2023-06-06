@@ -11,7 +11,7 @@ use crate::rule_tree::{CascadeLevel, ShadowCascadeOrder};
 use crate::selector_map::SelectorMap;
 use crate::selector_parser::PseudoElement;
 use crate::shared_lock::Locked;
-use crate::stylesheets::Origin;
+use crate::stylesheets::{layer_rule::LayerOrder, Origin};
 use crate::stylist::{AuthorStylesEnabled, CascadeData, Rule, RuleInclusion, Stylist};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use servo_arc::ArcBorrow;
@@ -450,6 +450,7 @@ where
                 .push(ApplicableDeclarationBlock::from_declarations(
                     sa.clone_arc(),
                     CascadeLevel::same_tree_author_normal(),
+                    LayerOrder::style_attribute(),
                 ));
         }
     }
@@ -460,6 +461,7 @@ where
                 .push(ApplicableDeclarationBlock::from_declarations(
                     so.clone_arc(),
                     CascadeLevel::SMILOverride,
+                    LayerOrder::root(),
                 ));
         }
 
@@ -471,6 +473,7 @@ where
                 .push(ApplicableDeclarationBlock::from_declarations(
                     anim,
                     CascadeLevel::Animations,
+                    LayerOrder::root(),
                 ));
         }
 
@@ -481,6 +484,7 @@ where
                 .push(ApplicableDeclarationBlock::from_declarations(
                     anim,
                     CascadeLevel::Transitions,
+                    LayerOrder::root(),
                 ));
         }
     }

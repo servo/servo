@@ -45,7 +45,9 @@ pub struct CascadePriority {
 #[allow(dead_code)]
 fn size_assert() {
     #[allow(unsafe_code)]
-    unsafe { std::mem::transmute::<u32, CascadePriority>(0u32) };
+    unsafe {
+        std::mem::transmute::<u32, CascadePriority>(0u32)
+    };
 }
 
 impl PartialOrd for CascadePriority {
@@ -57,34 +59,39 @@ impl PartialOrd for CascadePriority {
 
 impl Ord for CascadePriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.cascade_level
-            .cmp(&other.cascade_level)
-            .then_with(|| {
-                let ordering = self.layer_order.cmp(&other.layer_order);
-                // https://drafts.csswg.org/css-cascade-5/#cascade-layering
-                //
-                //     Cascade layers (like declarations) are ordered by order
-                //     of appearance. When comparing declarations that belong to
-                //     different layers, then for normal rules the declaration
-                //     whose cascade layer is last wins, and for important rules
-                //     the declaration whose cascade layer is first wins.
-                //
-                // FIXME: This creates somewhat surprising behavior for the
-                // style attribute, see
-                // https://github.com/w3c/csswg-drafts/issues/6872
-                if self.cascade_level.is_important() {
-                    ordering.reverse()
-                } else {
-                    ordering
-                }
-            })
+        self.cascade_level.cmp(&other.cascade_level).then_with(|| {
+            let ordering = self.layer_order.cmp(&other.layer_order);
+            if ordering == std::cmp::Ordering::Equal {
+                return ordering;
+            }
+            // https://drafts.csswg.org/css-cascade-5/#cascade-layering
+            //
+            //     Cascade layers (like declarations) are ordered by order
+            //     of appearance. When comparing declarations that belong to
+            //     different layers, then for normal rules the declaration
+            //     whose cascade layer is last wins, and for important rules
+            //     the declaration whose cascade layer is first wins.
+            //
+            // But the style attribute layer for some reason is special.
+            if self.cascade_level.is_important() &&
+                !self.layer_order.is_style_attribute_layer() &&
+                !other.layer_order.is_style_attribute_layer()
+            {
+                ordering.reverse()
+            } else {
+                ordering
+            }
+        })
     }
 }
 
 impl CascadePriority {
     /// Construct a new CascadePriority for a given (level, order) pair.
     pub fn new(cascade_level: CascadeLevel, layer_order: LayerOrder) -> Self {
-        Self { cascade_level, layer_order }
+        Self {
+            cascade_level,
+            layer_order,
+        }
     }
 
     /// Returns the layer order.
@@ -149,12 +156,13 @@ impl ApplicableDeclarationBlock {
     pub fn from_declarations(
         declarations: Arc<Locked<PropertyDeclarationBlock>>,
         level: CascadeLevel,
+        layer_order: LayerOrder,
     ) -> Self {
         ApplicableDeclarationBlock {
             source: StyleSource::from_declarations(declarations),
             source_order: 0,
             specificity: 0,
-            cascade_priority: CascadePriority::new(level, LayerOrder::root()),
+            cascade_priority: CascadePriority::new(level, layer_order),
         }
     }
 

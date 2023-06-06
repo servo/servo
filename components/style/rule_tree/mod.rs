@@ -72,7 +72,9 @@ impl RuleTree {
             if any_important {
                 found_important = true;
                 match level {
-                    AuthorNormal { .. } => important_author.push((source.clone(), priority.important())),
+                    AuthorNormal { .. } => {
+                        important_author.push((source.clone(), priority.important()))
+                    },
                     UANormal => important_ua.push((source.clone(), priority.important())),
                     UserNormal => important_user.push((source.clone(), priority.important())),
                     _ => {},
