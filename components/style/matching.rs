@@ -513,12 +513,14 @@ trait PrivateMatchMethods: TElement {
             Self::replace_single_rule_node(
                 &context.shared,
                 CascadeLevel::Transitions,
+                LayerOrder::root(),
                 declarations.transitions.as_ref().map(|a| a.borrow_arc()),
                 &mut rule_node,
             );
             Self::replace_single_rule_node(
                 &context.shared,
                 CascadeLevel::Animations,
+                LayerOrder::root(),
                 declarations.animations.as_ref().map(|a| a.borrow_arc()),
                 &mut rule_node,
             );
