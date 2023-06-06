@@ -101,6 +101,12 @@ impl<Pos> PositionOrAuto<Pos> {
     pub fn auto() -> Self {
         PositionOrAuto::Auto
     }
+
+    /// Return true if it is 'auto'.
+    #[inline]
+    pub fn is_auto(&self) -> bool {
+        matches!(self, PositionOrAuto::Auto)
+    }
 }
 
 /// A generic value for the `z-index` property.

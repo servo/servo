@@ -5,15 +5,19 @@
 //! Generic types for CSS Motion Path.
 
 use crate::values::animated::ToAnimatedZero;
-use crate::values::generics::position::GenericPosition;
+use crate::values::generics::position::{GenericPosition, GenericPositionOrAuto};
 use crate::values::specified::SVGPathData;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 
 /// The <size> in ray() function.
 ///
 /// https://drafts.fxtf.org/motion-1/#valdef-offsetpath-size
 #[allow(missing_docs)]
 #[derive(
+    Animate,
     Clone,
+    ComputeSquaredDistance,
     Copy,
     Debug,
     Deserialize,
@@ -36,15 +40,7 @@ pub enum RaySize {
     Sides,
 }
 
-impl RaySize {
-    /// Returns true if it is the default value.
-    #[inline]
-    pub fn is_default(&self) -> bool {
-        *self == RaySize::ClosestSide
-    }
-}
-
-/// The `ray()` function, `ray( [ <angle> && <size> && contain? ] )`
+/// The `ray()` function, `ray( [ <angle> && <size> && contain? && [at <position>]? ] )`
 ///
 /// https://drafts.fxtf.org/motion-1/#valdef-offsetpath-ray
 #[derive(
@@ -58,25 +54,54 @@ impl RaySize {
     Serialize,
     SpecifiedValueInfo,
     ToComputedValue,
-    ToCss,
     ToResolvedValue,
     ToShmem,
 )]
 #[repr(C)]
-pub struct RayFunction<Angle> {
+pub struct GenericRayFunction<Angle, Position> {
     /// The bearing angle with `0deg` pointing up and positive angles
     /// representing clockwise rotation.
     pub angle: Angle,
     /// Decide the path length used when `offset-distance` is expressed
     /// as a percentage.
-    #[animation(constant)]
-    #[css(skip_if = "RaySize::is_default")]
     pub size: RaySize,
     /// Clamp `offset-distance` so that the box is entirely contained
     /// within the path.
     #[animation(constant)]
-    #[css(represents_keyword)]
     pub contain: bool,
+    /// The "at <position>" part. If omitted, we use auto to represent it.
+    pub position: GenericPositionOrAuto<Position>,
+}
+
+pub use self::GenericRayFunction as RayFunction;
+
+impl<Angle, Position> ToCss for RayFunction<Angle, Position>
+where
+    Angle: ToCss,
+    Position: ToCss,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        self.angle.to_css(dest)?;
+
+        if !matches!(self.size, RaySize::ClosestSide) {
+            dest.write_char(' ')?;
+            self.size.to_css(dest)?;
+        }
+
+        if self.contain {
+            dest.write_str(" contain")?;
+        }
+
+        if !matches!(self.position, GenericPositionOrAuto::Auto) {
+            dest.write_str(" at ")?;
+            self.position.to_css(dest)?;
+        }
+
+        Ok(())
+    }
 }
 
 /// The offset-path value.
@@ -98,15 +123,16 @@ pub struct RayFunction<Angle> {
     ToShmem,
 )]
 #[repr(C, u8)]
-pub enum GenericOffsetPath<Angle> {
+pub enum GenericOffsetPath<RayFunction> {
     // We could merge SVGPathData into ShapeSource, so we could reuse them. However,
     // we don't want to support other value for offset-path, so use SVGPathData only for now.
     /// Path value for path(<string>).
     #[css(function)]
     Path(SVGPathData),
     /// ray() function, which defines a path in the polar coordinate system.
+    /// Use Box<> to make sure the size of offset-path is not too large.
     #[css(function)]
-    Ray(RayFunction<Angle>),
+    Ray(Box<RayFunction>),
     /// None value.
     #[animation(error)]
     None,
@@ -115,7 +141,7 @@ pub enum GenericOffsetPath<Angle> {
 
 pub use self::GenericOffsetPath as OffsetPath;
 
-impl<Angle> OffsetPath<Angle> {
+impl<Ray> OffsetPath<Ray> {
     /// Return None.
     #[inline]
     pub fn none() -> Self {
@@ -123,7 +149,7 @@ impl<Angle> OffsetPath<Angle> {
     }
 }
 
-impl<Angle> ToAnimatedZero for OffsetPath<Angle> {
+impl<Ray> ToAnimatedZero for OffsetPath<Ray> {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Err(())
