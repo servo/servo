@@ -233,6 +233,16 @@ impl<Set: string_cache::StaticAtomSet> cssparser::ToCss for GenericAtomIdent<Set
 }
 
 #[cfg(feature = "servo")]
+impl<Set: string_cache::StaticAtomSet> style_traits::ToCss for GenericAtomIdent<Set> {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        serialize_atom_identifier(&self.0, dest)
+    }
+}
+
+#[cfg(feature = "servo")]
 impl<Set: string_cache::StaticAtomSet> PrecomputedHash for GenericAtomIdent<Set> {
     #[inline]
     fn precomputed_hash(&self) -> u32 {
