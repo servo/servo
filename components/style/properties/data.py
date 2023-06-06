@@ -462,6 +462,7 @@ class Longhand(Property):
                 "Clear",
                 "ColumnCount",
                 "Contain",
+                "ContentVisibility",
                 "Display",
                 "FillRule",
                 "Float",

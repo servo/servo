@@ -1450,6 +1450,34 @@ impl Parse for Contain {
     }
 }
 
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum ContentVisibility {
+    /// `auto` variant, the element turns on layout containment, style containment, and paint
+    /// containment. In addition, if the element is not relevant to the user (such as by being
+    /// offscreen) it also skips its content
+    Auto,
+    /// `hidden` variant, the element skips its content
+    Hidden,
+    /// 'visible' variant, no effect
+    Visible,
+}
+
 /// A specified value for the `perspective` property.
 pub type Perspective = GenericPerspective<NonNegativeLength>;
 
