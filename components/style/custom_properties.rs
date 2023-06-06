@@ -723,6 +723,22 @@ impl<'a> CustomPropertiesBuilder<'a> {
         true
     }
 
+    fn inherited_properties_match(&self, map: &CustomPropertiesMap) -> bool {
+        let inherited = match self.inherited {
+            Some(inherited) => inherited,
+            None => return false,
+        };
+        if inherited.len() != map.len() {
+            return false;
+        }
+        for name in self.seen.iter() {
+            if inherited.get(*name) != map.get(*name) {
+                return false;
+            }
+        }
+        true
+    }
+
     /// Returns the final map of applicable custom properties.
     ///
     /// If there was any specified property, we've created a new map and now we
@@ -734,9 +750,19 @@ impl<'a> CustomPropertiesBuilder<'a> {
             Some(m) => m,
             None => return self.inherited.cloned(),
         };
+
         if self.may_have_cycles {
             substitute_all(&mut map, &self.seen, self.device);
         }
+
+        // Some pages apply a lot of redundant custom properties, see e.g.
+        // bug 1758974 comment 5. Try to detect the case where the values
+        // haven't really changed, and save some memory by reusing the inherited
+        // map in that case.
+        if self.inherited_properties_match(&map) {
+            return self.inherited.cloned();
+        }
+
         map.shrink_to_fit();
         Some(Arc::new(map))
     }
