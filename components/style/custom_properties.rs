@@ -735,7 +735,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
             None => return self.inherited.cloned(),
         };
         if self.may_have_cycles {
-            substitute_all(&mut map, self.device);
+            substitute_all(&mut map, &self.seen, self.device);
         }
         map.shrink_to_fit();
         Some(Arc::new(map))
@@ -746,7 +746,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
 /// (meaning we should use the inherited value).
 ///
 /// It does cycle dependencies removal at the same time as substitution.
-fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Device) {
+fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, seen: &PrecomputedHashSet<&Name>, device: &Device) {
     // The cycle dependencies removal in this function is a variant
     // of Tarjan's algorithm. It is mostly based on the pseudo-code
     // listed in
@@ -804,10 +804,10 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
     ///   doesn't have reference at all in specified value, or it has
     ///   been completely resolved.
     /// * There is no such variable at all.
-    fn traverse<'a>(name: Name, context: &mut Context<'a>) -> Option<usize> {
+    fn traverse<'a>(name: &Name, context: &mut Context<'a>) -> Option<usize> {
         // Some shortcut checks.
         let (name, value) = {
-            let value = context.map.get(&name)?;
+            let value = context.map.get(name)?;
 
             // Nothing to resolve.
             if value.references.is_empty() {
@@ -820,7 +820,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
 
             // Whether this variable has been visited in this traversal.
             let key;
-            match context.index_map.entry(name) {
+            match context.index_map.entry(name.clone()) {
                 Entry::Occupied(entry) => {
                     return Some(*entry.get());
                 },
@@ -848,7 +848,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
         let mut self_ref = false;
         let mut lowlink = index;
         for next in value.references.iter() {
-            let next_index = match traverse(next.clone(), context) {
+            let next_index = match traverse(next, context) {
                 Some(index) => index,
                 // There is nothing to do if the next variable has been
                 // fully resolved at this point.
@@ -933,10 +933,10 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, device: &Devi
         None
     }
 
-    // We have to clone the names so that we can mutably borrow the map
-    // in the context we create for traversal.
-    let names: Vec<_> = custom_properties_map.keys().cloned().collect();
-    for name in names.into_iter() {
+    // Note that `seen` doesn't contain names inherited from our parent, but
+    // those can't have variable references (since we inherit the computed
+    // variables) so we don't want to spend cycles traversing them anyway.
+    for name in seen {
         let mut context = Context {
             count: 0,
             index_map: PrecomputedHashMap::default(),
