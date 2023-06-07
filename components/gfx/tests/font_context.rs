@@ -124,6 +124,7 @@ fn font_family(names: Vec<&str>) -> FontFamily {
             list: names.into_boxed_slice(),
         },
         is_system_font: false,
+        is_initial: false,
     }
 }
 
