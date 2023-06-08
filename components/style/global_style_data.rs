@@ -123,28 +123,29 @@ fn stylo_threads_pref() -> i32 {
     static_prefs::pref!("layout.css.stylo-threads")
 }
 
+/// The performance benefit of additional threads seems to level off at around six, so we cap it
+/// there on many-core machines (see bug 1431285 comment 14).
+pub(crate) const STYLO_MAX_THREADS: usize = 6;
+
 lazy_static! {
     /// Global thread pool
     pub static ref STYLE_THREAD_POOL: std::sync::Mutex<StyleThreadPool> = {
+        use std::cmp;
         // We always set this pref on startup, before layout or script have had a chance of
         // accessing (and thus creating) the thread-pool.
         let threads_pref: i32 = stylo_threads_pref();
-
         let num_threads = if threads_pref >= 0 {
             threads_pref as usize
         } else {
             use num_cpus;
-            use std::cmp;
             // The default heuristic is num_virtual_cores * .75. This gives us three threads on a
             // hyper-threaded dual core, and six threads on a hyper-threaded quad core.
-            //
-            // The performance benefit of additional threads seems to level off at around six, so
-            // we cap it there on many-core machines (see bug 1431285 comment 14).
-            let threads = cmp::min(cmp::max(num_cpus::get() * 3 / 4, 1), 6);
+            let threads = cmp::max(num_cpus::get() * 3 / 4, 1);
             // There's no point in creating a thread pool if there's one thread.
             if threads == 1 { 0 } else { threads }
         };
 
+        let num_threads = cmp::min(num_threads, STYLO_MAX_THREADS);
         let (pool, num_threads) = if num_threads < 1 {
             (None, None)
         } else {

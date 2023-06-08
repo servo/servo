@@ -26,7 +26,7 @@ pub type UndisplayedStyleCache =
 /// currently only holds the dom depth for the bloom filter.
 ///
 /// NB: Keep this as small as possible, please!
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct PerLevelTraversalData {
     /// The current dom depth.
     ///
