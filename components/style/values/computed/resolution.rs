@@ -36,7 +36,7 @@ impl ToComputedValue for specified::Resolution {
 
     #[inline]
     fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
-        Resolution(self.dppx())
+        Resolution(crate::values::normalize(self.dppx().max(0.0)))
     }
 
     #[inline]

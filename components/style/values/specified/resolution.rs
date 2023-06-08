@@ -129,7 +129,7 @@ impl Parse for Resolution {
         match *input.next()? {
             Token::Dimension {
                 value, ref unit, ..
-            } => Self::parse_dimension(value, unit)
+            } if value >= 0. => Self::parse_dimension(value, unit)
                 .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
             Token::Function(ref name) => {
                 let function = CalcNode::math_function(context, name, location)?;
