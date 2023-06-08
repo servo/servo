@@ -483,8 +483,7 @@ fn layout_in_flow_non_replaced_block_level(
     let end_margin_can_collapse_with_children = block_is_same_formatting_context &&
         pbm.padding.block_end == Length::zero() &&
         pbm.border.block_end == Length::zero() &&
-        block_size.auto_is(|| Length::zero()) == Length::zero() &&
-        min_box_size.block == Length::zero();
+        block_size == LengthOrAuto::Auto;
 
     let mut clearance = Length::zero();
     let parent_containing_block_position_info;
@@ -570,9 +569,11 @@ fn layout_in_flow_non_replaced_block_level(
                 content_block_size += collapsible_margins_in_children.end.solve();
             }
             block_margins_collapsed_with_children.collapsed_through =
-                start_margin_can_collapse_with_children &&
-                    end_margin_can_collapse_with_children &&
-                    collapsible_margins_in_children.collapsed_through;
+                collapsible_margins_in_children.collapsed_through &&
+                    block_is_same_formatting_context &&
+                    pbm.padding_border_sums.block == Length::zero() &&
+                    block_size.auto_is(|| Length::zero()) == Length::zero() &&
+                    min_box_size.block == Length::zero();
         },
         NonReplacedContents::EstablishesAnIndependentFormattingContext(non_replaced) => {
             let independent_layout = non_replaced.layout(
