@@ -551,7 +551,6 @@ impl StylesheetInvalidationSet {
             CounterStyle(..) |
             Page(..) |
             Property(..) |
-            Viewport(..) |
             FontFeatureValues(..) |
             FontPaletteValues(..) |
             LayerStatement(..) |
@@ -637,13 +636,9 @@ impl StylesheetInvalidationSet {
             CounterStyle(..) |
             Page(..) |
             Property(..) |
-            Viewport(..) |
             FontFeatureValues(..) |
             FontPaletteValues(..) => {
-                debug!(
-                    " > Found unsupported rule, marking the whole subtree \
-                     invalid."
-                );
+                debug!(" > Found unsupported rule, marking the whole subtree invalid.");
 
                 // TODO(emilio): Can we do better here?
                 //

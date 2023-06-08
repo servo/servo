@@ -31,7 +31,6 @@ use crate::stylesheets::container_rule::ContainerCondition;
 use crate::stylesheets::import_rule::ImportLayer;
 use crate::stylesheets::keyframes_rule::KeyframesAnimation;
 use crate::stylesheets::layer_rule::{LayerName, LayerOrder};
-use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 #[cfg(feature = "gecko")]
 use crate::stylesheets::{
     CounterStyleRule, FontFaceRule, FontFeatureValuesRule, FontPaletteValuesRule, PageRule,
@@ -64,7 +63,6 @@ use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
 use std::{mem, ops};
 use style_traits::dom::{DocumentState, ElementState};
-use style_traits::viewport::ViewportConstraints;
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]
@@ -503,9 +501,6 @@ pub struct Stylist {
     /// `set_device`.
     device: Device,
 
-    /// Viewport constraints based on the current device.
-    viewport_constraints: Option<ViewportConstraints>,
-
     /// The list of stylesheets.
     stylesheets: StylistStylesheetSet,
 
@@ -610,7 +605,6 @@ impl Stylist {
     #[inline]
     pub fn new(device: Device, quirks_mode: QuirksMode) -> Self {
         Self {
-            viewport_constraints: None,
             device,
             quirks_mode,
             stylesheets: StylistStylesheetSet::new(),
@@ -733,37 +727,6 @@ impl Stylist {
         }
 
         self.num_rebuilds += 1;
-
-        // Update viewport_constraints regardless of which origins'
-        // `CascadeData` we're updating.
-        self.viewport_constraints = None;
-        if viewport_rule::enabled() {
-            // TODO(emilio): This doesn't look so efficient.
-            //
-            // Presumably when we properly implement this we can at least have a
-            // bit on the stylesheet that says whether it contains viewport
-            // rules to skip it entirely?
-            //
-            // Processing it with the rest of rules seems tricky since it
-            // overrides the viewport size which may change the evaluation of
-            // media queries (or may not? how are viewport units in media
-            // queries defined?)
-            let cascaded_rule = ViewportRule {
-                declarations: viewport_rule::Cascade::from_stylesheets(
-                    self.stylesheets.iter(),
-                    guards,
-                    &self.device,
-                )
-                .finish(),
-            };
-
-            self.viewport_constraints =
-                ViewportConstraints::maybe_new(&self.device, &cascaded_rule, self.quirks_mode);
-
-            if let Some(ref constraints) = self.viewport_constraints {
-                self.device.account_for_viewport_rule(constraints);
-            }
-        }
 
         let flusher = self.stylesheets.flush(document_element, snapshots);
 
@@ -1230,29 +1193,7 @@ impl Stylist {
     ///
     /// Also, the device that arrives here may need to take the viewport rules
     /// into account.
-    pub fn set_device(&mut self, mut device: Device, guards: &StylesheetGuards) -> OriginSet {
-        if viewport_rule::enabled() {
-            let cascaded_rule = {
-                let stylesheets = self.stylesheets.iter();
-
-                ViewportRule {
-                    declarations: viewport_rule::Cascade::from_stylesheets(
-                        stylesheets,
-                        guards,
-                        &device,
-                    )
-                    .finish(),
-                }
-            };
-
-            self.viewport_constraints =
-                ViewportConstraints::maybe_new(&device, &cascaded_rule, self.quirks_mode);
-
-            if let Some(ref constraints) = self.viewport_constraints {
-                device.account_for_viewport_rule(constraints);
-            }
-        }
-
+    pub fn set_device(&mut self, device: Device, guards: &StylesheetGuards) -> OriginSet {
         self.device = device;
         self.media_features_change_changed_style(guards, &self.device)
     }
@@ -1291,12 +1232,6 @@ impl Stylist {
         }
 
         origins
-    }
-
-    /// Returns the viewport constraints that apply to this document because of
-    /// a @viewport rule.
-    pub fn viewport_constraints(&self) -> Option<&ViewportConstraints> {
-        self.viewport_constraints.as_ref()
     }
 
     /// Returns the Quirks Mode of the document.
@@ -2844,8 +2779,6 @@ impl CascadeData {
                     self.extra_data
                         .add_page(guard, rule, containing_rule_state.layer_id)?;
                 },
-                // TODO: Handle CssRule::Property
-                CssRule::Viewport(..) => {},
                 _ => {
                     handled = false;
                 },
@@ -3088,7 +3021,6 @@ impl CascadeData {
                 CssRule::Keyframes(..) |
                 CssRule::Page(..) |
                 CssRule::Property(..) |
-                CssRule::Viewport(..) |
                 CssRule::Document(..) |
                 CssRule::LayerBlock(..) |
                 CssRule::LayerStatement(..) |

@@ -65,7 +65,6 @@ where
             CssRule::Namespace(_) |
             CssRule::FontFace(_) |
             CssRule::CounterStyle(_) |
-            CssRule::Viewport(_) |
             CssRule::Keyframes(_) |
             CssRule::Page(_) |
             CssRule::Property(_) |
