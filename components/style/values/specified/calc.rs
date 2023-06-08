@@ -12,7 +12,7 @@ use crate::values::generics::calc::{MinMaxOp, ModRemOp, RoundingStrategy, SortKe
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use crate::values::specified::length::{ContainerRelativeLength, ViewportPercentageLength};
 use crate::values::specified::{self, Angle, Resolution, Time};
-use crate::values::{CSSFloat, CSSInteger};
+use crate::values::{serialize_number, serialize_percentage, CSSFloat, CSSInteger};
 use cssparser::{AngleOrNumber, CowRcStr, NumberOrPercentage, Parser, Token};
 use smallvec::SmallVec;
 use std::cmp;
@@ -131,9 +131,9 @@ impl ToCss for Leaf {
     {
         match *self {
             Self::Length(ref l) => l.to_css(dest),
-            Self::Number(ref n) => n.to_css(dest),
+            Self::Number(n) => serialize_number(n, /* was_calc = */ false, dest),
             Self::Resolution(ref r) => r.to_css(dest),
-            Self::Percentage(p) => crate::values::serialize_percentage(p, dest),
+            Self::Percentage(p) => serialize_percentage(p, dest),
             Self::Angle(ref a) => a.to_css(dest),
             Self::Time(ref t) => t.to_css(dest),
         }
@@ -887,10 +887,16 @@ impl CalcNode {
 
     /// Tries to simplify this expression into a `<number>` value.
     fn to_number(&self) -> Result<CSSFloat, ()> {
-        self.resolve(|leaf| match *leaf {
+        let number = self.resolve(|leaf| match *leaf {
             Leaf::Number(n) => Ok(n),
             _ => Err(()),
-        })
+        })?;
+        let result = if nan_inf_enabled() {
+            number
+        } else {
+            crate::values::normalize(number)
+        };
+        Ok(result)
     }
 
     /// Tries to simplify this expression into a `<percentage>` value.
@@ -992,7 +998,6 @@ impl CalcNode {
     ) -> Result<CSSFloat, ParseError<'i>> {
         Self::parse(context, input, function, CalcUnits::empty())?
             .to_number()
-            .map(crate::values::normalize)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 
