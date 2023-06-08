@@ -74,7 +74,6 @@ packages = [
 
   # Duplicated by winit/surfman update.
   "raw-window-handle",
-  "windows-sys",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
