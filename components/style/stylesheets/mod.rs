@@ -4,7 +4,6 @@
 
 //! Style sheets and their CSS rules.
 
-mod cascading_at_rule;
 pub mod container_rule;
 mod counter_style_rule;
 mod document_rule;
@@ -26,7 +25,6 @@ mod rules_iterator;
 mod style_rule;
 mod stylesheet;
 pub mod supports_rule;
-pub mod viewport_rule;
 
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::sugar::refptr::RefCounted;
@@ -74,7 +72,6 @@ pub use self::stylesheet::{AllowImportRules, SanitizationData, SanitizationKind}
 pub use self::stylesheet::{DocumentStyleSheet, Namespaces, Stylesheet};
 pub use self::stylesheet::{StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
 pub use self::supports_rule::SupportsRule;
-pub use self::viewport_rule::ViewportRule;
 
 /// The CORS mode used for a CSS load.
 #[repr(u8)]
@@ -256,7 +253,6 @@ pub enum CssRule {
     FontFeatureValues(Arc<FontFeatureValuesRule>),
     FontPaletteValues(Arc<FontPaletteValuesRule>),
     CounterStyle(Arc<Locked<CounterStyleRule>>),
-    Viewport(Arc<ViewportRule>),
     Keyframes(Arc<Locked<KeyframesRule>>),
     Supports(Arc<SupportsRule>),
     Page(Arc<Locked<PageRule>>),
@@ -292,7 +288,6 @@ impl CssRule {
             CssRule::FontFeatureValues(_) => 0,
             CssRule::FontPaletteValues(_) => 0,
             CssRule::CounterStyle(_) => 0,
-            CssRule::Viewport(_) => 0,
             CssRule::Keyframes(_) => 0,
             CssRule::Supports(ref arc) => {
                 arc.unconditional_shallow_size_of(ops) + arc.size_of(guard, ops)
@@ -338,8 +333,6 @@ pub enum CssRuleType {
     Document = 13,
     // https://drafts.csswg.org/css-fonts/#om-fontfeaturevalues
     FontFeatureValues = 14,
-    // https://drafts.csswg.org/css-device-adapt/#css-rule-interface
-    Viewport = 15,
     // After viewport, all rules should return 0 from the API, but we still need
     // a constant somewhere.
     LayerBlock = 16,
@@ -408,7 +401,6 @@ impl CssRule {
             CssRule::CounterStyle(_) => CssRuleType::CounterStyle,
             CssRule::Keyframes(_) => CssRuleType::Keyframes,
             CssRule::Namespace(_) => CssRuleType::Namespace,
-            CssRule::Viewport(_) => CssRuleType::Viewport,
             CssRule::Supports(_) => CssRuleType::Supports,
             CssRule::Page(_) => CssRuleType::Page,
             CssRule::Property(_) => CssRuleType::Property,
@@ -507,7 +499,6 @@ impl DeepCloneWithLock for CssRule {
                 let rule = arc.read_with(guard);
                 CssRule::CounterStyle(Arc::new(lock.wrap(rule.clone())))
             },
-            CssRule::Viewport(ref arc) => CssRule::Viewport(arc.clone()),
             CssRule::Keyframes(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::Keyframes(Arc::new(
@@ -550,7 +541,6 @@ impl ToCssWithGuard for CssRule {
             CssRule::FontFeatureValues(ref rule) => rule.to_css(guard, dest),
             CssRule::FontPaletteValues(ref rule) => rule.to_css(guard, dest),
             CssRule::CounterStyle(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::Viewport(ref rule) => rule.to_css(guard, dest),
             CssRule::Keyframes(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Media(ref rule) => rule.to_css(guard, dest),
             CssRule::Supports(ref rule) => rule.to_css(guard, dest),

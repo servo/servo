@@ -22,7 +22,6 @@ use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Scale, SideOffsets2D, Size2D};
 use mime::Mime;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
 
 /// A device is a structure that represents the current media a given document
@@ -189,11 +188,6 @@ impl Device {
         _retrieve_math_scales: bool,
     ) -> FontMetrics {
         Default::default()
-    }
-
-    /// Take into account a viewport rule taken from the stylesheets.
-    pub fn account_for_viewport_rule(&mut self, constraints: &ViewportConstraints) {
-        self.viewport_size = constraints.size;
     }
 
     /// Return the media type of the current device.

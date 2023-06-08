@@ -26,7 +26,6 @@ use euclid::{Scale, SideOffsets2D};
 use servo_arc::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
 use std::{cmp, fmt};
-use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
 
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
@@ -133,12 +132,6 @@ impl Device {
             )
         });
         NonNegativeLength::new(au.to_f32_px())
-    }
-
-    /// Tells the device that a new viewport rule has been found, and stores the
-    /// relevant viewport constraints.
-    pub fn account_for_viewport_rule(&mut self, _constraints: &ViewportConstraints) {
-        unreachable!("Gecko doesn't support @viewport");
     }
 
     /// Whether any animation name may be referenced from the style of any

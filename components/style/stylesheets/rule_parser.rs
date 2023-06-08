@@ -26,10 +26,9 @@ use crate::stylesheets::keyframes_rule::parse_keyframe_list;
 use crate::stylesheets::layer_rule::{LayerBlockRule, LayerName, LayerStatementRule};
 use crate::stylesheets::supports_rule::SupportsCondition;
 use crate::stylesheets::{
-    viewport_rule, AllowImportRules, CorsMode, CssRule, CssRuleType, CssRules, DocumentRule,
+    AllowImportRules, CorsMode, CssRule, CssRuleType, CssRules, DocumentRule,
     FontFeatureValuesRule, FontPaletteValuesRule, KeyframesRule, MediaRule, NamespaceRule,
     PageRule, PageSelectors, RulesMutateError, StyleRule, StylesheetLoader, SupportsRule,
-    ViewportRule,
 };
 use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, DashedIdent, KeyframesName};
@@ -200,8 +199,6 @@ pub enum AtRulePrelude {
     Container(Arc<ContainerCondition>),
     /// An @supports rule, with its conditional
     Supports(SupportsCondition),
-    /// A @viewport rule prelude.
-    Viewport,
     /// A @keyframes rule, with its animation name and vendor prefix if exists.
     Keyframes(KeyframesName, Option<VendorPrefix>),
     /// A @page rule prelude, with its page name if it exists.
@@ -584,9 +581,6 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                 let name = parse_counter_style_name_definition(input)?;
                 AtRulePrelude::CounterStyle(name)
             },
-            "viewport" if viewport_rule::enabled() => {
-                AtRulePrelude::Viewport
-            },
             "keyframes" | "-webkit-keyframes" | "-moz-keyframes" => {
                 let prefix = if starts_with_ignore_ascii_case(&*name, "-webkit-") {
                     Some(VendorPrefix::WebKit)
@@ -684,12 +678,6 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                     enabled,
                     source_location,
                 }))
-            },
-            AtRulePrelude::Viewport => {
-                let body = self.nest_for_rule(CssRuleType::Viewport, |p| {
-                    ViewportRule::parse(&p.context, input)
-                })?;
-                CssRule::Viewport(Arc::new(body))
             },
             AtRulePrelude::Keyframes(name, vendor_prefix) => {
                 self.nest_for_rule(CssRuleType::Keyframe, |p| {
