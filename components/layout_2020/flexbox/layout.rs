@@ -905,9 +905,13 @@ impl FlexLine<'_> {
         for ((item, target_main_size), frozen) in items() {
             let is_inflexible = flex_factor(item) == 0. ||
                 if grow {
-                    item.flex_base_size > item.hypothetical_main_size
+                    item.flex_base_size > item.hypothetical_main_size ||
+                        item.content_max_size
+                            .main
+                            .map_or(false, |l| l == item.flex_base_size)
                 } else {
-                    item.flex_base_size < item.hypothetical_main_size
+                    item.flex_base_size < item.hypothetical_main_size ||
+                        item.flex_base_size == item.content_min_size.main
                 };
             if is_inflexible {
                 frozen_count.set(frozen_count.get() + 1);
