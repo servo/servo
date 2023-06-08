@@ -9,7 +9,6 @@
                     servo_pref="layout.flexbox.enabled",
                     sub_properties="flex-direction flex-wrap"
                     extra_prefixes="webkit"
-                    derive_serialize="True"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-flow-property">
     use crate::properties::longhands::{flex_direction, flex_wrap};
 
@@ -42,6 +41,21 @@
             flex_direction: unwrap_or_initial!(flex_direction, direction),
             flex_wrap: unwrap_or_initial!(flex_wrap, wrap),
         })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            if *self.flex_direction == flex_direction::get_initial_specified_value() &&
+               *self.flex_wrap != flex_wrap::get_initial_specified_value() {
+                return self.flex_wrap.to_css(dest)
+            }
+            self.flex_direction.to_css(dest)?;
+            if *self.flex_wrap != flex_wrap::get_initial_specified_value() {
+                dest.write_char(' ')?;
+                self.flex_wrap.to_css(dest)?;
+            }
+            Ok(())
+        }
     }
 </%helpers:shorthand>
 
