@@ -976,10 +976,12 @@ impl FlexLine<'_> {
                     let scaled_shrink_factors_sum: Length = unfrozen_items()
                         .map(|(item, _)| scaled_shrink_factor(item))
                         .sum();
-                    for (item, target_main_size) in unfrozen_items() {
-                        let ratio = scaled_shrink_factor(item) / scaled_shrink_factors_sum;
-                        target_main_size
-                            .set(item.flex_base_size - remaining_free_space.abs() * ratio);
+                    if scaled_shrink_factors_sum > Length::zero() {
+                        for (item, target_main_size) in unfrozen_items() {
+                            let ratio = scaled_shrink_factor(item) / scaled_shrink_factors_sum;
+                            target_main_size
+                                .set(item.flex_base_size - remaining_free_space.abs() * ratio);
+                        }
                     }
                 }
             }
