@@ -52,6 +52,7 @@ jobs:
     with:
       layout: '2013'
       wpt: 'test'
+      unit-tests: true
 
   build-linux-layout-2020:
     name: Linux (layout-2020)
@@ -60,6 +61,7 @@ jobs:
     with:
       layout: '2020'
       wpt: 'test'
+      unit-tests: true
 
   build_result:
     name: homu build finished
