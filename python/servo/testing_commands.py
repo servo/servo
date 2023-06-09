@@ -19,7 +19,6 @@ from collections import OrderedDict
 import time
 import shutil
 import subprocess
-from xml.etree.ElementTree import XML
 
 import wpt
 import wpt.manifestupdate
@@ -297,7 +296,6 @@ class MachCommands(CommandBase):
                      help="Run unit tests for tidy")
     @CommandArgument('--stylo', default=False, action="store_true",
                      help="Only handle files in the stylo tree")
-    @CommandArgument('--force-cpp', default=False, action="store_true", help="Force CPP check")
     def test_tidy(self, all_files, no_progress, self_test, stylo, force_cpp=False, no_wpt=False):
         if self_test:
             return test_tidy.do_tests()
@@ -310,18 +308,9 @@ class MachCommands(CommandBase):
             self.install_rustfmt()
             rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
 
+            print("Checking C++ files for tidiness...")
             env = self.build_env()
-            clangfmt_failed = False
-            available, cmd, files = setup_clangfmt(env)
-            if available:
-                for file in files:
-                    stdout = check_output([cmd, "-output-replacements-xml", file], env=env)
-                    if len(XML(stdout)) > 0:
-                        print("%s is not formatted correctly." % file)
-                        clangfmt_failed = True
-            elif force_cpp:
-                print("Error: can't find suitable clang-format version. Required with --force-cpp.")
-                return True
+            clangfmt_failed = not run_clang_format(env, ["--dry-run", "--Werror"])
 
             if rustfmt_failed or clangfmt_failed:
                 print("Run `./mach fmt` to fix the formatting")
@@ -415,11 +404,8 @@ class MachCommands(CommandBase):
              description='Format the Rust and CPP source files with rustfmt and clang-format',
              category='testing')
     def format_code(self):
-
         env = self.build_env()
-        available, cmd, files = setup_clangfmt(env)
-        if available and len(files) > 0:
-            check_call([cmd, "-i"] + files, env=env)
+        run_clang_format(env, ['-i'])
 
         self.install_rustfmt()
         return self.call_rustup_run(["cargo", "fmt"])
@@ -614,21 +600,18 @@ class MachCommands(CommandBase):
             [run_file, "|".join(tests), bin_path, base_dir])
 
 
-def setup_clangfmt(env):
-    cmd = "clang-format.exe" if sys.platform == "win32" else "clang-format"
-    try:
-        version = check_output([cmd, "--version"], env=env, universal_newlines=True).rstrip()
-        print(version)
-        if version.find("clang-format version {}.".format(CLANGFMT_VERSION)) == -1:
-            print("clang-format: wrong version (v{} required). Skipping CPP formatting.".format(CLANGFMT_VERSION))
-            return False, None, None
-    except OSError:
-        print("clang-format not installed. Skipping CPP formatting.")
-        return False, None, None
-    gitcmd = ['git', 'ls-files']
-    gitfiles = check_output(gitcmd + CLANGFMT_CPP_DIRS, universal_newlines=True).splitlines()
-    filtered = [line for line in gitfiles if line.endswith(".h") or line.endswith(".cpp")]
-    return True, cmd, filtered
+def run_clang_format(env, args):
+    gitfiles = check_output(
+        ['git', 'ls-files'] + CLANGFMT_CPP_DIRS,
+        universal_newlines=True).splitlines()
+    files = [line for line in gitfiles if line.endswith(".h") or line.endswith(".cpp")]
+    clang_cmd = "clang-format.exe" if sys.platform == "win32" else "clang-format"
+
+    if not files:
+        return True
+
+    returncode = call([clang_cmd] + args + files, env=env)
+    return returncode == 0
 
 
 def create_parser_create():
