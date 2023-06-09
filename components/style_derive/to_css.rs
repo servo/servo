@@ -208,7 +208,7 @@ fn derive_single_field_expr(
             .ident
             .as_ref()
             .expect("Unnamed field with represents_keyword?");
-        let ident = cg::to_css_identifier(&ident.to_string());
+        let ident = cg::to_css_identifier(&ident.to_string()).replace("_", "-");
         quote! {
             if *#field {
                 writer.raw_item(#ident)?;
