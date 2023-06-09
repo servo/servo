@@ -40,7 +40,7 @@ env:
   LAYOUT: "${{ contains(inputs.layout, '2020') && 'layout-2020' || 'layout-2013' }}"
   PACKAGE: "${{ contains(inputs.layout, '2020') && 'windows-msvc-layout2020' || 'windows-msvc' }}"
   CCACHE: "ccache"
-  CARGO_INCREMENTAL: 0
+  CARGO_TARGET_DIR: C:\\a\\servo\\servo\\target
 
 jobs:
   build-win:
@@ -50,8 +50,6 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
-      - name: Copy to C drive
-        run: cp D:\a C:\ -Recurse
       - name: wix311-binaries
         shell: powershell
         run: |
@@ -61,23 +59,20 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
       - name: Bootstrap
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: |
           python -m pip install --upgrade pip virtualenv
           python mach fetch
           python mach bootstrap-gstreamer
       - name: Release build
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach build --release --with-${{ env.LAYOUT }}
+      - name: Copy resources
+        run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach smoketest --angle
       - name: Unit tests
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         if: ${{ inputs.unit-tests }}
         run: python mach test-unit --release --with-${{ env.LAYOUT }}
       - name: Package
-        working-directory: "C:\\a\\servo\\servo"
         run: python mach package --release
       - name: Upload Package
         uses: actions/upload-artifact@v3
@@ -90,7 +85,6 @@ jobs:
           path: C:\\a\\servo\\servo\\target/release/msi/Servo.exe
       - name: Upload
         if: ${{ inputs.upload }}
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: |
           python mach upload-nightly ${{ env.PACKAGE }} --secret-from-environment `
             --github-release-id ${{ inputs.github-release-id }}
