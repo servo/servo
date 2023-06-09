@@ -235,6 +235,7 @@ impl Parse for Number {
 
 impl Number {
     /// Returns a new number with the value `val`.
+    #[inline]
     fn new_with_clamping_mode(
         value: CSSFloat,
         calc_clamping_mode: Option<AllowedNumericType>,
@@ -251,6 +252,7 @@ impl Number {
     }
 
     /// Returns a new number with the value `val`.
+    #[inline]
     pub fn new(val: CSSFloat) -> Self {
         Self::new_with_clamping_mode(val, None)
     }

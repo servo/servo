@@ -7,6 +7,12 @@
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::effects::BoxShadow as ComputedBoxShadow;
 use crate::values::computed::effects::SimpleShadow as ComputedSimpleShadow;
+#[cfg(feature = "gecko")]
+use crate::values::computed::url::ComputedUrl;
+use crate::values::computed::Angle as ComputedAngle;
+use crate::values::computed::CSSPixelLength as ComputedCSSPixelLength;
+use crate::values::computed::Filter as ComputedFilter;
+use crate::values::computed::NonNegativeLength as ComputedNonNegativeLength;
 use crate::values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use crate::values::computed::ZeroToOneNumber as ComputedZeroToOneNumber;
 use crate::values::computed::{Context, ToComputedValue};
@@ -75,6 +81,7 @@ fn clamp_to_one(number: NumberOrPercentage) -> NumberOrPercentage {
 macro_rules! factor_impl_common {
     ($ty:ty, $computed_ty:ty) => {
         impl $ty {
+            #[inline]
             fn one() -> Self {
                 Self(NumberOrPercentage::Number(Number::new(1.)))
             }
@@ -213,6 +220,90 @@ impl ToComputedValue for BoxShadow {
             base: ToComputedValue::from_computed_value(&computed.base),
             spread: Some(ToComputedValue::from_computed_value(&computed.spread)),
             inset: computed.inset,
+        }
+    }
+}
+
+// We need this for converting the specified Filter into computed Filter without Context (for
+// some FFIs in glue.rs). This can fail because in some circumstances, we still need Context to
+// determine the computed value.
+impl Filter {
+    /// Generate the ComputedFilter without Context.
+    pub fn to_computed_value_without_context(&self) -> Result<ComputedFilter, ()> {
+        match *self {
+            Filter::Blur(ref length) => Ok(ComputedFilter::Blur(ComputedNonNegativeLength::new(
+                length.0.to_computed_pixel_length_without_context()?,
+            ))),
+            Filter::Brightness(ref factor) => Ok(ComputedFilter::Brightness(
+                ComputedNonNegativeNumber::from(factor.0.to_number().get()),
+            )),
+            Filter::Contrast(ref factor) => Ok(ComputedFilter::Contrast(
+                ComputedNonNegativeNumber::from(factor.0.to_number().get()),
+            )),
+            Filter::Grayscale(ref factor) => Ok(ComputedFilter::Grayscale(
+                ComputedZeroToOneNumber::from(factor.0.to_number().get()),
+            )),
+            Filter::HueRotate(ref angle) => Ok(ComputedFilter::HueRotate(
+                ComputedAngle::from_degrees(angle.degrees()),
+            )),
+            Filter::Invert(ref factor) => Ok(ComputedFilter::Invert(
+                ComputedZeroToOneNumber::from(factor.0.to_number().get()),
+            )),
+            Filter::Opacity(ref factor) => Ok(ComputedFilter::Opacity(
+                ComputedZeroToOneNumber::from(factor.0.to_number().get()),
+            )),
+            Filter::Saturate(ref factor) => Ok(ComputedFilter::Saturate(
+                ComputedNonNegativeNumber::from(factor.0.to_number().get()),
+            )),
+            Filter::Sepia(ref factor) => Ok(ComputedFilter::Sepia(ComputedZeroToOneNumber::from(
+                factor.0.to_number().get(),
+            ))),
+            Filter::DropShadow(ref shadow) => {
+                if cfg!(feature = "gecko") {
+                    let color = match shadow
+                        .color
+                        .as_ref()
+                        .unwrap_or(&Color::currentcolor())
+                        .to_computed_color(None)
+                    {
+                        Some(c) => c,
+                        None => return Err(()),
+                    };
+
+                    let horizontal = ComputedCSSPixelLength::new(
+                        shadow
+                            .horizontal
+                            .to_computed_pixel_length_without_context()?,
+                    );
+                    let vertical = ComputedCSSPixelLength::new(
+                        shadow.vertical.to_computed_pixel_length_without_context()?,
+                    );
+                    let blur = ComputedNonNegativeLength::new(
+                        shadow
+                            .blur
+                            .as_ref()
+                            .unwrap_or(&NonNegativeLength::zero())
+                            .0
+                            .to_computed_pixel_length_without_context()?,
+                    );
+
+                    Ok(ComputedFilter::DropShadow(ComputedSimpleShadow {
+                        color,
+                        horizontal,
+                        vertical,
+                        blur,
+                    }))
+                } else {
+                    Err(())
+                }
+            },
+            Filter::Url(ref url) => {
+                if cfg!(feature = "gecko") {
+                    Ok(ComputedFilter::Url(ComputedUrl(url.clone())))
+                } else {
+                    Err(())
+                }
+            },
         }
     }
 }
