@@ -90,13 +90,10 @@ pub fn parse_border<'i, 't>(
         }
         break
     }
-    if any {
-        Ok((color.unwrap_or_else(|| Color::currentcolor()),
-            style.unwrap_or(BorderStyle::None),
-            width.unwrap_or(BorderSideWidth::Medium)))
-    } else {
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    if !any {
+        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
+    Ok((color.unwrap_or(Color::CurrentColor), style.unwrap_or(BorderStyle::None), width.unwrap_or(BorderSideWidth::Medium)))
 }
 
 % for side, logical in ALL_SIDES:
@@ -297,75 +294,64 @@ pub fn parse_border<'i, 't>(
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
         % for name in "outset repeat slice source width".split():
-            let mut border_image_${name} = border_image_${name}::get_initial_specified_value();
+        let mut ${name} = border_image_${name}::get_initial_specified_value();
         % endfor
+        let mut any = false;
+        let mut parsed_slice = false;
+        let mut parsed_source = false;
+        let mut parsed_repeat = false;
+        loop {
+            if !parsed_slice {
+                if let Ok(value) = input.try_parse(|input| border_image_slice::parse(context, input)) {
+                    parsed_slice = true;
+                    any = true;
+                    slice = value;
+                    // Parse border image width and outset, if applicable.
+                    let maybe_width_outset: Result<_, ParseError> = input.try_parse(|input| {
+                        input.expect_delim('/')?;
 
-        let result: Result<_, ParseError> = input.try_parse(|input| {
-            % for name in "outset repeat slice source width".split():
-                let mut ${name} = None;
-            % endfor
-            loop {
-                if slice.is_none() {
-                    if let Ok(value) = input.try_parse(|input| border_image_slice::parse(context, input)) {
-                        slice = Some(value);
-                        // Parse border image width and outset, if applicable.
-                        let maybe_width_outset: Result<_, ParseError> = input.try_parse(|input| {
+                        // Parse border image width, if applicable.
+                        let w = input.try_parse(|input| border_image_width::parse(context, input)).ok();
+
+                        // Parse border image outset if applicable.
+                        let o = input.try_parse(|input| {
                             input.expect_delim('/')?;
-
-                            // Parse border image width, if applicable.
-                            let w = input.try_parse(|input|
-                                border_image_width::parse(context, input)).ok();
-
-                            // Parse border image outset if applicable.
-                            let o = input.try_parse(|input| {
-                                input.expect_delim('/')?;
-                                border_image_outset::parse(context, input)
-                            }).ok();
-                            if w.is_none() && o.is_none() {
-                               Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-                            }
-                            else {
-                               Ok((w, o))
-                            }
-                        });
-                        if let Ok((w, o)) = maybe_width_outset {
+                            border_image_outset::parse(context, input)
+                        }).ok();
+                        if w.is_none() && o.is_none() {
+                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                        }
+                        Ok((w, o))
+                    });
+                    if let Ok((w, o)) = maybe_width_outset {
+                        if let Some(w) = w {
                             width = w;
+                        }
+                        if let Some(o) = o {
                             outset = o;
                         }
-
+                    }
+                    continue;
+                }
+            }
+            % for name in "source repeat".split():
+                if !parsed_${name} {
+                    if let Ok(value) = input.try_parse(|input| border_image_${name}::parse(context, input)) {
+                        ${name} = value;
+                        parsed_${name} = true;
+                        any = true;
                         continue
                     }
                 }
-                % for name in "source repeat".split():
-                    if ${name}.is_none() {
-                        if let Ok(value) = input.try_parse(|input| border_image_${name}::parse(context, input)) {
-                            ${name} = Some(value);
-                            continue
-                        }
-                    }
-                % endfor
-                break
-            }
-            let mut any = false;
-            % for name in "outset repeat slice source width".split():
-                any = any || ${name}.is_some();
             % endfor
-            if any {
-                % for name in "outset repeat slice source width".split():
-                    if let Some(b_${name}) = ${name} {
-                        border_image_${name} = b_${name};
-                    }
-                % endfor
-                Ok(())
-            } else {
-                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-            }
-        });
-        result?;
-
+            break
+        }
+        if !any {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
         Ok(expanded! {
             % for name in "outset repeat slice source width".split():
-                border_image_${name}: border_image_${name},
+                border_image_${name}: ${name},
             % endfor
          })
     }
