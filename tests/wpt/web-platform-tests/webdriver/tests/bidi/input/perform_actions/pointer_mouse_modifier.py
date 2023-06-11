@@ -208,11 +208,13 @@ async def test_modifier_click(
         .pause(duration=200)
         .key_down(modifier)
         .pause(duration=200)
+        .pause(duration=0)
         .key_up(modifier)
     )
     mouse_sources = (
         actions.add_pointer()
         .pointer_move(x=0, y=0, origin=get_element_origin(outer))
+        .pause(duration=50)
         .pointer_down(button=0)
         .pointer_up(button=0)
     )

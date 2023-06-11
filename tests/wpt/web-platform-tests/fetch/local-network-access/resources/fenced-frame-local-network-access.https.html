@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Fenced frame</title>
+<body></body>
+<script>
+  const fenced_frame = document.createElement("fencedframe");
+  const target = new URL(location.href).searchParams.get("fenced_frame_url");
+  const config = new FencedFrameConfig(target);
+  fenced_frame.config = config;
+  document.body.appendChild(fenced_frame);
+
+</script>

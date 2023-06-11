@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API login hint tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<body>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_login_hint,
+        select_manifest} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let options = request_options_with_login_hint('manifest.py', 'nomatch');
+  const cred = navigator.credentials.get(options);
+  return promise_rejects_dom(t, "NetworkError", cred);
+}, "No login hint matches an account.");
+
+fedcm_test(async t => {
+  let options = request_options_with_login_hint('manifest.py', 'john_doe');
+  const cred = await navigator.credentials.get(options);
+  assert_equals(cred.token, 'token');
+}, "Login hint matches an account.");
+
+fedcm_test(async t => {
+  let options = request_options_with_login_hint('manifest_with_two_accounts.json', 'john_doe');
+  await select_manifest(t, options);
+
+  const cred = await navigator.credentials.get(options);
+  assert_equals(cred.token, 'account_id=john_doe');
+}, "Login hint matches an account from two accounts.");
+</script>

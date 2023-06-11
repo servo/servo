@@ -97,7 +97,7 @@
                 assert_selector_serializes_to(' :not(  :hover   ) ', ':not(:hover)');
             }, 'single pseudo (simple) selector ":not" which accepts arguments in the sequence of simple selectors that is not a universal selector')
 
-            var escaped_ns_rule = "@namespace ns\\:odd url(ns);";
+            const escaped_ns_rule = "@namespace ns\\:odd url(ns);";
             test(function() {
                 assert_selector_serializes_to("[ns\\:foo]", "[ns\\:foo]");
             }, "escaped character in attribute name");
@@ -116,6 +116,26 @@
             test(function() {
                 assert_selector_serializes_to(escaped_ns_rule + "[ns\\:odd|odd\\:name]", "[ns\\:odd|odd\\:name]");
             }, "escaped character in both attribute prefix and name");
+
+            test(() => {
+              assert_selector_serializes_to("\\\\", "\\\\");
+            }, "escaped character (\\) in element name");
+            test(() => {
+              assert_selector_serializes_to("*|\\\\", "\\\\");
+            }, "escaped character (\\) in element name with any namespace without default");
+            test(() => {
+              assert_selector_serializes_to("@namespace 'blah'; *|\\\\", "*|\\\\");
+            }, "escaped character (\\) in element name with any namespace with default");
+            test(() => {
+              assert_selector_serializes_to("|\\\\", "|\\\\");
+            }, "escaped character (\\) in element name with no namespace");
+
+            const element_escaped_ns_rule = "@namespace x\\* 'blah';";
+            test(() => {
+              assert_selector_serializes_to(element_escaped_ns_rule + "x\\*|test", "x\\*|test");
+            }, "escaped character (*) in element prefix");
+
+            // TODO: https://github.com/w3c/csswg-drafts/issues/8911
         </script>
     </body>
 </html>

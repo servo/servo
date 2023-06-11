@@ -7,10 +7,12 @@
 <body>
 
 <script type="module">
-import {default_request_options, fedcm_test, set_fedcm_cookie} from './support/fedcm-helper.sub.js';
+import {request_options_with_mediation_required,
+        fedcm_test,
+        set_fedcm_cookie} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  const cred = navigator.credentials.get(default_request_options());
+  const cred = navigator.credentials.get(request_options_with_mediation_required());
   return promise_rejects_dom(t, "NetworkError", cred);
 }, "Provider configURL should honor Content-Security-Policy.");
 

@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1835437">
+<script>
+window.onload = () => {
+    a.stepDown(251)
+    document.execCommand("delete", false, null)
+}
+</script>
+<form lang="ar-SA">
+<input id="a" type="number" autofocus dir="auto">

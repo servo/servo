@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<meta name=variant content="?method=a&expected-eligible=navigation-source">
+<meta name=variant content="?method=img&expected-eligible=event-source, trigger">
+<meta name=variant content="?method=img&eligible&expected-eligible=event-source, trigger">
+<meta name=variant content="?method=open&expected-eligible=navigation-source">
+<meta name=variant content="?method=script&expected-eligible=event-source, trigger">
+<meta name=variant content="?method=script&eligible&expected-eligible=event-source, trigger">
+<meta name=variant content="?method=fetch">
+<meta name=variant content='?method=fetch&eligible={"eventSourceEligible":true,"triggerEligible":false}&expected-eligible=event-source'>
+<meta name=variant content="?method=xhr">
+<meta name=variant content='?method=xhr&eligible={"eventSourceEligible":true,"triggerEligible":false}&expected-eligible=event-source'>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<body>
+<script>
+const waitForRequest = async () => {
+  const url = blankURL();
+  url.searchParams.set('get-requests', 'true');
+
+  for (let i = 0; i < 20; i++) {
+    const resp = await fetch(url);
+    const payload = await resp.json();
+    if (payload !== null && payload.length > 0) {
+      return payload;
+    }
+    await delay(100);
+  }
+  throw new Error('Timeout polling requests');
+};
+
+const searchParams = new URLSearchParams(location.search);
+const expected_eligible =
+    searchParams.get('expected-eligible') === null ? undefined : searchParams.get('expected-eligible');
+
+promise_test(async t => {
+  // Set mixed-case query params to ensure that they are propagated correctly.
+  await registerAttributionSrc({
+    method: 'variant',
+    extraQueryParams: {'aB': 'Cd', 'store-request': 'true'},
+  });
+
+  const requests = await waitForRequest();
+  assert_equals(requests.length, 1);
+  assert_equals(requests[0].method, 'GET');
+  // TODO(apaseltiner): Check header values once WPT can parse structured dictionaries.
+  if (expected_eligible) {
+    assert_own_property(requests[0], 'attribution-reporting-eligible');
+  } else {
+    assert_not_own_property(requests[0], 'attribution-reporting-eligible');
+  }
+  assert_equals(requests[0].referer, location.toString());
+
+  // TODO(apaseltiner): Test various referrer policies.
+  // TODO(apaseltiner): Test cookie propagation.
+
+  const expectedURL = blankURL();
+  expectedURL.searchParams.set('aB', 'Cd');
+  expectedURL.searchParams.set('store-request', 'true');
+  assert_equals(requests[0].url, expectedURL.toString());
+}, 'attributionsrc request has the proper format.');
+</script>

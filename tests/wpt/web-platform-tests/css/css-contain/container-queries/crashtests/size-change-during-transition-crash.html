@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Container Queries - Size change during transitions crash</title>
+<script src="/common/reftest-wait.js"></script>
+<link rel="help" href="https://crbug.com/1451359">
+<style>
+  #outer {
+    container-type: inline-size;
+    width: 100px;
+  }
+  #inner {
+    background-color: black;
+    transition: background-color 60s;
+  }
+  #inner.target {
+    background-color: white;
+  }
+  @container (width > 200px) {
+    #inner.target  {
+      background-color: lime;
+    }
+  }
+</style>
+<p>Pass if no crash.</p>
+<div id="outer">
+  <div id="inner">Look at my background</div>
+</div>
+<script>
+  inner.offsetTop;
+  inner.className = "target";
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      outer.style.width = "300px";
+      takeScreenshot();
+    });
+  });
+</script>

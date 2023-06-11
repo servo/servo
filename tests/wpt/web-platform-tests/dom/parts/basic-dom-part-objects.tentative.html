@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>DOM Parts: Basic object structure</title>
+<meta name="author" href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=target style="display:none">
+  Imperative test element
+  <span></span> A
+  <span></span> B
+  <span></span> C
+</div>
+
+<div style="display:none">
+  Declarative syntax
+  <h1 id="name">First<?child-node-part name?>Middle<?/child-node-part?>Last</h1>
+  Email: <?node-part email-link?><a id="link"></a>
+</div>
+
+<script>
+test(() => {
+  const target = document.getElementById('target');
+  assert_true(target.children.length >= 3);
+  const documentPart = document.getDocumentPart();
+  assert_true(documentPart instanceof DocumentPart,'document should have a DocumentPart');
+  const parts = documentPart.getParts();
+  assert_true(!!parts,'getParts should return something');
+  const nodePart = new NodePart(target);
+  assert_true(!!nodePart);
+  assert_equals(nodePart.node,target);
+  const childNodePart = new ChildNodePart(target.children[0], target.children[1]);
+  assert_true(!!childNodePart);
+  assert_equals(childNodePart.previousSibling,target.children[0]);
+  assert_equals(childNodePart.nextSibling,target.children[1]);
+}, 'Basic imperative DOM Parts object construction');
+</script>

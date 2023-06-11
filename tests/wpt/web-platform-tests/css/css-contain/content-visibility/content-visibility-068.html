@@ -87,13 +87,13 @@ async_test((t) => {
     end.focus();
     requestAnimationFrame(step5);
   }
-  // After blurring the focused element, we should go back to the contained
-  // height of 100px.
+  // After blurring the focused element, we keep the last rendered size, see
+  // https://github.com/w3c/csswg-drafts/issues/8407.
   function step5() {
     const r = container.getBoundingClientRect();
     t.step(() => {
       assert_equals(r.y, 3000, "step5 offset");
-      assert_equals(r.height, 100, "step5 height");
+      assert_equals(r.height, 10, "step5 height");
     });
     t.done();
   }

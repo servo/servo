@@ -72,6 +72,13 @@ def _switch_to_window(marionette, handle):
     marionette.window = handle
 
 
+class MarionetteCallbackHandler(CallbackHandler):
+
+    def __init__(self, logger, protocol, test_window):
+        MarionetteCallbackHandler.expected_exc = (errors.MarionetteException,)
+        super().__init__(self, logger, protocol, test_window)
+
+
 class MarionetteBaseProtocolPart(BaseProtocolPart):
     def __init__(self, parent):
         super().__init__(parent)

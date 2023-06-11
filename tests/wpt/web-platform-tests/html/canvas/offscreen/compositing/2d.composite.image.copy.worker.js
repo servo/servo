@@ -29,10 +29,10 @@ t.step(function() {
       };
   });
   promise.then(function(response) {
-      createImageBitmap(response).then(bitmap => {
+      return createImageBitmap(response).then(bitmap => {
           ctx.drawImage(bitmap, 0, 0);
           _assertPixelApprox(canvas, 50,25, 255,255,0,191, 5);
-      }, t_fail);
+      });
   }).then(t_pass, t_fail);
 });
 done();

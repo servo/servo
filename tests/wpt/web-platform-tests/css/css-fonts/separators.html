@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="match" href="separators-ref.html">
+<link rel="help" href="https://www.unicode.org/faq/unsup_char.html#2"/>
+<link rel="assert" title="Line and paragraph separator should be displayed as space">
+<title>Line and paragraph separator rendering</title>
+<style>
+    @font-face {
+      font-family: test;
+      src: url(resources/separator-test-font.ttf) format("truetype");
+    }
+    p {
+        font-size: 30px;
+    }
+</style>
+<body>
+    <p>&#x0056&#x0020&#x004f</p>
+    <p>&#x0056&#x2028&#x004f</p>
+    <p>&#x0056&#x2029&#x004f</p>
+
+    <p style="font-family: test;">&#x0056&#x0020&#x004f</p>
+    <p style="font-family: test;">&#x0056&#x2028&#x004f</p>
+    <p style="font-family: test;">&#x0056&#x2029&#x004f</p>
+</body>

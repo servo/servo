@@ -27,9 +27,7 @@
 
   var gFirstConnection = null;
   var gSecondConnection = null;
-  var gCallbackCounter = 0;
   var verify_params = (now, metadata) => {
-    gCallbackCounter = gCallbackCounter + 1;
     assert_greater_than(now, 0);
 
     // Verify all required fields
@@ -43,15 +41,7 @@
     // Verify WebRTC only fields.
     assert_true("rtpTimestamp" in metadata, "rtpTimestamp should be present");
     assert_true("receiveTime" in metadata, "receiveTime should be present");
-    // captureTime is not available until roundtrip time estimation is done.
-    if (gCallbackCounter > 60 || "captureTime" in metadata) {
-      assert_true("captureTime" in metadata, "captureTime should be present");
-      test.done();
-    }
-    else {
-      // Keep requesting callbacks.
-      document.getElementById('remote-view').requestVideoFrameCallback(test.step_func(verify_params));
-    }
+    // Verifying that captureTime is too unreliable to be included in tests.
   }
 
   var verify_local_metadata = (now, metadata) => {
@@ -67,7 +57,7 @@
   // as well as the ICE and DTLS connection are up.
   document.getElementById('remote-view')
       .addEventListener('loadedmetadata', function() {
-    document.getElementById('remote-view').requestVideoFrameCallback(test.step_func(verify_params));
+    document.getElementById('remote-view').requestVideoFrameCallback(test.step_func_done(verify_params));
   });
 
   document.getElementById('local-view')

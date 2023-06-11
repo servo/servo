@@ -1,0 +1,46 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+for (const resolve_to_config of [true, false]) {
+  promise_test(async () => {
+    const ancestor_key = token();
+    let url0 = generateURL("/shared-storage/resources/frame0.html",
+                           [ancestor_key]);
+    let url1 = generateURL("/shared-storage/resources/frame1.html",
+                           [ancestor_key]);
+
+    await addModuleOnce(
+        "/shared-storage/resources/verify-get-undefined-module.js");
+
+    let select_url_result = await sharedStorage.selectURL(
+        "verify-get-undefined-url-selection-operation",
+        [{url: url0,
+          reportingMetadata: {'click':
+                              "/shared-storage/resources/frame0.html"}},
+         {url: url1,
+          reportingMetadata:
+            {'mouse interaction': "/shared-storage/resources/frame1.html",
+            'click': "/shared-storage/resources/frame2.html"}}],
+        {resolveToConfig: resolve_to_config,
+         keepAlive: resolve_to_config});
+
+    assert_true(validateSelectURLResult(select_url_result, resolve_to_config));
+    attachFencedFrame(select_url_result, 'opaque-ads');
+
+    // frame1_loaded implies that the operation was successful.
+    assert_equals(await nextValueFromServer(ancestor_key), "frame1_loaded");
+
+}, 'verify-get-undefined-url-selection-operation selectURL() resolves to ' +
+    (resolve_to_config ? 'config' : 'urn:uuid'));
+}
+
+</script>
+</body>

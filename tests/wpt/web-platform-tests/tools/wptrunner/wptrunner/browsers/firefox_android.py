@@ -64,7 +64,6 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
             "e10s": run_info_data["e10s"],
             # desktop only
             "leak_check": False,
-            "stylo_threads": kwargs["stylo_threads"],
             "chaos_mode_flags": kwargs["chaos_mode_flags"],
             "config": config,
             "install_fonts": kwargs["install_fonts"],
@@ -99,12 +98,11 @@ def env_options():
             "supports_debugger": True}
 
 
-def get_environ(stylo_threads, chaos_mode_flags):
+def get_environ(chaos_mode_flags):
     env = {}
     env["MOZ_CRASHREPORTER"] = "1"
     env["MOZ_CRASHREPORTER_SHUTDOWN"] = "1"
     env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
-    env["STYLO_THREADS"] = str(stylo_threads)
     if chaos_mode_flags is not None:
         env["MOZ_CHAOSMODE"] = hex(chaos_mode_flags)
     return env
@@ -151,7 +149,7 @@ class FirefoxAndroidBrowser(Browser):
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,
                  ca_certificate_path=None, e10s=False, stackfix_dir=None,
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
-                 stylo_threads=1, chaos_mode_flags=None, config=None, browser_channel="nightly",
+                 chaos_mode_flags=None, config=None, browser_channel="nightly",
                  install_fonts=False, tests_root=None, specialpowers_path=None, adb_binary=None,
                  debug_test=False, **kwargs):
 
@@ -171,7 +169,6 @@ class FirefoxAndroidBrowser(Browser):
         self.timeout_multiplier = timeout_multiplier
         self.leak_check = leak_check
         self.asan = asan
-        self.stylo_threads = stylo_threads
         self.chaos_mode_flags = chaos_mode_flags
         self.config = config
         self.browser_channel = browser_channel
@@ -229,7 +226,7 @@ class FirefoxAndroidBrowser(Browser):
                                           [cmd_arg("marionette"), "about:blank"],
                                           self.debug_info)
 
-        env = get_environ(self.stylo_threads, self.chaos_mode_flags)
+        env = get_environ(self.chaos_mode_flags)
 
         self.runner = FennecEmulatorRunner(app=self.package_name,
                                            profile=self.profile,
@@ -310,7 +307,7 @@ class FirefoxAndroidWdSpecBrowser(FirefoxWdSpecBrowser):
                  extra_prefs=None, debug_info=None, symbols_path=None, stackwalk_binary=None,
                  certutil_binary=None, ca_certificate_path=None, e10s=False,
                  enable_fission=False, stackfix_dir=None, leak_check=False,
-                 asan=False, stylo_threads=1, chaos_mode_flags=None, config=None,
+                 asan=False, chaos_mode_flags=None, config=None,
                  browser_channel="nightly", headless=None,
                  package_name="org.mozilla.geckoview.test_runner", device_serial=None,
                  adb_binary=None, **kwargs):
@@ -320,7 +317,7 @@ class FirefoxAndroidWdSpecBrowser(FirefoxWdSpecBrowser):
                          stackwalk_binary=stackwalk_binary, certutil_binary=certutil_binary,
                          ca_certificate_path=ca_certificate_path, e10s=e10s,
                          enable_fission=enable_fission, stackfix_dir=stackfix_dir,
-                         leak_check=leak_check, asan=asan, stylo_threads=stylo_threads,
+                         leak_check=leak_check, asan=asan,
                          chaos_mode_flags=chaos_mode_flags, config=config,
                          browser_channel=browser_channel, headless=headless, **kwargs)
 
@@ -346,8 +343,8 @@ class FirefoxAndroidWdSpecBrowser(FirefoxWdSpecBrowser):
             self.logger.warning("Failed to remove forwarded or reversed ports: %s" % e)
         super().stop(force=force)
 
-    def get_env(self, binary, debug_info, stylo_threads, headless, chaos_mode_flags):
-        env = get_environ(stylo_threads, chaos_mode_flags)
+    def get_env(self, binary, debug_info, headless, chaos_mode_flags):
+        env = get_environ(chaos_mode_flags)
         env["RUST_BACKTRACE"] = "1"
         del env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"]
         return env

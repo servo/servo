@@ -710,6 +710,7 @@ class CallbackHandler:
     fully custom implementation."""
 
     unimplemented_exc: ClassVar[Tuple[Type[Exception], ...]] = (NotImplementedError,)
+    expected_exc: ClassVar[Tuple[Type[Exception], ...]] = ()
 
     def __init__(self, logger, protocol, test_window):
         self.protocol = protocol
@@ -749,8 +750,11 @@ class CallbackHandler:
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)
             self._send_message(cmd_id, "complete", "error", "Action %s not implemented" % action)
+        except self.expected_exc:
+            self.logger.debug("Action %s failed with an expected exception" % action)
+            self._send_message(cmd_id, "complete", "error")
         except Exception:
-            self.logger.warning("Action %s failed" % action)
+            self.logger.error("Action %s failed" % action)
             self.logger.warning(traceback.format_exc())
             self._send_message(cmd_id, "complete", "error")
             raise

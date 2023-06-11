@@ -4,10 +4,11 @@
 <link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
 <link rel=help href="https://html.spec.whatwg.org/multipage/#submitting-element-directionality:-the-dirname-attribute">
 <form action="dirname-rtl-manual.html" method=get>
-  <p><label>Comment: <input type=text name="comment" dirname="comment.dir" required></label></p>
+  <p><label>User: <input type=text name="user" dirname="user.dir" required></label></p>
+  <p><label>Comment: <textarea name="comment" dirname="comment.dir" required></textarea></label></p>
   <p><button type=submit>Post Comment</button></p>
 </form>
-<p>Switch to a right-to-left writing direction, enter a text in the input and submit the form.</p>
+<p>Switch to a right-to-left writing direction, enter a text in the input and textarea, and submit the form.</p>
 <p>Test passes if the word "PASS" appears below</p>
 <script>
   function getParameterByName(name) {
@@ -17,10 +18,12 @@
     return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
   }
 
+  var userDir = getParameterByName("user.dir");
   var commentDir = getParameterByName("comment.dir");
-  if (commentDir) {
+  if (commentDir && userDir) {
     var p = document.createElement("p");
-    p.textContent = (commentDir == "rtl") ? "PASS" : "FAIL";
+    var success = (commentDir == "rtl" && userDir == "rtl")
+    p.textContent = success ? "PASS" : "FAIL";
     document.body.appendChild(p);
   }
 </script>

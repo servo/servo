@@ -149,10 +149,10 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             ctx.drawImage(bitmap, 0, 0);
             @assert pixel 50,25 ==~ %s +/- 5;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
     """ % (dest, op, to_test(expected)),
             } )
@@ -176,14 +176,14 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             ctx2.drawImage(bitmap, 0, 0);
             ctx.fillStyle = 'rgba%s';
             ctx.fillRect(0, 0, 100, 50);
             ctx.globalCompositeOperation = '%s';
             ctx.drawImage(offscreenCanvas2, 0, 0);
             @assert pixel 50,25 ==~ %s +/- 5;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
     """ % (dest, op, to_test(expected)),
             } )
@@ -232,11 +232,11 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             ctx.drawImage(bitmap, 40, 40, 10, 10, 40, 50, 10, 10);
             @assert pixel 15,15 ==~ %s +/- 5;
             @assert pixel 50,25 ==~ %s +/- 5;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
     """ % (dest, op, to_test(expected0), to_test(expected0)),
             } )
@@ -281,11 +281,11 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
             ctx.fillRect(0, 50, 100, 50);
             @assert pixel 50,25 ==~ %s +/- 5;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
     """ % (dest, op, to_test(expected0)),
             } )

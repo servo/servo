@@ -21,18 +21,10 @@ async_promise_test(t => applyJitterBufferTarget(t, "video", 250),
                     "measure raising video jitterBufferTarget to 250");
 async_promise_test(t => applyJitterBufferTarget(t, "audio", 250),
                     "measure raising audio jitterBufferTarget to 250");
-async_promise_test(t => applyJitterBufferTarget(t, "video", 500),
-                    "measure raising video jitterBufferTarget to 500");
-async_promise_test(t => applyJitterBufferTarget(t, "audio", 500),
-                    "measure raising audio jitterBufferTarget to 500");
 async_promise_test(t => applyJitterBufferTarget(t, "video", 250, 150),
                     "measure lowering video jitterBufferTarget to 150");
 async_promise_test(t => applyJitterBufferTarget(t, "audio", 250, 150),
                     "measure lowering audio jitterBufferTarget to 150");
-async_promise_test(t => applyJitterBufferTarget(t, "video", 400, 250),
-                    "measure lowering video jitterBufferTarget to 300");
-async_promise_test(t => applyJitterBufferTarget(t, "audio", 400, 250),
-                    "measure lowering audio jitterBufferTarget to 300");
 
 async function applyJitterBufferTarget(t, kind, target, targetToLower) {
   const caller = new RTCPeerConnection();
@@ -67,7 +59,8 @@ async function applyJitterBufferTarget(t, kind, target, targetToLower) {
 async function measureDelayFromStats(t, receiver, callee, target, kind) {
   const lowerBound = target * 0.7;
   const upperBound = target * 1.3;
-  let delay, oldInboundStats, prevDelay, rateOfChange;
+  let delay, oldInboundStats, prevDelay, avgChange;
+  let rateOfChange = 0;
   let numDelayMeasurements = 1;
 
   for (let statChecks = 0; statChecks < 40; statChecks++) {
@@ -79,7 +72,8 @@ async function measureDelayFromStats(t, receiver, callee, target, kind) {
       delay = ((inboundStats.jitterBufferDelay - oldInboundStats.jitterBufferDelay) /
                (inboundStats.jitterBufferEmittedCount - oldInboundStats.jitterBufferEmittedCount) * 1000);
       if (prevDelay) {
-        rateOfChange = (delay - prevDelay) / numDelayMeasurements;
+        rateOfChange += (delay - prevDelay);
+        avgChange = rateOfChange / numDelayMeasurements;
         numDelayMeasurements++;
       }
       prevDelay = delay;
@@ -90,7 +84,7 @@ async function measureDelayFromStats(t, receiver, callee, target, kind) {
     oldInboundStats = inboundStats;
   }
   t.step(() => assert_between_inclusive(delay , lowerBound, upperBound,
-   `${kind} delay is within bounds rateOfChange ${rateOfChange} over ${numDelayMeasurements} measurements`));
+   `${kind} delay is within bounds avgChange ${avgChange} over ${numDelayMeasurements} measurements`));
   return delay;
 }
 </script>

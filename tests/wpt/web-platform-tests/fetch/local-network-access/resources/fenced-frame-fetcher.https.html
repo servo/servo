@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="../../../fenced-frame/resources/utils.js"></script>
+<title>Fetcher</title>
+<script>
+  const url = new URL(location.href).searchParams.get("url");
+  const mode = new URL(location.href).searchParams.get("mode");
+  const method = new URL(location.href).searchParams.get("method");
+  const [error_token, ok_token, body_token, type_token] = parseKeylist();
+
+  fetch(url, {mode: mode, method: method})
+      .then(async function(response) {
+        const body = await response.text();
+        writeValueToServer(ok_token, response.ok);
+        writeValueToServer(body_token, body);
+        writeValueToServer(type_token, response.type);
+        writeValueToServer(error_token, "");
+      })
+      .catch(error => {
+        writeValueToServer(ok_token, "");
+        writeValueToServer(body_token, "");
+        writeValueToServer(type_token, "");
+        writeValueToServer(error_token, error.toString());
+      });
+</script>

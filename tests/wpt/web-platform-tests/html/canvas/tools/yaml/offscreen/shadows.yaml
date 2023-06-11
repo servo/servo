@@ -439,10 +439,10 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             ctx.drawImage(bitmap, 0, -50);
             @assert pixel 50,25 == 0,255,0,255;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.image.transparent.1
@@ -464,10 +464,10 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             ctx.drawImage(bitmap, 0, -50);
             @assert pixel 50,25 == 0,255,0,255;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.image.transparent.2
@@ -491,14 +491,14 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             ctx.drawImage(bitmap, 50, -50);
             ctx.shadowColor = '#f00';
             ctx.drawImage(bitmap, -50, -50);
             @assert pixel 25,25 == 0,255,0,255;
             @assert pixel 50,25 == 0,255,0,255;
             @assert pixel 75,25 == 0,255,0,255;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.image.alpha
@@ -520,10 +520,10 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             ctx.drawImage(bitmap, 0, -50);
             @assert pixel 50,25 ==~ 127,0,127,255;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.image.section
@@ -545,12 +545,12 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             ctx.drawImage(bitmap, 50, 0, 50, 50, 0, -50, 50, 50);
             @assert pixel 25,25 ==~ 0,255,0,255;
             @assert pixel 50,25 ==~ 0,255,0,255;
             @assert pixel 75,25 ==~ 0,255,0,255;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.image.scale
@@ -572,12 +572,12 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             ctx.drawImage(bitmap, 0, 0, 100, 50, -10, -50, 240, 50);
             @assert pixel 25,25 ==~ 0,255,0,255;
             @assert pixel 50,25 ==~ 0,255,0,255;
             @assert pixel 75,25 ==~ 0,255,0,255;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.canvas.basic
@@ -659,7 +659,7 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             var pattern = ctx.createPattern(bitmap, 'repeat');
             ctx.fillStyle = '#f00';
             ctx.fillRect(0, 0, 100, 50);
@@ -667,7 +667,7 @@
             ctx.shadowOffsetY = 50;
             ctx.fillStyle = pattern;
             ctx.fillRect(0, -50, 100, 50);
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.pattern.transparent.1
@@ -686,7 +686,7 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             var pattern = ctx.createPattern(bitmap, 'repeat');
             ctx.fillStyle = '#0f0';
             ctx.fillRect(0, 0, 100, 50);
@@ -694,7 +694,7 @@
             ctx.shadowOffsetY = 50;
             ctx.fillStyle = pattern;
             ctx.fillRect(0, -50, 100, 50);
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.pattern.transparent.2
@@ -712,7 +712,7 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             var pattern = ctx.createPattern(bitmap, 'repeat');
             ctx.fillStyle = '#f00';
             ctx.fillRect(0, 0, 50, 50);
@@ -725,7 +725,7 @@
             @assert pixel 25,25 == 0,255,0,255;
             @assert pixel 50,25 == 0,255,0,255;
             @assert pixel 75,25 == 0,255,0,255;
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.pattern.alpha
@@ -743,7 +743,7 @@
         };
     });
     promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+        return createImageBitmap(response).then(bitmap => {
             var pattern = ctx.createPattern(bitmap, 'repeat');
             ctx.fillStyle = '#f00';
             ctx.fillRect(0, 0, 100, 50);
@@ -751,7 +751,7 @@
             ctx.shadowColor = '#00f';
             ctx.fillStyle = pattern;
             ctx.fillRect(0, -50, 100, 50);
-        }, t_fail);
+        });
     }).then(t_pass, t_fail);
 
 - name: 2d.shadow.gradient.basic

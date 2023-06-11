@@ -1,0 +1,76 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  return promise_rejects_js(t, TypeError, sharedStorage.set());
+}, 'sharedStorage.set with 0 argument');
+
+promise_test(async t => {
+  return promise_rejects_js(t, TypeError, sharedStorage.set("a"));
+}, 'sharedStorage.set with 1 argument');
+
+promise_test(() => {
+  return sharedStorage.set("a", "b");
+}, 'sharedStorage.set with 2 arguments');
+
+promise_test(() => {
+  return sharedStorage.set("a", "b", {ignoreIfPresent: true});
+}, 'sharedStorage.set with options');
+
+promise_test(async t => {
+  return promise_rejects_js(t, TypeError, sharedStorage.set("a", "b", "c"));
+}, 'sharedStorage.set with invalid options');
+
+promise_test(() => {
+  return sharedStorage.set('a'.repeat(1024), 'b'.repeat(1024));
+}, 'sharedStorage.set with max allowed key and value length');
+
+promise_test(async t => {
+  try {
+      await sharedStorage.set('', 'b');
+  } catch (e) {
+    assert_equals(e.name, 'DataError');
+    return;
+  }
+  assert_unreached("did not reject");
+}, 'sharedStorage.set with empty key');
+
+promise_test(async t => {
+  try {
+      await sharedStorage.set('a'.repeat(1025), 'b');
+  } catch (e) {
+    assert_equals(e.name, 'DataError');
+    return;
+  }
+  assert_unreached("did not reject");
+}, 'sharedStorage.set with key length too big');
+
+promise_test(async t => {
+  try {
+      await sharedStorage.set('a', 'b'.repeat(1025));
+  } catch (e) {
+    assert_equals(e.name, 'DataError');
+    return;
+  }
+  assert_unreached("did not reject");
+}, 'sharedStorage.set with value length too big');
+
+promise_test(() => {
+  return sharedStorage.append("a", "b");
+}, 'sharedStorage.append');
+
+promise_test(() => {
+  return sharedStorage.clear();
+}, 'sharedStorage.clear');
+
+promise_test(() => {
+  return sharedStorage.delete("a");
+}, 'sharedStorage.delete');
+
+</script>
+</body>

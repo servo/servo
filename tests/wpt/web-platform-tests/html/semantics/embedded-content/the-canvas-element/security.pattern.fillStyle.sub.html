@@ -25,7 +25,26 @@ forEachCanvasSource(get_host_info().HTTP_REMOTE_ORIGIN,
       assert_throws_dom("SECURITY_ERR", function() { canvas.toDataURL(); });
       assert_throws_dom("SECURITY_ERR", function() { ctx.getImageData(0, 0, 1, 1); });
     });
-  }, `${name}: Setting fillStyle to an origin-unclear pattern makes the canvas origin-unclean`);
+  }, `${name}: Setting fillStyle to an origin-unclean pattern makes the canvas origin-unclean`);
+});
+
+forEachCanvasSource(get_host_info().HTTP_REMOTE_ORIGIN,
+                    get_host_info().HTTP_ORIGIN,
+                    (name, factory) => {
+  promise_test(_ => {
+    return factory().then(source => {
+      const pattern = new OffscreenCanvas(10, 10)
+          .getContext('2d')
+          .createPattern(source, 'repeat');
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = pattern;
+      ctx.fillStyle = 'red';
+      assert_throws_dom("SECURITY_ERR", function() { canvas.toDataURL(); });
+      assert_throws_dom("SECURITY_ERR", function() { ctx.getImageData(0, 0, 1, 1); });
+    });
+  }, `${name}: Setting fillStyle to an origin-unclean offscreen canvas pattern makes the canvas origin-unclean`);
 });
 
 </script>

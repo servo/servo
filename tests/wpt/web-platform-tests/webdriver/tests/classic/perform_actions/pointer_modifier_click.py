@@ -18,9 +18,15 @@ def test_modifier_click(session, test_actions_page, key_chain, mouse_chain, modi
         .pause(200) \
         .key_down(modifier) \
         .pause(200) \
+        .pause(0) \
         .key_up(modifier)
     outer = session.find.css("#outer", all=False)
-    mouse_chain.click(element=outer)
+    mouse_chain \
+        .pointer_move(0, 0, origin=outer) \
+        .pause(50) \
+        .pointer_down(0) \
+        .pointer_up(0) \
+        .pause(0)
     session.actions.perform([key_chain.dict, mouse_chain.dict])
     expected = [
         {"type": "mousemove"},

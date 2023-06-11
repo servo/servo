@@ -135,23 +135,28 @@ function run_generic_sensor_iframe_tests(sensorName) {
     iframe.allow = featurePolicies.join(';') + ';';
     iframe.src = 'https://{{host}}:{{ports[https][0]}}/generic-sensor/resources/iframe_sensor_handler.html';
 
-    // Create sensor in the iframe (we do not care whether this is a
-    // cross-origin nested context in this test).
+    // Create sensor in the iframe.
     const iframeLoadWatcher = new EventWatcher(t, iframe, 'load');
     document.body.appendChild(iframe);
     await iframeLoadWatcher.wait_for('load');
+    // This is required for the JS Mojo backend to be initialized in the
+    // iframe.
     await send_message_to_iframe(iframe, {command: 'create_sensor',
                                           type: sensorName});
     iframe.contentWindow.focus();
-    await send_message_to_iframe(iframe, {command: 'start_sensor'});
+    const iframeSensor = new iframe.contentWindow[sensorName]();
+    t.add_cleanup(() => {
+      iframeSensor.stop();
+    });
+    const sensorWatcher = new EventWatcher(t, iframeSensor, ['activate']);
+    iframeSensor.start();
+    await sensorWatcher.wait_for('activate');
 
     // Remove iframe from main document and change focus. When focus changes,
     // we need to determine whether a sensor must have its execution suspended
     // or resumed (section 4.2.3, "Focused Area" of the Generic Sensor API
     // spec). In Blink, this involves querying a frame, which might no longer
     // exist at the time of the check.
-    // Note that we cannot send the "reset_sensor_backend" command because the
-    // iframe is discarded with the removeChild call.
     iframe.parentNode.removeChild(iframe);
     window.focus();
   }, `${sensorName}: losing a document's frame with an active sensor does not crash`);

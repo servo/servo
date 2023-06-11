@@ -12,7 +12,7 @@
 </head>
 <body>
 <script>
-async function testVideoFlow(t, negotiationFunction) {
+async function testVideoFlow(t, negotiationFunction, frameCallback = () => {}) {
   const caller = new RTCPeerConnection({encodedInsertableStreams:true});
   t.add_cleanup(() => caller.close());
   const callee = new RTCPeerConnection({encodedInsertableStreams:true});
@@ -71,17 +71,19 @@ async function testVideoFlow(t, negotiationFunction) {
   // Pass frames as they come from the encoder.
   for (let i = 0; i < numFramesPassthrough; i++) {
     const result = await senderReader.read();
-    const metadata = result.value.getMetadata();
+    const frame = result.value;
+    const metadata = frame.getMetadata();
     assert_true(containsVideoMetadata(metadata));
-    verifyNonstandardAdditionalDataIfPresent(result.value);
+    verifyNonstandardAdditionalDataIfPresent(frame);
     frameInfos.push({
-      timestamp: result.value.timestamp,
-      type: result.value.type,
-      data: result.value.data,
+      timestamp: frame.timestamp,
+      type: frame.type,
+      data: frame.data,
       metadata: metadata,
       getMetadata() { return this.metadata; }
     });
-    senderWriter.write(result.value);
+    frameCallback(frame);
+    senderWriter.write(frame);
   }
 
   // Replace frame data with arbitrary buffers.
@@ -143,6 +145,25 @@ promise_test(async t => {
   sender.createEncodedStreams();
   assert_throws_dom("InvalidStateError", () => sender.createEncodedStreams());
 }, 'Creating streams twice throws');
+
+promise_test(async t => {
+  let clonedFrames = [];
+  function verifyFramesSerializeAndDeserialize(frame) {
+    // Clone encoded frames using structedClone (ie serialize + deserialize) and
+    // keep a reference.
+    const clone = structuredClone(frame);
+    clonedFrames.push(clone);
+  };
+
+  await testVideoFlow(t, exchangeOfferAnswer, verifyFramesSerializeAndDeserialize);
+
+  // Ensure all of our cloned frames are still alive and well, despite the
+  // originals having been sent through the PeerConnection.
+  clonedFrames.forEach((clonedFrame) => {
+    assert_not_equals(clonedFrame.data.size, 0);
+    assert_not_equals(clonedFrame.type, "empty")
+  });
+}, 'Encoded frames serialize and deserialize into a deep clone');
 
 </script>
 </body>

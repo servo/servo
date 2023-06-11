@@ -96,13 +96,13 @@ async_test((t) => {
 
     requestAnimationFrame(step6);
   }
-  // After removing the selection we should go back to the contained
-  // height of 100px.
+  // After removing the selection, we keep the last rendered size, see
+  // https://github.com/w3c/csswg-drafts/issues/8407.
   function step6() {
     const r = container.getBoundingClientRect();
     t.step(() => {
-      assert_equals(r.y, 3000, "step5 offset");
-      assert_equals(r.height, 100, "step5 height");
+      assert_equals(r.y, 3000, "step6 offset");
+      assert_equals(r.height, 10, "step6 height");
     });
     t.done();
   }

@@ -225,7 +225,11 @@ SET TIMEOUT: service-workers/service-worker/activation.https.html
 SET TIMEOUT: service-workers/service-worker/fetch-frame-resource.https.html
 SET TIMEOUT: service-workers/service-worker/fetch-request-redirect.https.html
 SET TIMEOUT: service-workers/service-worker/fetch-waits-for-activate.https.html
+SET TIMEOUT: service-workers/service-worker/postMessage-client-worker.js
 SET TIMEOUT: service-workers/service-worker/update-recovery.https.html
+SET TIMEOUT: service-workers/service-worker/resources/controlled-frame-postMessage.html
+SET TIMEOUT: service-workers/service-worker/resources/controlled-worker-late-postMessage.js
+SET TIMEOUT: service-workers/service-worker/resources/controlled-worker-postMessage.js
 SET TIMEOUT: service-workers/service-worker/resources/extendable-event-async-waituntil.js
 SET TIMEOUT: service-workers/service-worker/resources/fetch-event-async-respond-with-worker.js
 SET TIMEOUT: service-workers/service-worker/resources/fetch-event-test-worker.js
