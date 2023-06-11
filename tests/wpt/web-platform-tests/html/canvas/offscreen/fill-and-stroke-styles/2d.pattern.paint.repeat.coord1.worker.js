@@ -28,7 +28,7 @@ t.step(function() {
       };
   });
   promise.then(function(response) {
-      createImageBitmap(response).then(bitmap => {
+      return createImageBitmap(response).then(bitmap => {
           var pattern = ctx.createPattern(bitmap, 'no-repeat');
           ctx.fillStyle = pattern;
           ctx.translate(-128, -78);
@@ -37,7 +37,7 @@ t.step(function() {
           _assertPixel(canvas, 98,1, 0,255,0,255);
           _assertPixel(canvas, 1,48, 0,255,0,255);
           _assertPixel(canvas, 98,48, 0,255,0,255);
-      }, t_fail);
+      });
   }).then(t_pass, t_fail);
 });
 done();

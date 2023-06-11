@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start interaction with scroll-snap</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+
+<body>
+  <style>
+    body {
+      margin: 0px;
+    }
+
+    .spacer {
+      height: 100px;
+      width: 100px;
+    }
+
+    .scroller {
+      height: 100px;
+      width: 100px;
+      overflow: scroll;
+      scroll-start: 200px;
+      scroll-snap-type: both mandatory;
+    }
+
+    .snap_point {
+      width: 100px;
+      height: 100px;
+      scroll-snap-align: start;
+    }
+  </style>
+  <div id="single_snap_scroller" class="scroller">
+    <div id="top_spacer" class="spacer"></div>
+    <div id="lone_snap_point" class="snap_point"></div>
+    <div id="bottom_spacer" class="spacer"></div>
+  </div>
+  <div id="multi_snap_scroller" class="scroller">
+    <div id="snap_point_1" class="snap_point"></div>
+    <div id="snap_point_2" class="snap_point"></div>
+    <div id="snap_point_3" class="snap_point"></div>
+  </div>
+  <script>
+    test((t) => {
+      assert_equals(single_snap_scroller.scrollTop,
+        top_spacer.getBoundingClientRect().height,
+        "scroller snaps to top of snap point");
+    }, "snap overrides scroll-start position");
+
+    test((t) => {
+      // scroll-start sets the initial scroll offset to the top of the third
+      // snap_point, so the scroller snaps to the third snap_point.
+      assert_equals(multi_snap_scroller.scrollTop,
+        snap_point_1.getBoundingClientRect().height +
+        snap_point_2.getBoundingClientRect().height,
+        "scroller snaps to snap point closer to start position.");
+    }, "scroller snaps based on scroll-start position");
+  </script>
+</body>

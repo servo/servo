@@ -19,10 +19,13 @@
       const pulseLength = 16384;
 
       // The computed SNR should be at least this large.  This value depends on
-      // teh platform and browser.  Don't set this value to be to much lower
+      // the platform and browser.  Don't set this value to be to much lower
       // than this. It probably indicates a fairly inaccurate convolver or
       // constant source node automations that should be fixed instead.
-      const minRequiredSNR = 77.03;
+      //
+      // Any major change of operating system or CPU architecture might affect
+      // this value significantly. See: https://crbug.com/1339291
+      const minRequiredSNR = 68.40;
 
       // To test the real-time convolver, we convolve two square pulses together
       // to produce a triangular pulse.  To verify the result is correct we

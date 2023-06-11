@@ -26,7 +26,7 @@ t.step(function() {
       };
   });
   promise.then(function(response) {
-      createImageBitmap(response).then(bitmap => {
+      return createImageBitmap(response).then(bitmap => {
           var pattern = ctx.createPattern(bitmap, 'repeat');
           ctx.fillStyle = '#0f0';
           ctx.fillRect(0, 0, 100, 50);
@@ -34,7 +34,7 @@ t.step(function() {
           ctx.shadowOffsetY = 50;
           ctx.fillStyle = pattern;
           ctx.fillRect(0, -50, 100, 50);
-      }, t_fail);
+      });
   }).then(t_pass, t_fail);
 });
 done();

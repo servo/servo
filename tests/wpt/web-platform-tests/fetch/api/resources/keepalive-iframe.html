@@ -3,12 +3,18 @@
 <meta charset="utf-8">
 <script>
 const SEARCH_PARAMS = new URL(location.href).searchParams;
+const ORIGIN = SEARCH_PARAMS.get('origin') || '';
 const TOKEN = SEARCH_PARAMS.get('token') || '';
 const METHOD = SEARCH_PARAMS.get('method') || 'GET';
-const url = `/fetch/api/resources/stash-put.py?key=${TOKEN}&value=on`;
+const SEND_ON_EVENT = SEARCH_PARAMS.get('sendOn') || 'load';
+const MODE = SEARCH_PARAMS.get('mode') || 'cors';
+const DISALLOW_ORIGIN = SEARCH_PARAMS.get('disallow_origin') || '';
+// CORS requests are allowed by this URL by default.
+const url = `${ORIGIN}/fetch/api/resources/stash-put.py?key=${TOKEN}&value=on` +
+(DISALLOW_ORIGIN ? `&disallow_origin=1` : '');
 
-addEventListener('load', () => {
-  let p = fetch(url, {keepalive: true, method: METHOD});
+addEventListener(SEND_ON_EVENT, () => {
+  let p = fetch(url, {keepalive: true, method: METHOD, mode: MODE});
   window.parent.postMessage(TOKEN, '*');
 });
 </script>

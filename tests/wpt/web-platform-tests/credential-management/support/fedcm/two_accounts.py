@@ -29,7 +29,8 @@ def main(request, response):
    "name": "John Doe",
    "email": "john_doe@idp.example",
    "picture": "https://idp.example/profile/123",
-   "approved_clients": ["123", "456", "789"]
+   "approved_clients": ["123", "456", "789"],
+   "login_hints": ["john_doe"]
   }
   ]
 }

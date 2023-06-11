@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-*</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <style>
+    #scroller {
+      height: 100px;
+      width: 100px;
+      scroll-start: 100px 200px;
+      border: solid 1px black;
+      overflow: scroll;
+    }
+
+    .spacer {
+      width: 200vw;
+      height: 200vh;
+      border: solid 1px green;
+    }
+  </style>
+  <div id="scroller">
+    <div class="spacer"></div>
+  </div>
+  <script>
+    async function assertScrollPositionResetOnDisplayNone(scroller) {
+      return new Promise((resolve) => {
+        if (getComputedStyle(scroller)["display"] == "none") {
+          assert_equals(scroller.scrollTop, 0, "scrollTop is reset");
+          assert_equals(scroller.scrollLeft, 0, "scrollLeft is reset");
+          resolve();
+        } else {
+          requestAnimationFrame(async () => {
+            await assertScrollPositionResetOnDisplayNone(scroller);
+            resove();
+          });
+        }
+      });
+    }
+    promise_test(async (t) => {
+      // This tests that toggling the display of a scroller from none to block
+      // scroll-start does not reset the scroller's scroll position.
+      assert_equals(scroller.scrollTop, 100,
+        "scroll-start: <length> sets initial vertical scroll position");
+      assert_equals(scroller.scrollLeft, 200,
+        "scroll-start: <length> sets initial horizontal scroll position");
+
+      // Scroll to somewhere other than scroll-start position.
+      scroller.scrollTop = 200;
+      scroller.scrollLeft = 100;
+      assert_equals(scroller.scrollTop, 200,
+      "vertical scroll position is programmatically adjusted");
+      assert_equals(scroller.scrollLeft, 100,
+      "horizontal scroll position is programmatically adjusted");
+
+      scroller.style.display = "none";
+      assert_equals(getComputedStyle(scroller)["display"], "none");
+
+      await assertScrollPositionResetOnDisplayNone(scroller);
+
+      scroller.style.display = "block";
+      assert_equals(getComputedStyle(scroller)["display"], "block");
+
+      // Verify that we are again scrolled to the position specified by scroll-start.
+      assert_equals(scroller.scrollTop, 200,
+        "scroll-start is not applied vertically after display toggle");
+      assert_equals(scroller.scrollLeft, 100,
+        "scroll-start is not applied horizontally after display toggle");
+    }, "scroll-start does not interfer with recovering saved scroll position " +
+       "after display toggle");
+  </script>
+</body>

@@ -341,6 +341,41 @@ async function fetchTest(t, { source, target, fetchOptions, expected }) {
   }
 }
 
+// Similar to `fetchTest`, but replaced iframes with fenced frames.
+async function fencedFrameFetchTest(t, { source, target, fetchOptions, expected }) {
+  const fetcher_url =
+      resolveUrl("resources/fenced-frame-fetcher.https.html", sourceResolveOptions(source));
+
+  const target_url = preflightUrl(target);
+  target_url.searchParams.set("is-loaded-in-fenced-frame", true);
+
+  fetcher_url.searchParams.set("mode", fetchOptions.mode);
+  fetcher_url.searchParams.set("method", fetchOptions.method);
+  fetcher_url.searchParams.set("url", target_url);
+
+  const error_token = token();
+  const ok_token = token();
+  const body_token = token();
+  const type_token = token();
+  const source_url = generateURL(fetcher_url, [error_token, ok_token, body_token, type_token]);
+
+  const fenced_frame = document.createElement('fencedframe');
+  fenced_frame.config = new FencedFrameConfig(source_url);
+  document.body.append(fenced_frame);
+
+  const error = await nextValueFromServer(error_token);
+  const ok = await nextValueFromServer(ok_token);
+  const body = await nextValueFromServer(body_token);
+  const type = await nextValueFromServer(type_token);
+
+  assert_equals(error, expected.error || "" , "error");
+  assert_equals(body, expected.body || "", "response body");
+  assert_equals(ok, expected.ok !== undefined ? expected.ok.toString() : "", "response ok");
+  if (expected.type !== undefined) {
+    assert_equals(type, expected.type, "response type");
+  }
+}
+
 const XhrTestResult = {
   SUCCESS: {
     loaded: true,
@@ -393,7 +428,7 @@ async function xhrTest(t, { source, target, method, expected }) {
   assert_equals(body, expected.body, "response body");
 }
 
-const IframeTestResult = {
+const FrameTestResult = {
   SUCCESS: "loaded",
   FAILURE: "timeout",
 };
@@ -423,6 +458,36 @@ async function iframeTest(t, { source, target, expected }) {
       messagePromise.then((data) => data.message),
       new Promise((resolve) => {
         t.step_timeout(() => resolve("timeout"), 500 /* ms */);
+      }),
+  ]);
+
+  assert_equals(result, expected);
+}
+
+// Similar to `iframeTest`, but replaced iframes with fenced frames.
+async function fencedFrameTest(t, { source, target, expected }) {
+  // Allows running tests in parallel.
+  const target_url = preflightUrl(target);
+  target_url.searchParams.set("file", "fenced-frame-local-network-access-target.https.html");
+  target_url.searchParams.set("is-loaded-in-fenced-frame", true);
+
+  const frame_loaded_key = token();
+  const child_frame_target = generateURL(target_url, [frame_loaded_key]);
+
+  const source_url =
+      resolveUrl("resources/fenced-frame-local-network-access.https.html", sourceResolveOptions(source));
+  source_url.searchParams.set("fenced_frame_url", child_frame_target);
+
+  const fenced_frame = document.createElement('fencedframe');
+  fenced_frame.config = new FencedFrameConfig(source_url);
+  document.body.append(fenced_frame);
+
+  // The grandchild fenced frame writes a value to the server iff it loads
+  // successfully.
+  const result = await Promise.race([
+    nextValueFromServer(frame_loaded_key),
+      new Promise((resolve) => {
+        t.step_timeout(() => resolve("timeout"), 10000 /* ms */);
       }),
   ]);
 

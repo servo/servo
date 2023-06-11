@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+<body>
+<script>
+async function init() {
+  const [outerKey, innerKey0, innerKey1] = parseKeylist();
+  let url0 = generateURL(
+      "/shared-storage/resources/embedder-context-inner.https.html",
+      [innerKey0]);
+
+  attachIFrame(url0);
+  const result0 = await nextValueFromServer(innerKey0);
+  assert_equals(result0, "embedder_context_inner_loaded");
+
+  let url1 = generateURL(
+      "/shared-storage/resources/embedder-context-inner.https.html",
+      [innerKey1]);
+  url1 = getRemoteOriginURL(url1);
+
+  attachIFrame(url1);
+  const result1 = await nextValueFromServer(innerKey1);
+  assert_equals(result1, "embedder_context_inner_loaded");
+
+  await writeValueToServer(outerKey, "embedder_context_nested_inner_loaded");
+}
+
+init();
+</script>
+</body>
+</html>

@@ -7,11 +7,11 @@
 <body>
 
 <script type="module">
-import {default_request_options,
+import {request_options_with_mediation_required,
         fedcm_test} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  const cred = await navigator.credentials.get(default_request_options());
+  const cred = await navigator.credentials.get(request_options_with_mediation_required());
   assert_equals(cred.token, 'token');
 }, 'Test that COEP policy do not apply to FedCM requests');
 

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="help" href="https://crbug.com/1445937">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<meta name="assert"
+  content="Virtually all of the compat problems reduced to this case" />
+
+<style>
+  section.bugreport {
+    outline: 1px solid grey;
+    margin-bottom: 25px;
+    padding: 3px;
+  }
+
+  #gmail .flex {
+    display: flex;
+    width: min-content;
+    outline: 2px solid;
+    margin-bottom: 10px;
+  }
+
+  #gmail span.orange100 {
+    float: left;
+    height: 25px;
+    width: 100px;
+    background: orange;
+  }
+</style>
+
+<section id="gmail" class="bugreport">
+  <p>https://crbug.com/1445937 We need to see a 100x100 orange square, not a
+    400x25 orange rectangle.</p>
+  <div class="flex" data-expected-width="100">
+    <!-- one item with very negative desired flex fraction -->
+    <div>
+      <span class="orange100"></span>
+      <span class="orange100"></span>
+      <span class="orange100"></span>
+      <span class="orange100"></span>
+    </div>
+    <!-- second item with desired flex fraction 0 -->
+    <div></div>
+  </div>
+</section>
+
+<script>
+  checkLayout('.flex');
+</script>

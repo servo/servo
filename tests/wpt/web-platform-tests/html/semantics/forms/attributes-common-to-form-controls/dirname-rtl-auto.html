@@ -8,17 +8,24 @@
 <script src="resources/dirname.js"></script>
 <div id="log"></div>
 <form action="resources/dirname-iframe.html" method=get target="iframe">
-  <p><label>Comment: <input type=text name="comment" dir="auto" dirname="comment.dir" required/></label></p>
+  <p><label>User: <input type=text name="user" dir="auto" dirname="user.dir" required/></label></p>
+  <p><label>Comment: <textarea name="comment" dir="auto" dirname="comment.dir" required></textarea></label></p>
   <p><button type=submit>Post Comment</button></p>
 </form>
 <iframe name="iframe"></iframe>
 <script>
-  var t = async_test("submit element directionality");
   var rtlValue = "مرحبا";
   document.querySelector("input").value = rtlValue;
+  document.querySelector("textarea").value = rtlValue;
   document.querySelector("button").click();
 
-  onIframeLoadedDone(t, function(params) {
+  var t_inp = async_test("submit input element directionality");
+  onIframeLoadedDone(t_inp, function(params) {
+    assert_equals(params.get("user.dir"), "rtl");
+  });
+
+  var t_ta = async_test("submit textarea element directionality");
+  onIframeLoadedDone(t_ta, function(params) {
     assert_equals(params.get("comment.dir"), "rtl");
   });
 </script>

@@ -54,8 +54,9 @@ window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
       if (ex.hasAttribute('open')) {
         assert_true(isDialog(ex));
         assert_true(isElementVisible(ex),'Open dialog should be visible by default');
-        assert_throws_dom("InvalidStateError",() => ex.showPopover(),'Calling showPopover on an already-showing element should throw InvalidStateError');
+        ex.showPopover(); // Should not throw
         ex.removeAttribute('open');
+        ex.hidePopover();
         assert_false(isElementVisible(ex),'Removing the open attribute should hide the dialog');
       } else {
         ex.showPopover(); // Should not throw
@@ -72,7 +73,9 @@ window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
       if (isDialog(ex)) {
         tested_something=true;
         assert_throws_dom("InvalidStateError",() => ex.showModal(),'Calling showModal() on an already-showing Popover should throw InvalidStateError');
-        assert_throws_dom("InvalidStateError",() => ex.show(),'Calling show() on an already-showing Popover should throw InvalidStateError');
+        ex.show(); // Should not throw
+        ex.close();
+        ex.showPopover();
       }
       if (isFullscreen(ex)) {
         tested_something=true;
@@ -94,14 +97,16 @@ window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
       if (isDialog(ex)) {
         ex.show();
         assert_true(ex.hasAttribute('open'));
-        assert_throws_dom("InvalidStateError",() => ex.showPopover(),'Calling showPopover() on an already-showing non-modal dialog should throw InvalidStateError');
+        ex.showPopover(); // Should not throw
         ex.close();
         assert_false(ex.hasAttribute('open'));
+        ex.hidePopover();
         ex.showModal();
         assert_true(ex.hasAttribute('open'));
         assert_throws_dom("InvalidStateError",() => ex.showPopover(),'Calling showPopover() on an already-showing modal dialog should throw InvalidStateError');
         ex.close();
         assert_false(ex.hasAttribute('open'));
+        ex.hidePopover();
       } else if (isFullscreen(ex)) {
         let requestSucceeded = false;
         await blessTopLayer(visible);

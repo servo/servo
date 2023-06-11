@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>Tests automatic anchor positioning without fallbacks</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-auto">
+<link rel="auto" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+#cb {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+}
+
+#anchor {
+  margin-left: 150px;
+  margin-top: 250px;
+  width: 100px;
+  height: 100px;
+  background: orange;
+  anchor-name: --a;
+}
+
+.target {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: lime;
+}
+
+#target1 {
+  top: anchor(--a auto); /* should evaluate to `bottom` */
+  left: anchor(--a auto-same); /* should evaluate to `left` */
+}
+
+#target2 {
+  bottom: anchor(--a auto); /* should evaluate to `top` */
+  right: anchor(--a auto-same); /* should evaluate to `right` */
+}
+
+#target3 {
+  top: anchor(--a auto-same); /* should evaluate to `top` */
+  left: anchor(--a auto); /* should evaluate to `right` */
+}
+
+#target4 {
+  bottom: anchor(--a auto-same); /* should evaluate to `bottom` */
+  right: anchor(--a auto); /* should evaluate to `left` */
+}
+</style>
+
+<body onload="checkLayoutForAnchorPos('.target')">
+  <div id="cb">
+    <div id="anchor"></div>
+
+    <div id="target1" class="target"
+         data-offset-x="150" data-offset-y="350"></div>
+    <div id="target2" class="target"
+         data-offset-x="150" data-offset-y="150"></div>
+    <div id="target3" class="target"
+         data-offset-x="250" data-offset-y="250"></div>
+    <div id="target4" class="target"
+         data-offset-x="50" data-offset-y="250"></div>
+  </div>
+</body>

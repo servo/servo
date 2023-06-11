@@ -85,6 +85,9 @@ def _is_preflight_optional(request):
 def _get_preflight_uuid(request):
   return request.GET.get(b"preflight-uuid")
 
+def _is_loaded_in_fenced_frame(request):
+  return request.GET.get(b"is-loaded-in-fenced-frame")
+
 def _should_treat_as_public_once(request):
   uuid = request.GET.get(b"treat-as-public-once")
   if uuid is None:
@@ -154,6 +157,9 @@ def _handle_final_request(request, response):
   mime_type = request.GET.get(b"mime-type")
   if mime_type is not None:
     headers.append(("Content-Type", mime_type),)
+
+  if _is_loaded_in_fenced_frame(request):
+    headers.append(("Supports-Loading-Mode", "fenced-frame"))
 
   body = _final_response_body(request)
   return (headers, body)

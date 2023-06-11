@@ -30,7 +30,7 @@ t.step(function() {
       };
   });
   promise.then(function(response) {
-      createImageBitmap(response).then(bitmap => {
+      return createImageBitmap(response).then(bitmap => {
           var offscreenCanvas2 = new OffscreenCanvas(100, 50);
           var pattern = offscreenCanvas2.getContext('2d').createPattern(bitmap, 'no-repeat');
           ctx.fillStyle = '#f00';
@@ -38,7 +38,7 @@ t.step(function() {
           ctx.fillStyle = pattern;
           ctx.fillRect(0, 0, 100, 50);
           _assertPixel(canvas, 50,25, 0,255,0,255);
-      }, t_fail);
+      });
   }).then(t_pass, t_fail);
 
 });

@@ -9,6 +9,58 @@
 </head>
 <body>
 <script>
+const AUDIO_ONLY_MIME_TYPES = [
+  'audio/mp4',
+  'audio/ogg',
+  'audio/webm',
+];
+
+const AUDIO_CODECS_MIME_TYPES = [
+  'audio/ogg; codecs="vorbis"',
+  'audio/ogg; codecs="opus"',
+  'audio/webm; codecs="vorbis"',
+  'audio/webm; codecs="opus"',
+];
+
+const VIDEO_ONLY_MIME_TYPES = [
+  'video/mp4',
+  'video/webm',
+];
+
+const VIDEO_CODECS_MIME_TYPES = [
+  'video/webm; codecs="vp8"',
+  'video/webm; codecs="vp9"',
+  'video/webm; codecs="av1"',
+];
+
+const AUDIO_VIDEO_MIME_TYPES = [
+  'video/webm; codecs="vp8, vorbis"',
+  'video/webm; codecs="vp8, opus"',
+  'video/webm; codecs="vp9, vorbis"',
+  'video/webm; codecs="vp9, opus"',
+  'video/webm; codecs="av1, opus"',
+];
+
+const AUDIO_MIME_TYPES = [
+  ...AUDIO_ONLY_MIME_TYPES,
+  ...AUDIO_CODECS_MIME_TYPES,
+  ...AUDIO_VIDEO_MIME_TYPES,
+];
+
+const VIDEO_MIME_TYPES = [
+  ...VIDEO_ONLY_MIME_TYPES,
+  ...VIDEO_CODECS_MIME_TYPES,
+  ...AUDIO_VIDEO_MIME_TYPES,
+];
+
+const MIME_TYPES = [
+  ...AUDIO_ONLY_MIME_TYPES,
+  ...AUDIO_CODECS_MIME_TYPES,
+  ...VIDEO_ONLY_MIME_TYPES,
+  ...VIDEO_CODECS_MIME_TYPES,
+  ...AUDIO_VIDEO_MIME_TYPES,
+];
+
 test(t => {
   const recorder = new MediaRecorder(createAudioStream(t).stream);
   assert_equals(recorder.mimeType, "",
@@ -45,26 +97,7 @@ test(t => {
   assert_false(MediaRecorder.isTypeSupported("video/pineapple"));
 }, "MediaRecorder invalid video mimeType is unsupported");
 
-// New MIME types could be added to this list as needed.
-for (const mimeType of [
-  'audio/mp4',
-  'video/mp4',
-  'audio/ogg',
-  'audio/ogg; codecs="vorbis"',
-  'audio/ogg; codecs="opus"',
-  'audio/webm',
-  'audio/webm; codecs="vorbis"',
-  'audio/webm; codecs="opus"',
-  'video/webm',
-  'video/webm; codecs="vp8"',
-  'video/webm; codecs="vp8, vorbis"',
-  'video/webm; codecs="vp8, opus"',
-  'video/webm; codecs="vp9"',
-  'video/webm; codecs="vp9, vorbis"',
-  'video/webm; codecs="vp9, opus"',
-  'video/webm; codecs="av1"',
-  'video/webm; codecs="av1, opus"',
-]) {
+for (const mimeType of MIME_TYPES) {
   if (MediaRecorder.isTypeSupported(mimeType)) {
     test(t => {
       const recorder = new MediaRecorder(new MediaStream(), {mimeType});
@@ -84,6 +117,43 @@ promise_test(async t => {
   await new Promise(r => recorder.onstart = r);
   assert_not_equals(recorder.mimeType, "");
 }, "MediaRecorder sets a nonempty mimeType on 'onstart' for audio");
+
+for (const mimeType of AUDIO_MIME_TYPES) {
+  if (MediaRecorder.isTypeSupported(mimeType)) {
+    test(t => {
+      const recorder = new MediaRecorder(createFlowingAudioStream(t).stream, {mimeType});
+      recorder.start();
+    }, `MediaRecorder start() does not throw with ${mimeType} for audio`);
+  } else {
+    test(t => {
+      assert_throws_dom("NotSupportedError",
+        () => new MediaRecorder(createFlowingAudioStream(t).stream, {mimeType}));
+    }, `Unsupported mimeType ${mimeType} throws for audio`);
+  }
+}
+
+for (const mimeType of VIDEO_MIME_TYPES) {
+  if (MediaRecorder.isTypeSupported(mimeType)) {
+    test(t => {
+      const recorder = new MediaRecorder(createFlowingVideoStream(t).stream, {mimeType});
+      recorder.start();
+    }, `MediaRecorder start() does not throw with ${mimeType} for video`);
+  } else {
+    test(t => {
+      assert_throws_dom("NotSupportedError",
+        () => new MediaRecorder(createFlowingVideoStream(t).stream, {mimeType}));
+    }, `Unsupported mimeType ${mimeType} throws for video`);
+  }
+}
+
+for (const mimeType of VIDEO_ONLY_MIME_TYPES) {
+  if (MediaRecorder.isTypeSupported(mimeType)) {
+    test(t => {
+      const recorder = new MediaRecorder(createFlowingAudioStream(t).stream, {mimeType});
+      recorder.start();
+    }, `MediaRecorder start() does not throw with ${mimeType} for audio`);
+  }
+}
 
 promise_test(async t => {
   const recorder = new MediaRecorder(createFlowingVideoStream(t).stream);

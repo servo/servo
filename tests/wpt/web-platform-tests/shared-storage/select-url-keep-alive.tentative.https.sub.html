@@ -1,0 +1,53 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const ancestor_key = token();
+  let url0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_key]);
+  let url1 = generateURL("/shared-storage/resources/frame1.html",
+                         [ancestor_key]);
+
+  await addModuleOnce("/shared-storage/resources/simple-module.js");
+
+  let select_url_result0 = await sharedStorage.selectURL(
+      "test-url-selection-operation", [{url: url0}, {url: url1}],
+      {data: {'mockResult': 0}, resolveToConfig: true, keepAlive: true});
+  assert_true(validateSelectURLResult(select_url_result0, true));
+  attachFencedFrame(select_url_result0, 'opaque-ads');
+  const result0 = await nextValueFromServer(ancestor_key);
+  assert_equals(result0, "frame0_loaded");
+
+  let select_url_result1 = await sharedStorage.selectURL(
+      "test-url-selection-operation", [{url: url0}, {url: url1}],
+      {data: {'mockResult': 1}, resolveToConfig: true, keepAlive: false});
+  assert_true(validateSelectURLResult(select_url_result1, true));
+  attachFencedFrame(select_url_result1, 'opaque-ads');
+  const result1 = await nextValueFromServer(ancestor_key);
+  assert_equals(result1, "frame1_loaded");
+
+  try {
+    let select_url_result2 = await sharedStorage.selectURL(
+      "test-url-selection-operation", [{url: url0}, {url: url1}],
+      {data: {'mockResult': 0}, resolveToConfig: true});
+  } catch (e) {
+    assert_equals(e.name, 'OperationError');
+    assert_equals(e.message, 'The sharedStorage worklet cannot execute' +
+                             ' further operations because the previous' +
+                             ' operation did not include the option' +
+                             ' \'keepAlive: true\'.');
+    return;
+  }
+  assert_unreached("did not reject");
+}, 'selectURL() with keepAlive: true, then keepAlive: false, then error');
+
+</script>
+</body>

@@ -18,9 +18,8 @@ const AriaUtils = {
         let el = document.createElement("div");
         el.appendChild(document.createTextNode("x"));
         el.setAttribute("role", role); // el.role not yet supported by Gecko.
-        el.id = `role_${role}`;
         document.body.appendChild(el);
-        const computedRole = await test_driver.get_computed_role(document.getElementById(el.id));
+        const computedRole = await test_driver.get_computed_role(el);
         assert_equals(computedRole, role, el.outerHTML);
       }, `role: ${role}`);
     }
@@ -49,19 +48,7 @@ const AriaUtils = {
       let testName = el.getAttribute("data-testname") || role; // data-testname optional if role is unique per test file
       promise_test(async t => {
         const expectedRole = el.getAttribute("data-expectedrole");
-
-        // ensure ID existence and uniqueness for the webdriver callback
-        if (!el.id) {
-          let roleCount = 1;
-          let elID = `${expectedRole}${roleCount}`;
-          while(document.getElementById(elID)) {
-            roleCount++;
-            elID = `${expectedRole}${roleCount}`;
-          }
-          el.id = elID;
-        }
-
-        const computedRole = await test_driver.get_computed_role(document.getElementById(el.id));
+        const computedRole = await test_driver.get_computed_role(el);
         assert_equals(computedRole, expectedRole, el.outerHTML);
       }, `${testName}`);
     }
@@ -90,23 +77,9 @@ const AriaUtils = {
       let testName = el.getAttribute("data-testname") || label; // data-testname optional if label is unique per test file
       promise_test(async t => {
         const expectedLabel = el.getAttribute("data-expectedlabel");
-
-        // ensure ID existence and uniqueness for the webdriver callback
-        if (!el.id) {
-          let labelCount = 1;
-          let elID = `labelTest${labelCount}`;
-          while(document.getElementById(elID)) {
-            labelCount++;
-            elID = `labelTest${labelCount}`;
-          }
-          el.id = elID;
-        }
-
         let computedLabel = await test_driver.get_computed_label(el);
-
         // Todo: Remove whitespace normalization after https://github.com/w3c/accname/issues/192 is addressed. Change prior line back to `const`, too.
         computedLabel = computedLabel.trim()
-
         assert_equals(computedLabel, expectedLabel, el.outerHTML);
       }, `${testName}`);
     }

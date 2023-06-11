@@ -4,7 +4,8 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
-<meta name="assert" content="min-content width is calculated correctly in a variety of scenarios with two flex items" />
+<meta name="assert"
+  content="min-content width is calculated correctly in a variety of scenarios with multiple flex items" />
 
 <style>
   .zero-width {
@@ -28,23 +29,27 @@
     background: orange;
   }
 
+  .floating-flexbox>div:nth-child(3) {
+    background: lightblue;
+  }
+
   .floating-flexbox>div>div {
     width: 100px;
   }
 </style>
 
 <body onload="checkLayout('.floating-flexbox')">
+  <div id="log"></div>
+
   <div class="zero-width">
-    <div class="floating-flexbox" data-expected-width="300">
+    <div class="floating-flexbox" data-expected-width="200">
       <!-- min contribution: 100 -->
-      <!-- fraction: -0.5 -->
-      <!-- flex base size + product: 200px + -0.5*200px = 100px -->
-      <div style="flex: 1 1 200px; width:50px;">
+      <!-- desired fraction: -0.5 -->
+      <!-- chosen fraction <=0 and desired fraction <=0 and item can shrink, so it contributes its min-content contribution -->
+      <div style="flex: 1 1 200px; width:50px; min-width:0px;">
         <div></div>
       </div>
-      <!-- min contribution: 100 -->
-      <!-- fraction: -0.75 -->
-      <!-- flex base size + product: 400px + -0.5*400px = 200px -->
+      <!-- chosen fraction <=0 and desired fraction <=0 and item can shrink, so it contributes its min-content contribution -->
       <div style="flex: 1 1 400px; width:50px;">
         <div></div>
       </div>
@@ -52,10 +57,18 @@
   </div>
 
   <div class="zero-width">
-    <div class="floating-flexbox" data-expected-width="225">
+    <div class="floating-flexbox" data-expected-width="200">
+      <!-- min contribution: 100 -->
+      <!-- min contribution - flex basis: -100 -->
+      <!-- desired fraction: -0.5 -->
+      <!-- chosen fraction <=0 and desired fraction <=0 and item can shrink, so it contributes its min-content contribution -->
       <div style="flex: 1 1 200px; width:50px;">
         <div></div>
       </div>
+      <!-- min contribution: 100 -->
+      <!-- min contribution - flex basis: -300 -->
+      <!-- desired fraction: -300/(2*400) = -0.375 -->
+      <!-- chosen fraction <=0 and desired fraction <=0 and item can shrink, so it contributes its min-content contribution -->
       <div style="flex: 1 2 400px; width:50px;">
         <div></div>
       </div>
@@ -65,7 +78,7 @@
   <!-- This is same as above except for min-width auto is no longer in
       effect. EdgeHTML renders it differently than the above. -->
   <div class="zero-width">
-    <div class="floating-flexbox" data-expected-width="225">
+    <div class="floating-flexbox" data-expected-width="200">
       <div style="flex: 1 1 200px; width:50px; min-width: 0px;">
         <div></div>
       </div>
@@ -76,16 +89,17 @@
   </div>
 
   <div class="zero-width">
+    <!-- first item contributes 200px. second item contributes 100px -->
     <div class="floating-flexbox" data-expected-width="300">
       <!-- min contribution: 100 -->
-      <!-- fraction: -inf -->
-      <!-- flex base size + product: 200px + -0.75*0px = 200px -->
+      <!-- desired fraction: -inf -->
+      <!-- chosen fraction <= 0 and item can't shrink, so contribute flex basis -->
       <div style="flex: 1 0 200px; width:50px;">
         <div></div>
       </div>
       <!-- min contribution: 100 -->
-      <!-- fraction: -0.75 -->
-      <!-- flex base size + product: 400px + -0.75*400px = 100px -->
+      <!-- desired fraction: -0.75 -->
+      <!-- chosen fraction <= 0 and item CAN shrink, so contribute min contribution -->
       <div style="flex: 1 1 400px; width:50px;">
         <div></div>
       </div>
@@ -94,9 +108,15 @@
 
   <div class="zero-width">
     <div class="floating-flexbox" data-expected-width="200">
+      <!-- min contribution: 200 -->
+      <!-- min contribution - flex basis: 150 -->
+      <!-- desired fraction: 0 (because flex grow factor is 0) -->
+      <!-- chosen fraction <= 0 so contribute flex basis 50px -->
+      <!-- except flex basis is outside of used min/max, so contribute clamped flex basis = 100px -->
       <div style="flex: 0 0 50px; width: 200px;">
         <div></div>
       </div>
+      <!-- identical to above -->
       <div style="flex: 0 0 50px; width: 200px;">
         <div></div>
       </div>
@@ -106,14 +126,14 @@
   <div class="zero-width">
     <!-- 200 + 400 = 600 -->
     <div class="floating-flexbox" data-expected-width="600">
-      <!-- contribution: 200 -->
-      <!-- fraction: 150 -->
+      <!-- min contribution: 200 -->
+      <!-- desired fraction: 150px -->
       <!-- 50 + 1*150 = 200 -->
       <div style="flex: 1 0 50px; width: 200px;">
         <div></div>
       </div>
-      <!-- contribution: 200 -->
-      <!-- fraction: 100 -->
+      <!-- min contribution: 200 -->
+      <!-- desired fraction: 100px -->
       <!-- 100 + 2*150 = 400 -->
       <div style="flex: 2 0 100px; width: 200px;">
         <div></div>
@@ -122,19 +142,60 @@
   </div>
 
   <div class="zero-width">
+    <!-- chosen fraction: 50px -->
     <div class="floating-flexbox" data-expected-width="400">
       <!-- min contribution: 100 -->
-      <!-- fraction: -0.5 -->
-      <!-- flex base size + product: = 200px + 50px*0 = 200px -->
+      <!-- desired fraction: -0.5 -->
+      <!-- final contribution = flex base size + product = 200px + 50px*0 = 200px -->
       <div style="flex: 0 1 200px; width: 50px;">
         <div></div>
       </div>
       <!-- min contribution: 200 -->
-      <!-- fraction: (200px - 100px) / 2 = 50px -->
-      <!-- flex base size + product: = 100px + 50px*2 = 200px -->
+      <!-- desired fraction: (200px - 100px) / 2 = 50px -->
+      <!-- final contribution = flex base size + product = 100px + 50px*2 = 200px -->
       <div style="flex: 2 0 100px; width: 200px;">
         <div></div>
       </div>
     </div>
   </div>
+<div class="zero-width">
+  <!-- chosen fraction: 0 -->
+  <div class="floating-flexbox" data-expected-width="600">
+    <!-- min contribution: 250 -->
+    <!-- wants to grow, but can't -->
+    <!-- desired fraction: 0 -->
+    <!-- final contribution: 100 -->
+    <div style="flex: 0 1 100px; width: 250px;"></div>
+    <!-- min contribution: 100 -->
+    <!-- wants to shrink, but can't -->
+    <!-- desired fraction: -inf -->
+    <!-- final contribution: 200 -->
+    <div style="flex: 1 0 200px; width: 100px;"></div>
+    <!-- min contribution:  -->
+    <!-- doesn't have to change --->
+    <!-- desired fraction: 0 -->
+    <!-- final contribution: 300 -->
+    <div style="flex: 1 1 300px; width: 300px;"></div>
+  </div>
+</div>
+
+<div class="zero-width">
+  <!-- chosen fraction: 0 -->
+  <div class="floating-flexbox" data-expected-width="700">
+    <!-- min contribution: 100 -->
+    <!-- wants to shrink, but can't -->
+    <!-- desired fraction: -inf -->
+    <!-- final contribution: 200 -->
+    <!-- In legacy and V2, this item gets 0 width. -->
+    <div style="flex: 0 10 300px; width: 200px;"></div>
+    <!-- min contribution:  -->
+    <!-- doesn't have to change --->
+    <!-- desired fraction: 0 -->
+    <!-- final contribution: 300 -->
+    <!-- In legacy and V2, this item gets all the width. -->
+    <div style="flex: 0 1 1000px; width: 500px;">
+    </div>
+  </div>
+</div>
+
 </body>

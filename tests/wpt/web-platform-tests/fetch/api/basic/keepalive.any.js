@@ -14,16 +14,30 @@ const {
   HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT
 } = get_host_info();
 
-for (const method of ['GET', 'POST']) {
-  promise_test(async (test) => {
-    const token1 = token();
-    const iframe = document.createElement('iframe');
-    iframe.src = getKeepAliveIframeUrl(token1, method);
-    document.body.appendChild(iframe);
-    await iframeLoaded(iframe);
-    assert_equals(await getTokenFromMessage(), token1);
-    iframe.remove();
+/**
+ * In a different-site iframe, test to fetch a keepalive URL on the specified
+ * document event.
+ */
+function keepaliveSimpleRequestTest(method) {
+  for (const evt of ['load', 'pagehide', 'unload']) {
+    const desc =
+        `[keepalive] simple ${method} request on '${evt}' [no payload]`;
+    promise_test(async (test) => {
+      const token1 = token();
+      const iframe = document.createElement('iframe');
+      iframe.src = getKeepAliveIframeUrl(token1, method, {sendOn: evt});
+      document.body.appendChild(iframe);
+      await iframeLoaded(iframe);
+      if (evt != 'load') {
+        iframe.remove();
+      }
+      assert_equals(await getTokenFromMessage(), token1);
 
-    assertStashedTokenAsync(`simple ${method} request: no payload`, token1);
-  }, `simple ${method} request: no payload; setting up`);
+      assertStashedTokenAsync(desc, token1);
+    }, `${desc}; setting up`);
+  }
+}
+
+for (const method of ['GET', 'POST']) {
+  keepaliveSimpleRequestTest(method);
 }

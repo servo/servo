@@ -1,5 +1,8 @@
 // META: script=/common/utils.js
 // META: script=resources/support.sub.js
+// META: script=/common/subset-tests.js
+// META: variant=?1-8
+// META: variant=?9-last
 //
 // Spec: https://wicg.github.io/private-network-access/#integration-fetch
 //
@@ -75,13 +78,13 @@ async function makeTest(t, { source, target, expected }) {
   }
 }
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: { server: Server.HTTPS_LOCAL },
   target: { server: Server.HTTPS_LOCAL },
   expected: TestResult.SUCCESS,
 }), "local to local: success.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: { server: Server.HTTPS_PRIVATE },
   target: {
     server: Server.HTTPS_LOCAL,
@@ -90,7 +93,7 @@ promise_test(t => makeTest(t, {
   expected: TestResult.FAILURE,
 }), "private to local: failed preflight.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: { server: Server.HTTPS_PRIVATE },
   target: {
     server: Server.HTTPS_LOCAL,
@@ -102,13 +105,13 @@ promise_test(t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "private to local: success.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: { server: Server.HTTPS_PRIVATE },
   target: { server: Server.HTTPS_PRIVATE },
   expected: TestResult.SUCCESS,
 }), "private to private: success.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
     server: Server.HTTPS_LOCAL,
@@ -117,7 +120,7 @@ promise_test(t => makeTest(t, {
   expected: TestResult.FAILURE,
 }), "public to local: failed preflight.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
     server: Server.HTTPS_LOCAL,
@@ -129,7 +132,7 @@ promise_test(t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "public to local: success.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
     server: Server.HTTPS_PRIVATE,
@@ -138,7 +141,7 @@ promise_test(t => makeTest(t, {
   expected: TestResult.FAILURE,
 }), "public to private: failed preflight.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
     server: Server.HTTPS_PRIVATE,
@@ -150,13 +153,13 @@ promise_test(t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "public to private: success.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: { server: Server.HTTPS_PUBLIC },
   expected: TestResult.SUCCESS,
 }), "public to public: success.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
@@ -168,7 +171,7 @@ promise_test(t => makeTest(t, {
   expected: TestResult.FAILURE,
 }), "treat-as-public to local: failed preflight.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
@@ -183,7 +186,7 @@ promise_test(t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "treat-as-public to local: success.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
@@ -192,7 +195,7 @@ promise_test(t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "treat-as-public to local (same-origin): no preflight required.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
@@ -204,7 +207,7 @@ promise_test(t => makeTest(t, {
   expected: TestResult.FAILURE,
 }), "treat-as-public to private: failed preflight.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
@@ -219,7 +222,7 @@ promise_test(t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "treat-as-public to private: success.");
 
-promise_test(t => makeTest(t, {
+subsetTest(promise_test, t => makeTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,

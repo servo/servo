@@ -30,12 +30,12 @@ t.step(function() {
       };
   });
   promise.then(function(response) {
-      createImageBitmap(response).then(bitmap => {
+      return createImageBitmap(response).then(bitmap => {
           ctx.drawImage(bitmap, 0, 0, 100, 50, -10, -50, 240, 50);
           _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
           _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
           _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
-      }, t_fail);
+      });
   }).then(t_pass, t_fail);
 });
 done();

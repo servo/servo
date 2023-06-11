@@ -29,11 +29,11 @@ t.step(function() {
       };
   });
   promise.then(function(response) {
-      createImageBitmap(response).then(bitmap => {
+      return createImageBitmap(response).then(bitmap => {
           ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
           ctx.fillRect(0, 50, 100, 50);
           _assertPixelApprox(canvas, 50,25, 0,0,0,0, 5);
-      }, t_fail);
+      });
   }).then(t_pass, t_fail);
 });
 done();

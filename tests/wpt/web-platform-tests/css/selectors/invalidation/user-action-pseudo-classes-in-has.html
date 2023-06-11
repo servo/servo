@@ -104,11 +104,13 @@
     assert_equals(getComputedStyle(subject2).color, "rgb(0, 0, 0)");
   }, "ancestor should be black");
 
+  let hovermeRect = hoverme.getBoundingClientRect();
+  let focusme1Rect = focusme1.getBoundingClientRect();
   new test_driver.Actions()
-      .pointerMove(0, 0, {origin: hoverme})
+      .pointerMove(hovermeRect.x + 1, hovermeRect.y + 1, {origin: "viewport"})
       .pointerDown()
       .pointerUp()
-      .pointerMove(0, 0, {origin: focusme1})
+      .pointerMove(focusme1Rect.x + 1, focusme1Rect.y + 1, {origin: "viewport"})
       .pointerDown()
       .pointerUp()
       .send();

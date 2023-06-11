@@ -1,0 +1,65 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+// Poll the server for the test result.
+async function waitForReportCount(id) {
+  const url = `/shared-storage/resources/report.py?query&token=${id}`;
+  for (let i = 0; i < 30; ++i) {
+      const response = await fetch(url);
+      let count = response.headers.get("Count");
+
+      if (!count || count === '0') {
+          await new Promise(resolve => step_timeout(resolve, 100));
+          continue;
+      }
+
+      return parseInt(count);
+  }
+  assert_true(false, 'timeout');
+}
+
+for (const resolve_to_config of [true, false]) {
+  promise_test(async () => {
+    const ancestor_key = token();
+    let url0 = generateURL("/shared-storage/resources/sender0.html",
+                           [ancestor_key]);
+    let url1 = generateURL("/shared-storage/resources/sender1.html",
+                           [ancestor_key]);
+
+    await addModuleOnce("/shared-storage/resources/simple-module.js");
+
+    const report_id = token();
+    const reportURL = `/shared-storage/resources/report.py?token=${report_id}`;
+    let select_url_result = await sharedStorage.selectURL(
+        "test-url-selection-operation", [
+            {url: url0,
+            reportingMetadata:
+                {
+                    'click': reportURL,
+                    'mouse interaction':
+                    "/shared-storage/resources/receiver1.html"
+                }
+            }, {url: url1}
+        ], {data: {'mockResult': 0}, resolveToConfig: resolve_to_config,
+            keepAlive: resolve_to_config});
+    assert_true(validateSelectURLResult(select_url_result, resolve_to_config));
+    attachFencedFrame(select_url_result, 'opaque-ads');
+    const result0 = await nextValueFromServer(ancestor_key);
+    assert_equals(result0, "sender0_reported");
+
+    const reportCount = await waitForReportCount(report_id);
+    assert_equals(reportCount, 1, `Num reports received: ${reportCount}`);
+  }, 'selectURL() with reportEvent(), selectURL() resolves to ' +
+    (resolve_to_config ? 'config' : 'urn:uuid'));
+}
+
+</script>
+</body>

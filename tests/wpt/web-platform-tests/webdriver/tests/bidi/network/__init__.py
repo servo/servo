@@ -36,6 +36,7 @@ def assert_headers(request_headers, expected_headers):
 def assert_timing_info(timing_info):
     recursive_compare(
         {
+            "timeOrigin": any_int,
             "requestTime": any_int,
             "redirectStart": any_int,
             "redirectEnd": any_int,

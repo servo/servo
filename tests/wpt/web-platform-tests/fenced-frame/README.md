@@ -2,12 +2,7 @@
 
 This directory contains [Web Platform
 Tests](third_party/blink/web_tests/external/wpt) for the [Fenced
-Frames](https://github.com/shivanigithub/fenced-frame) feature.
-
-These tests are generally intended to be upstreamed to the Web Platform Tests
-repository (i.e., moved from `wpt_internal/fenced_frame/` to `external/wpt/`).
-There are a few reasons why we're holding off doing that right now, see [Fenced
-Frames Testing Plan > Web Platform Tests](https://docs.google.com/document/d/1A4Dkw8PesXSqmRLy2Xa-KxpXgIZUT4rPocbxMBuP_3E/edit#heading=h.3plnzof3mgvv).
+Frames](https://github.com/shivanigithub/fenced-frame) feature.).
 
 In general, these tests should follow Chromium's [web tests
 guidelines](docs/testing/web_tests_tips.md) and [web-platform-tests
@@ -16,14 +11,11 @@ how to use the specific fenced frame testing infrastructure.
 
 ## How to run tests
 Fenced frames feature needs to be enabled to run tests. A convenient way to
-do this is to define the following variables for fenced frames [virtual test
+do this is to define the following variable for fenced frames [virtual test
 suites](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/testing/web_tests.md#virtual-test-suites)
 directories.
 ```bash
-# Fenced frame MPArch implementation
-export MPTEST=virtual/fenced-frame-mparch/wpt_internal/fenced_frame
-# Fenced frame ShadowDOM implementation
-export SDTEST=virtual/fenced-frame-shadow-dom/wpt_internal/fenced_frame
+export MPTEST=virtual/fenced-frame-mparch/external/wpt/fenced-frame
 ```
 
 Then run tests under the virtual test suite. This will include necessary

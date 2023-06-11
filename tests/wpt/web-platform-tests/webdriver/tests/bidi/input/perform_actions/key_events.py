@@ -1,3 +1,4 @@
+# META: timeout=long
 import copy
 import pytest
 
