@@ -357,25 +357,39 @@ pub fn parse_border<'i, 't>(
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            self.border_image_source.to_css(dest)?;
-            % for name in "slice outset width repeat".split():
+            let mut has_any = false;
+            % for name in "source slice outset width repeat".split():
             let has_${name} = *self.border_image_${name} != border_image_${name}::get_initial_specified_value();
+            has_any = has_any || has_${name};
             % endfor
+            if has_source || !has_any {
+                self.border_image_source.to_css(dest)?;
+                if !has_any {
+                    return Ok(());
+                }
+            }
             let needs_slice = has_slice || has_width || has_outset;
             if needs_slice {
-                dest.write_char(' ')?;
-                self.border_image_slice.to_css(dest)?;
-                if has_width {
-                    dest.write_str(" / ")?;
-                    self.border_image_width.to_css(dest)?;
+                if has_source {
+                    dest.write_char(' ')?;
                 }
-                if has_outset {
-                    dest.write_str(" / ")?;
-                    self.border_image_outset.to_css(dest)?;
+                self.border_image_slice.to_css(dest)?;
+                if has_width || has_outset {
+                    dest.write_str(" /")?;
+                    if has_width {
+                        dest.write_char(' ')?;
+                        self.border_image_width.to_css(dest)?;
+                    }
+                    if has_outset {
+                        dest.write_str(" / ")?;
+                        self.border_image_outset.to_css(dest)?;
+                    }
                 }
             }
             if has_repeat {
-                dest.write_char(' ')?;
+                if has_source || needs_slice {
+                    dest.write_char(' ')?;
+                }
                 self.border_image_repeat.to_css(dest)?;
             }
             Ok(())
