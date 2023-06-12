@@ -283,10 +283,10 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "-webkit-text-stroke-width",
-    "BorderSideWidth",
+    "LineWidth",
     "app_units::Au(0)",
     engines="gecko",
-    initial_specified_value="specified::BorderSideWidth::zero()",
+    initial_specified_value="specified::LineWidth::zero()",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
     animation_value_type="discrete",
 )}

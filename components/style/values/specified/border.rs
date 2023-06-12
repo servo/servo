@@ -4,7 +4,6 @@
 
 //! Specified types for CSS values related to borders.
 
-use app_units::Au;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
@@ -14,10 +13,11 @@ use crate::values::generics::border::BorderRadius as GenericBorderRadius;
 use crate::values::generics::border::BorderSpacing as GenericBorderSpacing;
 use crate::values::generics::rect::Rect;
 use crate::values::generics::size::Size2D;
-use crate::values::specified::length::{NonNegativeLength, NonNegativeLengthPercentage};
+use crate::values::specified::length::{Length, NonNegativeLength, NonNegativeLengthPercentage};
 use crate::values::specified::{AllowQuirks, NonNegativeNumber, NonNegativeNumberOrPercentage};
 use crate::values::specified::Color;
 use crate::Zero;
+use app_units::Au;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss, values::SequenceWriter};
@@ -67,19 +67,6 @@ impl BorderStyle {
     }
 }
 
-/// A specified value for a single side of the `border-width` property.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-pub enum BorderSideWidth {
-    /// `thin`
-    Thin,
-    /// `medium`
-    Medium,
-    /// `thick`
-    Thick,
-    /// `<length>`
-    Length(NonNegativeLength),
-}
-
 /// A specified value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 
@@ -110,11 +97,87 @@ impl BorderImageSlice {
     }
 }
 
-impl BorderSideWidth {
+/// https://drafts.csswg.org/css-backgrounds-3/#typedef-line-width
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+pub enum LineWidth {
+    /// `thin`
+    Thin,
+    /// `medium`
+    Medium,
+    /// `thick`
+    Thick,
+    /// `<length>`
+    Length(NonNegativeLength),
+}
+
+impl LineWidth {
     /// Returns the `0px` value.
     #[inline]
     pub fn zero() -> Self {
-        BorderSideWidth::Length(NonNegativeLength::zero())
+        Self::Length(NonNegativeLength::zero())
+    }
+
+    fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(length) =
+            input.try_parse(|i| NonNegativeLength::parse_quirky(context, i, allow_quirks))
+        {
+            return Ok(Self::Length(length));
+        }
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "thin" => Self::Thin,
+            "medium" => Self::Medium,
+            "thick" => Self::Thick,
+        })
+    }
+}
+
+impl Parse for LineWidth {
+    fn parse<'i>(
+        context: &ParserContext,
+        input: &mut Parser<'i, '_>,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl ToComputedValue for LineWidth {
+    type ComputedValue = app_units::Au;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            // https://drafts.csswg.org/css-backgrounds-3/#line-width
+            Self::Thin => Au::from_px(1),
+            Self::Medium => Au::from_px(3),
+            Self::Thick => Au::from_px(5),
+            Self::Length(ref length) => Au::from_f32_px(length.to_computed_value(context).px()),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Self::Length(NonNegativeLength::from_px(computed.to_f32_px()))
+    }
+}
+
+/// A specified value for a single side of the `border-width` property. The difference between this
+/// and LineWidth is whether we snap to device pixels or not.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+pub struct BorderSideWidth(LineWidth);
+
+impl BorderSideWidth {
+    /// Returns the `medium` value.
+    pub fn medium() -> Self {
+        Self(LineWidth::Medium)
+    }
+
+    /// Returns a bare px value from the argument.
+    pub fn from_px(px: f32) -> Self {
+        Self(LineWidth::Length(Length::from_px(px).into()))
     }
 
     /// Parses, with quirks.
@@ -123,23 +186,14 @@ impl BorderSideWidth {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(length) =
-            input.try_parse(|i| NonNegativeLength::parse_quirky(context, i, allow_quirks))
-        {
-            return Ok(BorderSideWidth::Length(length));
-        }
-        try_match_ident_ignore_ascii_case! { input,
-            "thin" => Ok(BorderSideWidth::Thin),
-            "medium" => Ok(BorderSideWidth::Medium),
-            "thick" => Ok(BorderSideWidth::Thick),
-        }
+        Ok(Self(LineWidth::parse_quirky(context, input, allow_quirks)?))
     }
 }
 
 impl Parse for BorderSideWidth {
-    fn parse<'i, 't>(
+    fn parse<'i>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>,
+        input: &mut Parser<'i, '_>,
     ) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
@@ -150,14 +204,7 @@ impl ToComputedValue for BorderSideWidth {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        let width = match *self {
-            // https://drafts.csswg.org/css-backgrounds-3/#line-width
-            BorderSideWidth::Thin => Au::from_px(1),
-            BorderSideWidth::Medium => Au::from_px(3),
-            BorderSideWidth::Thick => Au::from_px(5),
-            BorderSideWidth::Length(ref length) => Au::from_f32_px(length.to_computed_value(context).px()),
-        };
-
+        let width = self.0.to_computed_value(context);
         // Round `width` down to the nearest device pixel, but any non-zero value that would round
         // down to zero is clamped to 1 device pixel.
         if width == Au(0) {
@@ -165,12 +212,15 @@ impl ToComputedValue for BorderSideWidth {
         }
 
         let au_per_dev_px = context.device().app_units_per_device_pixel();
-        std::cmp::max(Au(au_per_dev_px), Au(width.0 / au_per_dev_px * au_per_dev_px))
+        std::cmp::max(
+            Au(au_per_dev_px),
+            Au(width.0 / au_per_dev_px * au_per_dev_px),
+        )
     }
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        BorderSideWidth::Length(NonNegativeLength::from_px(computed.to_f32_px()))
+        Self(LineWidth::from_computed_value(computed))
     }
 }
 
