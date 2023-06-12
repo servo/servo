@@ -233,6 +233,16 @@ impl<Set: string_cache::StaticAtomSet> cssparser::ToCss for GenericAtomIdent<Set
 }
 
 #[cfg(feature = "servo")]
+impl<Set: string_cache::StaticAtomSet> style_traits::ToCss for GenericAtomIdent<Set> {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        serialize_atom_identifier(&self.0, dest)
+    }
+}
+
+#[cfg(feature = "servo")]
 impl<Set: string_cache::StaticAtomSet> PrecomputedHash for GenericAtomIdent<Set> {
     #[inline]
     fn precomputed_hash(&self) -> u32 {
@@ -290,6 +300,16 @@ impl cssparser::ToCss for AtomIdent {
         W: Write,
     {
         serialize_atom_identifier(&self.0, dest)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl style_traits::ToCss for AtomIdent {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        cssparser::ToCss::to_css(self, dest)
     }
 }
 
@@ -438,15 +458,22 @@ impl CustomIdent {
         ident: &CowRcStr<'i>,
         excluding: &[&str],
     ) -> Result<Self, ParseError<'i>> {
-        let valid = match_ignore_ascii_case! { ident,
-            "initial" | "inherit" | "unset" | "default" | "revert" => false,
-            _ => true
-        };
-        if !valid {
+        use crate::properties::CSSWideKeyword;
+        // https://drafts.csswg.org/css-values-4/#custom-idents:
+        //
+        //     The CSS-wide keywords are not valid <custom-ident>s. The default
+        //     keyword is reserved and is also not a valid <custom-ident>.
+        //
+        if CSSWideKeyword::from_ident(ident).is_ok() || ident.eq_ignore_ascii_case("default") {
             return Err(
                 location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
             );
         }
+
+        // https://drafts.csswg.org/css-values-4/#custom-idents:
+        //
+        //     Excluded keywords are excluded in all ASCII case permutations.
+        //
         if excluding.iter().any(|s| ident.eq_ignore_ascii_case(s)) {
             Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         } else {
@@ -547,9 +574,7 @@ impl Parse for TimelineOrKeyframesName {
                 s,
                 &["none"],
             )?)),
-            Token::QuotedString(ref s) => {
-                Ok(Self::QuotedString(Atom::from(s.as_ref())))
-            },
+            Token::QuotedString(ref s) => Ok(Self::QuotedString(Atom::from(s.as_ref()))),
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
     }

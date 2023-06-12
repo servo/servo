@@ -38,13 +38,13 @@ pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle};
 pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, Contain, Display};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin};
-pub use self::box_::{Clear, Float, Overflow, OverflowAnchor};
-pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
+pub use self::box_::{Clear, ContentVisibility, Float, Overflow, OverflowAnchor};
+pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
 pub use self::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness, ScrollSnapType};
 pub use self::box_::{TouchAction, TransitionProperty, VerticalAlign, WillChange};
-pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, ColorScheme};
+pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, ColorScheme, PrintColorAdjust};
 pub use self::column::ColumnCount;
-pub use self::counters::{Content, ContentItem, CounterIncrement, CounterSetOrReset};
+pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset, CounterSet};
 pub use self::easing::TimingFunction;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
@@ -55,7 +55,7 @@ pub use self::font::{FontVariantAlternates, FontWeight};
 pub use self::font::{FontVariantEastAsian, FontVariationSettings};
 pub use self::font::{MathDepth, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::image::{EndingShape as GradientEndingShape, Gradient};
-pub use self::image::{Image, MozImageRect, ImageRendering};
+pub use self::image::{Image, ImageRendering, MozImageRect};
 pub use self::length::{AbsoluteLength, CalcLengthPercentage, CharacterWidth};
 pub use self::length::{FontRelativeLength, Length, LengthOrNumber, NonNegativeLengthOrNumber};
 pub use self::length::{LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
@@ -66,12 +66,11 @@ pub use self::length::{
 };
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;
-pub use self::list::MozListReversed;
 pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
-pub use self::page::{Orientation, PageSize, PaperSize};
-pub use self::percentage::{Percentage, NonNegativePercentage};
+pub use self::page::{Orientation, PageName, PageSize, PaperSize};
+pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::AspectRatio;
 pub use self::position::{
     GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto,
@@ -84,9 +83,10 @@ pub use self::svg::{DProperty, MozContextProperties};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg_path::SVGPathData;
+pub use self::text::HyphenateCharacter;
+pub use self::text::RubyPosition;
 pub use self::text::TextAlignLast;
 pub use self::text::TextUnderlinePosition;
-pub use self::text::RubyPosition;
 pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight, TextAlign};
 pub use self::text::{OverflowWrap, TextEmphasisPosition, TextEmphasisStyle, WordBreak};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};
@@ -574,6 +574,12 @@ impl One for Integer {
     #[inline]
     fn is_one(&self) -> bool {
         self.value() == 1
+    }
+}
+
+impl PartialEq<i32> for Integer {
+    fn eq(&self, value: &i32) -> bool {
+        self.value() == *value
     }
 }
 

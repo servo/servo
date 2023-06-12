@@ -7,15 +7,17 @@
 #![deny(missing_docs)]
 
 use super::*;
+use crate::applicable_declarations::CascadePriority;
 use crate::context::QuirksMode;
 use crate::custom_properties::CustomPropertiesBuilder;
 use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
 use crate::parser::ParserContext;
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
+use crate::rule_tree::CascadeLevel;
 use crate::selector_parser::SelectorImpl;
 use crate::shared_lock::Locked;
 use crate::str::{CssString, CssStringWriter};
-use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use crate::stylesheets::{CssRuleType, Origin, UrlExtraData, layer_rule::LayerOrder};
 use crate::values::computed::Context;
 use cssparser::{parse_important, CowRcStr, DeclarationListParser, ParserInput};
 use cssparser::{AtRuleParser, DeclarationParser, Delimiter, ParseErrorKind, Parser};
@@ -898,7 +900,7 @@ impl PropertyDeclarationBlock {
 
         for declaration in self.normal_declaration_iter() {
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
-                builder.cascade(declaration, Origin::Author);
+                builder.cascade(declaration, CascadePriority::new(CascadeLevel::same_tree_author_normal(), LayerOrder::root()));
             }
         }
 

@@ -56,15 +56,14 @@ ${helpers.single_keyword(
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation",
 )}
 
-// CSS Color Module Level 4
-// https://drafts.csswg.org/css-color/
-${helpers.single_keyword(
-    "color-adjust",
-    "economy exact",
+${helpers.predefined_type(
+    "print-color-adjust",
+    "PrintColorAdjust",
+    "computed::PrintColorAdjust::Economy",
     engines="gecko",
-    gecko_enum_prefix="StyleColorAdjust",
+    aliases="color-adjust",
+    spec="https://drafts.csswg.org/css-color-adjust/#print-color-adjust",
     animation_value_type="discrete",
-    spec="https://drafts.csswg.org/css-color/#propdef-color-adjust",
 )}
 
 // According to to CSS-IMAGES-3, `optimizespeed` and `optimizequality` are synonyms for `auto`

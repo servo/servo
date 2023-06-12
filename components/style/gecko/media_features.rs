@@ -13,7 +13,6 @@ use crate::media_queries::{Device, MediaType};
 use crate::values::computed::CSSPixelLength;
 use crate::values::computed::Ratio;
 use crate::values::computed::Resolution;
-use crate::Atom;
 use app_units::Au;
 use euclid::default::Size2D;
 
@@ -396,14 +395,29 @@ fn eval_overflow_inline(device: &Device, query_value: Option<OverflowInline>) ->
     }
 }
 
-/// https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme
-fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorScheme>) -> bool {
+fn do_eval_prefers_color_scheme(
+    device: &Device,
+    use_content: bool,
+    query_value: Option<PrefersColorScheme>,
+) -> bool {
     let prefers_color_scheme =
-        unsafe { bindings::Gecko_MediaFeatures_PrefersColorScheme(device.document()) };
+        unsafe { bindings::Gecko_MediaFeatures_PrefersColorScheme(device.document(), use_content) };
     match query_value {
         Some(v) => prefers_color_scheme == v,
         None => true,
     }
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme
+fn eval_prefers_color_scheme(device: &Device, query_value: Option<PrefersColorScheme>) -> bool {
+    do_eval_prefers_color_scheme(device, /* use_content = */ false, query_value)
+}
+
+fn eval_content_prefers_color_scheme(
+    device: &Device,
+    query_value: Option<PrefersColorScheme>,
+) -> bool {
+    do_eval_prefers_color_scheme(device, /* use_content = */ true, query_value)
 }
 
 bitflags! {
@@ -535,20 +549,36 @@ fn eval_moz_is_resource_document(
     query_value.map_or(is_resource_doc, |v| v == is_resource_doc)
 }
 
-fn eval_moz_os_version(
-    device: &Device,
-    query_value: Option<Atom>,
-    _: Option<RangeOrOperator>,
-) -> bool {
+/// Allows front-end CSS to discern platform via media queries.
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
+#[repr(u8)]
+pub enum Platform {
+    /// Matches any Android version.
+    Android,
+    /// For our purposes here, "linux" is just "gtk" (so unix-but-not-mac).
+    /// There's no need for our front-end code to differentiate between those
+    /// platforms and they already use the "linux" string elsewhere (e.g.,
+    /// toolkit/themes/linux).
+    Linux,
+    /// Matches any macOS version.
+    Macos,
+    /// Matches any Windows version.
+    Windows,
+    /// Matches only Windows 7.
+    WindowsWin7,
+    /// Matches only Windows 8.
+    WindowsWin8,
+    /// Matches windows 10 and actually matches windows 11 too, as of right now.
+    WindowsWin10,
+}
+
+fn eval_moz_platform(_: &Device, query_value: Option<Platform>) -> bool {
     let query_value = match query_value {
         Some(v) => v,
         None => return false,
     };
 
-    let os_version =
-        unsafe { bindings::Gecko_MediaFeatures_GetOperatingSystemVersion(device.document()) };
-
-    query_value.as_ptr() == os_version
+    unsafe { bindings::Gecko_MediaFeatures_MatchesPlatform(query_value) }
 }
 
 fn eval_moz_windows_non_native_menus(
@@ -556,11 +586,12 @@ fn eval_moz_windows_non_native_menus(
     query_value: Option<bool>,
     _: Option<RangeOrOperator>,
 ) -> bool {
-    let use_non_native_menus = match static_prefs::pref!("browser.display.windows.non_native_menus") {
+    let use_non_native_menus = match static_prefs::pref!("browser.display.windows.non_native_menus")
+    {
         0 => false,
         1 => true,
         _ => {
-            eval_moz_os_version(device, Some(atom!("windows-win10")), None) &&
+            eval_moz_platform(device, Some(Platform::WindowsWin10)) &&
                 get_lnf_int_as_bool(bindings::LookAndFeel_IntID::WindowsDefaultTheme as i32)
         },
     };
@@ -804,6 +835,15 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
         keyword_evaluator!(eval_prefers_color_scheme, PrefersColorScheme),
         ParsingRequirements::empty(),
     ),
+    // Evaluates to the preferred color scheme for content. Only useful in
+    // chrome context, where the chrome color-scheme and the content
+    // color-scheme might differ.
+    feature!(
+        atom!("-moz-content-prefers-color-scheme"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_content_prefers_color_scheme, PrefersColorScheme),
+        ParsingRequirements::CHROME_AND_UA_ONLY,
+    ),
     feature!(
         atom!("pointer"),
         AllowsRanges::No,
@@ -844,9 +884,9 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
     feature!(
-        atom!("-moz-os-version"),
+        atom!("-moz-platform"),
         AllowsRanges::No,
-        Evaluator::Ident(eval_moz_os_version),
+        keyword_evaluator!(eval_moz_platform, Platform),
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
     feature!(
@@ -873,18 +913,39 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
         Evaluator::BoolInteger(eval_moz_overlay_scrollbars),
         ParsingRequirements::CHROME_AND_UA_ONLY,
     ),
-
-    lnf_int_feature!(atom!("-moz-scrollbar-start-backward"), ScrollArrowStyle, get_scrollbar_start_backward),
-    lnf_int_feature!(atom!("-moz-scrollbar-start-forward"), ScrollArrowStyle, get_scrollbar_start_forward),
-    lnf_int_feature!(atom!("-moz-scrollbar-end-backward"), ScrollArrowStyle, get_scrollbar_end_backward),
-    lnf_int_feature!(atom!("-moz-scrollbar-end-forward"), ScrollArrowStyle, get_scrollbar_end_forward),
-    lnf_int_feature!(atom!("-moz-scrollbar-thumb-proportional"), ScrollSliderStyle),
+    lnf_int_feature!(
+        atom!("-moz-scrollbar-start-backward"),
+        ScrollArrowStyle,
+        get_scrollbar_start_backward
+    ),
+    lnf_int_feature!(
+        atom!("-moz-scrollbar-start-forward"),
+        ScrollArrowStyle,
+        get_scrollbar_start_forward
+    ),
+    lnf_int_feature!(
+        atom!("-moz-scrollbar-end-backward"),
+        ScrollArrowStyle,
+        get_scrollbar_end_backward
+    ),
+    lnf_int_feature!(
+        atom!("-moz-scrollbar-end-forward"),
+        ScrollArrowStyle,
+        get_scrollbar_end_forward
+    ),
+    lnf_int_feature!(
+        atom!("-moz-scrollbar-thumb-proportional"),
+        ScrollSliderStyle
+    ),
     lnf_int_feature!(atom!("-moz-menubar-drag"), MenuBarDrag),
     lnf_int_feature!(atom!("-moz-windows-default-theme"), WindowsDefaultTheme),
     lnf_int_feature!(atom!("-moz-mac-graphite-theme"), MacGraphiteTheme),
     lnf_int_feature!(atom!("-moz-mac-big-sur-theme"), MacBigSurTheme),
     lnf_int_feature!(atom!("-moz-mac-rtl"), MacRTL),
-    lnf_int_feature!(atom!("-moz-windows-accent-color-in-titlebar"), WindowsAccentColorInTitlebar),
+    lnf_int_feature!(
+        atom!("-moz-windows-accent-color-in-titlebar"),
+        WindowsAccentColorInTitlebar
+    ),
     lnf_int_feature!(atom!("-moz-windows-compositor"), DWMCompositor),
     lnf_int_feature!(atom!("-moz-windows-classic"), WindowsClassic),
     lnf_int_feature!(atom!("-moz-windows-glass"), WindowsGlass),
@@ -893,8 +954,13 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
     lnf_int_feature!(atom!("-moz-gtk-csd-minimize-button"), GTKCSDMinimizeButton),
     lnf_int_feature!(atom!("-moz-gtk-csd-maximize-button"), GTKCSDMaximizeButton),
     lnf_int_feature!(atom!("-moz-gtk-csd-close-button"), GTKCSDCloseButton),
-    lnf_int_feature!(atom!("-moz-gtk-csd-reversed-placement"), GTKCSDReversedPlacement),
+    lnf_int_feature!(
+        atom!("-moz-gtk-csd-reversed-placement"),
+        GTKCSDReversedPlacement
+    ),
     lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
-    bool_pref_feature!(atom!("-moz-proton"), "browser.proton.enabled"),
-    bool_pref_feature!(atom!("-moz-proton-places-tooltip"), "browser.proton.places-tooltip.enabled"),
+    bool_pref_feature!(
+        atom!("-moz-proton-places-tooltip"),
+        "browser.proton.places-tooltip.enabled"
+    ),
 ];

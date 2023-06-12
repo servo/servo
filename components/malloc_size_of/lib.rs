@@ -213,24 +213,6 @@ impl<T: MallocSizeOf + ?Sized> MallocSizeOf for Box<T> {
     }
 }
 
-impl<T> MallocShallowSizeOf for thin_slice::ThinBoxedSlice<T> {
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = 0;
-        unsafe {
-            n += thin_slice::ThinBoxedSlice::spilled_storage(self)
-                .map_or(0, |ptr| ops.malloc_size_of(ptr));
-            n += ops.malloc_size_of(&**self);
-        }
-        n
-    }
-}
-
-impl<T: MallocSizeOf> MallocSizeOf for thin_slice::ThinBoxedSlice<T> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.shallow_size_of(ops) + (**self).size_of(ops)
-    }
-}
-
 impl MallocSizeOf for () {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
@@ -448,8 +430,6 @@ macro_rules! malloc_size_of_hash_set {
 }
 
 malloc_size_of_hash_set!(std::collections::HashSet<T, S>);
-malloc_size_of_hash_set!(hashglobe::hash_set::HashSet<T, S>);
-malloc_size_of_hash_set!(hashglobe::fake::HashSet<T, S>);
 
 macro_rules! malloc_size_of_hash_map {
     ($ty:ty) => {
@@ -489,8 +469,6 @@ macro_rules! malloc_size_of_hash_map {
 }
 
 malloc_size_of_hash_map!(std::collections::HashMap<K, V, S>);
-malloc_size_of_hash_map!(hashglobe::hash_map::HashMap<K, V, S>);
-malloc_size_of_hash_map!(hashglobe::fake::HashMap<K, V, S>);
 
 impl<K, V> MallocShallowSizeOf for std::collections::BTreeMap<K, V>
 where

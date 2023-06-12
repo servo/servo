@@ -17,13 +17,13 @@ use crate::stylesheets::document_rule::DocumentCondition;
 use crate::stylesheets::font_feature_values_rule::parse_family_name_list;
 use crate::stylesheets::import_rule::ImportLayer;
 use crate::stylesheets::keyframes_rule::parse_keyframe_list;
-use crate::stylesheets::layer_rule::{LayerName, LayerRuleKind};
+use crate::stylesheets::layer_rule::{LayerBlockRule, LayerName, LayerStatementRule};
 use crate::stylesheets::scroll_timeline_rule::ScrollTimelineDescriptors;
 use crate::stylesheets::stylesheet::Namespaces;
 use crate::stylesheets::supports_rule::SupportsCondition;
 use crate::stylesheets::{
     viewport_rule, AllowImportRules, CorsMode, CssRule, CssRuleType, CssRules, DocumentRule,
-    FontFeatureValuesRule, KeyframesRule, LayerRule, MediaRule, NamespaceRule, PageRule,
+    FontFeatureValuesRule, KeyframesRule, MediaRule, NamespaceRule, PageRule, PageSelectors,
     RulesMutateError, ScrollTimelineRule, StyleRule, StylesheetLoader, SupportsRule, ViewportRule,
 };
 use crate::values::computed::font::FamilyName;
@@ -168,8 +168,8 @@ pub enum AtRulePrelude {
     Viewport,
     /// A @keyframes rule, with its animation name and vendor prefix if exists.
     Keyframes(KeyframesName, Option<VendorPrefix>),
-    /// A @page rule prelude.
-    Page,
+    /// A @page rule prelude, with its page name if it exists.
+    Page(PageSelectors),
     /// A @document rule, with its conditional.
     Document(DocumentCondition),
     /// A @import rule prelude.
@@ -289,7 +289,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         &mut self,
         prelude: AtRulePrelude,
         start: &ParserState,
-    ) -> Result<Self::AtRule, ()>  {
+    ) -> Result<Self::AtRule, ()> {
         let rule = match prelude {
             AtRulePrelude::Import(url, media, layer) => {
                 let loader = self
@@ -468,8 +468,13 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 let name = KeyframesName::parse(self.context, input)?;
                 AtRulePrelude::Keyframes(name, prefix)
             },
-            "page" if cfg!(feature = "gecko") => {
-                AtRulePrelude::Page
+            #[cfg(feature = "gecko")]
+            "page" => {
+                AtRulePrelude::Page(if static_prefs::pref!("layout.css.named-pages.enabled") {
+                    input.try_parse(|i| PageSelectors::parse(self.context, i)).unwrap_or_default()
+                } else {
+                    PageSelectors::default()
+                })
             },
             "-moz-document" if cfg!(feature = "gecko") => {
                 let cond = DocumentCondition::parse(self.context, input)?;
@@ -583,7 +588,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     },
                 ))))
             },
-            AtRulePrelude::Page => {
+            AtRulePrelude::Page(selectors) => {
                 let context = ParserContext::new_with_rule_type(
                     self.context,
                     CssRuleType::Page,
@@ -592,6 +597,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
 
                 let declarations = parse_property_declaration_list(&context, input, None);
                 Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule {
+                    selectors,
                     block: Arc::new(self.shared_lock.wrap(declarations)),
                     source_location: start.source_location(),
                 }))))
@@ -613,12 +619,10 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     0 | 1 => names.into_iter().next(),
                     _ => return Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid)),
                 };
-                Ok(CssRule::Layer(Arc::new(self.shared_lock.wrap(
-                    LayerRule {
-                        kind: LayerRuleKind::Block {
-                            name,
-                            rules: self.parse_nested_rules(input, CssRuleType::Layer),
-                        },
+                Ok(CssRule::LayerBlock(Arc::new(self.shared_lock.wrap(
+                    LayerBlockRule {
+                        name,
+                        rules: self.parse_nested_rules(input, CssRuleType::LayerBlock),
                         source_location: start.source_location(),
                     },
                 ))))
@@ -650,14 +654,14 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
         &mut self,
         prelude: AtRulePrelude,
         start: &ParserState,
-    ) -> Result<Self::AtRule, ()>  {
+    ) -> Result<Self::AtRule, ()> {
         Ok(match prelude {
             AtRulePrelude::Layer(names) => {
                 if names.is_empty() {
                     return Err(());
                 }
-                CssRule::Layer(Arc::new(self.shared_lock.wrap(LayerRule {
-                    kind: LayerRuleKind::Statement { names },
+                CssRule::LayerStatement(Arc::new(self.shared_lock.wrap(LayerStatementRule {
+                    names,
                     source_location: start.source_location(),
                 })))
             },
@@ -687,7 +691,10 @@ fn check_for_useless_selector(
                 }
                 if found_host && found_non_host {
                     let location = input.current_source_location();
-                    context.log_css_error(location, ContextualParseError::NeverMatchingHostSelector(selector.to_css_string()));
+                    context.log_css_error(
+                        location,
+                        ContextualParseError::NeverMatchingHostSelector(selector.to_css_string()),
+                    );
                     continue 'selector_loop;
                 }
             }
@@ -710,7 +717,7 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
         let selector_parser = SelectorParser {
             stylesheet_origin: self.context.stylesheet_origin,
             namespaces: self.namespaces,
-            url_data: Some(self.context.url_data),
+            url_data: self.context.url_data,
         };
         let selectors = SelectorList::parse(&selector_parser, input)?;
         if self.context.error_reporting_enabled() {

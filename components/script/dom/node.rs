@@ -949,18 +949,15 @@ impl Node {
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     pub fn query_selector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         // Step 1.
-        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+        let doc = self.owner_doc();
+        match SelectorParser::parse_author_origin_no_namespace(&selectors, &doc.url()) {
             // Step 2.
             Err(_) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
                 // FIXME(bholley): Consider an nth-index cache here.
-                let mut ctx = MatchingContext::new(
-                    MatchingMode::Normal,
-                    None,
-                    None,
-                    self.owner_doc().quirks_mode(),
-                );
+                let mut ctx =
+                    MatchingContext::new(MatchingMode::Normal, None, None, doc.quirks_mode());
                 Ok(self
                     .traverse_preorder(ShadowIncluding::No)
                     .filter_map(DomRoot::downcast)
@@ -975,7 +972,8 @@ impl Node {
     /// whilst iterating, otherwise the iterator may be invalidated.
     pub fn query_selector_iter(&self, selectors: DOMString) -> Fallible<QuerySelectorIterator> {
         // Step 1.
-        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+        let url = self.owner_doc().url();
+        match SelectorParser::parse_author_origin_no_namespace(&selectors, &url) {
             // Step 2.
             Err(_) => Err(Error::Syntax),
             // Step 3.

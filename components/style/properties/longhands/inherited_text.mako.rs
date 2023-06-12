@@ -373,3 +373,15 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property",
 )}
+
+// hyphenation character
+${helpers.predefined_type(
+    "hyphenate-character",
+    "HyphenateCharacter",
+    "computed::HyphenateCharacter::Auto",
+    engines="gecko",
+    gecko_pref="layout.css.hyphenate-character.enabled",
+    has_effect_on_gecko_scrollbars=False,
+    animation_value_type="discrete",
+    spec="https://www.w3.org/TR/css-text-4/#hyphenate-character",
+)}

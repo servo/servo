@@ -14,7 +14,6 @@ use crate::properties::{PropertyDeclarationId, SourcePropertyDeclaration};
 use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard};
 use crate::shared_lock::{Locked, ToCssWithGuard};
 use crate::str::CssStringWriter;
-use crate::stylesheets::layer_rule::LayerId;
 use crate::stylesheets::rule_parser::VendorPrefix;
 use crate::stylesheets::{CssRuleType, StylesheetContents};
 use crate::values::{serialize_percentage, KeyframesName};
@@ -358,8 +357,6 @@ pub struct KeyframesAnimation {
     pub properties_changed: LonghandIdSet,
     /// Vendor prefix type the @keyframes has.
     pub vendor_prefix: Option<VendorPrefix>,
-    /// The id of the cascade layer the keyframe rule was in.
-    pub layer_id: LayerId,
 }
 
 /// Get all the animated properties in a keyframes animation.
@@ -412,14 +409,12 @@ impl KeyframesAnimation {
     pub fn from_keyframes(
         keyframes: &[Arc<Locked<Keyframe>>],
         vendor_prefix: Option<VendorPrefix>,
-        layer_id: LayerId,
         guard: &SharedRwLockReadGuard,
     ) -> Self {
         let mut result = KeyframesAnimation {
             steps: vec![],
             properties_changed: LonghandIdSet::new(),
             vendor_prefix,
-            layer_id,
         };
 
         if keyframes.is_empty() {
@@ -500,8 +495,8 @@ pub fn parse_keyframe_list(
     RuleListParser::new_for_nested_rule(
         input,
         KeyframeListParser {
-            context: context,
-            shared_lock: shared_lock,
+            context,
+            shared_lock,
             declarations: &mut declarations,
         },
     )

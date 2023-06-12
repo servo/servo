@@ -11,7 +11,9 @@ use crate::values::specified::image::Image;
 use crate::values::specified::Number;
 use cssparser::Parser;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+use style_traits::{
+    CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss,
+};
 
 /// A specified value for the `cursor` property.
 pub type Cursor = generics::GenericCursor<CursorImage>;

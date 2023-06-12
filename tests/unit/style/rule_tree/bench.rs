@@ -6,12 +6,14 @@ use cssparser::SourceLocation;
 use rayon;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
+use style::applicable_declarations::CascadePriority;
 use style::context::QuirksMode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
+use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{AllowImportRules, CssRule, Origin, Stylesheet};
 use style::thread_state::{self, ThreadState};
 use test::{self, Bencher};
@@ -85,7 +87,12 @@ fn parse_rules(lock: &SharedRwLock, css: &str) -> Vec<(StyleSource, CascadeLevel
 }
 
 fn test_insertion(rule_tree: &RuleTree, rules: Vec<(StyleSource, CascadeLevel)>) -> StrongRuleNode {
-    rule_tree.insert_ordered_rules(rules.into_iter())
+    rule_tree.insert_ordered_rules(rules.into_iter().map(|(style_source, cascade_level)| {
+        (
+            style_source,
+            CascadePriority::new(cascade_level, LayerOrder::root()),
+        )
+    }))
 }
 
 fn test_insertion_style_attribute(

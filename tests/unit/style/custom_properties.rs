@@ -5,13 +5,15 @@
 use cssparser::{Parser, ParserInput};
 use euclid::{Scale, Size2D};
 use servo_arc::Arc;
+use style::applicable_declarations::CascadePriority;
 use style::context::QuirksMode;
 use style::custom_properties::{
     CustomPropertiesBuilder, CustomPropertiesMap, Name, SpecifiedValue,
 };
 use style::media_queries::{Device, MediaType};
 use style::properties::{CustomDeclaration, CustomDeclarationValue};
-use style::stylesheets::Origin;
+use style::rule_tree::CascadeLevel;
+use style::stylesheets::layer_rule::LayerOrder;
 use test::{self, Bencher};
 
 fn cascade(
@@ -38,7 +40,10 @@ fn cascade(
     let mut builder = CustomPropertiesBuilder::new(inherited, &device);
 
     for declaration in &declarations {
-        builder.cascade(declaration, Origin::Author);
+        builder.cascade(
+            declaration,
+            CascadePriority::new(CascadeLevel::same_tree_author_normal(), LayerOrder::root()),
+        );
     }
 
     builder.build()

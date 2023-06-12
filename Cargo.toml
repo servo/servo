@@ -24,7 +24,7 @@ cookie = "0.12"
 content-security-policy = { version = "0.5", features = ["serde"]}
 crossbeam-channel = "0.4"
 cssparser = "0.29"
-darling = { version = "0.10", default-features = false }
+darling = { version = "0.13", default-features = false }
 data-url = "0.1.0"
 env_logger = "0.8"
 fnv = "1.0"

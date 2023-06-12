@@ -1204,9 +1204,9 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.10.2"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d706e75d87e35569db781a9b5e2416cff1236a47ed380831f959382ccd5f858"
+checksum = "a01d95850c592940db9b8194bc39f4bc0e89dee5c4265e4b1807c34a9aba453c"
 dependencies = [
  "darling_core",
  "darling_macro",
@@ -1214,9 +1214,9 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.10.2"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c960ae2da4de88a91b2d920c2a7233b400bc33cb28453a2987822d8392519b"
+checksum = "859d65a907b6852c9361e3185c862aae7fafd2887876799fa55f5f99dc40d610"
 dependencies = [
  "fnv",
  "ident_case",
@@ -1227,9 +1227,9 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
-version = "0.10.2"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b5a2f4ac4969822c62224815d069952656cadc7084fdca9751e6d959189b72"
+checksum = "9c972679f83bdf9c42bd905396b6c3588a843a17f0f16dfcfa3e2c5d57441835"
 dependencies = [
  "darling_core",
  "quote",
@@ -1600,14 +1600,6 @@ name = "fake-simd"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
-
-[[package]]
-name = "fallible"
-version = "0.0.1"
-dependencies = [
- "hashglobe",
- "smallvec",
-]
 
 [[package]]
 name = "fastrand"
@@ -2599,14 +2591,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7afe4a420e3fe79967a00898cc1f4db7c8a49a9333a29f8a4bd76a253d5cd04"
 
 [[package]]
-name = "hashglobe"
-version = "0.1.0"
-dependencies = [
- "libc",
- "rand 0.7.3",
-]
-
-[[package]]
 name = "headers"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2775,9 +2759,9 @@ dependencies = [
 
 [[package]]
 name = "ident_case"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c9826188e666f2ed92071d2dadef6edc430b11b158b5b2b3f4babbcc891eaaa"
+checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idna"
@@ -3461,7 +3445,6 @@ dependencies = [
  "crossbeam-channel 0.4.4",
  "cssparser",
  "euclid",
- "hashglobe",
  "http",
  "hyper_serde",
  "keyboard-types",
@@ -3472,7 +3455,6 @@ dependencies = [
  "smallbitvec",
  "smallvec",
  "string_cache",
- "thin-slice",
  "time 0.1.45",
  "tokio",
  "url",
@@ -3748,6 +3730,12 @@ dependencies = [
  "lazy_static",
  "walkdir",
 ]
+
+[[package]]
+name = "mozbuild"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
 
 [[package]]
 name = "mozjs"
@@ -5970,9 +5958,7 @@ dependencies = [
  "derive_more",
  "encoding_rs",
  "euclid",
- "fallible",
  "fxhash",
- "hashglobe",
  "html5ever",
  "indexmap",
  "itertools",
@@ -5982,6 +5968,7 @@ dependencies = [
  "malloc_size_of",
  "malloc_size_of_derive",
  "mime",
+ "mozbuild",
  "new_debug_unreachable",
  "num-derive",
  "num-integer",
@@ -6003,7 +5990,6 @@ dependencies = [
  "string_cache",
  "style_derive",
  "style_traits",
- "thin-slice",
  "time 0.1.45",
  "to_shmem",
  "to_shmem_derive",
@@ -6217,12 +6203,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "thin-slice"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eaa81235c7058867fa8c0e7314f33dcce9c215f535d1913822a2b3f5e289f3c"
-
-[[package]]
 name = "thiserror"
 version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6371,7 +6351,6 @@ dependencies = [
  "smallbitvec",
  "smallvec",
  "string_cache",
- "thin-slice",
 ]
 
 [[package]]

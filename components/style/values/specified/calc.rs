@@ -185,6 +185,7 @@ impl generic::CalcNodeLeaf for Leaf {
                     FontRelativeLength::Em(..) => SortKey::Em,
                     FontRelativeLength::Ex(..) => SortKey::Ex,
                     FontRelativeLength::Cap(..) => SortKey::Cap,
+                    FontRelativeLength::Ic(..) => SortKey::Ic,
                     FontRelativeLength::Rem(..) => SortKey::Rem,
                 },
                 NoCalcLength::ViewportPercentage(ref vp) => match *vp {
@@ -380,43 +381,47 @@ impl CalcNode {
 
                     Ok(Self::MinMax(arguments.into(), op))
                 },
-                MathFunction::Sin |
-                MathFunction::Cos |
-                MathFunction::Tan => {
+                MathFunction::Sin | MathFunction::Cos | MathFunction::Tan => {
                     let argument = Self::parse_argument(context, input, CalcUnit::Angle)?;
                     let radians = match argument.to_number() {
                         Ok(v) => v,
                         Err(()) => match argument.to_angle() {
                             Ok(angle) => angle.radians(),
-                            Err(()) => return Err(
-                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                            ),
+                            Err(()) => {
+                                return Err(
+                                    input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                                )
+                            },
                         },
                     };
                     let number = match function {
                         MathFunction::Sin => radians.sin(),
                         MathFunction::Cos => radians.cos(),
                         MathFunction::Tan => radians.tan(),
-                        _ => unsafe { debug_unreachable!("We just checked!"); },
+                        _ => unsafe {
+                            debug_unreachable!("We just checked!");
+                        },
                     };
                     Ok(Self::Leaf(Leaf::Number(number)))
                 },
-                MathFunction::Asin |
-                MathFunction::Acos |
-                MathFunction::Atan => {
+                MathFunction::Asin | MathFunction::Acos | MathFunction::Atan => {
                     let argument = Self::parse_argument(context, input, CalcUnit::Number)?;
                     let number = match argument.to_number() {
                         Ok(v) => v,
-                        Err(()) => return Err(
-                            input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                        ),
+                        Err(()) => {
+                            return Err(
+                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                            )
+                        },
                     };
 
                     let radians = match function {
                         MathFunction::Asin => number.asin(),
                         MathFunction::Acos => number.acos(),
                         MathFunction::Atan => number.atan(),
-                        _ => unsafe { debug_unreachable!("We just checked!"); },
+                        _ => unsafe {
+                            debug_unreachable!("We just checked!");
+                        },
                     };
 
                     Ok(Self::Leaf(Leaf::Angle(Angle::from_radians(radians))))
@@ -597,7 +602,9 @@ impl CalcNode {
 
         let function = match MathFunction::from_ident(&*name) {
             Ok(f) => f,
-            Err(()) => return Err(location.new_unexpected_token_error(Token::Function(name.clone()))),
+            Err(()) => {
+                return Err(location.new_unexpected_token_error(Token::Function(name.clone())))
+            },
         };
 
         if matches!(function, Sin | Cos | Tan | Asin | Acos | Atan) && !trig_enabled() {

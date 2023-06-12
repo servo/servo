@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Computed @page at-rule properties
+//! Computed @page at-rule properties and named-page style properties
 
 use crate::values::computed::length::NonNegativeLength;
 use crate::values::computed::{Context, ToComputedValue};
@@ -13,6 +13,7 @@ use crate::values::specified::page as specified;
 pub use generics::page::GenericPageSize;
 pub use generics::page::Orientation;
 pub use generics::page::PaperSize;
+pub use specified::PageName;
 
 /// Computed value of the @page size descriptor
 ///

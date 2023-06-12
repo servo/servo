@@ -1,3 +1,7 @@
+-moz-gtk-csd-close-button-position
+-moz-gtk-csd-maximize-button-position
+-moz-gtk-csd-menu-radius
+-moz-gtk-csd-minimize-button-position
 -moz-gtk-csd-titlebar-radius
 -moz-gtk-menu-radius
 DOMContentLoaded

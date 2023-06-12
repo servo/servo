@@ -6,11 +6,10 @@
 //!
 //! [custom]: https://drafts.csswg.org/css-variables/
 
-use crate::hash::map::Entry;
+use crate::applicable_declarations::CascadePriority;
 use crate::media_queries::Device;
 use crate::properties::{CSSWideKeyword, CustomDeclaration, CustomDeclarationValue};
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet, PrecomputedHasher};
-use crate::stylesheets::{Origin, PerOrigin};
 use crate::Atom;
 use cssparser::{
     CowRcStr, Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType,
@@ -21,6 +20,7 @@ use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cmp;
+use std::collections::hash_map::Entry;
 use std::fmt::{self, Write};
 use std::hash::BuildHasherDefault;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -49,19 +49,19 @@ macro_rules! make_variable {
 }
 
 fn get_safearea_inset_top(device: &Device) -> VariableValue {
-    VariableValue::pixel(device.safe_area_insets().top)
+    VariableValue::pixels(device.safe_area_insets().top)
 }
 
 fn get_safearea_inset_bottom(device: &Device) -> VariableValue {
-    VariableValue::pixel(device.safe_area_insets().bottom)
+    VariableValue::pixels(device.safe_area_insets().bottom)
 }
 
 fn get_safearea_inset_left(device: &Device) -> VariableValue {
-    VariableValue::pixel(device.safe_area_insets().left)
+    VariableValue::pixels(device.safe_area_insets().left)
 }
 
 fn get_safearea_inset_right(device: &Device) -> VariableValue {
-    VariableValue::pixel(device.safe_area_insets().right)
+    VariableValue::pixels(device.safe_area_insets().right)
 }
 
 static ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
@@ -71,17 +71,56 @@ static ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
     make_variable!(atom!("safe-area-inset-right"), get_safearea_inset_right),
 ];
 
-fn get_titlebar_radius(device: &Device) -> VariableValue {
-    VariableValue::pixel(device.titlebar_radius())
+#[cfg(feature = "gecko")]
+macro_rules! lnf_int {
+    ($id:ident) => {
+        unsafe {
+            crate::gecko_bindings::bindings::Gecko_GetLookAndFeelInt(
+                crate::gecko_bindings::bindings::LookAndFeel_IntID::$id as i32,
+            )
+        }
+    };
 }
 
-fn get_menu_radius(device: &Device) -> VariableValue {
-    VariableValue::pixel(device.menu_radius())
+#[cfg(feature = "servo")]
+macro_rules! lnf_int {
+    ($id:ident) => {
+        // TODO: implement this.
+        0
+    };
 }
 
-static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 2] = [
-    make_variable!(atom!("-moz-gtk-csd-titlebar-radius"), get_titlebar_radius),
-    make_variable!(atom!("-moz-gtk-menu-radius"), get_menu_radius),
+macro_rules! lnf_int_variable {
+    ($atom:expr, $id:ident, $ctor:ident) => {{
+        fn __eval(_: &Device) -> VariableValue {
+            VariableValue::$ctor(lnf_int!($id))
+        }
+        make_variable!($atom, __eval)
+    }};
+}
+
+static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 5] = [
+    lnf_int_variable!(
+        atom!("-moz-gtk-csd-titlebar-radius"),
+        TitlebarRadius,
+        int_pixels
+    ),
+    lnf_int_variable!(atom!("-moz-gtk-csd-menu-radius"), GtkMenuRadius, int_pixels),
+    lnf_int_variable!(
+        atom!("-moz-gtk-csd-close-button-position"),
+        GTKCSDCloseButtonPosition,
+        integer
+    ),
+    lnf_int_variable!(
+        atom!("-moz-gtk-csd-minimize-button-position"),
+        GTKCSDMinimizeButtonPosition,
+        integer
+    ),
+    lnf_int_variable!(
+        atom!("-moz-gtk-csd-maximize-button-position"),
+        GTKCSDMaximizeButtonPosition,
+        integer
+    ),
 ];
 
 impl CssEnvironment {
@@ -93,7 +132,9 @@ impl CssEnvironment {
         if !device.is_chrome_document() {
             return None;
         }
-        let var = CHROME_ENVIRONMENT_VARIABLES.iter().find(|var| var.name == *name)?;
+        let var = CHROME_ENVIRONMENT_VARIABLES
+            .iter()
+            .find(|var| var.name == *name)?;
         Some((var.evaluator)(device))
     }
 }
@@ -278,17 +319,39 @@ impl VariableValue {
         }))
     }
 
-    /// Create VariableValue from css pixel value
-    pub fn pixel(number: f32) -> Self {
+    /// Create VariableValue from an int.
+    fn integer(number: i32) -> Self {
+        Self::from_token(Token::Number {
+            has_sign: false,
+            value: number as f32,
+            int_value: Some(number),
+        })
+    }
+
+    /// Create VariableValue from a float amount of CSS pixels.
+    fn pixels(number: f32) -> Self {
         // FIXME (https://github.com/servo/rust-cssparser/issues/266):
         // No way to get TokenSerializationType::Dimension without creating
         // Token object.
-        let token = Token::Dimension {
+        Self::from_token(Token::Dimension {
             has_sign: false,
             value: number,
             int_value: None,
             unit: CowRcStr::from("px"),
-        };
+        })
+    }
+
+    /// Create VariableValue from an integer amount of CSS pixels.
+    fn int_pixels(number: i32) -> Self {
+        Self::from_token(Token::Dimension {
+            has_sign: false,
+            value: number as f32,
+            int_value: Some(number),
+            unit: CowRcStr::from("px"),
+        })
+    }
+
+    fn from_token(token: Token) -> Self {
         let token_type = token.serialization_type();
         let mut css = token.to_css_string();
         css.shrink_to_fit();
@@ -536,10 +599,10 @@ fn parse_env_function<'i, 't>(
 /// properties.
 pub struct CustomPropertiesBuilder<'a> {
     seen: PrecomputedHashSet<&'a Name>,
-    reverted: PerOrigin<PrecomputedHashSet<&'a Name>>,
     may_have_cycles: bool,
     custom_properties: Option<CustomPropertiesMap>,
     inherited: Option<&'a Arc<CustomPropertiesMap>>,
+    reverted: PrecomputedHashMap<&'a Name, (CascadePriority, bool)>,
     device: &'a Device,
 }
 
@@ -557,14 +620,16 @@ impl<'a> CustomPropertiesBuilder<'a> {
     }
 
     /// Cascade a given custom property declaration.
-    pub fn cascade(&mut self, declaration: &'a CustomDeclaration, origin: Origin) {
+    pub fn cascade(&mut self, declaration: &'a CustomDeclaration, priority: CascadePriority) {
         let CustomDeclaration {
             ref name,
             ref value,
         } = *declaration;
 
-        if self.reverted.borrow_for_origin(&origin).contains(&name) {
-            return;
+        if let Some(&(reverted_priority, is_origin_revert)) = self.reverted.get(&name) {
+            if !reverted_priority.allows_when_reverted(&priority, is_origin_revert) {
+                return;
+            }
         }
 
         let was_already_present = !self.seen.insert(name);
@@ -597,8 +662,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
                     match result {
                         Ok(new_value) => new_value,
                         Err(..) => {
-                            // Don't touch the map, this has the same effect as
-                            // making it compute to the inherited one.
+                            map.remove(name);
                             return;
                         },
                     }
@@ -608,11 +672,10 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 map.insert(name.clone(), value);
             },
             CustomDeclarationValue::CSSWideKeyword(keyword) => match keyword {
-                CSSWideKeyword::Revert => {
+                CSSWideKeyword::RevertLayer | CSSWideKeyword::Revert => {
+                    let origin_revert = keyword == CSSWideKeyword::Revert;
                     self.seen.remove(name);
-                    for origin in origin.following_including() {
-                        self.reverted.borrow_mut_for_origin(&origin).insert(name);
-                    }
+                    self.reverted.insert(name, (priority, origin_revert));
                 },
                 CSSWideKeyword::Initial => {
                     map.remove(name);
@@ -660,6 +723,22 @@ impl<'a> CustomPropertiesBuilder<'a> {
         true
     }
 
+    fn inherited_properties_match(&self, map: &CustomPropertiesMap) -> bool {
+        let inherited = match self.inherited {
+            Some(inherited) => inherited,
+            None => return false,
+        };
+        if inherited.len() != map.len() {
+            return false;
+        }
+        for name in self.seen.iter() {
+            if inherited.get(*name) != map.get(*name) {
+                return false;
+            }
+        }
+        true
+    }
+
     /// Returns the final map of applicable custom properties.
     ///
     /// If there was any specified property, we've created a new map and now we
@@ -671,10 +750,19 @@ impl<'a> CustomPropertiesBuilder<'a> {
             Some(m) => m,
             None => return self.inherited.cloned(),
         };
+
         if self.may_have_cycles {
-            let inherited = self.inherited.as_ref().map(|m| &***m);
-            substitute_all(&mut map, inherited, self.device);
+            substitute_all(&mut map, &self.seen, self.device);
         }
+
+        // Some pages apply a lot of redundant custom properties, see e.g.
+        // bug 1758974 comment 5. Try to detect the case where the values
+        // haven't really changed, and save some memory by reusing the inherited
+        // map in that case.
+        if self.inherited_properties_match(&map) {
+            return self.inherited.cloned();
+        }
+
         map.shrink_to_fit();
         Some(Arc::new(map))
     }
@@ -684,11 +772,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
 /// (meaning we should use the inherited value).
 ///
 /// It does cycle dependencies removal at the same time as substitution.
-fn substitute_all(
-    custom_properties_map: &mut CustomPropertiesMap,
-    inherited: Option<&CustomPropertiesMap>,
-    device: &Device,
-) {
+fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, seen: &PrecomputedHashSet<&Name>, device: &Device) {
     // The cycle dependencies removal in this function is a variant
     // of Tarjan's algorithm. It is mostly based on the pseudo-code
     // listed in
@@ -724,10 +808,7 @@ fn substitute_all(
         /// all unfinished strong connected components.
         stack: SmallVec<[usize; 5]>,
         map: &'a mut CustomPropertiesMap,
-        /// The inherited variables. We may need to restore some if we fail
-        /// substitution.
-        inherited: Option<&'a CustomPropertiesMap>,
-        /// to resolve the environment to substitute `env()` variables.
+        /// To resolve the environment to substitute `env()` variables.
         device: &'a Device,
     }
 
@@ -749,10 +830,10 @@ fn substitute_all(
     ///   doesn't have reference at all in specified value, or it has
     ///   been completely resolved.
     /// * There is no such variable at all.
-    fn traverse<'a>(name: Name, context: &mut Context<'a>) -> Option<usize> {
+    fn traverse<'a>(name: &Name, context: &mut Context<'a>) -> Option<usize> {
         // Some shortcut checks.
         let (name, value) = {
-            let value = context.map.get(&name)?;
+            let value = context.map.get(name)?;
 
             // Nothing to resolve.
             if value.references.is_empty() {
@@ -765,7 +846,7 @@ fn substitute_all(
 
             // Whether this variable has been visited in this traversal.
             let key;
-            match context.index_map.entry(name) {
+            match context.index_map.entry(name.clone()) {
                 Entry::Occupied(entry) => {
                     return Some(*entry.get());
                 },
@@ -793,7 +874,7 @@ fn substitute_all(
         let mut self_ref = false;
         let mut lowlink = index;
         for next in value.references.iter() {
-            let next_index = match traverse(next.clone(), context) {
+            let next_index = match traverse(next, context) {
                 Some(index) => index,
                 // There is nothing to do if the next variable has been
                 // fully resolved at this point.
@@ -869,16 +950,8 @@ fn substitute_all(
                 context.map.insert(name, computed_value);
             },
             Err(..) => {
-                // This is invalid, reset it to the unset (inherited) value.
-                let inherited = context.inherited.and_then(|m| m.get(&name)).cloned();
-                match inherited {
-                    Some(computed_value) => {
-                        context.map.insert(name, computed_value);
-                    },
-                    None => {
-                        context.map.remove(&name);
-                    },
-                };
+                // This is invalid, reset it to the guaranteed-invalid value.
+                context.map.remove(&name);
             },
         }
 
@@ -886,17 +959,16 @@ fn substitute_all(
         None
     }
 
-    // We have to clone the names so that we can mutably borrow the map
-    // in the context we create for traversal.
-    let names: Vec<_> = custom_properties_map.keys().cloned().collect();
-    for name in names.into_iter() {
+    // Note that `seen` doesn't contain names inherited from our parent, but
+    // those can't have variable references (since we inherit the computed
+    // variables) so we don't want to spend cycles traversing them anyway.
+    for name in seen {
         let mut context = Context {
             count: 0,
             index_map: PrecomputedHashMap::default(),
             stack: SmallVec::new(),
             var_info: SmallVec::new(),
             map: custom_properties_map,
-            inherited,
             device,
         };
         traverse(name, &mut context);
@@ -1014,7 +1086,9 @@ fn substitute_block<'i>(
                         let first_token_type = input
                             .next_including_whitespace_and_comments()
                             .ok()
-                            .map_or_else(TokenSerializationType::nothing, |t| t.serialization_type());
+                            .map_or_else(TokenSerializationType::nothing, |t| {
+                                t.serialization_type()
+                            });
                         input.reset(&after_comma);
                         let mut position = (after_comma.position(), first_token_type);
                         last_token_type = substitute_block(

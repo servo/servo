@@ -37,7 +37,7 @@ macro_rules! apply_non_ts_list {
                 ("any-link", AnyLink, IN_VISITED_OR_UNVISITED_STATE, _),
                 ("visited", Visited, IN_VISITED_STATE, _),
                 ("active", Active, IN_ACTIVE_STATE, _),
-                ("autofill", Autofill, IN_AUTOFILL_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("autofill", Autofill, IN_AUTOFILL_STATE, _),
                 ("checked", Checked, IN_CHECKED_STATE, _),
                 ("defined", Defined, IN_DEFINED_STATE, _),
                 ("disabled", Disabled, IN_DISABLED_STATE, _),
@@ -63,6 +63,8 @@ macro_rules! apply_non_ts_list {
                 ("-moz-dir-attr-like-auto", MozDirAttrLikeAuto, IN_HAS_DIR_ATTR_LIKE_AUTO_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
 
                 ("-moz-autofill-preview", MozAutofillPreview, IN_AUTOFILL_PREVIEW_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-value-empty", MozValueEmpty, IN_VALUE_EMPTY_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
+                ("-moz-revealed", MozRevealed, IN_REVEALED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
 
                 ("-moz-math-increment-script-level", MozMathIncrementScriptLevel, IN_INCREMENT_SCRIPT_LEVEL_STATE, _),
 
@@ -76,7 +78,6 @@ macro_rules! apply_non_ts_list {
                 ("placeholder-shown", PlaceholderShown, IN_PLACEHOLDER_SHOWN_STATE, _),
                 ("read-only", ReadOnly, IN_READONLY_STATE, _),
                 ("read-write", ReadWrite, IN_READWRITE_STATE, _),
-                ("-moz-submit-invalid", MozSubmitInvalid, IN_MOZ_SUBMITINVALID_STATE, _),
                 ("user-valid", UserValid, IN_MOZ_UI_VALID_STATE, _),
                 ("user-invalid", UserInvalid, IN_MOZ_UI_INVALID_STATE, _),
                 ("-moz-meter-optimum", MozMeterOptimum, IN_OPTIMUM_STATE, _),
@@ -90,9 +91,9 @@ macro_rules! apply_non_ts_list {
                 ("-moz-use-shadow-tree-root", MozUseShadowTreeRoot, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-is-html", MozIsHTML, _, _),
                 ("-moz-placeholder", MozPlaceholder, _, _),
-                ("-moz-lwtheme", MozLWTheme, _, _),
-                ("-moz-lwtheme-brighttext", MozLWThemeBrightText, _, _),
-                ("-moz-lwtheme-darktext", MozLWThemeDarkText, _, _),
+                ("-moz-lwtheme", MozLWTheme, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-lwtheme-brighttext", MozLWThemeBrightText, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-lwtheme-darktext", MozLWThemeDarkText, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("-moz-window-inactive", MozWindowInactive, _, _),
             ]
         }

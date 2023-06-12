@@ -40,6 +40,8 @@ impl ToResolvedValue for computed::CaretColor {
 
     #[inline]
     fn from_resolved_value(resolved: Self::ResolvedValue) -> Self {
-        generics::CaretColor(generics::ColorOrAuto::Color(computed::Color::from_resolved_value(resolved)))
+        generics::CaretColor(generics::ColorOrAuto::Color(
+            computed::Color::from_resolved_value(resolved),
+        ))
     }
 }

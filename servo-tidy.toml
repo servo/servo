@@ -11,7 +11,6 @@ lint-scripts = ["./python/servo/lints/wpt_lint.py"]
 [blocked-packages]
 num = []
 rand = [
-  "hashglobe",     # Only used in tests
   "ipc-channel",
   "phf_generator",
   "quickcheck",    # Only used in tests
@@ -80,16 +79,21 @@ files = [
   "./components/net/tests/parsable_mime/text",
   # These are ignored to avoid diverging from Gecko
   "./components/style/counter_style/mod.rs",
+  "./components/style/properties/declaration_block.rs",
   "./components/style/properties/helpers.mako.rs",
   "./components/style/rule_collector.rs",
   "./components/style/selector_map.rs",
   "./components/style/stylesheets/import_rule.rs",
   "./components/style/stylesheets/layer_rule.rs",
+  "./components/style/stylesheets/origin.rs",
+  "./components/style/stylesheets/page_rule.rs",
   "./components/style/stylesheets/rule_parser.rs",
   "./components/style/stylesheets/scroll_timeline_rule.rs",
   "./components/style/stylist.rs",
+  "./components/style/values/animated/transform.rs",
   "./components/style/values/computed/font.rs",
   "./components/style/values/computed/image.rs",
+  "./components/style/values/specified/box.rs",
   "./components/style/values/specified/color.rs",
   "./components/style/values/specified/transform.rs",
   # Mako does not lend itself easily to splitting long lines
@@ -134,7 +138,6 @@ directories = [
   "./components/script/dom/bindings/codegen/ply",
   "./python/_virtualenv*",
   "./python/mach",
-  "./components/hashglobe/src",
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",
 ]

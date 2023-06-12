@@ -10,8 +10,8 @@ use crate::media_queries::MediaList;
 use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
-use crate::stylesheets::{CssRule, StylesheetInDocument};
 use crate::stylesheets::layer_rule::LayerName;
+use crate::stylesheets::{CssRule, StylesheetInDocument};
 use crate::values::CssUrl;
 use cssparser::SourceLocation;
 use std::fmt::{self, Write};
@@ -130,7 +130,6 @@ pub struct ImportLayer {
     /// The layer name, or None for an anonymous layer.
     pub name: Option<LayerName>,
 }
-
 
 impl ToCss for ImportLayer {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result

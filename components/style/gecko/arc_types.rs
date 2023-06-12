@@ -12,9 +12,10 @@ use crate::gecko::url::CssUrlData;
 use crate::gecko_bindings::structs::{
     RawServoAnimationValue, RawServoCounterStyleRule, RawServoCssUrlData, RawServoDeclarationBlock,
     RawServoFontFaceRule, RawServoFontFeatureValuesRule, RawServoImportRule, RawServoKeyframe,
-    RawServoKeyframesRule, RawServoLayerRule, RawServoMediaList, RawServoMediaRule,
-    RawServoMozDocumentRule, RawServoNamespaceRule, RawServoPageRule, RawServoScrollTimelineRule,
-    RawServoStyleRule, RawServoStyleSheetContents, RawServoSupportsRule, ServoCssRules,
+    RawServoKeyframesRule, RawServoLayerBlockRule, RawServoLayerStatementRule, RawServoMediaList,
+    RawServoMediaRule, RawServoMozDocumentRule, RawServoNamespaceRule, RawServoPageRule,
+    RawServoScrollTimelineRule, RawServoStyleRule, RawServoStyleSheetContents,
+    RawServoSupportsRule, ServoCssRules,
 };
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
 use crate::media_queries::MediaList;
@@ -24,8 +25,8 @@ use crate::shared_lock::Locked;
 use crate::stylesheets::keyframes_rule::Keyframe;
 use crate::stylesheets::{
     CounterStyleRule, CssRules, DocumentRule, FontFaceRule, FontFeatureValuesRule, ImportRule,
-    KeyframesRule, LayerRule, MediaRule, NamespaceRule, PageRule, ScrollTimelineRule, StyleRule,
-    StylesheetContents, SupportsRule,
+    KeyframesRule, LayerBlockRule, LayerStatementRule, MediaRule, NamespaceRule, PageRule,
+    ScrollTimelineRule, StyleRule, StylesheetContents, SupportsRule,
 };
 use servo_arc::{Arc, ArcBorrow};
 use std::{mem, ptr};
@@ -73,8 +74,11 @@ impl_arc_ffi!(Locked<Keyframe> => RawServoKeyframe
 impl_arc_ffi!(Locked<KeyframesRule> => RawServoKeyframesRule
               [Servo_KeyframesRule_AddRef, Servo_KeyframesRule_Release]);
 
-impl_arc_ffi!(Locked<LayerRule> => RawServoLayerRule
-              [Servo_LayerRule_AddRef, Servo_LayerRule_Release]);
+impl_arc_ffi!(Locked<LayerBlockRule> => RawServoLayerBlockRule
+              [Servo_LayerBlockRule_AddRef, Servo_LayerBlockRule_Release]);
+
+impl_arc_ffi!(Locked<LayerStatementRule> => RawServoLayerStatementRule
+              [Servo_LayerStatementRule_AddRef, Servo_LayerStatementRule_Release]);
 
 impl_arc_ffi!(Locked<MediaList> => RawServoMediaList
               [Servo_MediaList_AddRef, Servo_MediaList_Release]);

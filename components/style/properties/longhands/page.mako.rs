@@ -19,3 +19,13 @@ ${helpers.predefined_type(
     animation_value_type="none",
     rule_types_allowed=PAGE_RULE,
 )}
+
+${helpers.predefined_type(
+    "page",
+    "PageName",
+    "computed::PageName::auto()",
+    engines="gecko",
+    gecko_pref="layout.css.named-pages.enabled",
+    spec="https://drafts.csswg.org/css-page-3/#using-named-pages",
+    animation_value_type="discrete",
+)}

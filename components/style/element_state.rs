@@ -80,8 +80,6 @@ bitflags! {
         const IN_READWRITE_STATE = 1 << 25;
         /// <https://html.spec.whatwg.org/multipage/#selector-default>
         const IN_DEFAULT_STATE = 1 << 26;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-submit-invalid
-        const IN_MOZ_SUBMITINVALID_STATE = 1 << 27;
         /// Non-standard & undocumented.
         const IN_OPTIMUM_STATE = 1 << 28;
         /// Non-standard & undocumented.
@@ -127,6 +125,11 @@ bitflags! {
         const IN_DEVTOOLS_HIGHLIGHTED_STATE = 1 << 45;
         /// Used for the devtools style editor. Probably should go away.
         const IN_STYLEEDITOR_TRANSITIONING_STATE = 1 << 46;
+        /// For :-moz-value-empty (to show widgets like the reveal password
+        /// button or the clear button).
+        const IN_VALUE_EMPTY_STATE = 1 << 47;
+        /// For :-moz-revealed.
+        const IN_REVEALED_STATE = 1 << 48;
     }
 }
 
@@ -137,9 +140,17 @@ bitflags! {
     /// dom/base/Document.h.
     #[derive(MallocSizeOf)]
     pub struct DocumentState: u64 {
-        /// RTL locale: specific to the XUL localedir attribute
-        const NS_DOCUMENT_STATE_RTL_LOCALE = 1 << 0;
         /// Window activation status
-        const NS_DOCUMENT_STATE_WINDOW_INACTIVE = 1 << 1;
+        const WINDOW_INACTIVE = 1 << 0;
+        /// RTL locale: specific to the XUL localedir attribute
+        const RTL_LOCALE = 1 << 1;
+        /// LTR locale: specific to the XUL localedir attribute
+        const LTR_LOCALE = 1 << 2;
+        /// LWTheme status
+        const LWTHEME = 1 << 3;
+        /// LWTheme status
+        const LWTHEME_BRIGHTTEXT = 1 << 4;
+        /// LWTheme status
+        const LWTHEME_DARKTEXT = 1 << 5;
     }
 }

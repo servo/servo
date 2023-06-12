@@ -8,7 +8,7 @@
 use crate::media_queries::MediaList;
 use crate::parser::ParserContext;
 use crate::shared_lock::{Locked, SharedRwLock};
-use crate::stylesheets::import_rule::{ImportRule, ImportLayer};
+use crate::stylesheets::import_rule::{ImportLayer, ImportRule};
 use crate::values::CssUrl;
 use cssparser::SourceLocation;
 use servo_arc::Arc;

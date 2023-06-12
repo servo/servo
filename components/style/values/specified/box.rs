@@ -1450,6 +1450,34 @@ impl Parse for Contain {
     }
 }
 
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum ContentVisibility {
+    /// `auto` variant, the element turns on layout containment, style containment, and paint
+    /// containment. In addition, if the element is not relevant to the user (such as by being
+    /// offscreen) it also skips its content
+    Auto,
+    /// `hidden` variant, the element skips its content
+    Hidden,
+    /// 'visible' variant, no effect
+    Visible,
+}
+
 /// A specified value for the `perspective` property.
 pub type Perspective = GenericPerspective<NonNegativeLength>;
 
@@ -1658,9 +1686,6 @@ pub enum Appearance {
     ButtonArrowPrevious,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ButtonArrowUp,
-    /// The focus outline box inside of a button.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    ButtonFocus,
     /// A dual toolbar button (e.g., a Back button with a dropdown)
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Dualbutton,
@@ -1954,7 +1979,10 @@ impl BreakBetween {
     /// See https://drafts.csswg.org/css-break/#page-break-properties.
     #[cfg(feature = "gecko")]
     #[inline]
-    pub(crate) fn parse_legacy<'i>(_: &ParserContext, input: &mut Parser<'i, '_>) -> Result<Self, ParseError<'i>> {
+    pub(crate) fn parse_legacy<'i>(
+        _: &ParserContext,
+        input: &mut Parser<'i, '_>,
+    ) -> Result<Self, ParseError<'i>> {
         let break_value = BreakBetween::parse(input)?;
         match break_value {
             BreakBetween::Always => Ok(BreakBetween::Page),
@@ -2018,7 +2046,10 @@ impl BreakWithin {
     /// See https://drafts.csswg.org/css-break/#page-break-properties.
     #[cfg(feature = "gecko")]
     #[inline]
-    pub(crate) fn parse_legacy<'i>(_: &ParserContext, input: &mut Parser<'i, '_>) -> Result<Self, ParseError<'i>> {
+    pub(crate) fn parse_legacy<'i>(
+        _: &ParserContext,
+        input: &mut Parser<'i, '_>,
+    ) -> Result<Self, ParseError<'i>> {
         let break_value = BreakWithin::parse(input)?;
         match break_value {
             BreakWithin::Auto | BreakWithin::Avoid => Ok(break_value),
@@ -2052,7 +2083,6 @@ impl BreakWithin {
     Eq,
     Hash,
     MallocSizeOf,
-    Parse,
     PartialEq,
     SpecifiedValueInfo,
     ToCss,
@@ -2067,8 +2097,26 @@ pub enum Overflow {
     Scroll,
     Auto,
     #[cfg(feature = "gecko")]
-    #[parse(aliases = "-moz-hidden-unscrollable")]
     Clip,
+}
+
+// This can be derived once we remove or keep `-moz-hidden-unscrollable`
+// indefinitely.
+impl Parse for Overflow {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "visible" => Self::Visible,
+            "hidden" => Self::Hidden,
+            "scroll" => Self::Scroll,
+            "auto" => Self::Auto,
+            #[cfg(feature = "gecko")]
+            "clip" => Self::Clip,
+            #[cfg(feature = "gecko")]
+            "-moz-hidden-unscrollable" if static_prefs::pref!("layout.css.overflow-moz-hidden-unscrollable.enabled") => {
+               Overflow::Clip
+            },
+        })
+    }
 }
 
 impl Overflow {
@@ -2086,6 +2134,76 @@ impl Overflow {
             Self::Visible => Self::Auto,
             #[cfg(feature = "gecko")]
             Self::Clip => Self::Hidden,
+        }
+    }
+}
+
+bitflags! {
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[value_info(other_values = "auto,stable,both-edges")]
+    #[repr(C)]
+    /// Values for scrollbar-gutter:
+    /// <https://drafts.csswg.org/css-overflow-3/#scrollbar-gutter-property>
+    pub struct ScrollbarGutter: u8 {
+        /// `auto` variant. Just for convenience if there is no flag set.
+        const AUTO = 0;
+        /// `stable` variant.
+        const STABLE = 1 << 0;
+        /// `both-edges` variant.
+        const BOTH_EDGES = 1 << 1;
+    }
+}
+
+impl ToCss for ScrollbarGutter {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.is_empty() {
+            return dest.write_str("auto");
+        }
+
+        debug_assert!(
+            self.contains(ScrollbarGutter::STABLE),
+            "We failed to parse the syntax!"
+        );
+        dest.write_str("stable")?;
+        if self.contains(ScrollbarGutter::BOTH_EDGES) {
+            dest.write_str(" both-edges")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl Parse for ScrollbarGutter {
+    /// auto | stable && both-edges?
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<ScrollbarGutter, ParseError<'i>> {
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
+            return Ok(ScrollbarGutter::AUTO);
+        }
+
+        let mut result = ScrollbarGutter::empty();
+        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
+            let flag = match_ignore_ascii_case! { &ident,
+                "stable" => Some(ScrollbarGutter::STABLE),
+                "both-edges" => Some(ScrollbarGutter::BOTH_EDGES),
+                _ => None
+            };
+
+            match flag {
+                Some(flag) if !result.contains(flag) => result.insert(flag),
+                _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+            }
+        }
+
+        if result.contains(ScrollbarGutter::STABLE) {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }

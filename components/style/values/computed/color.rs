@@ -6,12 +6,12 @@
 
 use crate::values::animated::color::RGBA as AnimatedRGBA;
 use crate::values::animated::ToAnimatedValue;
-use crate::values::generics::color::{GenericColor, GenericColorOrAuto, GenericCaretColor};
+use crate::values::generics::color::{GenericCaretColor, GenericColor, GenericColorOrAuto};
 use cssparser::{Color as CSSParserColor, RGBA};
 use std::fmt;
 use style_traits::{CssWriter, ToCss};
 
-pub use crate::values::specified::color::ColorScheme;
+pub use crate::values::specified::color::{ColorScheme, PrintColorAdjust};
 
 /// The computed value of the `color` property.
 pub type ColorPropertyValue = RGBA;

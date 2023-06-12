@@ -260,7 +260,7 @@ ${helpers.single_keyword(
     bold-sans-serif sans-serif-italic sans-serif-bold-italic
     monospace initial tailed looped stretched""",
     engines="gecko",
-    gecko_constant_prefix="NS_MATHML_MATHVARIANT",
+    gecko_enum_prefix="StyleMathVariant",
     gecko_ffi_name="mMathVariant",
     spec="Internal (not web-exposed)",
     animation_value_type="none",

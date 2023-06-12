@@ -97,7 +97,10 @@ impl SharedRwLock {
     #[cfg(feature = "gecko")]
     #[inline]
     fn ptr(&self) -> *const SomethingZeroSizedButTyped {
-        self.cell.as_ref().map(|cell| cell.as_ptr() as *const _).unwrap_or(ptr::null())
+        self.cell
+            .as_ref()
+            .map(|cell| cell.as_ptr() as *const _)
+            .unwrap_or(ptr::null())
     }
 
     /// Wrap the given data to make its access protected by this lock.
@@ -154,7 +157,10 @@ impl<'a> SharedRwLockReadGuard<'a> {
     #[inline]
     #[cfg(feature = "gecko")]
     fn ptr(&self) -> *const SomethingZeroSizedButTyped {
-        self.0.as_ref().map(|r| &**r as *const _).unwrap_or(ptr::null())
+        self.0
+            .as_ref()
+            .map(|r| &**r as *const _)
+            .unwrap_or(ptr::null())
     }
 }
 

@@ -18,7 +18,7 @@ use crate::shared_lock::SharedRwLockReadGuard;
 use crate::stylesheets::{CssRule, StylesheetInDocument};
 use crate::stylesheets::{EffectiveRules, EffectiveRulesIterator};
 use crate::values::AtomIdent;
-use crate::Atom;
+use crate::{Atom, ShrinkIfNeeded};
 use crate::LocalName as SelectorLocalName;
 use selectors::parser::{Component, LocalName, Selector};
 
@@ -119,6 +119,15 @@ impl StylesheetInvalidationSet {
         self.fully_invalid = true;
     }
 
+    fn shrink_if_needed(&mut self) {
+        if self.fully_invalid {
+            return;
+        }
+        self.classes.shrink_if_needed();
+        self.ids.shrink_if_needed();
+        self.local_names.shrink_if_needed();
+    }
+
     /// Analyze the given stylesheet, and collect invalidations from their
     /// rules, in order to avoid doing a full restyle when we style the document
     /// next time.
@@ -148,6 +157,8 @@ impl StylesheetInvalidationSet {
                 break;
             }
         }
+
+        self.shrink_if_needed();
 
         debug!(" > resulting class invalidations: {:?}", self.classes);
         debug!(" > resulting id invalidations: {:?}", self.ids);
@@ -484,16 +495,16 @@ impl StylesheetInvalidationSet {
             },
             Invalidation::LocalName { name, lower_name } => {
                 let insert_lower = name != lower_name;
-                let entry = match self.local_names.try_entry(name) {
-                    Ok(e) => e,
-                    Err(..) => return false,
-                };
+                if self.local_names.try_reserve(1).is_err() {
+                    return false;
+                }
+                let entry = self.local_names.entry(name);
                 *entry.or_insert(InvalidationKind::None) |= kind;
                 if insert_lower {
-                    let entry = match self.local_names.try_entry(lower_name) {
-                        Ok(e) => e,
-                        Err(..) => return false,
-                    };
+                    if self.local_names.try_reserve(1).is_err() {
+                        return false;
+                    }
+                    let entry = self.local_names.entry(lower_name);
                     *entry.or_insert(InvalidationKind::None) |= kind;
                 }
             },
@@ -541,6 +552,7 @@ impl StylesheetInvalidationSet {
             Page(..) |
             Viewport(..) |
             FontFeatureValues(..) |
+            LayerStatement(..) |
             FontFace(..) |
             Keyframes(..) |
             ScrollTimeline(..) |
@@ -556,7 +568,7 @@ impl StylesheetInvalidationSet {
 
                 self.collect_invalidations_for_rule(rule, guard, device, quirks_mode)
             },
-            Document(..) | Import(..) | Media(..) | Supports(..) | Layer(..) => {
+            Document(..) | Import(..) | Media(..) | Supports(..) | LayerBlock(..) => {
                 if !is_generic_change &&
                     !EffectiveRules::is_effective(guard, device, quirks_mode, rule)
                 {
@@ -597,7 +609,8 @@ impl StylesheetInvalidationSet {
                     }
                 }
             },
-            Document(..) | Namespace(..) | Import(..) | Media(..) | Supports(..) | Layer(..) => {
+            Document(..) | Namespace(..) | Import(..) | Media(..) | Supports(..) |
+            LayerStatement(..) | LayerBlock(..) => {
                 // Do nothing, relevant nested rules are visited as part of the
                 // iteration.
             },
@@ -619,11 +632,12 @@ impl StylesheetInvalidationSet {
                     // existing elements.
                 }
             },
-            ScrollTimeline(..) => {
-                // TODO: Bug 1676784: check if animation-timeline name is referenced.
-                // Now we do nothing.
-            },
-            CounterStyle(..) | Page(..) | Viewport(..) | FontFeatureValues(..) => {
+            // TODO: Check if timeline name is referenced, though this might go away in bug 1737918.
+            ScrollTimeline(..) |
+            CounterStyle(..) |
+            Page(..) |
+            Viewport(..) |
+            FontFeatureValues(..) => {
                 debug!(
                     " > Found unsupported rule, marking the whole subtree \
                      invalid."

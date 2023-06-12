@@ -37,6 +37,27 @@ pub type WordSpacing = Spacing<LengthPercentage>;
 /// A specified value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLengthPercentage>;
 
+/// A value for the `hyphenate-character` property.
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum HyphenateCharacter {
+    /// `auto`
+    Auto,
+    /// `<string>`
+    String(crate::OwnedStr),
+}
+
 impl Parse for InitialLetter {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -1061,7 +1082,6 @@ impl Default for MozControlCharacterVisibility {
     }
 }
 
-
 /// Values for the `line-break` property.
 #[repr(u8)]
 #[derive(
@@ -1259,15 +1279,7 @@ impl ToCss for TextUnderlinePosition {
 /// Values for `ruby-position` property
 #[repr(u8)]
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
 )]
 #[allow(missing_docs)]
 pub enum RubyPosition {
@@ -1283,7 +1295,9 @@ impl Parse for RubyPosition {
         input: &mut Parser<'i, 't>,
     ) -> Result<RubyPosition, ParseError<'i>> {
         // Parse alternate before
-        let alternate = input.try_parse(|i| i.expect_ident_matching("alternate")).is_ok();
+        let alternate = input
+            .try_parse(|i| i.expect_ident_matching("alternate"))
+            .is_ok();
         if alternate && input.is_exhausted() {
             return Ok(RubyPosition::AlternateOver);
         }
@@ -1294,7 +1308,9 @@ impl Parse for RubyPosition {
         };
         // Parse alternate after
         let alternate = alternate ||
-             input.try_parse(|i| i.expect_ident_matching("alternate")).is_ok();
+            input
+                .try_parse(|i| i.expect_ident_matching("alternate"))
+                .is_ok();
 
         Ok(match (over, alternate) {
             (true, true) => RubyPosition::AlternateOver,

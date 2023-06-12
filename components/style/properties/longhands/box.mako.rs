@@ -614,6 +614,16 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
+    "content-visibility",
+    "ContentVisibility",
+    "computed::ContentVisibility::Visible",
+    engines="gecko",
+    spec="https://drafts.csswg.org/css-contain/#content-visibility",
+    gecko_pref="layout.css.content-visibility.enabled",
+    animation_value_type="none",
+)}
+
+${helpers.predefined_type(
     "appearance",
     "Appearance",
     "computed::Appearance::None",
@@ -689,7 +699,6 @@ ${helpers.predefined_type(
     "TouchAction",
     "computed::TouchAction::auto()",
     engines="gecko",
-    gecko_pref="layout.css.touch_action.enabled",
     animation_value_type="discrete",
     spec="https://compat.spec.whatwg.org/#touch-action",
 )}
@@ -705,4 +714,14 @@ ${helpers.predefined_type(
     gecko_pref="layout.css.webkit-line-clamp.enabled",
     animation_value_type="Integer",
     spec="https://drafts.csswg.org/css-overflow-3/#line-clamp",
+)}
+
+${helpers.predefined_type(
+    "scrollbar-gutter",
+    "ScrollbarGutter",
+    "computed::ScrollbarGutter::AUTO",
+    engines="gecko",
+    gecko_pref="layout.css.scrollbar-gutter.enabled",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-overflow-3/#scrollbar-gutter-property",
 )}

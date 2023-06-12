@@ -29,7 +29,7 @@ use crate::context::QuirksMode;
 use crate::logical_geometry::WritingMode;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::computed_value_flags::*;
-use crate::hash::FxHashMap;
+use fxhash::FxHashMap;
 use crate::media_queries::Device;
 use crate::parser::ParserContext;
 use crate::selector_parser::PseudoElement;
@@ -1051,6 +1051,8 @@ pub enum CSSWideKeyword {
     Unset,
     /// The `revert` keyword.
     Revert,
+    /// The `revert-layer` keyword.
+    RevertLayer,
 }
 
 impl CSSWideKeyword {
@@ -1060,22 +1062,36 @@ impl CSSWideKeyword {
             CSSWideKeyword::Inherit => "inherit",
             CSSWideKeyword::Unset => "unset",
             CSSWideKeyword::Revert => "revert",
+            CSSWideKeyword::RevertLayer => "revert-layer",
         }
     }
 }
 
+#[inline]
+fn cascade_layes_enabled() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.cascade-layers.enabled");
+    #[cfg(feature = "servo")]
+    return false;
+}
+
 impl CSSWideKeyword {
+    /// Parses a CSS wide keyword from a CSS identifier.
+    pub fn from_ident(ident: &str) -> Result<Self, ()> {
+        Ok(match_ignore_ascii_case! { ident,
+            "initial" => CSSWideKeyword::Initial,
+            "inherit" => CSSWideKeyword::Inherit,
+            "unset" => CSSWideKeyword::Unset,
+            "revert" => CSSWideKeyword::Revert,
+            "revert-layer" if cascade_layes_enabled() => CSSWideKeyword::RevertLayer,
+            _ => return Err(()),
+        })
+    }
+
     fn parse(input: &mut Parser) -> Result<Self, ()> {
         let keyword = {
             let ident = input.expect_ident().map_err(|_| ())?;
-            match_ignore_ascii_case! { ident,
-                // If modifying this set of keyword, also update values::CustomIdent::from_ident
-                "initial" => CSSWideKeyword::Initial,
-                "inherit" => CSSWideKeyword::Inherit,
-                "unset" => CSSWideKeyword::Unset,
-                "revert" => CSSWideKeyword::Revert,
-                _ => return Err(()),
-            }
+            Self::from_ident(ident)?
         };
         input.expect_exhausted().map_err(|_| ())?;
         Ok(keyword)

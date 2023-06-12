@@ -31,19 +31,22 @@ impl ToResolvedValue for computed::Content {
 
     #[inline]
     fn to_resolved_value(self, context: &Context) -> Self {
-        let (is_pseudo, is_before_or_after, is_marker) =
-            match context.style.pseudo() {
-                Some(ref pseudo) => (true, pseudo.is_before_or_after(), pseudo.is_marker()),
-                None => (false, false, false)
-            };
+        let (is_pseudo, is_before_or_after, is_marker) = match context.style.pseudo() {
+            Some(ref pseudo) => (true, pseudo.is_before_or_after(), pseudo.is_marker()),
+            None => (false, false, false),
+        };
         match self {
             Self::Normal if is_before_or_after => Self::None,
             // For now, make `content: none` compute to `normal` for pseudos
             // other than ::before, ::after and ::marker, as we don't respect it.
             // https://github.com/w3c/csswg-drafts/issues/6124
             // Ditto for non-pseudo elements if the pref is disabled.
-            Self::None if (is_pseudo && !is_before_or_after && !is_marker) ||
-                (!is_pseudo && !allow_element_content_none()) => Self::Normal,
+            Self::None
+                if (is_pseudo && !is_before_or_after && !is_marker) ||
+                    (!is_pseudo && !allow_element_content_none()) =>
+            {
+                Self::Normal
+            },
             other => other,
         }
     }
