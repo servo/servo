@@ -180,13 +180,11 @@ impl FontRelativeLength {
         let reference_font_size = base_size.resolve(context);
         match *self {
             Self::Em(length) => {
-                if context.for_non_inherited_property.is_some() {
-                    if base_size == FontBaseSize::CurrentStyle {
-                        context
-                            .rule_cache_conditions
-                            .borrow_mut()
-                            .set_font_size_dependency(reference_font_size.computed_size);
-                    }
+                if context.for_non_inherited_property && base_size == FontBaseSize::CurrentStyle {
+                    context
+                        .rule_cache_conditions
+                        .borrow_mut()
+                        .set_font_size_dependency(reference_font_size.computed_size);
                 }
 
                 (reference_font_size.computed_size(), length)
@@ -786,7 +784,7 @@ impl ContainerRelativeLength {
 
     /// Computes the given container-relative length.
     pub fn to_computed_value(&self, context: &Context) -> CSSPixelLength {
-        if context.for_non_inherited_property.is_some() {
+        if context.for_non_inherited_property {
             context.rule_cache_conditions.borrow_mut().set_uncacheable();
         }
         let size = context.get_container_size_query();

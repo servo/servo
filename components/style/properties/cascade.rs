@@ -1018,7 +1018,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             let new_size = match info.kw {
                 specified::FontSizeKeyword::None => return,
                 _ => {
-                    self.context.for_non_inherited_property = None;
+                    self.context.for_non_inherited_property = false;
                     specified::FontSize::Keyword(info).to_computed_value(self.context)
                 },
             };
