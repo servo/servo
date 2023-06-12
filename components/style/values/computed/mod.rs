@@ -20,7 +20,7 @@ use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
 use crate::media_queries::Device;
 #[cfg(feature = "gecko")]
 use crate::properties;
-use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
+use crate::properties::{ComputedValues, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
 use crate::stylesheets::container_rule::{
     ContainerInfo, ContainerSizeQuery, ContainerSizeQueryResult,
@@ -185,11 +185,10 @@ pub struct Context<'a> {
     /// Returns the container information to evaluate a given container query.
     pub container_info: Option<ContainerInfo>,
 
-    /// The property we are computing a value for, if it is a non-inherited
-    /// property.  None if we are computed a value for an inherited property
-    /// or not computing for a property at all (e.g. in a media query
-    /// evaluation).
-    pub for_non_inherited_property: Option<LonghandId>,
+    /// Whether we're computing a value for a non-inherited property.
+    /// False if we are computed a value for an inherited property or not computing for a property
+    /// at all (e.g. in a media query evaluation).
+    pub for_non_inherited_property: bool,
 
     /// The conditions to cache a rule node on the rule cache.
     ///
@@ -223,7 +222,7 @@ impl<'a> Context<'a> {
             quirks_mode,
             for_smil_animation: false,
             container_info: None,
-            for_non_inherited_property: None,
+            for_non_inherited_property: false,
             rule_cache_conditions: RefCell::new(&mut conditions),
             container_size_query: RefCell::new(ContainerSizeQuery::none()),
         };
@@ -258,7 +257,7 @@ impl<'a> Context<'a> {
             quirks_mode,
             for_smil_animation: false,
             container_info,
-            for_non_inherited_property: None,
+            for_non_inherited_property: false,
             rule_cache_conditions: RefCell::new(&mut conditions),
             container_size_query: RefCell::new(container_size_query),
         };
@@ -281,7 +280,7 @@ impl<'a> Context<'a> {
             quirks_mode,
             container_info: None,
             for_smil_animation: false,
-            for_non_inherited_property: None,
+            for_non_inherited_property: false,
             rule_cache_conditions: RefCell::new(rule_cache_conditions),
             container_size_query: RefCell::new(container_size_query),
         }
@@ -303,7 +302,7 @@ impl<'a> Context<'a> {
             quirks_mode,
             container_info: None,
             for_smil_animation,
-            for_non_inherited_property: None,
+            for_non_inherited_property: false,
             rule_cache_conditions: RefCell::new(rule_cache_conditions),
             container_size_query: RefCell::new(container_size_query),
         }
@@ -321,7 +320,7 @@ impl<'a> Context<'a> {
         orientation: FontMetricsOrientation,
         retrieve_math_scales: bool,
     ) -> FontMetrics {
-        if self.for_non_inherited_property.is_some() {
+        if self.for_non_inherited_property {
             self.rule_cache_conditions.borrow_mut().set_uncacheable();
         }
         self.builder.add_flags(match base_size {

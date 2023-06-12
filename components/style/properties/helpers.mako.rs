@@ -431,13 +431,7 @@
             declaration: &PropertyDeclaration,
             context: &mut computed::Context,
         ) {
-            context.for_non_inherited_property =
-                % if property.style_struct.inherited:
-                    None;
-                % else:
-                    Some(LonghandId::${property.camel_case});
-                % endif
-
+            context.for_non_inherited_property = ${"false" if property.style_struct.inherited else "true"};
             let specified_value = match *declaration {
                 PropertyDeclaration::${property.camel_case}(ref value) => value,
                 PropertyDeclaration::CSSWideKeyword(ref declaration) => {
