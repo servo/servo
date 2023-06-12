@@ -106,32 +106,6 @@ pub mod shorthands {
     use style_traits::{ParseError, StyleParseErrorKind};
     use crate::values::specified;
 
-    use style_traits::{CssWriter, ToCss};
-    use crate::values::specified::{BorderStyle, Color};
-    use std::fmt::{self, Write};
-
-    fn serialize_directional_border<W, I,>(
-        dest: &mut CssWriter<W>,
-        width: &I,
-        style: &BorderStyle,
-        color: &Color,
-    ) -> fmt::Result
-    where
-        W: Write,
-        I: ToCss,
-    {
-        width.to_css(dest)?;
-        // FIXME(emilio): Should we really serialize the border style if it's
-        // `solid`?
-        dest.write_char(' ')?;
-        style.to_css(dest)?;
-        if *color != Color::CurrentColor {
-            dest.write_char(' ')?;
-            color.to_css(dest)?;
-        }
-        Ok(())
-    }
-
     % for style_struct in data.style_structs:
     include!("${repr(os.path.join(OUT_DIR, 'shorthands/{}.rs'.format(style_struct.name_lower)))[1:-1]}");
     % endfor
