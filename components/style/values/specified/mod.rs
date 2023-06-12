@@ -34,18 +34,17 @@ pub use self::animation::{AnimationIterationCount, AnimationName, AnimationTimel
 pub use self::animation::{ScrollAxis, ScrollTimelineName, TransitionProperty, ViewTimelineInset};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
-pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
-pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
-pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle};
-pub use self::box_::{Appearance, BreakBetween, BreakWithin, ContainerName, ContainerType};
-pub use self::box_::{BaselineSource, TouchAction, VerticalAlign, WillChange};
-pub use self::box_::{
-    Clear, ContainIntrinsicSize, ContentVisibility, Float, LineClamp, Overflow, OverflowAnchor,
+pub use self::border::{
+    BorderCornerRadius, BorderImageRepeat, BorderImageSideWidth, BorderImageSlice,
+    BorderImageWidth, BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle, LineWidth,
 };
-pub use self::box_::{Contain, Display};
-pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
-pub use self::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
-pub use self::box_::{ScrollSnapStrictness, ScrollSnapType};
+pub use self::box_::{
+    Appearance, BreakBetween, BaselineSource, BreakWithin, Contain, ContainerName, ContainerType,
+    Clear, ContainIntrinsicSize, ContentVisibility, Display, Float, LineClamp, Overflow,
+    OverflowAnchor, OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter,
+    ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop, ScrollSnapStrictness, ScrollSnapType,
+    TouchAction, VerticalAlign, WillChange,
+};
 pub use self::color::{
     Color, ColorOrAuto, ColorPropertyValue, ColorScheme, ForcedColorAdjust, PrintColorAdjust,
 };

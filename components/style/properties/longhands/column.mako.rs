@@ -44,7 +44,7 @@ ${helpers.predefined_type(
     "BorderSideWidth",
     "app_units::Au::from_px(3)",
     engines="gecko",
-    initial_specified_value="specified::BorderSideWidth::Medium",
+    initial_specified_value="specified::BorderSideWidth::medium()",
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-width",
     animation_value_type="NonNegativeLength",
 )}
