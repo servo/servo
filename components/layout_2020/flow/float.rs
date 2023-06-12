@@ -25,7 +25,7 @@ use std::{f32, mem};
 use style::computed_values::clear::T as ClearProperty;
 use style::computed_values::float::T as FloatProperty;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
+use style::values::computed::{CSSPixelLength, Length};
 use style::values::specified::text::TextDecorationLine;
 
 /// A floating box.
@@ -191,14 +191,22 @@ impl FloatContext {
     /// Places a new float and adds it to the list. Returns the start corner of its margin box.
     pub fn add_float(&mut self, new_float: &PlacementInfo) -> Vec2<Length> {
         // Place the float.
-        let new_float_origin = self.place_object(new_float);
+        let new_float_origin = self.place_object(&new_float);
         let new_float_extent = match new_float.side {
             FloatSide::Left => new_float_origin.inline + new_float.size.inline,
             FloatSide::Right => new_float_origin.inline,
         };
+
         let new_float_rect = Rect {
             start_corner: new_float_origin,
-            size: new_float.size.clone(),
+            // If this float has a negative margin, we should only consider its non-negative
+            // block size contribution when determing where to place it. When the margin is
+            // so negative that it's placed completely above the current float ceiling, then
+            // we should position it as if it had zero block size.
+            size: Vec2 {
+                inline: new_float.size.inline.max(CSSPixelLength::zero()),
+                block: new_float.size.block.max(CSSPixelLength::zero()),
+            },
         };
 
         // Update clear.
@@ -759,7 +767,6 @@ impl FloatBox {
                             .make_fragments(&replaced.style, content_size.clone());
                     },
                 };
-
                 let margin_box_start_corner = float_context.add_float(&PlacementInfo {
                     size: &content_size + &pbm_sums.sum(),
                     side: FloatSide::from_style(&style).expect("Float box wasn't floated!"),
