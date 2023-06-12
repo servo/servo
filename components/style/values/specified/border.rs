@@ -380,7 +380,7 @@ where
 {
     let has_style = *style != BorderStyle::None;
     let has_color = *color != Color::CurrentColor;
-    let has_width = *width != BorderSideWidth::Medium;
+    let has_width = *width != BorderSideWidth::medium();
     if !has_style && !has_color && !has_width {
         return width.to_css(dest)
     }
