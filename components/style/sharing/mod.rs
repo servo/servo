@@ -879,19 +879,13 @@ impl<E: TElement> StyleSharingCache<E> {
             if target.local_name() != candidate.element.local_name() {
                 return None;
             }
-            // Rule nodes and styles are computed independent of the element's
-            // actual visitedness, but at the end of the cascade (in
-            // `adjust_for_visited`) we do store the visitedness as a flag in
-            // style.  (This is a subtle change from initial visited work that
-            // landed when computed values were fused, see
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1381635.)
-            // So at the moment, we need to additionally compare visitedness,
-            // since that is not accounted for by rule nodes alone.
-            // FIXME(jryans): This seems like it breaks the constant time
-            // requirements of visited, assuming we get a cache hit on only one
-            // of unvisited vs. visited.
-            // TODO(emilio): We no longer have such a flag, remove this check.
-            if target.is_visited_link() != candidate.element.is_visited_link() {
+            // Rule nodes and styles are computed independent of the element's actual visitedness,
+            // but at the end of the cascade (in `adjust_for_visited`) we do store the
+            // RELEVANT_LINK_VISITED flag, so we can't share by rule node between visited and
+            // unvisited styles. We don't check for visitedness and just refuse to share for links
+            // entirely, so that visitedness doesn't affect timing.
+            debug_assert_eq!(target.is_link(), candidate.element.is_link(), "Linkness mismatch");
+            if target.is_link() {
                 return None;
             }
 
