@@ -2,16 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# The following properties are under development, so they are not in this list.
-# FIXME: We should handle the developing properties properly by Bug 1577358:
-#    "backdrop-filter",
-#    "text-decoration-skip-ink",
-#    "column-span",
-#    "offset-distance",
-#    "offset-path",
-#    "offset-rotate",
-#    "offset",
-#    "text-underline-position",
 COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-font-smoothing",
     "-webkit-tap-highlight-color",
