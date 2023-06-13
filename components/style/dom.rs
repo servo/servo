@@ -900,10 +900,6 @@ pub trait TElement:
         &self,
         display: &Display,
     ) -> euclid::default::Size2D<Option<app_units::Au>>;
-
-    /// Returns true if this element anchors a relative selector, now or after
-    /// a DOM mutation.
-    fn anchors_relative_selector(&self) -> bool;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

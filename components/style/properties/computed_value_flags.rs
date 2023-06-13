@@ -121,6 +121,10 @@ bitflags! {
 
         /// Whether the style evaluated any relative selector.
         const CONSIDERED_RELATIVE_SELECTOR = 1 << 24;
+
+        /// Whether the style evaluated the matched element to be an anchor of
+        /// a relative selector.
+        const ANCHORS_RELATIVE_SELECTOR = 1 << 25;
     }
 }
 
@@ -153,7 +157,9 @@ impl ComputedValueFlags {
     /// Flags that are an input to the cascade.
     #[inline]
     fn cascade_input_flags() -> Self {
-        Self::USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES | Self::CONSIDERED_RELATIVE_SELECTOR
+        Self::USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES |
+            Self::CONSIDERED_RELATIVE_SELECTOR |
+            Self::ANCHORS_RELATIVE_SELECTOR
     }
 
     /// Returns the flags that are always propagated to descendants.

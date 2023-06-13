@@ -632,7 +632,11 @@ impl<E: TElement> StyleSharingCache<E> {
         //   matching `.foo`, even if `:has()` may not even be used. Ideally we'd
         //   have something like `RelativeSelectorConsidered::RightMost`, but the
         //   element flag is required for invalidation, and this reduces more tracking.
-        if element.anchors_relative_selector() {
+        if style
+            .style
+            .0
+            .flags
+            .intersects(ComputedValueFlags::ANCHORS_RELATIVE_SELECTOR) {
             debug!("Failing to insert to the cache: may anchor relative selector");
             return;
         }
