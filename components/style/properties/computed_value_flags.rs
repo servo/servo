@@ -125,6 +125,11 @@ bitflags! {
         /// Whether the style evaluated the matched element to be an anchor of
         /// a relative selector.
         const ANCHORS_RELATIVE_SELECTOR = 1 << 25;
+
+        /// Whether the style uses container query units, in which case the style depends on the
+        /// container's size and we can't reuse it across cousins (without double-checking the
+        /// container at least).
+        const USES_CONTAINER_UNITS = 1 << 26;
     }
 }
 

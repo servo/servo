@@ -877,10 +877,21 @@ impl<E: TElement> StyleSharingCache<E> {
             // NOTE(emilio): We only need to check name / namespace because we
             // do name-dependent style adjustments, like the display: contents
             // to display: none adjustment.
-            if target.namespace() != candidate.element.namespace() {
+            if target.namespace() != candidate.element.namespace() ||
+                target.local_name() != candidate.element.local_name()
+            {
                 return None;
             }
-            if target.local_name() != candidate.element.local_name() {
+            // When using container units, inherited style + rules matched aren't enough to
+            // determine whether the style is the same. We could actually do a full container
+            // lookup but for now we just check that our actual traversal parent matches.
+            if data
+                .styles
+                .primary()
+                .flags
+                .intersects(ComputedValueFlags::USES_CONTAINER_UNITS) &&
+                candidate.element.traversal_parent() != target.traversal_parent()
+            {
                 return None;
             }
             // Rule nodes and styles are computed independent of the element's actual visitedness,
