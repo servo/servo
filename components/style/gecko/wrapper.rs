@@ -1866,54 +1866,53 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 AttrSelectorOperation::WithValue {
                     operator,
                     case_sensitivity,
-                    expected_value,
+                    value,
                 } => {
                     let ignore_case = match case_sensitivity {
                         CaseSensitivity::CaseSensitive => false,
                         CaseSensitivity::AsciiCaseInsensitive => true,
                     };
-                    // FIXME: case sensitivity for operators other than Equal
                     match operator {
                         AttrSelectorOperator::Equal => bindings::Gecko_AttrEquals(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                         AttrSelectorOperator::Includes => bindings::Gecko_AttrIncludes(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                         AttrSelectorOperator::DashMatch => bindings::Gecko_AttrDashEquals(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                         AttrSelectorOperator::Prefix => bindings::Gecko_AttrHasPrefix(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                         AttrSelectorOperator::Suffix => bindings::Gecko_AttrHasSuffix(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                         AttrSelectorOperator::Substring => bindings::Gecko_AttrHasSubstring(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                     }
