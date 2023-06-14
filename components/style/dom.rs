@@ -19,7 +19,7 @@ use crate::shared_lock::{Locked, SharedRwLock};
 use crate::stylist::CascadeData;
 use crate::values::computed::Display;
 use crate::values::AtomIdent;
-use crate::{LocalName, Namespace, WeakAtom};
+use crate::WeakAtom;
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use selectors::matching::{QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
@@ -511,9 +511,6 @@ pub trait TElement:
 
     /// Get this element's state, for non-tree-structural pseudos.
     fn state(&self) -> ElementState;
-
-    /// Whether this element has an attribute with a given namespace.
-    fn has_attr(&self, namespace: &Namespace, attr: &LocalName) -> bool;
 
     /// Returns whether this element has a `part` attribute.
     fn has_part_attr(&self) -> bool;
