@@ -99,47 +99,46 @@ impl GeckoElementSnapshot {
                 AttrSelectorOperation::WithValue {
                     operator,
                     case_sensitivity,
-                    expected_value,
+                    value,
                 } => {
                     let ignore_case = match case_sensitivity {
                         CaseSensitivity::CaseSensitive => false,
                         CaseSensitivity::AsciiCaseInsensitive => true,
                     };
-                    // FIXME: case sensitivity for operators other than Equal
                     match operator {
                         AttrSelectorOperator::Equal => bindings::Gecko_SnapshotAttrEquals(
                             self,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                         AttrSelectorOperator::Includes => bindings::Gecko_SnapshotAttrIncludes(
                             self,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                         AttrSelectorOperator::DashMatch => bindings::Gecko_SnapshotAttrDashEquals(
                             self,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                         AttrSelectorOperator::Prefix => bindings::Gecko_SnapshotAttrHasPrefix(
                             self,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                         AttrSelectorOperator::Suffix => bindings::Gecko_SnapshotAttrHasSuffix(
                             self,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
-                            expected_value.as_ptr(),
+                            value.as_ptr(),
                             ignore_case,
                         ),
                         AttrSelectorOperator::Substring => {
@@ -147,7 +146,7 @@ impl GeckoElementSnapshot {
                                 self,
                                 ns.atom_or_null(),
                                 local_name.as_ptr(),
-                                expected_value.as_ptr(),
+                                value.as_ptr(),
                                 ignore_case,
                             )
                         },

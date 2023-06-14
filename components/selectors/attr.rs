@@ -19,7 +19,6 @@ pub struct AttrSelectorWithOptionalNamespace<Impl: SelectorImpl> {
     pub local_name_lower: Impl::LocalName,
     #[cfg_attr(feature = "shmem", shmem(field_bound))]
     pub operation: ParsedAttrSelectorOperation<Impl::AttrValue>,
-    pub never_matches: bool,
 }
 
 impl<Impl: SelectorImpl> AttrSelectorWithOptionalNamespace<Impl> {
@@ -47,7 +46,7 @@ pub enum ParsedAttrSelectorOperation<AttrValue> {
     WithValue {
         operator: AttrSelectorOperator,
         case_sensitivity: ParsedCaseSensitivity,
-        expected_value: AttrValue,
+        value: AttrValue,
     },
 }
 
@@ -57,7 +56,7 @@ pub enum AttrSelectorOperation<AttrValue> {
     WithValue {
         operator: AttrSelectorOperator,
         case_sensitivity: CaseSensitivity,
-        expected_value: AttrValue,
+        value: AttrValue,
     },
 }
 
@@ -71,10 +70,10 @@ impl<AttrValue> AttrSelectorOperation<AttrValue> {
             AttrSelectorOperation::WithValue {
                 operator,
                 case_sensitivity,
-                ref expected_value,
+                ref value,
             } => operator.eval_str(
                 element_attr_value,
-                expected_value.as_ref(),
+                value.as_ref(),
                 case_sensitivity,
             ),
         }
