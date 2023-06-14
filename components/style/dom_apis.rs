@@ -290,12 +290,11 @@ where
 fn fast_connected_elements_with_id<'a, N>(
     root: N,
     id: &AtomIdent,
-    quirks_mode: QuirksMode,
+    case_sensitivity: CaseSensitivity,
 ) -> Result<&'a [N::ConcreteElement], ()>
 where
     N: TNode + 'a,
 {
-    let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
     if case_sensitivity != CaseSensitivity::CaseSensitive {
         return Err(());
     }
@@ -320,20 +319,18 @@ fn collect_elements_with_id<E, Q, F>(
     root: E::ConcreteNode,
     id: &AtomIdent,
     results: &mut Q::Output,
-    quirks_mode: QuirksMode,
+    class_and_id_case_sensitivity: CaseSensitivity,
     mut filter: F,
 ) where
     E: TElement,
     Q: SelectorQuery<E>,
     F: FnMut(E) -> bool,
 {
-    let elements = match fast_connected_elements_with_id(root, id, quirks_mode) {
+    let elements = match fast_connected_elements_with_id(root, id, class_and_id_case_sensitivity) {
         Ok(elements) => elements,
         Err(()) => {
-            let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
-
             collect_all_elements::<E, Q, _>(root, results, |e| {
-                e.has_id(id, case_sensitivity) && filter(e)
+                e.has_id(id, class_and_id_case_sensitivity) && filter(e)
             });
 
             return;
@@ -404,7 +401,7 @@ fn query_selector_single_query<E, Q>(
     root: E::ConcreteNode,
     component: &Component<E::Impl>,
     results: &mut Q::Output,
-    quirks_mode: QuirksMode,
+    class_and_id_case_sensitivity: CaseSensitivity,
 ) -> Result<(), ()>
 where
     E: TElement,
@@ -415,12 +412,9 @@ where
         Component::ExplicitUniversalType => {
             collect_all_elements::<E, Q, _>(root, results, |_| true)
         },
-        Component::Class(ref class) => {
-            let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
-            collect_all_elements::<E, Q, _>(root, results, |element| {
-                element.has_class(class, case_sensitivity)
-            })
-        },
+        Component::Class(ref class) => collect_all_elements::<E, Q, _>(root, results, |element| {
+            element.has_class(class, class_and_id_case_sensitivity)
+        }),
         Component::LocalName(ref local_name) => {
             collect_all_elements::<E, Q, _>(root, results, |element| {
                 local_name_matches(element, local_name)
@@ -432,7 +426,13 @@ where
                 // TODO(emilio): More fast paths?
                 None => return Err(()),
             };
-            collect_elements_with_id::<E, Q, _>(root, id, results, quirks_mode, |_| true);
+            collect_elements_with_id::<E, Q, _>(
+                root,
+                id,
+                results,
+                class_and_id_case_sensitivity,
+                |_| true,
+            );
         },
     }
 
@@ -470,15 +470,14 @@ where
     }
 
     let selector = &selector_list.0[0];
-    let quirks_mode = matching_context.quirks_mode();
-
+    let class_and_id_case_sensitivity = matching_context.classes_and_ids_case_sensitivity();
     // Let's just care about the easy cases for now.
     if selector.len() == 1 {
         return query_selector_single_query::<E, Q>(
             root,
             selector.iter().next().unwrap(),
             results,
-            quirks_mode,
+            class_and_id_case_sensitivity,
         );
     }
 
@@ -519,7 +518,7 @@ where
                                 root,
                                 id,
                                 results,
-                                quirks_mode,
+                                class_and_id_case_sensitivity,
                                 |e| {
                                     matching::matches_selector_list(
                                         selector_list,
@@ -531,7 +530,11 @@ where
                             return Ok(());
                         }
 
-                        let elements = fast_connected_elements_with_id(root, id, quirks_mode)?;
+                        let elements = fast_connected_elements_with_id(
+                            root,
+                            id,
+                            class_and_id_case_sensitivity,
+                        )?;
                         if elements.is_empty() {
                             return Ok(());
                         }
@@ -607,9 +610,8 @@ where
 
     match simple_filter {
         SimpleFilter::Class(ref class) => {
-            let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
             collect_all_elements::<E, Q, _>(root, results, |element| {
-                element.has_class(class, case_sensitivity) &&
+                element.has_class(class, class_and_id_case_sensitivity) &&
                     matching::matches_selector_list(selector_list, &element, matching_context)
             });
         },
