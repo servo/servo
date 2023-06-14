@@ -548,12 +548,16 @@ impl StylesheetInvalidationSet {
                 // It's not clear what handling changes for this correctly would
                 // look like.
             },
+            LayerStatement(..) => {
+                // Layer statement insertions might alter styling order, so we need to always
+                // invalidate fully.
+                return self.invalidate_fully();
+            },
             CounterStyle(..) |
             Page(..) |
             Property(..) |
             FontFeatureValues(..) |
             FontPaletteValues(..) |
-            LayerStatement(..) |
             FontFace(..) |
             Keyframes(..) |
             Container(..) |
