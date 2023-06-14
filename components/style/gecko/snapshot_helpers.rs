@@ -5,15 +5,15 @@
 //! Element an snapshot common logic.
 
 use crate::dom::TElement;
+use crate::gecko::wrapper::namespace_id_to_atom;
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::{self, nsAtom};
 use crate::invalidation::element::element_wrapper::ElementSnapshot;
-use crate::selector_parser::SnapshotMap;
+use crate::selector_parser::{AttrValue, SnapshotMap};
 use crate::string_cache::WeakAtom;
 use crate::values::AtomIdent;
-use crate::Atom;
-use crate::CaseSensitivityExt;
-use selectors::attr::CaseSensitivity;
+use crate::{Atom, CaseSensitivityExt, LocalName, Namespace};
+use selectors::attr::{CaseSensitivity, NamespaceConstraint, AttrSelectorOperation, AttrSelectorOperator};
 use smallvec::SmallVec;
 
 /// A function that, given an element of type `T`, allows you to get a single
@@ -70,6 +70,37 @@ unsafe fn get_id_from_attr(attr: &structs::nsAttrValue) -> &WeakAtom {
         structs::nsAttrValue_ValueBaseType_eAtomBase
     );
     WeakAtom::new(ptr::<nsAtom>(attr))
+}
+
+impl structs::nsAttrName {
+    #[inline]
+    fn is_nodeinfo(&self) -> bool {
+        self.mBits & 1 != 0
+    }
+
+    #[inline]
+    unsafe fn as_nodeinfo(&self) -> &structs::NodeInfo {
+        debug_assert!(self.is_nodeinfo());
+        &*((self.mBits & !1) as *const structs::NodeInfo)
+    }
+
+    #[inline]
+    fn namespace_id(&self) -> i32 {
+        if !self.is_nodeinfo() {
+            return structs::kNameSpaceID_None;
+        }
+        unsafe { self.as_nodeinfo() }.mInner.mNamespaceID
+    }
+
+    /// Returns the attribute name as an atom pointer.
+    #[inline]
+    pub fn name(&self) -> *const nsAtom {
+        if self.is_nodeinfo() {
+            unsafe { self.as_nodeinfo() }.mInner.mName
+        } else {
+            self.mBits as *const nsAtom
+        }
+    }
 }
 
 /// Find an attribute value with a given name and no namespace.
@@ -193,4 +224,86 @@ pub fn classes_changed<E: TElement>(element: &E, snapshots: &SnapshotMap) -> Sma
     });
 
     classes_changed
+}
+
+/// Returns whether a given attribute selector matches given the internal attrs.
+pub(crate) fn attr_matches<'a>(
+    iter: impl Iterator<Item = &'a structs::AttrArray_InternalAttr>,
+    ns: &NamespaceConstraint<&Namespace>,
+    local_name: &LocalName,
+    operation: &AttrSelectorOperation<&AttrValue>,
+) -> bool {
+    let name_ptr = local_name.as_ptr();
+    for attr in iter {
+        if attr.mName.name() != name_ptr {
+            continue;
+        }
+
+        let ns_matches = match *ns {
+            NamespaceConstraint::Any => true,
+            NamespaceConstraint::Specific(ns) => {
+                if *ns == ns!() {
+                    !attr.mName.is_nodeinfo()
+                } else {
+                    ns.as_ptr() == unsafe { namespace_id_to_atom(attr.mName.namespace_id()) }
+                }
+            },
+        };
+
+        if !ns_matches {
+            continue;
+        }
+
+        let (operator, case_sensitivity, value) = match *operation {
+            AttrSelectorOperation::Exists => return true,
+            AttrSelectorOperation::WithValue {
+                operator,
+                case_sensitivity,
+                value,
+            } => (operator, case_sensitivity, value),
+        };
+        let ignore_case = match case_sensitivity {
+            CaseSensitivity::CaseSensitive => false,
+            CaseSensitivity::AsciiCaseInsensitive => true,
+        };
+        let value = value.as_ptr();
+        let matches = unsafe {
+            match operator {
+                AttrSelectorOperator::Equal => bindings::Gecko_AttrEquals(
+                    &attr.mValue,
+                    value,
+                    ignore_case,
+                ),
+                AttrSelectorOperator::Includes => bindings::Gecko_AttrIncludes(
+                    &attr.mValue,
+                    value,
+                    ignore_case,
+                ),
+                AttrSelectorOperator::DashMatch => bindings::Gecko_AttrDashEquals(
+                    &attr.mValue,
+                    value,
+                    ignore_case,
+                ),
+                AttrSelectorOperator::Prefix => bindings::Gecko_AttrHasPrefix(
+                    &attr.mValue,
+                    value,
+                    ignore_case,
+                ),
+                AttrSelectorOperator::Suffix => bindings::Gecko_AttrHasSuffix(
+                    &attr.mValue,
+                    value,
+                    ignore_case,
+                ),
+                AttrSelectorOperator::Substring => bindings::Gecko_AttrHasSubstring(
+                    &attr.mValue,
+                    value,
+                    ignore_case,
+                ),
+            }
+        };
+        if matches || *ns != NamespaceConstraint::Any {
+            return matches;
+        }
+    }
+    false
 }
