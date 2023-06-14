@@ -730,11 +730,7 @@ where
         Component::AttributeInNoNamespaceExists {
             ref local_name,
             ref local_name_lower,
-        } => element.attr_matches(
-            &NamespaceConstraint::Specific(&crate::parser::namespace_empty_string::<E::Impl>()),
-            select_name(element, local_name, local_name_lower),
-            &AttrSelectorOperation::Exists,
-        ),
+        } => element.has_attr_in_no_namespace(select_name(element, local_name, local_name_lower)),
         Component::AttributeInNoNamespace {
             ref local_name,
             ref value,

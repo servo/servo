@@ -80,6 +80,17 @@ pub trait Element: Sized + Clone + Debug {
         operation: &AttrSelectorOperation<&<Self::Impl as SelectorImpl>::AttrValue>,
     ) -> bool;
 
+    fn has_attr_in_no_namespace(
+        &self,
+        local_name: &<Self::Impl as SelectorImpl>::LocalName,
+    ) -> bool {
+        self.attr_matches(
+            &NamespaceConstraint::Specific(&crate::parser::namespace_empty_string::<Self::Impl>()),
+            local_name,
+            &AttrSelectorOperation::Exists,
+        )
+    }
+
     fn match_non_ts_pseudo_class(
         &self,
         pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
