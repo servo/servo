@@ -355,6 +355,15 @@ fn collect_elements_with_id<E, Q, F>(
     }
 }
 
+fn has_attr<E>(element: E, local_name: &AtomIdent) -> bool
+where
+    E: TElement,
+{
+    let mut found = false;
+    element.each_attr_name(|name| found |= name == local_name);
+    found
+}
+
 #[inline(always)]
 fn local_name_matches<E>(element: E, local_name: &LocalName<E::Impl>) -> bool
 where
@@ -372,6 +381,23 @@ where
     };
 
     element.local_name() == &**chosen_name
+}
+
+fn get_attr_name(component: &Component<SelectorImpl>) -> Option<&AtomIdent> {
+    let (name, name_lower) = match component {
+        Component::AttributeInNoNamespace { ref local_name, .. } => return Some(local_name),
+        Component::AttributeInNoNamespaceExists {
+            ref local_name,
+            ref local_name_lower,
+            ..
+        } => (local_name, local_name_lower),
+        Component::AttributeOther(ref attr) => (&attr.local_name, &attr.local_name_lower),
+        _ => return None,
+    };
+    if name != name_lower {
+        return None; // TODO: Maybe optimize this?
+    }
+    Some(name)
 }
 
 fn get_id(component: &Component<SelectorImpl>) -> Option<&AtomIdent> {
@@ -441,6 +467,7 @@ where
 
 enum SimpleFilter<'a> {
     Class(&'a AtomIdent),
+    Attr(&'a AtomIdent),
     LocalName(&'a LocalName<SelectorImpl>),
 }
 
@@ -473,12 +500,16 @@ where
     let class_and_id_case_sensitivity = matching_context.classes_and_ids_case_sensitivity();
     // Let's just care about the easy cases for now.
     if selector.len() == 1 {
-        return query_selector_single_query::<E, Q>(
+        if query_selector_single_query::<E, Q>(
             root,
             selector.iter().next().unwrap(),
             results,
             class_and_id_case_sensitivity,
-        );
+        )
+        .is_ok()
+        {
+            return Ok(());
+        }
     }
 
     let mut iter = selector.iter();
@@ -577,6 +608,11 @@ where
 
                         return Ok(());
                     }
+                    if combinator.is_none() && simple_filter.is_none() {
+                        if let Some(attr_name) = get_attr_name(other) {
+                            simple_filter = Some(SimpleFilter::Attr(attr_name));
+                        }
+                    }
                 },
             }
         }
@@ -618,6 +654,12 @@ where
         SimpleFilter::LocalName(ref local_name) => {
             collect_all_elements::<E, Q, _>(root, results, |element| {
                 local_name_matches(element, local_name) &&
+                    matching::matches_selector_list(selector_list, &element, matching_context)
+            });
+        },
+        SimpleFilter::Attr(ref local_name) => {
+            collect_all_elements::<E, Q, _>(root, results, |element| {
+                has_attr(element, local_name) &&
                     matching::matches_selector_list(selector_list, &element, matching_context)
             });
         },
