@@ -361,7 +361,7 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
         layer: Option<ImportLayer>,
     ) -> Arc<Locked<ImportRule>> {
         let sheet = Arc::new(Stylesheet {
-            contents: StylesheetContents::from_shared_data(
+            contents: StylesheetContents::from_data(
                 CssRules::new(Vec::new(), lock),
                 context.stylesheet_origin,
                 context.url_data.clone(),

@@ -114,7 +114,7 @@ impl HTMLMetaElement {
                     let shared_lock = document.style_shared_lock();
                     let rule = CssRule::Viewport(Arc::new(shared_lock.wrap(translated_rule)));
                     let sheet = Arc::new(Stylesheet {
-                        contents: StylesheetContents::from_shared_data(
+                        contents: StylesheetContents::from_data(
                             CssRules::new(vec![rule], shared_lock),
                             Origin::Author,
                             window_from_node(self).get_url(),
