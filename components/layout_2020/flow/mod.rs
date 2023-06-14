@@ -25,6 +25,8 @@ use crate::ContainingBlock;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
+use style::computed_values::clear::T as Clear;
+use style::computed_values::float::T as Float;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
@@ -107,6 +109,99 @@ impl BlockFormattingContext {
     }
 }
 
+/// Finds the min/max-content inline size of the block-level children of a block container.
+/// The in-flow boxes will stack vertically, so we only need to consider the maximum size.
+/// But floats can flow horizontally depending on 'clear', so we may need to sum their sizes.
+/// CSS 2 does not define the exact algorithm, this logic is based on the behavior observed
+/// on Gecko and Blink.
+fn calculate_inline_content_size_for_block_level_boxes(
+    boxes: &[ArcRefCell<BlockLevelBox>],
+    layout_context: &LayoutContext,
+    writing_mode: WritingMode,
+) -> ContentSizes {
+    let get_box_info = |box_: &ArcRefCell<BlockLevelBox>| {
+        let size = box_
+            .borrow_mut()
+            .inline_content_sizes(layout_context, writing_mode);
+        if let BlockLevelBox::OutOfFlowFloatBox(ref float_box) = *box_.borrow_mut() {
+            let style_box = &float_box.contents.style().get_box();
+            (size, style_box.float, style_box.clear)
+        } else {
+            // The element may in fact have clearance, but the logic below ignores it,
+            // so don't bother retrieving it from the style.
+            (size, Float::None, Clear::None)
+        }
+    };
+
+    /// When iterating the block-level boxes to compute the inline content sizes,
+    /// this struct contains the data accumulated up to the current box.
+    struct AccumulatedData {
+        /// The maximum size seen so far, not including trailing uncleared floats.
+        max_size: ContentSizes,
+        /// The size of the trailing uncleared floats with 'float: left'.
+        left_floats: ContentSizes,
+        /// The size of the trailing uncleared floats with 'float: right'.
+        right_floats: ContentSizes,
+    }
+
+    impl AccumulatedData {
+        fn max_size_including_uncleared_floats(&self) -> ContentSizes {
+            self.max_size.max(self.left_floats.add(&self.right_floats))
+        }
+        fn clear_floats(&mut self, clear: Clear) {
+            match clear {
+                Clear::Left => {
+                    self.max_size = self.max_size_including_uncleared_floats();
+                    self.left_floats = ContentSizes::zero();
+                },
+                Clear::Right => {
+                    self.max_size = self.max_size_including_uncleared_floats();
+                    self.right_floats = ContentSizes::zero();
+                },
+                Clear::Both => {
+                    self.max_size = self.max_size_including_uncleared_floats();
+                    self.left_floats = ContentSizes::zero();
+                    self.right_floats = ContentSizes::zero();
+                },
+                Clear::None => {},
+            };
+        }
+    }
+
+    let accumulate = |mut data: AccumulatedData, (size, float, clear)| {
+        if float == Float::None {
+            // TODO: The first BFC root after a sequence of floats should appear next to them
+            // (if it doesn't have clearance).
+            data.clear_floats(Clear::Both);
+            data.max_size = data.max_size.max(size);
+        } else {
+            data.clear_floats(clear);
+            match float {
+                Float::Left => data.left_floats = data.left_floats.add(&size),
+                Float::Right => data.right_floats = data.right_floats.add(&size),
+                Float::None => unreachable!(),
+            }
+        }
+        data
+    };
+    let zero = AccumulatedData {
+        max_size: ContentSizes::zero(),
+        left_floats: ContentSizes::zero(),
+        right_floats: ContentSizes::zero(),
+    };
+    let data = if layout_context.use_rayon {
+        boxes
+            .par_iter()
+            .map(get_box_info)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .fold(zero, accumulate)
+    } else {
+        boxes.iter().map(get_box_info).fold(zero, accumulate)
+    };
+    data.max_size_including_uncleared_floats()
+}
+
 impl BlockContainer {
     fn layout(
         &self,
@@ -143,21 +238,11 @@ impl BlockContainer {
         writing_mode: WritingMode,
     ) -> ContentSizes {
         match &self {
-            Self::BlockLevelBoxes(boxes) if layout_context.use_rayon => boxes
-                .par_iter()
-                .map(|box_| {
-                    box_.borrow_mut()
-                        .inline_content_sizes(layout_context, writing_mode)
-                })
-                .reduce(ContentSizes::zero, ContentSizes::max),
-            Self::BlockLevelBoxes(boxes) => boxes
-                .iter()
-                .map(|box_| {
-                    box_.borrow_mut()
-                        .inline_content_sizes(layout_context, writing_mode)
-                })
-                .reduce(ContentSizes::max)
-                .unwrap_or_else(ContentSizes::zero),
+            Self::BlockLevelBoxes(boxes) => calculate_inline_content_size_for_block_level_boxes(
+                boxes,
+                layout_context,
+                writing_mode,
+            ),
             Self::InlineFormattingContext(context) => {
                 context.inline_content_sizes(layout_context, writing_mode)
             },

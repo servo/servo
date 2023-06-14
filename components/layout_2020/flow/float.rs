@@ -690,12 +690,7 @@ impl FloatBox {
             .floats
             .lower_ceiling(sequential_layout_state.current_block_position_including_margins());
 
-        let style = match self.contents {
-            IndependentFormattingContext::Replaced(ref replaced) => replaced.style.clone(),
-            IndependentFormattingContext::NonReplaced(ref non_replaced) => {
-                non_replaced.style.clone()
-            },
-        };
+        let style = self.contents.style().clone();
         let float_context = &mut sequential_layout_state.floats;
         let box_fragment = positioning_context.layout_maybe_position_relative_fragment(
             layout_context,
