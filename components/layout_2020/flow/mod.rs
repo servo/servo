@@ -80,7 +80,7 @@ impl BlockFormattingContext {
         tree_rank: usize,
     ) -> IndependentLayout {
         let mut sequential_layout_state = if self.contains_floats || !layout_context.use_rayon {
-            Some(SequentialLayoutState::new())
+            Some(SequentialLayoutState::new(containing_block.inline_size))
         } else {
             None
         };

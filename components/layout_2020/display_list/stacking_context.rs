@@ -429,11 +429,12 @@ impl StackingContext {
         };
 
         let fragment = first_stacking_context_fragment.fragment.borrow();
-        let box_fragment = if let Fragment::Box(box_fragment) = &*fragment {
-            box_fragment
-        } else {
-            debug_panic!("Expected a box-generated fragment");
-            return;
+        let box_fragment = match &*fragment {
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
+            _ => {
+                debug_panic!("Expected a box-generated fragment");
+                return;
+            },
         };
 
         // The `StackingContextFragment` we found is for the root DOM element:

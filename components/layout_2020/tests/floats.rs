@@ -464,7 +464,7 @@ impl PlacedFloat {
 
 impl FloatPlacement {
     fn place(floats: Vec<FloatInput>) -> FloatPlacement {
-        let mut float_context = FloatContext::new();
+        let mut float_context = FloatContext::new(Length::new(f32::INFINITY));
         let mut placed_floats = vec![];
         for float in floats {
             let ceiling = Length::new(float.ceiling as f32);
