@@ -14,7 +14,7 @@ use euclid::{
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
-
+use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, EmbedderEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
@@ -30,7 +30,6 @@ use servo::webrender_surfman::WebrenderSurfman;
 use servo_media::player::context::{GlApi, GlContext as PlayerGLContext, NativeDisplay};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
 use surfman::platform::generic::multi::connection::NativeConnection;
@@ -125,13 +124,15 @@ impl Window {
         let inner_size = Size2D::new(width, height);
 
         // Initialize surfman
+        let display_handle = winit_window.raw_display_handle();
         let connection =
-            Connection::from_winit_window(&winit_window).expect("Failed to create connection");
+            Connection::from_raw_display_handle(display_handle).expect("Failed to create connection");
         let adapter = connection
             .create_adapter()
             .expect("Failed to create adapter");
+        let window_handle = winit_window.raw_window_handle();
         let native_widget = connection
-            .create_native_widget_from_winit_window(&winit_window)
+            .create_native_widget_from_rwh(window_handle)
             .expect("Failed to create native widget");
         let surface_type = SurfaceType::Widget { native_widget };
         let webrender_surfman = WebrenderSurfman::create(&connection, &adapter, surface_type)
