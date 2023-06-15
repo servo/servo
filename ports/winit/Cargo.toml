@@ -26,24 +26,24 @@ OriginalFilename = "servo.exe"
 ProductName = "Servo"
 
 [features]
-debugmozjs = ["libservo/debugmozjs"]
+debugmozjs = ["servo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
-egl = ["libservo/egl"]
-jitspew = ["libservo/jitspew"]
-js_backtrace = ["libservo/js_backtrace"]
-layout-2013 = ["libservo/layout-2013"]
-layout-2020 = ["libservo/layout-2020"]
+egl = ["servo/egl"]
+jitspew = ["servo/jitspew"]
+js_backtrace = ["servo/js_backtrace"]
+layout-2013 = ["servo/layout-2013"]
+layout-2020 = ["servo/layout-2020"]
 max_log_level = ["log/release_max_level_info"]
-media-dummy = ["libservo/media-dummy"]
-media-gstreamer = ["libservo/media-gstreamer"]
-native-bluetooth = ["libservo/native-bluetooth"]
-no-wgl = ["libservo/no-wgl"]
-profilemozjs = ["libservo/profilemozjs"]
-refcell_backtrace = ["libservo/refcell_backtrace"]
-webdriver = ["libservo/webdriver"]
-webgl_backtrace = ["libservo/webgl_backtrace"]
-webrender_debugger = ["libservo/webrender_debugger"]
-xr-profile = ["libservo/xr-profile"]
+media-dummy = ["servo/media-dummy"]
+media-gstreamer = ["servo/media-gstreamer"]
+native-bluetooth = ["servo/native-bluetooth"]
+no-wgl = ["servo/no-wgl"]
+profilemozjs = ["servo/profilemozjs"]
+refcell_backtrace = ["servo/refcell_backtrace"]
+webdriver = ["servo/webdriver"]
+webgl_backtrace = ["servo/webgl_backtrace"]
+webrender_debugger = ["servo/webrender_debugger"]
+xr-profile = ["servo/xr-profile"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
@@ -53,7 +53,7 @@ getopts = { workspace = true }
 keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
-libservo = { path = "../../components/servo" }
+servo = { package = "libservo", path = "../../components/servo" }
 log = { workspace = true }
 servo-media = { git = "https://github.com/servo/media" }
 shellwords = "1.0.0"
