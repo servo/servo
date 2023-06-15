@@ -523,8 +523,9 @@ fn layout_in_flow_non_replaced_block_level(
                 inline_start,
                 inline_end: inline_start + inline_size,
             };
-            parent_containing_block_position_info =
-                Some(sequential_layout_state.update_all_containing_block_offsets(new_cb_offsets));
+            parent_containing_block_position_info = Some(
+                sequential_layout_state.replace_containing_block_position_info(new_cb_offsets),
+            );
         },
     };
 
@@ -595,7 +596,7 @@ fn layout_in_flow_non_replaced_block_level(
         // Now that we're done laying out our children, we can restore the
         // parent's containing block position information.
         sequential_layout_state
-            .update_all_containing_block_offsets(parent_containing_block_position_info.unwrap());
+            .replace_containing_block_position_info(parent_containing_block_position_info.unwrap());
 
         // Account for padding and border. We also might have to readjust the
         // `bfc_relative_block_position` if it was different from the content size (i.e. was

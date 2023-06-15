@@ -320,7 +320,7 @@ impl ClearSide {
 }
 
 impl FloatBand {
-    // Determines whether an object fits in a band.
+    /// Determines whether an object fits in a band. Returns true if the object fits.
     fn object_fits(&self, object: &PlacementInfo, walls: &ContainingBlockPositionInfo) -> bool {
         match object.side {
             FloatSide::Left => {
@@ -549,8 +549,8 @@ impl FloatBandLink {
         Some(this.band.clone())
     }
 
-    // Inserts a new band into the tree. If the band has the same level as a pre-existing one,
-    // replaces the existing band with the new one.
+    /// Inserts a new band into the tree. If the band has the same level as a pre-existing one,
+    /// replaces the existing band with the new one.
     fn insert(&self, band: FloatBand) -> FloatBandLink {
         let mut this = match self.0 {
             None => return FloatBandLink(Some(Arc::new(FloatBandNode::new(band)))),
@@ -570,13 +570,13 @@ impl FloatBandLink {
         FloatBandLink(Some(Arc::new(this)))
     }
 
-    // Corrects tree balance:
-    //
-    //         T          L
-    //        / \        / \
-    //       L   R  →   A   T      if level(T) = level(L)
-    //      / \            / \
-    //     A   B          B   R
+    /// Corrects tree balance:
+    ///
+    ///         T          L
+    ///        / \        / \
+    ///       L   R  →   A   T      if level(T) = level(L)
+    ///      / \            / \
+    ///     A   B          B   R
     fn skew(&self) -> FloatBandLink {
         if let Some(ref this) = self.0 {
             if let Some(ref left) = this.left.0 {
@@ -599,13 +599,13 @@ impl FloatBandLink {
         (*self).clone()
     }
 
-    // Corrects tree balance:
-    //
-    //         T            R
-    //        / \          / \
-    //       A   R   →    T   X    if level(T) = level(X)
-    //          / \      / \
-    //         B   X    A   B
+    /// Corrects tree balance:
+    ///
+    ///         T            R
+    ///        / \          / \
+    ///       A   R   →    T   X    if level(T) = level(X)
+    ///          / \      / \
+    ///         B   X    A   B
     fn split(&self) -> FloatBandLink {
         if let Some(ref this) = self.0 {
             if let Some(ref right) = this.right.0 {
@@ -637,8 +637,6 @@ impl Debug for FloatFragment {
     }
 }
 
-// Float boxes
-
 impl FloatBox {
     /// Creates a new float box.
     pub fn construct<'dom>(
@@ -659,6 +657,9 @@ impl FloatBox {
         }
     }
 
+    /// Lay out this float box and its children. Note that the position will be relative to
+    /// the float containing block formatting context. A later step adjusts the position
+    /// to be relative to the containing block.
     pub fn layout(
         &mut self,
         layout_context: &LayoutContext,
@@ -799,35 +800,33 @@ impl FloatBox {
     }
 }
 
-// Float fragment storage
-
-// Layout state that we maintain when doing sequential traversals of the box tree in document
-// order.
-//
-// This data is only needed for float placement and float interaction, and as such is only present
-// if the current block formatting context contains floats.
-//
-// All coordinates here are relative to the start of the nearest ancestor block formatting context.
-//
-// This structure is expected to be cheap to clone, in order to allow for "snapshots" that enable
-// restarting layout at any point in the tree.
+/// Layout state that we maintain when doing sequential traversals of the box tree in document
+/// order.
+///
+/// This data is only needed for float placement and float interaction, and as such is only present
+/// if the current block formatting context contains floats.
+///
+/// All coordinates here are relative to the start of the nearest ancestor block formatting context.
+///
+/// This structure is expected to be cheap to clone, in order to allow for "snapshots" that enable
+/// restarting layout at any point in the tree.
 #[derive(Clone)]
 pub(crate) struct SequentialLayoutState {
-    // Holds all floats in this block formatting context.
+    /// Holds all floats in this block formatting context.
     pub(crate) floats: FloatContext,
-    // The (logically) bottom border edge or top padding edge of the last in-flow block. Floats
-    // cannot be placed above this line.
-    //
-    // This is often, but not always, the same as the float ceiling. The float ceiling can be lower
-    // than this value because this value is calculated based on in-flow boxes only, while
-    // out-of-flow floats can affect the ceiling as well (see CSS 2.1 § 9.5.1 rule 6).
+    /// The (logically) bottom border edge or top padding edge of the last in-flow block. Floats
+    /// cannot be placed above this line.
+    ///
+    /// This is often, but not always, the same as the float ceiling. The float ceiling can be lower
+    /// than this value because this value is calculated based on in-flow boxes only, while
+    /// out-of-flow floats can affect the ceiling as well (see CSS 2.1 § 9.5.1 rule 6).
     pub(crate) bfc_relative_block_position: Length,
-    // Any collapsible margins that we've encountered after `bfc_relative_block_position`.
+    /// Any collapsible margins that we've encountered after `bfc_relative_block_position`.
     pub(crate) current_margin: CollapsedMargin,
 }
 
 impl SequentialLayoutState {
-    // Creates a new empty `SequentialLayoutState`.
+    /// Creates a new empty `SequentialLayoutState`.
     pub(crate) fn new() -> SequentialLayoutState {
         SequentialLayoutState {
             floats: FloatContext::new(),
@@ -836,41 +835,45 @@ impl SequentialLayoutState {
         }
     }
 
-    // Moves the current block position (logically) down by `block_distance`.
-    //
-    // Floats may not be placed higher than the current block position.
+    /// Moves the current block position (logically) down by `block_distance`.
+    ///
+    /// Floats may not be placed higher than the current block position.
     pub(crate) fn advance_block_position(&mut self, block_distance: Length) {
         self.bfc_relative_block_position += block_distance;
         self.floats.lower_ceiling(self.bfc_relative_block_position);
     }
 
-    pub(crate) fn update_all_containing_block_offsets(
+    /// Replace the entire [ContainingBlockPositionInfo] data structure stored
+    /// by this [SequentialLayoutState]. Return the old data structure.
+    pub(crate) fn replace_containing_block_position_info(
         &mut self,
-        mut new_distance: ContainingBlockPositionInfo,
+        mut position_info: ContainingBlockPositionInfo,
     ) -> ContainingBlockPositionInfo {
-        mem::swap(&mut new_distance, &mut self.floats.containing_block_info);
-        new_distance
+        mem::swap(&mut position_info, &mut self.floats.containing_block_info);
+        position_info
     }
 
+    /// Return the current block position in the float containing block formatting
+    /// context and any uncollapsed block margins.
     pub(crate) fn current_block_position_including_margins(&self) -> Length {
         self.bfc_relative_block_position + self.current_margin.solve()
     }
 
-    // Collapses margins, moving the block position down by the collapsed value of `current_margin`
-    // and resetting `current_margin` to zero.
-    //
-    // Call this method before laying out children when it is known that the start margin of the
-    // current fragment can't collapse with the margins of any of its children.
+    /// Collapses margins, moving the block position down by the collapsed value of `current_margin`
+    /// and resetting `current_margin` to zero.
+    ///
+    /// Call this method before laying out children when it is known that the start margin of the
+    /// current fragment can't collapse with the margins of any of its children.
     pub(crate) fn collapse_margins(&mut self) {
         self.advance_block_position(self.current_margin.solve());
         self.current_margin = CollapsedMargin::zero();
     }
 
-    // Returns the amount of clearance that a block with the given `clear` value at the current
-    // `bfc_relative_block_position` (with top margin included in `current_margin` if applicable)
-    // needs to have.
-    //
-    // https://www.w3.org/TR/2011/REC-CSS2-20110607/visuren.html#flow-control
+    /// Returns the amount of clearance that a block with the given `clear` value at the current
+    /// `bfc_relative_block_position` (with top margin included in `current_margin` if applicable)
+    /// needs to have.
+    ///
+    /// https://www.w3.org/TR/2011/REC-CSS2-20110607/visuren.html#flow-control
     pub(crate) fn calculate_clearance(&self, clear_side: ClearSide) -> Length {
         if clear_side == ClearSide::None {
             return Length::zero();
