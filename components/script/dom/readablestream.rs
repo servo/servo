@@ -72,7 +72,6 @@ pub struct ReadableStream {
     state: Cell<State>,
     has_reader: Cell<bool>,
     stored_error: Cell<()>,
-    #[ignore_malloc_size_of = "Rc is hard"]
     external_underlying_source: Option<ExternalUnderlyingSourceController>,
 }
 
@@ -289,7 +288,7 @@ impl ReadableStream {
         self.external_underlying_source
             .as_ref()
             .expect("No external source to enqueue bytes.")
-            .add_reader(cx, &reader_promise);
+            .add_reader(cx, reader_promise.clone());
         reader_promise
 
         //self.maybe_signal_available_bytes(buflen);
@@ -440,7 +439,8 @@ struct ExternalUnderlyingSourceController {
     /// Loosely matches the underlying queue,
     /// <https://streams.spec.whatwg.org/#internal-queues>
     buffer: RefCell<Vec<u8>>,
-    pending_reader: RefCell<Option<Dom<Promise>>>,
+    #[ignore_malloc_size_of = "Rc is hard"]
+    pending_reader: RefCell<Option<Rc<Promise>>>,
     /// Has the stream been closed by native code?
     closed: Cell<bool>,
     /// Does this stream contains all it's data in memory?
@@ -475,9 +475,9 @@ impl ExternalUnderlyingSourceController {
         None
     }
 
-    fn add_reader(&self, cx: SafeJSContext, promise: &Promise) {
+    fn add_reader(&self, cx: SafeJSContext, promise: Rc<Promise>) {
         assert!(self.pending_reader.borrow().is_none());
-        *self.pending_reader.borrow_mut() = Some(Dom::from_ref(promise));
+        *self.pending_reader.borrow_mut() = Some(promise.clone());
         self.maybe_signal_available_bytes(cx, &promise.global(), self.buffer.borrow().len());
     }
 
