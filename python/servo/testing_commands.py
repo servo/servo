@@ -31,14 +31,12 @@ from mach.decorators import (
     CommandProvider,
     Command,
 )
+import tidy
 
-from servo_tidy import tidy
 from servo.command_base import (
     CommandBase,
     call, check_call, check_output,
 )
-from servo_tidy_tests import test_tidy
-
 from servo.util import delete
 from distutils.dir_util import copy_tree
 
@@ -298,7 +296,7 @@ class MachCommands(CommandBase):
                      help="Only handle files in the stylo tree")
     def test_tidy(self, all_files, no_progress, self_test, stylo, force_cpp=False, no_wpt=False):
         if self_test:
-            return test_tidy.do_tests()
+            return tidy.do_tests()
         else:
             if no_wpt:
                 manifest_dirty = False

@@ -3,7 +3,6 @@ skip-check-length = false
 skip-check-licenses = false
 check-alphabetical-order = true
 check-ordered-json-keys = ["./resources/prefs.json"]
-lint-scripts = ["./python/servo/lints/wpt_lint.py"]
 
 # Packages which we avoid using in Servo.
 # For each blocked package, we can list the exceptions,
@@ -123,6 +122,8 @@ files = [
   "./tests/wpt/mozilla/tests/mozilla/textarea_placeholder.html",
   # Python 3 syntax causes "E901 SyntaxError" when flake8 runs in Python 2
   "./components/style/properties/build.py",
+  # The tidy tests currently don't pass tidy.
+  "./python/tidy/test.py",
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [
@@ -133,7 +134,7 @@ directories = [
   "./tests/wpt/web-platform-tests",
   "./tests/wpt/mozilla/tests/mozilla/referrer-policy",
   "./tests/wpt/mozilla/tests/webgl",
-  "./python/tidy/servo_tidy_tests",
+  "./python/tidy/tests",
   "./components/script/dom/bindings/codegen/parser",
   "./components/script/dom/bindings/codegen/ply",
   "./python/_virtualenv*",

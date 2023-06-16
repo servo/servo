@@ -39,4 +39,6 @@ notify-py == 0.3.42
 # For formatting C++ files.
 clang-format ~= 16.0.0
 
--e python/tidy
+# A few more requirements for tidy.
+voluptuous == 0.12.1
+PyYAML == 5.4

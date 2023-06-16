@@ -7,11 +7,8 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from __future__ import print_function
-
 import fnmatch
 import glob
-import imp
 import itertools
 import json
 import os
@@ -23,13 +20,16 @@ import colorama
 import toml
 import voluptuous
 import yaml
+
 from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
-topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
-wpt = os.path.join(topdir, "tests", "wpt")
+
+TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+WPT_PATH = os.path.join(".", "tests", "wpt")
+SUITES = ["web-platform-tests", os.path.join("mozilla", "tests")]
 
 
 def wpt_path(*args):
-    return os.path.join(wpt, *args)
+    return os.path.join(WPT_PATH, *args)
 
 
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
@@ -1084,27 +1084,10 @@ class LintRunner(object):
         self.stylo = stylo
         self.no_wpt = no_wpt
 
-    def check(self):
-        if not os.path.exists(self.path):
-            yield (self.path, 0, "file does not exist")
-            return
-        if not self.path.endswith('.py'):
-            yield (self.path, 0, "lint should be a python script")
-            return
-        dir_name, filename = os.path.split(self.path)
-        sys.path.append(dir_name)
-        module = imp.load_source(filename[:-3], self.path)
-        sys.path.remove(dir_name)
-        if not hasattr(module, 'Lint'):
-            yield (self.path, 1, "script should contain a class named 'Lint'")
-            return
-
-        if not issubclass(module.Lint, LintRunner):
-            yield (self.path, 1, "class 'Lint' should inherit from 'LintRunner'")
-            return
-
-        lint = module.Lint(self.path, self.only_changed_files,
-                           self.exclude_dirs, self.progress, stylo=self.stylo, no_wpt=self.no_wpt)
+    def check(self, lint_cls):
+        lint = lint_cls(self.path, self.only_changed_files,
+                        self.exclude_dirs, self.progress,
+                        stylo=self.stylo, no_wpt=self.no_wpt)
         for error in lint.run():
             if type(error) is not tuple or (type(error) is tuple and len(error) != 3):
                 yield (self.path, 1, "errors should be a tuple of (path, line, reason)")
@@ -1122,10 +1105,8 @@ class LintRunner(object):
 
 def run_lint_scripts(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
     runner = LintRunner(only_changed_files=only_changed_files, progress=progress, stylo=stylo, no_wpt=no_wpt)
-    for path in config['lint-scripts']:
-        runner.path = path
-        for error in runner.check():
-            yield error
+    for error in runner.check(WPTLint):
+        yield error
 
 
 def scan(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
@@ -1162,3 +1143,30 @@ def scan(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
         print("\033[92mtidy reported no errors.\033[0m")
 
     return int(error is not None)
+
+
+class WPTLint(LintRunner):
+    def _get_wpt_files(self, suite):
+        working_dir = os.path.join(WPT_PATH, suite, '')
+        file_iter = self.get_files(working_dir, exclude_dirs=[])
+        print('\nRunning the WPT lint on %s...' % working_dir)
+        for f in file_iter:
+            if filter_file(f):
+                yield f[len(working_dir):]
+
+    def run(self):
+        if self.stylo or self.no_wpt:
+            return
+
+        wpt_working_dir = os.path.abspath(os.path.join(WPT_PATH, "web-platform-tests"))
+        for suite in SUITES:
+            files = list(self._get_wpt_files(suite))
+            if not files:
+                continue
+            sys.path.insert(0, wpt_working_dir)
+            from tools.lint import lint
+            file_dir = os.path.abspath(os.path.join(WPT_PATH, suite))
+            returncode = lint.lint(file_dir, files, output_format="json")
+            sys.path.remove(wpt_working_dir)
+            if returncode:
+                yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status %s" % returncode)

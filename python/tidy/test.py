@@ -10,13 +10,14 @@
 import os
 import unittest
 
-from servo_tidy import tidy
+from . import tidy
 
-base_path = 'servo_tidy_tests/' if os.path.exists('servo_tidy_tests/') else 'python/tidy/servo_tidy_tests/'
+
+BASE_PATH = 'python/tidy/tests/'
 
 
 def iterFile(name):
-    return iter([os.path.join(base_path, name)])
+    return iter([os.path.join(BASE_PATH, name)])
 
 
 class CheckTidiness(unittest.TestCase):
@@ -25,7 +26,7 @@ class CheckTidiness(unittest.TestCase):
             next(errors)
 
     def test_tidy_config(self):
-        errors = tidy.check_config_file(os.path.join(base_path, 'servo-tidy.toml'), print_text=False)
+        errors = tidy.check_config_file(os.path.join(BASE_PATH, 'servo-tidy.toml'), print_text=False)
         self.assertEqual("invalid config key 'key-outside'", next(errors)[2])
         self.assertEqual("invalid config key 'wrong-key'", next(errors)[2])
         self.assertEqual('invalid config table [wrong]', next(errors)[2])
@@ -38,17 +39,17 @@ class CheckTidiness(unittest.TestCase):
         errors = tidy.check_manifest_dirs(wrong_path, print_text=False)
         self.assertEqual("%s manifest file is required but was not found" % wrong_path, next(errors)[2])
         self.assertNoMoreErrors(errors)
-        errors = tidy.check_manifest_dirs(os.path.join(base_path, 'manifest-include.ini'), print_text=False)
+        errors = tidy.check_manifest_dirs(os.path.join(BASE_PATH, 'manifest-include.ini'), print_text=False)
         self.assertTrue(next(errors)[2].endswith("never_going_to_exist"))
         self.assertNoMoreErrors(errors)
 
     def test_directory_checks(self):
         dirs = {
-            os.path.join(base_path, "dir_check/webidl_plus"): ['webidl', 'test'],
-            os.path.join(base_path, "dir_check/only_webidl"): ['webidl']
-            }
+            os.path.join(BASE_PATH, "dir_check/webidl_plus"): ['webidl', 'test'],
+            os.path.join(BASE_PATH, "dir_check/only_webidl"): ['webidl']
+        }
         errors = tidy.check_directory_files(dirs)
-        error_dir = os.path.join(base_path, "dir_check/webidl_plus")
+        error_dir = os.path.join(BASE_PATH, "dir_check/webidl_plus")
         self.assertEqual("Unexpected extension found for test.rs. We only expect files with webidl, test extensions in {0}".format(error_dir), next(errors)[2])
         self.assertEqual("Unexpected extension found for test2.rs. We only expect files with webidl, test extensions in {0}".format(error_dir), next(errors)[2])
         self.assertNoMoreErrors(errors)
@@ -136,7 +137,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(ban_errors)
 
     def test_spec_link(self):
-        tidy.SPEC_BASE_PATH = base_path
+        tidy.SPEC_BASE_PATH = BASE_PATH
         errors = tidy.collect_errors_for_files(iterFile('speclink.rs'), [], [tidy.check_spec], print_text=False)
         self.assertEqual('method declared in webidl is missing a comment with a specification link', next(errors)[2])
         self.assertEqual('method declared in webidl is missing a comment with a specification link', next(errors)[2])
@@ -173,7 +174,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(errors)
 
     def test_json_with_unordered_keys(self):
-        tidy.config["check-ordered-json-keys"].append('python/tidy/servo_tidy_tests/unordered_key.json')
+        tidy.config["check-ordered-json-keys"].append('python/tidy/tests/unordered_key.json')
         errors = tidy.collect_errors_for_files(iterFile('unordered_key.json'), [tidy.check_json], [], print_text=False)
         self.assertEqual('Unordered key (found b before a)', next(errors)[2])
         self.assertNoMoreErrors(errors)
@@ -246,38 +247,15 @@ class CheckTidiness(unittest.TestCase):
         # needed to not raise errors in other test cases
         tidy.config["blocked-packages"]["rand"] = []
 
-    def test_lint_runner(self):
-        test_path = base_path + 'lints/'
-        runner = tidy.LintRunner(only_changed_files=False, progress=False)
-        runner.path = test_path + 'some-fictional-file'
-        self.assertEqual([(runner.path, 0, "file does not exist")], list(runner.check()))
-        runner.path = test_path + 'not_script'
-        self.assertEqual([(runner.path, 0, "lint should be a python script")],
-                         list(runner.check()))
-        runner.path = test_path + 'not_inherited.py'
-        self.assertEqual([(runner.path, 1, "class 'Lint' should inherit from 'LintRunner'")],
-                         list(runner.check()))
-        runner.path = test_path + 'no_lint.py'
-        self.assertEqual([(runner.path, 1, "script should contain a class named 'Lint'")],
-                         list(runner.check()))
-        runner.path = test_path + 'no_run.py'
-        self.assertEqual([(runner.path, 0, "class 'Lint' should implement 'run' method")],
-                         list(runner.check()))
-        runner.path = test_path + 'invalid_error_tuple.py'
-        self.assertEqual([(runner.path, 1, "errors should be a tuple of (path, line, reason)")],
-                         list(runner.check()))
-        runner.path = test_path + 'proper_file.py'
-        self.assertEqual([('path', 0, "foobar")], list(runner.check()))
-
     def test_file_list(self):
-        base_path='./python/tidy/servo_tidy_tests/test_ignored'
-        file_list = tidy.FileList(base_path, only_changed_files=False, exclude_dirs=[])
+        file_path = os.path.join(BASE_PATH, 'test_ignored')
+        file_list = tidy.FileList(file_path, only_changed_files=False, exclude_dirs=[])
         lst = list(file_list)
-        self.assertEqual([os.path.join(base_path, 'whee', 'test.rs'), os.path.join(base_path, 'whee', 'foo', 'bar.rs')], lst)
-        file_list = tidy.FileList(base_path, only_changed_files=False,
-                                  exclude_dirs=[os.path.join(base_path, 'whee', 'foo')])
+        self.assertEqual([os.path.join(file_path, 'whee', 'test.rs'), os.path.join(file_path, 'whee', 'foo', 'bar.rs')], lst)
+        file_list = tidy.FileList(file_path, only_changed_files=False,
+                                  exclude_dirs=[os.path.join(file_path, 'whee', 'foo')])
         lst = list(file_list)
-        self.assertEqual([os.path.join(base_path, 'whee', 'test.rs')], lst)
+        self.assertEqual([os.path.join(file_path, 'whee', 'test.rs')], lst)
 
     def test_multiline_string(self):
         errors = tidy.collect_errors_for_files(iterFile('multiline_string.rs'), [], [tidy.check_rust], print_text=True)
