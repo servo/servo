@@ -478,7 +478,8 @@ impl ExternalUnderlyingSourceController {
     fn add_reader(&self, cx: SafeJSContext, promise: Rc<Promise>) {
         assert!(self.pending_reader.borrow().is_none());
         *self.pending_reader.borrow_mut() = Some(promise.clone());
-        self.maybe_signal_available_bytes(cx, &promise.global(), self.buffer.borrow().len());
+        let buflen = self.buffer.borrow().len();
+        self.maybe_signal_available_bytes(cx, &promise.global(), buflen);
     }
 
     fn stop_reading(&self, cx: SafeJSContext, global: &GlobalScope) {
@@ -501,7 +502,8 @@ impl ExternalUnderlyingSourceController {
     #[allow(unsafe_code)]
     fn report_done(&self, cx: SafeJSContext, global: &GlobalScope) {
         //assert!(self.buffer.borrow().is_empty());
-        self.maybe_signal_available_bytes(cx, global, self.buffer.borrow().len());
+        let buflen = self.buffer.borrow().len();
+        self.maybe_signal_available_bytes(cx, global, buflen);
 
         if let Some(read_promise) = self.pending_reader.borrow().as_ref() {
             unsafe {
