@@ -196,29 +196,36 @@ impl ReadableStream {
         let _ar = enter_realm(&*global);
         let cx = GlobalScope::get_cx();
 
-        unsafe {
-            rooted!(in(*cx) let mut js_error = UndefinedValue());
-            error.to_jsval(*cx, &global, js_error.handle_mut());
+        self.external_underlying_source
+            .as_ref()
+            .expect("No external source to report error.")
+            .report_error(cx, &global, error);
+
+        //unsafe {
+            //rooted!(in(*cx) let mut js_error = UndefinedValue());
+            //error.to_jsval(*cx, &global, js_error.handle_mut());
+
+
             /*ReadableStreamError(
                 *cx,
                 self.js_stream.handle(),
                 js_error.handle().into_handle(),
             );*/
-        }
+        //}
     }
 
     #[allow(unsafe_code)]
     pub fn close_native(&self) {
-        /*let global = self.global();
+        let global = self.global();
         let _ar = enter_realm(&*global);
         let cx = GlobalScope::get_cx();
 
-        let handle = unsafe { self.js_stream.handle() };*/
+        //let handle = unsafe { self.js_stream.handle() };
 
         self.external_underlying_source
             .as_ref()
             .expect("No external source to close.")
-            .close(/*cx, handle*/self);
+            .close(cx, &global);
     }
 
     /// Does the stream have all data in memory?
@@ -304,14 +311,14 @@ impl ReadableStream {
             panic!("ReadableStream::stop_reading called on a readerless stream.");
         }
 
-        //let global = self.global();
+        let global = self.global();
         //let _ar = enter_realm(&*global);
         let cx = GlobalScope::get_cx();
 
         self.external_underlying_source
             .as_ref()
             .expect("No external source to enqueue bytes.")
-            .stop_reading(cx);
+            .stop_reading(cx, &global);
 
 
         self.has_reader.set(false);
@@ -474,9 +481,27 @@ impl ExternalUnderlyingSourceController {
         self.maybe_signal_available_bytes(cx, &promise.global(), self.buffer.borrow().len());
     }
 
+    fn stop_reading(&self, cx: SafeJSContext, global: &GlobalScope) {
+        self.report_done(cx, global);
+    }
+
     #[allow(unsafe_code)]
-    fn stop_reading(&self, cx: SafeJSContext) {
-        assert!(self.buffer.borrow().is_empty());
+    fn report_error(&self, cx: SafeJSContext, global: &GlobalScope, error: Error) {
+        if let Some(read_promise) = self.pending_reader.borrow().as_ref() {
+            unsafe {
+                //rooted!(in(*cx) let mut value = UndefinedValue());
+                rooted!(in(*cx) let mut js_error = UndefinedValue());
+                error.to_jsval(*cx, global, js_error.handle_mut());
+                read_promise.reject_native(&js_error.handle());
+            }
+        }
+        *self.pending_reader.borrow_mut() = None;
+    }
+
+    #[allow(unsafe_code)]
+    fn report_done(&self, cx: SafeJSContext, global: &GlobalScope) {
+        //assert!(self.buffer.borrow().is_empty());
+        self.maybe_signal_available_bytes(cx, global, self.buffer.borrow().len());
 
         if let Some(read_promise) = self.pending_reader.borrow().as_ref() {
             unsafe {
@@ -537,9 +562,10 @@ impl ExternalUnderlyingSourceController {
 
     /// Close a currently readable js stream.
     #[allow(unsafe_code)]
-    fn maybe_close_js_stream(&self, stream: &ReadableStream, /*cx: SafeJSContext, stream: HandleObject*/) {
+    fn maybe_close_js_stream(&self, global: &GlobalScope, cx: SafeJSContext) {
         unsafe {
             let mut readable = false;
+            self.report_done(cx, global);
             /*if !ReadableStreamIsReadable(*cx, stream, &mut readable) {
                 return;
             }
@@ -549,10 +575,9 @@ impl ExternalUnderlyingSourceController {
         }
     }
 
-    fn close(&self, /*cx: SafeJSContext, stream: HandleObject*/stream: &ReadableStream,
-) {
+    fn close(&self, cx: SafeJSContext, global: &GlobalScope) {
         self.closed.set(true);
-        self.maybe_close_js_stream(/*cx, stream*/stream);
+        self.maybe_close_js_stream(global, cx);
     }
 
     fn enqueue_chunk(&self, stream: &ReadableStream, cx: SafeJSContext, mut chunk: Vec<u8>) {
