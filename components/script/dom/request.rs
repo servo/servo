@@ -606,7 +606,8 @@ impl RequestMethods for Request {
     /// <https://fetch.spec.whatwg.org/#dom-body-body>
     fn GetBody(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
         //self.body().map(|stream| stream.get_js_stream())
-        self.body().and_then(|stream| NonNull::new(*stream.reflector().get_jsobject()))
+        self.body()
+            .and_then(|stream| NonNull::new(*stream.reflector().get_jsobject()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-bodyused

@@ -3,14 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::ReadableStreamReadResult;
+use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
-use crate::dom::bindings::utils::get_dictionary_property;
-use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::js::conversions::FromJSValConvertible;
@@ -24,7 +24,9 @@ use js::typedarray::{ArrayBuffer, CreateWith};
     ReadableStreamUnderlyingSourceTraps,
 };*/
 use js::jsapi::{
-    AutoRequireNoGC, /*IsReadableStream,*/ JS_GetArrayBufferViewData,
+    AutoRequireNoGC,
+    /*IsReadableStream,*/
+    JS_GetArrayBufferViewData,
     /*NewReadableExternalSourceStreamObject, ReadableStreamClose, ReadableStreamDefaultReaderRead,
     ReadableStreamError, ReadableStreamGetReader, ReadableStreamIsDisturbed,
     ReadableStreamIsLocked, ReadableStreamIsReadable, ReadableStreamReaderMode,
@@ -44,16 +46,16 @@ use std::rc::Rc;
 use std::slice;
 
 /*static UNDERLYING_SOURCE_TRAPS: ReadableStreamUnderlyingSourceTraps =
-    ReadableStreamUnderlyingSourceTraps {
-        requestData: Some(request_data),
-        writeIntoReadRequestBuffer: Some(write_into_read_request_buffer),
-        cancel: Some(cancel),
-        onClosed: Some(close),
-        onErrored: Some(error),
-        finalize: Some(finalize),
-    };*/
+ReadableStreamUnderlyingSourceTraps {
+    requestData: Some(request_data),
+    writeIntoReadRequestBuffer: Some(write_into_read_request_buffer),
+    cancel: Some(cancel),
+    onClosed: Some(close),
+    onErrored: Some(error),
+    finalize: Some(finalize),
+};*/
 
-#[derive(Copy, Clone, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 enum State {
     Readable,
     Closed,
@@ -88,7 +90,8 @@ impl ReadableStream {
             state: Cell::new(State::Readable),
             has_reader: Default::default(),
             stored_error: Default::default(),
-            external_underlying_source: external_underlying_source.map(ExternalUnderlyingSourceController::new),
+            external_underlying_source: external_underlying_source
+                .map(ExternalUnderlyingSourceController::new),
         }
     }
 
@@ -110,8 +113,8 @@ impl ReadableStream {
         realm: InRealm,
     ) -> Result<DomRoot<ReadableStream>, ()> {
         /*if !IsReadableStream(obj) {
-            return Err(());
-    }*/
+                return Err(());
+        }*/
 
         root_from_object(obj, *cx)
 
@@ -201,15 +204,14 @@ impl ReadableStream {
             .report_error(cx, &global, error);
 
         //unsafe {
-            //rooted!(in(*cx) let mut js_error = UndefinedValue());
-            //error.to_jsval(*cx, &global, js_error.handle_mut());
+        //rooted!(in(*cx) let mut js_error = UndefinedValue());
+        //error.to_jsval(*cx, &global, js_error.handle_mut());
 
-
-            /*ReadableStreamError(
-                *cx,
-                self.js_stream.handle(),
-                js_error.handle().into_handle(),
-            );*/
+        /*ReadableStreamError(
+            *cx,
+            self.js_stream.handle(),
+            js_error.handle().into_handle(),
+        );*/
         //}
     }
 
@@ -319,13 +321,12 @@ impl ReadableStream {
             .expect("No external source to enqueue bytes.")
             .stop_reading(cx, &global);
 
-
         self.has_reader.set(false);
 
         //unsafe {
-            //ReadableStreamReaderReleaseLock(*cx, self.js_reader.handle());
-            // Note: is this the way to nullify the Heap?
-            //self.js_reader.set(ptr::null_mut());
+        //ReadableStreamReaderReleaseLock(*cx, self.js_reader.handle());
+        // Note: is this the way to nullify the Heap?
+        //self.js_reader.set(ptr::null_mut());
         //}
     }
 
@@ -550,7 +551,7 @@ impl ExternalUnderlyingSourceController {
             }
         }
         *self.pending_reader.borrow_mut() = None;
-        
+
         /*unsafe {
             //let mut readable = false;
             /*if !ReadableStreamIsReadable(*cx, stream, &mut readable) {
