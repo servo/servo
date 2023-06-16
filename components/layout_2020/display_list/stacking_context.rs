@@ -200,6 +200,11 @@ pub(crate) enum StackingContextType {
     PseudoAtomicInline,
 }
 
+/// A [StackingContext] represents either a stacking context or a stacking
+/// container according to the definitions outlined in
+/// <https://drafts.csswg.org/css-position-4/#painting-order>
+/// Stacking containers are sometimes called "pseudo-stacking contexts"
+/// in the Servo source.
 pub struct StackingContext {
     /// The spatial id of this fragment. This is used to properly handle
     /// things like preserve-3d.
@@ -218,7 +223,19 @@ pub struct StackingContext {
     /// of this stacking context.
     stacking_contexts: Vec<StackingContext>,
 
-    /// All float pseudo stacking context children of this stacking context.
+    /// All float stacking container children of this stacking context.
+    /// These are stored separately because they should not be passed up to
+    /// their real stacking context ancestors. From the definition of stacking
+    /// containers from <https://drafts.csswg.org/css-position-4#painting-order>:
+    ///
+    /// > To paint a stacking container, given a box root and a canvas canvas:
+    /// >  1. Paint a stacking context given root and canvas, treating root as
+    /// >     if it created a new stacking context, but omitting any positioned
+    /// >     descendants or descendants that actually create a stacking context
+    /// >     (letting the parent stacking context paint them, instead).
+    ///
+    /// Note that all stacking containers / pseudo stacking contexts are passed up
+    /// to parent stacking contexts, except in the case of floats.
     float_stacking_contexts: Vec<StackingContext>,
 }
 
@@ -246,6 +263,15 @@ impl StackingContext {
             fragments: vec![],
             stacking_contexts: vec![],
             float_stacking_contexts: vec![],
+        }
+    }
+
+    /// Add a child stacking context to this stacking context.
+    fn add_stacking_context(&mut self, stacking_context: StackingContext) {
+        if stacking_context.context_type == StackingContextType::PseudoFloat {
+            self.float_stacking_contexts.push(stacking_context);
+        } else {
+            self.stacking_contexts.push(stacking_context);
         }
     }
 
@@ -754,9 +780,7 @@ impl BoxFragment {
         }
 
         child_stacking_context.sort();
-        parent_stacking_context
-            .stacking_contexts
-            .push(child_stacking_context);
+        parent_stacking_context.add_stacking_context(child_stacking_context);
         parent_stacking_context
             .stacking_contexts
             .append(&mut stolen_children);
