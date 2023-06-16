@@ -9,3 +9,8 @@
 // Need to escape "ReadableStream" so it's treated as an identifier.
 interface _ReadableStream {
 };
+
+dictionary ReadableStreamReadResult {
+ any value;
+ boolean done;
+};

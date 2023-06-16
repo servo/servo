@@ -229,7 +229,9 @@ impl BlobMethods for Blob {
 
     // <https://w3c.github.io/FileAPI/#blob-get-stream>
     fn Stream(&self, _cx: JSContext) -> NonNull<JSObject> {
-        self.get_stream().get_js_stream()
+        //self.get_stream().get_js_stream()
+        let stream = self.get_stream();
+        NonNull::new(*stream.reflector().get_jsobject()).expect("shouldn't be null")
     }
 
     // https://w3c.github.io/FileAPI/#slice-method-algo
