@@ -41,7 +41,7 @@ from servo.command_base import (
 )
 from servo.build_commands import copy_dependencies, change_rpath_in_binary
 from servo.gstreamer import macos_gst_root
-from servo.util import delete
+from servo.util import delete, get_target_dir
 
 # Note: mako cannot be imported at the top level because it breaks mach bootstrap
 sys.path.append(path.join(path.dirname(__file__), "..", "..",
@@ -49,40 +49,48 @@ sys.path.append(path.join(path.dirname(__file__), "..", "..",
 
 PACKAGES = {
     'android': [
-        'target/android/armv7-linux-androideabi/release/servoapp.apk',
-        'target/android/armv7-linux-androideabi/release/servoview.aar',
+        'android/armv7-linux-androideabi/release/servoapp.apk',
+        'android/armv7-linux-androideabi/release/servoview.aar',
     ],
     'linux': [
-        'target/release/servo-tech-demo.tar.gz',
+        'release/servo-tech-demo.tar.gz',
     ],
     'linux-layout2020': [
-        'target/release/servo-tech-demo.tar.gz',
+        'release/servo-tech-demo.tar.gz',
     ],
     'mac': [
-        'target/release/servo-tech-demo.dmg',
+        'release/servo-tech-demo.dmg',
     ],
     'mac-layout2020': [
-        'target/release/servo-tech-demo.dmg',
+        'release/servo-tech-demo.dmg',
     ],
     'macbrew': [
-        'target/release/brew/servo.tar.gz',
+        'release/brew/servo.tar.gz',
     ],
     'maven': [
-        'target/android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
-        'target/android/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
+        'android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
+        'android/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
     ],
     'windows-msvc': [
-        r'target\release\msi\Servo.exe',
-        r'target\release\msi\Servo.zip',
+        r'release\msi\Servo.exe',
+        r'release\msi\Servo.zip',
     ],
     'windows-msvc-layout2020': [
-        r'target\release\msi\Servo.exe',
-        r'target\release\msi\Servo.zip',
-    ],
-    'uwp': [
-        r'support\hololens\AppPackages\ServoApp\FirefoxReality.zip',
+        r'release\msi\Servo.exe',
+        r'release\msi\Servo.zip',
     ],
 }
+
+
+def packages_for_platform(platform):
+    target_dir = get_target_dir()
+
+    if platform == "uwp":
+        yield r'support\hololens\AppPackages\ServoApp\FirefoxReality.zip'
+        return
+
+    for package in PACKAGES[platform]:
+        yield path.join(target_dir, package)
 
 
 def listfiles(directory):
@@ -652,7 +660,7 @@ class PackageCommands(CommandBase):
                     ], stdout=DEVNULL, stderr=DEVNULL)
 
         timestamp = datetime.utcnow().replace(microsecond=0)
-        for package in PACKAGES[platform]:
+        for package in packages_for_platform(platform):
             if path.isdir(package):
                 continue
             if not path.isfile(package):
@@ -677,11 +685,11 @@ class PackageCommands(CommandBase):
             upload_to_github_release(platform, package, package_hash)
 
         if platform == 'maven':
-            for package in PACKAGES[platform]:
+            for package in packages_for_platform(platform):
                 update_maven(package)
 
         if platform == 'macbrew':
-            packages = PACKAGES[platform]
+            packages = list(packages_for_platform(platform))
             assert(len(packages) == 1)
             update_brew(packages[0], timestamp)
 
