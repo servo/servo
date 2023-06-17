@@ -481,6 +481,9 @@ impl ExternalUnderlyingSourceController {
         *self.pending_reader.borrow_mut() = Some(promise.clone());
         let buflen = self.buffer.borrow().len();
         self.maybe_signal_available_bytes(cx, &promise.global(), buflen);
+        if self.closed.get() {
+            self.report_done(cx, &promise.global());
+        }
     }
 
     fn stop_reading(&self, cx: SafeJSContext, global: &GlobalScope) {
