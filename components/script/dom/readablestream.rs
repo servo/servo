@@ -280,6 +280,8 @@ impl ReadableStream {
             panic!("Attempt to read stream chunk without having acquired a reader.");
         }
 
+        self.is_disturbed.set(true);
+
         let global = self.global();
         //let _ar = enter_realm(&*global);
         //let _aes = AutoEntryScript::new(&*global);
@@ -338,27 +340,13 @@ impl ReadableStream {
         }
 
         // Otherwise, still double-check that script didn't lock the stream.
-        let cx = GlobalScope::get_cx();
-        let mut locked_or_disturbed = false;
-
-        unsafe {
-            //ReadableStreamIsLocked(*cx, self.js_stream.handle(), &mut locked_or_disturbed);
-        }
-
-        locked_or_disturbed
+        self.is_locked.get()
     }
 
     #[allow(unsafe_code)]
     pub fn is_disturbed(&self) -> bool {
         // Check that script didn't disturb the stream.
-        let cx = GlobalScope::get_cx();
-        let mut locked_or_disturbed = false;
-
-        unsafe {
-            //ReadableStreamIsDisturbed(*cx, self.js_stream.handle(), &mut locked_or_disturbed);
-        }
-
-        locked_or_disturbed
+        self.is_disturbed.get()
     }
 }
 
