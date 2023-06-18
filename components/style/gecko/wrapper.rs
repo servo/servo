@@ -2063,8 +2063,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozIsHTML => self.is_html_element_in_html_document(),
 
             NonTSPseudoClass::MozLWTheme |
-            NonTSPseudoClass::MozLWThemeBrightText |
-            NonTSPseudoClass::MozLWThemeDarkText |
             NonTSPseudoClass::MozLocaleDir(..) |
             NonTSPseudoClass::MozWindowInactive => {
                 let state_bit = pseudo_class.document_state_flag();

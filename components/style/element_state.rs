@@ -148,9 +148,5 @@ bitflags! {
         const LTR_LOCALE = 1 << 2;
         /// LWTheme status
         const LWTHEME = 1 << 3;
-        /// LWTheme status
-        const LWTHEME_BRIGHTTEXT = 1 << 4;
-        /// LWTheme status
-        const LWTHEME_DARKTEXT = 1 << 5;
     }
 }
