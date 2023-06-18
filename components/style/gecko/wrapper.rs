@@ -1588,23 +1588,9 @@ impl<'le> TElement for GeckoElement<'le> {
         use crate::properties::longhands::_x_lang::SpecifiedValue as SpecifiedLang;
         use crate::properties::longhands::_x_text_zoom::SpecifiedValue as SpecifiedZoom;
         use crate::properties::longhands::color::SpecifiedValue as SpecifiedColor;
-        use crate::properties::longhands::text_align::SpecifiedValue as SpecifiedTextAlign;
         use crate::stylesheets::layer_rule::LayerOrder;
         use crate::values::specified::color::Color;
         lazy_static! {
-            static ref TH_RULE: ApplicableDeclarationBlock = {
-                let global_style_data = &*GLOBAL_STYLE_DATA;
-                let pdb = PropertyDeclarationBlock::with_one(
-                    PropertyDeclaration::TextAlign(SpecifiedTextAlign::MozCenterOrInherit),
-                    Importance::Normal,
-                );
-                let arc = Arc::new_leaked(global_style_data.shared_lock.wrap(pdb));
-                ApplicableDeclarationBlock::from_declarations(
-                    arc,
-                    ServoCascadeLevel::PresHints,
-                    LayerOrder::root(),
-                )
-            };
             static ref TABLE_COLOR_RULE: ApplicableDeclarationBlock = {
                 let global_style_data = &*GLOBAL_STYLE_DATA;
                 let pdb = PropertyDeclarationBlock::with_one(
@@ -1649,9 +1635,7 @@ impl<'le> TElement for GeckoElement<'le> {
         let ns = self.namespace_id();
         // <th> elements get a default MozCenterOrInherit which may get overridden
         if ns == structs::kNameSpaceID_XHTML as i32 {
-            if self.local_name().as_ptr() == atom!("th").as_ptr() {
-                hints.push(TH_RULE.clone());
-            } else if self.local_name().as_ptr() == atom!("table").as_ptr() &&
+            if self.local_name().as_ptr() == atom!("table").as_ptr() &&
                 self.as_node().owner_doc().quirks_mode() == QuirksMode::Quirks
             {
                 hints.push(TABLE_COLOR_RULE.clone());
