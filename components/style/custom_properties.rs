@@ -64,6 +64,7 @@ fn get_safearea_inset_right(device: &Device) -> VariableValue {
     VariableValue::pixels(device.safe_area_insets().right)
 }
 
+#[cfg(feature = "gecko")]
 fn get_content_preferred_color_scheme(device: &Device) -> VariableValue {
     use crate::gecko::media_features::PrefersColorScheme;
     let prefers_color_scheme = unsafe {
@@ -76,6 +77,12 @@ fn get_content_preferred_color_scheme(device: &Device) -> VariableValue {
         PrefersColorScheme::Light => "light",
         PrefersColorScheme::Dark => "dark",
     })
+}
+
+#[cfg(feature = "servo")]
+fn get_content_preferred_color_scheme(_device: &Device) -> VariableValue {
+    // TODO: implement this.
+    VariableValue::ident("light")
 }
 
 static ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
