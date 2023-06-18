@@ -893,6 +893,49 @@ impl<'a> Iterator for LonghandIdSetIterator<'a> {
     }
 }
 
+<%
+
+CASCADE_GROUPS = {
+    # The writing-mode group has the most priority of all property groups, as
+    # sizes like font-size can depend on it.
+    "writing_mode": [
+        "writing-mode",
+        "direction",
+        "text-orientation",
+    ],
+    # The fonts and colors group has the second priority, as all other lengths
+    # and colors depend on them.
+    #
+    # There are some interdependencies between these, but we fix them up in
+    # Cascade::fixup_font_stuff.
+    "fonts_and_color": [
+        # Needed to properly compute the zoomed font-size.
+        # FIXME(emilio): This could probably just be a cascade flag
+        # like IN_SVG_SUBTREE or such, and we could nuke this property.
+        "-x-text-zoom",
+        # Needed to do font-size computation in a language-dependent way.
+        "-x-lang",
+        # Needed for ruby to respect language-dependent min-font-size
+        # preferences properly, see bug 1165538.
+        "-moz-min-font-size-ratio",
+        # font-size depends on math-depth's computed value.
+        "math-depth",
+        # Needed to compute the first available font, in order to
+        # compute font-relative units correctly.
+        "font-size",
+        "font-weight",
+        "font-stretch",
+        "font-style",
+        "font-family",
+        # color-scheme affects how system colors resolve.
+        "color-scheme",
+    ],
+}
+def in_late_group(p):
+    return p.name not in CASCADE_GROUPS["writing_mode"] and p.name not in CASCADE_GROUPS["fonts_and_color"]
+
+%>
+
 impl LonghandIdSet {
     #[inline]
     fn reset() -> &'static Self {
@@ -921,12 +964,42 @@ impl LonghandIdSet {
     /// Returns the set of longhands that are ignored when document colors are
     /// disabled.
     #[inline]
-    pub fn ignored_when_colors_disabled() -> &'static Self {
+    fn ignored_when_colors_disabled() -> &'static Self {
         ${static_longhand_id_set(
             "IGNORED_WHEN_COLORS_DISABLED",
             lambda p: p.ignored_when_colors_disabled
         )}
         &IGNORED_WHEN_COLORS_DISABLED
+    }
+
+    #[inline]
+    fn writing_mode_group() -> &'static Self {
+        ${static_longhand_id_set(
+            "WRITING_MODE_GROUP",
+            lambda p: p.name in CASCADE_GROUPS["writing_mode"]
+        )}
+        &WRITING_MODE_GROUP
+    }
+
+    #[inline]
+    fn fonts_and_color_group() -> &'static Self {
+        ${static_longhand_id_set(
+            "FONTS_AND_COLOR_GROUP",
+            lambda p: p.name in CASCADE_GROUPS["fonts_and_color"]
+        )}
+        &FONTS_AND_COLOR_GROUP
+    }
+
+    #[inline]
+    fn late_group_only_inherited() -> &'static Self {
+        ${static_longhand_id_set("LATE_GROUP_ONLY_INHERITED", lambda p: p.style_struct.inherited and in_late_group(p))}
+        &LATE_GROUP_ONLY_INHERITED
+    }
+
+    #[inline]
+    fn late_group() -> &'static Self {
+        ${static_longhand_id_set("LATE_GROUP", lambda p: in_late_group(p))}
+        &LATE_GROUP
     }
 
     /// Returns the set of properties that are declared as having no effect on
@@ -1361,60 +1434,6 @@ impl LonghandId {
     #[inline]
     fn ignored_when_document_colors_disabled(self) -> bool {
         LonghandIdSet::ignored_when_colors_disabled().contains(self)
-    }
-
-    /// The computed value of some properties depends on the (sometimes
-    /// computed) value of *other* properties.
-    ///
-    /// So we classify properties into "early" and "other", such that the only
-    /// dependencies can be from "other" to "early".
-    ///
-    /// Unfortunately, it’s not easy to check that this classification is
-    /// correct.
-    fn is_early_property(&self) -> bool {
-        matches!(*self,
-            % if engine == "gecko":
-
-            // Needed to properly compute the writing mode, to resolve logical
-            // properties, and similar stuff. In this block instead of along
-            // `WritingMode` and `Direction` just for convenience, since it's
-            // Gecko-only (for now at least).
-            //
-            // see WritingMode::new.
-            LonghandId::TextOrientation |
-
-            // Needed to properly compute the zoomed font-size.
-            //
-            // FIXME(emilio): This could probably just be a cascade flag like
-            // IN_SVG_SUBTREE or such, and we could nuke this property.
-            LonghandId::XTextZoom |
-
-            // Needed to do font-size computation in a language-dependent way.
-            LonghandId::XLang |
-            // Needed for ruby to respect language-dependent min-font-size
-            // preferences properly, see bug 1165538.
-            LonghandId::MozMinFontSizeRatio |
-
-            // font-size depends on math-depth's computed value.
-            LonghandId::MathDepth |
-
-            // color-scheme affects how system colors resolve.
-            LonghandId::ColorScheme |
-            % endif
-
-            // Needed to compute the first available font, in order to
-            // compute font-relative units correctly.
-            LonghandId::FontSize |
-            LonghandId::FontWeight |
-            LonghandId::FontStretch |
-            LonghandId::FontStyle |
-            LonghandId::FontFamily |
-
-            // Needed to properly compute the writing mode, to resolve logical
-            // properties, and similar stuff.
-            LonghandId::WritingMode |
-            LonghandId::Direction
-        )
     }
 }
 
