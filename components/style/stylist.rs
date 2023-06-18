@@ -39,7 +39,6 @@ use crate::stylesheets::{
     CssRule, EffectiveRulesIterator, Origin, OriginSet, PageRule, PerOrigin, PerOriginIter,
 };
 use crate::stylesheets::{StyleRule, StylesheetContents, StylesheetInDocument};
-use crate::thread_state::{self, ThreadState};
 use crate::AllocErr;
 use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded, WeakAtom};
 use fxhash::FxHashMap;
@@ -1088,23 +1087,7 @@ impl Stylist {
                 return;
             }
 
-            // Gecko calls this from sequential mode, so we can directly apply
-            // the flags.
-            debug_assert_eq!(thread_state::get(), ThreadState::LAYOUT);
-            let self_flags = flags.for_self();
-            if !self_flags.is_empty() {
-                unsafe {
-                    element.set_selector_flags(self_flags);
-                }
-            }
-            let parent_flags = flags.for_parent();
-            if !parent_flags.is_empty() {
-                if let Some(p) = element.parent_element() {
-                    unsafe {
-                        p.set_selector_flags(parent_flags);
-                    }
-                }
-            }
+            element.apply_selector_flags(flags);
         };
 
         let mut declarations = ApplicableDeclarationList::new();

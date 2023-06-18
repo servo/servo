@@ -7,7 +7,7 @@
 //! elements can indeed share the same style.
 
 use crate::bloom::StyleBloom;
-use crate::context::{SelectorFlagsMap, SharedStyleContext};
+use crate::context::SharedStyleContext;
 use crate::dom::TElement;
 use crate::sharing::{StyleSharingCandidate, StyleSharingTarget};
 use selectors::NthIndexCache;
@@ -120,7 +120,6 @@ pub fn revalidate<E>(
     shared_context: &SharedStyleContext,
     bloom: &StyleBloom<E>,
     nth_index_cache: &mut NthIndexCache,
-    selector_flags_map: &mut SelectorFlagsMap<E>,
 ) -> bool
 where
     E: TElement,
@@ -128,7 +127,7 @@ where
     let stylist = &shared_context.stylist;
 
     let for_element =
-        target.revalidation_match_results(stylist, bloom, nth_index_cache, selector_flags_map);
+        target.revalidation_match_results(stylist, bloom, nth_index_cache);
 
     let for_candidate = candidate.revalidation_match_results(stylist, bloom, nth_index_cache);
 

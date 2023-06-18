@@ -738,14 +738,26 @@ pub trait TElement:
     /// matched on this element and therefore what kind of work may need to
     /// be performed when DOM state changes.
     ///
-    /// This is unsafe, like all the flag-setting methods, because it's only safe
-    /// to call with exclusive access to the element. When setting flags on the
-    /// parent during parallel traversal, we use SequentialTask to queue up the
-    /// set to run after the threads join.
-    unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags);
+    /// You probably don't want to use this directly and want to use
+    /// apply_selector_flags, since that sets flags on the parent as needed.
+    fn set_selector_flags(&self, flags: ElementSelectorFlags);
 
-    /// Returns true if the element has all the specified selector flags.
-    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
+    /// Applies selector flags to an element and its parent as needed.
+    fn apply_selector_flags(&self, flags: ElementSelectorFlags) {
+        // Handle flags that apply to the element.
+        let self_flags = flags.for_self();
+        if !self_flags.is_empty() {
+            self.set_selector_flags(self_flags);
+        }
+
+        // Handle flags that apply to the parent.
+        let parent_flags = flags.for_parent();
+        if !parent_flags.is_empty() {
+            if let Some(p) = self.parent_element() {
+                p.set_selector_flags(parent_flags);
+            }
+        }
+    }
 
     /// In Gecko, element has a flag that represents the element may have
     /// any type of animations or not to bail out animation stuff early.
