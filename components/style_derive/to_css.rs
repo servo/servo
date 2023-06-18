@@ -5,6 +5,7 @@
 use darling::util::Override;
 use darling::FromDeriveInput;
 use darling::FromField;
+use darling::FromMeta;
 use darling::FromVariant;
 use derive_common::cg;
 use proc_macro2::{Span, TokenStream};
