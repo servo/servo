@@ -428,14 +428,17 @@ fn tweak_when_ignoring_colors(
             // otherwise, this is needed to preserve semi-transparent
             // backgrounds.
             //
-            // NOTE(emilio): We revert even for alpha == 0. Not doing so would
-            // be a bit special casey, even though it causes issues like
-            // bug 1625036. The reasoning is that the conditions that trigger
-            // that (having mismatched widget and default backgrounds) are both
-            // uncommon, and broken in other applications as well, and not
-            // honoring transparent makes stuff uglier or break unconditionally
+            // NOTE(emilio): We honor transparent unconditionally, like we do
+            // for color, even though it causes issues like bug 1625036. The
+            // reasoning is that the conditions that trigger that (having
+            // mismatched widget and default backgrounds) are both uncommon, and
+            // broken in other applications as well, and not honoring
+            // transparent makes stuff uglier or break unconditionally
             // (bug 1666059, bug 1755713).
             let alpha = alpha_channel(color, context);
+            if alpha == 0 {
+                return;
+            }
             let mut color = context.builder.device.default_background_color();
             color.alpha = alpha;
             declarations_to_apply_unless_overriden
