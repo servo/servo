@@ -1393,14 +1393,9 @@ impl<'le> TElement for GeckoElement<'le> {
         self.is_root_of_native_anonymous_subtree()
     }
 
-    unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags) {
+    fn set_selector_flags(&self, flags: ElementSelectorFlags) {
         debug_assert!(!flags.is_empty());
         self.set_flags(selector_flags_to_node_flags(flags));
-    }
-
-    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
-        let node_flags = selector_flags_to_node_flags(flags);
-        (self.flags() & node_flags) == node_flags
     }
 
     #[inline]

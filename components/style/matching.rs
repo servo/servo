@@ -8,7 +8,7 @@
 #![deny(missing_docs)]
 
 use crate::computed_value_flags::ComputedValueFlags;
-use crate::context::{CascadeInputs, ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
+use crate::context::{CascadeInputs, ElementCascadeInputs, QuirksMode};
 use crate::context::{SharedStyleContext, StyleContext};
 use crate::data::{ElementData, ElementStyles};
 use crate::dom::TElement;
@@ -26,7 +26,6 @@ use crate::style_resolver::{PseudoElementResolution, StyleResolverForElement};
 use crate::stylesheets::layer_rule::LayerOrder;
 use crate::stylist::RuleInclusion;
 use crate::traversal_flags::TraversalFlags;
-use selectors::matching::ElementSelectorFlags;
 use servo_arc::{Arc, ArcBorrow};
 
 /// Represents the result of comparing an element's old and new style.
@@ -1005,51 +1004,6 @@ pub trait MatchMethods: TElement {
         }
 
         cascade_requirement
-    }
-
-    /// Applies selector flags to an element, deferring mutations of the parent
-    /// until after the traversal.
-    ///
-    /// TODO(emilio): This is somewhat inefficient, because it doesn't take
-    /// advantage of us knowing that the traversal is sequential.
-    fn apply_selector_flags(
-        &self,
-        map: &mut SelectorFlagsMap<Self>,
-        element: &Self,
-        flags: ElementSelectorFlags,
-    ) {
-        // Handle flags that apply to the element.
-        let self_flags = flags.for_self();
-        if !self_flags.is_empty() {
-            if element == self {
-                // If this is the element we're styling, we have exclusive
-                // access to the element, and thus it's fine inserting them,
-                // even from the worker.
-                unsafe {
-                    element.set_selector_flags(self_flags);
-                }
-            } else {
-                // Otherwise, this element is an ancestor of the current element
-                // we're styling, and thus multiple children could write to it
-                // if we did from here.
-                //
-                // Instead, we can read them, and post them if necessary as a
-                // sequential task in order for them to be processed later.
-                if !element.has_selector_flags(self_flags) {
-                    map.insert_flags(*element, self_flags);
-                }
-            }
-        }
-
-        // Handle flags that apply to the parent.
-        let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = element.parent_element() {
-                if !p.has_selector_flags(parent_flags) {
-                    map.insert_flags(p, parent_flags);
-                }
-            }
-        }
     }
 
     /// Updates the rule nodes without re-running selector matching, using just
