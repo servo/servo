@@ -414,6 +414,13 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
     }
 }
 
+fn container_queries_enabled() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.container-queries.enabled");
+    #[cfg(feature = "servo")]
+    return false;
+}
+
 impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
     type Prelude = AtRulePrelude;
     type AtRule = CssRule;
@@ -437,7 +444,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
             "font-face" => {
                 AtRulePrelude::FontFace
             },
-            "container" if static_prefs::pref!("layout.css.container-queries.enabled") => {
+            "container" if container_queries_enabled() => {
                 // FIXME: This is a bit ambiguous:
                 // https://github.com/w3c/csswg-drafts/issues/7203
                 let name = input.try_parse(|input| {
