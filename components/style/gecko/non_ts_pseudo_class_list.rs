@@ -92,8 +92,6 @@ macro_rules! apply_non_ts_list {
                 ("-moz-is-html", MozIsHTML, _, _),
                 ("-moz-placeholder", MozPlaceholder, _, _),
                 ("-moz-lwtheme", MozLWTheme, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-lwtheme-brighttext", MozLWThemeBrightText, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-lwtheme-darktext", MozLWThemeDarkText, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("-moz-window-inactive", MozWindowInactive, _, _),
             ]
         }
