@@ -1288,6 +1288,61 @@ pub enum ContentVisibility {
     Visible,
 }
 
+bitflags! {
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToCss, Parse, ToResolvedValue, ToShmem)]
+    #[repr(C)]
+    #[allow(missing_docs)]
+    #[css(bitflags(single="none", mixed="style,size,inline-size", overlapping_bits))]
+    /// https://drafts.csswg.org/css-contain-3/#container-type
+    ///
+    /// TODO: block-size is on the spec but it seems it was removed? WPTs don't
+    /// support it, see https://github.com/w3c/csswg-drafts/issues/7179.
+    pub struct ContainerType: u8 {
+        /// The `none` variant.
+        const NONE = 0;
+        /// The `style` variant.
+        const STYLE = 1 << 0;
+        /// The `inline-size` variant.
+        const INLINE_SIZE = 1 << 1;
+        /// The `size` variant, exclusive with `inline-size` (they sharing bits
+        /// guarantees this).
+        const SIZE = 1 << 2 | Self::INLINE_SIZE.bits;
+    }
+}
+
+/// https://drafts.csswg.org/css-contain-3/#container-name
+#[repr(transparent)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+pub struct ContainerName(#[css(iterable, if_empty = "none")] pub crate::OwnedSlice<CustomIdent>);
+
+impl ContainerName {
+    /// Return the `none` value.
+    pub fn none() -> Self {
+        Self(Default::default())
+    }
+
+    /// Returns whether this is the `none` value.
+    pub fn is_none(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl Parse for ContainerName {
+    fn parse<'i, 't>( _: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let mut idents = vec![];
+        let location = input.current_source_location();
+        let first = input.expect_ident()?;
+        if first.eq_ignore_ascii_case("none") {
+            return Ok(Self::none())
+        }
+        idents.push(CustomIdent::from_ident(location, first, &["none"])?);
+        while let Ok(ident) = input.try_parse(|input| input.expect_ident_cloned()) {
+            idents.push(CustomIdent::from_ident(location, &ident, &["none"])?);
+        }
+        Ok(ContainerName(idents.into()))
+    }
+}
+
 /// A specified value for the `perspective` property.
 pub type Perspective = GenericPerspective<NonNegativeLength>;
 
