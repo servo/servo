@@ -358,12 +358,8 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
         false
     }
 
-    unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags) {
+    fn set_selector_flags(&self, flags: ElementSelectorFlags) {
         self.element.insert_selector_flags(flags);
-    }
-
-    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
-        self.element.has_selector_flags(flags)
     }
 
     fn has_animations(&self, context: &SharedStyleContext) -> bool {
