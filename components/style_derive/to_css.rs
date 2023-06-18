@@ -31,17 +31,35 @@ fn derive_bitflags(input: &syn::DeriveInput, bitflags: &CssBitflagAttrs) -> Toke
         let mut has_any = false;
     });
 
+    if bitflags.overlapping_bits {
+        body.append_all(quote! {
+            let mut serialized = Self::empty();
+        });
+    }
+
     for (rust_name, css_name) in bitflags.mixed_flags() {
         let rust_ident = Ident::new(&rust_name, Span::call_site());
-        body.append_all(quote! {
-            if self.intersects(Self::#rust_ident) {
-                if has_any {
-                    dest.write_char(' ')?;
-                }
-                has_any = true;
-                dest.write_str(#css_name)?;
+        let serialize = quote! {
+            if has_any {
+                dest.write_char(' ')?;
             }
-        });
+            has_any = true;
+            dest.write_str(#css_name)?;
+        };
+        if bitflags.overlapping_bits {
+            body.append_all(quote! {
+                if self.contains(Self::#rust_ident) && !serialized.intersects(Self::#rust_ident) {
+                    #serialize
+                    serialized.insert(Self::#rust_ident);
+                }
+            });
+        } else {
+            body.append_all(quote! {
+                if self.intersects(Self::#rust_ident) {
+                    #serialize
+                }
+            });
+        }
     }
 
     body.append_all(quote! {
@@ -319,6 +337,10 @@ pub struct CssBitflagAttrs {
     /// Extra validation of the resulting mixed flags.
     #[darling(default)]
     pub validate_mixed: Option<Path>,
+    /// Whether there are overlapping bits we need to take care of when
+    /// serializing.
+    #[darling(default)]
+    pub overlapping_bits: bool,
 }
 
 impl CssBitflagAttrs {

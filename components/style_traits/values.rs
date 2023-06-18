@@ -44,9 +44,9 @@ use std::fmt::{self, Write};
 /// * `#[css(represents_keyword)]` can be used on bool fields in order to
 ///   serialize the field name if the field is true, or nothing otherwise.  It
 ///   also collects those keywords for `SpecifiedValueInfo`.
-/// * `#[css(bitflags(single="", mixed="", validate="")]` can be used to derive
-///   parse / serialize / etc on bitflags. The rules for parsing bitflags are
-///   the following:
+/// * `#[css(bitflags(single="", mixed="", validate="", overlapping_bits)]` can
+///   be used to derive parse / serialize / etc on bitflags. The rules for parsing
+///   bitflags are the following:
 ///
 ///     * `single` flags can only appear on their own. It's common that bitflags
 ///       properties at least have one such value like `none` or `auto`.
@@ -66,6 +66,13 @@ use std::fmt::{self, Write};
 ///
 ///       But `bar baz` will be valid, as they don't share bits, and so would
 ///       `foo` with any other flag, or `bazz` on its own.
+///    * `overlapping_bits` enables some tracking during serialization of mixed
+///       flags to avoid serializing variants that can subsume other variants.
+///       In the example above, you could do:
+///         mixed="foo,bazz,bar,baz", overlapping_bits
+///       to ensure that if bazz is serialized, bar and baz aren't, even though
+///       their bits are set. Note that the serialization order is canonical,
+///       and thus depends on the order you specify the flags in.
 ///
 /// * finally, one can put `#[css(derive_debug)]` on the whole type, to
 ///   implement `Debug` by a single call to `ToCss::to_css`.
