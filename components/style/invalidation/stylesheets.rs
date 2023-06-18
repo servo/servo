@@ -556,6 +556,7 @@ impl StylesheetInvalidationSet {
             FontFace(..) |
             Keyframes(..) |
             ScrollTimeline(..) |
+            Container(..) |
             Style(..) => {
                 if is_generic_change {
                     // TODO(emilio): We need to do this for selector / keyframe
@@ -610,7 +611,7 @@ impl StylesheetInvalidationSet {
                 }
             },
             Document(..) | Namespace(..) | Import(..) | Media(..) | Supports(..) |
-            LayerStatement(..) | LayerBlock(..) => {
+            Container(..) | LayerStatement(..) | LayerBlock(..) => {
                 // Do nothing, relevant nested rules are visited as part of the
                 // iteration.
             },
