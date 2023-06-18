@@ -71,7 +71,14 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
                 }
             },
             Data::Struct(ref s) => {
-                if !derive_struct_fields(&s.fields, &mut types, &mut values) {
+                if let Some(ref bitflags) = css_attrs.bitflags {
+                    for (_rust_name, css_name) in bitflags.single_flags() {
+                        values.push(css_name)
+                    }
+                    for (_rust_name, css_name) in bitflags.mixed_flags() {
+                        values.push(css_name)
+                    }
+                } else if !derive_struct_fields(&s.fields, &mut types, &mut values) {
                     values.push(input_name());
                 }
             },

@@ -232,8 +232,8 @@ impl ToComputedValue for TextOverflow {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, Serialize, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
-    #[value_info(other_values = "none,underline,overline,line-through,blink")]
+    #[derive(MallocSizeOf, Parse, Serialize, SpecifiedValueInfo, ToCss, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[css(bitflags(single = "none", mixed = "underline,overline,line-through,blink"))]
     #[repr(C)]
     /// Specified keyword values for the text-decoration-line property.
     pub struct TextDecorationLine: u8 {
@@ -262,94 +262,6 @@ bitflags! {
 impl Default for TextDecorationLine {
     fn default() -> Self {
         TextDecorationLine::NONE
-    }
-}
-
-impl Parse for TextDecorationLine {
-    /// none | [ underline || overline || line-through || blink ]
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        let mut result = TextDecorationLine::empty();
-
-        // NOTE(emilio): this loop has this weird structure because we run this
-        // code to parse the text-decoration shorthand as well, so we need to
-        // ensure we don't return an error if we don't consume the whole thing
-        // because we find an invalid identifier or other kind of token.
-        loop {
-            let flag: Result<_, ParseError<'i>> = input.try_parse(|input| {
-                let flag = try_match_ident_ignore_ascii_case! { input,
-                    "none" if result.is_empty() => TextDecorationLine::NONE,
-                    "underline" => TextDecorationLine::UNDERLINE,
-                    "overline" => TextDecorationLine::OVERLINE,
-                    "line-through" => TextDecorationLine::LINE_THROUGH,
-                    "blink" => TextDecorationLine::BLINK,
-                };
-
-                Ok(flag)
-            });
-
-            let flag = match flag {
-                Ok(flag) => flag,
-                Err(..) => break,
-            };
-
-            if flag.is_empty() {
-                return Ok(TextDecorationLine::NONE);
-            }
-
-            if result.contains(flag) {
-                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-            }
-
-            result.insert(flag)
-        }
-
-        if !result.is_empty() {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-}
-
-impl ToCss for TextDecorationLine {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_empty() {
-            return dest.write_str("none");
-        }
-
-        #[cfg(feature = "gecko")]
-        {
-            if *self == TextDecorationLine::COLOR_OVERRIDE {
-                return Ok(());
-            }
-        }
-
-        let mut writer = SequenceWriter::new(dest, " ");
-        let mut any = false;
-
-        macro_rules! maybe_write {
-            ($ident:ident => $str:expr) => {
-                if self.contains(TextDecorationLine::$ident) {
-                    any = true;
-                    writer.raw_item($str)?;
-                }
-            };
-        }
-
-        maybe_write!(UNDERLINE => "underline");
-        maybe_write!(OVERLINE => "overline");
-        maybe_write!(LINE_THROUGH => "line-through");
-        maybe_write!(BLINK => "blink");
-
-        debug_assert!(any);
-
-        Ok(())
     }
 }
 
@@ -399,6 +311,7 @@ impl TextTransform {
     }
 }
 
+// TODO: This can be simplified by deriving it.
 impl Parse for TextTransform {
     fn parse<'i, 't>(
         _context: &ParserContext,
@@ -1194,6 +1107,7 @@ bitflags! {
     }
 }
 
+// TODO: This can be derived with some care.
 impl Parse for TextUnderlinePosition {
     fn parse<'i, 't>(
         _context: &ParserContext,

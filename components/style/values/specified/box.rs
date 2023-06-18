@@ -17,7 +17,6 @@ use crate::values::{CustomIdent, KeyframesName, TimelineName};
 use crate::Atom;
 use cssparser::Parser;
 use num_traits::FromPrimitive;
-use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Formatter, Write};
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
@@ -1213,9 +1212,8 @@ impl Parse for WillChange {
 
 bitflags! {
     /// Values for the `touch-action` property.
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
-    /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
-    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y,pinch-zoom")]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem, Parse)]
+    #[css(bitflags(single = "none,auto,manipulation", mixed = "pan-x,pan-y,pinch-zoom"))]
     #[repr(C)]
     pub struct TouchAction: u8 {
         /// `none` variant
@@ -1241,82 +1239,9 @@ impl TouchAction {
     }
 }
 
-impl ToCss for TouchAction {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.contains(TouchAction::AUTO) {
-            return dest.write_str("auto");
-        }
-        if self.contains(TouchAction::NONE) {
-            return dest.write_str("none");
-        }
-        if self.contains(TouchAction::MANIPULATION) {
-            return dest.write_str("manipulation");
-        }
-
-        let mut has_any = false;
-        macro_rules! maybe_write_value {
-            ($ident:path => $str:expr) => {
-                if self.contains($ident) {
-                    if has_any {
-                        dest.write_str(" ")?;
-                    }
-                    has_any = true;
-                    dest.write_str($str)?;
-                }
-            };
-        }
-        maybe_write_value!(TouchAction::PAN_X => "pan-x");
-        maybe_write_value!(TouchAction::PAN_Y => "pan-y");
-        maybe_write_value!(TouchAction::PINCH_ZOOM => "pinch-zoom");
-
-        debug_assert!(has_any);
-        Ok(())
-    }
-}
-
-impl Parse for TouchAction {
-    /// auto | none | [ pan-x || pan-y || pinch-zoom ] | manipulation
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<TouchAction, ParseError<'i>> {
-        let mut result = TouchAction::empty();
-        while let Ok(name) = input.try_parse(|i| i.expect_ident_cloned()) {
-            let flag = match_ignore_ascii_case! { &name,
-                "pan-x" => Some(TouchAction::PAN_X),
-                "pan-y" => Some(TouchAction::PAN_Y),
-                "pinch-zoom" => Some(TouchAction::PINCH_ZOOM),
-                "none" if result.is_empty() => return Ok(TouchAction::NONE),
-                "manipulation" if result.is_empty() => return Ok(TouchAction::MANIPULATION),
-                "auto" if result.is_empty() => return Ok(TouchAction::AUTO),
-                _ => None
-            };
-
-            let flag = match flag {
-                Some(flag) if !result.contains(flag) => flag,
-                _ => {
-                    return Err(
-                        input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name))
-                    );
-                },
-            };
-            result.insert(flag);
-        }
-
-        if !result.is_empty() {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-}
-
 bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
-    #[value_info(other_values = "none,strict,content,size,layout,paint")]
+    #[derive(MallocSizeOf, Parse, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+    #[css(bitflags(single = "none,strict,content", mixed="size,layout,paint"))]
     #[repr(C)]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
@@ -1329,90 +1254,13 @@ bitflags! {
         /// `paint` variant, turns on paint containment
         const PAINT = 1 << 2;
         /// `strict` variant, turns on all types of containment
-        const STRICT = 1 << 3;
+        const STRICT = 1 << 3 | Contain::LAYOUT.bits | Contain::PAINT.bits | Contain::SIZE.bits;
         /// 'content' variant, turns on layout and paint containment
-        const CONTENT = 1 << 4;
-        /// variant with all the bits that contain: strict turns on
-        const STRICT_BITS = Contain::LAYOUT.bits | Contain::PAINT.bits | Contain::SIZE.bits;
-        /// variant with all the bits that contain: content turns on
-        const CONTENT_BITS = Contain::LAYOUT.bits | Contain::PAINT.bits;
+        const CONTENT = 1 << 4 | Contain::LAYOUT.bits | Contain::PAINT.bits;
     }
 }
 
-impl ToCss for Contain {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_empty() {
-            return dest.write_str("none");
-        }
-        if self.contains(Contain::STRICT) {
-            return dest.write_str("strict");
-        }
-        if self.contains(Contain::CONTENT) {
-            return dest.write_str("content");
-        }
-
-        let mut has_any = false;
-        macro_rules! maybe_write_value {
-            ($ident:path => $str:expr) => {
-                if self.contains($ident) {
-                    if has_any {
-                        dest.write_str(" ")?;
-                    }
-                    has_any = true;
-                    dest.write_str($str)?;
-                }
-            };
-        }
-        maybe_write_value!(Contain::SIZE => "size");
-        maybe_write_value!(Contain::LAYOUT => "layout");
-        maybe_write_value!(Contain::PAINT => "paint");
-
-        debug_assert!(has_any);
-        Ok(())
-    }
-}
-
-impl Parse for Contain {
-    /// none | strict | content | [ size || layout || paint ]
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Contain, ParseError<'i>> {
-        let mut result = Contain::empty();
-        while let Ok(name) = input.try_parse(|i| i.expect_ident_cloned()) {
-            let flag = match_ignore_ascii_case! { &name,
-                "size" => Some(Contain::SIZE),
-                "layout" => Some(Contain::LAYOUT),
-                "paint" => Some(Contain::PAINT),
-                "strict" if result.is_empty() => return Ok(Contain::STRICT | Contain::STRICT_BITS),
-                "content" if result.is_empty() => return Ok(Contain::CONTENT | Contain::CONTENT_BITS),
-                "none" if result.is_empty() => return Ok(result),
-                _ => None
-            };
-
-            let flag = match flag {
-                Some(flag) if !result.contains(flag) => flag,
-                _ => {
-                    return Err(
-                        input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name))
-                    );
-                },
-            };
-            result.insert(flag);
-        }
-
-        if !result.is_empty() {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-}
-
-#[allow(missing_docs)]
+/// https://drafts.csswg.org/css-contain-2/#content-visibility
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Clone,
@@ -2101,9 +1949,9 @@ impl Overflow {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
-    #[value_info(other_values = "auto,stable,both-edges")]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToCss, ToComputedValue, ToResolvedValue, ToShmem, Parse)]
     #[repr(C)]
+    #[css(bitflags(single = "auto", mixed = "stable,both-edges", validate_mixed="Self::has_stable"))]
     /// Values for scrollbar-gutter:
     /// <https://drafts.csswg.org/css-overflow-3/#scrollbar-gutter-property>
     pub struct ScrollbarGutter: u8 {
@@ -2116,56 +1964,9 @@ bitflags! {
     }
 }
 
-impl ToCss for ScrollbarGutter {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_empty() {
-            return dest.write_str("auto");
-        }
-
-        debug_assert!(
-            self.contains(ScrollbarGutter::STABLE),
-            "We failed to parse the syntax!"
-        );
-        dest.write_str("stable")?;
-        if self.contains(ScrollbarGutter::BOTH_EDGES) {
-            dest.write_str(" both-edges")?;
-        }
-
-        Ok(())
-    }
-}
-
-impl Parse for ScrollbarGutter {
-    /// auto | stable && both-edges?
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<ScrollbarGutter, ParseError<'i>> {
-        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(ScrollbarGutter::AUTO);
-        }
-
-        let mut result = ScrollbarGutter::empty();
-        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
-            let flag = match_ignore_ascii_case! { &ident,
-                "stable" => Some(ScrollbarGutter::STABLE),
-                "both-edges" => Some(ScrollbarGutter::BOTH_EDGES),
-                _ => None
-            };
-
-            match flag {
-                Some(flag) if !result.contains(flag) => result.insert(flag),
-                _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-            }
-        }
-
-        if result.contains(ScrollbarGutter::STABLE) {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
+impl ScrollbarGutter {
+    #[inline]
+    fn has_stable(self) -> bool {
+        self.intersects(Self::STABLE)
     }
 }
