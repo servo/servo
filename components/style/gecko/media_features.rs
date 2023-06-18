@@ -283,6 +283,18 @@ pub enum PrefersColorScheme {
     Dark,
 }
 
+/// Values for the dynamic-range and video-dynamic-range media features.
+/// https://drafts.csswg.org/mediaqueries-5/#dynamic-range
+/// This implements PartialOrd so that lower values will correctly match
+/// higher capabilities.
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, PartialOrd, ToCss)]
+#[repr(u8)]
+#[allow(missing_docs)]
+pub enum DynamicRange {
+    Standard,
+    High,
+}
+
 /// https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-motion
 fn eval_prefers_reduced_motion(device: &Device, query_value: Option<PrefersReducedMotion>) -> bool {
     let prefers_reduced =
@@ -418,6 +430,25 @@ fn eval_content_prefers_color_scheme(
     query_value: Option<PrefersColorScheme>,
 ) -> bool {
     do_eval_prefers_color_scheme(device, /* use_content = */ true, query_value)
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#dynamic-range
+fn eval_dynamic_range(device: &Device, query_value: Option<DynamicRange>) -> bool {
+    let dynamic_range =
+        unsafe { bindings::Gecko_MediaFeatures_DynamicRange(device.document()) };
+    match query_value {
+        Some(v) => dynamic_range >= v,
+        None => false,
+    }
+}
+/// https://drafts.csswg.org/mediaqueries-5/#video-dynamic-range
+fn eval_video_dynamic_range(device: &Device, query_value: Option<DynamicRange>) -> bool {
+    let dynamic_range =
+        unsafe { bindings::Gecko_MediaFeatures_VideoDynamicRange(device.document()) };
+    match query_value {
+        Some(v) => dynamic_range >= v,
+        None => false,
+    }
 }
 
 bitflags! {
@@ -682,7 +713,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
+pub static MEDIA_FEATURES: [MediaFeatureDescription; 60] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -833,6 +864,18 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 58] = [
         atom!("prefers-color-scheme"),
         AllowsRanges::No,
         keyword_evaluator!(eval_prefers_color_scheme, PrefersColorScheme),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("dynamic-range"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_dynamic_range, DynamicRange),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("video-dynamic-range"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_video_dynamic_range, DynamicRange),
         ParsingRequirements::empty(),
     ),
     // Evaluates to the preferred color scheme for content. Only useful in
