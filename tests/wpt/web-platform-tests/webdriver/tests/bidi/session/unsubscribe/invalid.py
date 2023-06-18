@@ -8,14 +8,14 @@ from ... import create_console_api_message
 @pytest.mark.asyncio
 async def test_params_empty(bidi_session, send_blocking_command):
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command("session.unsubscribe", {})
+        await send_blocking_command("session.unsubscribe", {})
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("value", [None, True, "foo", 42, {}])
 async def test_params_events_invalid_type(bidi_session, send_blocking_command, value):
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command("session.unsubscribe", {"events": value})
+        await send_blocking_command("session.unsubscribe", {"events": value})
 
 
 @pytest.mark.asyncio
@@ -28,14 +28,14 @@ async def test_params_events_empty(bidi_session):
 @pytest.mark.parametrize("value", [None, True, 42, [], {}])
 async def test_params_events_value_invalid_type(send_blocking_command, value):
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command("session.unsubscribe", {"events": [value]})
+        await send_blocking_command("session.unsubscribe", {"events": [value]})
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("value", ["", "foo", "foo.bar"])
 async def test_params_events_value_invalid_event_name(send_blocking_command, value):
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command("session.unsubscribe", {"events": [value]})
+        await send_blocking_command("session.unsubscribe", {"events": [value]})
 
 
 @pytest.mark.asyncio
@@ -47,7 +47,7 @@ async def test_params_events_value_valid_and_invalid_event_name(
 
     # Try to unsubscribe from the valid and an invalid event
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe", {"events": ["log.entryAdded", "some.invalidEvent"]}
         )
 
@@ -82,7 +82,7 @@ async def test_unsubscribe_from_one_event_and_then_from_module(
 
     # Try to unsubscribe from all events
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe", {"events": ["browsingContext"]}
         )
 
@@ -95,7 +95,7 @@ async def test_unsubscribe_from_one_event_and_then_from_module(
 @pytest.mark.parametrize("value", [True, "foo", 42, {}])
 async def test_params_contexts_invalid_type(bidi_session, send_blocking_command, value):
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe",
             {
                 "events": [],
@@ -114,7 +114,7 @@ async def test_params_contexts_empty(bidi_session):
 @pytest.mark.parametrize("value", [None, True, 42, [], {}])
 async def test_params_contexts_value_invalid_type(send_blocking_command, value):
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe",
             {
                 "events": [],
@@ -126,7 +126,7 @@ async def test_params_contexts_value_invalid_type(send_blocking_command, value):
 @pytest.mark.asyncio
 async def test_params_contexts_value_invalid_value(send_blocking_command):
     with pytest.raises(NoSuchFrameException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe",
             {
                 "events": [],
@@ -144,7 +144,7 @@ async def test_params_contexts_value_valid_and_invalid_value(
 
     # Try to unsubscribe from the valid and an invalid context
     with pytest.raises(NoSuchFrameException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe",
             {"events": ["log.entryAdded"], "contexts": [top_context["context"], "foo"]},
         )
@@ -181,7 +181,7 @@ async def test_unsubscribe_from_closed_tab(
 
     # Try to unsubscribe from the closed context
     with pytest.raises(NoSuchFrameException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe",
             {"events": ["log.entryAdded"], "contexts": [new_tab["context"]]},
         )
@@ -190,7 +190,7 @@ async def test_unsubscribe_from_closed_tab(
 @pytest.mark.asyncio
 async def test_params_unsubscribe_globally_without_subscription(send_blocking_command):
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe", {"events": ["log.entryAdded"]}
         )
 
@@ -204,7 +204,7 @@ async def test_params_unsubscribe_globally_with_individual_subscription(
 
     # Try to unsubscribe globally
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe", {"events": ["log.entryAdded"]}
         )
 
@@ -214,7 +214,7 @@ async def test_params_unsubscribe_from_one_context_without_subscription(
     send_blocking_command, top_context
 ):
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe",
             {"events": ["log.entryAdded"], "contexts": [top_context["context"]]},
         )
@@ -229,7 +229,7 @@ async def test_params_unsubscribe_from_one_context_with_global_subscription(
 
     # Try to unsubscribe from one context
     with pytest.raises(InvalidArgumentException):
-        response = await send_blocking_command(
+        await send_blocking_command(
             "session.unsubscribe",
             {"events": ["log.entryAdded"], "contexts": [top_context["context"]]},
         )

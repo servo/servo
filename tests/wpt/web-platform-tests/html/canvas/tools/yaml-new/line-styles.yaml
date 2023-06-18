@@ -395,6 +395,21 @@
     ctx.lineCap = 'bevel';
     @assert ctx.lineCap === 'butt';
 
+- name: 2d.line.fill.noop
+  desc: Filling a line draws nothing
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.lineWidth = 20;
+    ctx.beginPath();
+    ctx.moveTo(10, 20);
+    ctx.lineTo(90, 30);
+    ctx.fill();
+    @assert pixel 50,24 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 50,26 == 0,255,0,255;
+
 - name: 2d.line.join.bevel
   desc: lineJoin 'bevel' is rendered correctly
   code: |

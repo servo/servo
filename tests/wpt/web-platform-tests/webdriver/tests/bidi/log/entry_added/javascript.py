@@ -1,6 +1,3 @@
-import math
-import time
-
 import pytest
 
 from . import assert_javascript_entry, create_log
@@ -9,7 +6,7 @@ from ... import int_interval
 
 @pytest.mark.asyncio
 async def test_types_and_values(
-    bidi_session, current_time, inline, top_context, wait_for_event
+    bidi_session, current_time, top_context, wait_for_event
 ):
     await bidi_session.session.subscribe(events=["log.entryAdded"])
 

@@ -309,6 +309,7 @@ function test_image_set_parsing() {
   test_valid_value_variants('border-image-source', 'image-set(url("example.png") 1x)', 'image-set(url("example.png") 1x)');
   test_valid_value_variants('border-image-source', 'image-set(url("example.png") 1x, "example.png" 3x)', 'image-set(url("example.png") 1x, url("example.png") 3x)');
 
+  test_invalid_value_variants('background-image', 'image-set(url("example.png") -20x)');
   test_invalid_value_variants('background-image', "image-set(none, url(example.png) 1x)");
   test_invalid_value_variants('background-image', "image-set()");
   test_invalid_value_variants('background-image', "image-set('example.jpeg' 92pid url(example.png) 1x)");

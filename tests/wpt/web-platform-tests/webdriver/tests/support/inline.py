@@ -1,5 +1,6 @@
 """Helpers for inlining extracts of documents in tests."""
 
+from typing import Literal, Optional
 from urllib.parse import urlencode
 
 
@@ -25,14 +26,22 @@ MIME_TYPES = {
 }
 
 
-def build_inline(build_url, src, doctype="html", mime=None, charset=None, **kwargs):
+def build_inline(build_url, src,
+                 doctype: Literal["html", "xhtml", "xml"] = "html",
+                 mime: Optional[str] = None, charset: Optional[str] = None,
+                 parameters = None, **kwargs):
     if mime is None:
         mime = MIME_TYPES[doctype]
     if charset is None:
         charset = "UTF-8"
+    if parameters is None:
+        parameters = {}
+
     doc = BOILERPLATES[doctype].format(charset=charset, src=src)
 
     query = {"doc": doc, "mime": mime, "charset": charset}
+    query.update(parameters)
+
     return build_url(
         "/webdriver/tests/support/inline.py",
         query=urlencode(query),

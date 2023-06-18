@@ -3,7 +3,7 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <script>
-  var window_url = encodeURIComponent("javascript:'<iframe src=/content-security-policy/support/fail.js />'");
+  var window_url = encodeURIComponent("javascript:'<iframe src=/content-security-policy/support/fail.js></iframe>'");
   var report_cookie_name = encodeURIComponent("javascript-url-navigation-inherits-csp");
   window.open("support/test_csp_self_window.sub.html?window_url=" + window_url + "&report_cookie_name=" + report_cookie_name);
   setTimeout(function() {

@@ -29,6 +29,7 @@ t.step(function() {
   ctx.lineTo(-150, -50);
   ctx.lineTo(-151, -100); // (not an exact right angle, to avoid some other bug in Firefox 3)
   ctx.stroke();
+
   _assertPixel(canvas, 1,1, 0,255,0,255);
   _assertPixel(canvas, 48,48, 0,255,0,255);
   _assertPixel(canvas, 50,25, 0,255,0,255);

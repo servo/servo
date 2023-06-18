@@ -23,7 +23,7 @@ testReflectAttribute('tabIndex', 'tabindex', '0', '1', 'tabIndex on HTMLElement'
 testReflectAttribute('accessKey', 'accesskey', 'a', 'b', 'accessKey on HTMLElement');
 testReflectAttributeWithContentValues('draggable', 'draggable', true, 'true', false, 'false', 'draggable on HTMLElement');
 testReflectAttributeWithContentValues('spellcheck', 'spellcheck', true, 'true', false, 'false', 'spellcheck on HTMLElement');
-testReflectAttribute('popover', 'popover', 'auto', 'manual', 'popover on HTMLElement');
+testReflectAttribute('popover', 'popover', 'auto', 'manual', 'popover on HTMLElement', undefined, undefined, () => 'popover' in HTMLElement.prototype);
 
 testNodeDisconnector(function (customElement) {
     customElement.parentNode.innerText = '';

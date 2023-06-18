@@ -29,4 +29,14 @@ runListValuedPropertyTests('animation-duration', [
   },
 ]);
 
+test((t) => {
+  let div = document.createElement('div');
+  t.add_cleanup(() => {
+    div.remove();
+  });
+  document.body.append(div);
+  let actual = div.computedStyleMap().get('animation-duration').toString();
+  assert_equals(actual, 'auto');
+}, 'Computed value of animation-duration is auto');
+
 </script>

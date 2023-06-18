@@ -126,7 +126,7 @@ for (const databaseKind of ['open', 'closed']) {
       const sameOriginDbNames = await crossOriginHelper(
           testCase, mode, sameOrigin, { action: 'get-database-names' });
       assert_in_array(
-          sameOriginDbNames, dbName,
+          dbName, sameOriginDbNames,
           `Database creation should reflect in same-origin ${mode}`);
 
       const otherOriginDbNames = await crossOriginHelper(

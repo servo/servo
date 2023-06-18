@@ -14,7 +14,7 @@
 <script>
   function attachShadowWithSlottedStyle(host, styleString) {
     var root = host.attachShadow({mode:"open"});
-    root.innerHTML = "<style>"+styleString+"</style><slot/>";
+    root.innerHTML = "<style>"+styleString+"</style><slot></slot>";
   }
 
   attachShadowWithSlottedStyle(host1, "::slotted(span)::before { content: 'PASS' }");

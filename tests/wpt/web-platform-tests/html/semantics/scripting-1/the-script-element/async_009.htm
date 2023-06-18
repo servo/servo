@@ -12,7 +12,7 @@
         var t = async_test("Document.write() silently fails from an Async script");
 
         var log = t.step_func(function() {
-          document.write("<span id='writtenText'/>");
+          document.write("<span id='writtenText'></span>");
           assert_equals(null, document.getElementById('writtenText'));
           t.done();
         });

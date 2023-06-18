@@ -39,6 +39,7 @@ async_test(function(t) {
     assert_equals(offscreenCanvas.height, 0);
 }, "Test that offscreenCanvas's size is correct after being transferred to a worker.");
 
+
 test(function() {
     function testException(contextType) {
         var worker = makeWorker(document.getElementById("myWorker").textContent);
@@ -49,14 +50,13 @@ test(function() {
         });
     }
     testException('2d');
-    testException('webgl');
-}, "Test that transfer an OffscreenCanvas that has a context throws exception.");
+}, "Test that transfer an OffscreenCanvas that already have a 2d context throws exception.");
 
 test(function() {
     var worker = makeWorker(document.getElementById("myWorker").textContent);
     var offscreenCanvas = new OffscreenCanvas(10, 10);
     worker.postMessage({offscreenCanvas}, [offscreenCanvas]);
-    assert_throws_dom("InvalidStateError", function() {
+    assert_throws_dom("DataCloneError", function() {
         worker.postMessage({offscreenCanvas}, [offscreenCanvas]);
     });
 }, "Test that transfer an OffscreenCanvas twice throws exception.");

@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+A
+<script>
+addEventListener("load", () => {
+  document.documentElement.contentEditable = true;
+  getSelection().collapse(document.body.lastChild, document.body.lastChild.length);
+  document.execCommand("delete");
+});
+</script>
+<li>
+<form readonly contenteditable>
+</form>
+<script>
+</script></li></body></html>

@@ -63,7 +63,7 @@ test_valid_value('mask', 'none alpha', 'alpha');
 
 test_shorthand_value('mask', 'none', {
     'mask-image': 'none',
-    'mask-position': '0%',
+    'mask-position': '0% 0%',
     'mask-size': 'auto',
     'mask-repeat': 'repeat',
     'mask-origin': 'border-box',
@@ -73,7 +73,7 @@ test_shorthand_value('mask', 'none', {
 })
 test_shorthand_value('mask', 'none, linear-gradient(to left bottom, red, blue) padding-box', {
     'mask-image': 'none, linear-gradient(to left bottom, red, blue)',
-    'mask-position': '0%, 0%',
+    'mask-position': '0% 0%, 0% 0%',
     'mask-size': 'auto, auto',
     'mask-repeat': 'repeat, repeat',
     'mask-origin': 'border-box, padding-box',

@@ -280,7 +280,8 @@ def get_test_page(iframe, inline):
         frame_doc=None,
         shadow_doc=None,
         nested_shadow_dom=False,
-        shadow_root_mode="open"
+        shadow_root_mode="open",
+        **kwargs
     ):
         if frame_doc is None:
             frame_doc = """<div id="in-frame"><input type="checkbox"/></div>"""
@@ -355,9 +356,10 @@ def get_test_page(iframe, inline):
             </script>"""
 
         if as_frame:
-            return inline(iframe(page_data))
+            iframe_data = iframe(page_data, **kwargs)
+            return inline(iframe_data, **kwargs)
         else:
-            return inline(page_data)
+            return inline(page_data, **kwargs)
 
     return get_test_page
 

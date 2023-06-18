@@ -18,8 +18,7 @@ t.step(function() {
 
   ctx.fillStyle = '#f00';
   ctx.fillRect(0, 0, 100, 50);
-  var offscreenCanvas2 = new OffscreenCanvas(100, 50);
-  var g = offscreenCanvas2.getContext('2d').createLinearGradient(0, 0, 100, 0);
+  var g = new OffscreenCanvas(100, 50).getContext('2d').createLinearGradient(0, 0, 100, 0);
   g.addColorStop(0, '#0f0');
   g.addColorStop(1, '#0f0');
   ctx.fillStyle = g;

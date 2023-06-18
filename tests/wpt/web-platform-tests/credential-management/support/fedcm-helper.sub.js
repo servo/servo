@@ -78,6 +78,26 @@ export function request_options_with_mediation_optional(manifest_filename) {
   return options;
 }
 
+export function request_options_with_context(manifest_filename, context) {
+  if (manifest_filename === undefined) {
+    manifest_filename = "manifest.py";
+  }
+  const manifest_path = `https://{{host}}:{{ports[https][0]}}/\
+credential-management/support/fedcm/${manifest_filename}`;
+  return {
+    identity: {
+      providers: [{
+        configURL: manifest_path,
+        clientId: '1',
+        nonce: '2'
+      }],
+      context: context
+    },
+    mediation: 'required'
+  };
+}
+
+
 // Test wrapper which does FedCM-specific setup.
 export function fedcm_test(test_func, test_name) {
   promise_test(async t => {
@@ -116,4 +136,16 @@ export function request_options_with_login_hint(manifest_filename, login_hint) {
   options.identity.providers[0].loginHint = login_hint;
 
   return options;
+}
+
+export function fedcm_get_title_promise(t) {
+  async function helper(resolve) {
+    try {
+      const title = await window.test_driver.get_fedcm_dialog_title();
+      resolve(title);
+    } catch (ex) {
+      t.step_timeout(100, helper);
+    }
+  }
+  return new Promise(helper);
 }

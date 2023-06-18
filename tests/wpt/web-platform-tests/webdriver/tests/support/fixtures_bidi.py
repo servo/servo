@@ -1,7 +1,7 @@
 import base64
 
+from tests.support.asserts import assert_pdf
 from tests.support.image import cm_to_px, png_dimensions, ImageDifference
-from tests.support.pdf import assert_pdf
 from typing import Any, Mapping
 
 import pytest
@@ -207,8 +207,8 @@ def assert_pdf_dimensions(render_pdf_to_png_bidi):
         png = await render_pdf_to_png_bidi(pdf)
         width, height = png_dimensions(png)
 
-        assert cm_to_px(expected_dimensions["height"]) == height
-        assert cm_to_px(expected_dimensions["width"]) == width
+        assert (height - 1) <= cm_to_px(expected_dimensions["height"]) <= (height + 1)
+        assert (width - 1) <= cm_to_px(expected_dimensions["width"]) <= (width + 1)
 
     return assert_pdf_dimensions
 

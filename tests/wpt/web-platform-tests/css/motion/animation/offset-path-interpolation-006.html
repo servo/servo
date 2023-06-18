@@ -12,7 +12,7 @@
   </head>
   <style>
     .parent {
-      offset-path: ellipse(10% 10%);
+      offset-path: ellipse(10% 10% at 50% 50%);
     }
     .target {
       offset-path: circle(10px);
@@ -62,7 +62,7 @@
         to: 'ellipse(40% 50% at 25% 25%)',
       }, [
         {at: -0.3, expect: 'ellipse(1% 0% at 57.5% 57.5%)'},
-        {at: 0, expect: 'ellipse(10% 10%)'},
+        {at: 0, expect: 'ellipse(10% 10% at 50% 50%)'},
         {at: 0.3, expect: 'ellipse(19% 22% at 42.5% 42.5%)'},
         {at: 0.6, expect: 'ellipse(28% 34% at 35% 35%)'},
         {at: 1, expect: 'ellipse(40% 50% at 25% 25%)'},

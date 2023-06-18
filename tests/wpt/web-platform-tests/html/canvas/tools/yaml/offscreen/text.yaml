@@ -16,7 +16,13 @@
 - name: 2d.text.font.parse.complex
   code: |
     ctx.font = 'small-caps italic 400 12px/2 Unknown Font, sans-serif';
-    @assert ctx.font === 'italic small-caps 12px "Unknown Font", sans-serif'; @moz-todo
+    @assert ['italic small-caps 12px "Unknown Font", sans-serif', 'italic small-caps 12px Unknown Font, sans-serif'].includes(ctx.font);
+    t.done();
+
+- name: 2d.text.font.parse.complex2
+  code: |
+    ctx.font = 'small-caps italic 400 12px/2 "Unknown Font #2", sans-serif';
+    @assert ctx.font === 'italic small-caps 12px "Unknown Font #2", sans-serif';
     t.done();
 
 - name: 2d.text.font.parse.family
@@ -614,7 +620,7 @@
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.textBaseline = 'ideographic';
-        ctx.fillText('CC', 0, 31.25);
+        ctx.fillText('CC', 0, 81.25);
         @assert pixel 5,5 ==~ 0,255,0,255;
         @assert pixel 95,5 ==~ 0,255,0,255;
         @assert pixel 25,25 ==~ 0,255,0,255;
@@ -638,7 +644,7 @@
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.textBaseline = 'hanging';
-        ctx.fillText('CC', 0, 12.5);
+        ctx.fillText('CC', 0, -30);
         @assert pixel 5,5 ==~ 0,255,0,255; @moz-todo
         @assert pixel 95,5 ==~ 0,255,0,255; @moz-todo
         @assert pixel 25,25 ==~ 0,255,0,255;
@@ -849,7 +855,7 @@
   expected: green
 
 - name: 2d.text.draw.space.collapse.space
-  desc: Space characters are converted to U+0020, and collapsed (per CSS)
+  desc: Space characters are converted to U+0020, and are NOT collapsed
   fonts:
   - CanvasTest
   code: |
@@ -862,14 +868,14 @@
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
-        ctx.fillText('E  EE', -100, 37.5);
-        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
+        ctx.fillText('E  EE', -150, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
         @assert pixel 75,25 ==~ 0,255,0,255;
       }).then(t_pass, t_fail);
   expected: green
 
 - name: 2d.text.draw.space.collapse.other
-  desc: Space characters are converted to U+0020, and collapsed (per CSS)
+  desc: Space characters are converted to U+0020, and are NOT collapsed
   fonts:
   - CanvasTest
   code: |
@@ -882,9 +888,9 @@
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
-        ctx.fillText('E \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dEE', -100, 37.5);
-        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
-        @assert pixel 75,25 ==~ 0,255,0,255; @moz-todo
+        ctx.fillText('E \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dEE', -600, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
       }).then(t_pass, t_fail);
   expected: green
 
@@ -909,7 +915,7 @@
   expected: green
 
 - name: 2d.text.draw.space.collapse.start
-  desc: Space characters at the start of a line are collapsed (per CSS)
+  desc: Space characters at the start of a line are NOT collapsed
   fonts:
   - CanvasTest
   code: |
@@ -922,14 +928,14 @@
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
-        ctx.fillText(' EE', 0, 37.5);
-        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
+        ctx.fillText(' EE', -50, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
         @assert pixel 75,25 ==~ 0,255,0,255;
       }).then(t_pass, t_fail);
   expected: green
 
 - name: 2d.text.draw.space.collapse.end
-  desc: Space characters at the end of a line are collapsed (per CSS)
+  desc: Space characters at the end of a line are NOT collapsed
   fonts:
   - CanvasTest
   code: |
@@ -943,9 +949,9 @@
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.textAlign = 'right';
-        ctx.fillText('EE ', 100, 37.5);
+        ctx.fillText('EE ', 150, 37.5);
         @assert pixel 25,25 ==~ 0,255,0,255;
-        @assert pixel 75,25 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 75,25 ==~ 0,255,0,255;
       }).then(t_pass, t_fail);
   expected: green
 
@@ -983,7 +989,7 @@
     }).then(t_pass, t_fail);
 
 - name: 2d.text.measure.width.space
-  desc: Space characters are converted to U+0020 and collapsed (per CSS) for OffscreenCanvas
+  desc: Space characters are converted to U+0020 and NOT collapsed
   fonts:
   - CanvasTest
   code: |
@@ -995,11 +1001,11 @@
         ctx.font = '50px CanvasTest';
         @assert ctx.measureText('A B').width === 150;
         @assert ctx.measureText('A  B').width === 200;
-        @assert ctx.measureText('A \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dB').width === 150; @moz-todo
+        @assert ctx.measureText('A \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dB').width === 650;
         @assert ctx.measureText('A \x0b B').width >= 200;
 
-        @assert ctx.measureText(' AB').width === 100; @moz-todo
-        @assert ctx.measureText('AB ').width === 100; @moz-todo
+        @assert ctx.measureText(' AB').width === 150;
+        @assert ctx.measureText('AB ').width === 150;
     }).then(t_pass, t_fail);
 
 - name: 2d.text.measure.advances
@@ -1379,38 +1385,40 @@
   code: |
     @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "Normal";
-    @assert ctx.fontKerning === "normal";
-    ctx.fontKerning = "auto";
+    @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "normal";
+    @assert ctx.fontKerning === "normal";
+    ctx.fontKerning = "Auto";
     @assert ctx.fontKerning === "normal";
     ctx.fontKerning = "auto";
     ctx.fontKerning = "noRmal";
-    @assert ctx.fontKerning === "normal";
+    @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "auto";
     ctx.fontKerning = "NoRMal";
-    @assert ctx.fontKerning === "normal";
+    @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "auto";
     ctx.fontKerning = "NORMAL";
-    @assert ctx.fontKerning === "normal";
+    @assert ctx.fontKerning === "auto";
 
     ctx.fontKerning = "None";
-    @assert ctx.fontKerning === "none";
-    ctx.fontKerning = "auto";
+    @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "none";
+    @assert ctx.fontKerning === "none";
+    ctx.fontKerning = "Auto";
     @assert ctx.fontKerning === "none";
     ctx.fontKerning = "auto";
     ctx.fontKerning = "nOne";
-    @assert ctx.fontKerning === "none";
+    @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "auto";
     ctx.fontKerning = "nonE";
-    @assert ctx.fontKerning === "none";
+    @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "auto";
     ctx.fontKerning = "NONE";
-    @assert ctx.fontKerning === "none";
+    @assert ctx.fontKerning === "auto";
     t.done();
 
 - name: 2d.text.drawing.style.fontVariant.settings
-  desc: Testing basic functionalities of fontKerning for canvas
+  desc: Testing basic functionalities of fontVariant for canvas
   code: |
     // Setting fontVariantCaps with lower cases
     @assert ctx.fontVariantCaps === "normal";
@@ -1436,29 +1444,33 @@
     ctx.fontVariantCaps = "titling-caps";
     @assert ctx.fontVariantCaps === "titling-caps";
 
-    // Setting fontVariantCaps with lower cases and upper cases word.
+    // Setting fontVariantCaps with mixed-case values is not valid
     ctx.fontVariantCaps = "nORmal";
+    @assert ctx.fontVariantCaps === "titling-caps";
+
+    ctx.fontVariantCaps = "normal";
     @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "smaLL-caps";
-    @assert ctx.fontVariantCaps === "small-caps";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "all-small-CAPS";
-    @assert ctx.fontVariantCaps === "all-small-caps";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "pEtitE-caps";
-    @assert ctx.fontVariantCaps === "petite-caps";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "All-Petite-Caps";
-    @assert ctx.fontVariantCaps === "all-petite-caps";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "uNIcase";
-    @assert ctx.fontVariantCaps === "unicase";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "titling-CAPS";
-    @assert ctx.fontVariantCaps === "titling-caps";
+    @assert ctx.fontVariantCaps === "normal";
 
     // Setting fontVariantCaps with non-existing font variant.
+    ctx.fontVariantCaps = "titling-caps";
     ctx.fontVariantCaps = "abcd";
     @assert ctx.fontVariantCaps === "titling-caps";
     t.done();

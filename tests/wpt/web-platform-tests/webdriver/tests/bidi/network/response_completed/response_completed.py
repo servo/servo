@@ -1,13 +1,10 @@
 import asyncio
-import json
+from urllib.parse import quote
 
 import pytest
 
-from webdriver.bidi.modules.script import ContextTarget
-
 from tests.support.sync import AsyncPoll
 
-from ... import any_int
 from .. import assert_response_event, HTTP_STATUS_AND_STATUS_TEXT
 
 PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
@@ -26,7 +23,7 @@ async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, 
     # Track all received network.responseCompleted events in the events array
     events = []
 
-    async def on_event(method, data):
+    async def on_event(_, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(
@@ -92,7 +89,7 @@ async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, 
 
 @pytest.mark.asyncio
 async def test_load_page_twice(
-    bidi_session, top_context, wait_for_event, url, fetch, setup_network_test
+    bidi_session, top_context, wait_for_event, url, setup_network_test
 ):
     html_url = url(PAGE_EMPTY_HTML)
 
@@ -131,7 +128,7 @@ async def test_load_page_twice(
 )
 @pytest.mark.asyncio
 async def test_response_status(
-    bidi_session, wait_for_event, url, fetch, setup_network_test, status, status_text
+    wait_for_event, url, fetch, setup_network_test, status, status_text
 ):
     status_url = url(
         f"/webdriver/tests/support/http_handlers/status.py?status={status}&nocache={RESPONSE_COMPLETED_EVENT}"
@@ -163,7 +160,7 @@ async def test_response_status(
 
 @pytest.mark.asyncio
 async def test_response_headers(
-    bidi_session, wait_for_event, url, fetch, setup_network_test
+    wait_for_event, url, fetch, setup_network_test
 ):
     headers_url = url(
         "/webdriver/tests/support/http_handlers/headers.py?header=foo:bar&header=baz:biz"
@@ -210,7 +207,7 @@ async def test_response_headers(
 )
 @pytest.mark.asyncio
 async def test_response_mime_type_file(
-    bidi_session, url, wait_for_event, fetch, setup_network_test, page_url, mime_type
+     url, wait_for_event, fetch, setup_network_test, page_url, mime_type
 ):
     network_events = await setup_network_test(events=[RESPONSE_COMPLETED_EVENT])
     events = network_events[RESPONSE_COMPLETED_EVENT]
@@ -232,7 +229,7 @@ async def test_response_mime_type_file(
 
 
 @pytest.mark.asyncio
-async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_test):
+async def test_redirect(bidi_session, url, fetch, setup_network_test):
     text_url = url(PAGE_EMPTY_TEXT)
     redirect_url = url(
         f"/webdriver/tests/support/http_handlers/redirect.py?location={text_url}"
@@ -262,3 +259,68 @@ async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_
 
     # Check that both requests share the same requestId
     assert events[0]["request"]["request"] == events[1]["request"]["request"]
+
+
+@pytest.mark.parametrize(
+    "protocol,parameters",
+    [
+        ("http", ""),
+        ("https", ""),
+        ("https", {"pipe": "header(Cross-Origin-Opener-Policy,same-origin)"}),
+    ],
+    ids=["http", "https", "https coop"],
+)
+@pytest.mark.asyncio
+async def test_redirect_document(
+    bidi_session, new_tab, url, setup_network_test, inline, protocol, parameters
+):
+    network_events = await setup_network_test(events=[RESPONSE_COMPLETED_EVENT])
+    events = network_events[RESPONSE_COMPLETED_EVENT]
+
+    # The test starts on a url on the alternate domain, potentially with https
+    # and coop headers.
+    initial_url = inline(
+        "<div>bar</div>",
+        domain="alt",
+        protocol=protocol,
+        parameters=parameters,
+    )
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=initial_url,
+        wait="complete",
+    )
+
+    # Then navigate to a cross domain page, which will redirect back to the
+    # initial url.
+    redirect_url = url(
+        f"/webdriver/tests/support/http_handlers/redirect.py?location={quote(initial_url)}"
+    )
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=redirect_url,
+        wait="complete",
+    )
+
+    # Wait until we receive three events:
+    # - one for the initial request
+    # - two for the second navigation and its redirect
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 3)
+    assert len(events) == 3
+
+    expected_request = {"method": "GET", "url": initial_url}
+    assert_response_event(
+        events[0], expected_request=expected_request, redirect_count=0
+    )
+    expected_request = {"method": "GET", "url": redirect_url}
+    assert_response_event(
+        events[1], expected_request=expected_request, redirect_count=0
+    )
+    expected_request = {"method": "GET", "url": initial_url}
+    assert_response_event(
+        events[2], expected_request=expected_request, redirect_count=1
+    )
+
+    # Check that the last 2 requests share the same request id
+    assert events[1]["request"]["request"] == events[2]["request"]["request"]

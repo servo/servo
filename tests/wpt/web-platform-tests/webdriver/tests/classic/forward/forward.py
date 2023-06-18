@@ -61,6 +61,38 @@ def test_no_browsing_history(session, inline):
     assert element.property("id") == "foo"
 
 
+# Capability needed as long as no valid certificate is available:
+#   https://github.com/web-platform-tests/wpt/issues/28847
+@pytest.mark.capabilities({"acceptInsecureCerts": True})
+@pytest.mark.parametrize("protocol,parameters", [
+    ("http", ""),
+    ("https", ""),
+    ("https", {"pipe": "header(Cross-Origin-Opener-Policy,same-origin)"})
+], ids=["http", "https", "https coop"])
+def test_seen_nodes(session, get_test_page, protocol, parameters):
+    first_page = get_test_page(parameters=parameters, protocol=protocol)
+    second_page = get_test_page(parameters=parameters, protocol=protocol, domain="alt")
+
+    session.url = first_page
+    session.url = second_page
+    session.back()
+
+    element = session.find.css("#custom-element", all=False)
+    shadow_root = element.shadow_root
+
+    response = forward(session)
+    assert_success(response)
+
+    assert session.url == second_page
+
+    with pytest.raises(error.StaleElementReferenceException):
+        element.name
+    with pytest.raises(error.DetachedShadowRootException):
+        shadow_root.find_element("css selector", "in-shadow-dom")
+
+    session.find.css("#custom-element", all=False)
+
+
 def test_data_urls(session, inline):
     test_pages = [
         inline("<p id=1>"),
@@ -168,28 +200,3 @@ def test_removed_iframe(session, url, inline):
     assert_success(response)
 
     assert session.url == page
-
-
-# Capability needed as long as no valid certificate is available:
-#   https://github.com/web-platform-tests/wpt/issues/28847
-@pytest.mark.capabilities({"acceptInsecureCerts": True})
-def test_cross_origin(session, url):
-    base_path = ("/webdriver/tests/support/html/subframe.html" +
-                 "?pipe=header(Cross-Origin-Opener-Policy,same-origin")
-    first_page = url(base_path, protocol="https")
-    second_page = url(base_path, protocol="https", domain="alt")
-
-    session.url = first_page
-    session.url = second_page
-    session.back()
-
-    elem = session.find.css("#delete", all=False)
-
-    response = forward(session)
-    assert_success(response)
-
-    assert session.url == second_page
-
-    with pytest.raises(error.NoSuchElementException):
-        elem.click()
-    elem = session.find.css("#delete", all=False)

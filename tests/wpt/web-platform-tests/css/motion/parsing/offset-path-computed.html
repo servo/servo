@@ -56,7 +56,45 @@ test_computed_value("offset-path", 'path("m 10 20 a 10 20 30 1 0 40 50 a 110 120
     'path("m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50")',
 ]);
 
-// url, shape and geometry-box paths are not yet supported by implementations.
+test_computed_value("offset-path", "inset(100%)");
+test_computed_value("offset-path", "inset(0 1px)", "inset(0px 1px)");
+test_computed_value("offset-path", "inset(0px 1px 2%)");
+test_computed_value("offset-path", "inset(0px 1px 2% 3em)", "inset(0px 1px 2% 48px)");
+test_computed_value("offset-path", "inset(0px round 100%)");
+test_computed_value("offset-path", "inset(0px round 0 1px)", "inset(0px round 0px 1px)");
+test_computed_value("offset-path", "inset(0px round 0px 1px 2%)");
+test_computed_value("offset-path", "inset(0px round 0px 1px 2% 3em)", "inset(0px round 0px 1px 2% 48px)");
+test_computed_value("offset-path", "inset(10px round 20% / 0px 1px 2% 3px)");
+
+test_computed_value("offset-path", "circle()");
+test_computed_value("offset-path", "circle(100px)");
+test_computed_value("offset-path", "circle(closest-side)", "circle()");
+test_computed_value("offset-path", "circle(at 50% 50%)");
+test_computed_value("offset-path", "circle(100px at 50% 50%)");
+test_computed_value("offset-path", "circle(farthest-side at center top)", "circle(farthest-side at 50% 0%)");
+test_computed_value("offset-path", "circle(4% at top right)", "circle(4% at 100% 0%)");
+
+test_computed_value("offset-path", "ellipse()");
+test_computed_value("offset-path", "ellipse(1px closest-side)");
+test_computed_value("offset-path", "ellipse(at 50% 50%)");
+test_computed_value("offset-path", "ellipse(closest-side closest-side at 10% 20%)", "ellipse(at 10% 20%)");
+test_computed_value("offset-path", "ellipse(farthest-side 4% at bottom left)", "ellipse(farthest-side 4% at 0% 100%)");
+
+test_computed_value("offset-path", "polygon(1% 2%)");
+test_computed_value("offset-path", "polygon(1px 2px, 3% 4%)");
+
+test_computed_value("offset-path", "content-box");
+test_computed_value("offset-path", "border-box");
+test_computed_value("offset-path", "view-box");
+
+test_computed_value("offset-path", "inset(10% 20% 30% 40%) border-box", "inset(10% 20% 30% 40%)");
+test_computed_value("offset-path", "fill-box ellipse(at 50% 60%)", "ellipse(at 50% 60%) fill-box");
+test_computed_value("offset-path", "ray(0deg) stroke-box");
+// Mentionted above above.
+test_computed_value("offset-path", 'path("m 20 0 h -100") view-box', [
+    'path("M 20 0 H -80") view-box',
+    'path("m 20 0 h -100") view-box'
+]);
 </script>
 </body>
 </html>

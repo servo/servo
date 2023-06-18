@@ -30,7 +30,7 @@ oElement.insertAdjacentElement('beforeend',function(){
   }();
 oRange.insertNode(oInsertedElement)
 }
-document.addEventListener("load", event_handler_EC9_load, true);
+document.addEventListener("load", event_handler_EC9_load, { capture: true, once: true });
 function event_handler_ECA_DOMCharacterDataModified() {
   var oElement = event.srcElement;
     var oParent =function(){

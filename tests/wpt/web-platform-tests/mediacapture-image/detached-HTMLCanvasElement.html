@@ -6,7 +6,7 @@
 
 async_test(t => {
   let iframe = document.createElement('iframe');
-  let html = "<canvas id='canvas' width=10 height=10 />";
+  let html = "<canvas id='canvas' width=10 height=10></canvas>";
   iframe.srcdoc = html;
   iframe.onload = t.step_func_done(() => {
     // This detaches the frame while retaining a reference to an

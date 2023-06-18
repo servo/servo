@@ -850,37 +850,39 @@
   code: |
     @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "Normal";
-    @assert ctx.fontKerning === "normal";
-    ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "normal";
     @assert ctx.fontKerning === "normal";
     ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "normal";
+    ctx.fontKerning = "auto";
     ctx.fontKerning = "noRmal";
-    @assert ctx.fontKerning === "normal";
-    ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
     ctx.fontKerning = "NoRMal";
-    @assert ctx.fontKerning === "normal";
-    ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
     ctx.fontKerning = "NORMAL";
-    @assert ctx.fontKerning === "normal";
+    @assert ctx.fontKerning === "auto";
 
     ctx.fontKerning = "None";
-    @assert ctx.fontKerning === "none";
-    ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "none";
     @assert ctx.fontKerning === "none";
     ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "none";
+    ctx.fontKerning = "auto";
     ctx.fontKerning = "nOne";
-    @assert ctx.fontKerning === "none";
-    ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
     ctx.fontKerning = "nonE";
-    @assert ctx.fontKerning === "none";
-    ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
     ctx.fontKerning = "NONE";
-    @assert ctx.fontKerning === "none";
+    @assert ctx.fontKerning === "auto";
 
 - name: 2d.text.drawing.style.fontVariant.settings
-  desc: Testing basic functionalities of fontKerning for canvas
+  desc: Testing basic functionalities of fontVariant for canvas
   code: |
     // Setting fontVariantCaps with lower cases
     @assert ctx.fontVariantCaps === "normal";
@@ -906,29 +908,33 @@
     ctx.fontVariantCaps = "titling-caps";
     @assert ctx.fontVariantCaps === "titling-caps";
 
-    // Setting fontVariantCaps with lower cases and upper cases word.
+    // Setting fontVariantCaps with mixed-case values is not valid
     ctx.fontVariantCaps = "nORmal";
+    @assert ctx.fontVariantCaps === "titling-caps";
+
+    ctx.fontVariantCaps = "normal";
     @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "smaLL-caps";
-    @assert ctx.fontVariantCaps === "small-caps";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "all-small-CAPS";
-    @assert ctx.fontVariantCaps === "all-small-caps";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "pEtitE-caps";
-    @assert ctx.fontVariantCaps === "petite-caps";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "All-Petite-Caps";
-    @assert ctx.fontVariantCaps === "all-petite-caps";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "uNIcase";
-    @assert ctx.fontVariantCaps === "unicase";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "titling-CAPS";
-    @assert ctx.fontVariantCaps === "titling-caps";
+    @assert ctx.fontVariantCaps === "normal";
 
     // Setting fontVariantCaps with non-existing font variant.
+    ctx.fontVariantCaps = "titling-caps";
     ctx.fontVariantCaps = "abcd";
     @assert ctx.fontVariantCaps === "titling-caps";
 

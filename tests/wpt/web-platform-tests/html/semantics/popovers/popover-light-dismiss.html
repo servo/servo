@@ -614,3 +614,32 @@ promise_test(async () => {
   p21.hidePopover(); // Cleanup
 },'Show other auto popover during "hide all popover until"');
 </script>
+
+<div id=p25 popover>
+  <div id=p26 popover>26</div>
+  <div id=p27 popover>27</div>
+  <div id=p28 popover>28</div>
+</div>
+<script>
+promise_test(async () => {
+  p25.showPopover();
+  p26.showPopover();
+  let events = [];
+  const logEvents = (e) => { events.push(`${e.newState === 'open' ? 'show' : 'hide'} ${e.target.id}`) };
+  p26.addEventListener('beforetoggle', (e) => {
+    logEvents(e);
+    p28.showPopover();
+  });
+  p27.addEventListener('beforetoggle', logEvents);
+  p28.addEventListener('beforetoggle', (e) => {
+    logEvents(e);
+    p27.showPopover();
+  });
+  p27.showPopover();
+  assert_array_equals(events, ['show p27', 'hide p26', 'show p28', 'show p27'], 'Nested showPopover should not fire event for its HideAllPopoversUntil');
+  assert_false(p26.matches(':popover-open'));
+  assert_true(p27.matches(':popover-open'));
+  assert_false(p28.matches(':popover-open'));
+  p25.hidePopover(); // Cleanup
+}, 'Nested showPopover');
+</script>

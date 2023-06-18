@@ -7,7 +7,7 @@
 <body>
 
 <script type="module">
-import {set_fedcm_cookie, default_request_options} from '../support/fedcm-helper.sub.js';
+import {set_fedcm_cookie, request_options_with_mediation_required} from '../support/fedcm-helper.sub.js';
 
 let has_window_loaded = false;
 const window_loaded = new Promise(resolve => {
@@ -18,7 +18,7 @@ const window_loaded = new Promise(resolve => {
 });
 
 promise_test(async t => {
-  const first_cred = navigator.credentials.get(default_request_options());
+  const first_cred = navigator.credentials.get(request_options_with_mediation_required());
   assert_false(has_window_loaded);
   await set_fedcm_cookie();
   await window_loaded;

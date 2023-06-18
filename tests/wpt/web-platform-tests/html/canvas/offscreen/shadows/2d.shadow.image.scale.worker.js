@@ -6,12 +6,7 @@
 importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
-var t = async_test("Shadows are drawn correctly for scaled images");
-var t_pass = t.done.bind(t);
-var t_fail = t.step_func(function(reason) {
-    throw reason;
-});
-t.step(function() {
+promise_test(async t => {
 
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
@@ -20,22 +15,14 @@ t.step(function() {
   ctx.fillRect(0, 0, 100, 50);
   ctx.shadowOffsetY = 50;
   ctx.shadowColor = '#0f0';
-  var promise = new Promise(function(resolve, reject) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", '/images/redtransparent.png');
-      xhr.responseType = 'blob';
-      xhr.send();
-      xhr.onload = function() {
-          resolve(xhr.response);
-      };
-  });
-  promise.then(function(response) {
-      return createImageBitmap(response).then(bitmap => {
-          ctx.drawImage(bitmap, 0, 0, 100, 50, -10, -50, 240, 50);
-          _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
-          _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-          _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
-      });
-  }).then(t_pass, t_fail);
-});
+  var response = await fetch('/images/redtransparent.png')
+  var blob = await response.blob();
+  var img = await createImageBitmap(blob);
+  ctx.drawImage(img, 0, 0, 100, 50, -10, -50, 240, 50);
+
+  _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
+  _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+  _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
+  t.done();
+}, "Shadows are drawn correctly for scaled images");
 done();

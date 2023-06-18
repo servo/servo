@@ -15,34 +15,41 @@
 </div>
 
 <div id=target2parent>
-  <fieldset disabled id=target2fieldset>hello world</div>
+  <fieldset disabled id=target2fieldset>hello world</fieldset>
 </div>
 
 <script>
-promise_test(async () => {
-  let target1parentClicked = false;
-  let target1childClicked = false;
-  let target1fieldsetClicked = false;
-  target1parent.onclick = () => target1parentClicked = true;
-  target1child.onclick = () => target1childClicked = true;
-  target1fieldset.onclick = () => target1fieldsetClicked = true;
+  const clickers = {
+    "native click": target => test_driver.click(target),
+    "click()": target => target.click(),
+  };
 
-  await test_driver.click(target1child);
+  for (const [clickerName, clicker] of Object.entries(clickers)) {
+    promise_test(async () => {
+      let target1parentClicked = false;
+      let target1childClicked = false;
+      let target1fieldsetClicked = false;
+      target1parent.onclick = () => target1parentClicked = true;
+      target1child.onclick = () => target1childClicked = true;
+      target1fieldset.onclick = () => target1fieldsetClicked = true;
 
-  assert_true(target1parentClicked, 'The parent of the fieldset should receive a click event.');
-  assert_true(target1childClicked, 'The child of the fieldset should receive a click event.');
-  assert_true(target1fieldsetClicked, 'The fieldset element should receive a click event.');
-}, 'Disabled fieldset elements should not prevent click event propagation.');
+      await clicker(target1child);
 
-promise_test(async () => {
-  let target2parentClicked = false;
-  let target2fieldsetClicked = false;
-  target2parent.onclick = () => target2parentClicked = true;
-  target2fieldset.onclick = () => target2fieldsetClicked = true;
+      assert_true(target1parentClicked, 'The parent of the fieldset should receive a click event.');
+      assert_true(target1childClicked, 'The child of the fieldset should receive a click event.');
+      assert_true(target1fieldsetClicked, 'The fieldset element should receive a click event.');
+    }, `Disabled fieldset elements should not prevent click event propagation from ${clickerName}`);
 
-  await test_driver.click(target2fieldset);
+    promise_test(async () => {
+      let target2parentClicked = false;
+      let target2fieldsetClicked = false;
+      target2parent.onclick = () => target2parentClicked = true;
+      target2fieldset.onclick = () => target2fieldsetClicked = true;
 
-  assert_true(target2parentClicked, 'The parent of the fieldset should receive a click event.');
-  assert_true(target2fieldsetClicked, 'The fieldset element should receive a click event.');
-}, 'Disabled fieldset elements should not block click events.');
+      await clicker(target2fieldset);
+
+      assert_true(target2parentClicked, 'The parent of the fieldset should receive a click event.');
+      assert_true(target2fieldsetClicked, 'The fieldset element should receive a click event.');
+    }, `Disabled fieldset elements should not block click events from ${clickerName}.`);
+  }
 </script>

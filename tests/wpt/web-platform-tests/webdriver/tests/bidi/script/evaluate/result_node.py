@@ -452,17 +452,6 @@ async def test_doctype_node(bidi_session, get_test_page, top_context, expression
                 "sharedId": any_string,
                 "value": {
                     "childNodeCount": 1,
-                    "children": [{
-                        "type": "node",
-                        "sharedId": any_string,
-                        "value": {
-                            "attributes": {"id": "in-shadow-dom"},
-                            "childNodeCount": 1,
-                            "localName": "div",
-                            "namespaceURI": "http://www.w3.org/1999/xhtml",
-                            "nodeType": 1
-                        }
-                    }],
                     "nodeType": 11
                 }
             }

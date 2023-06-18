@@ -153,14 +153,14 @@ promise_test(async t => {
   if (mutation_event_received_ids.length == 0) {
     // ok if mutation events are not supported
   } else {
-    assert_array_equals(mutation_event_received_ids, ["e0", "e3", "e2", "e1"],
-                        "removal events received in node insertion order, followed by addition event");
+    assert_array_equals(mutation_event_received_ids, ["e0", "e2", "e3", "e1"],
+                        "removal events received in tree order, followed by addition event");
   }
   assert_element_states(elements, [0, 1, 0, 0], "states after mutation");
   assert_array_equals(toggle_event_received_ids, [], "toggle events received before awaiting promises");
   await Promise.all(toggle_event_promises);
-  assert_array_equals(toggle_event_received_ids, ["e1", "e0", "e3", "e2"], "toggle events received after awaiting promises");
-}, "mutation event and toggle event order matches order of insertion in set of named elements");
+  assert_array_equals(toggle_event_received_ids, ["e1", "e0", "e2", "e3"], "toggle events received after awaiting promises");
+}, "mutation event and toggle event order matches tree order");
 
 // This function is used to guard tests that test behavior that is
 // relevant only because of Mutation Events.  If mutation events (for
@@ -206,8 +206,26 @@ promise_test(async t => {
   assert_element_states(elements, [1, 0, 1], "states before mutation");
   elements[1].open = true;
   assert_array_equals(received_ids, ["e0", "e2", "e1"],
-                      "removal events received in node insertion order, followed by addition event, despite changes to name during mutation event");
+                      "removal events received in tree order, followed by addition event, despite changes to name during mutation event");
   assert_element_states(elements, [0, 1, 0], "states after mutation");
 }, "interaction of open attribute changes with mutation events");
+
+promise_test(async t => {
+  container.innerHTML = `
+    <details></details>
+    <details></details>
+    <details name></details>
+    <details name></details>
+    <details name=""></details>
+    <details name=""></details>
+  `;
+  let elements = Array.from(container.querySelectorAll("details"));
+
+  assert_element_states(elements, [0, 0, 0, 0, 0, 0], "initial states from open attribute");
+  for (let i = 0; i < 6; ++i) {
+    elements[i].open = true;
+  }
+  assert_element_states(elements, [1, 1, 1, 1, 1, 1], "after setting all elements open");
+}, "empty and missing name attributes do not create groups");
 
 </script>

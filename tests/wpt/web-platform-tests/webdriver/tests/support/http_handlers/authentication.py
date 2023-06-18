@@ -1,7 +1,7 @@
 from urllib.parse import urlencode
 
 
-def basic_authentication(url, username=None, password=None, protocol="http"):
+def basic_authentication(url, protocol="http"):
     query = {}
 
     return url("/webdriver/tests/support/http_handlers/authentication.py",

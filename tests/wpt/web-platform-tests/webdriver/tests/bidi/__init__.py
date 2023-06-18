@@ -66,6 +66,7 @@ def int_interval(start: int, end: int) -> Callable[[Any], None]:
 
     return _
 
+
 def positive_int(actual: Any) -> None:
     assert isinstance(actual, int) and actual > 0
 

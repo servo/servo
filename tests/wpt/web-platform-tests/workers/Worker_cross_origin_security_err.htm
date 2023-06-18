@@ -6,26 +6,16 @@
 <div id=log></div>
 <script>
 async_test(function(t) {
-  try {
     var w = new Worker("ftp://example.org/support/WorkerBasic.js");
     w.onerror = t.step_func_done(function(e) {
       assert_true(e instanceof Event);
     });
-  } catch (e) {
-    assert_throws_dom("SecurityError", () => {throw e}, "DOMExceptions thrown on cross-origin Worker construction must be SecurityErrors");
-    t.done();
-  }
-}, "Cross-origin classic workers should fail to fetch");
+ }, "Cross-origin classic workers should fail to fetch");
 
 async_test(function(t) {
-  try {
     var w = new Worker("ftp://example.org/support/WorkerBasic.js", {type: "module"});
     w.onerror = t.step_func_done(function(e) {
       assert_true(e instanceof Event);
     });
-  } catch (e) {
-    assert_throws_dom("SecurityError", () => {throw e}, "DOMExceptions thrown on cross-origin module Worker construction must be SecurityErrors");
-    t.done();
-  }
 }, "Cross-origin module workers should fail to fetch");
 </script>

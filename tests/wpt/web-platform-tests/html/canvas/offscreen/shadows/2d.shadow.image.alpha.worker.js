@@ -6,12 +6,7 @@
 importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
-var t = async_test("Shadows are drawn correctly for partially-transparent images");
-var t_pass = t.done.bind(t);
-var t_fail = t.step_func(function(reason) {
-    throw reason;
-});
-t.step(function() {
+promise_test(async t => {
 
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
@@ -20,20 +15,12 @@ t.step(function() {
   ctx.fillRect(0, 0, 100, 50);
   ctx.shadowOffsetY = 50;
   ctx.shadowColor = '#00f';
-  var promise = new Promise(function(resolve, reject) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", '/images/transparent50.png');
-      xhr.responseType = 'blob';
-      xhr.send();
-      xhr.onload = function() {
-          resolve(xhr.response);
-      };
-  });
-  promise.then(function(response) {
-      return createImageBitmap(response).then(bitmap => {
-          ctx.drawImage(bitmap, 0, -50);
-          _assertPixelApprox(canvas, 50,25, 127,0,127,255, 2);
-      });
-  }).then(t_pass, t_fail);
-});
+  var response = await fetch('/images/transparent50.png')
+  var blob = await response.blob();
+  var img = await createImageBitmap(blob);
+  ctx.drawImage(img, 0, -50);
+
+  _assertPixelApprox(canvas, 50,25, 127,0,127,255, 2);
+  t.done();
+}, "Shadows are drawn correctly for partially-transparent images");
 done();

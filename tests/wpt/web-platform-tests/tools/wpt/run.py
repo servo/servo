@@ -506,6 +506,11 @@ class AndroidWebview(ChromeAndroidBase):
     name = "android_webview"
     browser_cls = browser.AndroidWebview
 
+    def setup_kwargs(self, kwargs):
+        if kwargs["mojojs_path"]:
+            kwargs["enable_mojojs"] = True
+            logger.info("--mojojs-path is provided, enabling MojoJS")
+
 
 class Opera(BrowserSetup):
     name = "opera"

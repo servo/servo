@@ -11,8 +11,8 @@ def main(request, response):
         try:
             headers = request.GET.get_list(b"header")
             for header in headers:
-              header_parts = header.split(b":")
-              response.headers.set(header_parts[0], header_parts[1])
+                header_parts = header.split(b":")
+                response.headers.set(header_parts[0], header_parts[1])
         except ValueError:
             pass
 

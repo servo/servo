@@ -122,8 +122,9 @@ def deep_update(source, overrides):
 
 def document_dimensions(session):
     return tuple(session.execute_script("""
-        let rect = document.documentElement.getBoundingClientRect();
-        return [rect.width, rect.height];
+        const {devicePixelRatio} = window;
+        const {width, height} = document.documentElement.getBoundingClientRect();
+        return [width * devicePixelRatio, height * devicePixelRatio];
         """))
 
 
@@ -206,14 +207,6 @@ def is_fullscreen(session):
         """)
 
 
-def document_dimensions(session):
-    return tuple(session.execute_script("""
-        let {devicePixelRatio} = window;
-        let {width, height} = document.documentElement.getBoundingClientRect();
-        return [width * devicePixelRatio, height * devicePixelRatio];
-        """))
-
-
 def screen_size(session):
     """Returns the available width/height size of the screen."""
     return tuple(session.execute_script("""
@@ -235,6 +228,7 @@ def available_screen_size(session):
             screen.availHeight - screen.availTop,
         ];
         """))
+
 
 def filter_dict(source, d):
     """Filter `source` dict to only contain same keys as `d` dict.
@@ -268,4 +262,3 @@ def wait_for_new_handle(session, handles_before):
         message="No new window has been opened")
 
     return wait.until(find_new_handle)
-
