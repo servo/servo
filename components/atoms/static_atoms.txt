@@ -1,3 +1,4 @@
+-moz-content-preferred-color-scheme
 -moz-gtk-csd-close-button-position
 -moz-gtk-csd-maximize-button-position
 -moz-gtk-csd-menu-radius
