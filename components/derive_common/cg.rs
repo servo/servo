@@ -373,6 +373,11 @@ pub fn to_css_identifier(mut camel_case: &str) -> String {
     result
 }
 
+/// Transforms foo-bar to FOO_BAR.
+pub fn to_scream_case(css_case: &str) -> String {
+    css_case.to_uppercase().replace('-', "_")
+}
+
 /// Given "FooBar", returns "Foo" and sets `camel_case` to "Bar".
 fn split_camel_segment<'input>(camel_case: &mut &'input str) -> Option<&'input str> {
     let index = match camel_case.chars().next() {

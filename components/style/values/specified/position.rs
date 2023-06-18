@@ -556,6 +556,7 @@ impl From<MasonryAutoFlow> for u8 {
     }
 }
 
+// TODO: Can be derived with some care.
 impl Parse for GridAutoFlow {
     /// [ row | column ] || dense
     fn parse<'i, 't>(

@@ -7,12 +7,63 @@ use darling::FromDeriveInput;
 use darling::FromField;
 use darling::FromVariant;
 use derive_common::cg;
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use quote::{ToTokens, TokenStreamExt};
 use syn::parse_quote;
-use syn::{self, Data, Path, WhereClause};
+use syn::{self, Data, Ident, Path, WhereClause};
 use synstructure::{BindingInfo, Structure, VariantInfo};
+
+fn derive_bitflags(input: &syn::DeriveInput, bitflags: &CssBitflagAttrs) -> TokenStream {
+    let name = &input.ident;
+    let mut body = TokenStream::new();
+    for (rust_name, css_name) in bitflags.single_flags() {
+        let rust_ident = Ident::new(&rust_name, Span::call_site());
+        body.append_all(quote! {
+            if *self == Self::#rust_ident {
+                return dest.write_str(#css_name);
+            }
+        });
+    }
+
+    body.append_all(quote! {
+        let mut has_any = false;
+    });
+
+    for (rust_name, css_name) in bitflags.mixed_flags() {
+        let rust_ident = Ident::new(&rust_name, Span::call_site());
+        body.append_all(quote! {
+            if self.intersects(Self::#rust_ident) {
+                if has_any {
+                    dest.write_char(' ')?;
+                }
+                has_any = true;
+                dest.write_str(#css_name)?;
+            }
+        });
+    }
+
+    body.append_all(quote! {
+        debug_assert!(has_any, "Shouldn't have parsed empty");
+        Ok(())
+    });
+
+    quote! {
+        impl style_traits::ToCss for #name {
+            #[allow(unused_variables)]
+            #[inline]
+            fn to_css<W>(
+                &self,
+                dest: &mut style_traits::CssWriter<W>,
+            ) -> std::fmt::Result
+            where
+                W: std::fmt::Write,
+            {
+                #body
+            }
+        }
+    }
+}
 
 pub fn derive(mut input: syn::DeriveInput) -> TokenStream {
     let mut where_clause = input.generics.where_clause.take();
@@ -21,12 +72,21 @@ pub fn derive(mut input: syn::DeriveInput) -> TokenStream {
     }
 
     let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
-    if let Data::Enum(_) = input.data {
+    if matches!(input.data, Data::Enum(..)) || input_attrs.bitflags.is_some() {
         assert!(
             input_attrs.function.is_none(),
-            "#[css(function)] is not allowed on enums"
+            "#[css(function)] is not allowed on enums or bitflags"
         );
-        assert!(!input_attrs.comma, "#[css(comma)] is not allowed on enums");
+        assert!(
+            !input_attrs.comma,
+            "#[css(comma)] is not allowed on enums or bitflags"
+        );
+    }
+
+    if let Some(ref bitflags) = input_attrs.bitflags {
+        assert!(!input_attrs.derive_debug, "Bitflags can derive debug on their own");
+        assert!(where_clause.is_none(), "Generic bitflags?");
+        return derive_bitflags(&input, bitflags);
     }
 
     let match_body = {
@@ -249,6 +309,32 @@ fn derive_single_field_expr(
     expr
 }
 
+#[derive(Default, FromMeta)]
+pub struct CssBitflagAttrs {
+    /// Flags that can only go on their own, comma-separated.
+    pub single: String,
+    /// Flags that can go mixed with each other, comma-separated.
+    pub mixed: String,
+    /// Extra validation of the resulting mixed flags.
+    #[darling(default)]
+    pub validate_mixed: Option<Path>,
+}
+
+impl CssBitflagAttrs {
+    /// Returns a vector of (rust_name, css_name) of a given flag list.
+    fn names(s: &str) -> Vec<(String, String)> {
+        s.split(',').map(|css_name| (cg::to_scream_case(css_name), css_name.to_owned())).collect()
+    }
+
+    pub fn single_flags(&self) -> Vec<(String, String)> {
+        Self::names(&self.single)
+    }
+
+    pub fn mixed_flags(&self) -> Vec<(String, String)> {
+        Self::names(&self.mixed)
+    }
+}
+
 #[derive(Default, FromDeriveInput)]
 #[darling(attributes(css), default)]
 pub struct CssInputAttrs {
@@ -257,6 +343,7 @@ pub struct CssInputAttrs {
     pub function: Option<Override<String>>,
     // Here because structs variants are also their whole type definition.
     pub comma: bool,
+    pub bitflags: Option<CssBitflagAttrs>,
 }
 
 #[derive(Default, FromVariant)]
@@ -266,6 +353,7 @@ pub struct CssVariantAttrs {
     // Here because structs variants are also their whole type definition.
     pub derive_debug: bool,
     pub comma: bool,
+    pub bitflags: Option<CssBitflagAttrs>,
     pub dimension: bool,
     pub keyword: Option<String>,
     pub skip: bool,
