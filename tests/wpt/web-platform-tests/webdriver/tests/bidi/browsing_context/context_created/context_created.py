@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 from webdriver.error import TimeoutException
 from webdriver.bidi.modules.script import ContextTarget
@@ -19,7 +17,7 @@ async def test_not_unsubscribed(bidi_session):
     # Track all received browsingContext.contextCreated events in the events array
     events = []
 
-    async def on_event(method, data):
+    async def on_event(_, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
@@ -38,7 +36,7 @@ async def test_new_context(bidi_session, wait_for_event, subscribe_events, type_
     await subscribe_events([CONTEXT_CREATED_EVENT])
 
     on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
-    top_level_context = await bidi_session.browsing_context.create(type_hint="tab")
+    top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
     context_info = await on_entry
 
     assert_browsing_context(
@@ -96,7 +94,7 @@ async def test_evaluate_window_open_with_url(bidi_session, subscribe_events, wai
 async def test_navigate_creates_iframes(bidi_session, subscribe_events, top_context, test_page_multiple_frames):
     events = []
 
-    async def on_event(method, data):
+    async def on_event(_, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
@@ -144,7 +142,7 @@ async def test_navigate_creates_iframes(bidi_session, subscribe_events, top_cont
 async def test_navigate_creates_nested_iframes(bidi_session, subscribe_events, top_context, test_page_nested_frames):
     events = []
 
-    async def on_event(method, data):
+    async def on_event(_, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
@@ -202,7 +200,7 @@ async def test_subscribe_to_one_context(
     # Track all received browsingContext.contextCreated events in the events array
     events = []
 
-    async def on_event(method, data):
+    async def on_event(_, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)

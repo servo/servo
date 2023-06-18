@@ -23,6 +23,7 @@ t.step(function() {
   ctx.shadowOffsetX = 100;
   ctx.fillStyle = '#0f0';
   ctx.fillRect(-100, 0, 200, 50);
+
   _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
   t.done();
 });

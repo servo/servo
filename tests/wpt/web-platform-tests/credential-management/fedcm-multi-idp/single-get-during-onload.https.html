@@ -7,12 +7,12 @@
 <body>
 
 <script type="module">
-import {default_request_options, set_fedcm_cookie} from '../support/fedcm-helper.sub.js';
+import {request_options_with_mediation_required, set_fedcm_cookie} from '../support/fedcm-helper.sub.js';
 
 promise_test(async t => {
   const window_loaded = new Promise(resolve => {
     window.addEventListener('load', async () => {
-      const first_cred = navigator.credentials.get(default_request_options());
+      const first_cred = navigator.credentials.get(request_options_with_mediation_required());
       await set_fedcm_cookie();
       const first = await first_cred;
       assert_equals(first.token, "token");

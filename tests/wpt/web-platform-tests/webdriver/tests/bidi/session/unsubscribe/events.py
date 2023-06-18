@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 from webdriver.error import TimeoutException
 
@@ -18,7 +16,7 @@ async def test_unsubscribe_from_module(bidi_session):
     # Track all received browsing context events in the events array
     events = []
 
-    async def on_event(method, data):
+    async def on_event(_, data):
         events.append(data)
 
     remove_listener_contextCreated = bidi_session.add_event_listener(
@@ -54,7 +52,7 @@ async def test_subscribe_to_module_unsubscribe_from_one_event(
     # Track all received browsing context events in the events array
     events = []
 
-    async def on_event(method, data):
+    async def on_event(method, _):
         events.append(method)
 
     remove_listener_contextCreated = bidi_session.add_event_listener(

@@ -27,7 +27,7 @@ function compareImgData(img1, img2) {
   let idx = 0;
   while (idx < img1Data.length) {
     let maxDifference = 0;
-    for (let channel=0; channel<4; channel++) {
+    for (let channel = 0; channel < 4; channel++) {
       const difference = Math.abs(img1Data[idx + channel] - img2Data[idx + channel]);
       if (difference > maxDifference) {
         maxDifference = difference

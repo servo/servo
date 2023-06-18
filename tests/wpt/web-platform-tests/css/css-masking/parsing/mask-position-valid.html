@@ -27,9 +27,13 @@ test_valid_value("mask-position", "right 40%");
 test_valid_value("mask-position", "top");
 test_valid_value("mask-position", "top center", "top");
 test_valid_value("mask-position", "center", "center");
-
 test_valid_value("mask-position", "bottom left, right 20%", "left bottom, right 20%");
 test_valid_value("mask-position", "top, center, left");
+test_valid_value("mask-position", "20% 0%");
+test_valid_value("mask-position", "0% 0%");
+test_valid_value("mask-position", "0%", ["0%", "0% center"]);
+test_valid_value("mask-position", "0% center", ["0%", "0% center"]);
+test_valid_value("mask-position", "center 0%");
 </script>
 </body>
 </html>

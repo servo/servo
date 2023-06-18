@@ -38,6 +38,11 @@ test_valid_value("background-position", "top 17px right 18px", "right 18px top 1
 test_valid_value("background-position", "bottom center", ["center bottom", "bottom"]);
 test_valid_value("background-position", "top left", "left top");
 test_valid_value("background-position", "bottom right 19%", ["right 19% bottom", "right 19% bottom 0%"]); // "right 19% bottom 0%" in Edge
+test_valid_value("background-position", "20% 0%");
+test_valid_value("background-position", "0% 0%");
+test_valid_value("background-position", "0%", ["0%", "0% center"]);
+test_valid_value("background-position", "0% center", ["0%", "0% center"]);
+test_valid_value("background-position", "center 0%");
 </script>
 </body>
 </html>

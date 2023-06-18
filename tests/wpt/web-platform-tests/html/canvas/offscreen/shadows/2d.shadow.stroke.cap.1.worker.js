@@ -29,6 +29,7 @@ t.step(function() {
   ctx.moveTo(100, -25);
   ctx.lineTo(150, -25);
   ctx.stroke();
+
   _assertPixel(canvas, 1,25, 0,255,0,255);
   _assertPixel(canvas, 50,25, 0,255,0,255);
   _assertPixel(canvas, 98,25, 0,255,0,255);

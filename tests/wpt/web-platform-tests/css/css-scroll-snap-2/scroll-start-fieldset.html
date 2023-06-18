@@ -41,6 +41,10 @@
   </fieldset>
   <script>
     let scroller = document.getElementById("scroller");
+    // fieldsets' clientHeight and scrollHeight can be affected by the presence of
+    // a scrollbar which has been anecdotally measured to be 15 on several
+    // platforms.
+    const scrollbar_width = 15;
     const max_vertical_scroll_offset = scroller.scrollHeight -
       scroller.clientHeight;
     // The fieldset's width is set based on the size of its contents:
@@ -56,7 +60,6 @@
         expectation: {
           scrollTop: 100,
           msg: "scroll-start: <length> sets initial scroll position",
-          approx: false
         }
       },
       {
@@ -64,7 +67,6 @@
         expectation: {
           scrollTop: 0.25 * max_vertical_scroll_offset,
           msg: "scroll-start: <percent> sets initial scroll position",
-          approx: true
         }
       },
       {
@@ -72,7 +74,6 @@
         expectation: {
           scrollTop: 50,
           msg: "scroll-start: <calc> sets initial scroll position",
-          approx: false
         }
       },
       {
@@ -80,7 +81,6 @@
         expectation: {
           scrollTop: 0,
           msg: "scroll-start: start sets initial scroll position",
-          approx: false
         }
       },
       {
@@ -88,7 +88,6 @@
         expectation: {
           scrollTop: 0.5 * max_vertical_scroll_offset,
           msg: "scroll-start: center sets initial scroll position",
-          approx: true
         }
       },
       {
@@ -96,7 +95,6 @@
         expectation: {
           scrollTop: max_vertical_scroll_offset,
           msg: "scroll-start: end sets initial scroll position",
-          approx: false
         }
       },
       {
@@ -104,7 +102,6 @@
         expectation: {
           scrollTop: 0,
           msg: "scroll-start: top sets initial scroll position",
-          approx: false
         }
       },
       {
@@ -112,7 +109,6 @@
         expectation: {
           scrollTop: max_vertical_scroll_offset,
           msg: "scroll-start: bottom sets initial scroll position",
-          approx: false
         }
       },
       {
@@ -120,7 +116,6 @@
         expectation: {
           scrollTop: max_vertical_scroll_offset,
           msg: "scroll-start is clamped",
-          approx: false
         }
       }
     ];
@@ -139,12 +134,10 @@
     async function test_scroll_start(scroll_start, expectation) {
       await resetScroller(scroll_start);
 
-      if (expectation.approx) {
-        assert_approx_equals(scroller.scrollTop, expectation.scrollTop, 1, expectation.msg);
-      } else {
-        assert_equals(scroller.scrollTop, expectation.scrollTop, expectation.msg);
-      }
+      assert_approx_equals(scroller.scrollTop, expectation.scrollTop,
+        scrollbar_width, expectation.msg);
     }
+
 
     promise_test(async () => {
       for (let test_case of test_cases) {

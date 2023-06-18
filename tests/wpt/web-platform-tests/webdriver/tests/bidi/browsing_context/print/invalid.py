@@ -153,6 +153,7 @@ async def test_params_page_ranges_invalid_type(bidi_session, top_context, page_r
             context=top_context["context"], page_ranges=page_ranges
         )
 
+
 @pytest.mark.parametrize(
     "page_ranges",
     [

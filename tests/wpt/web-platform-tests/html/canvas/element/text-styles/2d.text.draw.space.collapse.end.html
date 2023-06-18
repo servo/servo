@@ -14,7 +14,7 @@
 <body class="show_output">
 
 <h1>2d.text.draw.space.collapse.end</h1>
-<p class="desc">Space characters at the end of a line are collapsed (per CSS)</p>
+<p class="desc">Space characters at the end of a line are NOT collapsed</p>
 
 
 <span style="font-family: CanvasTest; position: absolute; visibility: hidden">A</span>
@@ -23,7 +23,7 @@
 <p class="output expectedtext">Expected output:<p><img src="/images/green-100x50.png" class="output expected" id="expected" alt="">
 <ul id="d"></ul>
 <script>
-var t = async_test("Space characters at the end of a line are collapsed (per CSS)");
+var t = async_test("Space characters at the end of a line are NOT collapsed");
 _addTest(function(canvas, ctx) {
 
   ctx.font = '50px CanvasTest';
@@ -33,7 +33,7 @@ _addTest(function(canvas, ctx) {
       ctx.fillRect(0, 0, 100, 50);
       ctx.fillStyle = '#0f0';
       ctx.textAlign = 'right';
-      ctx.fillText('EE ', 100, 37.5);
+      ctx.fillText('EE ', 150, 37.5);
       _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
       _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
   }), 500);

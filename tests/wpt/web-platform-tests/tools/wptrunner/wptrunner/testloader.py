@@ -55,6 +55,7 @@ class TestGroupsFile:
     def __getitem__(self, key):
         return self._data[key]
 
+
 def read_include_from_file(file):
     new_include = []
     with open(file) as f:
@@ -66,11 +67,11 @@ def read_include_from_file(file):
                 new_include.append(line)
     return new_include
 
+
 def update_include_for_groups(test_groups, include):
     if include is None:
         # We're just running everything
         return
-
     new_include = []
     for item in include:
         if item in test_groups:
@@ -400,9 +401,29 @@ class TestSource:
         if self.logger is None:
             self.logger = structured.structuredlog.StructuredLogger("TestSource")
 
+    @classmethod
+    def make_queue(cls, tests_by_type, **kwargs):
+        mp = mpcontext.get_context()
+        test_queue = mp.Queue()
+        groups = cls.make_groups(tests_by_type, **kwargs)
+        processes = cls.process_count(kwargs["processes"], len(groups))
+        if processes > 1:
+            groups.sort(key=lambda group: (
+                # Place groups of the same test type together to minimize
+                # browser restarts.
+                group.test_type,
+                # Next, run larger groups first to avoid straggler runners. Use
+                # timeout to give slow tests greater relative weight.
+                -sum(test.timeout for test in group.group),
+            ))
+        for item in groups:
+            test_queue.put(item)
+        cls.add_sentinal(test_queue, processes)
+        return test_queue, processes
+
     @abstractmethod
     #@classmethod (doesn't compose with @abstractmethod in < 3.3)
-    def make_queue(cls, tests_by_type, **kwargs):  # noqa: N805
+    def make_groups(cls, tests_by_type, **kwargs):  # noqa: N805
         pass
 
     @abstractmethod
@@ -442,29 +463,17 @@ class GroupedSource(TestSource):
         raise NotImplementedError
 
     @classmethod
-    def make_queue(cls, tests_by_type, **kwargs):
-        mp = mpcontext.get_context()
-        test_queue = mp.Queue()
-        groups = []
-
-        state = {}
-
+    def make_groups(cls, tests_by_type, **kwargs):
+        groups, state = [], {}
         for test_type, tests in tests_by_type.items():
             for test in tests:
                 if cls.new_group(state, test_type, test, **kwargs):
                     group_metadata = cls.group_metadata(state)
                     groups.append(TestGroup(deque(), test_type, group_metadata))
-
                 group, _, metadata = groups[-1]
                 group.append(test)
                 test.update_metadata(metadata)
-
-        for item in groups:
-            test_queue.put(item)
-
-        processes = cls.process_count(kwargs["processes"], len(groups))
-        cls.add_sentinal(test_queue, processes)
-        return test_queue, processes
+        return groups
 
     @classmethod
     def tests_by_group(cls, tests_by_type, **kwargs):
@@ -481,10 +490,8 @@ class GroupedSource(TestSource):
 
 class SingleTestSource(TestSource):
     @classmethod
-    def make_queue(cls, tests_by_type, **kwargs):
-        mp = mpcontext.get_context()
-        test_queue = mp.Queue()
-        num_test_groups = 0
+    def make_groups(cls, tests_by_type, **kwargs):
+        groups = []
         for test_type, tests in tests_by_type.items():
             processes = kwargs["processes"]
             queues = [deque([]) for _ in range(processes)]
@@ -498,12 +505,8 @@ class SingleTestSource(TestSource):
 
             for item in zip(queues, itertools.repeat(test_type), metadatas):
                 if len(item[0]) > 0:
-                    test_queue.put(TestGroup(*item))
-                    num_test_groups += 1
-
-        processes = cls.process_count(kwargs["processes"], num_test_groups)
-        cls.add_sentinal(test_queue, processes)
-        return test_queue, processes
+                    groups.append(TestGroup(*item))
+        return groups
 
     @classmethod
     def tests_by_group(cls, tests_by_type, **kwargs):
@@ -531,32 +534,21 @@ class PathGroupedSource(GroupedSource):
 
 class GroupFileTestSource(TestSource):
     @classmethod
-    def make_queue(cls, tests_by_type, **kwargs):
-        mp = mpcontext.get_context()
-        test_queue = mp.Queue()
-        num_test_groups = 0
-
+    def make_groups(cls, tests_by_type, **kwargs):
+        groups = []
         for test_type, tests in tests_by_type.items():
             tests_by_group = cls.tests_by_group({test_type: tests},
                                                 **kwargs)
-
             ids_to_tests = {test.id: test for test in tests}
-
             for group_name, test_ids in tests_by_group.items():
                 group_metadata = {"scope": group_name}
                 group = deque()
-
                 for test_id in test_ids:
                     test = ids_to_tests[test_id]
                     group.append(test)
                     test.update_metadata(group_metadata)
-
-                test_queue.put(TestGroup(group, test_type, group_metadata))
-                num_test_groups += 1
-
-        processes = cls.process_count(kwargs["processes"], num_test_groups)
-        cls.add_sentinal(test_queue, processes)
-        return test_queue, processes
+                groups.append(TestGroup(group, test_type, group_metadata))
+        return groups
 
     @classmethod
     def tests_by_group(cls, tests_by_type, **kwargs):

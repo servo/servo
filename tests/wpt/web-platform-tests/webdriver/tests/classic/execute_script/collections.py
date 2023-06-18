@@ -19,6 +19,11 @@ def test_array(session):
     assert_success(response, [1, 2])
 
 
+def test_array_in_array(session):
+    response = execute_script(session, "const arr = [1]; return [arr, arr]")
+    assert_success(response, [[1], [1]])
+
+
 def test_dom_token_list(session, inline):
     session.url = inline("""<div class="no cheese">foo</div>""")
     element = session.find.css("div", all=False)

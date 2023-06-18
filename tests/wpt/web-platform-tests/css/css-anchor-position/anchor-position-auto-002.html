@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<title>Tests automatic anchor fallbacks created from the base style</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-automatic">
+<link rel="auto" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+.cb {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+}
+
+.anchor {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
+
+.target {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: lime;
+}
+
+.flip-x {
+  top: anchor(top);
+  left: anchor(auto);
+}
+
+.flip-x-same {
+  width: 200px;
+  top: anchor(top);
+  left: anchor(auto-same);
+}
+
+.flip-y {
+  top: anchor(auto);
+  left: anchor(left);
+}
+
+.flip-y-same {
+  height: 200px;
+  left: anchor(left);
+  top: anchor(auto-same);
+}
+
+.flip-both {
+  top: anchor(auto);
+  left: anchor(auto);
+}
+
+#anchor1 {
+  top: 50px;
+  left:200px;
+  anchor-name: --a1;
+}
+
+#anchor2 {
+  bottom: 50px;
+  left: 200px;
+  anchor-name: --a2;
+}
+
+#anchor3 {
+  left: 50px;
+  top: 200px;
+  anchor-name: --a3;
+}
+
+#anchor4 {
+  right: 50px;
+  top: 200px;
+  anchor-name: --a4
+}
+
+#anchor5 {
+  top: 50px;
+  left: 50px;
+  anchor-name: --a5;
+}
+
+#anchor6 {
+  top: 50px;
+  right: 50px;
+  anchor-name: --a6;
+}
+
+#anchor7 {
+  bottom: 50px;
+  left: 50px;
+  anchor-name: --a7;
+}
+
+#anchor8 {
+  bottom: 50px;
+  right: 50px;
+  anchor-name: --a8;
+}
+
+#anchor9 {
+  top: 200px;
+  right: 50px;
+  anchor-name: --a9;
+}
+
+#anchor10 {
+  top: 200px;
+  left: 50px;
+  anchor-name: --a10;
+}
+
+#anchor11 {
+  left: 200px;
+  top: 50px;
+  anchor-name: --a11;
+}
+
+#anchor12 {
+  left: 200px;
+  bottom: 50px;
+  anchor-name: --a12;
+}
+
+#target1 { anchor-default: --a1; }
+#target2 { anchor-default: --a2; }
+#target3 { anchor-default: --a3; }
+#target4 { anchor-default: --a4; }
+#target5 { anchor-default: --a5; }
+#target6 { anchor-default: --a6; }
+#target7 { anchor-default: --a7; }
+#target8 { anchor-default: --a8; }
+#target9 { anchor-default: --a9; }
+#target10 { anchor-default: --a10; }
+#target11 { anchor-default: --a11; }
+#target12 { anchor-default: --a12; }
+
+</style>
+
+<body onload="checkLayoutForAnchorPos('.target')">
+  <!-- Test cases creating flipped fallbacks in one axis -->
+  <div class="cb">
+    <div class="anchor" id="anchor1"></div>
+    <div class="anchor" id="anchor2"></div>
+    <div class="anchor" id="anchor3"></div>
+    <div class="anchor" id="anchor4"></div>
+
+    <div class="target flip-y" id="target1"
+         data-offset-x="200" data-offset-y="150"></div>
+    <div class="target flip-y" id="target2"
+         data-offset-x="200" data-offset-y="250"></div>
+    <div class="target flip-x" id="target3"
+         data-offset-x="150" data-offset-y="200"></div>
+    <div class="target flip-x" id="target4"
+         data-offset-x="250" data-offset-y="200"></div>
+  </div>
+
+  <!-- Test cases creating flipped fallbacks in both axes -->
+  <div class="cb" style="top: 500px">
+    <div class="anchor" id="anchor5"></div>
+    <div class="anchor" id="anchor6"></div>
+    <div class="anchor" id="anchor7"></div>
+    <div class="anchor" id="anchor8"></div>
+
+    <div class="target flip-both" id="target5"
+         data-offset-x="150" data-offset-y="150"></div>
+    <div class="target flip-both" id="target6"
+         data-offset-x="250" data-offset-y="150"></div>
+    <div class="target flip-both" id="target7"
+         data-offset-x="150" data-offset-y="250"></div>
+    <div class="target flip-both" id="target8"
+         data-offset-x="250" data-offset-y="250"></div>
+  </div>
+
+  <!-- Test cases for `auto-same` flipping -->
+  <div class="cb" style="top: 1000px">
+    <div class="anchor" id="anchor9"></div>
+    <div class="anchor" id="anchor10"></div>
+    <div class="anchor" id="anchor11"></div>
+    <div class="anchor" id="anchor12"></div>
+
+    <div class="target flip-x-same" id="target9"
+         data-offset-x="250" data-offset-y="200"></div>
+    <div class="target flip-x-same" id="target10"
+         data-offset-x="50" data-offset-y="200"></div>
+    <div class="target flip-y-same" id="target11"
+         data-offset-x="200" data-offset-y="50"></div>
+    <div class="target flip-y-same" id="target12"
+         data-offset-x="200" data-offset-y="250"></div>
+  </div>
+</body>

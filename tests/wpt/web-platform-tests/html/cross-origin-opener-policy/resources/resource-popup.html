@@ -15,7 +15,14 @@ bc.onmessage = () => {
 const id = setInterval(() => {
   if (win.closed || win.location.href !== 'about:blank') {
     clearInterval(id);
-    bc.postMessage({name: win.name || null, closed: win.closed});
+    const winName = (() => {
+      try {
+        return win.name;
+      } catch (e) {
+        return null;
+      }
+    })();
+    bc.postMessage({name: winName || null, closed: win.closed});
   }
 }, 100);
 </script>

@@ -12,9 +12,7 @@ PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
 
 
 @pytest.mark.asyncio
-async def test_same_request_id(
-    bidi_session, top_context, wait_for_event, url, setup_network_test, fetch
-):
+async def test_same_request_id(wait_for_event, url, setup_network_test, fetch):
     network_events = await setup_network_test(
         events=[
             "network.beforeRequestSent",

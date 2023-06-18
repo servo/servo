@@ -18,11 +18,13 @@ t.step(function() {
 
   ctx.fillStyle = '#f00';
   ctx.fillRect(0, 0, 100, 50);
+
   var g = ctx.createRadialGradient(200, 25, 10, 200, 25, 20);
   g.addColorStop(0, '#f00');
   g.addColorStop(1, '#0f0');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 100, 50);
+
   _assertPixel(canvas, 1,1, 0,255,0,255);
   _assertPixel(canvas, 50,1, 0,255,0,255);
   _assertPixel(canvas, 98,1, 0,255,0,255);

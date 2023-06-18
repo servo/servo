@@ -19,7 +19,8 @@
 var t = async_test("Shadows are drawn for fill patterns");
 _addTest(function(canvas, ctx) {
 
-  var pattern = ctx.createPattern(document.getElementById('red.png'), 'repeat');
+  var img = document.getElementById('red.png');
+  var pattern = ctx.createPattern(img, 'repeat');
   ctx.fillStyle = '#f00';
   ctx.fillRect(0, 0, 100, 50);
   ctx.shadowColor = '#0f0';

@@ -9,8 +9,7 @@
 
 <script>
 
-async function createCoopRestrictPropertiesPopup(name) {
-  const popupToken = token();
+async function createCoopRestrictPropertiesPopup(popupToken, name) {
   const url = SAME_ORIGIN.origin + '/common/dispatcher/executor.html' +
     `?uuid=${popupToken}` +
     '&pipe=|header(Cross-Origin-Opener-Policy, restrict-properties)';
@@ -26,15 +25,33 @@ async function createCoopRestrictPropertiesPopup(name) {
 }
 
 promise_test(async t => {
-  // Open two COOP: restrict-properties popups with the same name.
-  const name = token();
-  const popup1 = await createCoopRestrictPropertiesPopup(name);
-  const popup2 = await createCoopRestrictPropertiesPopup(name);
+  // Start by opening a first COOP: restrict-properties popup. No name is set to
+  // begin with.
+  const popupToken1 = token();
+  const popup1 = await createCoopRestrictPropertiesPopup(popupToken1, '');
 
-  // Check that named targeting did not cross isolation boundaries. Two popups
-  // should have been created.
+  // Once the popup is live, explicitly set a name.
+  const name = token();
+  send(popupToken1, `window.name = '${name}'`);
+
+  // To make sure this name has been propagated to other processes, send a dummy
+  // message from the popup to the main page, and wait for it to be received.
+  // It should be delivered after the name change is replicated.
+  const message_waiter = new Promise(resolve => {
+    onmessage = (event) => {
+      if (event.data == 'Waited enough') { resolve(); }
+    }
+  });
+  send(popupToken1, `opener.postMessage('Waited enough', '*')`);
+  await message_waiter;
+
+  // Finally, call window.open with the same name. This should not resolve
+  // across browsing context groups, and create a brand new popup.
+  const popupToken2 = token();
+  const popup2 = await createCoopRestrictPropertiesPopup(popupToken2, name);
   assert_not_equals(popup1, popup2,
     'Named targeting resolved across isolation boundaries');
+
 }, 'Verify that named targeting does not work across isolation boundaries.');
 
 </script>

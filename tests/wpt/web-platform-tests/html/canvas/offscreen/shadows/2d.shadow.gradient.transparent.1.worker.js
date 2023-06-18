@@ -25,6 +25,7 @@ t.step(function() {
   ctx.shadowOffsetY = 50;
   ctx.fillStyle = gradient;
   ctx.fillRect(0, -50, 100, 50);
+
   _assertPixel(canvas, 50,25, 0,255,0,255);
   t.done();
 });

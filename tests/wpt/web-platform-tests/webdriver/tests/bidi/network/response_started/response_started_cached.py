@@ -10,8 +10,6 @@ PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
 
 @pytest.mark.asyncio
 async def test_cached(
-    bidi_session,
-    top_context,
     wait_for_event,
     url,
     fetch,
@@ -69,8 +67,6 @@ async def test_cached(
 @pytest.mark.asyncio
 async def test_cached_redirect(
     bidi_session,
-    top_context,
-    wait_for_event,
     url,
     fetch,
     setup_network_test,
@@ -152,7 +148,7 @@ async def test_cached_redirect(
 )
 @pytest.mark.asyncio
 async def test_cached_revalidate(
-    bidi_session, top_context, wait_for_event, url, fetch, setup_network_test, method
+     wait_for_event, url, fetch, setup_network_test, method
 ):
     network_events = await setup_network_test(
         events=[

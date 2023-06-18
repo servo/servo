@@ -985,8 +985,6 @@ class MockRuntime {
         environmentProviderRequest.handle);
   }
 
-  setInputSourceButtonListener(listener) { listener.$.close(); }
-
   // XREnvironmentIntegrationProvider implementation:
   subscribeToHitTest(nativeOriginInformation, entityTypes, ray) {
     if (!this.supportedModes_.includes(xrSessionMojom.XRSessionMode.kImmersiveAr)) {
@@ -1212,7 +1210,6 @@ class MockRuntime {
             clientReceiver: clientReceiver,
             enabledFeatures: enabled_features,
             deviceConfig: {
-              usesInputEventing: false,
               defaultFramebufferScale: this.defaultFramebufferScale_,
               supportsViewportScaling: true,
               depthConfiguration:

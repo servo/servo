@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<video></video>
+<script>
+function createSource(src, media) {
+  var source = document.createElement('source');
+  source.src = src;
+  if (media) {
+    source.media = media;
+  }
+  return source;
+}
+const rAF = () => new Promise(resolve => requestAnimationFrame(resolve));
+const hash = str => str.substr(str.lastIndexOf('#'));
+(async () => {
+  const v = document.querySelector('video');
+  v.append(createSource('delayed-broken-video.py#a', '(min-width: 200px)'));
+  v.append(createSource('delayed-broken-video.py#b'));
+  await rAF();
+  await rAF();
+  window.beforeEnvChange = hash(v.currentSrc);
+  window.frameElement.width = '150';
+  await rAF();
+  await rAF();
+  window.afterEnvChange = hash(v.currentSrc);
+  v.load()
+  await rAF();
+  await rAF();
+  window.afterLoadCalled = hash(v.currentSrc);
+})();
+</script>

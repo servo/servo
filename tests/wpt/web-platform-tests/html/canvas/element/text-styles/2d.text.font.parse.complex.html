@@ -20,7 +20,7 @@ var t = async_test("");
 _addTest(function(canvas, ctx) {
 
   ctx.font = 'small-caps italic 400 12px/2 Unknown Font, sans-serif';
-  _assertSame(ctx.font, 'italic small-caps 12px "Unknown Font", sans-serif', "ctx.font", "'italic small-caps 12px \"Unknown Font\", sans-serif'");
+  _assert(['italic small-caps 12px "Unknown Font", sans-serif', 'italic small-caps 12px Unknown Font, sans-serif'].includes(ctx.font), "['italic small-caps 12px \"Unknown Font\", sans-serif', 'italic small-caps 12px Unknown Font, sans-serif'].includes(ctx.font)");
 
 });
 </script>

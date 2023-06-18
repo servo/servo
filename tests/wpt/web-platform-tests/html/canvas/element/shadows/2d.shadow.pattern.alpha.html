@@ -19,7 +19,8 @@
 var t = async_test("Shadows are drawn correctly for partially-transparent fill patterns");
 _addTest(function(canvas, ctx) {
 
-  var pattern = ctx.createPattern(document.getElementById('transparent50.png'), 'repeat');
+  var img = document.getElementById('transparent50.png');
+  var pattern = ctx.createPattern(img, 'repeat');
   ctx.fillStyle = '#f00';
   ctx.fillRect(0, 0, 100, 50);
   ctx.shadowOffsetY = 50;

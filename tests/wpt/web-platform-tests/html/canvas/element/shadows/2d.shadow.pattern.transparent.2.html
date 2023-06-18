@@ -19,7 +19,8 @@
 var t = async_test("Shadows are not drawn for transparent parts of fill patterns");
 _addTest(function(canvas, ctx) {
 
-  var pattern = ctx.createPattern(document.getElementById('redtransparent.png'), 'repeat');
+  var img = document.getElementById('redtransparent.png');
+  var pattern = ctx.createPattern(img, 'repeat');
   ctx.fillStyle = '#f00';
   ctx.fillRect(0, 0, 50, 50);
   ctx.fillStyle = '#0f0';

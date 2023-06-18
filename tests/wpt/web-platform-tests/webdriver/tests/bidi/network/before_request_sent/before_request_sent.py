@@ -126,7 +126,6 @@ async def test_request_headers(
 ):
     text_url = url(PAGE_EMPTY_TEXT)
 
-
     network_events = await setup_network_test(events=["network.beforeRequestSent"])
     events = network_events["network.beforeRequestSent"]
 
@@ -152,7 +151,6 @@ async def test_request_cookies(
     bidi_session, top_context, wait_for_event, url, fetch, setup_network_test
 ):
     text_url = url(PAGE_EMPTY_TEXT)
-
 
     network_events = await setup_network_test(events=["network.beforeRequestSent"])
     events = network_events["network.beforeRequestSent"]
@@ -213,7 +211,6 @@ async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_
         f"/webdriver/tests/support/http_handlers/redirect.py?location={text_url}"
     )
 
-
     network_events = await setup_network_test(events=["network.beforeRequestSent"])
     events = network_events["network.beforeRequestSent"]
 
@@ -247,7 +244,6 @@ async def test_redirect_http_equiv(
     # PAGE_REDIRECT_HTTP_EQUIV should redirect to PAGE_REDIRECTED_HTML immediately
     http_equiv_url = url(PAGE_REDIRECT_HTTP_EQUIV)
     redirected_url = url(PAGE_REDIRECTED_HTML)
-
 
     network_events = await setup_network_test(events=["network.beforeRequestSent"])
     events = network_events["network.beforeRequestSent"]

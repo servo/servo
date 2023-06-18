@@ -500,7 +500,11 @@ def genTestUtils_union(NAME2DIRFILE: str) -> None:
         for variant_name, variant_params in variants.items():
             test = original_test.copy()
             if variant_name or variant_params:
-                test['name'] += '.' + variant_name
+                # Append variant name. Variant names starting with '_' are
+                # not appended, which is useful to create variants with the same
+                # name in different folders (element vs. offscreen).
+                if not variant_name.startswith('_'):
+                    test['name'] += '.' + variant_name
                 test.update(variant_params)
 
             name = test['name']

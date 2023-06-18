@@ -1,12 +1,10 @@
 import base64
 import pytest
 
+from tests.support.asserts import assert_pdf
 from tests.support.image import px_to_cm
-from tests.support.pdf import assert_pdf
-
 
 pytestmark = pytest.mark.asyncio
-
 
 INLINE_BACKGROUND_RENDERING_TEST_CONTENT = """
 <style>
@@ -20,14 +18,11 @@ BLACK_DOT_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2NgYGD
 WHITE_DOT_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQIW2P4DwQACfsD/Z8fLAAAAAAASUVORK5CYII="
 
 
-@pytest.mark.parametrize(
-    "print_with_background, expected_image",
-    [
-        (None, WHITE_DOT_PNG),
-        (True, BLACK_DOT_PNG),
-        (False, WHITE_DOT_PNG),
-    ],
-)
+@pytest.mark.parametrize("print_with_background, expected_image", [
+    (None, WHITE_DOT_PNG),
+    (True, BLACK_DOT_PNG),
+    (False, WHITE_DOT_PNG),
+], ids=["default", "true", "false"])
 async def test_background(
     bidi_session,
     top_context,
@@ -39,14 +34,21 @@ async def test_background(
 ):
     page = inline(INLINE_BACKGROUND_RENDERING_TEST_CONTENT)
     await bidi_session.browsing_context.navigate(
-        context=top_context["context"], url=page, wait="complete"
-    )
+        context=top_context["context"], url=page, wait="complete")
 
     print_value = await bidi_session.browsing_context.print(
         context=top_context["context"],
         background=print_with_background,
-        margin={"top": 0, "bottom": 0, "right": 0, "left": 0},
-        page={"width": px_to_cm(1), "height": px_to_cm(1)},
+        margin={
+            "top": 0,
+            "bottom": 0,
+            "right": 0,
+            "left": 0
+        },
+        page={
+            "width": px_to_cm(1),
+            "height": px_to_cm(1)
+        },
     )
 
     assert_pdf(print_value)

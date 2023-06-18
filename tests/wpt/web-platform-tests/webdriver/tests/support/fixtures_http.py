@@ -8,18 +8,18 @@ from tests.support.sync import Poll
 
 
 @pytest.fixture
-def add_event_listeners(session):
+def add_event_listeners():
     """Register listeners for tracked events on element."""
     def add_event_listeners(element, tracked_events):
         element.session.execute_script("""
-            let element = arguments[0];
-            let trackedEvents = arguments[1];
+            const element = arguments[0];
+            const trackedEvents = arguments[1];
 
             if (!("events" in window)) {
               window.events = [];
             }
 
-            for (var i = 0; i < trackedEvents.length; i++) {
+            for (let i = 0; i < trackedEvents.length; i++) {
               element.addEventListener(trackedEvents[i], function (event) {
                 window.events.push(event.type);
               });

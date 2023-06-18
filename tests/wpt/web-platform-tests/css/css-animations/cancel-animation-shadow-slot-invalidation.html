@@ -18,7 +18,7 @@
 <div id="dirty" class="none">PASS</div>
 <script>
   const root = host.attachShadow({mode:"open"});
-  root.innerHTML = "<slot />";
+  root.innerHTML = "<slot></slot>";
   requestAnimationFrame(() => {
     root.firstChild.name = "skip-slot";
     dirty.className = "";

@@ -15,6 +15,34 @@
 test_computed_value("animation-duration", "500ms", "0.5s");
 test_computed_value("animation-duration", "calc(2 * 3s)", "6s");
 test_computed_value("animation-duration", "20s, 10s");
+
+// https://github.com/w3c/csswg-drafts/issues/6530
+test_computed_value("animation-duration", "auto", "0s");
+test_computed_value("animation-duration", "auto, auto", "0s, 0s");
+
+// Test that the resolved value of the specified animation-duration
+// is as expected given some value for animation-timeline.
+function test_auto_duration(duration, timeline, expected) {
+  test((t) => {
+    t.add_cleanup(() => {
+      target.style = "";
+    });
+    target.style.animationDuration = duration;
+    target.style.animationTimeline = timeline;
+    assert_equals(expected, getComputedStyle(target).animationDuration);
+  }, `Resolved value of animation-duration:${duration} with animation-timeline:${timeline}`);
+}
+
+test_auto_duration("auto", "auto", "0s");
+test_auto_duration("auto", "auto, auto", "auto");
+test_auto_duration("auto", "--t", "auto");
+test_auto_duration("auto", "--t, --t2", "auto");
+test_auto_duration("auto", "none", "auto");
+test_auto_duration("auto", "scroll()", "auto");
+test_auto_duration("auto", "view()", "auto");
+test_auto_duration("0s", "auto", "0s");
+test_auto_duration("0s", "auto, auto", "0s");
+
 </script>
 </body>
 </html>

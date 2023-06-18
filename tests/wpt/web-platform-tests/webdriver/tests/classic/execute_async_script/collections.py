@@ -16,11 +16,15 @@ def test_arguments(session):
 
 
 def test_array(session):
-    response = execute_async_script(session, """
-        let resolve = arguments[0];
-        resolve([1, 2]);
-        """)
+    response = execute_async_script(
+        session, "arguments[0]([1, 2])")
     assert_success(response, [1, 2])
+
+
+def test_array_in_array(session):
+    response = execute_async_script(
+        session, "const arr = [1]; arguments[0]([arr, arr])")
+    assert_success(response, [[1], [1]])
 
 
 def test_dom_token_list(session, inline):

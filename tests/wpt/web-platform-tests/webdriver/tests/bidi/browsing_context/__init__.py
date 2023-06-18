@@ -5,6 +5,7 @@ from .. import (
     recursive_compare,
 )
 
+
 def assert_browsing_context(
     info, context, children=None, is_root=True, parent=None, url=None
 ):

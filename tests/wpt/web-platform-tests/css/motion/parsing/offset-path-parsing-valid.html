@@ -49,12 +49,42 @@ test_valid_value("offset-path",
 
 test_valid_value("offset-path", 'url("http://www.example.com/index.html#polyline1")');
 
+// https://drafts.csswg.org/css-shapes-1/#basic-shape-serialization
+test_valid_value("offset-path", "inset(100%)");
+test_valid_value("offset-path", "inset(0 1px)", "inset(0px 1px)");
+test_valid_value("offset-path", "inset(0px 1px 2%)");
+test_valid_value("offset-path", "inset(0px 1px 2% 3em)");
+test_valid_value("offset-path", "inset(0px round 100%)");
+test_valid_value("offset-path", "inset(0px round 0 1px)", "inset(0px round 0px 1px)");
+test_valid_value("offset-path", "inset(0px round 0px 1px 2%)");
+test_valid_value("offset-path", "inset(0px round 0px 1px 2% 3em)");
+test_valid_value("offset-path", "inset(10px round 20% / 0px 1px 2% 3em)");
+
+test_valid_value("offset-path", "circle()");
 test_valid_value("offset-path", "circle(100px)");
+test_valid_value("offset-path", "circle(closest-side)", "circle()");
+test_valid_value("offset-path", "circle(at 50% 50%)");
 test_valid_value("offset-path", "circle(100px at 50% 50%)");
+test_valid_value("offset-path", "circle(farthest-side at 0% 0%)");
+
+test_valid_value("offset-path", "ellipse()");
+test_valid_value("offset-path", "ellipse(1px closest-side)");
+test_valid_value("offset-path", "ellipse(at 50% 50%)");
+test_valid_value("offset-path", "ellipse(closest-side closest-side at 10% 20%)", "ellipse(at 10% 20%)");
+test_valid_value("offset-path", "ellipse(farthest-side 4% at 0% 100%)");
+
+test_valid_value("offset-path", "polygon(1% 2%)");
+test_valid_value("offset-path", "polygon(1px 2px, 3em 4em)");
+
+test_valid_value("offset-path", "content-box");
 test_valid_value("offset-path", "border-box");
-test_valid_value("offset-path", "inset(10% 20% 30% 40%) border-box");
+test_valid_value("offset-path", "view-box");
+
+test_valid_value("offset-path", "inset(10% 20% 30% 40%) border-box", "inset(10% 20% 30% 40%)");
 test_valid_value("offset-path", "fill-box ellipse(50% 60%)", "ellipse(50% 60%) fill-box");
 test_valid_value("offset-path", "content-box ellipse(50% 60% at 50% 50%)", "ellipse(50% 60% at 50% 50%) content-box");
+test_valid_value("offset-path", "ray(0deg) stroke-box");
+test_valid_value("offset-path", 'path("m 20 0 h -100") view-box');
 </script>
 </body>
 </html>

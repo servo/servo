@@ -1,7 +1,7 @@
 import pytest
 
+from tests.support.asserts import assert_pdf
 from tests.support.image import png_dimensions
-from tests.support.pdf import assert_pdf
 
 
 pytestmark = pytest.mark.asyncio

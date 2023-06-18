@@ -3,8 +3,7 @@ from base64 import decodebytes
 
 import pytest
 
-from tests.support.asserts import assert_error, assert_success
-from tests.support.pdf import assert_pdf
+from tests.support.asserts import assert_error, assert_pdf, assert_success
 
 from . import do_print
 

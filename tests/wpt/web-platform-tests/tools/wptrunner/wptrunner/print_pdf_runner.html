@@ -11,19 +11,19 @@ async function _render(pdfData) {
   let loadingTask = pdfjsLib.getDocument({data: atob(pdfData)});
   let pdf = await loadingTask.promise;
   let rendered = [];
-  for (let pageNumber=1; pageNumber<=pdf.numPages; pageNumber++) {
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
     let page = await pdf.getPage(pageNumber);
-    var viewport = page.getViewport({scale: 96./72.});
+    const viewport = page.getViewport({ scale: 96. / 72. });
     // Prepare canvas using PDF page dimensions
-    var canvas = document.getElementsByTagName('canvas')[0];
-    var context = canvas.getContext('2d');
+    const canvas = document.getElementsByTagName('canvas')[0];
+    const context = canvas.getContext('2d');
     canvas.height = viewport.height;
     canvas.width = viewport.width;
 
     // Render PDF page into canvas context
-    var renderContext = {
+    const renderContext = {
       canvasContext: context,
-      viewport: viewport
+      viewport
     };
     await page.render(renderContext).promise;
     rendered.push(canvas.toDataURL());

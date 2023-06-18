@@ -93,12 +93,27 @@
   }
 
   /**
+   * @param {Element} element
+   * @returns {boolean}
+   */
+  function isFormControl(element) {
+    if (["button", "input", "select", "textarea"].includes(element.localName)) {
+      return true;
+    }
+    return element.constructor.formAssociated;
+  }
+
+  function isDisabledFormControl(element) {
+    return isFormControl(element) && element.disabled;
+  }
+
+  /**
    * @param {Element} target
    * @param {*} observedEvent
    */
   function shouldNotBubble(target, observedEvent) {
     return (
-      target.disabled &&
+      isDisabledFormControl(target) &&
       observedEvent.isTrusted &&
       ["mousedown", "mouseup", "click"].includes(observedEvent.type)
     );
@@ -136,7 +151,7 @@
       await t.step_func(clickerFn)(target);
       await new Promise(resolve => t.step_timeout(resolve, 0));
 
-      const expected = element.disabled ? expectedEvents : nonDisabledExpectedEvents;
+      const expected = isDisabledFormControl(element) ? expectedEvents : nonDisabledExpectedEvents;
       assert_array_equals(observedEvents.map(e => e.type), expected, "Observed events");
 
       for (const observed of observedEvents) {

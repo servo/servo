@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const output = document.querySelector("output");
+  const table = document.querySelector("table");
+  table.addEventListener("DOMSubtreeModified", () => {
+    document.execCommand("bold");
+    document.execCommand("hiliteColor", false, "white");
+    output.appendChild(table);
+    document.execCommand("forwardDelete");
+    table.setAttribute("onwebkitsourceclose", "foo()");
+    document.execCommand("insertText", false, "a");
+  });
+  document.execCommand("selectAll");
+  table.insertRow();
+});
+</script>
+</head>
+<body>
+<canvas contenteditable>
+<output>
+<table tabindex="0" autofocus></table>
+</output>
+</canvas>
+</body>
+</html>

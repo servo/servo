@@ -463,10 +463,10 @@ setup({ "explicit_done": true });
       expression_should_be_known(feature + ": 1.5x");
       expression_should_be_known(feature + ": 2.0dppx");
       expression_should_be_known(feature + ": 0dpi");
-      expression_should_be_known(feature + ": -3dpi");
       expression_should_be_known(feature + ": 0dppx");
       expression_should_be_known(feature + ": 0x");
       expression_should_be_known(feature + ": calc(6x / 2)");
+      expression_should_be_unknown(feature + ": -3dpi");
     }
 
     // Find the resolution using max-resolution

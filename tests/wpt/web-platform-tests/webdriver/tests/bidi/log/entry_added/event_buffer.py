@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 
 from . import assert_base_entry, create_log
@@ -20,7 +18,7 @@ async def test_console_log_cached_messages(
     # Track all received log.entryAdded events in the events array
     events = []
 
-    async def on_event(method, data):
+    async def on_event(_, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener("log.entryAdded", on_event)
@@ -74,7 +72,7 @@ async def test_console_log_cached_message_after_refresh(
     # Track all received log.entryAdded events in the events array
     events = []
 
-    async def on_event(method, data):
+    async def on_event(_, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener("log.entryAdded", on_event)

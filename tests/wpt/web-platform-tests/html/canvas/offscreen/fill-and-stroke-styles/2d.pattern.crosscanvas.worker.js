@@ -6,35 +6,22 @@
 importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
-var t = async_test("");
-var t_pass = t.done.bind(t);
-var t_fail = t.step_func(function(reason) {
-    throw reason;
-});
-t.step(function() {
+promise_test(async t => {
 
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
-  var promise = new Promise(function(resolve, reject) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", '/images/green.png');
-      xhr.responseType = 'blob';
-      xhr.send();
-      xhr.onload = function() {
-          resolve(xhr.response);
-      };
-  });
-  promise.then(function(response) {
-      return createImageBitmap(response).then(bitmap => {
-          var offscreenCanvas2 = new OffscreenCanvas(100, 50);
-          var pattern = offscreenCanvas2.getContext('2d').createPattern(bitmap, 'no-repeat');
-          ctx.fillStyle = '#f00';
-          ctx.fillRect(0, 0, 100, 50);
-          ctx.fillStyle = pattern;
-          ctx.fillRect(0, 0, 100, 50);
-          _assertPixel(canvas, 50,25, 0,255,0,255);
-      });
-  }).then(t_pass, t_fail);
-});
+  var response = await fetch('/images/green.png')
+  var blob = await response.blob();
+  var img = await createImageBitmap(blob);
+
+  var pattern = new OffscreenCanvas(100, 50).getContext('2d').createPattern(img, 'no-repeat');
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.fillStyle = pattern;
+  ctx.fillRect(0, 0, 100, 50);
+
+  _assertPixel(canvas, 50,25, 0,255,0,255);
+  t.done();
+}, "");
 done();

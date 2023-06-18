@@ -38,9 +38,9 @@ test_shorthand_value('animation',
   'animation-fill-mode': 'forwards, forwards, forwards',
   'animation-play-state': 'paused, paused, paused',
   'animation-name': 'anim1, anim2, anim3',
-  'animation-timeline': 'auto, auto, auto',
-  'animation-range-start': 'normal, normal, normal',
-  'animation-range-end': 'normal, normal, normal',
+  'animation-timeline': 'auto',
+  'animation-range-start': 'normal',
+  'animation-range-end': 'normal',
 });
 
 test((t) => {
@@ -53,6 +53,9 @@ test((t) => {
   assert_equals(target.style.animation, '');
   assert_equals(target.style.animationName, 'anim');
   assert_equals(target.style.animationDuration, '1s');
+
+  target.style.animationTimeline = 'auto, auto';
+  assert_equals(target.style.animation, '');
 }, 'Animation shorthand can not represent non-initial timelines (specified)');
 
 test((t) => {
@@ -65,6 +68,9 @@ test((t) => {
   assert_equals(getComputedStyle(target).animation, '');
   assert_equals(getComputedStyle(target).animationName, 'anim');
   assert_equals(getComputedStyle(target).animationDuration, '1s');
+
+  target.style.animationTimeline = 'auto, auto';
+  assert_equals(getComputedStyle(target).animation, '');
 }, 'Animation shorthand can not represent non-initial timelines (computed)');
 
 test((t) => {
@@ -77,6 +83,9 @@ test((t) => {
   assert_equals(target.style.animation, '');
   assert_equals(target.style.animationName, 'anim');
   assert_equals(target.style.animationDuration, '1s');
+
+  target.style.animationDelayEnd = '0s, 0s';
+  assert_equals(target.style.animation, '');
 }, 'Animation shorthand can not represent non-initial animation-delay-end (specified)');
 
 test((t) => {
@@ -89,6 +98,9 @@ test((t) => {
   assert_equals(getComputedStyle(target).animation, '');
   assert_equals(getComputedStyle(target).animationName, 'anim');
   assert_equals(getComputedStyle(target).animationDuration, '1s');
+
+  target.style.animationDelayEnd = '0s, 0s';
+  assert_equals(getComputedStyle(target).animation, '');
 }, 'Animation shorthand can not represent non-initial animation-delay-end (computed)');
 
 test((t) => {
@@ -101,6 +113,9 @@ test((t) => {
   assert_equals(target.style.animation, '');
   assert_equals(target.style.animationName, 'anim');
   assert_equals(target.style.animationDuration, '1s');
+
+  target.style.animationRangeStart = 'normal, normal';
+  assert_equals(target.style.animation, '');
 }, 'Animation shorthand can not represent non-initial animation-range-start (specified)');
 
 test((t) => {
@@ -113,6 +128,9 @@ test((t) => {
   assert_equals(getComputedStyle(target).animation, '');
   assert_equals(getComputedStyle(target).animationName, 'anim');
   assert_equals(getComputedStyle(target).animationDuration, '1s');
+
+  target.style.animationRangeStart = 'normal, normal';
+  assert_equals(getComputedStyle(target).animation, '');
 }, 'Animation shorthand can not represent non-initial animation-range-start (computed)');
 
 test((t) => {
@@ -125,6 +143,9 @@ test((t) => {
   assert_equals(target.style.animation, '');
   assert_equals(target.style.animationName, 'anim');
   assert_equals(target.style.animationDuration, '1s');
+
+  target.style.animationRangeEnd = 'normal, normal';
+  assert_equals(target.style.animation, '');
 }, 'Animation shorthand can not represent non-initial animation-range-end (specified)');
 
 test((t) => {
@@ -137,6 +158,9 @@ test((t) => {
   assert_equals(getComputedStyle(target).animation, '');
   assert_equals(getComputedStyle(target).animationName, 'anim');
   assert_equals(getComputedStyle(target).animationDuration, '1s');
+
+  target.style.animationRangeEnd = 'normal, normal';
+  assert_equals(getComputedStyle(target).animation, '');
 }, 'Animation shorthand can not represent non-initial animation-range-end (computed)');
 
 </script>

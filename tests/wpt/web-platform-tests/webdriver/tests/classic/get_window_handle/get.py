@@ -28,7 +28,7 @@ def test_basic(session):
 @pytest.mark.capabilities({"acceptInsecureCerts": True})
 def test_navigation_with_coop_headers(session, url):
     base_path = ("/webdriver/tests/support/html/subframe.html" +
-                 "?pipe=header(Cross-Origin-Opener-Policy,same-origin")
+                 "?pipe=header(Cross-Origin-Opener-Policy,same-origin)")
 
     session.url = url(base_path, protocol="https")
     response = get_window_handle(session)

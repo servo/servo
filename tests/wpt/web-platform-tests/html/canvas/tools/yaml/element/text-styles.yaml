@@ -14,7 +14,12 @@
 - name: 2d.text.font.parse.complex
   code: |
     ctx.font = 'small-caps italic 400 12px/2 Unknown Font, sans-serif';
-    @assert ctx.font === 'italic small-caps 12px "Unknown Font", sans-serif'; @moz-todo
+    @assert ['italic small-caps 12px "Unknown Font", sans-serif', 'italic small-caps 12px Unknown Font, sans-serif'].includes(ctx.font);
+
+- name: 2d.text.font.parse.complex2
+  code: |
+    ctx.font = 'small-caps italic 400 12px/2 "Unknown Font #2", sans-serif';
+    @assert ctx.font === 'italic small-caps 12px "Unknown Font #2", sans-serif';
 
 - name: 2d.text.font.parse.family
   code: |
@@ -296,7 +301,7 @@
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.textBaseline = 'ideographic';
-        ctx.fillText('CC', 0, 31.25);
+        ctx.fillText('CC', 0, 81.25);
         @assert pixel 5,5 ==~ 0,255,0,255;
         @assert pixel 95,5 ==~ 0,255,0,255;
         @assert pixel 25,25 ==~ 0,255,0,255;
@@ -317,7 +322,7 @@
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.textBaseline = 'hanging';
-        ctx.fillText('CC', 0, 12.5);
+        ctx.fillText('CC', 0, -30);
         @assert pixel 5,5 ==~ 0,255,0,255; @moz-todo
         @assert pixel 95,5 ==~ 0,255,0,255; @moz-todo
         @assert pixel 25,25 ==~ 0,255,0,255;
@@ -328,7 +333,7 @@
   expected: green
 
 - name: 2d.text.draw.space.collapse.space
-  desc: Space characters are converted to U+0020, and collapsed (per CSS)
+  desc: Space characters are converted to U+0020, and are NOT collapsed
   fonts:
   - CanvasTest
   code: |
@@ -338,14 +343,14 @@
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
-        ctx.fillText('E  EE', -100, 37.5);
-        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
+        ctx.fillText('E  EE', -150, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
         @assert pixel 75,25 ==~ 0,255,0,255;
     }), 500);
   expected: green
 
 - name: 2d.text.draw.space.collapse.other
-  desc: Space characters are converted to U+0020, and collapsed (per CSS)
+  desc: Space characters are converted to U+0020, and are NOT collapsed
   fonts:
   - CanvasTest
   code: |
@@ -355,14 +360,14 @@
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
-        ctx.fillText('E \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dEE', -100, 37.5);
-        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
-        @assert pixel 75,25 ==~ 0,255,0,255; @moz-todo
+        ctx.fillText('E \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dEE', -600, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
     }), 500);
   expected: green
 
 - name: 2d.text.draw.space.collapse.start
-  desc: Space characters at the start of a line are collapsed (per CSS)
+  desc: Space characters at the start of a line are NOT collapsed
   fonts:
   - CanvasTest
   code: |
@@ -372,14 +377,14 @@
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
-        ctx.fillText(' EE', 0, 37.5);
-        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
+        ctx.fillText(' EE', -50, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
         @assert pixel 75,25 ==~ 0,255,0,255;
     }), 500);
   expected: green
 
 - name: 2d.text.draw.space.collapse.end
-  desc: Space characters at the end of a line are collapsed (per CSS)
+  desc: Space characters at the end of a line are NOT collapsed
   fonts:
   - CanvasTest
   code: |
@@ -390,15 +395,15 @@
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.textAlign = 'right';
-        ctx.fillText('EE ', 100, 37.5);
+        ctx.fillText('EE ', 150, 37.5);
         @assert pixel 25,25 ==~ 0,255,0,255;
-        @assert pixel 75,25 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 75,25 ==~ 0,255,0,255;
     }), 500);
   expected: green
 
 
 - name: 2d.text.measure.width.space
-  desc: Space characters are converted to U+0020 and collapsed (per CSS)
+  desc: Space characters are converted to U+0020 and NOT collapsed
   fonts:
   - CanvasTest
   code: |
@@ -410,11 +415,11 @@
             ctx.font = '50px CanvasTest';
             @assert ctx.measureText('A B').width === 150;
             @assert ctx.measureText('A  B').width === 200;
-            @assert ctx.measureText('A \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dB').width === 150; @moz-todo
+            @assert ctx.measureText('A \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dB').width === 650;
             @assert ctx.measureText('A \x0b B').width >= 200;
 
-            @assert ctx.measureText(' AB').width === 100; @moz-todo
-            @assert ctx.measureText('AB ').width === 100; @moz-todo
+            @assert ctx.measureText(' AB').width === 150;
+            @assert ctx.measureText('AB ').width === 150;
         }), 500);
     });
 

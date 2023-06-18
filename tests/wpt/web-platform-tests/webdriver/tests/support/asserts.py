@@ -211,6 +211,13 @@ def assert_move_to_coordinates(point, target, events):
             assert e["target"] == target
 
 
+def assert_pdf(value):
+    data = decodebytes(value.encode())
+
+    assert data.startswith(b"%PDF-"), "Decoded data starts with the PDF signature"
+    assert data.endswith(b"%%EOF\n"), "Decoded data ends with the EOF flag"
+
+
 def assert_png(screenshot):
     """Test that screenshot is a Base64 encoded PNG file, or a bytestring representing a PNG.
 

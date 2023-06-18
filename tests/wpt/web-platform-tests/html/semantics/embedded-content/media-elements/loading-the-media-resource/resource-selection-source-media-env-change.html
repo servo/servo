@@ -1,0 +1,14 @@
+<!doctype html>
+<title>the &lt;source> media attribute: no reaction to environment change</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<iframe src="resources/media-min-width.html" width="300"></iframe>
+<script>
+const t = promise_test(async () => {
+  await new Promise(resolve => window.onload = resolve);
+  assert_equals(window[0].beforeEnvChange, '#a', 'beforeEnvChange');
+  assert_equals(window[0].afterEnvChange, '#a', 'afterEnvChange');
+  assert_equals(window[0].afterLoadCalled, '#b', 'afterLoadCalled');
+});
+</script>

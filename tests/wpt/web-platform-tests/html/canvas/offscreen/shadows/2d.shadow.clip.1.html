@@ -24,6 +24,7 @@ t.step(function() {
   ctx.fillRect(0, 0, 50, 50);
   ctx.fillStyle = '#f00';
   ctx.fillRect(50, 0, 50, 50);
+
   ctx.save();
   ctx.beginPath();
   ctx.rect(50, 0, 50, 50);
@@ -32,6 +33,7 @@ t.step(function() {
   ctx.shadowOffsetX = 50;
   ctx.fillRect(0, 0, 50, 50);
   ctx.restore();
+
   _assertPixel(canvas, 25,25, 0,255,0,255);
   _assertPixel(canvas, 75,25, 0,255,0,255);
   t.done();

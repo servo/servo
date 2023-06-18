@@ -271,6 +271,40 @@
     ctx.fillRect(50, 50, 75, 50);
     ctx.endLayer();
 
+- name: 2d.layer.unclosed-nested
+  desc: Check that layers are rendered even if not closed.
+  size: [200, 200]
+  code: |
+    ctx.fillStyle = 'rgba(0, 0, 255, 1)';
+    ctx.fillRect(60, 60, 75, 50);
+    ctx.globalAlpha = 0.5;
+
+    ctx.beginLayer();
+    ctx.fillStyle = 'rgba(225, 0, 0, 1)';
+    ctx.fillRect(50, 50, 75, 50);
+
+    ctx.beginLayer();
+    ctx.fillStyle = 'rgba(0, 255, 0, 1)';
+    ctx.fillRect(70, 70, 75, 50);
+
+    ctx.endLayer();
+    // Missing ctx.endLayer() here.
+  reference: |
+    const canvas1 = document.createElement('canvas');
+    const ctx1 = canvas1.getContext('2d');
+    ctx1.fillStyle = 'rgba(0,255,0,1)';
+    ctx1.fillRect(70,70,75,50);
+
+    const canvas2 = document.createElement('canvas');
+    const ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = 'rgba(225,0,0,1)';
+    ctx2.fillRect(50,50,75,50);
+    ctx2.drawImage(canvas1, 0, 0);
+
+    ctx.fillStyle = 'rgba(0,0,255,1)';
+    ctx.fillRect(60,60,75,50);
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(canvas2, 0, 0);
 
 - name: 2d.layer.render-opportunities
   desc: Check that layers state stack is flushed and rebuilt on frame renders.
@@ -436,61 +470,119 @@
       ctx.drawImage(canvas2[i], i, i);
     }
 
-
-- name: 2d.layer.endlayer.unmatched
-  desc: >-
-    A test to make sure an unmatched endLayer is a no-op and has no effect on
-    the code following it.
-  size: [200, 200]
+- name: 2d.layer.reset
+  desc: Checks that reset discards any pending layers.
   code: |
-    ctx.fillStyle = 'rgba(0, 0, 255, 1)';
-    ctx.fillRect(60, 60, 75, 50);
+    // Global states:
+    ctx.globalAlpha = 0.3;
+    ctx.globalCompositeOperation = 'source-in';
+    ctx.shadowOffsetX = -3;
+    ctx.shadowOffsetY = 3;
+    ctx.shadowColor = 'rgba(0, 30, 0, 0.3)';
 
-    ctx.globalAlpha = 0.5;
+    ctx.beginLayer({filter: 'dropShadow', dx: -3, dy: 3});
 
-    // This endlayer call should no-op.
-    ctx.endLayer();
+    // Layer states:
+    ctx.globalAlpha = 0.6;
+    ctx.globalCompositeOperation = 'source-in';
+    ctx.shadowOffsetX = -6;
+    ctx.shadowOffsetY = 6;
+    ctx.shadowColor = 'rgba(0, 60, 0, 0.6)';
 
-    ctx.beginLayer();
-    ctx.fillStyle = 'rgba(225, 0, 0, 1)';
-    ctx.fillRect(50, 50, 75, 50);
-    ctx.fillStyle = 'rgba(0, 255, 0, 1)';
-    ctx.fillRect(70, 70, 75, 50);
-    ctx.endLayer();
-  reference: |
-    ctx.fillStyle = 'rgba(0, 0, 255, 1)';
-    ctx.fillRect(60, 60, 75, 50);
+    ctx.reset();
 
-    ctx.globalAlpha = 0.5;
+    ctx.fillRect(10, 10, 75, 50);
+  reference:
+    ctx.fillRect(10, 10, 75, 50);
 
-    ctx.beginLayer();
-    ctx.fillStyle = 'rgba(225, 0, 0, 1)';
-    ctx.fillRect(50, 50, 75, 50);
-    ctx.fillStyle = 'rgba(0, 255, 0, 1)';
-    ctx.fillRect(70, 70, 75, 50);
-    ctx.endLayer();
+- name: 2d.layer.valid-calls
+  desc: No exception raised on {{ variant_desc }}.
+  variants:
+    save:
+      variant_desc: lone save() calls
+      code: ctx.save();
+    beginLayer:
+      variant_desc: lone beginLayer() calls
+      code: ctx.beginLayer();
+    restore:
+      variant_desc: lone restore() calls
+      code: ctx.restore();
+    save_restore:
+      variant_desc: save() + restore()
+      code: |-
+        ctx.save();
+        ctx.restore();
+    save_reset_restore:
+      variant_desc: save() + reset() + restore()
+      code: |-
+        ctx.save();
+        ctx.reset();
+        ctx.restore();
+    beginLayer-endLayer:
+      variant_desc: beginLayer() + endLayer()
+      code: |-
+        ctx.beginLayer();
+        ctx.save();
+    save-beginLayer:
+      variant_desc: save() + beginLayer()
+      code: |-
+        ctx.save();
+        ctx.beginLayer();
+    beginLayer-save:
+      variant_desc: beginLayer() + save()
+      code: |-
+        ctx.beginLayer();
+        ctx.save();
 
-
-- name: 2d.layer.endlayer.alone
-  desc: A test to make sure a single endLayer with no beginLayer is a no-op.
-  size: [200, 200]
+- name: 2d.layer.invalid-calls
+  desc: Raises exception on {{ variant_desc }}.
   code: |
-    ctx.fillStyle = 'rgba(0, 0, 255, 1)';
-    ctx.fillRect(60, 60, 75, 50);
-    ctx.globalAlpha = 0.5;
+    assert_throws_dom("INVALID_STATE_ERR", function() {
+      {{ call_sequence | indent(2) }}
+    });
+  variants:
+    endLayer:
+      variant_desc: lone endLayer calls
+      call_sequence: ctx.endLayer();
+    save-endLayer:
+      variant_desc: save() + endLayer()
+      call_sequence: |-
+        ctx.save();
+        ctx.endLayer();
+    beginLayer-restore:
+      variant_desc: beginLayer() + restore()
+      call_sequence: |-
+        ctx.beginLayer();
+        ctx.restore();
+    save-beginLayer-restore:
+      variant_desc: save() + beginLayer() + restore()
+      call_sequence: |-
+        ctx.save();
+        ctx.beginLayer();
+        ctx.restore();
+    beginLayer-save-endLayer:
+      variant_desc: beginLayer() + save() + endLayer()
+      call_sequence: |-
+        ctx.beginLayer();
+        ctx.save();
+        ctx.endLayer();
+    beginLayer-reset-endLayer:
+      variant_desc: beginLayer() + reset() + endLayer()
+      call_sequence: |-
+        ctx.beginLayer();
+        ctx.reset();
+        ctx.endLayer();
 
-    ctx.fillStyle = 'rgba(225, 0, 0, 1)';
-    ctx.fillRect(50, 50, 75, 50);
-    ctx.fillStyle = 'rgba(0, 255, 0, 1)';
-    ctx.fillRect(70, 70, 75, 50);
-
+- name: 2d.layer.cross-layer-paths
+  desc: Checks that path defined in a layer is usable outside.
+  code: |
+    ctx.beginLayer();
+    ctx.translate(50, 0);
+    ctx.moveTo(0, 0);
     ctx.endLayer();
-  reference: |
-    ctx.fillStyle = 'rgba(0, 0, 255, 1)';
-    ctx.fillRect(60, 60, 75, 50);
-    ctx.globalAlpha = 0.5;
-
-    ctx.fillStyle = 'rgba(225, 0, 0, 1)';
-    ctx.fillRect(50, 50, 75, 50);
-    ctx.fillStyle = 'rgba(0, 255, 0, 1)';
-    ctx.fillRect(70, 70, 75, 50);
+    ctx.lineTo(50, 100);
+    ctx.stroke();
+  reference:
+    ctx.moveTo(50, 0);
+    ctx.lineTo(50, 100);
+    ctx.stroke();

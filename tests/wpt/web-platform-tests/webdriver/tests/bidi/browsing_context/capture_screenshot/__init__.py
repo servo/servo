@@ -1,5 +1,6 @@
 from webdriver.bidi.modules.script import ContextTarget
 
+
 async def viewport_dimensions(bidi_session, context):
     """Get the dimensions of the context's viewport.
 

@@ -1,8 +1,7 @@
 import pytest
 
-from tests.support.asserts import assert_success
+from tests.support.asserts import assert_pdf, assert_success
 from tests.support.image import png_dimensions
-from tests.support.pdf import assert_pdf
 
 from . import do_print
 

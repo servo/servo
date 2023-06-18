@@ -25,9 +25,10 @@ _addTest(function(canvas, ctx) {
   ctx.fillRect(50, 0, 50, 50);
   ctx.shadowOffsetY = 50;
   ctx.shadowColor = '#0f0';
-  ctx.drawImage(document.getElementById('redtransparent.png'), 50, -50);
+  var img = document.getElementById('redtransparent.png');
+  ctx.drawImage(img, 50, -50);
   ctx.shadowColor = '#f00';
-  ctx.drawImage(document.getElementById('redtransparent.png'), -50, -50);
+  ctx.drawImage(img, -50, -50);
 
   _assertPixel(canvas, 25,25, 0,255,0,255);
   _assertPixel(canvas, 50,25, 0,255,0,255);

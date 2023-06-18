@@ -6,9 +6,9 @@
 
 <div id=target style="display:none">
   Imperative test element
-  <span></span> A
-  <span></span> B
-  <span></span> C
+  <span>A</span>
+  <span>B</span>
+  <span>C</span>
 </div>
 
 <div style="display:none">
@@ -18,19 +18,60 @@
 </div>
 
 <script>
-test(() => {
-  const target = document.getElementById('target');
-  assert_true(target.children.length >= 3);
-  const documentPart = document.getDocumentPart();
-  assert_true(documentPart instanceof DocumentPart,'document should have a DocumentPart');
-  const parts = documentPart.getParts();
-  assert_true(!!parts,'getParts should return something');
-  const nodePart = new NodePart(target);
-  assert_true(!!nodePart);
+const target = document.getElementById('target');
+assert_true(target.children.length >= 3);
+
+function addCleanup(t, part) {
+  t.add_cleanup(() => part.disconnect());
+  return part;
+}
+
+test((t) => {
+  const root = document.getPartRoot();
+  assert_true(root instanceof DocumentPartRoot);
+  assert_true(root instanceof PartRoot);
+  const parts = root.getParts();
+  assert_equals(parts.length,0,'getParts() should start out empty');
+
+  const nodePart = addCleanup(t,new NodePart(root,target));
+  assert_true(nodePart instanceof NodePart);
   assert_equals(nodePart.node,target);
-  const childNodePart = new ChildNodePart(target.children[0], target.children[1]);
-  assert_true(!!childNodePart);
+  assert_equals(nodePart.root,root);
+  assert_equals(root.getParts().length,1,'getParts() for the root should now have this nodePart');
+  assert_equals(root.getParts()[0],nodePart);
+  assert_equals(parts.length,0,'Return value of getParts() is not live');
+
+  assert_throws_dom("NotSupportedError",() => new NodePart(nodePart,target.children[0]),'Constructing a Part with a NodePart as the PartRoot should throw');
+
+  const childNodePart = addCleanup(t,new ChildNodePart(root,target.children[0], target.children[2]));
+  assert_true(childNodePart instanceof ChildNodePart);
+  assert_true(childNodePart instanceof Part);
+  assert_equals(childNodePart.root,root);
   assert_equals(childNodePart.previousSibling,target.children[0]);
-  assert_equals(childNodePart.nextSibling,target.children[1]);
+  assert_equals(childNodePart.nextSibling,target.children[2]);
+  assert_equals(childNodePart.getParts().length,0,'childNodePart.getParts() should start out empty');
+  assert_equals(root.getParts().length,2);
+  assert_equals(root.getParts()[1],childNodePart);
+
+  const nodeBefore = target.previousSibling || target.parentNode;
+  const nodePartBefore = addCleanup(t,new NodePart(root,nodeBefore));
+  assert_equals(root.getParts().length,3,'getParts() for the root should now have this nodePart');
+  assert_array_equals(root.getParts(),[nodePartBefore,nodePart,childNodePart],'getParts() should return nodes in tree order');
+
+  const nodePart2 = addCleanup(t,new NodePart(childNodePart,target.children[2]));
+  assert_equals(nodePart2.root,childNodePart);
+  assert_equals(root.getParts().length,3,'getParts() for the root DocumentPartRoot shouldn\'t change');
+  assert_array_equals(childNodePart.getParts(),[nodePart2]);
+
+  nodePart2.disconnect();
+  assert_equals(nodePart2.root,null);
+  assert_equals(nodePart2.node,target.children[2],'node should still be connected');
+  assert_equals(childNodePart.getParts().length,0,'calling disconnect() should remove the part from root.getParts()');
+  assert_equals(root.getParts().length,3,'getParts() for the root DocumentPartRoot still shouldn\'t change');
+  nodePart2.disconnect(); // Calling twice should be ok.
+
+  childNodePart.disconnect();
+  assert_equals(childNodePart.root,null);
+  assert_array_equals(root.getParts(),[nodePartBefore,nodePart]);
 }, 'Basic imperative DOM Parts object construction');
 </script>

@@ -39,45 +39,38 @@ def test_no_browsing_context(session, closed_frame, inline):
     assert session.url == doc
 
 
-def test_basic(session, inline):
-    url = inline("<div id=foo>")
-
-    session.url = inline("<div id=bar>")
-    element = session.find.css("#bar", all=False)
-
-    response = navigate_to(session, url)
-    assert_success(response)
-
-    with pytest.raises(error.StaleElementReferenceException):
-        element.property("id")
-
-    assert session.url == url
-    assert session.find.css("#foo", all=False)
-
-
-# Capability needed as long as no valid certificate is available:
-#   https://github.com/web-platform-tests/wpt/issues/28847
-@pytest.mark.capabilities({"acceptInsecureCerts": True})
-def test_cross_origin(session, inline, url):
-    base_path = ("/webdriver/tests/support/html/subframe.html" +
-                 "?pipe=header(Cross-Origin-Opener-Policy,same-origin")
-    first_page = url(base_path, protocol="https")
-    second_page = url(base_path, protocol="https", domain="alt")
+@pytest.mark.parametrize("protocol,parameters", [
+    ("http", ""),
+    ("https", ""),
+    ("https", {"pipe": "header(Cross-Origin-Opener-Policy,same-origin)"})
+], ids=[
+    "http",
+    "https",
+    "https coop"
+])
+def test_seen_nodes(session, get_test_page, protocol, parameters):
+    first_page = get_test_page(parameters=parameters, protocol=protocol)
+    second_page = get_test_page(parameters=parameters, protocol=protocol, domain="alt")
 
     response = navigate_to(session, first_page)
     assert_success(response)
 
     assert session.url == first_page
-    elem = session.find.css("#delete", all=False)
+
+    element = session.find.css("#custom-element", all=False)
+    shadow_root = element.shadow_root
 
     response = navigate_to(session, second_page)
     assert_success(response)
 
     assert session.url == second_page
-    with pytest.raises(error.NoSuchElementException):
-        elem.click()
 
-    session.find.css("#delete", all=False)
+    with pytest.raises(error.StaleElementReferenceException):
+        element.name
+    with pytest.raises(error.DetachedShadowRootException):
+        shadow_root.find_element("css selector", "in-shadow-dom")
+
+    session.find.css("#custom-element", all=False)
 
 
 @pytest.mark.capabilities({"pageLoadStrategy": "eager"})

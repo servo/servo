@@ -21,34 +21,36 @@ _addTest(function(canvas, ctx) {
 
   _assertSame(ctx.fontKerning, "auto", "ctx.fontKerning", "\"auto\"");
   ctx.fontKerning = "Normal";
-  _assertSame(ctx.fontKerning, "normal", "ctx.fontKerning", "\"normal\"");
-  ctx.fontKerning = "Auto";
+  _assertSame(ctx.fontKerning, "auto", "ctx.fontKerning", "\"auto\"");
   ctx.fontKerning = "normal";
   _assertSame(ctx.fontKerning, "normal", "ctx.fontKerning", "\"normal\"");
   ctx.fontKerning = "Auto";
+  _assertSame(ctx.fontKerning, "normal", "ctx.fontKerning", "\"normal\"");
+  ctx.fontKerning = "auto";
   ctx.fontKerning = "noRmal";
-  _assertSame(ctx.fontKerning, "normal", "ctx.fontKerning", "\"normal\"");
-  ctx.fontKerning = "Auto";
+  _assertSame(ctx.fontKerning, "auto", "ctx.fontKerning", "\"auto\"");
+  ctx.fontKerning = "auto";
   ctx.fontKerning = "NoRMal";
-  _assertSame(ctx.fontKerning, "normal", "ctx.fontKerning", "\"normal\"");
-  ctx.fontKerning = "Auto";
+  _assertSame(ctx.fontKerning, "auto", "ctx.fontKerning", "\"auto\"");
+  ctx.fontKerning = "auto";
   ctx.fontKerning = "NORMAL";
-  _assertSame(ctx.fontKerning, "normal", "ctx.fontKerning", "\"normal\"");
+  _assertSame(ctx.fontKerning, "auto", "ctx.fontKerning", "\"auto\"");
 
   ctx.fontKerning = "None";
-  _assertSame(ctx.fontKerning, "none", "ctx.fontKerning", "\"none\"");
-  ctx.fontKerning = "Auto";
+  _assertSame(ctx.fontKerning, "auto", "ctx.fontKerning", "\"auto\"");
   ctx.fontKerning = "none";
   _assertSame(ctx.fontKerning, "none", "ctx.fontKerning", "\"none\"");
   ctx.fontKerning = "Auto";
+  _assertSame(ctx.fontKerning, "none", "ctx.fontKerning", "\"none\"");
+  ctx.fontKerning = "auto";
   ctx.fontKerning = "nOne";
-  _assertSame(ctx.fontKerning, "none", "ctx.fontKerning", "\"none\"");
-  ctx.fontKerning = "Auto";
+  _assertSame(ctx.fontKerning, "auto", "ctx.fontKerning", "\"auto\"");
+  ctx.fontKerning = "auto";
   ctx.fontKerning = "nonE";
-  _assertSame(ctx.fontKerning, "none", "ctx.fontKerning", "\"none\"");
-  ctx.fontKerning = "Auto";
+  _assertSame(ctx.fontKerning, "auto", "ctx.fontKerning", "\"auto\"");
+  ctx.fontKerning = "auto";
   ctx.fontKerning = "NONE";
-  _assertSame(ctx.fontKerning, "none", "ctx.fontKerning", "\"none\"");
+  _assertSame(ctx.fontKerning, "auto", "ctx.fontKerning", "\"auto\"");
 
 });
 </script>
