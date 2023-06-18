@@ -528,11 +528,20 @@ pub enum TextAlign {
     /// unlike other keywords.
     #[cfg(feature = "gecko")]
     MatchParent,
-    /// `MozCenterOrInherit` value of text-align property. It cannot be parsed,
-    /// only set directly on the elements and it has a different handling
-    /// unlike other values.
+    /// This is how we implement the following HTML behavior from
+    /// https://html.spec.whatwg.org/#tables-2:
+    ///
+    ///     User agents are expected to have a rule in their user agent style sheet
+    ///     that matches th elements that have a parent node whose computed value
+    ///     for the 'text-align' property is its initial value, whose declaration
+    ///     block consists of just a single declaration that sets the 'text-align'
+    ///     property to the value 'center'.
+    ///
+    /// Since selectors can't depend on the ancestor styles, we implement it with a
+    /// magic value that computes to the right thing. Since this is an
+    /// implementation detail, it shouldn't be exposed to web content.
     #[cfg(feature = "gecko")]
-    #[css(skip)]
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozCenterOrInherit,
 }
 
