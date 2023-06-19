@@ -17,6 +17,7 @@ use crate::values::computed::font::GenericFontFamily;
 use crate::values::computed::{ColorScheme, Length};
 use crate::values::specified::color::SystemColor;
 use crate::values::specified::font::FONT_MEDIUM_PX;
+use crate::values::specified::ViewportVariant;
 use crate::values::{CustomIdent, KeyframesName};
 use app_units::{Au, AU_PER_PX};
 use cssparser::RGBA;
@@ -58,6 +59,9 @@ pub struct Device {
     /// Whether any styles computed in the document relied on the viewport size
     /// by using vw/vh/vmin/vmax units.
     used_viewport_size: AtomicBool,
+    /// Whether any styles computed in the document relied on the viewport size
+    /// by using dvw/dvh/dvmin/dvmax units.
+    used_dynamic_viewport_size: AtomicBool,
     /// The CssEnvironment object responsible of getting CSS environment
     /// variables.
     environment: CssEnvironment,
@@ -100,6 +104,7 @@ impl Device {
             used_root_font_size: AtomicBool::new(false),
             used_font_metrics: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
+            used_dynamic_viewport_size: AtomicBool::new(false),
             environment: CssEnvironment,
         }
     }
@@ -267,6 +272,8 @@ impl Device {
         self.used_root_font_size.store(false, Ordering::Relaxed);
         self.used_font_metrics.store(false, Ordering::Relaxed);
         self.used_viewport_size.store(false, Ordering::Relaxed);
+        self.used_dynamic_viewport_size
+            .store(false, Ordering::Relaxed);
     }
 
     /// Returns whether we ever looked up the root font size of the Device.
@@ -337,7 +344,10 @@ impl Device {
 
     /// Returns the current viewport size in app units, recording that it's been
     /// used for viewport unit resolution.
-    pub fn au_viewport_size_for_viewport_unit_resolution(&self) -> Size2D<Au> {
+    pub fn au_viewport_size_for_viewport_unit_resolution(
+        &self,
+        variant: ViewportVariant,
+    ) -> Size2D<Au> {
         self.used_viewport_size.store(true, Ordering::Relaxed);
         let pc = match self.pres_context() {
             Some(pc) => pc,
@@ -348,13 +358,52 @@ impl Device {
             return self.page_size_minus_default_margin(pc);
         }
 
-        let size = &pc.mSizeForViewportUnits;
-        Size2D::new(Au(size.width), Au(size.height))
+        match variant {
+            ViewportVariant::UADefault => {
+                let size = &pc.mSizeForViewportUnits;
+                Size2D::new(Au(size.width), Au(size.height))
+            },
+            ViewportVariant::Small => {
+                let size = &pc.mVisibleArea;
+                Size2D::new(Au(size.width), Au(size.height))
+            },
+            ViewportVariant::Large => {
+                let size = &pc.mVisibleArea;
+                // Looks like IntCoordTyped is treated as if it's u32 in Rust.
+                debug_assert!(
+                    /* pc.mDynamicToolbarMaxHeight >=0 && */
+                    pc.mDynamicToolbarMaxHeight < i32::MAX as u32
+                );
+                Size2D::new(
+                    Au(size.width),
+                    Au(size.height
+                        + pc.mDynamicToolbarMaxHeight as i32 * pc.mCurAppUnitsPerDevPixel),
+                )
+            },
+            ViewportVariant::Dynamic => {
+                self.used_dynamic_viewport_size.store(true, Ordering::Relaxed);
+                let size = &pc.mVisibleArea;
+                // Looks like IntCoordTyped is treated as if it's u32 in Rust.
+                debug_assert!(
+                    /* pc.mDynamicToolbarHeight >=0 && */
+                    pc.mDynamicToolbarHeight < i32::MAX as u32
+                );
+                Size2D::new(
+                    Au(size.width),
+                    Au(size.height + pc.mDynamicToolbarHeight as i32 * pc.mCurAppUnitsPerDevPixel),
+                )
+            },
+        }
     }
 
     /// Returns whether we ever looked up the viewport size of the Device.
     pub fn used_viewport_size(&self) -> bool {
         self.used_viewport_size.load(Ordering::Relaxed)
+    }
+
+    /// Returns whether we ever looked up the dynamic viewport size of the Device.
+    pub fn used_dynamic_viewport_size(&self) -> bool {
+        self.used_dynamic_viewport_size.load(Ordering::Relaxed)
     }
 
     /// Returns whether font metrics have been queried.

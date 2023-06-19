@@ -97,6 +97,7 @@ pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 pub use self::ui::CursorImage;
 pub use self::ui::{Cursor, MozForceBrokenImageIcon, UserSelect};
 pub use super::specified::TextTransform;
+pub use super::specified::ViewportVariant;
 pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use super::{Auto, Either, None_};
 pub use app_units::Au;
@@ -253,10 +254,13 @@ impl<'a> Context<'a> {
     }
 
     /// The current viewport size, used to resolve viewport units.
-    pub fn viewport_size_for_viewport_unit_resolution(&self) -> default::Size2D<Au> {
+    pub fn viewport_size_for_viewport_unit_resolution(
+        &self,
+        variant: ViewportVariant,
+    ) -> default::Size2D<Au> {
         self.builder
             .device
-            .au_viewport_size_for_viewport_unit_resolution()
+            .au_viewport_size_for_viewport_unit_resolution(variant)
     }
 
     /// The default computed style we're getting our reset style from.
