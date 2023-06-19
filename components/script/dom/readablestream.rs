@@ -309,7 +309,7 @@ impl ReadableStream {
     /// Releases the lock on the reader,
     /// must be done after `start_reading`.
     #[allow(unsafe_code)]
-    pub fn stop_reading(&self, cx: SafeJSContext) {
+    pub fn stop_reading(&self) {
         if !self.has_reader.get() {
             panic!("ReadableStream::stop_reading called on a readerless stream.");
         }

@@ -296,7 +296,7 @@ impl Callback for TransmitBodyPromiseHandler {
                 // Step 5.5, the "otherwise" steps.
                 // TODO: terminate fetch.
                 let _ = self.control_sender.send(BodyChunkRequest::Done);
-                return self.stream.stop_reading(cx);
+                return self.stream.stop_reading();
             },
         };
 
@@ -304,7 +304,7 @@ impl Callback for TransmitBodyPromiseHandler {
             // Step 5.3, the "done" steps.
             // TODO: queue a fetch task on request to process request end-of-body.
             let _ = self.control_sender.send(BodyChunkRequest::Done);
-            return self.stream.stop_reading(cx);
+            return self.stream.stop_reading();
         }
 
         let chunk = match get_read_promise_bytes(cx.clone(), &v) {
@@ -312,7 +312,7 @@ impl Callback for TransmitBodyPromiseHandler {
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
                 let _ = self.control_sender.send(BodyChunkRequest::Error);
-                return self.stream.stop_reading(cx);
+                return self.stream.stop_reading();
             },
         };
 
@@ -336,10 +336,10 @@ struct TransmitBodyPromiseRejectionHandler {
 
 impl Callback for TransmitBodyPromiseRejectionHandler {
     /// <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
-    fn callback(&self, cx: JSContext, _v: HandleValue, _realm: InRealm) {
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
         // Step 5.4, the "rejection" steps.
         let _ = self.control_sender.send(BodyChunkRequest::Error);
-        return self.stream.stop_reading(cx);
+        return self.stream.stop_reading();
     }
 }
 
@@ -660,7 +660,7 @@ impl Callback for ConsumeBodyPromiseHandler {
         let is_done = match get_read_promise_done(cx.clone(), &v) {
             Ok(is_done) => is_done,
             Err(err) => {
-                stream.stop_reading(cx);
+                stream.stop_reading();
                 // When read is fulfilled with a value that doesn't matches with neither of the above patterns.
                 return self.result_promise.reject_error(err);
             },
@@ -673,7 +673,7 @@ impl Callback for ConsumeBodyPromiseHandler {
             let chunk = match get_read_promise_bytes(cx.clone(), &v) {
                 Ok(chunk) => chunk,
                 Err(err) => {
-                    stream.stop_reading(cx);
+                    stream.stop_reading();
                     // When read is fulfilled with a value that matches with neither of the above patterns
                     return self.result_promise.reject_error(err);
                 },
