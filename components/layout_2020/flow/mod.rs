@@ -22,8 +22,7 @@ use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use rayon_croissant::ParallelIteratorExt;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
 use style::computed_values::clear::T as Clear;
 use style::computed_values::float::T as Float;
@@ -79,7 +78,6 @@ impl BlockFormattingContext {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        tree_rank: usize,
     ) -> IndependentLayout {
         let mut sequential_layout_state = if self.contains_floats || !layout_context.use_rayon {
             Some(SequentialLayoutState::new())
@@ -91,7 +89,6 @@ impl BlockFormattingContext {
             layout_context,
             positioning_context,
             containing_block,
-            tree_rank,
             sequential_layout_state.as_mut(),
             CollapsibleWithParentStartMargin(false),
         );
@@ -208,7 +205,6 @@ impl BlockContainer {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        tree_rank: usize,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
     ) -> FlowLayout {
@@ -218,7 +214,6 @@ impl BlockContainer {
                 positioning_context,
                 child_boxes,
                 containing_block,
-                tree_rank,
                 sequential_layout_state,
                 collapsible_with_parent_start_margin,
             ),
@@ -226,7 +221,6 @@ impl BlockContainer {
                 layout_context,
                 positioning_context,
                 containing_block,
-                tree_rank,
                 sequential_layout_state,
             ),
         }
@@ -255,7 +249,6 @@ fn layout_block_level_children(
     positioning_context: &mut PositioningContext,
     child_boxes: &[ArcRefCell<BlockLevelBox>],
     containing_block: &ContainingBlock,
-    tree_rank: usize,
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
 ) -> FlowLayout {
@@ -265,7 +258,6 @@ fn layout_block_level_children(
             positioning_context,
             child_boxes,
             containing_block,
-            tree_rank,
             sequential_layout_state,
             collapsible_with_parent_start_margin,
         ),
@@ -274,7 +266,6 @@ fn layout_block_level_children(
             positioning_context,
             child_boxes,
             containing_block,
-            tree_rank,
             collapsible_with_parent_start_margin,
         ),
     }
@@ -285,37 +276,35 @@ fn layout_block_level_children_in_parallel(
     positioning_context: &mut PositioningContext,
     child_boxes: &[ArcRefCell<BlockLevelBox>],
     containing_block: &ContainingBlock,
-    tree_rank: usize,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
 ) -> FlowLayout {
-    let mut placement_state = PlacementState::new(collapsible_with_parent_start_margin);
+    let collects_for_nearest_positioned_ancestor =
+        positioning_context.collects_for_nearest_positioned_ancestor();
+    let layout_results: Vec<(Fragment, PositioningContext)> = child_boxes
+        .par_iter()
+        .map(|child_box| {
+            let mut child_positioning_context =
+                PositioningContext::new_for_subtree(collects_for_nearest_positioned_ancestor);
+            let fragment = child_box.borrow_mut().layout(
+                layout_context,
+                &mut child_positioning_context,
+                containing_block,
+                /* sequential_layout_state = */ None,
+            );
+            (fragment, child_positioning_context)
+        })
+        .collect();
 
-    let fragments = positioning_context.adjust_static_positions(tree_rank, |positioning_context| {
-        let collects_for_nearest_positioned_ancestor =
-            positioning_context.collects_for_nearest_positioned_ancestor();
-        let mut fragments: Vec<Fragment> = child_boxes
-            .par_iter()
-            .enumerate()
-            .mapfold_reduce_into(
-                positioning_context,
-                |positioning_context, (tree_rank, box_)| {
-                    box_.borrow_mut().layout(
-                        layout_context,
-                        positioning_context,
-                        containing_block,
-                        tree_rank,
-                        /* sequential_layout_state = */ None,
-                    )
-                },
-                || PositioningContext::new_for_rayon(collects_for_nearest_positioned_ancestor),
-                PositioningContext::append,
-            )
-            .collect();
-        for fragment in fragments.iter_mut() {
-            placement_state.place_fragment(fragment);
-        }
-        fragments
-    });
+    let mut placement_state = PlacementState::new(collapsible_with_parent_start_margin);
+    let fragments = layout_results
+        .into_iter()
+        .map(|(mut fragment, mut child_positioning_context)| {
+            placement_state.place_fragment(&mut fragment);
+            child_positioning_context.adjust_static_position_of_hoisted_fragments(&fragment);
+            positioning_context.append(child_positioning_context);
+            fragment
+        })
+        .collect();
 
     FlowLayout {
         fragments,
@@ -329,35 +318,36 @@ fn layout_block_level_children_sequentially(
     positioning_context: &mut PositioningContext,
     child_boxes: &[ArcRefCell<BlockLevelBox>],
     containing_block: &ContainingBlock,
-    tree_rank: usize,
     sequential_layout_state: &mut SequentialLayoutState,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
 ) -> FlowLayout {
     let mut placement_state = PlacementState::new(collapsible_with_parent_start_margin);
+    let collects_for_nearest_positioned_ancestor =
+        positioning_context.collects_for_nearest_positioned_ancestor();
 
-    let fragments = positioning_context.adjust_static_positions(tree_rank, |positioning_context| {
-        // Because floats are involved, we do layout for this block formatting context in tree
-        // order without parallelism. This enables mutable access to a `SequentialLayoutState` that
-        // tracks every float encountered so far (again in tree order).
-        child_boxes
-            .iter()
-            .enumerate()
-            .map(|(tree_rank, child_box)| {
-                let mut fragment = child_box.borrow_mut().layout(
-                    layout_context,
-                    positioning_context,
-                    containing_block,
-                    tree_rank,
-                    Some(&mut *sequential_layout_state),
-                );
+    // Because floats are involved, we do layout for this block formatting context in tree
+    // order without parallelism. This enables mutable access to a `SequentialLayoutState` that
+    // tracks every float encountered so far (again in tree order).
+    let fragments = child_boxes
+        .iter()
+        .map(|child_box| {
+            let mut child_positioning_context =
+                PositioningContext::new_for_subtree(collects_for_nearest_positioned_ancestor);
+            let mut fragment = child_box.borrow_mut().layout(
+                layout_context,
+                &mut child_positioning_context,
+                containing_block,
+                Some(&mut *sequential_layout_state),
+            );
 
-                placement_state.place_fragment(&mut fragment);
-                placement_state
-                    .adjust_positions_of_float_children(&mut fragment, sequential_layout_state);
-                fragment
-            })
-            .collect()
-    });
+            placement_state.place_fragment(&mut fragment);
+            placement_state
+                .adjust_positions_of_float_children(&mut fragment, sequential_layout_state);
+            child_positioning_context.adjust_static_position_of_hoisted_fragments(&fragment);
+            positioning_context.append(child_positioning_context);
+            fragment
+        })
+        .collect();
 
     FlowLayout {
         fragments,
@@ -372,7 +362,6 @@ impl BlockLevelBox {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        tree_rank: usize,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
     ) -> Fragment {
         match self {
@@ -392,7 +381,6 @@ impl BlockLevelBox {
                         *tag,
                         style,
                         NonReplacedContents::SameFormattingContextBlock(contents),
-                        tree_rank,
                         sequential_layout_state,
                     )
                 },
@@ -429,7 +417,6 @@ impl BlockLevelBox {
                                 NonReplacedContents::EstablishesAnIndependentFormattingContext(
                                     non_replaced,
                                 ),
-                                tree_rank,
                                 sequential_layout_state,
                             )
                         },
@@ -443,7 +430,6 @@ impl BlockLevelBox {
                     // correct positioning until later, in place_block_level_fragment,
                     // and this value will be adjusted there
                     Vec2::zero(),
-                    tree_rank,
                     containing_block,
                 );
                 let hoisted_fragment = hoisted_box.fragment.clone();
@@ -494,7 +480,6 @@ fn layout_in_flow_non_replaced_block_level(
     base_fragment_info: BaseFragmentInfo,
     style: &Arc<ComputedValues>,
     block_level_kind: NonReplacedContents,
-    tree_rank: usize,
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
 ) -> BoxFragment {
     let pbm = style.padding_border_margin(containing_block);
@@ -623,7 +608,6 @@ fn layout_in_flow_non_replaced_block_level(
                 layout_context,
                 positioning_context,
                 &containing_block_for_children,
-                tree_rank,
                 sequential_layout_state.as_mut().map(|x| &mut **x),
                 CollapsibleWithParentStartMargin(start_margin_can_collapse_with_children),
             );
@@ -665,7 +649,6 @@ fn layout_in_flow_non_replaced_block_level(
                 layout_context,
                 positioning_context,
                 &containing_block_for_children,
-                tree_rank,
             );
             fragments = independent_layout.fragments;
             content_block_size = independent_layout.content_block_size;

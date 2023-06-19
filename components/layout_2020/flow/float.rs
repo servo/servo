@@ -739,7 +739,6 @@ impl FloatBox {
                             layout_context,
                             &mut positioning_context,
                             &containing_block_for_children,
-                            0,
                         );
                         content_size = Vec2 {
                             inline: inline_size,

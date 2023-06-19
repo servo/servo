@@ -289,14 +289,12 @@ impl BoxTree {
             style,
         };
 
-        let dummy_tree_rank = 0;
         let mut positioning_context =
             PositioningContext::new_for_containing_block_for_all_descendants();
         let independent_layout = self.root.layout(
             layout_context,
             &mut positioning_context,
             &(&initial_containing_block).into(),
-            dummy_tree_rank,
         );
 
         let mut root_fragments = independent_layout

@@ -55,7 +55,6 @@ struct FlexContext<'a> {
 /// A flex item with some intermediate results
 struct FlexItem<'a> {
     box_: &'a mut IndependentFormattingContext,
-    tree_rank: usize,
     content_box_size: FlexRelativeVec2<LengthOrAuto>,
     content_min_size: FlexRelativeVec2<Length>,
     content_max_size: FlexRelativeVec2<Option<Length>>,
@@ -92,7 +91,7 @@ struct FlexItemLayoutResult {
 /// Return type of `FlexLine::layout`
 struct FlexLineLayoutResult {
     cross_size: Length,
-    item_fragments: Vec<BoxFragment>, // One per flex item, in the given order
+    item_fragments: Vec<(BoxFragment, PositioningContext)>, // One per flex item, in the given order
 }
 
 impl FlexContext<'_> {
@@ -150,7 +149,6 @@ impl FlexContainer {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        tree_rank: usize,
     ) -> IndependentLayout {
         // Actual length may be less, but we guess that usually not by a lot
         let mut flex_items = Vec::with_capacity(self.children.len());
@@ -161,8 +159,7 @@ impl FlexContainer {
         let original_order_with_absolutely_positioned = self
             .children
             .iter()
-            .enumerate()
-            .map(|(tree_rank, arcrefcell)| {
+            .map(|arcrefcell| {
                 let borrowed = arcrefcell.borrow_mut();
                 match &*borrowed {
                     FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(absolutely_positioned) => {
@@ -173,56 +170,54 @@ impl FlexContainer {
                             FlexLevelBox::FlexItem(item) => item,
                             _ => unreachable!(),
                         });
-                        flex_items.push((tree_rank, item));
+                        flex_items.push(item);
                         Err(())
                     },
                 }
             })
             .collect::<Vec<_>>();
 
-        let mut content_block_size_option_dance = None;
-        let fragments =
-            positioning_context.adjust_static_positions(tree_rank, |positioning_context| {
-                let (mut flex_item_fragments, content_block_size) = layout(
-                    layout_context,
-                    positioning_context,
-                    containing_block,
-                    flex_items
-                        .iter_mut()
-                        .map(|(tree_rank, child)| (*tree_rank, &mut **child)),
-                );
-                content_block_size_option_dance = Some(content_block_size);
-                let fragments = original_order_with_absolutely_positioned
-                    .into_iter()
-                    .enumerate()
-                    .map(|(tree_rank, child_as_abspos)| match child_as_abspos {
-                        Err(()) => {
-                            // The `()` here is a place-holder for a flex item.
-                            // The `flex_item_fragments` iterator yields one fragment
-                            // per flex item, in the original order.
-                            Fragment::Box(flex_item_fragments.next().unwrap())
-                        },
-                        Ok(absolutely_positioned) => {
-                            let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
-                                absolutely_positioned,
-                                Vec2::zero(),
-                                tree_rank,
-                                containing_block,
-                            );
-                            let hoisted_fragment = hoisted_box.fragment.clone();
-                            positioning_context.push(hoisted_box);
-                            Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
-                        },
-                    })
-                    .collect::<Vec<_>>();
-                // There should be no more flex items
-                assert!(flex_item_fragments.next().is_none());
-                fragments
-            });
+        let (mut flex_item_fragments, content_block_size) = layout(
+            layout_context,
+            positioning_context,
+            containing_block,
+            flex_items.iter_mut().map(|child| &mut **child),
+        );
+
+        let fragments = original_order_with_absolutely_positioned
+            .into_iter()
+            .map(|child_as_abspos| match child_as_abspos {
+                Err(()) => {
+                    // The `()` here is a place-holder for a flex item.
+                    // The `flex_item_fragments` iterator yields one fragment
+                    // per flex item, in the original order.
+                    let (fragment, mut child_positioning_context) =
+                        flex_item_fragments.next().unwrap();
+                    let fragment = Fragment::Box(fragment);
+                    child_positioning_context
+                        .adjust_static_position_of_hoisted_fragments(&fragment);
+                    positioning_context.append(child_positioning_context);
+                    fragment
+                },
+                Ok(absolutely_positioned) => {
+                    let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
+                        absolutely_positioned,
+                        Vec2::zero(),
+                        containing_block,
+                    );
+                    let hoisted_fragment = hoisted_box.fragment.clone();
+                    positioning_context.push(hoisted_box);
+                    Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
+                },
+            })
+            .collect::<Vec<_>>();
+
+        // There should be no more flex items
+        assert!(flex_item_fragments.next().is_none());
 
         IndependentLayout {
             fragments,
-            content_block_size: content_block_size_option_dance.unwrap(),
+            content_block_size,
         }
     }
 }
@@ -232,8 +227,11 @@ fn layout<'context, 'boxes>(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     containing_block: &ContainingBlock,
-    flex_item_boxes: impl Iterator<Item = (usize, &'boxes mut IndependentFormattingContext)>,
-) -> (impl Iterator<Item = BoxFragment>, Length) {
+    flex_item_boxes: impl Iterator<Item = &'boxes mut IndependentFormattingContext>,
+) -> (
+    impl Iterator<Item = (BoxFragment, PositioningContext)>,
+    Length,
+) {
     // FIXME: get actual min/max cross size for the flex container.
     // We have access to style for the flex container in `containing_block.style`,
     // but resolving percentages there requires access
@@ -290,7 +288,7 @@ fn layout<'context, 'boxes>(
     };
 
     let mut flex_items = flex_item_boxes
-        .map(|(tree_rank, box_)| FlexItem::new(&flex_context, box_, tree_rank))
+        .map(|box_| FlexItem::new(&flex_context, box_))
         .collect::<Vec<_>>();
 
     // “Determine the main size of the flex container”
@@ -387,7 +385,7 @@ fn layout<'context, 'boxes>(
             container_main_size
         },
     };
-    let fragments = flex_lines
+    let fragments_and_positioning_contexts = flex_lines
         .into_iter()
         .zip(line_cross_start_positions)
         .flat_map(move |(mut line, line_cross_start_position)| {
@@ -409,21 +407,17 @@ fn layout<'context, 'boxes>(
                     inline: container_cross_size - line_cross_start_position - line.cross_size,
                 },
             };
-            for fragment in &mut line.item_fragments {
+            for (fragment, _) in &mut line.item_fragments {
                 fragment.content_rect.start_corner += &flow_relative_line_position
             }
             line.item_fragments
         })
         .into_iter();
-    (fragments, content_block_size)
+    (fragments_and_positioning_contexts, content_block_size)
 }
 
 impl<'a> FlexItem<'a> {
-    fn new(
-        flex_context: &FlexContext,
-        box_: &'a mut IndependentFormattingContext,
-        tree_rank: usize,
-    ) -> Self {
+    fn new(flex_context: &FlexContext, box_: &'a mut IndependentFormattingContext) -> Self {
         let containing_block = flex_context.containing_block;
         let box_style = box_.style();
 
@@ -543,7 +537,6 @@ impl<'a> FlexItem<'a> {
 
         Self {
             box_,
-            tree_rank,
             content_box_size,
             content_min_size,
             content_max_size,
@@ -730,7 +723,7 @@ impl FlexLine<'_> {
 
         // Determine the used cross size of each flex item
         // https://drafts.csswg.org/css-flexbox/#algo-stretch
-        let (item_used_cross_sizes, item_fragments): (Vec<_>, Vec<_>) = self
+        let (item_used_cross_sizes, item_results): (Vec<_>, Vec<_>) = self
             .items
             .iter_mut()
             .zip(item_layout_results)
@@ -754,10 +747,7 @@ impl FlexLine<'_> {
                     //  so that percentage-sized children can be resolved.”
                     item_result = item.layout(used_main_size, flex_context, Some(cross_size));
                 }
-                flex_context
-                    .positioning_context
-                    .append(item_result.positioning_context);
-                (cross_size, item_result.fragments)
+                (cross_size, item_result)
             })
             .unzip();
 
@@ -838,7 +828,7 @@ impl FlexLine<'_> {
         let item_fragments = self
             .items
             .iter()
-            .zip(item_fragments)
+            .zip(item_results)
             .zip(
                 item_used_main_sizes
                     .iter()
@@ -852,20 +842,23 @@ impl FlexLine<'_> {
                     .map(|(size, start_corner)| FlexRelativeRect { size, start_corner }),
             )
             .zip(&item_margins)
-            .map(|(((item, fragments), content_rect), margin)| {
+            .map(|(((item, item_result), content_rect), margin)| {
                 let content_rect = flex_context.rect_to_flow_relative(line_size, content_rect);
                 let margin = flex_context.sides_to_flow_relative(*margin);
                 let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
-                BoxFragment::new(
-                    item.box_.base_fragment_info(),
-                    item.box_.style().clone(),
-                    fragments,
-                    content_rect,
-                    flex_context.sides_to_flow_relative(item.padding),
-                    flex_context.sides_to_flow_relative(item.border),
-                    margin,
-                    Length::zero(),
-                    collapsed_margin,
+                (
+                    BoxFragment::new(
+                        item.box_.base_fragment_info(),
+                        item.box_.style().clone(),
+                        item_result.fragments,
+                        content_rect,
+                        flex_context.sides_to_flow_relative(item.padding),
+                        flex_context.sides_to_flow_relative(item.border),
+                        margin,
+                        Length::zero(),
+                        collapsed_margin,
+                    ),
+                    item_result.positioning_context,
                 )
             })
             .collect();
@@ -1048,7 +1041,7 @@ impl<'a> FlexItem<'a> {
         flex_context: &mut FlexContext,
         used_cross_size_override: Option<Length>,
     ) -> FlexItemLayoutResult {
-        let mut positioning_context = PositioningContext::new_for_rayon(
+        let mut positioning_context = PositioningContext::new_for_subtree(
             flex_context
                 .positioning_context
                 .collects_for_nearest_positioned_ancestor(),
@@ -1109,7 +1102,6 @@ impl<'a> FlexItem<'a> {
                             flex_context.layout_context,
                             &mut positioning_context,
                             &item_as_containing_block,
-                            self.tree_rank,
                         );
 
                         let hypothetical_cross_size = self
