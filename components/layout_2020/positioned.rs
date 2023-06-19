@@ -166,20 +166,27 @@ impl PositioningContext {
         &mut self,
         parent_fragment: &Fragment,
     ) {
-        let fragment_rect = match &parent_fragment {
-            Fragment::Box(b) | Fragment::Float(b) => &b.content_rect,
+        let start_offset = match &parent_fragment {
+            Fragment::Box(b) | Fragment::Float(b) => &b.content_rect.start_corner,
             Fragment::AbsoluteOrFixedPositioned(_) => return,
-            Fragment::Anonymous(a) => &a.rect,
+            Fragment::Anonymous(a) => &a.rect.start_corner,
             _ => unreachable!(),
         };
+        self.adjust_static_position_of_hoisted_fragments_with_offset(start_offset);
+    }
 
+    /// See documentation for [adjust_static_position_of_hoisted_fragments].
+    pub(crate) fn adjust_static_position_of_hoisted_fragments_with_offset(
+        &mut self,
+        start_offset: &Vec2<CSSPixelLength>,
+    ) {
         let update_fragment_if_needed = |hoisted_fragment: &mut HoistedAbsolutelyPositionedBox| {
             let mut fragment = hoisted_fragment.fragment.borrow_mut();
             if let AbsoluteBoxOffsets::StaticStart { start } = &mut fragment.box_offsets.inline {
-                *start += fragment_rect.start_corner.inline;
+                *start += start_offset.inline;
             }
             if let AbsoluteBoxOffsets::StaticStart { start } = &mut fragment.box_offsets.block {
-                *start += fragment_rect.start_corner.block;
+                *start += start_offset.block;
             }
         };
 
