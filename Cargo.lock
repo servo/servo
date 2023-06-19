@@ -3740,7 +3740,7 @@ checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/jdm/mozjs?branch=no-streams#fef94af1f4ed838bfbb13b3eece94c817f076741"
+source = "git+https://github.com/servo/mozjs#98b678283d1b0c6d263302ca2aff770aece0cb8e"
 dependencies = [
  "cc",
  "lazy_static",
@@ -3753,7 +3753,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.2"
-source = "git+https://github.com/jdm/mozjs?branch=no-streams#fef94af1f4ed838bfbb13b3eece94c817f076741"
+source = "git+https://github.com/servo/mozjs#98b678283d1b0c6d263302ca2aff770aece0cb8e"
 dependencies = [
  "bindgen",
  "cc",
