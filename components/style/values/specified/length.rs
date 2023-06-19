@@ -299,6 +299,10 @@ enum ViewportUnit {
     Vmin,
     /// *vmax units.
     Vmax,
+    /// *vb units.
+    Vb,
+    /// *vi units.
+    Vi,
 }
 
 /// A viewport-relative length.
@@ -354,6 +358,30 @@ pub enum ViewportPercentageLength {
     /// <https://drafts.csswg.org/css-values/#valdef-length-dvmax>
     #[css(dimension)]
     Dvmax(CSSFloat),
+    /// <https://drafts.csswg.org/css-values/#valdef-length-vb>
+    #[css(dimension)]
+    Vb(CSSFloat),
+    /// <https://drafts.csswg.org/css-values/#valdef-length-svb>
+    #[css(dimension)]
+    Svb(CSSFloat),
+    /// <https://drafts.csswg.org/css-values/#valdef-length-lvb>
+    #[css(dimension)]
+    Lvb(CSSFloat),
+    /// <https://drafts.csswg.org/css-values/#valdef-length-dvb>
+    #[css(dimension)]
+    Dvb(CSSFloat),
+    /// <https://drafts.csswg.org/css-values/#valdef-length-vi>
+    #[css(dimension)]
+    Vi(CSSFloat),
+    /// <https://drafts.csswg.org/css-values/#valdef-length-svi>
+    #[css(dimension)]
+    Svi(CSSFloat),
+    /// <https://drafts.csswg.org/css-values/#valdef-length-lvi>
+    #[css(dimension)]
+    Lvi(CSSFloat),
+    /// <https://drafts.csswg.org/css-values/#valdef-length-dvi>
+    #[css(dimension)]
+    Dvi(CSSFloat),
 }
 
 impl ViewportPercentageLength {
@@ -449,6 +477,46 @@ impl ViewportPercentageLength {
                 ViewportUnit::Vmax,
                 v,
             ),
+            ViewportPercentageLength::Vb(v) => (
+                ViewportVariant::UADefault,
+                ViewportUnit::Vb,
+                v,
+            ),
+            ViewportPercentageLength::Svb(v) => (
+                ViewportVariant::Small,
+                ViewportUnit::Vb,
+                v,
+            ),
+            ViewportPercentageLength::Lvb(v) => (
+                ViewportVariant::Large,
+                ViewportUnit::Vb,
+                v,
+            ),
+            ViewportPercentageLength::Dvb(v) => (
+                ViewportVariant::Dynamic,
+                ViewportUnit::Vb,
+                v,
+            ),
+            ViewportPercentageLength::Vi(v) => (
+                ViewportVariant::UADefault,
+                ViewportUnit::Vi,
+                v,
+            ),
+            ViewportPercentageLength::Svi(v) => (
+                ViewportVariant::Small,
+                ViewportUnit::Vi,
+                v,
+            ),
+            ViewportPercentageLength::Lvi(v) => (
+                ViewportVariant::Large,
+                ViewportUnit::Vi,
+                v,
+            ),
+            ViewportPercentageLength::Dvi(v) => (
+                ViewportVariant::Dynamic,
+                ViewportUnit::Vi,
+                v,
+            ),
         }
     }
     fn try_sum(&self, other: &Self) -> Result<Self, ()> {
@@ -475,6 +543,14 @@ impl ViewportPercentageLength {
             (&Svmax(one), &Svmax(other)) => Svmax(one + other),
             (&Lvmax(one), &Lvmax(other)) => Lvmax(one + other),
             (&Dvmax(one), &Dvmax(other)) => Dvmax(one + other),
+            (&Vb(one), &Vb(other)) => Vb(one + other),
+            (&Svb(one), &Svb(other)) => Svb(one + other),
+            (&Lvb(one), &Lvb(other)) => Lvb(one + other),
+            (&Dvb(one), &Dvb(other)) => Dvb(one + other),
+            (&Vi(one), &Vi(other)) => Vi(one + other),
+            (&Svi(one), &Svi(other)) => Svi(one + other),
+            (&Lvi(one), &Lvi(other)) => Lvi(one + other),
+            (&Dvi(one), &Dvi(other)) => Dvi(one + other),
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
@@ -482,7 +558,9 @@ impl ViewportPercentageLength {
                     Vw(..) | Svw(..) | Lvw(..) | Dvw(..) |
                     Vh(..) | Svh(..) | Lvh(..) | Dvh(..) |
                     Vmin(..) | Svmin(..) | Lvmin(..) | Dvmin(..) |
-                    Vmax(..) | Svmax(..) | Lvmax(..) | Dvmax(..) => {},
+                    Vmax(..) | Svmax(..) | Lvmax(..) | Dvmax(..) |
+                    Vb(..) | Svb(..) | Lvb(..) | Dvb(..) |
+                    Vi(..) | Svi(..) | Lvi(..) | Dvi(..) => {},
                 }
                 debug_unreachable!("Forgot to handle unit in try_sum()")
             },
@@ -504,6 +582,32 @@ impl ViewportPercentageLength {
                 let base_size =
                     context.viewport_size_for_viewport_unit_resolution(variant);
                 cmp::max(base_size.width, base_size.height)
+            },
+            ViewportUnit::Vb => {
+                let base_size =
+                    context.viewport_size_for_viewport_unit_resolution(variant);
+                context
+                    .rule_cache_conditions
+                    .borrow_mut()
+                    .set_writing_mode_dependency(context.builder.writing_mode);
+                if context.style().writing_mode.is_vertical() {
+                    base_size.width
+                } else {
+                    base_size.height
+                }
+            },
+            ViewportUnit::Vi => {
+                let base_size =
+                    context.viewport_size_for_viewport_unit_resolution(variant);
+                context
+                    .rule_cache_conditions
+                    .borrow_mut()
+                    .set_writing_mode_dependency(context.builder.writing_mode);
+                if context.style().writing_mode.is_vertical() {
+                    base_size.height
+                } else {
+                    base_size.width
+                }
             },
         };
 
@@ -777,6 +881,30 @@ impl NoCalcLength {
             "dvmax" if !context.in_page_rule() => {
                 NoCalcLength::ViewportPercentage(ViewportPercentageLength::Dvmax(value))
             },
+            "vb" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vb(value))
+            },
+            "svb" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Svb(value))
+            },
+            "lvb" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Lvb(value))
+            },
+            "dvb" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Dvb(value))
+            },
+            "vi" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vi(value))
+            },
+            "svi" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Svi(value))
+            },
+            "lvi" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Lvi(value))
+            },
+            "dvi" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Dvi(value))
+            },
             _ => return Err(()),
         })
     }
@@ -975,6 +1103,14 @@ impl Mul<CSSFloat> for ViewportPercentageLength {
             ViewportPercentageLength::Svmax(v) => ViewportPercentageLength::Svmax(v * scalar),
             ViewportPercentageLength::Lvmax(v) => ViewportPercentageLength::Lvmax(v * scalar),
             ViewportPercentageLength::Dvmax(v) => ViewportPercentageLength::Dvmax(v * scalar),
+            ViewportPercentageLength::Vb(v) => ViewportPercentageLength::Vb(v * scalar),
+            ViewportPercentageLength::Svb(v) => ViewportPercentageLength::Svb(v * scalar),
+            ViewportPercentageLength::Lvb(v) => ViewportPercentageLength::Lvb(v * scalar),
+            ViewportPercentageLength::Dvb(v) => ViewportPercentageLength::Dvb(v * scalar),
+            ViewportPercentageLength::Vi(v) => ViewportPercentageLength::Vi(v * scalar),
+            ViewportPercentageLength::Svi(v) => ViewportPercentageLength::Svi(v * scalar),
+            ViewportPercentageLength::Lvi(v) => ViewportPercentageLength::Lvi(v * scalar),
+            ViewportPercentageLength::Dvi(v) => ViewportPercentageLength::Dvi(v * scalar),
         }
     }
 }
@@ -1004,6 +1140,14 @@ impl PartialOrd for ViewportPercentageLength {
             (&Svmax(ref one), &Svmax(ref other)) => one.partial_cmp(other),
             (&Lvmax(ref one), &Lvmax(ref other)) => one.partial_cmp(other),
             (&Dvmax(ref one), &Dvmax(ref other)) => one.partial_cmp(other),
+            (&Vb(ref one), &Vb(ref other)) => one.partial_cmp(other),
+            (&Svb(ref one), &Svb(ref other)) => one.partial_cmp(other),
+            (&Lvb(ref one), &Lvb(ref other)) => one.partial_cmp(other),
+            (&Dvb(ref one), &Dvb(ref other)) => one.partial_cmp(other),
+            (&Vi(ref one), &Vi(ref other)) => one.partial_cmp(other),
+            (&Svi(ref one), &Svi(ref other)) => one.partial_cmp(other),
+            (&Lvi(ref one), &Lvi(ref other)) => one.partial_cmp(other),
+            (&Dvi(ref one), &Dvi(ref other)) => one.partial_cmp(other),
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
@@ -1011,7 +1155,9 @@ impl PartialOrd for ViewportPercentageLength {
                     Vw(..) | Svw(..) | Lvw(..) | Dvw(..) |
                     Vh(..) | Svh(..) | Lvh(..) | Dvh(..) |
                     Vmin(..) | Svmin(..) | Lvmin(..) | Dvmin(..) |
-                    Vmax(..) | Svmax(..) | Lvmax(..) | Dvmax(..) => {},
+                    Vmax(..) | Svmax(..) | Lvmax(..) | Dvmax(..) |
+                    Vb(..) | Svb(..) | Lvb(..) | Dvb(..) |
+                    Vi(..) | Svi(..) | Lvi(..) | Dvi(..) => {},
                 }
                 debug_unreachable!("Forgot an arm in partial_cmp?")
             },
