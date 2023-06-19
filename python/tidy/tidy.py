@@ -92,6 +92,7 @@ WEBIDL_STANDARDS = [
     b"//encoding.spec.whatwg.org",
     b"//fetch.spec.whatwg.org",
     b"//html.spec.whatwg.org",
+    b"//streams.spec.whatwg.org",
     b"//url.spec.whatwg.org",
     b"//xhr.spec.whatwg.org",
     b"//w3c.github.io",
