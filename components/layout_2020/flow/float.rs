@@ -61,23 +61,13 @@ pub struct ContainingBlockPositionInfo {
     pub inline_end: Length,
 }
 
-impl Default for ContainingBlockPositionInfo {
-    fn default() -> Self {
-        Self {
-            block_start: Length::zero(),
-            block_start_margins_not_collapsed: CollapsedMargin::zero(),
-            inline_start: Length::zero(),
-            inline_end: Length::new(f32::INFINITY),
-        }
-    }
-}
-
 impl ContainingBlockPositionInfo {
     pub fn new_with_inline_offsets(inline_start: Length, inline_end: Length) -> Self {
         Self {
+            block_start: Length::zero(),
+            block_start_margins_not_collapsed: CollapsedMargin::zero(),
             inline_start,
             inline_end,
-            ..Default::default()
         }
     }
 }
@@ -109,7 +99,7 @@ pub struct FloatContext {
 impl FloatContext {
     /// Returns a new float context representing a containing block with the given content
     /// inline-size.
-    pub fn new() -> Self {
+    pub fn new(max_inline_size: Length) -> Self {
         let mut bands = FloatBandTree::new();
         bands = bands.insert(FloatBand {
             top: Length::zero(),
@@ -124,7 +114,10 @@ impl FloatContext {
         FloatContext {
             bands,
             ceiling: Length::zero(),
-            containing_block_info: Default::default(),
+            containing_block_info: ContainingBlockPositionInfo::new_with_inline_offsets(
+                Length::zero(),
+                max_inline_size,
+            ),
             clear_left_position: Length::zero(),
             clear_right_position: Length::zero(),
         }
@@ -822,9 +815,9 @@ pub(crate) struct SequentialLayoutState {
 
 impl SequentialLayoutState {
     /// Creates a new empty `SequentialLayoutState`.
-    pub(crate) fn new() -> SequentialLayoutState {
+    pub(crate) fn new(max_inline_size: Length) -> SequentialLayoutState {
         SequentialLayoutState {
-            floats: FloatContext::new(),
+            floats: FloatContext::new(max_inline_size),
             current_margin: CollapsedMargin::zero(),
             bfc_relative_block_position: Length::zero(),
         }
