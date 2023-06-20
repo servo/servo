@@ -657,6 +657,7 @@ fn layout_in_flow_non_replaced_block_level(
                 collapsible_margins_in_children.collapsed_through &&
                     block_is_same_formatting_context &&
                     pbm.padding_border_sums.block == Length::zero() &&
+                    clearance == Length::zero() &&
                     block_size.auto_is(|| Length::zero()) == Length::zero() &&
                     min_box_size.block == Length::zero();
         },
