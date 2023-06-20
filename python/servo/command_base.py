@@ -10,7 +10,7 @@
 from __future__ import print_function
 
 import contextlib
-from typing import Optional
+from typing import List, Optional
 import distro
 import functools
 import gzip
@@ -616,11 +616,7 @@ class CommandBase(object):
         if hosts_file_path:
             env['HOST_FILE'] = hosts_file_path
 
-        if not test_unit:
-            # This wrapper script is in bash and doesn't work on Windows
-            # where we want to run doctests as part of `./mach test-unit`
-            env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
-        elif "msvc" in servo.platform.host_triple():
+        if test_unit and "msvc" in servo.platform.host_triple():
             # on MSVC, we need some DLLs in the path. They were copied
             # in to the servo.exe build dir, so just point PATH to that.
             util.prepend_paths_to_env(env, "PATH", path.dirname(self.get_binary_path(False, False)))
@@ -824,7 +820,7 @@ class CommandBase(object):
         self.features += ["media-" + media_stack]
 
     def run_cargo_build_like_command(
-        self, command, cargo_args,
+        self, command: str, cargo_args: List[str],
         env=None, verbose=False,
         libsimpleservo=False,
         debug_mozjs=False, with_debug_assertions=False,

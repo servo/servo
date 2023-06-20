@@ -14,6 +14,7 @@ import os
 import os.path as path
 import subprocess
 from shutil import copytree, rmtree, copy2
+from typing import List
 
 import servo.util
 
@@ -242,7 +243,7 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
     @CommandBase.build_like_command_arguments
-    def doc(self, params, **kwargs):
+    def doc(self, params: List[str], **kwargs):
         self.ensure_bootstrapped(rustup_components=["rust-docs"])
         rustc_path = check_output(
             ["rustup" + BIN_SUFFIX, "which", "--toolchain", self.rust_toolchain(), "rustc"]
@@ -278,12 +279,3 @@ class PostBuildCommands(CommandBase):
         static = path.join(self.context.topdir, "etc", "doc.servo.org")
         for name in os.listdir(static):
             copy2(path.join(static, name), path.join(docs, name))
-
-    @Command('browse-doc',
-             description='Generate documentation and open it in a web browser',
-             category='post-build')
-    def serve_docs(self):
-        self.doc([])
-        import webbrowser
-        webbrowser.open("file://" + path.abspath(path.join(
-            servo.util.get_target_dir(), "doc", "servo", "index.html")))
