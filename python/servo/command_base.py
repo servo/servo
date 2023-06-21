@@ -1067,8 +1067,8 @@ def find_highest_msvc_version():
 
     versions = sorted(find_highest_msvc_version_ext(), key=lambda tup: float(tup[1]))
     if not versions:
-        print("Can't find MSBuild.exe installation under %s. Please set the VSINSTALLDIR and VisualStudioVersion"
-              + " environment variables" % base_vs_path)
+        print(f"Can't find MSBuild.exe installation under {base_vs_path}. "
+              "Please set the VSINSTALLDIR and VisualStudioVersion environment variables")
         sys.exit(1)
     return versions[0]
 
