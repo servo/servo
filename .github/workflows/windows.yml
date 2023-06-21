@@ -72,6 +72,14 @@ jobs:
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
         run: python mach test-unit --release --with-${{ env.LAYOUT }}
+      - name: Rename build timing
+        run: cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows-${{ env.LAYOUT }} -Recurse
+      - name: Archive build timing
+        uses: actions/upload-artifact@v3
+        with:
+          name: cargo-timings
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*-${{ env.LAYOUT }}
       - name: Package
         run: python mach package --release
       - name: Upload Package

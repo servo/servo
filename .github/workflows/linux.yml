@@ -78,6 +78,14 @@ jobs:
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
         run: python3 ./mach test-unit --release --with-${{ env.LAYOUT }}
+      - name: Rename build timing
+        run: cp -r target/cargo-timings target/cargo-timings-linux-${{ env.LAYOUT }}
+      - name: Archive build timing
+        uses: actions/upload-artifact@v3
+        with:
+          name: cargo-timings
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*-${{ env.LAYOUT }}
       - name: Lockfile check
         run: ./etc/ci/lockfile_changed.sh
       - name: Package
