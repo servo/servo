@@ -27,7 +27,7 @@ ProductName = "Servo"
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["webdriver", "max_log_level"]
+default = ["webdriver", "max_log_level", "media-gstreamer", "native-bluetooth", "egl", "layout-2020"]
 egl = ["libservo/egl"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]

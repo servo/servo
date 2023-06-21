@@ -77,6 +77,11 @@ fn main() {
         (true, false, false, false) => "gecko",
         (false, true, true, false) => "servo-2013",
         (false, true, false, true) => "servo-2020",
+        (false, true, false, false) => {
+            println!("cargo:warning=Using servo-layout-2020 for style eventhough no layout was selected.");
+            println!("cargo:rustc-cfg=feature=\"servo-layout-2020\"");
+            "servo-2020"
+        }
         _ => panic!(
             "\n\n\
              The style crate requires enabling one of its 'servo' or 'gecko' feature flags \

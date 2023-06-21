@@ -851,6 +851,11 @@ class CommandBase(object):
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
 
+            if path.join(self.context.topdir, "ports", "winit", "Cargo.toml") not in cargo_args:
+                cargo_args += ["--no-default-features"]
+                features.append("webdriver")
+                features.append("max_log_level")
+
             features.append("native-bluetooth")
 
             if self.is_uwp_build:
