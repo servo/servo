@@ -4,8 +4,6 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
-use std::ops::DerefMut;
-
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{ClearSide, ContainingBlockPositionInfo, FloatBox, SequentialLayoutState};
@@ -299,7 +297,7 @@ fn layout_block_level_children_in_parallel(
     let fragments = layout_results
         .into_iter()
         .map(|(mut fragment, mut child_positioning_context)| {
-            placement_state.place_fragment(&mut fragment);
+            placement_state.place_fragment(&mut fragment, None);
             child_positioning_context.adjust_static_position_of_hoisted_fragments(&fragment);
             positioning_context.append(child_positioning_context);
             fragment
@@ -341,9 +339,7 @@ fn layout_block_level_children_sequentially(
                 Some(&mut *sequential_layout_state),
             );
 
-            placement_state.place_fragment(&mut fragment);
-            placement_state
-                .adjust_positions_of_float_children(&mut fragment, sequential_layout_state);
+            placement_state.place_fragment(&mut fragment, Some(sequential_layout_state));
             child_positioning_context.adjust_static_position_of_hoisted_fragments(&fragment);
             positioning_context.append(child_positioning_context);
             fragment
@@ -796,7 +792,11 @@ impl PlacementState {
         }
     }
 
-    fn place_fragment(&mut self, fragment: &mut Fragment) {
+    fn place_fragment(
+        &mut self,
+        fragment: &mut Fragment,
+        sequential_layout_state: Option<&mut SequentialLayoutState>,
+    ) {
         match fragment {
             Fragment::Box(fragment) => {
                 let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
@@ -855,7 +855,25 @@ impl PlacementState {
                 };
                 fragment.borrow_mut().adjust_offsets(offset);
             },
-            Fragment::Anonymous(_) | Fragment::Float(_) => {},
+            Fragment::Float(box_fragment) => {
+                // When Float fragments are created in block flows, they are positioned
+                // relative to the float containing independent block formatting context.
+                // Once we place a float's containing block, this function can be used to
+                // fix up the float position to be relative to the containing block.
+                let sequential_layout_state = sequential_layout_state
+                    .expect("Found float fragment without SequentialLayoutState");
+                let containing_block_info = &sequential_layout_state.floats.containing_block_info;
+                let margin = containing_block_info
+                    .block_start_margins_not_collapsed
+                    .adjoin(&self.start_margin);
+                let parent_fragment_offset_in_formatting_context = Vec2 {
+                    inline: containing_block_info.inline_start,
+                    block: containing_block_info.block_start + margin.solve(),
+                };
+                box_fragment.content_rect.start_corner = &box_fragment.content_rect.start_corner -
+                    &parent_fragment_offset_in_formatting_context;
+            },
+            Fragment::Anonymous(_) => {},
             _ => unreachable!(),
         }
     }
@@ -873,54 +891,5 @@ impl PlacementState {
                 end: self.current_margin,
             },
         )
-    }
-
-    /// When Float fragments are created in block flows, they are positioned
-    /// relative to the float containing independent block formatting context.
-    /// Once we place a float's containing block, this function can be used to
-    /// fix up the float position to be relative to the containing block.
-    fn adjust_positions_of_float_children(
-        &self,
-        fragment: &mut Fragment,
-        sequential_layout_state: &mut SequentialLayoutState,
-    ) {
-        let fragment = match fragment {
-            Fragment::Box(ref mut fragment) => fragment,
-            _ => return,
-        };
-
-        // TODO(mrobinson): Will these margins be accurate if this fragment
-        // collapses through. Can a fragment collapse through when it has a
-        // non-zero sized float inside? The float won't be positioned correctly
-        // anyway (see the comment in `floats.rs` about margin collapse), but
-        // this might make the result even worse.
-        let collapsed_margins = self.start_margin.adjoin(
-            &sequential_layout_state
-                .floats
-                .containing_block_info
-                .block_start_margins_not_collapsed,
-        );
-
-        let parent_fragment_offset_in_cb = &fragment.content_rect.start_corner;
-        let parent_fragment_offset_in_formatting_context = Vec2 {
-            inline: sequential_layout_state
-                .floats
-                .containing_block_info
-                .inline_start +
-                parent_fragment_offset_in_cb.inline,
-            block: sequential_layout_state
-                .floats
-                .containing_block_info
-                .block_start +
-                collapsed_margins.solve() +
-                parent_fragment_offset_in_cb.block,
-        };
-
-        for child_fragment in fragment.children.iter_mut() {
-            if let Fragment::Float(box_fragment) = child_fragment.borrow_mut().deref_mut() {
-                box_fragment.content_rect.start_corner = &box_fragment.content_rect.start_corner -
-                    &parent_fragment_offset_in_formatting_context;
-            }
-        }
     }
 }

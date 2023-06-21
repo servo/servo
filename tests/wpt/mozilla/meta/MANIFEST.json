@@ -106,19 +106,6 @@
       {}
      ]
     ],
-    "absolute_hypothetical_float.html": [
-     "33506180d15b5ff5e18b4f8adce4e2346e4ff811",
-     [
-      null,
-      [
-       [
-        "/_mozilla/css/absolute_hypothetical_float_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "absolute_hypothetical_with_intervening_inline_block_a.html": [
      "54d92051775d6fa2e5e3ac3ceb1848f58ae2c653",
      [
@@ -8102,10 +8089,6 @@
     ],
     "absolute_div_with_padding_ref.html": [
      "62d0965f205e1d40ac752ee4324469a82ef3fae4",
-     []
-    ],
-    "absolute_hypothetical_float_ref.html": [
-     "008b2a65d29bddd21f7754af0422c3366d0c9d25",
      []
     ],
     "absolute_hypothetical_with_intervening_inline_block_ref.html": [
