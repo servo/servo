@@ -23,7 +23,7 @@ jobs:
       - name: Compile docs
         run: python3 ./mach doc
         env:
-          RUSTDOCFLAGS: --disable-minification
+          RUSTDOCFLAGS: -Z unstable-options --disable-minification
       - name: Upload docs
         run: |
           cd target/doc
