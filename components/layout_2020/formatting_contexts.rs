@@ -192,21 +192,14 @@ impl NonReplacedFormattingContext {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        tree_rank: usize,
     ) -> IndependentLayout {
         match &self.contents {
-            NonReplacedFormattingContextContents::Flow(bfc) => bfc.layout(
-                layout_context,
-                positioning_context,
-                containing_block,
-                tree_rank,
-            ),
-            NonReplacedFormattingContextContents::Flex(fc) => fc.layout(
-                layout_context,
-                positioning_context,
-                containing_block,
-                tree_rank,
-            ),
+            NonReplacedFormattingContextContents::Flow(bfc) => {
+                bfc.layout(layout_context, positioning_context, containing_block)
+            },
+            NonReplacedFormattingContextContents::Flex(fc) => {
+                fc.layout(layout_context, positioning_context, containing_block)
+            },
         }
     }
 

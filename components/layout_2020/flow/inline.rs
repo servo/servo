@@ -271,7 +271,6 @@ impl InlineFormattingContext {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        tree_rank: usize,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
     ) -> FlowLayout {
         let mut ifc = InlineFormattingContextState {
@@ -342,7 +341,6 @@ impl InlineFormattingContext {
                         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
                             box_.clone(),
                             initial_start_corner,
-                            tree_rank,
                             ifc.containing_block,
                         );
                         let hoisted_fragment = hoisted_box.fragment.clone();
@@ -661,14 +659,12 @@ fn layout_atomic(
                 containing_block_for_children.style.writing_mode,
                 "Mixed writing modes are not supported yet"
             );
-            // FIXME is this correct?
-            let dummy_tree_rank = 0;
-            // FIXME: Do we need to call `adjust_static_positions` somewhere near here?
+            // FIXME: Do we need to adjust the static position of the hoisted fragments in the positioning
+            // context somewhere near here?
             let independent_layout = non_replaced.layout(
                 layout_context,
                 ifc.positioning_context,
                 &containing_block_for_children,
-                dummy_tree_rank,
             );
 
             // https://drafts.csswg.org/css2/visudet.html#block-root-margin
