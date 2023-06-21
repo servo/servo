@@ -59,11 +59,11 @@ jobs:
     needs:
       - create-draft-release
       - upload-linux
-      - upload-linux-2020
+      - upload-linux-2013
       - upload-win
-      - upload-win-2020
+      - upload-win-2013
       - upload-mac
-      - upload-mac-2020
+      - upload-mac-2013
 
   upload-win:
     # This job is only useful when run on upstream servo.
@@ -73,20 +73,20 @@ jobs:
       - create-draft-release
     uses: ./.github/workflows/windows.yml
     with:
-      layout: '2013'
+      layout: '2020'
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit
 
-  upload-win-2020:
+  upload-win-2013:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Upload nightly (Windows layout-2020)
+    name: Upload nightly (Windows layout-2013)
     needs:
       - create-draft-release
     uses: ./.github/workflows/windows.yml
     with:
-      layout: '2020'
+      layout: '2013'
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit
@@ -99,20 +99,20 @@ jobs:
       - create-draft-release
     uses: ./.github/workflows/mac.yml
     with:
-      layout: '2013'
+      layout: '2020'
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit
 
-  upload-mac-2020:
+  upload-mac-2013:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Upload nightly (macOS layout-2020)
+    name: Upload nightly (macOS layout-2013)
     needs:
       - create-draft-release
     uses: ./.github/workflows/mac.yml
     with:
-      layout: '2020'
+      layout: '2013'
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit
@@ -125,20 +125,20 @@ jobs:
       - create-draft-release
     uses: ./.github/workflows/linux.yml
     with:
-      layout: '2013'
+      layout: '2020'
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit
 
-  upload-linux-2020:
+  upload-linux-2013:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Upload nightly (Linux layout-2020)
+    name: Upload nightly (Linux layout-2013)
     needs:
       - create-draft-release
     uses: ./.github/workflows/linux.yml
     with:
-      layout: '2020'
+      layout: '2013'
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit

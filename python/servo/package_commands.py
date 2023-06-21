@@ -518,9 +518,9 @@ class PackageCommands(CommandBase):
             package_hash_fileobj = io.BytesIO(package_hash.encode('utf-8'))
 
             if '2020' in platform:
-                asset_name = f'servo-latest-layout-2020.{extension}'
-            else:
                 asset_name = f'servo-latest.{extension}'
+            else:
+                asset_name = f'servo-latest-legacy-layout.{extension}'
 
             release.upload_asset(package, name=asset_name)
             release.upload_asset_from_memory(
@@ -545,7 +545,11 @@ class PackageCommands(CommandBase):
             BUCKET = 'servo-builds2'
             DISTRIBUTION_ID = 'EJ8ZWSJKFCJS2'
 
-            nightly_dir = 'nightly/{}'.format(platform)
+            if '2020' in platform:
+                nightly_dir = 'nightly/{}'.format(platform.replace('-layout2020', ''))
+            else:
+                nightly_dir = 'nightly/{}-legacy-layout'.format(platform)
+
             filename = nightly_filename(package, timestamp)
             package_upload_key = '{}/{}'.format(nightly_dir, filename)
             extension = path.basename(package).partition('.')[2]
