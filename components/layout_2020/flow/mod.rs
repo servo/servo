@@ -306,10 +306,11 @@ fn layout_block_level_children_in_parallel(
         })
         .collect();
 
+    let (content_block_size, collapsible_margins_in_children) = placement_state.finish();
     FlowLayout {
         fragments,
-        content_block_size: placement_state.current_block_direction_position,
-        collapsible_margins_in_children: placement_state.collapsible_margins_in_children(),
+        content_block_size,
+        collapsible_margins_in_children,
     }
 }
 
@@ -349,10 +350,11 @@ fn layout_block_level_children_sequentially(
         })
         .collect();
 
+    let (content_block_size, collapsible_margins_in_children) = placement_state.finish();
     FlowLayout {
         fragments,
-        content_block_size: placement_state.current_block_direction_position,
-        collapsible_margins_in_children: placement_state.collapsible_margins_in_children(),
+        content_block_size,
+        collapsible_margins_in_children,
     }
 }
 
@@ -641,7 +643,6 @@ fn layout_in_flow_non_replaced_block_level(
                 collapsible_margins_in_children.collapsed_through &&
                     block_is_same_formatting_context &&
                     pbm.padding_border_sums.block == Length::zero() &&
-                    clearance == Length::zero() &&
                     block_size.auto_is(|| Length::zero()) == Length::zero() &&
                     min_box_size.block == Length::zero();
         },
@@ -775,6 +776,7 @@ fn solve_inline_margins_for_in_flow_block_level(
 // mode, this is done right after each block is laid out.
 pub(crate) struct PlacementState {
     next_in_flow_margin_collapses_with_parent_start_margin: bool,
+    last_in_flow_margin_collapses_with_parent_end_margin: bool,
     start_margin: CollapsedMargin,
     current_margin: CollapsedMargin,
     current_block_direction_position: Length,
@@ -787,6 +789,7 @@ impl PlacementState {
         PlacementState {
             next_in_flow_margin_collapses_with_parent_start_margin:
                 collapsible_with_parent_start_margin.0,
+            last_in_flow_margin_collapses_with_parent_end_margin: true,
             start_margin: CollapsedMargin::zero(),
             current_margin: CollapsedMargin::zero(),
             current_block_direction_position: Length::zero(),
@@ -801,7 +804,23 @@ impl PlacementState {
                     fragment.padding.block_sum() +
                     fragment.border.block_sum() +
                     fragment.content_rect.size.block;
-
+                // We use `last_in_flow_margin_collapses_with_parent_end_margin` to implement
+                // this quote from https://drafts.csswg.org/css2/#collapsing-margins
+                // > If the top and bottom margins of an element with clearance are adjoining,
+                // > its margins collapse with the adjoining margins of following siblings but that
+                // > resulting margin does not collapse with the bottom margin of the parent block.
+                if fragment.clearance != Length::zero() {
+                    // Margins can't be adjoining if they are separated by clearance.
+                    // Setting `next_in_flow_margin_collapses_with_parent_start_margin` to false
+                    // prevents collapsing with the start margin of the parent, and will set
+                    // `collapsed_through` to false, preventing the parent from collapsing through.
+                    self.next_in_flow_margin_collapses_with_parent_start_margin = false;
+                    if fragment_block_margins.collapsed_through {
+                        self.last_in_flow_margin_collapses_with_parent_end_margin = false;
+                    }
+                } else if !fragment_block_margins.collapsed_through {
+                    self.last_in_flow_margin_collapses_with_parent_end_margin = true;
+                }
                 if self.next_in_flow_margin_collapses_with_parent_start_margin {
                     debug_assert_eq!(self.current_margin.solve(), Length::zero());
                     self.start_margin
@@ -818,6 +837,9 @@ impl PlacementState {
                 fragment.content_rect.start_corner.block +=
                     self.current_margin.solve() + self.current_block_direction_position;
                 if fragment_block_margins.collapsed_through {
+                    // `fragment_block_size` is typically zero when collapsing through,
+                    // but we still need to consider it in case there is clearance.
+                    self.current_block_direction_position += fragment_block_size;
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.end);
                     return;
@@ -838,12 +860,19 @@ impl PlacementState {
         }
     }
 
-    fn collapsible_margins_in_children(&self) -> CollapsedBlockMargins {
-        CollapsedBlockMargins {
-            collapsed_through: self.next_in_flow_margin_collapses_with_parent_start_margin,
-            start: self.start_margin,
-            end: self.current_margin,
+    fn finish(mut self) -> (Length, CollapsedBlockMargins) {
+        if !self.last_in_flow_margin_collapses_with_parent_end_margin {
+            self.current_block_direction_position += self.current_margin.solve();
+            self.current_margin = CollapsedMargin::zero();
         }
+        (
+            self.current_block_direction_position,
+            CollapsedBlockMargins {
+                collapsed_through: self.next_in_flow_margin_collapses_with_parent_start_margin,
+                start: self.start_margin,
+                end: self.current_margin,
+            },
+        )
     }
 
     /// When Float fragments are created in block flows, they are positioned
@@ -865,7 +894,7 @@ impl PlacementState {
         // non-zero sized float inside? The float won't be positioned correctly
         // anyway (see the comment in `floats.rs` about margin collapse), but
         // this might make the result even worse.
-        let collapsed_margins = self.collapsible_margins_in_children().start.adjoin(
+        let collapsed_margins = self.start_margin.adjoin(
             &sequential_layout_state
                 .floats
                 .containing_block_info
