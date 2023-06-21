@@ -23,12 +23,11 @@ manually, try the [manual build setup][manual-build].
 ### macOS
 
 - Install [Xcode](https://developer.apple.com/xcode/)
+- Install [Homebrew](https://brew.sh/)
 - Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-- Run `./mach bootstrap-gstreamer`.
-  *This will install the recommended version of GStreamer globally on your system.*
-- Run `brew bundle install --file=etc/homebrew/Brewfile`
 - Run `pip install virtualenv`
-
+- Run `./mach bootstrap`<br/>
+  *Note: This will install the recommended version of GStreamer globally on your system.*
 
 ### Linux
 
