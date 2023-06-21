@@ -167,8 +167,8 @@ impl PositioningContext {
         parent_fragment: &Fragment,
     ) {
         let fragment_rect = match &parent_fragment {
-            Fragment::Box(b) => &b.content_rect,
-            Fragment::AbsoluteOrFixedPositioned(_) | Fragment::Float(_) => return,
+            Fragment::Box(b) | Fragment::Float(b) => &b.content_rect,
+            Fragment::AbsoluteOrFixedPositioned(_) => return,
             Fragment::Anonymous(a) => &a.rect,
             _ => unreachable!(),
         };
