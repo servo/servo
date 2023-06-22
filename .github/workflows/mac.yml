@@ -57,8 +57,7 @@ jobs:
       - name: Bootstrap
         run: |
           python3 -m pip install --upgrade pip virtualenv
-          python3 ./mach bootstrap-gstreamer
-          brew install gnu-tar
+          python3 ./mach bootstrap
       - name: Release build
         run: |
           python3 ./mach build --release --with-${{ env.LAYOUT }}
