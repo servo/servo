@@ -10,6 +10,7 @@ use crate::dom::document::Document;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::node::Node;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
+use html5ever::tokenizer::TokenizerResult;
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use xml5ever::buffer_queue::BufferQueue;
@@ -39,12 +40,13 @@ impl Tokenizer {
         Tokenizer { inner: tok }
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
+    #[must_use]
+    pub fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         self.inner.run(input);
-        if let Some(script) = self.inner.sink.sink.script.take() {
-            return Err(script);
+        match self.inner.sink.sink.script.take() {
+            Some(script) => TokenizerResult::Script(script),
+            None => TokenizerResult::Done,
         }
-        Ok(())
     }
 
     pub fn end(&mut self) {

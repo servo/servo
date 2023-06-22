@@ -43,6 +43,7 @@ use encoding_rs::Encoding;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
+use html5ever::tokenizer::TokenizerResult;
 use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use hyper_serde::Serde;
@@ -589,7 +590,7 @@ impl ServoParser {
 
     fn tokenize<F>(&self, mut feed: F)
     where
-        F: FnMut(&mut Tokenizer) -> Result<(), DomRoot<HTMLScriptElement>>,
+        F: FnMut(&mut Tokenizer) -> TokenizerResult<DomRoot<HTMLScriptElement>>,
     {
         loop {
             assert!(!self.suspended.get());
@@ -597,8 +598,8 @@ impl ServoParser {
 
             self.document.reflow_if_reflow_timer_expired();
             let script = match feed(&mut *self.tokenizer.borrow_mut()) {
-                Ok(()) => return,
-                Err(script) => script,
+                TokenizerResult::Done => return,
+                TokenizerResult::Script(script) => script,
             };
 
             // https://html.spec.whatwg.org/multipage/#parsing-main-incdata
@@ -691,7 +692,8 @@ enum Tokenizer {
 }
 
 impl Tokenizer {
-    fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
+    #[must_use]
+    fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.feed(input),
             Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.feed(input),
