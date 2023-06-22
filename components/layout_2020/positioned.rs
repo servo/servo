@@ -626,8 +626,19 @@ impl HoistedAbsolutelyPositionedBox {
             )
         };
         positioning_context.layout_collected_children(layout_context, &mut new_fragment);
+
+        // Any hoisted boxes that remain in this positioning context are going to be hoisted
+        // up above this absolutely positioned box. These will necessarily be fixed position
+        // elements, because absolutely positioned elements form containing blocks for all
+        // other elements. If any of them have a static start position though, we need to
+        // adjust it to account for the start corner of this absolute.
+        positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
+            &new_fragment.content_rect.start_corner,
+        );
+
         for_nearest_containing_block_for_all_descendants
             .extend(positioning_context.for_nearest_containing_block_for_all_descendants);
+
         new_fragment
     }
 }
