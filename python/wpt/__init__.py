@@ -50,14 +50,15 @@ def create_parser():
     return parser
 
 
-def update_args_for_layout_2020(kwargs: dict):
+def update_args_for_legacy_layout(kwargs: dict):
     if kwargs.pop("layout_2020"):
-        kwargs["test_paths"]["/"]["metadata_path"] = os.path.join(
-            WPT_PATH, "metadata-layout-2020"
-        )
-        kwargs["test_paths"]["/_mozilla/"]["metadata_path"] = os.path.join(
-            WPT_PATH, "mozilla", "meta-layout-2020"
-        )
-        kwargs["include_manifest"] = os.path.join(
-            WPT_PATH, "include-layout-2020.ini"
-        )
+        return
+    kwargs["test_paths"]["/"]["metadata_path"] = os.path.join(
+        WPT_PATH, "meta-legacy-layout"
+    )
+    kwargs["test_paths"]["/_mozilla/"]["metadata_path"] = os.path.join(
+        WPT_PATH, "mozilla", "meta-legacy-layout"
+    )
+    kwargs["include_manifest"] = os.path.join(
+        WPT_PATH, "include-legacy-layout.ini"
+    )

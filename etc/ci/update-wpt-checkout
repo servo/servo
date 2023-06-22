@@ -86,7 +86,7 @@ function unsafe_update_metadata() {
     # Hope that any test result changes from layout-2013 are also applicable to layout-2020.
     ./mach update-wpt --layout-2020 "${1}" "${2}" "${3}" || return 2
     # Ensure any new directories or ini files are included in these changes.
-    git add tests/wpt/metadata tests/wpt/metadata-layout-2020 tests/wpt/mozilla/meta || return 3
+    git add tests/wpt/meta tests/wpt/metadata-legacy-layout tests/wpt/mozilla/meta tests/wpt/mozilla/meta-legacy-layout || return 3
     # Merge all changes with the existing commit.
     git commit -a --amend --no-edit || return 3
 }

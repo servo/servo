@@ -17,9 +17,10 @@ function unsafe_update_metadata_chunk() {
         "wpt-logs-linux-layout-2020/test-wpt.${1}.log" || return 2
 
     # Ensure any new directories or ini files are included in these changes.
-    git add tests/wpt/metadata \
-        tests/wpt/metadata-layout-2020 \
-        tests/wpt/mozilla/meta || return 3
+    git add tests/wpt/meta \
+        tests/wpt/meta-legacy-layout \
+        tests/wpt/mozilla/meta \
+        tests/wpt/mozilla/meta-legacy-layout || return 3
 
     # Merge all changes with the existing commit.
     git commit -a --amend --no-edit || return 3

@@ -5,7 +5,7 @@
 
 import os
 
-from . import WPT_PATH, update_args_for_layout_2020
+from . import WPT_PATH, update_args_for_legacy_layout
 from . import importer
 
 
@@ -20,7 +20,7 @@ def update_tests(**kwargs):
     kwargs["store_state"] = False
 
     importer.check_args(kwargs)
-    update_args_for_layout_2020(kwargs)
+    update_args_for_legacy_layout(kwargs)
 
     return 1 if not importer.run_update(**kwargs) else 0
 
