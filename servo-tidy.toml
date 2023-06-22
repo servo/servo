@@ -103,8 +103,10 @@ files = [
   # Helper macro where actually a pseudo-element per line makes sense.
   "./components/style/gecko/non_ts_pseudo_class_list.rs",
   "./resources/hsts_preload.json",
-  "./tests/wpt/metadata/MANIFEST.json",
+  "./tests/wpt/meta/MANIFEST.json",
+  "./tests/wpt/meta-legacy-layout/MANIFEST.json",
   "./tests/wpt/mozilla/meta/MANIFEST.json",
+  "./tests/wpt/mozilla/meta-legacy-layout/MANIFEST.json",
   # Long encoded string
   "./tests/wpt/mozilla/tests/mozilla/resources/brotli.py",
   "./tests/wpt/webgl/meta/MANIFEST.json",

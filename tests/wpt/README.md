@@ -10,7 +10,7 @@ In particular, this folder contains:
 * `config.ini`: some configuration for the web-platform-tests.
 * `include.ini`: the subset of web-platform-tests we currently run.
 * `web-platform-tests`: copy of the web-platform-tests.
-* `metadata`: expected failures for the web-platform-tests we run.
+* `meta`: expected failures for the web-platform-tests we run.
 * `mozilla`: web-platform-tests that cannot be upstreamed.
 
 Running the tests
@@ -156,7 +156,7 @@ Updating test expectations
 
 When fixing a bug that causes the result of a test to change, the expected
 results for that test need to be changed. This can be done manually, by editing
-the `.ini` file under the `metadata` folder that corresponds to the test. In
+the `.ini` file under the `meta` folder that corresponds to the test. In
 this case, remove the references to tests whose expectation is now `PASS`, and
 remove `.ini` files that no longer contain any expectations.
 

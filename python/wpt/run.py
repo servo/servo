@@ -18,7 +18,7 @@ from typing import List, NamedTuple, Optional, Union
 import mozlog
 import mozlog.formatters
 
-from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH, update_args_for_layout_2020
+from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH, update_args_for_legacy_layout
 from .grouping_formatter import (
     ServoFormatter, ServoHandler,
     UnexpectedResult, UnexpectedSubtestResult
@@ -116,7 +116,7 @@ def run_tests(**kwargs):
     raw_log_outputs = kwargs.get("log_raw", [])
 
     wptcommandline.check_args(kwargs)
-    update_args_for_layout_2020(kwargs)
+    update_args_for_legacy_layout(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
         ServoFormatter,

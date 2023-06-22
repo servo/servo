@@ -18,7 +18,7 @@
 import os
 
 test_root = os.path.join('tests', 'wpt', 'web-platform-tests')
-meta_root = os.path.join('tests', 'wpt', 'metadata')
+meta_root = os.path.join('tests', 'wpt', 'meta')
 
 missing_dirs = []
 
@@ -37,7 +37,7 @@ for base_dir, dir_names, files in os.walk(meta_root):
             missing_dirs += [meta_dir]
             continue
 
-        # Turn tests/wpt/metadata/foo into tests/wpt/web-platform-tests/foo.
+        # Turn tests/wpt/meta/foo into tests/wpt/web-platform-tests/foo.
         test_dir = os.path.join(test_root, os.path.relpath(meta_dir, meta_root))
         if not os.path.exists(test_dir):
             missing_dirs += [meta_dir]
@@ -48,7 +48,7 @@ for base_dir, dir_names, files in os.walk(meta_root):
         if fname in ['__dir__.ini', 'MANIFEST.json', 'mozilla-sync']:
             continue
 
-        # Turn tests/wpt/metadata/foo/bar.html.ini into tests/wpt/web-platform-tests/foo/bar.html.
+        # Turn tests/wpt/meta/foo/bar.html.ini into tests/wpt/web-platform-tests/foo/bar.html.
         test_dir = os.path.join(test_root, os.path.relpath(base_dir, meta_root))
         test_file = os.path.join(test_dir, fname)
         if not os.path.exists(os.path.splitext(test_file)[0]):
