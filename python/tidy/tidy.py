@@ -325,15 +325,9 @@ def check_flake8(file_name, contents):
     if not file_name.endswith(".py"):
         return
 
-    ignore = {
-        "W291",  # trailing whitespace; the standard tidy process will enforce no trailing whitespace
-        "W503",  # linebreak before binary operator; replaced by W504 - linebreak after binary operator
-        "E501",  # 80 character line length; the standard tidy process will enforce line length
-    }
-
     output = ""
     try:
-        args = ["flake8", "--ignore=" + ",".join(ignore), file_name]
+        args = ["flake8", file_name]
         subprocess.check_output(args, universal_newlines=True)
     except subprocess.CalledProcessError as e:
         output = e.output

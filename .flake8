@@ -1,0 +1,5 @@
+[flake8]
+ignore =
+    W291,  # trailing whitespace; the standard tidy process will enforce no trailing whitespace
+    W503,  # linebreak before binary operator; replaced by W504 - linebreak after binary operator
+    E501,  # 80 character line length; the standard tidy process will enforce line length
