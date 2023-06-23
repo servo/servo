@@ -70,6 +70,14 @@ jobs:
         run: python3 ./mach package --release
       - name: Package smoketest
         run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
+      - name: Rename build timing
+        run: cp -r target/cargo-timings target/cargo-timings-macos-${{ env.LAYOUT }}
+      - name: Archive build timing
+        uses: actions/upload-artifact@v3
+        with:
+          name: cargo-timings
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*-${{ env.LAYOUT }}
       - name: Upload package
         uses: actions/upload-artifact@v3
         with:

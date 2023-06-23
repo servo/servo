@@ -393,9 +393,7 @@ class MachCommands(CommandBase):
                         expr = "s#libdir=.*#libdir=%s#g" % gst_lib_path
                         subprocess.call(["perl", "-i", "-pe", expr, pc])
 
-        # https://internals.rust-lang.org/t/exploring-crate-graph-build-times-with-cargo-build-ztimings/10975
-        # Prepend so that e.g. `-Ztimings` (which means `-Ztimings=info,html`)
-        # given on the command line can override it
+        # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
         opts = ["--timings"] + opts
 
         if very_verbose:

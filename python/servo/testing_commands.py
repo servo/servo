@@ -245,24 +245,27 @@ class MachCommands(CommandBase):
 
         packages.discard('stylo')
 
-        if len(packages) > 0 or len(in_crate_packages) > 0:
-            args = []
-            for crate in packages:
-                args += ["-p", "%s_tests" % crate]
-            for crate in in_crate_packages:
-                args += ["-p", crate]
-            args += test_patterns
+        # Return if there is nothing to do.
+        if len(packages) == 0 and len(in_crate_packages) == 0:
+            return 0
 
-            if nocapture:
-                args += ["--", "--nocapture"]
+        # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
+        args = ["--timings"]
+        for crate in packages:
+            args += ["-p", "%s_tests" % crate]
+        for crate in in_crate_packages:
+            args += ["-p", crate]
+        args += test_patterns
 
-            err = self.run_cargo_build_like_command("bench" if bench else "test",
-                                                    args,
-                                                    env=self.build_env(test_unit=True),
-                                                    with_layout_2020=with_layout_2020,
-                                                    **kwargs)
-            if err:
-                return err
+        if nocapture:
+            args += ["--", "--nocapture"]
+
+        return self.run_cargo_build_like_command(
+            "bench" if bench else "test",
+            args,
+            env=self.build_env(test_unit=True),
+            with_layout_2020=with_layout_2020,
+            **kwargs)
 
     @Command('test-content',
              description='Run the content tests',
