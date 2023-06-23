@@ -179,11 +179,11 @@ class MachCommands(CommandBase):
 
             # Override any existing GStreamer installation with the vendored libraries.
             env["GSTREAMER_1_0_ROOT_" + arch['gst']] = path.join(
-                self.msvc_package_dir("gstreamer-uwp"), arch['gst_root']
+                servo.platform.windows.get_dependency_dir("gstreamer-uwp"), arch['gst_root']
             )
             env["PKG_CONFIG_PATH"] = path.join(
-                self.msvc_package_dir("gstreamer-uwp"), arch['gst_root'],
-                "lib", "pkgconfig"
+                servo.platform.windows.get_dependency_dir("gstreamer-uwp"),
+                arch['gst_root'], "lib", "pkgconfig"
             )
 
         if 'windows' in host:

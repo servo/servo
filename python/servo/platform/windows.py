@@ -8,25 +8,19 @@
 # except according to those terms.
 
 import os
-import shutil
 import subprocess
 import tempfile
 from typing import Optional
 import urllib
 import zipfile
-from distutils.version import LooseVersion
 
-import six
 from .. import util
 from .base import Base
 
 DEPS_URL = "https://github.com/servo/servo-build-deps/releases/download/msvc-deps/"
 DEPENDENCIES = {
-    "cmake": "3.14.3",
     "llvm": "15.0.5",
     "moztools": "3.2",
-    "ninja": "1.7.1",
-    "nuget": "08-08-2019",
     "openssl": "111.3.0+1.1.1c-vs2017-2019-09-18",
     "gstreamer-uwp": "1.16.0.5",
     "openxr-loader-uwp": "1.0",
@@ -36,6 +30,11 @@ URL_BASE = "https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/"
 GSTREAMER_URL = f"{URL_BASE}/gstreamer-1.0-msvc-x86_64-1.16.0.msi"
 GSTREAMER_DEVEL_URL = f"{URL_BASE}/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi"
 DEPENDENCIES_DIR = os.path.join(util.get_target_dir(), "dependencies")
+
+
+def get_dependency_dir(package):
+    """Get the directory that a given Windows dependency should extract to."""
+    return os.path.join(DEPENDENCIES_DIR, package, DEPENDENCIES[package])
 
 
 class Windows(Base):
@@ -49,64 +48,66 @@ class Windows(Base):
     def library_path_variable_name(self):
         return "LIB"
 
-    @staticmethod
-    def cmake_already_installed(required_version: str) -> bool:
-        cmake_path = shutil.which("cmake")
-        if not cmake_path:
-            return False
-
-        output = subprocess.check_output([cmake_path, "--version"])
-        cmake_version_output = six.ensure_str(output).splitlines()[0]
-        installed_version = cmake_version_output.replace("cmake version ", "")
-        return LooseVersion(installed_version) >= LooseVersion(required_version)
-
     @classmethod
-    def prepare_file(cls, deps_dir: str, zip_path: str, full_spec: str):
+    def download_and_extract_dependency(cls, zip_path: str, full_spec: str):
         if not os.path.isfile(zip_path):
-            zip_url = "{}{}.zip".format(DEPS_URL, urllib.parse.quote(full_spec))
+            zip_url = f"{DEPS_URL}{urllib.parse.quote(full_spec)}.zip"
             util.download_file(full_spec, zip_url, zip_path)
 
-        print("Extracting {}...".format(full_spec), end="")
+        zip_dir = os.path.dirname(zip_path)
+        print(f"Extracting {full_spec} to {zip_dir}...", end="")
         try:
-            util.extract(zip_path, deps_dir)
+            util.extract(zip_path, zip_dir)
         except zipfile.BadZipfile:
-            print("\nError: %s.zip is not a valid zip file, redownload..." % full_spec)
+            print(f"\nError: {full_spec}.zip is not a valid zip file, redownload...")
             os.remove(zip_path)
-            cls.prepare_file(deps_dir, zip_path, full_spec)
+            cls.download_and_extract_dependency(zip_path, full_spec)
         else:
             print("done")
 
-    def _platform_bootstrap(self, cache_dir: str, _force: bool = False) -> bool:
-        deps_dir = os.path.join(cache_dir, "msvc-dependencies")
+    def _platform_bootstrap(self,  force: bool = False) -> bool:
+        installed_something = self.passive_bootstrap()
 
-        def get_package_dir(package, version) -> str:
-            return os.path.join(deps_dir, package, version)
+        try:
+            choco_config = os.path.join(util.SERVO_ROOT, "support", "windows", "chocolatey.config")
 
-        to_install = {}
-        for package, version in DEPENDENCIES.items():
-            # Don't install CMake if it already exists in PATH
-            if package == "cmake" and self.cmake_already_installed(version):
-                continue
+            # This is the format that PowerShell wants arguments passed to it.
+            cmd_exe_args = f"'/K','choco','install','{choco_config}'"
+            if force:
+                cmd_exe_args += ",'-f'"
 
-            if not os.path.isdir(get_package_dir(package, version)):
-                to_install[package] = version
+            print(cmd_exe_args)
+            subprocess.check_output([
+                "powershell", "Start-Process", "-Wait", "-verb", "runAs",
+                "cmd.exe", "-ArgumentList", f"@({cmd_exe_args})"
+            ]).decode("utf-8")
+        except subprocess.CalledProcessError as e:
+            print("Could not run chocolatey.  Follow manual build setup instructions.")
+            raise e
 
+        return installed_something
+
+
+    def passive_bootstrap(self) -> bool:
+        """A bootstrap method that is called without explicitly invoking `./mach bootstrap`
+           but that is executed in the process of other `./mach` commands. This should be
+           as fast as possible."""
+        to_install = [package for package in DEPENDENCIES if
+                        not os.path.isdir(get_dependency_dir(package))]
         if not to_install:
             return False
 
         print("Installing missing MSVC dependencies...")
-        for package, version in to_install.items():
-            full_spec = "{}-{}".format(package, version)
+        for package in to_install:
+            full_spec = "{}-{}".format(package, DEPENDENCIES[package])
 
-            package_dir = get_package_dir(package, version)
+            package_dir = get_dependency_dir(package)
             parent_dir = os.path.dirname(package_dir)
             if not os.path.isdir(parent_dir):
                 os.makedirs(parent_dir)
 
-            self.prepare_file(deps_dir, package_dir + ".zip", full_spec)
-
-            extracted_path = os.path.join(deps_dir, full_spec)
-            os.rename(extracted_path, package_dir)
+            self.download_and_extract_dependency(package_dir + ".zip", full_spec)
+            os.rename(os.path.join(parent_dir, full_spec), package_dir)
 
         return True
 

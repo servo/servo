@@ -46,7 +46,7 @@ class MachCommands(CommandBase):
         # ./mach bootstrap calls mach_bootstrap.bootstrap_command_only so that
         # it can install dependencies without needing mach's dependencies
         try:
-            servo.platform.get().bootstrap(self.context.sharedir, force)
+            servo.platform.get().bootstrap(force)
         except NotImplementedError as exception:
             print(exception)
             return 1
@@ -60,7 +60,7 @@ class MachCommands(CommandBase):
                      help='Boostrap without confirmation')
     def bootstrap_gstreamer(self, force=False):
         try:
-            servo.platform.get().bootstrap_gstreamer(self.context.sharedir, force)
+            servo.platform.get().bootstrap_gstreamer(force)
         except NotImplementedError as exception:
             print(exception)
             return 1

@@ -94,7 +94,7 @@ class Linux(Base):
 
         return (distrib, version)
 
-    def _platform_bootstrap(self, _cache_dir: str, force: bool) -> bool:
+    def _platform_bootstrap(self, force: bool) -> bool:
         if self.distro.lower() == 'nixos':
             print('NixOS does not need bootstrap, it will automatically enter a nix-shell')
             print('Just run ./mach build')
