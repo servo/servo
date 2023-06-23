@@ -10,9 +10,7 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, CollapsedMargin, FloatFragment, Fragment,
-};
+use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin, FloatFragment};
 use crate::geom::flow_relative::{Rect, Vec2};
 use crate::positioned::PositioningContext;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
@@ -658,34 +656,9 @@ impl FloatBox {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        mut sequential_layout_state: Option<&mut SequentialLayoutState>,
-    ) -> Fragment {
-        let sequential_layout_state = sequential_layout_state
-            .as_mut()
-            .expect("Tried to lay out a float with no sequential placement state!");
-
-        // Speculate that the float ceiling will be located at the current block position plus the
-        // result of solving any margins we're building up. This is usually right, but it can be
-        // incorrect if there are more in-flow collapsible margins yet to be seen. An example
-        // showing when this can go wrong:
-        //
-        //      <div style="margin: 5px"></div>
-        //      <div style="float: left"></div>
-        //      <div style="margin: 10px"></div>
-        //
-        // Assuming these are all in-flow, the float should be placed 10px down from the start, not
-        // 5px, but we can't know that because we haven't seen the block after this float yet.
-        //
-        // FIXME(pcwalton): Implement the proper behavior when speculation fails. Either detect it
-        // afterward and fix it up, or detect this situation ahead of time via lookahead and make
-        // sure `current_margin` is accurate before calling this method.
-        sequential_layout_state
-            .floats
-            .lower_ceiling(sequential_layout_state.current_block_position_including_margins());
-
+    ) -> BoxFragment {
         let style = self.contents.style().clone();
-        let float_context = &mut sequential_layout_state.floats;
-        let box_fragment = positioning_context.layout_maybe_position_relative_fragment(
+        positioning_context.layout_maybe_position_relative_fragment(
             layout_context,
             containing_block,
             &style,
@@ -696,7 +669,7 @@ impl FloatBox {
                 let margin = pbm.margin.auto_is(|| Length::zero());
                 let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
 
-                let (content_size, fragments);
+                let (content_size, children);
                 match self.contents {
                     IndependentFormattingContext::NonReplaced(ref mut non_replaced) => {
                         // Calculate inline size.
@@ -739,7 +712,7 @@ impl FloatBox {
                                 .block
                                 .auto_is(|| independent_layout.content_block_size),
                         };
-                        fragments = independent_layout.fragments;
+                        children = independent_layout.fragments;
                     },
                     IndependentFormattingContext::Replaced(ref replaced) => {
                         // https://drafts.csswg.org/css2/#float-replaced-width
@@ -750,40 +723,32 @@ impl FloatBox {
                             None,
                             &pbm,
                         );
-                        fragments = replaced
+                        children = replaced
                             .contents
                             .make_fragments(&replaced.style, content_size.clone());
                     },
                 };
-                let margin_box_start_corner = float_context.add_float(&PlacementInfo {
-                    size: &content_size + &pbm_sums.sum(),
-                    side: FloatSide::from_style(&style).expect("Float box wasn't floated!"),
-                    clear: ClearSide::from_style(&style),
-                });
 
                 let content_rect = Rect {
-                    start_corner: &margin_box_start_corner + &pbm_sums.start_offset(),
-                    size: content_size.clone(),
+                    start_corner: Vec2::zero(),
+                    size: content_size,
                 };
-
-                // Clearance is handled internally by the float placement logic, so there's no need
-                // to store it explicitly in the fragment.
-                let clearance = Length::zero();
 
                 BoxFragment::new(
                     self.contents.base_fragment_info(),
                     style.clone(),
-                    fragments,
+                    children,
                     content_rect,
                     pbm.padding,
                     pbm.border,
                     margin,
-                    clearance,
+                    // Clearance is handled internally by the float placement logic, so there's no need
+                    // to store it explicitly in the fragment.
+                    Length::zero(), // clearance
                     CollapsedBlockMargins::zero(),
                 )
             },
-        );
-        Fragment::Float(box_fragment)
+        )
     }
 }
 
@@ -889,5 +854,53 @@ impl SequentialLayoutState {
     /// Adds a new adjoining margin.
     pub(crate) fn adjoin_assign(&mut self, margin: &CollapsedMargin) {
         self.current_margin.adjoin_assign(margin)
+    }
+
+    /// Get the offset of the current containing block and any uncollapsed margins.
+    pub(crate) fn current_containing_block_offset(&self) -> CSSPixelLength {
+        self.floats.containing_block_info.block_start +
+            self.floats
+                .containing_block_info
+                .block_start_margins_not_collapsed
+                .solve()
+    }
+
+    /// This function places a Fragment that has been created for a FloatBox.
+    pub(crate) fn place_float_fragment(
+        &mut self,
+        box_fragment: &mut BoxFragment,
+        margins_collapsing_with_parent_containing_block: CollapsedMargin,
+        block_offset_from_containining_block_top: CSSPixelLength,
+    ) {
+        let block_start_of_containing_block_in_bfc = self.floats.containing_block_info.block_start +
+            self.floats
+                .containing_block_info
+                .block_start_margins_not_collapsed
+                .adjoin(&margins_collapsing_with_parent_containing_block)
+                .solve();
+
+        self.floats.lower_ceiling(
+            block_start_of_containing_block_in_bfc + block_offset_from_containining_block_top,
+        );
+
+        let pbm_sums = &(&box_fragment.padding + &box_fragment.border) + &box_fragment.margin;
+        let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
+            size: &box_fragment.content_rect.size + &pbm_sums.sum(),
+            side: FloatSide::from_style(&box_fragment.style).expect("Float box wasn't floated!"),
+            clear: ClearSide::from_style(&box_fragment.style),
+        });
+
+        // This is the position of the float in the float-containing block formatting context. We add the
+        // existing start corner here because we may have already gotten some relative positioning offset.
+        let new_position_in_bfc = &(&margin_box_start_corner + &pbm_sums.start_offset()) +
+            &box_fragment.content_rect.start_corner;
+
+        // This is the position of the float relative to the containing block start.
+        let new_position_in_containing_block = Vec2 {
+            inline: new_position_in_bfc.inline - self.floats.containing_block_info.inline_start,
+            block: new_position_in_bfc.block - block_start_of_containing_block_in_bfc,
+        };
+
+        box_fragment.content_rect.start_corner = new_position_in_containing_block;
     }
 }
