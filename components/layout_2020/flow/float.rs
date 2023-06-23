@@ -821,37 +821,73 @@ impl SequentialLayoutState {
         self.current_margin = CollapsedMargin::zero();
     }
 
-    /// Returns the amount of clearance that a block with the given `clear` value at the current
-    /// `bfc_relative_block_position` (with top margin included in `current_margin` if applicable)
-    /// needs to have.
+    /// Returns the amount of clearance (if any) that a block with the given `clear` value
+    /// needs to have at `current_block_position_including_margins()`.
+    /// `block_start_margin` is the top margin of the block, after collapsing (if possible)
+    /// with the margin of its contents. This must not be included in `current_margin`,
+    /// since adding clearance will prevent `current_margin` and `block_start_margin`
+    /// from collapsing together.
     ///
     /// https://www.w3.org/TR/2011/REC-CSS2-20110607/visuren.html#flow-control
-    pub(crate) fn calculate_clearance(&self, clear_side: ClearSide) -> Option<Length> {
+    pub(crate) fn calculate_clearance(
+        &self,
+        clear_side: ClearSide,
+        block_start_margin: &CollapsedMargin,
+    ) -> Option<Length> {
         if clear_side == ClearSide::None {
             return None;
         }
 
-        let hypothetical_block_position = self.current_block_position_including_margins();
+        // Calculate the hypothetical position where the element's top border edge
+        // would have been if the element's `clear` property had been `none`.
+        let hypothetical_block_position = self.bfc_relative_block_position +
+            self.current_margin.adjoin(&block_start_margin).solve();
+
+        // Check if the hypothetical position is past the relevant floats,
+        // in that case we don't need to add clearance.
         let clear_position = match clear_side {
             ClearSide::None => unreachable!(),
-            ClearSide::Left => self
-                .floats
-                .clear_left_position
-                .max(hypothetical_block_position),
-            ClearSide::Right => self
-                .floats
-                .clear_right_position
-                .max(hypothetical_block_position),
+            ClearSide::Left => self.floats.clear_left_position,
+            ClearSide::Right => self.floats.clear_right_position,
             ClearSide::Both => self
                 .floats
                 .clear_left_position
-                .max(self.floats.clear_right_position)
-                .max(hypothetical_block_position),
+                .max(self.floats.clear_right_position),
         };
         if hypothetical_block_position >= clear_position {
             return None;
         }
-        Some(clear_position - hypothetical_block_position)
+
+        // We need to add clearance between `current_margin` and `block_start_margin`,
+        // this prevents them from collapsing.
+        // Compute the position of the element's top border edge if we added
+        // a clearance of 0px.
+        let position_with_zero_clearance = self.bfc_relative_block_position +
+            self.current_margin.solve() +
+            block_start_margin.solve();
+
+        // Set clearance to the amount necessary to place the border edge of the block
+        // even with the bottom outer edge of the lowest float that is to be cleared.
+        // Note that CSS2 also allows the alternative option of flooring this amount by
+        // `hypothetical_block_position - position_with_zero_clearance`,
+        // but other browser don't seem to do that.
+        Some(clear_position - position_with_zero_clearance)
+    }
+
+    /// Helper function that computes the clearance and adds `block_start_margin` accordingly.
+    /// If there is no clearance, `block_start_margin` can just be adjoined to `current_margin`.
+    /// But clearance prevents them from collapsing, so `collapse_margins()` is called.
+    pub(crate) fn calculate_clearance_and_adjoin_margin(
+        &mut self,
+        style: &Arc<ComputedValues>,
+        block_start_margin: &CollapsedMargin,
+    ) -> Option<Length> {
+        let clearance = self.calculate_clearance(ClearSide::from_style(style), &block_start_margin);
+        if clearance.is_some() {
+            self.collapse_margins();
+        }
+        self.adjoin_assign(&block_start_margin);
+        clearance
     }
 
     /// Adds a new adjoining margin.
