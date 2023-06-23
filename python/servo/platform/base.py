@@ -75,7 +75,7 @@ class Base:
     def executable_suffix(self):
         return ""
 
-    def _platform_bootstrap(self, _cache_dir: str, _force: bool) -> bool:
+    def _platform_bootstrap(self, _force: bool) -> bool:
         raise NotImplementedError("Bootstrap installation detection not yet available.")
 
     def _platform_bootstrap_gstreamer(self, _force: bool) -> bool:
@@ -97,11 +97,17 @@ class Base:
             == 0
         )
 
-    def bootstrap(self, cache_dir: str, force: bool):
-        if not self._platform_bootstrap(cache_dir, force):
+    def bootstrap(self, force: bool):
+        if not self._platform_bootstrap(force):
             print("Dependencies were already installed!")
 
-    def bootstrap_gstreamer(self, _cache_dir: str, force: bool):
+    def passive_bootstrap(self) -> bool:
+        """A bootstrap method that is called without explicitly invoking `./mach bootstrap`
+           but that is executed in the process of other `./mach` commands. This should be
+           as fast as possible."""
+        return False
+
+    def bootstrap_gstreamer(self, force: bool):
         if not self._platform_bootstrap_gstreamer(force):
             root = self.gstreamer_root(None)
             if root:
