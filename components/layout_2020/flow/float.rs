@@ -744,7 +744,7 @@ impl FloatBox {
                     margin,
                     // Clearance is handled internally by the float placement logic, so there's no need
                     // to store it explicitly in the fragment.
-                    Length::zero(), // clearance
+                    None, // clearance
                     CollapsedBlockMargins::zero(),
                 )
             },
@@ -826,9 +826,9 @@ impl SequentialLayoutState {
     /// needs to have.
     ///
     /// https://www.w3.org/TR/2011/REC-CSS2-20110607/visuren.html#flow-control
-    pub(crate) fn calculate_clearance(&self, clear_side: ClearSide) -> Length {
+    pub(crate) fn calculate_clearance(&self, clear_side: ClearSide) -> Option<Length> {
         if clear_side == ClearSide::None {
-            return Length::zero();
+            return None;
         }
 
         let hypothetical_block_position = self.current_block_position_including_margins();
@@ -848,7 +848,10 @@ impl SequentialLayoutState {
                 .max(self.floats.clear_right_position)
                 .max(hypothetical_block_position),
         };
-        clear_position - hypothetical_block_position
+        if hypothetical_block_position >= clear_position {
+            return None;
+        }
+        Some(clear_position - hypothetical_block_position)
     }
 
     /// Adds a new adjoining margin.
