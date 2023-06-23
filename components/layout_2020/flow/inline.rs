@@ -659,13 +659,20 @@ fn layout_atomic(
                 containing_block_for_children.style.writing_mode,
                 "Mixed writing modes are not supported yet"
             );
-            // FIXME: Do we need to adjust the static position of the hoisted fragments in the positioning
-            // context somewhere near here?
+
+            let collects_for_nearest_positioned_ancestor = ifc
+                .positioning_context
+                .collects_for_nearest_positioned_ancestor();
+            let mut child_positioning_context =
+                PositioningContext::new_for_subtree(collects_for_nearest_positioned_ancestor);
             let independent_layout = non_replaced.layout(
                 layout_context,
-                ifc.positioning_context,
+                &mut child_positioning_context,
                 &containing_block_for_children,
             );
+            child_positioning_context
+                .adjust_static_position_of_hoisted_fragments_with_offset(&start_corner);
+            ifc.positioning_context.append(child_positioning_context);
 
             // https://drafts.csswg.org/css2/visudet.html#block-root-margin
             let tentative_block_size = box_size
@@ -685,6 +692,7 @@ fn layout_atomic(
                     inline: inline_size,
                 },
             };
+
             BoxFragment::new(
                 non_replaced.base_fragment_info,
                 non_replaced.style.clone(),
