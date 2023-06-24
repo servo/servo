@@ -11,7 +11,6 @@ from __future__ import print_function
 
 import contextlib
 from typing import List, Optional
-import distro
 import functools
 import gzip
 import itertools
@@ -497,7 +496,7 @@ class CommandBase(object):
             'vcdir': vcinstalldir,
         }
 
-    def build_env(self, hosts_file_path=None, is_build=False, test_unit=False):
+    def build_env(self, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
 
@@ -506,14 +505,6 @@ class CommandBase(object):
                 env, cross_compilation_target=self.cross_compile_target,
                 check_installation=is_build)
 
-        if sys.platform == "win32" and type(env['PATH']) == six.text_type:
-            # On win32, the virtualenv's activate_this.py script sometimes ends up
-            # turning os.environ['PATH'] into a unicode string.  This doesn't work
-            # for passing env vars in to a process, so we force it back to ascii.
-            # We don't use UTF8 since that won't be correct anyway; if you actually
-            # have unicode stuff in your path, all this PATH munging would have broken
-            # it in any case.
-            env['PATH'] = env['PATH'].encode('ascii', 'ignore')
         extra_path = []
         effective_target = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in effective_target:
@@ -566,13 +557,6 @@ class CommandBase(object):
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if is_linux():
-            distrib, version, _ = distro.linux_distribution()
-            distrib = six.ensure_str(distrib)
-            version = six.ensure_str(version)
-            if distrib == "Ubuntu" and version == "16.04":
-                env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
-
         if extra_path:
             util.append_paths_to_env(env, "PATH", extra_path)
 
@@ -613,17 +597,10 @@ class CommandBase(object):
         if "ANDROID_TOOLCHAIN" in env:
             env["NDK_STANDALONE"] = env["ANDROID_TOOLCHAIN"]
 
-        if hosts_file_path:
-            env['HOST_FILE'] = hosts_file_path
-
         if test_unit and "msvc" in servo.platform.host_triple():
             # on MSVC, we need some DLLs in the path. They were copied
             # in to the servo.exe build dir, so just point PATH to that.
             util.prepend_paths_to_env(env, "PATH", path.dirname(self.get_binary_path(False, False)))
-
-        # FIXME: https://github.com/servo/servo/issues/26192
-        if test_unit and "apple-darwin" not in servo.platform.host_triple():
-            env["RUST_BACKTRACE"] = "1"
 
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
