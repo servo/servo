@@ -497,7 +497,8 @@ class CommandBase(object):
             'vcdir': vcinstalldir,
         }
 
-    def build_env(self, hosts_file_path=None, is_build=False, test_unit=False):
+    def build_env(self, hosts_file_path=None, is_build=False, test_unit=False,
+                  with_frame_pointer=False, with_debug_assertions=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
 
@@ -625,12 +626,22 @@ class CommandBase(object):
         if test_unit and "apple-darwin" not in servo.platform.host_triple():
             env["RUST_BACKTRACE"] = "1"
 
-        if self.config["build"]["rustflags"]:
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
+        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "")
 
-        if self.config["tools"]["rustc-with-gold"]:
-            if subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) == 0:
-                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C link-args=-fuse-ld=gold"
+        if with_frame_pointer:
+            env['RUSTFLAGS'] += " -C force-frame-pointers=yes"
+
+        if with_debug_assertions or self.config["build"]["debug-assertions"]:
+            env['RUSTFLAGS'] += " -C debug_assertions"
+
+        if self.config["build"]["rustflags"]:
+            env['RUSTFLAGS'] += " " + self.config["build"]["rustflags"]
+
+        # if gold (default ld) is disabled or not available
+        if (not self.config["tools"]["rustc-with-gold"]
+           or subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) != 0):
+            # we need to make rutflags non-empty so it overrides config.toml
+            env['RUSTFLAGS'] += " -C link-args="
 
         if not (self.config["build"]["ccache"] == ""):
             env['CCACHE'] = self.config["build"]["ccache"]
@@ -639,9 +650,7 @@ class CommandBase(object):
         if self.cross_compile_target and (
             self.cross_compile_target.startswith('arm')
                 or self.cross_compile_target.startswith('aarch64')):
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
-
-        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
+            env['RUSTFLAGS'] += " -C target-feature=+neon"
 
         git_info = []
         if os.path.isdir('.git') and is_build:
@@ -684,6 +693,12 @@ class CommandBase(object):
         # Work around https://github.com/servo/servo/issues/24446
         # Argument-less str.split normalizes leading, trailing, and double spaces
         env['RUSTFLAGS'] = " ".join(env['RUSTFLAGS'].split())
+        # remove rustflags if they are empty to prevent rebuilds
+        if not env["RUSTFLAGS"]:
+            del env["RUSTFLAGS"]
+        else:
+            # if there are rustflags we need to add default flags back
+            env["RUSTFLAGS"] += " -W unused-extern-crates"
 
         return env
 
@@ -827,7 +842,7 @@ class CommandBase(object):
         with_layout_2020=False, with_layout_2013=False,
         **_kwargs
     ):
-        env = env or self.build_env()
+        env = env or self.build_env(with_frame_pointer=with_frame_pointer, with_debug_assertions=with_debug_assertions)
 
         args = []
         if "--manifest-path" not in cargo_args:
@@ -869,7 +884,6 @@ class CommandBase(object):
             elif "layout-2020" not in features:
                 features.append("layout-2013")
             if with_frame_pointer:
-                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
                 features.append("profilemozjs")
             if without_wgl:
                 features.append("no-wgl")
@@ -878,9 +892,6 @@ class CommandBase(object):
             if self.config["build"]["dom-backtrace"]:
                 features.append("dom-backtrace")
             args += ["--features", " ".join(features)]
-
-        if with_debug_assertions or self.config["build"]["debug-assertions"]:
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
         if self.is_uwp_build:
             cargo_args += ["-Z", "build-std"]

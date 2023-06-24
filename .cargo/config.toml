@@ -27,12 +27,29 @@ linker = "lld-link.exe"
 
 [target.x86_64-uwp-windows-msvc]
 linker = "lld-link.exe"
+rustflags = ["-W", "unused-extern-crates", "-C", "link-arg=-fuse-ld=gold"]
 
 [target.i686-pc-windows-msvc]
 linker = "lld-link.exe"
+rustflags = ["-W", "unused-extern-crates", "-C", "link-arg=-fuse-ld=gold"]
 
 [target.aarch64-pc-windows-msvc]
 linker = "lld-link.exe"
 
 [target.aarch64-uwp-windows-msvc]
 linker = "lld-link.exe"
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-W", "unused-extern-crates", "-C", "link-arg=-fuse-ld=gold"]
+
+[target.i686-unknown-linux-gnu]
+rustflags = ["-W", "unused-extern-crates", "-C", "link-arg=-fuse-ld=gold"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-W", "unused-extern-crates", "-C", "link-arg=-fuse-ld=gold"]
+
+[target.aarch64-apple-darwin]
+rustflags = ["-W", "unused-extern-crates", "-C", "link-arg=-fuse-ld=gold"]
+
+[build]
+rustflags = ["-W", "unused-extern-crates"]
