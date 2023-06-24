@@ -8,4 +8,4 @@
 # except according to those terms.
 
 from .tidy import scan  # noqa
-from .test import do_tests  # noqa
+from .test import run_tests  # noqa

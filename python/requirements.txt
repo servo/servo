@@ -42,3 +42,8 @@ clang-format ~= 16.0.0
 # A few more requirements for tidy.
 voluptuous == 0.12.1
 PyYAML == 5.4
+
+# For wpt scripts and their tests.
+flask
+requests
+types-requests

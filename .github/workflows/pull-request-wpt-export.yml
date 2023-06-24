@@ -32,7 +32,7 @@ jobs:
           # See https://github.com/actions/checkout/issues/162.
           token: ${{ secrets.WPT_SYNC_TOKEN }}
       - name: Install requirements
-        run: pip install -r servo/python/wpt/requirements.txt
+        run: pip install -r servo/python/requirements.txt
       - name: Process pull request
         run: servo/python/wpt/export.py
         env:

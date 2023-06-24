@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import logging
 import os
 import unittest
 
@@ -48,7 +49,7 @@ class CheckTidiness(unittest.TestCase):
             os.path.join(BASE_PATH, "dir_check/webidl_plus"): ['webidl', 'test'],
             os.path.join(BASE_PATH, "dir_check/only_webidl"): ['webidl']
         }
-        errors = tidy.check_directory_files(dirs)
+        errors = tidy.check_directory_files(dirs, print_text=False)
         error_dir = os.path.join(BASE_PATH, "dir_check/webidl_plus")
         self.assertEqual("Unexpected extension found for test.rs. We only expect files with webidl, test extensions in {0}".format(error_dir), next(errors)[2])
         self.assertEqual("Unexpected extension found for test2.rs. We only expect files with webidl, test extensions in {0}".format(error_dir), next(errors)[2])
@@ -100,7 +101,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(errors)
 
     def test_apache2_incomplete(self):
-        errors = tidy.collect_errors_for_files(iterFile('apache2_license.rs'), [], [tidy.check_license])
+        errors = tidy.collect_errors_for_files(iterFile('apache2_license.rs'), [], [tidy.check_license], print_text=False)
         self.assertEqual('incorrect license', next(errors)[2])
 
     def test_rust(self):
@@ -249,19 +250,21 @@ class CheckTidiness(unittest.TestCase):
 
     def test_file_list(self):
         file_path = os.path.join(BASE_PATH, 'test_ignored')
-        file_list = tidy.FileList(file_path, only_changed_files=False, exclude_dirs=[])
+        file_list = tidy.FileList(file_path, only_changed_files=False, exclude_dirs=[], progress=False)
         lst = list(file_list)
         self.assertEqual([os.path.join(file_path, 'whee', 'test.rs'), os.path.join(file_path, 'whee', 'foo', 'bar.rs')], lst)
         file_list = tidy.FileList(file_path, only_changed_files=False,
-                                  exclude_dirs=[os.path.join(file_path, 'whee', 'foo')])
+                                  exclude_dirs=[os.path.join(file_path, 'whee', 'foo')],
+                                  progress=False)
         lst = list(file_list)
         self.assertEqual([os.path.join(file_path, 'whee', 'test.rs')], lst)
 
     def test_multiline_string(self):
-        errors = tidy.collect_errors_for_files(iterFile('multiline_string.rs'), [], [tidy.check_rust], print_text=True)
+        errors = tidy.collect_errors_for_files(iterFile('multiline_string.rs'), [], [tidy.check_rust], print_text=False)
         self.assertNoMoreErrors(errors)
 
 
-def do_tests():
+def run_tests():
+    verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
     suite = unittest.TestLoader().loadTestsFromTestCase(CheckTidiness)
-    return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
+    return unittest.TextTestRunner(verbosity=verbosity).run(suite).wasSuccessful()

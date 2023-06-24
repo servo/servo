@@ -10,6 +10,7 @@
 from __future__ import print_function, unicode_literals
 
 import argparse
+import logging
 import re
 import sys
 import os
@@ -49,9 +50,6 @@ CLANGFMT_CPP_DIRS = ["support/hololens/"]
 CLANGFMT_VERSION = "15"
 
 TEST_SUITES = OrderedDict([
-    ("tidy", {"kwargs": {"all_files": False, "no_progress": False, "self_test": False,
-                         "stylo": False},
-              "include_arg": "include"}),
     ("wpt", {"kwargs": {"release": False},
              "paths": [path.abspath(WEB_PLATFORM_TESTS_PATH),
                        path.abspath(SERVO_TESTS_PATH)],
@@ -80,25 +78,12 @@ class MachCommands(CommandBase):
     @CommandArgument('params', default=None, nargs="...",
                      help="Optionally select test based on "
                           "test file directory")
-    @CommandArgument('--render-mode', '-rm', default=DEFAULT_RENDER_MODE,
-                     help="The render mode to be used on all tests. "
-                          + HELP_RENDER_MODE)
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
-    @CommandArgument('--tidy-all', default=False, action="store_true",
-                     help="Check all files, and run the WPT lint in tidy, "
-                          "even if unchanged")
-    @CommandArgument('--no-progress', default=False, action="store_true",
-                     help="Don't show progress for tidy")
-    @CommandArgument('--self-test', default=False, action="store_true",
-                     help="Run unit tests for tidy")
     @CommandArgument('--all', default=False, action="store_true", dest="all_suites",
                      help="Run all test suites")
-    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, tidy_all=False,
-             no_progress=False, self_test=False, all_suites=False):
+    def test(self, params, release=False, all_suites=False):
         suites = copy.deepcopy(TEST_SUITES)
-        suites["tidy"]["kwargs"] = {"all_files": tidy_all, "no_progress": no_progress, "self_test": self_test,
-                                    "stylo": False}
         suites["wpt"]["kwargs"] = {"release": release}
         suites["unit"]["kwargs"] = {}
 
@@ -293,50 +278,65 @@ class MachCommands(CommandBase):
                      help="Skip checking that web-platform-tests manifests are up to date")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
-    @CommandArgument('--self-test', default=False, action="store_true",
-                     help="Run unit tests for tidy")
     @CommandArgument('--stylo', default=False, action="store_true",
                      help="Only handle files in the stylo tree")
-    def test_tidy(self, all_files, no_progress, self_test, stylo, force_cpp=False, no_wpt=False):
-        if self_test:
-            return tidy.do_tests()
+    def test_tidy(self, all_files, no_progress, stylo, no_wpt=False):
+        if no_wpt:
+            manifest_dirty = False
         else:
-            if no_wpt:
-                manifest_dirty = False
-            else:
-                manifest_dirty = wpt.manifestupdate.update(check_clean=True)
-            tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo, no_wpt=no_wpt)
-            self.install_rustfmt()
-            rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
+            manifest_dirty = wpt.manifestupdate.update(check_clean=True)
+        tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo, no_wpt=no_wpt)
+        self.install_rustfmt()
+        rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
 
-            print("Checking C++ files for tidiness...")
-            env = self.build_env()
-            clangfmt_failed = not run_clang_format(env, ["--dry-run", "--Werror"])
+        print("Checking C++ files for tidiness...")
+        env = self.build_env()
+        clangfmt_failed = not run_clang_format(env, ["--dry-run", "--Werror"])
 
-            if rustfmt_failed or clangfmt_failed:
-                print("Run `./mach fmt` to fix the formatting")
+        if rustfmt_failed or clangfmt_failed:
+            print("Run `./mach fmt` to fix the formatting")
 
-            return tidy_failed or manifest_dirty or rustfmt_failed or clangfmt_failed
+        return tidy_failed or manifest_dirty or rustfmt_failed or clangfmt_failed
 
-    @Command('test-webidl',
-             description='Run the WebIDL parser tests',
+    @Command('test-scripts',
+             description='Run tests for all build and support scripts.',
              category='testing')
-    @CommandArgument('--quiet', '-q', default=False, action="store_true",
-                     help="Don't print passing tests.")
+    @CommandArgument('--verbose', '-v', default=False, action="store_true",
+                     help="Enable verbose output")
+    @CommandArgument('--very-verbose', '-vv', default=False, action="store_true",
+                     help="Enable very verbose output")
+    @CommandArgument('--all', '-a', default=False, action="store_true",
+                     help="Run all script tests, even the slow ones.")
     @CommandArgument('tests', default=None, nargs="...",
-                     help="Specific tests to run, relative to the tests directory")
-    def test_webidl(self, quiet, tests):
-        test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "components", "script",
-                                               "dom", "bindings", "codegen", "parser"))
-        # For the `import WebIDL` in runtests.py
-        sys.path.insert(0, test_file_dir)
+                     help="Specific WebIDL tests to run, relative to the tests directory")
+    def test_scripts(self, verbose, very_verbose, all, tests):
+        if very_verbose:
+            logging.getLogger().level = logging.DEBUG
+        elif verbose:
+            logging.getLogger().level = logging.INFO
+        else:
+            logging.getLogger().level = logging.WARN
 
-        run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
-        run_globals = {"__file__": run_file}
-        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
+        passed = True
 
-        verbose = not quiet
-        return run_globals["run_tests"](tests, verbose)
+        print("Running tidy tests...")
+        passed = tidy.run_tests() and passed
+
+        print("Running WPT tests...")
+        passed = wpt.run_tests() and passed
+
+        if all or tests:
+            print("Running WebIDL tests...")
+            test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "components", "script",
+                                                   "dom", "bindings", "codegen", "parser"))
+            # For the `import WebIDL` in runtests.py
+            sys.path.insert(0, test_file_dir)
+            run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
+            run_globals = {"__file__": run_file}
+            exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
+            passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
+
+        return 0 if passed else 1
 
     @Command('test-wpt-failure',
              description='Run the tests harness that verifies that the test failures are reported correctly',
