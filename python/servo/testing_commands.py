@@ -42,7 +42,7 @@ from distutils.dir_util import copy_tree
 
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
-WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
+WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
 
 CLANGFMT_CPP_DIRS = ["support/hololens/"]
@@ -711,14 +711,14 @@ class WebPlatformTestsCreator(CommandBase):
 
         if test_url is None:
             print("""Test path %s is not in wpt directories:
-tests/wpt/web-platform-tests for tests that may be shared
+tests/wpt/tests for tests that may be shared
 tests/wpt/mozilla/tests for Servo-only tests""" % test_path)
             return 1
 
         if reference_url is None:
             print("""Reference path %s is not in wpt directories:
-testing/web-platform/tests for tests that may be shared
-testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
+tests/wpt/tests for tests that may be shared
+tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
             return 1
 
         if os.path.exists(test_path) and not kwargs["overwrite"]:

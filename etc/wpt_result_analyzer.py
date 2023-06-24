@@ -20,7 +20,7 @@
 
 import os
 
-test_root = os.path.join('tests', 'wpt', 'web-platform-tests')
+test_root = os.path.join('tests', 'wpt', 'tests')
 meta_root = os.path.join('tests', 'wpt', 'meta')
 
 test_counts = {}

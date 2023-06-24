@@ -15,7 +15,7 @@ import mozlog.commandline
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WPT_PATH = os.path.join(SERVO_ROOT, "tests", "wpt")
-WPT_TOOLS_PATH = os.path.join(WPT_PATH, "web-platform-tests", "tools")
+WPT_TOOLS_PATH = os.path.join(WPT_PATH, "tests", "tools")
 CERTS_PATH = os.path.join(WPT_TOOLS_PATH, "certs")
 
 sys.path.insert(0, WPT_TOOLS_PATH)

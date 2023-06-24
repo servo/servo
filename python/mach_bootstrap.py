@@ -136,20 +136,14 @@ def wpt_path(is_firefox, topdir, *paths):
 
 def wptrunner_path(is_firefox, topdir, *paths):
     wpt_root = wpt_path(is_firefox, topdir)
-    if is_firefox:
-        rel = os.path.join(wpt_root, "tests", "tools", "wptrunner")
-    else:
-        rel = os.path.join(wpt_root, "web-platform-tests", "tools", "wptrunner")
+    rel = os.path.join(wpt_root, "tests", "tools", "wptrunner")
 
     return os.path.join(topdir, rel, *paths)
 
 
 def wptserve_path(is_firefox, topdir, *paths):
     wpt_root = wpt_path(is_firefox, topdir)
-    if is_firefox:
-        rel = os.path.join(wpt_root, "tests", "tools", "wptserve")
-    else:
-        rel = os.path.join(wpt_root, "web-platform-tests", "tools", "wptserve")
+    rel = os.path.join(wpt_root, "tests", "tools", "wptserve")
 
     return os.path.join(topdir, rel, *paths)
 

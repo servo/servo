@@ -25,7 +25,7 @@ from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_
 
 TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 WPT_PATH = os.path.join(".", "tests", "wpt")
-SUITES = ["web-platform-tests", os.path.join("mozilla", "tests")]
+SUITES = ["tests", os.path.join("mozilla", "tests")]
 
 
 def wpt_path(*args):
@@ -40,7 +40,7 @@ URL_REGEX = re.compile(br'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 # Import wptmanifest only when we do have wpt in tree, i.e. we're not
 # inside a Firefox checkout.
 if os.path.isfile(WPT_MANIFEST_PATH):
-    sys.path.append(wpt_path("web-platform-tests", "tools", "wptrunner", "wptrunner"))
+    sys.path.append(wpt_path("tests", "tools", "wptrunner", "wptrunner"))
     from wptmanifest import parser, node
 
 # Default configs
@@ -506,7 +506,7 @@ def check_manifest_dirs(config_file, print_text=True):
         print('\rChecking the wpt manifest file...')
 
     p = parser.parse(lines)
-    paths = rec_parse(wpt_path("web-platform-tests"), p)
+    paths = rec_parse(wpt_path("tests"), p)
     for idx, path in enumerate(paths):
         if '_mozilla' in path or '_webgl' in path or '_webgpu' in path:
             continue
@@ -1152,7 +1152,7 @@ class WPTLint(LintRunner):
         if self.stylo or self.no_wpt:
             return
 
-        wpt_working_dir = os.path.abspath(os.path.join(WPT_PATH, "web-platform-tests"))
+        wpt_working_dir = os.path.abspath(os.path.join(WPT_PATH, "tests"))
         for suite in SUITES:
             files = list(self._get_wpt_files(suite))
             if not files:
