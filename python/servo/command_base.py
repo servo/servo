@@ -629,7 +629,7 @@ class CommandBase(object):
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
 
         if self.config["tools"]["rustc-with-gold"]:
-            if subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) == 0:
+            if shutil.which('ld.gold'):
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C link-args=-fuse-ld=gold"
 
         if not (self.config["build"]["ccache"] == ""):
