@@ -327,8 +327,8 @@ class MachCommands(CommandBase):
 
         if all or tests:
             print("Running WebIDL tests...")
-            test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "components", "script",
-                                                   "dom", "bindings", "codegen", "parser"))
+
+            test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "third_party", "WebIDL"))
             # For the `import WebIDL` in runtests.py
             sys.path.insert(0, test_file_dir)
             run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
