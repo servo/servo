@@ -129,6 +129,8 @@ use time::{get_time, Timespec};
 use uuid::Uuid;
 use webgpu::{identity::WebGPUOpResult, ErrorScopeId, WebGPUDevice};
 
+use super::bindings::trace::NoTrace;
+
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker {
     /// https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-closing
@@ -391,7 +393,7 @@ pub struct BlobInfo {
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum BlobState {
     /// A map of managed blobs.
-    Managed(#[no_trace] HashMap<BlobId, BlobInfo>),
+    Managed(HashMap<NoTrace<BlobId>, BlobInfo>),
     /// This global is not managing any blobs at this time.
     UnManaged,
 }
@@ -448,7 +450,7 @@ pub enum MessagePortState {
     /// The message-port router id for this global, and a map of managed ports.
     Managed(
         #[no_trace] MessagePortRouterId,
-        #[no_trace] HashMap<MessagePortId, ManagedMessagePort>,
+        HashMap<NoTrace<MessagePortId>, ManagedMessagePort>,
     ),
     /// This global is not managing any ports at this time.
     UnManaged,
@@ -792,7 +794,7 @@ impl GlobalScope {
         if let MessagePortState::Managed(_router_id, message_ports) =
             &*self.message_port_state.borrow()
         {
-            return message_ports.contains_key(port_id);
+            return message_ports.contains_key(&NoTrace(*port_id));
         }
         false
     }
@@ -898,7 +900,7 @@ impl GlobalScope {
         let should_start = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            match message_ports.get_mut(&port_id) {
+            match message_ports.get_mut(&NoTrace(port_id)) {
                 None => {
                     panic!("complete_port_transfer called for an unknown port.");
                 },
@@ -979,7 +981,7 @@ impl GlobalScope {
             &mut *self.message_port_state.borrow_mut()
         {
             for (port_id, entangled_id) in &[(port1, port2), (port2, port1)] {
-                match message_ports.get_mut(&port_id) {
+                match message_ports.get_mut(&NoTrace(*port_id)) {
                     None => {
                         return warn!("entangled_ports called on a global not managing the port.");
                     },
@@ -1020,7 +1022,7 @@ impl GlobalScope {
             &mut *self.message_port_state.borrow_mut()
         {
             let mut port_impl = message_ports
-                .remove(&port_id)
+                .remove(&NoTrace(*port_id))
                 .map(|ref mut managed_port| {
                     managed_port
                         .port_impl
@@ -1043,7 +1045,7 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let message_buffer = match message_ports.get_mut(&port_id) {
+            let message_buffer = match message_ports.get_mut(&NoTrace(*port_id)) {
                 None => panic!("start_message_port called on a unknown port."),
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
@@ -1076,7 +1078,7 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            match message_ports.get_mut(&port_id) {
+            match message_ports.get_mut(&NoTrace(*port_id)) {
                 None => panic!("close_message_port called on an unknown port."),
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
@@ -1098,7 +1100,7 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let entangled_port = match message_ports.get_mut(&port_id) {
+            let entangled_port = match message_ports.get_mut(&NoTrace(port_id)) {
                 None => panic!("post_messageport_msg called on an unknown port."),
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
@@ -1248,11 +1250,11 @@ impl GlobalScope {
         let should_dispatch = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            if !message_ports.contains_key(&port_id) {
+            if !message_ports.contains_key(&NoTrace(port_id)) {
                 self.re_route_port_task(port_id, task);
                 return;
             }
-            match message_ports.get_mut(&port_id) {
+            match message_ports.get_mut(&NoTrace(port_id)) {
                 None => panic!("route_task_to_port called for an unknown port."),
                 Some(managed_port) => {
                     // If the port is not enabled yet, or if is awaiting the completion of it's transfer,
@@ -1301,7 +1303,7 @@ impl GlobalScope {
                 .iter()
                 .filter_map(|(id, managed_port)| {
                     if managed_port.pending {
-                        Some(id.clone())
+                        Some(id.0.clone())
                     } else {
                         None
                     }
@@ -1309,7 +1311,7 @@ impl GlobalScope {
                 .collect();
             for id in to_be_added.iter() {
                 let managed_port = message_ports
-                    .get_mut(&id)
+                    .get_mut(&NoTrace(*id))
                     .expect("Collected port-id to match an entry");
                 if !managed_port.pending {
                     panic!("Only pending ports should be found in to_be_added")
@@ -1332,7 +1334,7 @@ impl GlobalScope {
         let is_empty = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let to_be_removed: Vec<MessagePortId> = message_ports
+            let to_be_removed: Vec<NoTrace<MessagePortId>> = message_ports
                 .iter()
                 .filter_map(|(id, ref managed_port)| {
                     if managed_port.closed {
@@ -1340,7 +1342,7 @@ impl GlobalScope {
                         // and to forward this message to the script-process where the entangled is found.
                         let _ = self
                             .script_to_constellation_chan()
-                            .send(ScriptMsg::RemoveMessagePort(id.clone()));
+                            .send(ScriptMsg::RemoveMessagePort(id.0.clone()));
                         Some(id.clone())
                     } else {
                         None
@@ -1490,7 +1492,7 @@ impl GlobalScope {
                 // and only ask the constellation to complete the transfer
                 // if they're not re-shipped in the current task.
                 message_ports.insert(
-                    dom_port.message_port_id().clone(),
+                    NoTrace(dom_port.message_port_id().clone()),
                     ManagedMessagePort {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
@@ -1513,7 +1515,7 @@ impl GlobalScope {
                 // If this is a newly-created port, let the constellation immediately know.
                 let port_impl = MessagePortImpl::new(dom_port.message_port_id().clone());
                 message_ports.insert(
-                    dom_port.message_port_id().clone(),
+                    NoTrace(dom_port.message_port_id().clone()),
                     ManagedMessagePort {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
@@ -1555,11 +1557,11 @@ impl GlobalScope {
         match &mut *blob_state {
             BlobState::UnManaged => {
                 let mut blobs_map = HashMap::new();
-                blobs_map.insert(blob_id, blob_info);
+                blobs_map.insert(NoTrace(blob_id), blob_info);
                 *blob_state = BlobState::Managed(blobs_map);
             },
             BlobState::Managed(blobs_map) => {
-                blobs_map.insert(blob_id, blob_info);
+                blobs_map.insert(NoTrace(blob_id), blob_info);
             },
         }
     }
@@ -1647,7 +1649,7 @@ impl GlobalScope {
             let blob_state = self.blob_state.borrow();
             if let BlobState::Managed(blobs_map) = &*blob_state {
                 let blob_info = blobs_map
-                    .get(blob_id)
+                    .get(&NoTrace(*blob_id))
                     .expect("get_blob_bytes for an unknown blob.");
                 match blob_info.blob_impl.blob_data() {
                     BlobData::Sliced(ref parent, ref rel_pos) => {
@@ -1674,7 +1676,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(blob_id)
+                .get(&NoTrace(*blob_id))
                 .expect("get_blob_bytes_non_sliced called for a unknown blob.");
             match blob_info.blob_impl.blob_data() {
                 BlobData::File(ref f) => {
@@ -1712,7 +1714,7 @@ impl GlobalScope {
             let blob_state = self.blob_state.borrow();
             if let BlobState::Managed(blobs_map) = &*blob_state {
                 let blob_info = blobs_map
-                    .get(blob_id)
+                    .get(&NoTrace(*blob_id))
                     .expect("get_blob_bytes_or_file_id for an unknown blob.");
                 match blob_info.blob_impl.blob_data() {
                     BlobData::Sliced(ref parent, ref rel_pos) => {
@@ -1748,7 +1750,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(blob_id)
+                .get(&NoTrace(*blob_id))
                 .expect("get_blob_bytes_non_sliced_or_file_id called for a unknown blob.");
             match blob_info.blob_impl.blob_data() {
                 BlobData::File(ref f) => match f.get_cache() {
@@ -1770,7 +1772,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(blob_id)
+                .get(&NoTrace(*blob_id))
                 .expect("get_blob_type_string called for a unknown blob.");
             blob_info.blob_impl.type_string()
         } else {
@@ -1784,7 +1786,7 @@ impl GlobalScope {
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let parent = {
                 let blob_info = blobs_map
-                    .get(blob_id)
+                    .get(&NoTrace(*blob_id))
                     .expect("get_blob_size called for a unknown blob.");
                 match blob_info.blob_impl.blob_data() {
                     BlobData::Sliced(ref parent, ref rel_pos) => {
@@ -1796,7 +1798,7 @@ impl GlobalScope {
             match parent {
                 Some((parent_id, rel_pos)) => {
                     let parent_info = blobs_map
-                        .get(&parent_id)
+                        .get(&NoTrace(parent_id))
                         .expect("Parent of blob whose size is unknown.");
                     let parent_size = match parent_info.blob_impl.blob_data() {
                         BlobData::File(ref f) => f.get_size(),
@@ -1806,7 +1808,9 @@ impl GlobalScope {
                     rel_pos.to_abs_range(parent_size as usize).len() as u64
                 },
                 None => {
-                    let blob_info = blobs_map.get(blob_id).expect("Blob whose size is unknown.");
+                    let blob_info = blobs_map
+                        .get(&NoTrace(*blob_id))
+                        .expect("Blob whose size is unknown.");
                     match blob_info.blob_impl.blob_data() {
                         BlobData::File(ref f) => f.get_size(),
                         BlobData::Memory(ref v) => v.len() as u64,
@@ -1826,7 +1830,7 @@ impl GlobalScope {
         if let BlobState::Managed(blobs_map) = &mut *blob_state {
             let parent = {
                 let blob_info = blobs_map
-                    .get_mut(blob_id)
+                    .get_mut(&NoTrace(*blob_id))
                     .expect("get_blob_url_id called for a unknown blob.");
 
                 // Keep track of blobs with outstanding URLs.
@@ -1842,7 +1846,7 @@ impl GlobalScope {
             match parent {
                 Some((parent_id, rel_pos)) => {
                     let parent_info = blobs_map
-                        .get_mut(&parent_id)
+                        .get_mut(&NoTrace(parent_id))
                         .expect("Parent of blob whose url is requested is unknown.");
                     let parent_file_id = self.promote(parent_info, /* set_valid is */ false);
                     let parent_size = match parent_info.blob_impl.blob_data() {
@@ -1852,13 +1856,13 @@ impl GlobalScope {
                     };
                     let parent_size = rel_pos.to_abs_range(parent_size as usize).len() as u64;
                     let blob_info = blobs_map
-                        .get_mut(blob_id)
+                        .get_mut(&NoTrace(*blob_id))
                         .expect("Blob whose url is requested is unknown.");
                     self.create_sliced_url_id(blob_info, &parent_file_id, &rel_pos, parent_size)
                 },
                 None => {
                     let blob_info = blobs_map
-                        .get_mut(blob_id)
+                        .get_mut(&NoTrace(*blob_id))
                         .expect("Blob whose url is requested is unknown.");
                     self.promote(blob_info, /* set_valid is */ true)
                 },
