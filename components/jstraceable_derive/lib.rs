@@ -7,10 +7,26 @@ extern crate syn;
 #[macro_use]
 extern crate synstructure;
 
-decl_derive!([JSTraceable] => js_traceable_derive);
+decl_derive!([JSTraceable, attributes(no_trace)] => js_traceable_derive);
 
 fn js_traceable_derive(s: synstructure::Structure) -> proc_macro2::TokenStream {
-    let match_body = s.each(|binding| Some(quote!(#binding.trace(tracer);)));
+    let match_body = s.each(|binding| {
+        for attr in binding.ast().attrs.iter() {
+            match attr.parse_meta().unwrap() {
+                syn::Meta::Path(ref path) | syn::Meta::List(syn::MetaList { ref path, .. }) => {
+                    if path.is_ident("no_trace") {
+                        return None;
+                    }
+                },
+                syn::Meta::NameValue(syn::MetaNameValue { ref path, .. }) => {
+                    if path.is_ident("no_trace") {
+                        return None;
+                    }
+                },
+            }
+        }
+        Some(quote!(#binding.trace(tracer);))
+    });
 
     let ast = s.ast();
     let name = &ast.ident;
