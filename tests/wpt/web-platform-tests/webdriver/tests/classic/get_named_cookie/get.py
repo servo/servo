@@ -122,7 +122,6 @@ def test_duplicated_cookie(session, url, server_config, inline):
 
 
 @pytest.mark.parametrize("same_site", ["None", "Lax", "Strict"])
-@pytest.mark.capabilities({"acceptInsecureCerts": True})
 def test_get_cookie_with_same_site_flag(session, url, same_site):
     session.url = url("/common/blank.html", protocol="https")
     clear_all_cookies(session)

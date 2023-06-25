@@ -14,34 +14,128 @@
       ss.removeRule(0)
   }
 
-  const testRules = [
-    `.foo {\n  & { color: green; }\n}`, // 🐰
-    `.foo {\n  &.bar { color: green; }\n}`,
-    `.foo {\n  & .bar { color: green; }\n}`,
-    `.foo {\n  & > .bar { color: green; }\n}`,
-    `.foo {\n  > .bar { color: green; }\n}`,
-    `.foo {\n  > & .bar { color: green; }\n}`,
-    `.foo {\n  + .bar & { color: green; }\n}`,
-    `.foo {\n  .test > & .bar { color: green; }\n}`,
-    `.foo {\n  + .bar, .foo, > .lol { color: green; }\n}`,
-    `.foo {\n  &:is(.bar, &.baz) { color: green; }\n}`,
-    `.foo {\n  .bar& { color: green; }\n}`,
-    `.foo {\n  .bar & { color: green; }\n}`,
-    `.foo {\n  .bar > & { color: green; }\n}`,
-    `.foo, .bar {\n  & + .baz, &.qux { color: green; }\n}`,
-    `.foo {\n  & .bar & .baz & .qux { color: green; }\n}`,
-    `.foo {\n  @media (min-width: 50px) { color: green; }\n}`,
-    `main {\n  & > section, & > article {\n  & > header { color: green; }\n}\n}`,
+  const tests = [
+    {
+      rule: `.foo {\n  & { color: green; }\n}`,
+      check(rule) {
+        assert_equals(rule.cssRules[0].selectorText, "&");
+        assert_equals(rule.cssText, this.rule);
+      },
+    },
+    {
+      rule: `.foo {\n  &.bar { color: green; }\n}`,
+      check(rule) {
+        assert_equals(rule.cssText, this.rule);
+        assert_equals(rule.cssRules[0].selectorText, "&.bar");
+      },
+    },
+    {
+      rule: `.foo {\n  & .bar { color: green; }\n}`,
+      check(rule) {
+        assert_equals(rule.cssText, this.rule);
+        assert_equals(rule.cssRules[0].selectorText, "& .bar");
+      },
+    },
+    {
+      rule: `.foo {\n  & > .bar { color: green; }\n}`,
+      check(rule) {
+        assert_equals(rule.cssText, this.rule);
+        assert_equals(rule.cssRules[0].selectorText, "& > .bar");
+      },
+    },
+    {
+      rule: `.foo {\n  > & .bar { color: green; }\n}`,
+      check(rule) {
+        // TODO: https://github.com/w3c/csswg-drafts/issues/8970
+        assert_in_array(rule.cssRules[0].selectorText, [ "& > & .bar", "> & .bar" ]);
+      },
+    },
+    {
+      rule: `.foo {\n  > .bar { color: green; }\n}`,
+      check(rule) {
+        // TODO: https://github.com/w3c/csswg-drafts/issues/8970
+        assert_in_array(rule.cssRules[0].selectorText, [ "& > .bar", "> .bar" ]);
+      },
+    },
+    {
+      rule: `.foo {\n  + .bar & { color: green; }\n}`,
+      check(rule) {
+        // TODO: https://github.com/w3c/csswg-drafts/issues/8970
+        assert_in_array(rule.cssRules[0].selectorText, [ "& + .bar &", "+ .bar &" ]);
+      },
+    },
+    {
+      rule: `.foo {\n  .test > & .bar { color: green; }\n}`,
+      check(rule) {
+        assert_equals(rule.cssText, this.rule);
+        assert_equals(rule.cssRules[0].selectorText, ".test > & .bar");
+      },
+    },
+    {
+      rule: `.foo {\n  + .bar, .foo, > .lol { color: green; }\n}`,
+      check(rule) {
+        // TODO: https://github.com/w3c/csswg-drafts/issues/8970
+        assert_in_array(rule.cssRules[0].selectorText, [ "& + .bar, .foo, & > .lol", "+ .bar, .foo, > .lol" ]);
+      },
+    },
+    {
+      rule: `.foo {\n  &:is(.bar, &.baz) { color: green; }\n}`,
+      check(rule) {
+        assert_equals(rule.cssText, this.rule);
+        assert_equals(rule.cssRules[0].selectorText, "&:is(.bar, &.baz)");
+      },
+    },
+    {
+      rule: `.foo {\n  .bar& { color: green; }\n}`,
+      check(rule) {
+        assert_equals(rule.cssText, this.rule);
+        assert_equals(rule.cssRules[0].selectorText, ".bar&");
+      },
+    },
+    {
+      rule: `.foo {\n  .bar > & { color: green; }\n}`,
+      check(rule) {
+        assert_equals(rule.cssText, this.rule);
+        assert_equals(rule.cssRules[0].selectorText, ".bar > &");
+      },
+    },
+    {
+      rule: `.foo, .bar {\n  & + .baz, &.qux { color: green; }\n}`,
+      check(rule) {
+        assert_equals(rule.cssText, this.rule);
+        assert_equals(rule.cssRules[0].selectorText, "& + .baz, &.qux");
+      },
+    },
+    {
+      rule: `.foo {\n  & .bar & .baz & .qux { color: green; }\n}`,
+      check(rule) {
+        assert_equals(rule.cssText, this.rule);
+      },
+    },
+    {
+      rule: `.foo {\n  @media (min-width: 50px) { color: green; }\n}`,
+      check(rule) {
+        assert_in_array(rule.cssText, [
+          this.rule,
+          `.foo {\n  @media (min-width: 50px) {\n  & { color: green; }\n}\n}`,
+        ]);
+      },
+    },
+    {
+      rule: `main {\n  & > section, & > article {\n  & > header { color: green; }\n}\n}`,
+      check(rule) {
+        assert_equals(rule.cssText, this.rule);
+      },
+    },
   ]
 
-  testRules.forEach(testRule => {
+  tests.forEach(t => {
     test(function() {
       beforeEach()
-      ss.insertRule(testRule)
-      // todo?
-      // when parsing is being ready/prototyped,
-      // switch to crawling nested rules instead of comparing text
-      assert_equals(ss.rules[0].cssText, testRule)
-    }, testRule)
+      assert_equals(ss.cssRules.length, 0, "Should be empty");
+      ss.insertRule(t.rule)
+      assert_equals(ss.cssRules.length, 1, "Should have one rule");
+      t.check(ss.rules[0]);
+    }, t.rule)
   })
 </script>

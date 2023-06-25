@@ -5,10 +5,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 const uid = token();
@@ -51,6 +52,4 @@ promise_test(async t => {
   new PrerenderChannel('close', uid).postMessage('');
 }, 'ServiceWorkerRegistration.update() should be deferred in a prerendered ' +
    'page');
-
 </script>
-</body>

@@ -17,16 +17,12 @@ function async_promise_test(func, name, properties) {
   }, name, properties);
 }
 
-async_promise_test(t => applyJitterBufferTarget(t, "video", 250),
-                    "measure raising video jitterBufferTarget to 250");
-async_promise_test(t => applyJitterBufferTarget(t, "audio", 250),
-                    "measure raising audio jitterBufferTarget to 250");
-async_promise_test(t => applyJitterBufferTarget(t, "video", 250, 150),
-                    "measure lowering video jitterBufferTarget to 150");
-async_promise_test(t => applyJitterBufferTarget(t, "audio", 250, 150),
-                    "measure lowering audio jitterBufferTarget to 150");
+async_promise_test(t => applyJitterBufferTarget(t, "video", 4000),
+                    "measure raising and lowering video jitterBufferTarget");
+async_promise_test(t => applyJitterBufferTarget(t, "audio", 4000),
+                    "measure raising and lowering audio jitterBufferTarget");
 
-async function applyJitterBufferTarget(t, kind, target, targetToLower) {
+async function applyJitterBufferTarget(t, kind, target) {
   const caller = new RTCPeerConnection();
   t.add_cleanup(() => caller.close());
   const callee = new RTCPeerConnection();
@@ -34,57 +30,66 @@ async function applyJitterBufferTarget(t, kind, target, targetToLower) {
 
   const stream = await getNoiseStream({[kind]:true});
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
-  for (const track of stream.getTracks()) {
-    caller.addTrack(track, stream);
-  }
-  exchangeIceCandidates(caller, callee);
-  await exchangeOfferAnswer(caller, callee);
-  const receiver = callee.getReceivers().find(({track}) => track.kind == kind);
-  t.step(() => assert_equals(receiver.jitterBufferTarget, null,
-   `jitterBufferTarget supported for ${kind}`));
-  receiver.jitterBufferTarget = target;
-  t.step(() => assert_equals(receiver.jitterBufferTarget, target,
-    `jitterBufferTarget increase target for ${kind}`));
-  const delay = await measureDelayFromStats(t, receiver, callee, target, kind);
+  caller.addTransceiver(stream.getTracks()[0], {streams: [stream]});
+  caller.addTransceiver(stream.getTracks()[0], {streams: [stream]});
 
-  if (targetToLower) {
-    t.step(() => assert_less_than(targetToLower, delay, "targetToLower represents a decrease"));
-    receiver.jitterBufferTarget = targetToLower;
-    t.step(() => assert_equals(receiver.jitterBufferTarget, targetToLower,
+  exchangeIceCandidates(caller, callee);
+  await exchangeOffer(caller, callee);
+  const [unconstrainedReceiver, constrainedReceiver] = callee.getReceivers();
+  const haveRtp = Promise.all([
+    new Promise(r => constrainedReceiver.track.onunmute = r),
+    new Promise(r => unconstrainedReceiver.track.onunmute = r)
+  ]);
+  await exchangeAnswer(caller, callee);
+  const chromeTimeout = new Promise(r => t.step_timeout(r, 1000)); // crbug.com/1295295
+  await Promise.race([haveRtp, chromeTimeout]);
+
+  // Allow some data to be processed to let the jitter buffer to stabilize a bit before measuring
+  await new Promise(r => t.step_timeout(r, 5000));
+
+  t.step(() => assert_equals(constrainedReceiver.jitterBufferTarget, null,
+   `jitterBufferTarget supported for ${kind}`));
+
+  constrainedReceiver.jitterBufferTarget = target;
+  t.step(() => assert_equals(constrainedReceiver.jitterBufferTarget, target,
+    `jitterBufferTarget increase target for ${kind}`));
+
+  const [increased, base] = await Promise.all([
+    measureDelayFromStats(t, constrainedReceiver, 20),
+    measureDelayFromStats(t, unconstrainedReceiver, 20)
+  ]);
+
+  t.step(() => assert_greater_than(increased , base,
+    `${kind} increased delay ${increased} ` +
+    ` greater than base delay ${base}`));
+
+  constrainedReceiver.jitterBufferTarget = 0;
+
+  // Allow the jitter buffer to stabilize a bit before measuring
+  await new Promise(r => t.step_timeout(r, 5000));
+  t.step(() => assert_equals(constrainedReceiver.jitterBufferTarget, 0,
       `jitterBufferTarget decrease target for ${kind}`));
-    await measureDelayFromStats(t, receiver, callee, targetToLower, kind);
-  }
+
+  const decreased = await measureDelayFromStats(t, constrainedReceiver, 20);
+
+  t.step(() => assert_less_than(decreased, increased,
+    `${kind} decreasedDelay ${decreased} ` +
+    `less than increased delay ${increased}`));
 }
 
-async function measureDelayFromStats(t, receiver, callee, target, kind) {
-  const lowerBound = target * 0.7;
-  const upperBound = target * 1.3;
-  let delay, oldInboundStats, prevDelay, avgChange;
-  let rateOfChange = 0;
-  let numDelayMeasurements = 1;
+async function measureDelayFromStats(t, receiver, cycles) {
 
-  for (let statChecks = 0; statChecks < 40; statChecks++) {
-    await new Promise(r => t.step_timeout(r, 1000));
-    const statsReport = await callee.getStats();
-    const inboundStats = [...statsReport.values()].find(({type}) => type == "inbound-rtp");
+  let statsReport = await receiver.getStats();
+  const oldInboundStats = [...statsReport.values()].find(({type}) => type == "inbound-rtp");
 
-    if (oldInboundStats) {
-      delay = ((inboundStats.jitterBufferDelay - oldInboundStats.jitterBufferDelay) /
-               (inboundStats.jitterBufferEmittedCount - oldInboundStats.jitterBufferEmittedCount) * 1000);
-      if (prevDelay) {
-        rateOfChange += (delay - prevDelay);
-        avgChange = rateOfChange / numDelayMeasurements;
-        numDelayMeasurements++;
-      }
-      prevDelay = delay;
-      if (delay > lowerBound && delay < upperBound) {
-        break;
-      }
-    }
-    oldInboundStats = inboundStats;
-  }
-  t.step(() => assert_between_inclusive(delay , lowerBound, upperBound,
-   `${kind} delay is within bounds avgChange ${avgChange} over ${numDelayMeasurements} measurements`));
+  await new Promise(r => t.step_timeout(r, 1000 * cycles));
+
+  statsReport = await receiver.getStats();
+  const inboundStats = [...statsReport.values()].find(({type}) => type == "inbound-rtp");
+
+  const delay = ((inboundStats.jitterBufferDelay - oldInboundStats.jitterBufferDelay) /
+            (inboundStats.jitterBufferEmittedCount - oldInboundStats.jitterBufferEmittedCount) * 1000);
+
   return delay;
 }
 </script>

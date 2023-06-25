@@ -5,10 +5,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
@@ -44,6 +45,4 @@ promise_test(async t => {
     window.localStorage.getItem('prerender'), uid2,
       'prerendering page should be able to write to local storage');
 }, 'prerendering page should be able to access local storage');
-
 </script>
-</body>

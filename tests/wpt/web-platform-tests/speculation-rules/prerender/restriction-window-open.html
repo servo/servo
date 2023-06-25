@@ -3,10 +3,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 function runTest(test_file, expectation, description) {
@@ -36,6 +37,4 @@ runTest(
     'resources/window-open-in-prerenderingchange.html',
     'opened',
     'window.open() should succeed in the prerenderingchange event');
-
 </script>
-</body>

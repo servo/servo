@@ -3,10 +3,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 // moveTo and moveBy operations should be ignored.
@@ -44,6 +45,4 @@ setup(() => assertSpeculationRulesIsSupported());
         'y position for prerendering');
   }, `a prerendering page cannot move its window by executing ${moveFunc}.`);
 });
-
 </script>
-</body>

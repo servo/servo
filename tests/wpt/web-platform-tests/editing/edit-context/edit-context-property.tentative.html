@@ -66,6 +66,25 @@ test(function () {
   }
 }, 'Setting HTMLElement.editContext must throw a NotSupportedError for disallowed elements');
 
+test(function () {
+  const element1 = document.createElement('div');
+  const element2 = document.createElement('div');
+  const editContext1 = new EditContext();
+  const editContext2 = new EditContext();
+  element1.editContext = editContext1;
+  assert_throws_dom('NotSupportedError', () => {
+    element2.editContext = editContext1;
+  }, `TypeError should be thrown when author attempts to associate an EditContext with a second element`);
+  assert_equals(element1.editContext, editContext1, "element1 association should not have changed");
+  assert_equals(element2.editContext, null, "element2 association should not have changed");
+
+  element1.editContext = editContext2;
+  assert_equals(element1.editContext, editContext2, "Association can be switched directly to second EditConext");
+
+  element1.editContext = editContext2;
+  assert_equals(element1.editContext, editContext2, "Assigning to the same EditContext again is a no-op");
+}, 'An EditContext can only be associated with one element at a time');
+
 </script>
 </body>
 </html>

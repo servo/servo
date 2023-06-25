@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <title>Prefetched response including No-Vary-Search headers is used during navigation</title>
 <meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/utils.js"></script>
+<script src="../resources/utils.sub.js"></script>
+<script src="/common/subset-tests.js"></script>
 
 <meta name="variant" content="?1-1">
 <meta name="variant" content="?2-2">
@@ -33,14 +40,9 @@
 <meta name="variant" content="?29-29">
 <meta name="variant" content="?30-last">
 
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/common/dispatcher/dispatcher.js"></script>
-<script src="/common/utils.js"></script>
-<script src="../resources/utils.sub.js"></script>
-<script src="/common/subset-tests.js"></script>
-
 <script>
+  setup(() => assertSpeculationRulesIsSupported());
+
   function addNoVarySearchHeaderUsingPipe(url, value){
     // Use server pipes https://web-platform-tests.org/writing-tests/server-pipes.html
     // to populate No-Vary-Search response header.
@@ -83,7 +85,6 @@
 
   function prefetch_no_vary_search_test(description, noVarySearch, prefetchQuery, navigateQuery, shouldUsePrefetch){
     promise_test(async t => {
-      assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
       const agent = await spawnWindow(t, {});
       await prefetchAndNavigate(agent,
         noVarySearch,

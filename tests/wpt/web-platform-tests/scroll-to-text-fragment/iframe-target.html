@@ -26,11 +26,10 @@
 
   window.addEventListener('message', (e) => {
     if (e.data == 'getResult') {
-      // rAF twice in case there is any asynchronicity in scrolling to the
-      // target.
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(postResult);
-      })
+      // Use a timeout to get results - in the elementId fallback case, the
+      // browser may retry the text fragment search a few times before giving
+      // up and trying the elementid.
+      setTimeout(postResult, 2000);
     } else if (e.data == 'reset') {
       window.location.hash = '';
       window.scrollTo(0, 0);

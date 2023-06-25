@@ -65,6 +65,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
         if "--headless" not in capabilities["ms:edgeOptions"]["args"]:
             capabilities["ms:edgeOptions"]["args"].append("--headless")
         capabilities["ms:edgeOptions"]["args"].append("--use-fake-device-for-media-stream")
+        capabilities["ms:edgeOptions"]["args"].append("--use-fake-ui-for-fedcm")
 
     if kwargs["enable_experimental"]:
         capabilities["ms:edgeOptions"]["args"].append("--enable-experimental-web-platform-features")

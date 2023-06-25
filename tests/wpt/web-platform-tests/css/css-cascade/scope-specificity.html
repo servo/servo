@@ -1,38 +1,77 @@
 <!DOCTYPE html>
-<title>@scope - added specificty</title>
+<title>@scope - specificty</title>
 <link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<style>
-
-  @scope (#a) {
-    .b { --x:first; }
-  }
-
-  @scope (.a) {
-    .b { --x:second; }
-  }
-
-  @scope (#a) {
-    @scope (*) {
-      .b { --y:first; }
-    }
-  }
-
-  div.b { --y:second; }
-
+<style id=style>
 </style>
-<div class=a id=a>
-  <div class=b id=target></div>
-</div>
+<main id=main>
+  <div id=a class=a>
+    <div id=b class=b>
+    </div>
+  </div>
+</main>
 <script>
 
-test(() => {
-  assert_equals(getComputedStyle(target).getPropertyValue('--x'), 'first');
-}, '@scope adds to specificity of inner selector');
+// Format a scoped style rule using the selector at scoped_selector's last element,
+// with each preceding array item representing an enclosing @scope rule.
+//
+// Example:
+//
+//  scoped_selector=['@scope (foo)', '@scope (bar)', 'div']
+//  declarations='z-index:42'
+//    => '@scope (foo) { @scope (bar) { div { z-index:42 } } }'
+function format_scoped_rule(scoped_selector, declarations) {
+  if (scoped_selector.length < 2) {
+    throw "Fail";
+  }
+  let scope_prelude = scoped_selector[0];
+  let remainder = scoped_selector.slice(1);
+  let content = remainder.length == 1
+                  ? `${remainder[0]} { ${declarations} }`
+                  : format_scoped_rule(remainder, declarations);
+  return `${scope_prelude} { ${content} }`;
+}
 
-test(() => {
-  assert_equals(getComputedStyle(target).getPropertyValue('--y'), 'first');
-}, 'Parent @scope adds to specificity of inner selector');
+// Verify that the specificity of 'scoped_selector' is the same
+// as the specificity of 'ref_selector'. Both selectors must select
+// an element within #main.
+function test_scope_specificity(scoped_selector, ref_selector) {
+  test(() => {
+    let element = main.querySelector(ref_selector);
+    assert_not_equals(element, null);
+
+    let scoped_rule = format_scoped_rule(scoped_selector, 'z-index:1');
+    let ref_rule = `:is(${ref_selector}) { z-index:2 }`;
+
+    style.textContent = `${scoped_rule}`;
+    assert_equals(getComputedStyle(element).zIndex, '1', 'scoped rule');
+
+    style.textContent = `${ref_rule}`;
+    assert_equals(getComputedStyle(element).zIndex, '2', 'unscoped rule');
+
+    // The scoped rule should win due to proximity.
+    style.textContent = `${scoped_rule} ${ref_rule}`;
+    assert_equals(getComputedStyle(element).zIndex, '1', 'scoped + unscoped');
+
+    // The scoped rule should win due to proximity (reverse).
+    style.textContent = `${ref_rule} ${scoped_rule}`;
+    assert_equals(getComputedStyle(element).zIndex, '1', 'unscoped + scoped');
+
+    // Add one (1) to the specificty of the unscoped rule. This should
+    // cause the unscoped rule to win instead.
+    style.textContent = `div${ref_rule} ${scoped_rule}`;
+    assert_equals(getComputedStyle(element).zIndex, '2', 'unscoped + scoped');
+  }, format_scoped_rule(scoped_selector, ''));
+}
+
+test_scope_specificity(['@scope (#main)', '.b'], '.b');
+test_scope_specificity(['@scope (#main) to (.b)', '.a'], '.a');
+test_scope_specificity(['@scope (#main, .foo, .bar)', '#a'], '#a');
+test_scope_specificity(['@scope (#main)', 'div.b'], 'div.b');
+test_scope_specificity(['@scope (#main)', ':scope .b'], '.a .b');
+test_scope_specificity(['@scope (#main)', '& .b'], '#main .b');
+test_scope_specificity(['@scope (#main)', 'div .b'], 'div .b');
+test_scope_specificity(['@scope (#main)', '@scope (.a)', '.b'], '.b');
 
 </script>

@@ -610,6 +610,8 @@ AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-012.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-012-ref.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-013.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-013-ref.html
+AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-metrics-override.html
+AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-metrics-override-ref.html
 AHEM SYSTEM FONT: css/css-fonts/line-gap-override.html
 AHEM SYSTEM FONT: html/dom/render-blocking/remove-attr-unblocks-rendering.optional.html
 AHEM SYSTEM FONT: html/dom/render-blocking/remove-element-unblocks-rendering.optional.html
@@ -676,6 +678,10 @@ DUPLICATE-BASENAME-PATH: svg/struct/reftests/reference/green-100x100.html
 DUPLICATE-BASENAME-PATH: svg/struct/reftests/reference/green-100x100.svg
 
 SET TIMEOUT: mediacapture-insertable-streams/MediaStreamTrackProcessor-video.https.html
+
+# This is a subresource which cannot use step_timeout without becoming a test
+# itself. See https://github.com/web-platform-tests/wpt/issues/16933
+SET TIMEOUT: scroll-to-text-fragment/iframe-target.html
 
 # Ported crashtests from Mozilla
 SET TIMEOUT: editing/crashtests/backcolor-in-nested-editing-host-td-from-DOMAttrModified.html

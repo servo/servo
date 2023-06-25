@@ -73,11 +73,18 @@ usb_test(() => {
       assert_object_equals(event.filters[i], expectedFilters[i]);
     }
 
+    assert_equals(event.exclusionFilters.length, expectedFilters.length);
+    for (var i = 0; i < event.exclusionFilters.length; ++i) {
+      assert_object_equals(event.exclusionFilters[i], expectedFilters[i]);
+    }
+
     event.respondWith(null);
   };
 
+  const filters = expectedFilters;
+  const exclusionFilters = expectedFilters;
   return callWithTrustedClick(() => {
-    return navigator.usb.requestDevice({ filters: expectedFilters })
+    return navigator.usb.requestDevice({ filters, exclusionFilters })
       .then(device => {
         assert_unreached(
             'requestDevice should reject because no device selected');
@@ -94,11 +101,14 @@ usb_test(async () => {
     { subclassCode: 5678 },  // subclassCode requires classCode
     { protocolCode: 9012 },  // protocolCode requires subclassCode
   ];
+  const badFilterOptions = ['filters', 'exclusionFilters'].flatMap(key => {
+    return badFilters.map(filter => ({[key]: [filter]}));
+  });
 
-  for (const filter of badFilters) {
+  for (const badFilterOption of badFilterOptions) {
     await callWithTrustedClick(async () => {
       try {
-        await navigator.usb.requestDevice({ filters: [filter] });
+        await navigator.usb.requestDevice(badFilterOption);
         assert_unreached(
             'requestDevice should reject because of invalid filters');
       } catch (error) {

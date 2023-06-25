@@ -171,3 +171,29 @@ test((t) => {
   assert_equals(getComputedStyle(inner).zIndex, 'auto');
 }, 'Implicit @scope with inner nesting selector');
 </script>
+
+<template id=test_limit>
+  <div>
+    <style>
+      @scope to (.b) {
+        .a { z-index:1; }
+      }
+    </style>
+    <div id=inner class=a>
+      <div class=b>
+        <div id=outside_limit class=a></div>
+      </div>
+    </div>
+  </div>
+  <div id=outer class=a></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_limit.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(inner).zIndex, '1');
+  assert_equals(getComputedStyle(outer).zIndex, 'auto');
+  assert_equals(getComputedStyle(outside_limit).zIndex, 'auto');
+}, 'Implicit @scope with limit');
+</script>

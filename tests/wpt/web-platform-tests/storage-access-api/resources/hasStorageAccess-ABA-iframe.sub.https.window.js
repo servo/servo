@@ -1,4 +1,6 @@
 // META: script=../helpers.js
+// META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
 'use strict';
 
 // This expects to be run in an iframe that is cross-site to the top-level frame.

@@ -6,11 +6,12 @@
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
-<body>
-<!-- This is a regression test for https://crbug.com/1424250 -->
-<script>
 
+<!-- This is a regression test for https://crbug.com/1424250 -->
+<body>
+<script>
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
@@ -45,7 +46,4 @@ promise_test(async t => {
   assert_equals(await gotMessage, 'Success');
 }, "Dedicated workers in cross-origin iframe should be loaded after " +
    "activation");
-
 </script>
-</body>
-</html>

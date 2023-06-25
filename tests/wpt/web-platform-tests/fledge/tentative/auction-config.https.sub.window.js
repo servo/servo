@@ -7,6 +7,32 @@
 // The tests in this file focus on calls to runAdAuction with various
 // auctionConfigs.
 
+// We handle promise rejections ourselves.
+setup({ allow_uncaught_exception: true });
+
+// Helper for when we expect it to happen.
+const interceptUnhandledRejection = () => {
+  let invokePromiseResolved;
+  let eventHandler = event => {
+    event.preventDefault();
+    invokePromiseResolved(event.reason);
+  }
+  window.addEventListener("unhandledrejection", eventHandler, {once: true});
+  return new Promise((resolved) => {
+    invokePromiseResolved = resolved;
+  });
+}
+
+// Helper for when we expect it to not happen. This relies on the event
+// dispatching being sync.
+const unexpectedUnhandledRejection = () => {
+  let o = { sawError : false }
+  window.addEventListener("unhandledrejection", event => {
+    o.sawError = true;
+  }, {once: true});
+  return o;
+}
+
 const makeTest = ({
   // Test name
   name,
@@ -14,8 +40,17 @@ const makeTest = ({
   expect,
   // Overrides to the auction config.
   auctionConfigOverrides = {},
+  // Expectation for a promise error.
+  expectPromiseError,
 }) => {
   promise_test(async test => {
+    let waitPromiseError, dontExpectPromiseError;
+    if (expectPromiseError) {
+      waitPromiseError = interceptUnhandledRejection();
+    } else {
+      dontExpectPromiseError = unexpectedUnhandledRejection();
+    }
+
     const uuid = generateUuid(test);
     // Join an interest group so the auction actually runs.
     await joinInterestGroup(test, uuid);
@@ -26,6 +61,14 @@ const makeTest = ({
       auctionResult = e;
     }
     expect(auctionResult);
+
+    if (expectPromiseError) {
+      expectPromiseError(await waitPromiseError);
+    } else {
+      assert_false(dontExpectPromiseError.sawError,
+                   "Should not see a promise error");
+    }
+
   }, name);
 };
 
@@ -40,6 +83,13 @@ const EXPECT_EXCEPTION = exceptionType => auctionResult => {
   assert_true(auctionResult instanceof Error, "did not get expected error: " + auctionResult);
   assert_throws_js(exceptionType, () => { throw auctionResult; });
 };
+
+const EXPECT_PROMISE_ERROR = auctionResult => {
+  assert_not_equals(auctionResult, null, "got null instead of expected error");
+  // TODO(morlovich): I suspect this will end up being spec'd differently.
+  assert_true(typeof auctionResult === "string",
+              "did not get expected error: " + auctionResult);
+}
 
 makeTest({
   name: 'no buyers => no winners',
@@ -107,43 +157,50 @@ makeTest({
 
 makeTest({
   name: 'auctionSignals is invalid as JSON',
-  expect: EXPECT_EXCEPTION(TypeError),
+  expect: EXPECT_PROMISE_ERROR,
+  expectPromiseError: EXPECT_EXCEPTION(TypeError),
   auctionConfigOverrides: { auctionSignals: { sig: BigInt(13) } },
 });
 
 makeTest({
   name: 'sellerSignals is invalid as JSON',
-  expect: EXPECT_EXCEPTION(TypeError),
+  expect: EXPECT_PROMISE_ERROR,
+  expectPromiseError: EXPECT_EXCEPTION(TypeError),
   auctionConfigOverrides: { sellerSignals: { sig: BigInt(13) } },
 });
 
 makeTest({
   name: 'directFromSellerSignals is invalid',
-  expect: EXPECT_EXCEPTION(TypeError),
+  expect: EXPECT_PROMISE_ERROR,
+  expectPromiseError: EXPECT_EXCEPTION(TypeError),
   auctionConfigOverrides: { directFromSellerSignals: "https://foo:99999999999" },
 });
 
 makeTest({
   name: 'directFromSellerSignals is cross-origin with seller',
-  expect: EXPECT_EXCEPTION(TypeError),
+  expect: EXPECT_PROMISE_ERROR,
+  expectPromiseError: EXPECT_EXCEPTION(TypeError),
   auctionConfigOverrides: { directFromSellerSignals: "https://example.com" },
 });
 
 makeTest({
   name: 'directFromSellerSignals has nonempty query',
-  expect: EXPECT_EXCEPTION(TypeError),
+  expect: EXPECT_PROMISE_ERROR,
+  expectPromiseError: EXPECT_EXCEPTION(TypeError),
   auctionConfigOverrides: { directFromSellerSignals: window.location.origin + "?foo=bar" },
 });
 
 makeTest({
   name: 'perBuyerSignals has invalid URL in a key',
-  expect: EXPECT_EXCEPTION(TypeError),
+  expect: EXPECT_PROMISE_ERROR,
+  expectPromiseError: EXPECT_EXCEPTION(TypeError),
   auctionConfigOverrides: { perBuyerSignals: { "https://foo:99999999999" : {} }},
 });
 
 makeTest({
   name: 'perBuyerSignals value is invalid as JSON',
-  expect: EXPECT_EXCEPTION(TypeError),
+  expect: EXPECT_PROMISE_ERROR,
+  expectPromiseError: EXPECT_EXCEPTION(TypeError),
   auctionConfigOverrides: {
     perBuyerSignals: { "https://example.com" : { sig: BigInt(1) },
   }},

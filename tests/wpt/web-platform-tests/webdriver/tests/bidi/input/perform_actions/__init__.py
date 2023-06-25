@@ -1,17 +1,10 @@
 from webdriver.bidi.modules.script import ContextTarget
 
-
-def remote_mapping_to_dict(js_object):
-    obj = {}
-    for key, value in js_object:
-        obj[key] = value["value"]
-
-    return obj
-
+from ... import get_viewport_dimensions, remote_mapping_to_dict
 
 async def get_inview_center_bidi(bidi_session, context, element):
     elem_rect = await get_element_rect(bidi_session, context=context, element=element)
-    viewport_rect = await get_viewport_rect(bidi_session, context=context)
+    viewport_rect = await get_viewport_dimensions(bidi_session, context=context)
 
     x = {
         "left": max(0, min(elem_rect["x"], elem_rect["x"] + elem_rect["width"])),
@@ -41,22 +34,6 @@ async def get_element_rect(bidi_session, context, element):
 el => el.getBoundingClientRect().toJSON()
 """,
         arguments=[element],
-        target=ContextTarget(context["context"]),
-        await_promise=False,
-    )
-
-    return remote_mapping_to_dict(result["value"])
-
-
-async def get_viewport_rect(bidi_session, context):
-    expression = """
-        ({
-          height: window.innerHeight || document.documentElement.clientHeight,
-          width: window.innerWidth || document.documentElement.clientWidth,
-        });
-    """
-    result = await bidi_session.script.evaluate(
-        expression=expression,
         target=ContextTarget(context["context"]),
         await_promise=False,
     )

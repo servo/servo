@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+
+<body>
+  <div id="spacer"></div>
+  <div id="box"></div>
+  <div id="text_fragment_target">
+    <p>Target</p>
+  </div>
+  <style>
+    :root {
+      margin: 0px;
+      scroll-start: 100px;
+    }
+
+    #spacer {
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #box {
+      width: 100px;
+      height: 100px;
+      background-color: blue;
+    }
+
+    #fragment_target {
+      width: 100px;
+      height: 100px;
+      background-color: red;
+    }
+  </style>
+  <script>
+    function stashResult(key, results) {
+      fetch(`/css/css-scroll-snap-2/scroll-start/stash.py?key=${key}`, {
+        method: "POST",
+        body: JSON.stringify(results)
+      }).then(() => {
+        window.close();
+      });
+    }
+    function record() {
+      let scroll_position = "UNKNOWN";
+      // Expect page is scrolled all the way down as the text is at the bottom of
+      // the page.
+      const expected_scroll_top = document.scrollingElement.scrollHeight -
+        document.scrollingElement.clientHeight;
+
+      if (document.scrollingElement.scrollTop == 100) {
+        scroll_position = "AT_SCROLL_START";
+      } else if (document.scrollingElement.scrollTop == expected_scroll_top) {
+        scroll_position = "AT_TEXT_FRAGMENT";
+      }
+
+      const result = {
+        scroll_position: scroll_position
+      };
+
+      let key = (new URL(document.location)).searchParams.get("key");
+      stashResult(key, result);
+    }
+
+    window.onload = () => {
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(record);
+      })
+    }
+  </script>
+</body>
+
+</html>

@@ -39,9 +39,6 @@ def test_no_browsing_context(session, closed_frame, inline):
     assert session.find.css("#foo", all=False)
 
 
-# Capability needed as long as no valid certificate is available:
-#   https://github.com/web-platform-tests/wpt/issues/28847
-@pytest.mark.capabilities({"acceptInsecureCerts": True})
 @pytest.mark.parametrize("protocol,parameters", [
     ("http", ""),
     ("https", ""),

@@ -11,7 +11,7 @@
       requestIdleCallback(
         t.step_func((deadline) => {
           assert_false(deadline.didTimeout);
-          assert_greater_than(deadline.timeRemaining(), 0);
+          assert_greater_than_equal(deadline.timeRemaining(), 0);
           t.done();
         }),
         { timeout: 1000 }

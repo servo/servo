@@ -811,6 +811,162 @@ const colorType = {
   },
 };
 
+const colorPairType = {
+  testInterpolation: (property, setup) => {
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      const animation = target.animate({ [idlName]: ['rgb(255, 0, 0) rgb(0, 0, 255)',
+                                                     'rgb(0, 0, 255) rgb(0, 255, 0)'] },
+                                       1000);
+      testAnimationSamples(animation, idlName,
+                           [{ time: 500,  expected: 'rgb(128, 0, 128) rgb(0, 128, 128)' }]);
+    }, `${property} supports animating as color pair of rgb()`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      const animation = target.animate({ [idlName]: ['#ff0000 #00ff00', '#0000ff #ff0000'] },
+                                       1000);
+      testAnimationSamples(animation, idlName,
+                           [{ time: 500,  expected: 'rgb(128, 0, 128) rgb(128, 128, 0)' }]);
+    }, `${property} supports animating as color pair of #RGB`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      const animation = target.animate({ [idlName]: ['hsl(0,   100%, 50%) hsl(0,   100%, 50%)',
+                                                     'hsl(240, 100%, 50%) hsl(360, 100%, 50%)'] },
+                                       1000);
+      testAnimationSamples(animation, idlName,
+                           [{ time: 500,  expected: 'rgb(128, 0, 128) rgb(255, 0, 0)' }]);
+    }, `${property} supports animating as color pair of hsl()`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      const animation = target.animate(
+        { [idlName]: ['#ff000066 #ff000066', '#0000ffcc #00ff00cc'] },
+        1000
+      );
+      // R: 255 * (0.4 * 0.5) / 0.6 = 85
+      // B: 255 * (0.8 * 0.5) / 0.6 = 170
+      testAnimationSamples(animation, idlName,
+                           [{ time: 500,  expected: 'rgba(85, 0, 170, 0.6) rgba(85, 170, 0, 0.6)' }]);
+    }, `${property} supports animating as color pair of #RGBa`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      const animation = target.animate(
+        {
+          [idlName]: ['rgba(255, 0, 0, 0.4) rgba(255, 0, 0, 0.4)', 'rgba(0, 0, 255, 0.8) rgba(0, 255, 0, 0.8)'],
+        },
+        1000
+      );
+      testAnimationSamples(animation, idlName,      // Same as above.
+                           [{ time: 500,  expected: 'rgba(85, 0, 170, 0.6) rgba(85, 170, 0, 0.6)' }]);
+    }, `${property} supports animating as color pair of rgba()`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      const animation = target.animate(
+        {
+          [idlName]: ['hsla(0,   100%, 50%, 0.4) hsla(0,   100%, 50%, 0.4)', 'hsla(240, 100%, 50%, 0.8) hsla(360, 100%, 50%, 0.8)'],
+        },
+        1000
+      );
+      testAnimationSamples(animation, idlName,      // Same as above.
+                           [{ time: 500,  expected: 'rgba(85, 0, 170, 0.6) rgba(255, 0, 0, 0.6)' }]);
+    }, `${property} supports animating as color pair of hsla()`);
+  },
+
+  testAdditionOrAccumulation: (property, setup, composite) => {
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      target.style[idlName] = 'rgb(128, 128, 128) rgb(0, 0, 0)';
+      const animation = target.animate(
+        {
+          [idlName]: ['rgb(255, 0, 0) rgb(0, 0, 255)', 'rgb(0, 0, 255) rgb(255, 0, 0)']
+        },
+        { duration: 1000, composite }
+      );
+      testAnimationSamples(animation, idlName,
+                           [{ time: 0,   expected: 'rgb(255, 128, 128) rgb(0, 0, 255)' },
+                            { time: 500, expected: 'rgb(255, 128, 255) rgb(128, 0, 128)' }]);
+    }, `${property} supports animating as color pair of rgb() with overflowed `
+       + ' from and to values');
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      target.style[idlName] = 'rgb(128, 128, 128) rgb(0, 0, 0)';
+      const animation = target.animate({ [idlName]: ['#ff0000 #0000ff', '#0000ff #ff0000'] },
+                                       { duration: 1000, composite });
+      testAnimationSamples(animation, idlName,
+                           [{ time: 0,  expected: 'rgb(255, 128, 128) rgb(0, 0, 255)' }]);
+    }, `${property} supports animating as color pair of #RGB`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      target.style[idlName] = 'rgb(128, 128, 128) rgb(0, 0, 0)';
+      const animation = target.animate({ [idlName]: ['hsl(0,   100%, 50%) hsl(0,   100%, 50%)',
+                                                     'hsl(240, 100%, 50%) hsl(360, 100%, 50%)'] },
+                                       { duration: 1000, composite });
+      testAnimationSamples(animation, idlName,
+                           [{ time: 0,  expected: 'rgb(255, 128, 128) rgb(255, 0, 0)' }]);
+    }, `${property} supports animating as color pair of hsl()`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      target.style[idlName] = 'rgb(128, 128, 128) rgb(0, 0, 0)';
+      const animation = target.animate(
+        { [idlName]: ['#ff000066 #ff000066', '#0000ffcc #00ff00cc'] },
+        { duration: 1000, composite }
+      );
+      testAnimationSamples(animation, idlName,
+                           [{ time: 0,  expected: 'rgb(230, 128, 128) rgb(102, 0, 0)' }]);
+    }, `${property} supports animating as color pair of #RGBa`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      target.style[idlName] = 'rgb(128, 128, 128) rgb(0, 0, 0)';
+      const animation = target.animate({ [idlName]: ['rgba(255, 0, 0, 0.4) rgba(0, 255, 0, 0.4)',
+                                                     'rgba(0, 0, 255, 0.8) rgba(255, 0, 0, 0.8)'] },
+                                       { duration: 1000, composite });
+      testAnimationSamples(animation, idlName,      // Same as above.
+                           [{ time: 0,  expected: 'rgb(230, 128, 128) rgb(0, 102, 0)' }]);
+    }, `${property} supports animating as color pair of rgba()`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      target.style[idlName] = 'rgb(128, 128, 128) rgb(0, 0, 0)';
+      const animation = target.animate(
+        {
+          [idlName]: ['hsla(0,   100%, 50%, 0.4) hsla(0,   100%, 50%, 0.4)', 'hsla(240, 100%, 50%, 0.8) hsla(360, 100%, 50%, 0.8)'],
+        },
+        { duration: 1000, composite }
+      );
+      testAnimationSamples(animation, idlName,      // Same as above.
+                           [{ time: 0,  expected: 'rgb(230, 128, 128) rgb(102, 0, 0)' }]);
+    }, `${property} supports animating as color pair of hsla()`);
+  },
+
+  testAddition: function(property, setup) {
+    this.testAdditionOrAccumulation(property, setup, 'add');
+  },
+
+  testAccumulation: function(property, setup) {
+    this.testAdditionOrAccumulation(property, setup, 'accumulate');
+  },
+};
+
 const transformListType = {
   testInterpolation: (property, setup) => {
     test(t => {
@@ -2755,6 +2911,7 @@ const fontVariationSettingsType = {
 
 const types = {
   color: colorType,
+  colorPair: colorPairType,
   discrete: discreteType,
   filterList: filterListType,
   integer: integerType,

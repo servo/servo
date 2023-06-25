@@ -4,25 +4,26 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
 <script src="resources/session-history-test-util.js"></script>
+
 <body>
-  <script>
-    setup(() => assertSpeculationRulesIsSupported());
+<script>
+setup(() => assertSpeculationRulesIsSupported());
 
-    const uid = token();
+const uid = token();
 
-    promise_test(async () => {
-      assert_equals(
-        await runTestInPrerender("testHistoryLengthInPrerender", uid),
-        "Passed",
-        "test in prerender"
-      );
-      assert_equals(
-        await runTestInActivatedPage("testHistoryLengthInPrerender", uid),
-        "Passed",
-        "test in activated page"
-      );
-    }, "history.length should be updated after activation");
-  </script>
-</body>
+promise_test(async () => {
+  assert_equals(
+    await runTestInPrerender("testHistoryLengthInPrerender", uid),
+    "Passed",
+    "test in prerender"
+  );
+  assert_equals(
+    await runTestInActivatedPage("testHistoryLengthInPrerender", uid),
+    "Passed",
+    "test in activated page"
+  );
+}, "history.length should be updated after activation");
+</script>

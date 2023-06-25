@@ -100,13 +100,17 @@ promise_test(async t => {
     return;
 
   let video = document.createElement('video');
-  video.src = 'av1.mp4';
+  video.src = 'vp9.mp4';
   video.autoplay = true;
   video.controls = false;
   video.muted = false;
   document.body.appendChild(video);
 
   const loadVideo = new Promise((resolve) => {
+    if (video.requestVideoFrameCallback) {
+      video.requestVideoFrameCallback(resolve);
+      return;
+    }
     video.onloadeddata = () => resolve();
   });
   await loadVideo;

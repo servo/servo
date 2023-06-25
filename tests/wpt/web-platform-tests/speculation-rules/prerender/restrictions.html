@@ -4,10 +4,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 test_prerender_restricted(
@@ -29,6 +30,4 @@ test_prerender_restricted(async () => {
 test_prerender_defer(() => new Promise(
   resolve => navigator.geolocation.getCurrentPosition(p => resolve(p.toString()))),
   "Geolocation API should be deferred");
-
 </script>
-</body>

@@ -3,6 +3,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
 
 <meta name="variant" content="">
@@ -11,6 +12,8 @@
 <meta name="variant" content="?prefetch=true&bypass_cache=true">
 
 <script>
+setup(() => assertSpeculationRulesIsSupported());
+
 const searchParams = new URLSearchParams(location.search);
 const prefetchEnabled = searchParams.has('prefetch');
 const bypassCache = searchParams.has('bypass_cache');
@@ -19,9 +22,6 @@ const bypassCache = searchParams.has('bypass_cache');
 const headerSize = 300;
 
 promise_test(async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      "Speculation Rules not supported");
-
     const agent = await spawnWindow(t);
     // Some meaningless query param to avoid cached response.
     const prefetchUrl =

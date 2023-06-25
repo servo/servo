@@ -5,39 +5,38 @@
 <title>cjk-heavenly-stem, 10+</title>
 <link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
 <link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
-<meta name="assert" content="list-style-type: cjk-heavenly-stem produces numbers after 9 per the spec.">
+<meta name="assert" content="list-style-type: cjk-heavenly-stem falls back to cjk-decimal after 10 per the spec.">
 <style type='text/css'>
-ol li { list-style-type: cjk-heavenly-stem;  }
 /* the following CSS is not part of the test */
 .test { font-size: 25px; }
-ol { margin: 0; padding-left: 8em; line-height: 100%;}
+ol { margin: 0; padding-left: 8em;}
 </style>
 </head>
 <body>
 <p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
 <div class="test">
-<ol start="11"><div><bdi dir=ltr>11、</bdi>11</div></ol>
-<ol start="12"><div><bdi dir=ltr>12、</bdi>12</div></ol>
-<ol start="43"><div><bdi dir=ltr>43、</bdi>43</div></ol>
-<ol start="77"><div><bdi dir=ltr>77、</bdi>77</div></ol>
-<ol start="80"><div><bdi dir=ltr>80、</bdi>80</div></ol>
-<ol start="99"><div><bdi dir=ltr>99、</bdi>99</div></ol>
-<ol start="100"><div><bdi dir=ltr>100、</bdi>100</div></ol>
-<ol start="101"><div><bdi dir=ltr>101、</bdi>101</div></ol>
-<ol start="222"><div><bdi dir=ltr>222、</bdi>222</div></ol>
-<ol start="540"><div><bdi dir=ltr>540、</bdi>540</div></ol>
-<ol start="999"><div><bdi dir=ltr>999、</bdi>999</div></ol>
-<ol start="1000"><div><bdi dir=ltr>1000、</bdi>1000</div></ol>
-<ol start="1005"><div><bdi dir=ltr>1005、</bdi>1005</div></ol>
-<ol start="1060"><div><bdi dir=ltr>1060、</bdi>1060</div></ol>
-<ol start="1065"><div><bdi dir=ltr>1065、</bdi>1065</div></ol>
-<ol start="1800"><div><bdi dir=ltr>1800、</bdi>1800</div></ol>
-<ol start="1860"><div><bdi dir=ltr>1860、</bdi>1860</div></ol>
-<ol start="5865"><div><bdi dir=ltr>5865、</bdi>5865</div></ol>
-<ol start="7005"><div><bdi dir=ltr>7005、</bdi>7005</div></ol>
-<ol start="7800"><div><bdi dir=ltr>7800、</bdi>7800</div></ol>
-<ol start="7864"><div><bdi dir=ltr>7864、</bdi>7864</div></ol>
-<ol start="9999"><div><bdi dir=ltr>9999、</bdi>9999</div></ol>
+<ol start="11"><div><bdi>一一、</bdi>一一</div></ol>
+<ol start="12"><div><bdi>一二、</bdi>一二</div></ol>
+<ol start="43"><div><bdi>四三、</bdi>四三</div></ol>
+<ol start="77"><div><bdi>七七、</bdi>七七</div></ol>
+<ol start="80"><div><bdi>八〇、</bdi>八〇</div></ol>
+<ol start="99"><div><bdi>九九、</bdi>九九</div></ol>
+<ol start="100"><div><bdi>一〇〇、</bdi>一〇〇</div></ol>
+<ol start="101"><div><bdi>一〇一、</bdi>一〇一</div></ol>
+<ol start="222"><div><bdi>二二二、</bdi>二二二</div></ol>
+<ol start="540"><div><bdi>五四〇、</bdi>五四〇</div></ol>
+<ol start="999"><div><bdi>九九九、</bdi>九九九</div></ol>
+<ol start="1000"><div><bdi>一〇〇〇、</bdi>一〇〇〇</div></ol>
+<ol start="1005"><div><bdi>一〇〇五、</bdi>一〇〇五</div></ol>
+<ol start="1060"><div><bdi>一〇六〇、</bdi>一〇六〇</div></ol>
+<ol start="1065"><div><bdi>一〇六五、</bdi>一〇六五</div></ol>
+<ol start="1800"><div><bdi>一八〇〇、</bdi>一八〇〇</div></ol>
+<ol start="1860"><div><bdi>一八六〇、</bdi>一八六〇</div></ol>
+<ol start="5865"><div><bdi>五八六五、</bdi>五八六五</div></ol>
+<ol start="7005"><div><bdi>七〇〇五、</bdi>七〇〇五</div></ol>
+<ol start="7800"><div><bdi>七八〇〇、</bdi>七八〇〇</div></ol>
+<ol start="7864"><div><bdi>七八六四、</bdi>七八六四</div></ol>
+<ol start="9999"><div><bdi>九九九九、</bdi>九九九九</div></ol>
 </div>
 <!--Notes:
 You will need an appropriate font to run this test.

@@ -19,6 +19,54 @@ const invalidConfigs = [
     },
   },
   {
+    comment: 'Width is 0',
+    config: {
+      codec: 'vp8',
+      width: 0,
+      height: 480,
+    },
+  },
+  {
+    comment: 'Height is 0',
+    config: {
+      codec: 'vp8',
+      width: 640,
+      height: 0,
+    },
+  },
+  {
+    comment: 'displayWidth is 0',
+    config: {
+      codec: 'vp8',
+      displayWidth: 0,
+      width: 640,
+      height: 480,
+    },
+  },
+  {
+    comment: 'displayHeight is 0',
+    config: {
+      codec: 'vp8',
+      width: 640,
+      displayHeight: 0,
+      height: 480,
+    },
+  }
+];
+
+invalidConfigs.forEach(entry => {
+  promise_test(t => {
+    return promise_rejects_js(t, TypeError, VideoEncoder.isConfigSupported(entry.config));
+  }, 'Test that VideoEncoder.isConfigSupported() rejects invalid config:' + entry.comment);
+});
+
+
+const validButUnsupportedConfigs = [
+  {
+    comment: 'Invalid scalability mode',
+    config: {codec: 'vp8', width: 640, height: 480, scalabilityMode: 'ABC'}
+  },
+  {
     comment: 'Width is too large',
     config: {
       codec: 'vp8',
@@ -34,20 +82,6 @@ const invalidConfigs = [
       height: 1000000,
     },
   },
-  {
-    comment: 'Invalid scalability mode',
-    config: {codec: 'vp8', width: 640, height: 480, scalabilityMode: 'ABC'}
-  }
-];
-
-invalidConfigs.forEach(entry => {
-  promise_test(t => {
-    return promise_rejects_js(t, TypeError, VideoEncoder.isConfigSupported(entry.config));
-  }, 'Test that VideoEncoder.isConfigSupported() rejects invalid config:' + entry.comment);
-});
-
-
-const validButUnsupportedConfigs = [
   {
     comment: 'Too strenuous accelerated encoding parameters',
     config: {

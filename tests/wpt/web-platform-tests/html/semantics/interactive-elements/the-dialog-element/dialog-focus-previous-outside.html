@@ -30,6 +30,8 @@
   <button id=host2button>button</button>
 </div>
 
+<dialog id=mydialog2>hello world</dialog>
+
 <script>
 polyfill_declarative_shadow_dom(document);
 
@@ -68,4 +70,16 @@ test(() => {
   dialog.close();
   assert_equals(document.activeElement, b2);
 }, 'Focus restore should occur when the focused element is slotted into a dialog.');
+
+test(() => {
+  b1.focus();
+  const dialog = document.getElementById('mydialog2');
+  dialog.showModal();
+  dialog.blur();
+  assert_equals(document.activeElement, document.body,
+    'Focus should return to the body when calling dialog.blur().');
+  dialog.close();
+  assert_equals(document.activeElement, b1,
+    'Focus should be restored to the previously focused element.');
+}, 'Focus restore should always occur for modal dialogs.');
 </script>

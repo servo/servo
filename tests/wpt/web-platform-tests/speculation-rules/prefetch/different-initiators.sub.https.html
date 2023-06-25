@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <meta name="timeout" content="long">
-<meta name="variant" content="?cross-site-1">
-<meta name="variant" content="?cross-site-2">
-<meta name="variant" content="?same-site">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
 <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+
+<meta name="variant" content="?cross-site-1">
+<meta name="variant" content="?cross-site-2">
+<meta name="variant" content="?same-site">
+
 <script>
+setup(() => assertSpeculationRulesIsSupported());
+
 // Regression test for https://crbug.com/1423234.
 promise_test(async t => {
-  assert_implements(HTMLScriptElement.supports('speculationrules'),
-      "Speculation Rules not supported");
-
   // Open 2 windows.
   const hostname1 =
       location.search === '?cross-site-1' ? '{{hosts[alt][www]}}' : undefined;

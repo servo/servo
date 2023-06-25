@@ -1,5 +1,5 @@
 import pytest
-from webdriver.client import ShadowRoot
+from webdriver.client import Element, ShadowRoot
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_same_element, assert_success
@@ -164,21 +164,18 @@ def test_found_element_equivalence(session, get_test_page):
                           ("xpath", "//a")])
 @pytest.mark.parametrize("mode", ["open", "closed"])
 def test_find_element(session, get_test_page, using, value, mode):
+    expected_text = "full link text"
     session.url = get_test_page(
-        shadow_doc="<div><a href=# id=linkText>full link text</a></div>",
+        shadow_doc=f"<div><a href=# id=linkText>{expected_text}</a></div>",
         shadow_root_mode=mode,
     )
     shadow_root = session.find.css("custom-element", all=False).shadow_root
 
-    response = find_element(session, shadow_root.id, using, value)
-    response_value = assert_success(response)
+    result = find_element(session, shadow_root.id, using, value)
+    value = assert_success(result)
 
-    # Script evaluation cannot use the DOM within a closed shadow root,
-    # that's why we assert on the copy of the shadow root on window.
-    expected = session.execute_script("""
-            return window._shadowRoot.querySelector('#linkText')
-        """)
-    assert_same_element(session, response_value, expected)
+    element = Element.from_json(value, session)
+    assert element.text == expected_text
 
 
 @pytest.mark.parametrize("document,value", [
@@ -226,3 +223,25 @@ def test_find_element_partial_link_text(session, get_test_page, document, value)
     response = find_element(session, shadow_root.id, "partial link text", value)
     value = assert_success(response)
     assert_same_element(session, value, expected)
+
+
+@pytest.mark.parametrize("mode", ["open", "closed"])
+def test_find_element_in_nested_shadow_root(session, get_test_page, mode):
+    expected_text = "full link text"
+    session.url = get_test_page(
+        shadow_doc=f"<div><a href=# id=linkText>{expected_text}</a></div>",
+        shadow_root_mode=mode,
+        nested_shadow_dom=True,
+    )
+    shadow_root = session.find.css("custom-element", all=False).shadow_root
+
+    inner_custom_element = shadow_root.find_element(
+        "css selector", "inner-custom-element"
+    )
+    nested_shadow_root = inner_custom_element.shadow_root
+
+    result = find_element(session, nested_shadow_root.id, "css selector", "#linkText")
+    value = assert_success(result)
+
+    element = Element.from_json(value, session)
+    assert element.text == expected_text

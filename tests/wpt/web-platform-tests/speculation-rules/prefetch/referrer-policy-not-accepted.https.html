@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <title>Prefetch attempts with an unacceptable referrer policy</title>
-
-<!--Split test cases due to the use of timeouts in speculation rules test utilities.-->
-<meta name="variant" content="?1-1">
-<meta name="variant" content="?2-last">
-
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/subset-tests.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
+
+<!--Split test cases due to the use of timeouts in speculation rules test utilities.-->
+<meta name="variant" content="?1-1">
+<meta name="variant" content="?2-last">
 
 <script>
 "use strict";
 
-subsetTest(promise_test, async t => {
-  assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
+setup(() => assertSpeculationRulesIsSupported());
 
+subsetTest(promise_test, async t => {
   const agent = await spawnWindow(t);
   await agent.setReferrerPolicy("unsafe-url");
   const expectedReferrer = agent.getExecutorURL().href;
@@ -33,8 +33,6 @@ subsetTest(promise_test, async t => {
 }, 'with "unsafe-url" referrer policy on same-site referring page');
 
 subsetTest(promise_test, async t => {
-  assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
-
   const agent = await spawnWindow(t);
   await agent.setReferrerPolicy("unsafe-url");
   const expectedReferrer = agent.getExecutorURL().href;
@@ -49,5 +47,4 @@ subsetTest(promise_test, async t => {
   assert_not_prefetched(headers, "must not be prefetched");
   assert_equals(headers.referer, expectedReferrer, "must send the full URL as the referrer");
 }, 'with "unsafe-url" referrer policy on cross-site referring page');
-
 </script>

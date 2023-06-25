@@ -4,6 +4,7 @@
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/subset-tests-by-key.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
 
 <meta name="variant" content="?include=BaseCase">
@@ -22,6 +23,8 @@
 <meta name="variant" content="?include=InvalidMimeType">
 
 <script>
+  setup(() => assertSpeculationRulesIsSupported());
+
   async function runSpeculationRulesFetchTest(t, options) {
     options = {
       // Whether a prefetch is expected to succeed.
@@ -52,7 +55,6 @@
       useValidMimeTypeForSpeculationRulesSet: true,
       ...options
     };
-    assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported.");
 
     let page = 2;
     let uuid = token();

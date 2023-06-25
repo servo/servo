@@ -29,7 +29,6 @@ def query(session, name):
     { "descriptor": [ { "name": "geolocation" } ], "state": "granted" },
     [ { "descriptor": { "name": "geolocation" }, "state": "granted" } ],
 ])
-@pytest.mark.capabilities({"acceptInsecureCerts": True})
 def test_invalid_parameters(session, url, parameters):
     session.url = url("/common/blank.html", protocol="https")
     response = session.transport.send(
@@ -53,7 +52,6 @@ def test_non_secure_context(session, url, state):
     assert_error(response, "invalid argument")
 
 @pytest.mark.parametrize("state", ["granted", "denied", "prompt"])
-@pytest.mark.capabilities({"acceptInsecureCerts": True})
 def test_set_to_state(session, url, state):
     session.url = url("/common/blank.html", protocol="https")
     parameters = { "descriptor": { "name": "geolocation" }, "state": state }

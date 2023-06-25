@@ -34,7 +34,7 @@ async function buttonClick(test, innerHTML) {
 
 // Grants `window-management` permission and caches `window.screenDetails`.
 async function setUpWindowManagement(test) {
-  assert_true(
+  assert_implements(
     'getScreenDetails' in self && 'isExtended' in screen,
     `API not supported; use Chrome or Chromium (not content_shell)`);
   if (!screen.isExtended)
@@ -55,7 +55,7 @@ async function setUpWindowManagement(test) {
 // Returns a promise that will be resolved on success or timeout.
 async function poll(condition, interval = 100, duration = 3000) {
   const timeout = Date.now() + duration;
-  const loop = async (resolve) => {
+  const loop = (resolve) => {
     if (condition() || Date.now() > timeout)
       resolve();
     else

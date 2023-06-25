@@ -24,8 +24,8 @@ function assert_permissions_policy_supported() {
 //      feature (https://w3c.github.io/webappsec-permissions-policy/#features).
 //      See examples at:
 //      https://github.com/w3c/webappsec-permissions-policy/blob/main/features.md
-//    allow_attribute: Optional argument, only used for testing fullscreen or
-//      payment: either "allowfullscreen" or "allowpaymentrequest" is passed.
+//    allow_attribute: Optional argument, only used for testing fullscreen
+//      by passing "allowfullscreen".
 //    is_promise_test: Optional argument, true if this call should return a
 //    promise. Used by test_feature_availability_with_post_message_result()
 function test_feature_availability(

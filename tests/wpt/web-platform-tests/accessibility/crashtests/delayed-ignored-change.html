@@ -7,13 +7,13 @@
   <textarea></textarea>
 </rb>
 <script>
-document.addEventListener('load', () => {
+window.addEventListener('load', () => {
   window.requestAnimationFrame(() => {
     window.requestAnimationFrame(() => {
       document.querySelector('style').remove();
       document.documentElement.className = '';
     });
   });
-}, true);
+});
 </script>
 </html>
