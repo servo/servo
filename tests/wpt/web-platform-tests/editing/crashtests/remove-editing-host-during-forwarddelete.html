@@ -1,0 +1,49 @@
+<!doctype html>
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<style>
+dir {
+  animation: kf, 0s infinite paused;
+}
+svg {
+  animation-name: kf;
+}
+@keyframes kf {}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const waitForAnimationEnd = new Promise(resolve => {
+    let count = 0;
+    function onAnimationEnd() {
+      window.find("AAAAAAAAAA");
+      document.execCommand("forwardDelete");
+      if (++count == 2) {
+        window.removeEventListener("animationend", onAnimationEnd);
+        resolve();
+      }
+    }
+    window.addEventListener("animationend", onAnimationEnd);
+  });
+  window.find("A");
+  document.execCommand("insertHTML", false, "AAAAAAAAAAAAAAAA");
+  const dir = document.querySelector("dir");
+  dir.addEventListener("DOMNodeRemoved", event => {
+    dir.remove();
+  });
+  window.find("A");
+  document.execCommand("delete");
+  await waitForAnimationEnd;
+  document.documentElement.removeAttribute("class");
+});
+</script>
+</head>
+<body>
+<svg>
+<s></s>
+<dir contenteditable>
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+</dir>
+</svg>
+</body>
+</html>

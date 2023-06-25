@@ -5,7 +5,9 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
 setup(() => assertSpeculationRulesIsSupported());
@@ -33,4 +35,3 @@ promise_test(async t => {
 }, 'prerendering page cannot invoke' +
    'HTMLVideoElement.requestPictureInPicture');
 </script>
-</body>

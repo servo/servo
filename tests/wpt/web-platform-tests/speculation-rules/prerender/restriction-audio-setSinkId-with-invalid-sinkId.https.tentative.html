@@ -6,7 +6,9 @@ Access to the setSinkId of the Audio API with an invalid value is deferred
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
 setup(() => assertSpeculationRulesIsSupported());
@@ -56,4 +58,3 @@ promise_test(async t => {
 }, `the access to the setSinkId of Audio API with the invalid sinkId should be
     deferred until the prerendered page is activated`);
 </script>
-</body>

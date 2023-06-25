@@ -3,6 +3,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
 <script src="/common/subset-tests-by-key.js"></script>
 
@@ -25,10 +26,9 @@
 
 <body>
 <script>
-  subsetTestByKey('defaultPredicate', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
+  setup(() => assertSpeculationRulesIsSupported());
 
+  subsetTestByKey('defaultPredicate', promise_test, async t => {
     const url = getPrefetchUrl();
     addLink(url);
     insertDocumentRule();
@@ -38,9 +38,6 @@
   }, 'test document rule with no predicate');
 
   subsetTestByKey('hrefMatches', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     insertDocumentRule({ href_matches: '*\\?uuid=*&foo=bar' });
 
     const url_1 = getPrefetchUrl({foo: 'bar'});
@@ -54,9 +51,6 @@
   }, 'test href_matches document rule');
 
   subsetTestByKey('and', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     insertDocumentRule({
       'and': [
         { href_matches: '*\\?*foo=bar*' },
@@ -75,9 +69,6 @@
   }, 'test document rule with conjunction predicate');
 
   subsetTestByKey('or', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     insertDocumentRule({
       'or': [
         { href_matches: '*\\?*foo=bar*' },
@@ -96,9 +87,6 @@
   }, 'test document rule with disjunction predicate');
 
   subsetTestByKey('not', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      "Speculation Rules not supported");
-
     insertDocumentRule({ not: { href_matches: '*\\?uuid=*&foo=bar' } });
 
     const url_1 = getPrefetchUrl({foo: 'bar'});
@@ -112,9 +100,6 @@
   }, 'test document rule with negation predicate');
 
   subsetTestByKey('invalidPredicate', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     const url = getPrefetchUrl();
     addLink(url);
     insertDocumentRule({invalid: 'predicate'});
@@ -124,9 +109,6 @@
   }, 'invalid predicate should not throw error or start prefetch');
 
   subsetTestByKey('linkInShadowTree', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     insertDocumentRule();
 
     // Create shadow root.
@@ -142,9 +124,6 @@
   }, 'test that matching link in a shadow tree is prefetched');
 
   subsetTestByKey('linkHrefChanged', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     insertDocumentRule({href_matches: "*\\?*foo=bar*"});
 
     const url = getPrefetchUrl();
@@ -159,9 +138,6 @@
   }, 'test that changing the href of an invalid link to a matching value triggers a prefetch');
 
   subsetTestByKey('newRuleSetAdded', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     insertDocumentRule({href_matches: "*\\?*foo=bar*"});
     const url = getPrefetchUrl({fizz: "buzz"});
     addLink(url);
@@ -174,9 +150,6 @@
   }, 'test that adding a second rule set triggers prefetch');
 
   subsetTestByKey('selectorMatches', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     insertDocumentRule({ selector_matches: 'a.important-link' });
 
     const url_1 = getPrefetchUrl({foo: 'bar'});
@@ -191,9 +164,6 @@
   }, 'test selector_matches document rule');
 
   subsetTestByKey('selectorMatchesScopingRoot', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     insertDocumentRule({ selector_matches: ':root > body > a' });
 
     const url_1 = getPrefetchUrl({ foo: 'bar' });
@@ -213,9 +183,6 @@
   // 'selector_matches' should never match with a link inside a shadow tree
   // because the scoping root used when matching is always the document.
   subsetTestByKey('selectorMatchesInShadowTree', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     insertDocumentRule({ selector_matches: 'a.important-link' });
 
     // Create shadow root.
@@ -232,9 +199,6 @@
   }, 'test selector_matches with link inside shadow tree');
 
   subsetTestByKey('selectorMatchesDisplayNone', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     const style = document.createElement('style');
     style.innerText = ".important-section { display: none; }";
     document.head.appendChild(style);
@@ -255,9 +219,6 @@
   }, 'test selector_matches with link inside display:none container');
 
   subsetTestByKey('selectorMatchesDisplayLocked', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     const style = document.createElement('style');
     style.innerText = ".important-section { content-visibility: hidden; }";
     document.head.appendChild(style);
@@ -278,9 +239,6 @@
   }, 'test selector_matches with link inside display locked container');
 
   subsetTestByKey('unslottedLink', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     insertDocumentRule();
 
     // Create shadow root.
@@ -297,9 +255,6 @@
   }, 'test that unslotted link never matches document rule');
 
   subsetTestByKey('immediateMutation', promise_test, async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'),
-      'Speculation Rules not supported');
-
     // Add a link and allow it to get its style computed.
     // (Double RAF lets this happen normally.)
     const url = getPrefetchUrl();

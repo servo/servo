@@ -19,7 +19,7 @@ promise_test(async t => {
       './partitioned-cookies-3p-frame.html',
       first_party_origin + location.pathname).href;
   document.body.appendChild(iframe);
-  fetch_tests_from_window(iframe.contentWindow);
+  await fetch_tests_from_window(iframe.contentWindow);
 
   const credentialless_frame = document.createElement('iframe');
   credentialless_frame.credentialless = true;
@@ -27,7 +27,7 @@ promise_test(async t => {
       './partitioned-cookies-3p-credentialless-frame.html',
       first_party_origin + location.pathname).href;
   document.body.appendChild(credentialless_frame);
-  fetch_tests_from_window(credentialless_frame.contentWindow);
+  await fetch_tests_from_window(credentialless_frame.contentWindow);
 });
 
 </script>

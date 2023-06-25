@@ -12,10 +12,11 @@ TODO(https://crbug.com/1198110): Add the following tests:
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
@@ -101,6 +102,4 @@ promise_test(async t => {
 },
 `Displaying Notification should be deferred until the prerendered page is
  activated`);
-
 </script>
-</body>

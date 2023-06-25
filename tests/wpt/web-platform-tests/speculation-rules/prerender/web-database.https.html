@@ -4,10 +4,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 async function insertQuery() {
@@ -67,6 +68,4 @@ promise_test(async t => {
     selectResult, 2,
     'prerendering page should be able to write to Web Database');
 }, 'prerendering page should be able to access Web Database');
-
 </script>
-</body>

@@ -6,9 +6,9 @@
 
 <div id=target style="display:none">
   Imperative test element
-  <span>A</span>
-  <span>B</span>
-  <span>C</span>
+  <span id=a>A</span>
+  <span id=b>B</span>
+  <span id=c>C</span>
 </div>
 
 <div style="display:none">
@@ -19,7 +19,10 @@
 
 <script>
 const target = document.getElementById('target');
-assert_true(target.children.length >= 3);
+const a = document.getElementById('a');
+const b = document.getElementById('b');
+const c = document.getElementById('c');
+assert_true(!!(target && a && b && c));
 
 function addCleanup(t, part) {
   t.add_cleanup(() => part.disconnect());
@@ -64,14 +67,58 @@ test((t) => {
   assert_array_equals(childNodePart.getParts(),[nodePart2]);
 
   nodePart2.disconnect();
-  assert_equals(nodePart2.root,null);
-  assert_equals(nodePart2.node,target.children[2],'node should still be connected');
+  assert_equals(nodePart2.root,null,'root should be null after disconnect');
+  assert_equals(nodePart2.node,null,'node should be null after disconnect');
   assert_equals(childNodePart.getParts().length,0,'calling disconnect() should remove the part from root.getParts()');
   assert_equals(root.getParts().length,3,'getParts() for the root DocumentPartRoot still shouldn\'t change');
   nodePart2.disconnect(); // Calling twice should be ok.
 
   childNodePart.disconnect();
-  assert_equals(childNodePart.root,null);
+  assert_equals(childNodePart.root,null,'root should be null after disconnect');
+  assert_equals(childNodePart.previousSibling,null,'previousSibling should be null after disconnect');
+  assert_equals(childNodePart.nextSibling,null,'nextSibling should be null after disconnect');
   assert_array_equals(root.getParts(),[nodePartBefore,nodePart]);
 }, 'Basic imperative DOM Parts object construction');
+
+test((t) => {
+  const root = document.getPartRoot();
+  assert_equals(root.getParts().length,0,'Test harness check: tests should clean up parts');
+
+  const nodePartB = addCleanup(t,new NodePart(root,b));
+  const nodePartA = addCleanup(t,new NodePart(root,a));
+  const nodePartC = addCleanup(t,new NodePart(root,c));
+  assert_array_equals(root.getParts(),[nodePartA,nodePartB,nodePartC]);
+  b.remove();
+  assert_array_equals(root.getParts(),[nodePartA,nodePartC]);
+  document.body.appendChild(b);
+  assert_array_equals(root.getParts(),[nodePartA,nodePartC,nodePartB]);
+  target.insertBefore(b,a);
+  assert_array_equals(root.getParts(),[nodePartB,nodePartA,nodePartC]);
+  nodePartA.disconnect();
+  nodePartB.disconnect();
+  nodePartC.disconnect();
+  assert_array_equals(root.getParts(),[]);
+
+  const childPartAC = addCleanup(t,new ChildNodePart(root,a,c));
+  assert_array_equals(root.getParts(),[childPartAC]);
+  a.remove();
+  assert_array_equals(root.getParts(),[],'Removing endpoints invalidates the part');
+  target.insertBefore(a,b); // Restore
+  assert_array_equals(root.getParts(),[childPartAC]);
+
+  target.insertBefore(c,a);
+  assert_array_equals(root.getParts(),[],'Endpoints out of order');
+  target.appendChild(c); // Restore
+  assert_array_equals(root.getParts(),[childPartAC]);
+
+  document.body.appendChild(c);
+  assert_array_equals(root.getParts(),[],'Children need to have same parent');
+  target.appendChild(c); // Restore
+  assert_array_equals(root.getParts(),[childPartAC]);
+
+  target.remove();
+  assert_array_equals(root.getParts(),[],'Parent needs to be connected');
+  document.body.appendChild(target); // Restore
+  assert_array_equals(root.getParts(),[childPartAC]);
+}, 'DOM mutation support');
 </script>

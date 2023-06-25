@@ -31,7 +31,7 @@ promise_test(async test => {
       send("${this_token_1}", "ServiceWorker: Proxying");
 
       // Response with a cross-origin no-cors resource.
-      const url = "${cross_origin}" + "/common/blank.html}";
+      const url = "${cross_origin}" + "/common/blank.html";
 
       event.respondWith(new Promise(async resolve => {
         try {

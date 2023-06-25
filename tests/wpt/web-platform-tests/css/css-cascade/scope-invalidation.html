@@ -168,3 +168,108 @@ test_scope_invalidation(document.currentScript, () => {
   assert_not_green(div);
 }, 'Element becoming root, with :scope in subject');
 </script>
+
+
+<template>
+  <style>
+    @scope (.a:has(.c)) {
+      .b { background-color:green; }
+    }
+  </style>
+  <div class=a>
+    <div class=b>
+      <div></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let b = main.querySelector('.b');
+  let innermost = main.querySelector('.b > div');
+  assert_not_green(b);
+  innermost.classList.add('c');
+  assert_green(b);
+  innermost.classList.remove('c');
+  assert_not_green(b);
+}, 'Scope root with :has()');
+</script>
+
+
+<template>
+  <style>
+    @scope (.a:has(.c)) {
+      :scope { background-color:green; }
+    }
+  </style>
+  <div class=a>
+    <div class=b>
+      <div></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let a = main.querySelector('.a');
+  let innermost = main.querySelector('.b > div');
+  assert_not_green(a);
+  innermost.classList.add('c');
+  assert_green(a);
+  innermost.classList.remove('c');
+  assert_not_green(a);
+}, 'Scope root with :has(), :scope subject');
+</script>
+
+
+<template>
+  <style>
+    @scope (.a:has(.c)) {
+      :scope { background-color:green; }
+      :scope .b { background-color:green; }
+    }
+  </style>
+  <div class=a>
+    <div class=b>
+      <div></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let a = main.querySelector('.a');
+  let b = main.querySelector('.b');
+  let innermost = main.querySelector('.b > div');
+  assert_not_green(a);
+  assert_not_green(b);
+  innermost.classList.add('c');
+  assert_green(a);
+  assert_green(b);
+  innermost.classList.remove('c');
+  assert_not_green(a);
+  assert_not_green(b);
+}, 'Scope root with :has(), :scope both subject and non-subject');
+</script>
+
+
+<template>
+  <style>
+    @scope (.a) to (.b:has(.c)) {
+      .b { background-color:green; }
+    }
+  </style>
+  <div class=a>
+    <div class=b>
+      <div></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let b = main.querySelector('.b');
+  let innermost = main.querySelector('.b > div');
+  assert_green(b);
+  innermost.classList.add('c');
+  assert_not_green(b);
+  innermost.classList.remove('c');
+  assert_green(b);
+}, 'Scope limit with :has()');
+</script>

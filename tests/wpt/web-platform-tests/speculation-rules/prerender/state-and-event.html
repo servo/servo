@@ -3,10 +3,11 @@
 <script src="/common/utils.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
@@ -43,6 +44,4 @@ promise_test(async t => {
   assert_equals(result.eventCancelable, false,
                 "prerenderingchange event.cancelable should be false.");
 }, 'Test document.prerendering and its change event.');
-
 </script>
-</body>

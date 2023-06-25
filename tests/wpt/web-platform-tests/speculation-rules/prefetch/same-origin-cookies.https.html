@@ -6,11 +6,12 @@
 <script src='/resources/testdriver-vendor.js'></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
 <script>
-  promise_test(async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
+  setup(() => assertSpeculationRulesIsSupported());
 
+  promise_test(async t => {
     await test_driver.delete_all_cookies();
 
     let executor = 'cookies.py';
@@ -34,6 +35,5 @@
     assert_equals(response_cookies["type"], "prefetch");
 
     assert_prefetched(await agent.getRequestHeaders());
-
   }, "speculation rules based prefetch should use cookies for same origin urls.");
 </script>

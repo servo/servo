@@ -4,10 +4,11 @@
 <script src="/common/utils.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
@@ -36,4 +37,3 @@ promise_test(async t => {
 }, 'Test document.prerendering and prerenderingchange event in the navigated ' +
    'page');
 </script>
-</body>

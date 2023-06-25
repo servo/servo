@@ -2,12 +2,12 @@ import pytest
 
 from tests.support.image import png_dimensions
 
-from . import viewport_dimensions
+from . import get_physical_viewport_dimensions
 
 
 @pytest.mark.asyncio
 async def test_capture(bidi_session, top_context, inline, compare_png_bidi):
-    expected_size = await viewport_dimensions(bidi_session, top_context)
+    expected_size = await get_physical_viewport_dimensions(bidi_session, top_context)
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url="about:blank", wait="complete"

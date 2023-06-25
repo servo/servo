@@ -5,20 +5,21 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
-
-const uid = token();
-
-const PAGE_URL = `resources/register-service-worker.html?uid=${uid}`;
 
 // To make sure the service worker registered by the prerendered page starts up,
 // this test sends messages as the following sequence:
 // prerendered page => service worker => prerendered page => main page.
 promise_test(async t => {
+  const uid = token();
+
+  const PAGE_URL = `resources/register-service-worker.html?uid=${uid}`;
+
   const bc = new PrerenderChannel('test-channel', uid);
   t.add_cleanup(_ => bc.close());
 
@@ -48,6 +49,4 @@ promise_test(async t => {
   // Send a close signal to PrerenderEventCollector on the prerendered page.
   new PrerenderChannel('close', uid).postMessage('');
 }, 'New service worker should be registered in a prerendered page');
-
 </script>
-</body>

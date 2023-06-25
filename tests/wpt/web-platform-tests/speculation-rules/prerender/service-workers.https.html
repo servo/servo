@@ -5,11 +5,12 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
-<script src="resources/utils.js"></script>
 <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 // This delay is to prevent a race condition which can cause false passes -
@@ -112,6 +113,4 @@ promise_test(async t => {
   assert_equals(clientInfo.visibilityState, 'hidden');
   assert_equals(clientInfo.focused, false);
 }, 'A prerendered page should be accessible as a hidden & unfocused SW client');
-
 </script>
-</body>

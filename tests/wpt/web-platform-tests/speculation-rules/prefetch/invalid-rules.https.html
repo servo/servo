@@ -3,11 +3,12 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
 <script>
-  promise_test(async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
+  setup(() => assertSpeculationRulesIsSupported());
 
+  promise_test(async t => {
     let agent = await spawnWindow(t);
     let nextUrl = agent.getExecutorURL({ page: 2 });
     await agent.forceSinglePrefetch(nextUrl, { invalid_key: "value" });

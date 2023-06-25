@@ -12,8 +12,10 @@
 <script src="/common/subset-tests.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
 
+<body>
 <script>
 setup(() => assertSpeculationRulesIsSupported());
 
@@ -39,5 +41,4 @@ subsetTest(promise_test, async t => {
   const result = await tryToActivate();
   assert_equals(result, 'discarded');
 }, 'unrecognized policies invalidate the rule');
-
 </script>

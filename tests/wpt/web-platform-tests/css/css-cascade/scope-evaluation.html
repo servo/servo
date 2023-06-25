@@ -28,7 +28,7 @@ function assert_not_green(selector) {
 }
 </script>
 <style>
-  main * {
+  :where(main *) {
     background-color: black;
   }
 </style>
@@ -510,4 +510,38 @@ test_scope(document.currentScript, () => {
   assert_not_green('.a');
   assert_not_green('#inner');
 }, ':scope in two different compounds');
+</script>
+
+
+<template>
+  <style>
+    @scope (.a:has(.c)) {
+      .b { background-color:green; }
+    }
+  </style>
+  <div class=first>
+    <div class=a>
+      <div class=b>
+        <div class=c></div>
+      </div>
+    </div>
+  </div>
+  <div class=second>
+    <div class=a>
+      <div class=b>
+        <div class=d></div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  assert_not_green('.first .a');
+  assert_green('.first .b');
+  assert_not_green('.first .c');
+
+  assert_not_green('.second .a');
+  assert_not_green('.second .b');
+  assert_not_green('.second .d');
+}, 'Scope root with :has()');
 </script>

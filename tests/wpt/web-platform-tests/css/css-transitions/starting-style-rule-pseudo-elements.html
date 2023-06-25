@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: @starting-style for pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#defining-before-change-style-the-starting-style-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<div id="target" class="trans"></div>
+<style>
+  #target::before {
+    transition-property: background-color, color;
+    transition-duration: 100s;
+    transition-timing-function: steps(2, start);
+    color: green;
+    background-color: white;
+    content: "";
+  }
+  @starting-style {
+    #target::before {
+      background-color: black;
+    }
+  }
+  #target.red::before {
+    background-color: red;
+  }
+</style>
+<script>
+  promise_test(async t => {
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target, "::before").color, "rgb(0, 128, 0)",
+                  "No transition of color");
+    assert_equals(getComputedStyle(target, "::before").backgroundColor, "rgb(128, 128, 128)",
+                  "Background transition from @starting-style value black to white");
+  }, "Triggered transition from first style update");
+
+  promise_test(async t => {
+    target.style.display = "none";
+    target.className = "red";
+    assert_equals(getComputedStyle(target, "::before").backgroundColor, "rgb(255, 0, 0)",
+                  "Overridden with red. No transition while display:none");
+    target.className = "";
+    assert_equals(getComputedStyle(target, "::before").backgroundColor, "rgb(255, 255, 255)",
+                  "Removing class while display:none. Still no transition");
+    await waitForAnimationFrames(2);
+    target.style.display = "block";
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target, "::before").backgroundColor, "rgb(128, 128, 128)",
+                  "Background transition from @starting-style value black to white");
+  }, "Triggered transition from display:none to display:block");
+
+  promise_test(async t => {
+    let removed = target;
+    removed.remove();
+    await waitForAnimationFrames(2);
+    document.body.appendChild(removed);
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target, "::before").backgroundColor, "rgb(128, 128, 128)",
+                  "Background transition from @starting-style value black to white");
+  }, "Triggered transition on DOM insertion");
+</script>

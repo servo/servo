@@ -1,6 +1,6 @@
 """Methods for the report-event-attribution and report-aggregate-attribution endpoints"""
 import json
-from typing import List, Optional, Tuple, TypedDict
+from typing import List, Optional, Tuple
 import urllib.parse
 
 from wptserve.request import Request

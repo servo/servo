@@ -56,7 +56,7 @@
       target.style.setProperty(property, isNeutralKeyframe(from) ? '' : from);
     },
     nonInterpolationExpectations: function(from, to) {
-      return expectFlip(from, to, 0.5);
+      return expectFlip(from, to, -Infinity);
     },
     notAnimatableExpectations: function(from, to, underlying) {
       return expectFlip(from, to, -Infinity);

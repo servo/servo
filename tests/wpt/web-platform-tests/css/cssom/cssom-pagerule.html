@@ -35,6 +35,40 @@
   }, "Set selectorText to named page with :first pseudo page");
 
   test(() => {
+    rule.selectorText = "named:First";
+    assert_equals(rule.selectorText, "named:first");
+  }, "Set selectorText to named page with case insensitive :first pseudo page");
+
+  test(() => {
+    rule.selectorText = "named:first:first";
+    assert_equals(rule.selectorText, "named:first:first");
+  }, "Set selectorText to named page with two :first pseudo page");
+
+  test(() => {
+    rule.selectorText = "named:first:left:right:first";
+    assert_equals(rule.selectorText, "named:first:left:right:first");
+  }, "Set selectorText to named page with pseudo pages of " +
+    ":first, :left, :right, :first in order.");
+
+  test(() => {
+    rule.selectorText = "";
+    rule.selectorText = "named :first";
+    assert_equals(rule.selectorText, "");
+  }, "Cannot set selectorText to named page with pseudo, whitespace between");
+
+  test(() => {
+    rule.selectorText = "";
+    rule.selectorText = ":first :left";
+    assert_equals(rule.selectorText, "");
+  }, "Cannot set selectorText to two pseudos, whitespace between");
+
+  test(() => {
+    rule.selectorText = "";
+    rule.selectorText = ":notapagepseudo";
+    assert_equals(rule.selectorText, "");
+  }, "Cannot set selectorText to invalid pseudo page");
+
+  test(() => {
     assert_equals(rule.parentStyleSheet, sheet);
     sheet.deleteRule(0);
     assert_equals(rule.parentStyleSheet, null);

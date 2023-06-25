@@ -2,7 +2,7 @@
 <title>Tests inline boxes with multi-line text are trimmed at text-over/text-under baselines</title>
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#leading-trim">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
-<link rel="match" href="text-box-trim-half-leading-inline-box-001-ref.html">
+<link rel="match" href="text-box-trim-half-leading-inline-box-002-ref.html">
 
 <style>
 div {
@@ -13,13 +13,21 @@ div {
 
 span {
   border: 1px solid blue;
+  border-right: 0;
+  border-left: 0;
   font-family: Ahem;
   font-size: 20px;
   line-height: 3;
-  text-box-trim: both;
 }
+
 </style>
 
 <div>
-  <span>Testline1<br>TestLine2<br>TestLine3</span>
+  <span style="text-box-trim: both">Testline1<br>TestLine2<br>TestLine3</span>
+</div>
+<div>
+  <span style="text-box-trim: start">Testline1<br>TestLine2<br>TestLine3</span>
+</div>
+<div>
+  <span style="text-box-trim: end">Testline1<br>TestLine2<br>TestLine3</span>
 </div>

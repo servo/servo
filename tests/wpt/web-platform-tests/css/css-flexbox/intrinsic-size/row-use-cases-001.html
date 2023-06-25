@@ -3,6 +3,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <meta name="assert"
   content="Requested use cases from our issue tracker that were duplicated or included in the bug report for the new algorithm. These are intentionally not very reduced from their original form with liberal pass conditions." />
 
@@ -142,6 +143,11 @@
     background: Thistle;
     flex-wrap: nowrap;
   }
+
+  #bug1144312 div {
+    font: 12px/1 Ahem;
+  }
+
 </style>
 
 <section id="bug423112" class="bugreport">
@@ -196,8 +202,15 @@
 
 <section id="bug441768" class="bugreport">
   <p>https://bugs.chromium.org/p/chromium/issues/detail?id=441768 author wants
-    below space to have height but 0 width</p>
+    below blue block to have 0 width</p>
   <div>
+    <!-- shipping: .middle has flex-basis=200px (from its max-content), and
+      used min-width=200px (from min-content) -->
+    <!-- author wants .middle flex-basis = 0, so author wants .middle
+      max-content = 0 -->
+    <!-- that means author also needs min-content = 0 -->
+    <!-- so width:200 item needs to contribute flex-basis to both min and max
+    -->
     <div style="height: 100px; background: blue; align-self: flex-start;"
       class="middle">
       <div style="width: 200px; flex: 0;"></div>
@@ -207,8 +220,22 @@
 
 <section id="bug1144312" class="bugreport">
   <p>https://bugs.chromium.org/p/chromium/issues/detail?id=1144312</p>
+  <!-- This case needs max-content to use flex fractions. -->
   <div class="grid-y" id="top">
+    <!-- broke: grid-x intrinsic sizes are ("95", "154") -->
+    <!-- works: grid-x intrinsic sizes are ("165", "283") -->
+    <!-- broke: grid-x main inner size = 146-->
+    <!-- works: grid-x main inner size = 275-->
+    <!-- to determine its vertical flex basis, grid-x lays out with width set to max content*. Then, both of its items have flex basis 0 and same grow factor, so they get flexed to each have approximately half of first item's max-width. This makes "phantom whitespace" wrap, which makes it too tall.
+    * this doesn't happen in the nowrap case, which stretches grid-x's width. -->
     <div class="grid-x">
+      <!-- while laying out grid-x to get its flex-basis:
+        when laying out the two items for cross sizes:
+        broke: 1st gets 78px fixed inline size, returns height 48px
+        works: 1st gets 137px fixed inline size, returns height 28px
+        broke: 2nd gets 67px fixed inline size, returns height 8px
+        works: 2nd gets 137px fixed inline size, returns height 8px
+      -->
       <div>phantom whitespace</div>
       <div></div>
     </div>
@@ -233,8 +260,14 @@
 
 <section id="bug1154243" class="bugreport">
   <p>https://bugs.chromium.org/p/chromium/issues/detail?id=1154243</p>
-  <div style="display: flex; width: min-content; border: 2px solid blue; "
+  <div
+    style="display: flex; width: min-content; border: 2px solid blue; font: 12px/1 Ahem;"
     id="container">
+    <!-- shipping: min-content width of container is sum of min-contents (2x
+         the width of the word "content")
+    author needs: each `flex: 0 0 auto` item contributes flex-basis to
+    container min-content because they can't shrink from their flex bases
+    -->
     <div style="flex-shrink: 0">Test content</div>
     <div style="background: yellow; flex-shrink: 0" id="right">Test content
     </div>
@@ -276,7 +309,7 @@
   test(_ => {
     const container = bug1154243.querySelector("#container");
     const right = bug1154243.querySelector("#right");
-    assert_less_than_equal(right.getBoundingClientRect().right, container.getBoundingClientRect().right);
+    assert_less_than_equal(right.getBoundingClientRect().right, container.getBoundingClientRect().right)
   }, "no overflow 2");
 
 </script>

@@ -1,0 +1,73 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/private-aggregation/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const data = {
+    contributions: [{bucket: 1n, value: 2}]
+  };
+  const privateAggregationConfig = {
+    contextId: "example_context_id"
+  };
+
+  await sharedStorage.run("contribute-to-histogram",
+                          {data, privateAggregationConfig, keepAlive: true});
+}, 'set context ID');
+
+promise_test(async () => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const data = {
+    contributions: [{bucket: 1n, value: 2}]
+  };
+  const privateAggregationConfig = {
+    contextId: ""
+  };
+
+  await sharedStorage.run("contribute-to-histogram",
+                          {data, privateAggregationConfig, keepAlive: true});
+}, 'set empty context ID');
+
+promise_test(async () => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const data = {
+    contributions: [{bucket: 1n, value: 2}]
+  };
+  const privateAggregationConfig = {
+    contextId: "an_example_of_a_context_id_with_the_exact_maximum_allowed_length"
+  };
+
+  await sharedStorage.run("contribute-to-histogram",
+                          {data, privateAggregationConfig, keepAlive: true});
+}, 'set max length context ID');
+
+promise_test(async (test) => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const data = {
+    contributions: [{bucket: 1n, value: 2}]
+  };
+  const privateAggregationConfig = {
+    contextId: "this_is_an_example_of_a_context_id_that_is_too_long_to_be_allowed"
+  };
+
+  return promise_rejects_dom(
+      test, "DataError",
+      sharedStorage.run("contribute-to-histogram",
+                        {data, privateAggregationConfig, keepAlive: true}));
+}, 'set too long context ID');
+
+
+</script>
+</body>

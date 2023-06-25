@@ -4,14 +4,17 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
+
 <meta name="variant" content="?cross-origin=true">
 <meta name="variant" content="?cross-origin=false">
+
 <script>
+  setup(() => assertSpeculationRulesIsSupported());
+
   let cross_origin = Object.fromEntries(new URLSearchParams(location.search))["cross-origin"] === "true";
   promise_test(async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
-
     let executor = "authenticate.py";
     let credentials = { username: "user", password: "pass" };
     let agent = await spawnWindow(t, { executor, ...credentials });
@@ -39,6 +42,5 @@
 
       assert_prefetched(await agent.getRequestHeaders());
     }
-
   }, "test www-authenticate basic does not forward credentials to cross-origin pages.");
 </script>

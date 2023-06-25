@@ -13,13 +13,20 @@ div {
 
 span {
   border: 1px solid blue;
+  border-right: 0;
+  border-left: 0;
   font-family: Ahem;
   font-size: 20px;
   line-height: 3;
-  text-box-trim: both;
 }
 </style>
 
 <div>
-  <span>Test</span>
+  <span style="text-box-trim:both">Test</span>
+</div>
+<div>
+  <span style="text-box-trim:start">Test</span>
+</div>
+<div>
+  <span style="text-box-trim:end">Test</span>
 </div>

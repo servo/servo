@@ -6,7 +6,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../support/numeric-testcommon.js"></script>
-<div id="container" style="font-size: 20px">
+<div id="container" style="font-size: 20px; width: 100px">
   <div id="target"></div>
 </div>
 <script>
@@ -40,9 +40,22 @@ test_math_used('calc(abs(0.1 + 0.2) * -2)', '-0.6', {type:'number', approx:0.1})
 test_math_used('calc(sign(0.1 - 0.2) - 0.05)', '-1.05', {type:'number', approx:0.1});
 test_math_used('calc(sign(1) + sign(1) - 0.05)', '1.95', {type:'number', approx:0.1});
 
+// Test with <length-percentage>
+test_math_used('abs(10px)', '10px', {type:'length'});
+test_math_used('abs(10%)', '10px', {type:'length'});
+test_math_used('abs(10px + 10%)', '20px', {type:'length'});
+test_math_used('calc(10px + abs(10%))', '20px', {type:'length'});
+test_math_used('abs(-10px)', '10px', {type:'length'});
+test_math_used('abs(-10%)', '10px', {type:'length'});
+
 // Test sign for zero
 test_zero('calc(sign(-0))', {is_negative: true});
 test_zero('calc(sign(0))', {is_negative: false});
+
+// Test with NaN and inf
+test_math_used('abs(infinity)', 'calc(infinity)', {type:'number'});
+test_math_used('abs(-infinity)', 'calc(infinity)', {type:'number'});
+test_math_used('abs(NaN)', 'calc(NaN)', {type:'number'});
 
 //Type checking sign
 test_math_used('sign(1px)', '1', {type:'integer'});

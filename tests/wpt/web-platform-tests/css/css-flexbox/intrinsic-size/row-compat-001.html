@@ -6,7 +6,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
 <meta name="assert"
-  content="Virtually all of the compat problems reduced to this case" />
+  content="Changing flex intrinsic sizing algorithm doesn't break any of these cases." />
 
 <style>
   section.bugreport {
@@ -28,6 +28,29 @@
     width: 100px;
     background: orange;
   }
+
+  #bug1454306 .fourUpList {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 1fr;
+    width: 800px;
+    background: yellow;
+  }
+
+  #bug1454306 .thumbnail-list--item {
+    display: flex;
+    width: 100%;
+    outline: 1px solid;
+  }
+
+  #bug1454306 .thumbnail-list--item-photo {
+    height: 50px;
+    width: 50px;
+  }
+
+  #bug1454306 .thumbnail-list--item-header {
+    flex: 1 0 calc(70% - 10.5px)
+  }
 </style>
 
 <section id="gmail" class="bugreport">
@@ -46,6 +69,37 @@
   </div>
 </section>
 
+<section id="bug1454306" class="bugreport">
+  <p>https://crbug.com/1454306 The flexboxes' min-content size need to be
+    less than 1/4 the width of the grid so that each flexbox width is 1/4 of the
+    grid width.</p>
+
+  <!-- this case needs this example item to contribute min-content (not
+    flex-basis aka max-content during intrinsic sizing) to container's min-content
+
+    <item style="flex: 1 0 calc(70% - 10.5px)">
+      max-content larger than flex basis
+    </item>
+  -->
+
+  <div class=fourUpList>
+
+    <div class=thumbnail-list--item data-expected-width="200">
+      <div class=thumbnail-list--item-header>lorem ipsum blah blah blah</div>
+      <div class=thumbnail-list--item-photo></div>
+    </div>
+
+    <div class=thumbnail-list--item data-expected-width="200">
+      <div class=thumbnail-list--item-header>
+        Peets Coffee announces plans to move Oakland
+      </div>
+      <div class=thumbnail-list--item-photo></div>
+    </div>
+
+  </div>
+</section>
+
 <script>
   checkLayout('.flex');
+  checkLayout('#bug1454306');
 </script>

@@ -24,8 +24,8 @@ function assert_feature_policy_supported() {
 //      feature (https://wicg.github.io/feature-policy/#features).
 //      See examples at:
 //      https://github.com/WICG/feature-policy/blob/master/features.md
-//    allow_attribute: Optional argument, only used for testing fullscreen:
-//      "allowfullscreen"
+//    allow_attribute: Optional argument, only used for testing fullscreen
+//      by passing "allowfullscreen".
 function test_feature_availability(
     feature_description, test, src, expect_feature_available, feature_name,
     allow_attribute) {

@@ -6,4 +6,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-syntax">
 <script>
 test_invalid_value('transform', 'rotate(calc((0.25turn error)))');
+test_invalid_value('width', 'calc(7px * up)');
+test_invalid_value('width', 'round(nearest, 1px, 1px, 1px)');
+test_invalid_value('width', 'round(nearest, 1px)');
 </script>

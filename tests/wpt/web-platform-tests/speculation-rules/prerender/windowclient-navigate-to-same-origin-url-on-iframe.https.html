@@ -6,7 +6,9 @@
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
 setup(() => assertSpeculationRulesIsSupported());
@@ -53,4 +55,3 @@ promise_test(async t => {
 }, 'WindowClient.navigate() to a same-origin URL on a prerendered iframe ' +
    'should succeed');
 </script>
-</body>

@@ -4,10 +4,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 function RunTest(method, description) {
@@ -58,4 +59,3 @@ RunTest('cancel', `speechSynthesis.cancel() should be deferred until the prerend
 RunTest('pause', `speechSynthesis.pause() should be deferred until the prerendered page is activated`);
 RunTest('resume', `speechSynthesis.resume() should be deferred until the prerendered page is activated`);
 </script>
-</body>

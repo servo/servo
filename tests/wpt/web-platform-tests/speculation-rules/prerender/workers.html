@@ -5,10 +5,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
@@ -91,6 +92,4 @@ promise_test(async t => {
   assert_equals(workerStartTime1, workerStartTime2, "The prerendered page should connect to the existing worker");
   assert_greater_than(activationStart, workerStartTime2, "Starting the worker should be done before activation");
 }, "Existing shared workers should be accessible before activation");
-
 </script>
-</body>

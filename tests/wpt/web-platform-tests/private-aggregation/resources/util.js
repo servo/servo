@@ -7,7 +7,7 @@ async function VerifyContributeToHistogram(paa_data, expected_error) {
   let url1 = generateURL("/shared-storage/resources/frame1.html",
                          [ancestor_key]);
 
-  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+  await addModuleOnce("/private-aggregation/resources/shared-storage-helper-module.js");
 
   let select_url_result = await sharedStorage.selectURL(
     "contribute-to-histogram", [{url: url0}, {url: url1}],

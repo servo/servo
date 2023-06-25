@@ -5,7 +5,9 @@
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
 setup(() => assertSpeculationRulesIsSupported());
@@ -18,4 +20,3 @@ promise_test(async t => {
   assert_equals(await getNetworkRequestCount(), '1', 'Network request count');
 }, "Prerender navigation requests should use prefetched results");
 </script>
-</body>

@@ -2920,6 +2920,7 @@ var browserTests = [
     "abc<font face=\"monospace\" size=\"7\" color=\"#ff0000\"><span style=\"background-color:rgb(0, 221, 221)\">[d]</span></font>ef",
     "abc<font size=\"7\" color=\"#ff0000\" face=\"monospace\"><span style=\"background-color:rgb(0, 221, 221)\">[d]</span></font>ef",
     "abc<font size=\"7\" face=\"monospace\" color=\"#ff0000\"><span style=\"background-color:rgb(0, 221, 221)\">[d]</span></font>ef",
+    "abc<font size=\"7\" color=\"#ff0000\" face=\"monospace\" style=\"background-color:rgb(0, 221, 221)\">[d]</font>ef",
     "abc<font color=\"#ff0000\" face=\"monospace\" size=\"7\" style=\"background-color:rgb(0, 221, 221)\">[d]</font>ef",
     "abc<font color=\"#ff0000\" size=\"7\" face=\"monospace\" style=\"background-color:rgb(0, 221, 221)\">[d]</font>ef",
     "abc<font face=\"monospace\" color=\"#ff0000\" size=\"7\" style=\"background-color:rgb(0, 221, 221)\">[d]</font>ef",

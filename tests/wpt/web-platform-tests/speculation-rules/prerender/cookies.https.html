@@ -5,11 +5,12 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
-<script src="resources/utils.js"></script>
 <script src="/cookie-store/resources/cookie-test-helpers.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 cookie_test(async t => {
@@ -34,4 +35,3 @@ cookie_test(async t => {
 }, 'prerendering page should be able to access cookies');
 
 </script>
-</body>

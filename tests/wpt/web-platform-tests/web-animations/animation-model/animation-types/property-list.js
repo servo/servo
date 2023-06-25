@@ -1172,6 +1172,10 @@ const gCSSProperties2 = {
       { type: 'discrete', options: [ [ 'auto', 'smooth' ] ] }
     ]
   },
+  'scrollbar-color': {
+    // https://drafts.csswg.org/css-scrollbars/#propdef-scrollbar-color
+    types: [ 'colorPair' ]
+  },
   'scrollbar-gutter': {
     // https://drafts.csswg.org/css-overflow/#propdef-scrollbar-gutter
     types: [

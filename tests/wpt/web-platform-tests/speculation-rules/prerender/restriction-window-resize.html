@@ -3,10 +3,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 // ResizeTo and ResizeBy operations should be ignored.
@@ -45,6 +46,4 @@ setup(() => assertSpeculationRulesIsSupported());
       `a prerendering page cannot resize its window by executing ${
           resizeFunc}.`);
 });
-
 </script>
-</body>

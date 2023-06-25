@@ -4,7 +4,9 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
 setup(() => assertSpeculationRulesIsSupported());
@@ -27,6 +29,4 @@ promise_test(async t => {
   assert_equals(result, 'SecurityError')
 }, `prerendering pages should not be able to access the local file system ` +
    `via the File System Access API`);
-
 </script>
-</body>

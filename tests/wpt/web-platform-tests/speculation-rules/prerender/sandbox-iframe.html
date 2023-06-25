@@ -12,10 +12,11 @@ This file cannot be upstreamed to WPT until:
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/common/utils.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
 <body>
 <script>
-
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
@@ -52,6 +53,4 @@ promise_test(async t => {
   // Send a close signal to PrerenderEventCollector on the prerendered page.
   new PrerenderChannel('close', uid).postMessage('');
 }, `same-origin sandbox iframes should not load until activation`);
-
 </script>
-</body>

@@ -4,21 +4,22 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
-<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
 <script src="resources/session-history-test-util.js"></script>
+
 <body>
-  <script>
-    setup(() => assertSpeculationRulesIsSupported());
+<script>
+setup(() => assertSpeculationRulesIsSupported());
 
-    const uid = token();
+const uid = token();
 
-    // We test only a fragment-navigation because other kinds of the main frame navigation
-    // in prerender cancels prerendering.
-    promise_test(async () => {
-      assert_equals(
-        await runTestInPrerender("testSyntheticAnchorClickInPrerender", uid),
-        "Passed"
-      );
-    }, "Synthetic anchor click navigates independently with replacement in a prerender");
-  </script>
-</body>
+// We test only a fragment-navigation because other kinds of the main frame navigation
+// in prerender cancels prerendering.
+promise_test(async () => {
+  assert_equals(
+    await runTestInPrerender("testSyntheticAnchorClickInPrerender", uid),
+    "Passed"
+  );
+}, "Synthetic anchor click navigates independently with replacement in a prerender");
+</script>

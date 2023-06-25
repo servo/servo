@@ -1,19 +1,22 @@
 <!DOCTYPE html>
-<meta name="variant" content="?cross-site">
-<meta name="variant" content="?same-site">
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
+
+<meta name="variant" content="?cross-site">
+<meta name="variant" content="?same-site">
+
 <script>
+  setup(() => assertSpeculationRulesIsSupported());
+
   // In https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate,
   // `sourceDocument` (instead of `navigable`'s active document) should be
   // used as the referring document for prefetch.
   promise_test(async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
-
     const win = await spawnWindow(t, { protocol: 'https' });
 
     const hostname =
@@ -42,8 +45,6 @@
   }, `<a>`);
 
   promise_test(async t => {
-    assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
-
     const win = await spawnWindow(t, { protocol: 'https' });
 
     const hostname =
