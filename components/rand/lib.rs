@@ -27,7 +27,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::u64;
-use uuid::{Builder, Uuid, Variant, Version};
+use uuid::{Builder, Uuid};
 
 // The shared RNG which may hold on to a file descriptor
 lazy_static! {
@@ -197,8 +197,5 @@ where
 pub fn random_uuid() -> Uuid {
     let mut bytes = [0; 16];
     thread_rng().fill_bytes(&mut bytes);
-    Builder::from_bytes(bytes)
-        .set_variant(Variant::RFC4122)
-        .set_version(Version::Random)
-        .build()
+    Builder::from_random_bytes(bytes).into_uuid()
 }

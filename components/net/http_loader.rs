@@ -1683,7 +1683,7 @@ async fn http_network_fetch(
     let request_id = context
         .devtools_chan
         .as_ref()
-        .map(|_| uuid::Uuid::new_v4().to_simple().to_string());
+        .map(|_| uuid::Uuid::new_v4().simple().to_string());
 
     if log_enabled!(log::Level::Info) {
         info!("{:?} request for {}", request.method, url);
