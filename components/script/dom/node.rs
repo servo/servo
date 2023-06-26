@@ -1078,7 +1078,7 @@ impl Node {
 
         if rare_data.unique_id.is_none() {
             let id = UniqueId::new();
-            ScriptThread::save_node_id(id.borrow().to_simple().to_string());
+            ScriptThread::save_node_id(id.borrow().simple().to_string());
             rare_data.unique_id = Some(id);
         }
         rare_data
@@ -1086,7 +1086,7 @@ impl Node {
             .as_ref()
             .unwrap()
             .borrow()
-            .to_simple()
+            .simple()
             .to_string()
     }
 
