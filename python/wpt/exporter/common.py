@@ -9,7 +9,7 @@
 
 # pylint: disable=missing-docstring
 
-UPSTREAMABLE_PATH = "tests/wpt/web-platform-tests/"
+UPSTREAMABLE_PATH = "tests/wpt/tests/"
 NO_SYNC_SIGNAL = "[no-wpt-sync]"
 
 OPENED_NEW_UPSTREAM_PR = (

@@ -133,7 +133,7 @@ directories = [
   "./support/android/apk",
   "./support/hololens",
   "./tests/wpt/harness",
-  "./tests/wpt/web-platform-tests",
+  "./tests/wpt/tests",
   "./tests/wpt/mozilla/tests/mozilla/referrer-policy",
   "./tests/wpt/mozilla/tests/webgl",
   "./python/tidy/tests",
