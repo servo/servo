@@ -96,10 +96,18 @@ impl BlockFormattingContext {
                 .collapsed_through
         );
 
+        // The content height of a BFC root should include any float participating in that BFC
+        // (https://drafts.csswg.org/css2/#root-height), we implement this by imagining there is
+        // an element with `clear: both` after the actual contents.
+        let clearance = sequential_layout_state.map_or(Length::zero(), |sequential_layout_state| {
+            sequential_layout_state.calculate_clearance(ClearSide::Both)
+        });
+
         IndependentLayout {
             fragments: flow_layout.fragments,
             content_block_size: flow_layout.content_block_size +
-                flow_layout.collapsible_margins_in_children.end.solve(),
+                flow_layout.collapsible_margins_in_children.end.solve() +
+                clearance,
         }
     }
 }
