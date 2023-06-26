@@ -733,10 +733,13 @@ fn layout_in_flow_replaced_block_level<'a>(
 
     let mut clearance = Length::zero();
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
+        sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_start));
         sequential_layout_state.collapse_margins();
         clearance = sequential_layout_state.calculate_clearance(ClearSide::from_style(style));
-        sequential_layout_state
-            .advance_block_position(pbm.border.block_sum() + pbm.padding.block_sum() + size.block);
+        sequential_layout_state.advance_block_position(
+            pbm.border.block_sum() + pbm.padding.block_sum() + size.block + clearance,
+        );
+        sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
     };
 
     let content_rect = Rect {
@@ -756,7 +759,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         pbm.padding,
         pbm.border,
         margin,
-        Length::zero(),
+        clearance,
         block_margins_collapsed_with_children,
     )
 }
