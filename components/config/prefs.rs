@@ -259,11 +259,6 @@ mod gen {
                     #[serde(default)]
                     enabled: bool,
                 },
-                webgl: {
-                    dom_to_texture: {
-                        enabled: bool,
-                    }
-                },
                 webgl2: {
                     enabled: bool,
                 },

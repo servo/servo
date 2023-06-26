@@ -11,7 +11,7 @@ use std::borrow::Cow;
 use std::fmt;
 use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
-use webrender_api::{DocumentId, ImageKey, PipelineId};
+use webrender_api::ImageKey;
 use webxr_api::ContextId as WebXRContextId;
 use webxr_api::Error as WebXRError;
 use webxr_api::LayerId as WebXRLayerId;
@@ -76,8 +76,6 @@ pub enum WebGLMsg {
     /// Runs a WebXRCommand (WebXR layers need to be created in the WebGL
     /// thread, as they may have thread affinity).
     WebXRCommand(WebXRCommand),
-    /// Commands used for the DOMToTexture feature.
-    DOMToTextureCommand(DOMToTextureCommand),
     /// Performs a buffer swap.
     ///
     /// The third field contains the time (in ns) when the request
@@ -173,10 +171,6 @@ impl WebGLMsgSender {
     #[inline]
     pub fn send_remove(&self) -> WebGLSendResult {
         self.sender.send(WebGLMsg::RemoveContext(self.ctx_id))
-    }
-
-    pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
-        self.sender.send(WebGLMsg::DOMToTextureCommand(command))
     }
 }
 
@@ -661,23 +655,6 @@ pub enum WebGLFramebufferBindingRequest {
 }
 
 pub type WebGLResult<T> = Result<T, WebGLError>;
-
-/// WebGL commands required to implement DOMToTexture feature.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum DOMToTextureCommand {
-    /// Attaches a HTMLIFrameElement to a WebGLTexture.
-    Attach(
-        WebGLContextId,
-        WebGLTextureId,
-        DocumentId,
-        PipelineId,
-        Size2D<i32>,
-    ),
-    /// Releases the HTMLIFrameElement to WebGLTexture attachment.
-    Detach(WebGLTextureId),
-    /// Lock message used for a correct synchronization with WebRender GL flow.
-    Lock(PipelineId, usize, WebGLSender<Option<(u32, Size2D<i32>)>>),
-}
 
 /// Information about a WebGL program linking operation.
 #[derive(Clone, Debug, Deserialize, Serialize)]

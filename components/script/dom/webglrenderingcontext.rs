@@ -24,7 +24,6 @@ use crate::dom::element::cors_setting_for_element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::htmlcanvaselement::utils as canvas_utils;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
-use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage};
 use crate::dom::promise::Promise;
 use crate::dom::vertexarrayobject::VertexAttribData;
@@ -57,11 +56,11 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, GlType,
-    Parameter, SizedDataType, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
-    WebGLCommandBacktrace, WebGLContextId, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg,
-    WebGLMsgSender, WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSendResult, WebGLSender,
-    WebGLVersion, YAxisTreatment,
+    webgl_channel, AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType,
+    TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand, WebGLCommandBacktrace,
+    WebGLContextId, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender,
+    WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSendResult, WebGLSender, WebGLVersion,
+    YAxisTreatment,
 };
 use dom_struct::dom_struct;
 use embedder_traits::EventLoopWaker;
@@ -377,10 +376,6 @@ impl WebGLRenderingContext {
             let id = WebGLFramebufferBindingRequest::Explicit(fbo.id());
             self.send_command(WebGLCommand::BindFramebuffer(constants::FRAMEBUFFER, id));
         }
-    }
-
-    pub(crate) fn webgl_sender(&self) -> WebGLMessageSender {
-        self.webgl_sender.clone()
     }
 
     pub fn context_id(&self) -> WebGLContextId {
@@ -4435,60 +4430,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexImageDOM(
-        &self,
-        target: u32,
-        level: i32,
-        internal_format: u32,
-        width: i32,
-        height: i32,
-        format: u32,
-        data_type: u32,
-        source: &HTMLIFrameElement,
-    ) -> ErrorResult {
-        // Currently DOMToTexture only supports TEXTURE_2D, RGBA, UNSIGNED_BYTE and no levels.
-        if target != constants::TEXTURE_2D ||
-            level != 0 ||
-            internal_format != constants::RGBA ||
-            format != constants::RGBA ||
-            data_type != constants::UNSIGNED_BYTE
-        {
-            return Ok(self.webgl_error(InvalidValue));
-        }
-
-        // Get bound texture
-        let texture = handle_potential_webgl_error!(
-            self,
-            self.textures
-                .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
-                .unwrap()
-                .get()
-                .ok_or(InvalidOperation),
-            return Ok(())
-        );
-
-        let pipeline_id = source.pipeline_id().ok_or(Error::InvalidState)?;
-        let document_id = self
-            .global()
-            .downcast::<Window>()
-            .ok_or(Error::InvalidState)?
-            .webrender_document();
-
-        texture.set_attached_to_dom();
-
-        let command = DOMToTextureCommand::Attach(
-            self.webgl_sender.context_id(),
-            texture.id(),
-            document_id,
-            pipeline_id.to_webrender(),
-            Size2D::new(width, height),
-        );
-        self.webgl_sender.send_dom_to_texture(command).unwrap();
-
-        Ok(())
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     #[allow(unsafe_code)]
     fn TexSubImage2D(
         &self,
@@ -5012,10 +4953,6 @@ impl WebGLMessageSender {
 
     pub fn send_remove(&self) -> WebGLSendResult {
         self.wake_after_send(|| self.sender.send_remove())
-    }
-
-    pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
-        self.wake_after_send(|| self.sender.send_dom_to_texture(command))
     }
 }
 

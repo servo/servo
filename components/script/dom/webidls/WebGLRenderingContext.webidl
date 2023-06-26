@@ -680,16 +680,9 @@ interface mixin WebGLRenderingContextOverloads
     undefined uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
 };
 
-interface mixin WebGLRenderingContextExtensions {
-    [Throws, Pref="dom.webgl.dom_to_texture.enabled"]
-    undefined texImageDOM(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height,
-                     GLenum format, GLenum type, HTMLIFrameElement source); // May throw DOMException
-};
-
 [Exposed=(Window)]
 interface WebGLRenderingContext
 {
 };
 WebGLRenderingContext includes WebGLRenderingContextBase;
 WebGLRenderingContext includes WebGLRenderingContextOverloads;
-WebGLRenderingContext includes WebGLRenderingContextExtensions;
