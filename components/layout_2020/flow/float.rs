@@ -17,6 +17,7 @@ use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::ContainingBlock;
 use euclid::num::Zero;
 use servo_arc::Arc;
+use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::ops::Range;
 use std::{f32, mem};
@@ -67,6 +68,112 @@ impl ContainingBlockPositionInfo {
             inline_start,
             inline_end,
         }
+    }
+}
+
+/// This data strucure is used to try to place non-floating content among float content.
+/// This is used primarily to place replaced content and independent formatting contexts
+/// next to floats, as the specifcation dictates.
+pub(crate) struct PlacementAmongFloats<'a> {
+    /// The [FloatContext] to use for this placement.
+    float_context: &'a FloatContext,
+    /// The current bands we are considering for this placement.
+    current_bands: VecDeque<FloatBand>,
+    /// The size of the object to place.
+    object_size: Vec2<Length>,
+    /// The minimum position in the block direction for the placement. Objects should not
+    /// be placed before this point.
+    ceiling: Length,
+}
+
+impl<'a> PlacementAmongFloats<'a> {
+    pub(crate) fn new(
+        float_context: &'a FloatContext,
+        ceiling: Length,
+        object_size: Vec2<Length>,
+    ) -> Self {
+        let current_bands = VecDeque::from([float_context.bands.find(ceiling).unwrap()]);
+        PlacementAmongFloats {
+            float_context,
+            current_bands,
+            object_size,
+            ceiling,
+        }
+    }
+
+    fn top_of_placement_for_current_bands(&self) -> Length {
+        self.ceiling.max(self.current_bands.front().unwrap().top)
+    }
+
+    fn current_bands_height(&self) -> Length {
+        assert!(self.current_bands.len() > 0);
+        self.current_bands.back().unwrap().top - self.top_of_placement_for_current_bands()
+    }
+
+    fn accumulate_enough_bands_for_block_size(&mut self) {
+        while self.current_bands_height() < self.object_size.block {
+            assert!(self.current_bands.len() > 0);
+            let next_band = self
+                .float_context
+                .bands
+                .find_next(self.current_bands.back().unwrap().top)
+                .unwrap();
+            self.current_bands.push_back(next_band);
+        }
+    }
+
+    fn calculate_viable_inline_space(&self) -> (Length, Length) {
+        let mut max_inline_start = self.float_context.containing_block_info.inline_start;
+        let mut min_inline_end = self.float_context.containing_block_info.inline_end;
+        for band in self.current_bands.iter() {
+            if let Some(left) = band.left {
+                max_inline_start = max_inline_start.max(left);
+            }
+            if let Some(right) = band.right {
+                min_inline_end = min_inline_end.min(right);
+            }
+        }
+        return (max_inline_start, min_inline_end);
+    }
+
+    pub(crate) fn try_place_once(&mut self) -> Option<Vec2<Length>> {
+        if self.current_bands.front().unwrap().top.px().is_infinite() {
+            return Some(Vec2 {
+                inline: self.float_context.containing_block_info.inline_start,
+                block: self.ceiling,
+            });
+        }
+
+        self.accumulate_enough_bands_for_block_size();
+        let (inline_start, inline_end) = self.calculate_viable_inline_space();
+        if inline_end - inline_start >= self.object_size.inline {
+            return Some(Vec2 {
+                inline: inline_start,
+                block: self.top_of_placement_for_current_bands(),
+            });
+        }
+
+        self.current_bands.pop_front();
+        None
+    }
+
+    /// Run the placement algorithm for this [PlacementAmongFloats].
+    pub(crate) fn place(&mut self) -> Vec2<Length> {
+        while self.current_bands.len() > 0 {
+            if let Some(result) = self.try_place_once() {
+                return result;
+            }
+        }
+
+        // We could not fit the object in among the floats, so we place it as if it
+        // cleared all floats.
+        return Vec2 {
+            inline: self.float_context.containing_block_info.inline_start,
+            block: self
+                .ceiling
+                .max(self.float_context.clear_left_position)
+                .max(self.float_context.clear_right_position),
+        };
     }
 }
 
@@ -133,13 +240,12 @@ impl FloatContext {
     ///
     /// This should be used for placing inline elements and block formatting contexts so that they
     /// don't collide with floats.
-    pub fn place_object(&self, object: &PlacementInfo) -> Vec2<Length> {
+    pub(crate) fn place_object(&self, object: &PlacementInfo, ceiling: Length) -> Vec2<Length> {
         let ceiling = match object.clear {
-            ClearSide::None => self.ceiling,
-            ClearSide::Left => self.ceiling.max(self.clear_left_position),
-            ClearSide::Right => self.ceiling.max(self.clear_right_position),
-            ClearSide::Both => self
-                .ceiling
+            ClearSide::None => ceiling,
+            ClearSide::Left => ceiling.max(self.clear_left_position),
+            ClearSide::Right => ceiling.max(self.clear_right_position),
+            ClearSide::Both => ceiling
                 .max(self.clear_left_position)
                 .max(self.clear_right_position),
         };
@@ -163,7 +269,7 @@ impl FloatContext {
                 };
                 Vec2 {
                     inline: left_object_edge,
-                    block: first_band.top.max(self.ceiling),
+                    block: first_band.top.max(ceiling),
                 }
             },
             FloatSide::Right => {
@@ -173,16 +279,16 @@ impl FloatContext {
                 };
                 Vec2 {
                     inline: right_object_edge - object.size.inline,
-                    block: first_band.top.max(self.ceiling),
+                    block: first_band.top.max(ceiling),
                 }
             },
         }
     }
 
     /// Places a new float and adds it to the list. Returns the start corner of its margin box.
-    pub fn add_float(&mut self, new_float: &PlacementInfo) -> Vec2<Length> {
+    pub(crate) fn add_float(&mut self, new_float: &PlacementInfo) -> Vec2<Length> {
         // Place the float.
-        let new_float_origin = self.place_object(&new_float);
+        let new_float_origin = self.place_object(&new_float, self.ceiling);
         let new_float_extent = match new_float.side {
             FloatSide::Left => new_float_origin.inline + new_float.size.inline,
             FloatSide::Right => new_float_origin.inline,
@@ -242,7 +348,7 @@ impl FloatContext {
 
 /// Information needed to place an object so that it doesn't collide with existing floats.
 #[derive(Clone, Debug)]
-pub struct PlacementInfo {
+pub(crate) struct PlacementInfo {
     /// The *margin* box size of the object.
     pub size: Vec2<Length>,
     /// Whether the object is (logically) aligned to the left or right.
@@ -909,7 +1015,7 @@ impl SequentialLayoutState {
         &mut self,
         box_fragment: &mut BoxFragment,
         margins_collapsing_with_parent_containing_block: CollapsedMargin,
-        block_offset_from_containining_block_top: CSSPixelLength,
+        block_offset_from_containing_block_top: Length,
     ) {
         let block_start_of_containing_block_in_bfc = self.floats.containing_block_info.block_start +
             self.floats
@@ -919,7 +1025,7 @@ impl SequentialLayoutState {
                 .solve();
 
         self.floats.lower_ceiling(
-            block_start_of_containing_block_in_bfc + block_offset_from_containining_block_top,
+            block_start_of_containing_block_in_bfc + block_offset_from_containing_block_top,
         );
 
         let pbm_sums = &(&box_fragment.padding + &box_fragment.border) + &box_fragment.margin;

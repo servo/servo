@@ -4,6 +4,7 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
+use self::float::PlacementAmongFloats;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{ClearSide, ContainingBlockPositionInfo, FloatBox, SequentialLayoutState};
@@ -521,13 +522,10 @@ impl BlockLevelBox {
                         containing_block,
                         &non_replaced.style,
                         |positioning_context| {
-                            layout_in_flow_non_replaced_block_level_independent_formatting_context(
+                            non_replaced.layout_in_flow_block_level(
                                 layout_context,
                                 positioning_context,
                                 containing_block,
-                                non_replaced.base_fragment_info,
-                                &non_replaced.style,
-                                non_replaced,
                                 sequential_layout_state,
                             )
                         },
@@ -766,82 +764,209 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     )
 }
 
-/// Lay out a normal flow non-replaced block that establishes and independent formatting
-/// context in its containing formatting context.
-///
-/// - https://drafts.csswg.org/css2/visudet.html#blockwidth
-/// - https://drafts.csswg.org/css2/visudet.html#normal-block
-fn layout_in_flow_non_replaced_block_level_independent_formatting_context(
-    layout_context: &LayoutContext,
-    positioning_context: &mut PositioningContext,
-    containing_block: &ContainingBlock,
-    base_fragment_info: BaseFragmentInfo,
-    style: &Arc<ComputedValues>,
-    independent_formatting_context: &NonReplacedFormattingContext,
-    mut sequential_layout_state: Option<&mut SequentialLayoutState>,
-) -> BoxFragment {
-    let ContainingBlockPaddingBorderAndMargin {
-        containing_block: containing_block_for_children,
-        pbm,
-        min_box_size,
-        max_box_size,
-        margin,
-    } = solve_containing_block_padding_border_and_margin_for_in_flow_box(containing_block, style);
+impl NonReplacedFormattingContext {
+    /// Lay out a normal in flow non-replaced block that establishes an independent
+    /// formatting context in its containing formatting context.
+    ///
+    /// - https://drafts.csswg.org/css2/visudet.html#blockwidth
+    /// - https://drafts.csswg.org/css2/visudet.html#normal-block
+    fn layout_in_flow_block_level(
+        &self,
+        layout_context: &LayoutContext,
+        positioning_context: &mut PositioningContext,
+        containing_block: &ContainingBlock,
+        sequential_layout_state: Option<&mut SequentialLayoutState>,
+    ) -> BoxFragment {
+        let ContainingBlockPaddingBorderAndMargin {
+            containing_block: containing_block_for_children,
+            pbm,
+            min_box_size,
+            max_box_size,
+            margin,
+        } = solve_containing_block_padding_border_and_margin_for_in_flow_box(
+            containing_block,
+            &self.style,
+        );
 
-    let layout = independent_formatting_context.layout(
-        layout_context,
-        positioning_context,
-        &containing_block_for_children,
-    );
+        if let Some(sequential_layout_state) = sequential_layout_state {
+            return self.layout_in_flow_block_level_sequentially(
+                layout_context,
+                positioning_context,
+                containing_block,
+                sequential_layout_state,
+            );
+        }
 
-    let content_block_size = layout.content_block_size;
-    let block_size = containing_block_for_children.block_size.auto_is(|| {
-        content_block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
-    });
+        let layout = self.layout(
+            layout_context,
+            positioning_context,
+            &containing_block_for_children,
+        );
 
-    let mut clearance = None;
-    if let Some(ref mut sequential_layout_state) = sequential_layout_state {
-        clearance = sequential_layout_state.calculate_clearance_and_adjoin_margin(
-            style,
+        let block_size = containing_block_for_children.block_size.auto_is(|| {
+            layout
+                .content_block_size
+                .clamp_between_extremums(min_box_size.block, max_box_size.block)
+        });
+
+        let content_rect = Rect {
+            start_corner: Vec2 {
+                block: pbm.padding.block_start + pbm.border.block_start,
+                inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
+            },
+            size: Vec2 {
+                block: block_size,
+                inline: containing_block_for_children.inline_size,
+            },
+        };
+
+        let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
+        BoxFragment::new(
+            self.base_fragment_info,
+            self.style.clone(),
+            layout.fragments,
+            content_rect,
+            pbm.padding,
+            pbm.border,
+            margin,
+            None, /* clearance */
+            block_margins_collapsed_with_children,
+        )
+    }
+
+    /// Lay out a normal in flow non-replaced block that establishes an independent
+    /// formatting context in its containing formatting context but handling sequential
+    /// layout concerns, such clearing and placing the content next to floats.
+    fn layout_in_flow_block_level_sequentially(
+        &self,
+        layout_context: &LayoutContext<'_>,
+        positioning_context: &mut PositioningContext,
+        containing_block: &ContainingBlock<'_>,
+        sequential_layout_state: &mut SequentialLayoutState,
+    ) -> BoxFragment {
+        let ContainingBlockPaddingBorderAndMargin {
+            containing_block: containing_block_for_children,
+            pbm,
+            min_box_size,
+            max_box_size,
+            margin,
+        } = solve_containing_block_padding_border_and_margin_for_in_flow_box(
+            containing_block,
+            &self.style,
+        );
+
+        let clearance = sequential_layout_state.calculate_clearance_and_adjoin_margin(
+            &self.style,
             &CollapsedMargin::new(margin.block_start),
         );
         sequential_layout_state.collapse_margins();
 
-        // Account for padding and border. We also might have to readjust the
-        // `bfc_relative_block_position` if it was different from the content size (i.e. was
-        // non-`auto` and/or was affected by min/max block size).
-        sequential_layout_state.advance_block_position(
-            (block_size - content_block_size) + pbm.padding.block_sum() + pbm.border.block_sum(),
+        let layout = self.layout(
+            layout_context,
+            positioning_context,
+            &containing_block_for_children,
         );
+        let block_size = containing_block_for_children.block_size.auto_is(|| {
+            layout
+                .content_block_size
+                .clamp_between_extremums(min_box_size.block, max_box_size.block)
+        });
 
+        // From https://drafts.csswg.org/css2/#floats:
+        // "The border box of a table, a block-level replaced element, or an element in
+        //  the normal flow that establishes a new block formatting context (such as an
+        //  element with overflow other than visible) must not overlap the margin box of
+        //  any floats in the same block formatting context as the element itself. If
+        //  necessary, implementations should clear the said element by placing it below
+        //  any preceding floats, but may place it adjacent to such floats if there is
+        //  sufficient space. They may even make the border box of said element narrower
+        //  than defined by section 10.3.3. CSS 2 does not define when a UA may put said
+        //  element next to the float or by how much said element may become narrower."
+        let mut adjustment_from_floats = Vec2::zero();
+        adjustment_from_floats.block = clearance.unwrap_or_else(Length::zero);
+
+        let inline_size_is_auto = self
+            .style
+            .box_size(containing_block.style.writing_mode)
+            .inline
+            .is_auto();
+        if !inline_size_is_auto {
+            let size = &Vec2 {
+                inline: containing_block_for_children.inline_size,
+                block: block_size,
+            } + &pbm.padding_border_sums;
+            let placement = PlacementAmongFloats::new(
+                &sequential_layout_state.floats,
+                sequential_layout_state.bfc_relative_block_position +
+                    clearance.unwrap_or_else(Length::zero),
+                size.clone(),
+            )
+            .place();
+
+            // This placement is in the coordinates of the float-containing block formatting
+            // context, but we need to calculate an offset to use for placing this replaced
+            // element.
+            adjustment_from_floats = &placement -
+                &Vec2 {
+                    inline: sequential_layout_state
+                        .floats
+                        .containing_block_info
+                        .inline_start,
+                    block: sequential_layout_state.bfc_relative_block_position,
+                };
+        }
+
+        sequential_layout_state.advance_block_position(
+            pbm.padding_border_sums.block + adjustment_from_floats.block + block_size,
+        );
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
+
+        let block_size = containing_block_for_children.block_size.auto_is(|| {
+            layout
+                .content_block_size
+                .clamp_between_extremums(min_box_size.block, max_box_size.block)
+        });
+        let content_rect = Rect {
+            start_corner: Vec2 {
+                block: pbm.padding.block_start +
+                    pbm.border.block_start +
+                    adjustment_from_floats.block,
+                inline: pbm.padding.inline_start +
+                    pbm.border.inline_start +
+                    margin.inline_start +
+                    adjustment_from_floats.inline,
+            },
+            size: Vec2 {
+                block: block_size,
+                inline: containing_block_for_children.inline_size,
+            },
+        };
+
+        // Clearance and any adjustment from float should prevent margin collapse, so it's
+        // important to make sure that it is non-None even when it is zero. Yet, when we
+        // didn't have clearance or any adjustment from placing next to floats, we want the
+        // value of clearance on the Fragment to be None, so margin collapse still works
+        // properly.
+        let effective_clearance =
+            if clearance.is_some() || adjustment_from_floats.block != Length::zero() {
+                Some(adjustment_from_floats.block)
+            } else {
+                None
+            };
+
+        let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
+        BoxFragment::new(
+            self.base_fragment_info,
+            self.style.clone(),
+            layout.fragments,
+            content_rect,
+            pbm.padding,
+            pbm.border,
+            margin,
+            effective_clearance,
+            block_margins_collapsed_with_children,
+        )
     }
-
-    let content_rect = Rect {
-        start_corner: Vec2 {
-            block: pbm.padding.block_start +
-                pbm.border.block_start +
-                clearance.unwrap_or_else(Length::zero),
-            inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
-        },
-        size: Vec2 {
-            block: block_size,
-            inline: containing_block_for_children.inline_size,
-        },
-    };
-
-    let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
-    BoxFragment::new(
-        base_fragment_info,
-        style.clone(),
-        layout.fragments,
-        content_rect,
-        pbm.padding,
-        pbm.border,
-        margin,
-        clearance,
-        block_margins_collapsed_with_children,
-    )
 }
 
 /// https://drafts.csswg.org/css2/visudet.html#block-replaced-width
@@ -867,33 +992,72 @@ fn layout_in_flow_replaced_block_level<'a>(
     };
     let fragments = replaced.make_fragments(style, size.clone());
 
-    let mut clearance = None;
+    let mut had_clearance = false;
+    let mut adjustment_from_floats = Vec2::zero();
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
-        clearance = sequential_layout_state.calculate_clearance_and_adjoin_margin(
+        let clearance = sequential_layout_state.calculate_clearance_and_adjoin_margin(
             style,
             &CollapsedMargin::new(margin.block_start),
         );
+        had_clearance = clearance.is_some();
         sequential_layout_state.collapse_margins();
-        sequential_layout_state.advance_block_position(
-            pbm.border.block_sum() +
-                pbm.padding.block_sum() +
-                size.block +
+
+        // From https://drafts.csswg.org/css2/#floats:
+        // "The border box of a table, a block-level replaced element, or an element in
+        //  the normal flow that establishes a new block formatting context (such as an
+        //  element with overflow other than visible) must not overlap the margin box of
+        //  any floats in the same block formatting context as the element itself. If
+        //  necessary, implementations should clear the said element by placing it below
+        //  any preceding floats, but may place it adjacent to such floats if there is
+        //  sufficient space. They may even make the border box of said element narrower
+        //  than defined by section 10.3.3. CSS 2 does not define when a UA may put said
+        //  element next to the float or by how much said element may become narrower."
+        let placement_among_floats = PlacementAmongFloats::new(
+            &sequential_layout_state.floats,
+            sequential_layout_state.bfc_relative_block_position +
                 clearance.unwrap_or_else(Length::zero),
+            &size + &pbm.padding_border_sums,
+        )
+        .place();
+
+        // This placement is in the coordinates of the float-containing block formatting
+        // context, but we need to calculate an offset to use for placing this replaced
+        // element.
+        adjustment_from_floats = &placement_among_floats -
+            &Vec2 {
+                inline: sequential_layout_state
+                    .floats
+                    .containing_block_info
+                    .inline_start,
+                block: sequential_layout_state.bfc_relative_block_position,
+            };
+        sequential_layout_state.advance_block_position(
+            pbm.padding_border_sums.block + size.block + adjustment_from_floats.block,
         );
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
     };
 
-    let content_rect = Rect {
-        start_corner: Vec2 {
-            block: pbm.padding.block_start +
-                pbm.border.block_start +
-                clearance.unwrap_or_else(Length::zero),
-            inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
-        },
-        size,
+    let start_corner = Vec2 {
+        block: pbm.padding.block_start + pbm.border.block_start + adjustment_from_floats.block,
+        inline: pbm.padding.inline_start +
+            pbm.border.inline_start +
+            margin.inline_start +
+            adjustment_from_floats.inline,
     };
-    let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
 
+    // Clearance and any adjustment from float should prevent margin collapse, so it's
+    // important to make sure that it is non-None even when it is zero. Yet, when we
+    // didn't have clearance or any adjustment from placing next to floats, we want the
+    // value of clearance on the Fragment to be None, so margin collapse still works
+    // properly.
+    let effective_clearance = if had_clearance || adjustment_from_floats.block != Length::zero() {
+        Some(adjustment_from_floats.block)
+    } else {
+        None
+    };
+
+    let content_rect = Rect { start_corner, size };
+    let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
     BoxFragment::new(
         base_fragment_info,
         style.clone(),
@@ -902,7 +1066,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         pbm.padding,
         pbm.border,
         margin,
-        clearance,
+        effective_clearance,
         block_margins_collapsed_with_children,
     )
 }
