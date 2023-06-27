@@ -48,13 +48,14 @@ use std::num::NonZeroU32;
 use std::rc::Rc;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
+use webrender;
+use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
-    self, BuiltDisplayList, CaptureBits, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
-    ExternalScrollId, HitTestFlags, PipelineId as WebRenderPipelineId, RenderApi, ScrollClamping,
-    ScrollLocation, Transaction, ZoomFactor,
+    self, BuiltDisplayList, DirtyRect, DocumentId, Epoch as WebRenderEpoch, ExternalScrollId,
+    HitTestFlags, PipelineId as WebRenderPipelineId, ScrollClamping, ScrollLocation, ZoomFactor,
 };
 use webrender_surfman::WebrenderSurfman;
 
@@ -649,58 +650,55 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     WebRenderEpoch(0),
                     None,
                     Default::default(),
-                    (pipeline, Default::default(), Default::default()),
+                    (pipeline, Default::default()),
                     false,
                 );
+
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendScrollNode(
-                point,
-                scroll_id,
-                clamping,
-            )) => {
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendScrollNode(point, scroll_id)) => {
                 self.waiting_for_results_of_scroll = true;
 
                 let mut txn = Transaction::new();
-                txn.scroll_node_with_id(point, scroll_id, clamping);
-                txn.generate_frame();
+                txn.scroll_node_with_id(point, scroll_id, ScrollClamping::ToContentBounds);
+                txn.generate_frame(0);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList {
                 display_list_info,
-                content_size,
                 display_list_descriptor,
                 display_list_receiver,
-            }) => match display_list_receiver.recv() {
-                Ok(data) => {
-                    self.waiting_on_pending_frame = true;
+            }) => {
+                let display_list_data = match display_list_receiver.recv() {
+                    Ok(display_list_data) => display_list_data,
+                    _ => return warn!("Could not recieve WebRender display list."),
+                };
 
-                    let pipeline_id = display_list_info.pipeline_id;
-                    let details = self.pipeline_details(PipelineId::from_webrender(pipeline_id));
-                    details.hit_test_items = display_list_info.hit_test_info;
-                    details.install_new_scroll_tree(display_list_info.scroll_tree);
+                self.waiting_on_pending_frame = true;
 
-                    let mut txn = Transaction::new();
-                    txn.set_display_list(
-                        display_list_info.epoch,
-                        None,
-                        display_list_info.viewport_size,
-                        (
-                            pipeline_id,
-                            content_size,
-                            BuiltDisplayList::from_data(data, display_list_descriptor),
-                        ),
-                        true,
-                    );
-                    txn.generate_frame();
-                    self.webrender_api
-                        .send_transaction(self.webrender_document, txn);
-                },
-                Err(e) => warn!("error receiving display list data: {e:?}"),
+                let pipeline_id = display_list_info.pipeline_id;
+                let details = self.pipeline_details(PipelineId::from_webrender(pipeline_id));
+                details.hit_test_items = display_list_info.hit_test_info;
+                details.install_new_scroll_tree(display_list_info.scroll_tree);
+
+                let mut txn = Transaction::new();
+                txn.set_display_list(
+                    display_list_info.epoch,
+                    None,
+                    display_list_info.viewport_size,
+                    (
+                        pipeline_id,
+                        BuiltDisplayList::from_data(display_list_data, display_list_descriptor),
+                    ),
+                    true,
+                );
+                txn.generate_frame(0);
+                self.webrender_api
+                    .send_transaction(self.webrender_document, txn);
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(
@@ -876,7 +874,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let pipeline_id = frame_tree.pipeline.id.to_webrender();
         let mut txn = Transaction::new();
         txn.set_root_pipeline(pipeline_id);
-        txn.generate_frame();
+        txn.generate_frame(0);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
 
@@ -925,14 +923,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    fn send_window_size(&self, size_type: WindowSizeType) {
+    fn send_window_size(&mut self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
 
-        self.webrender_api.set_document_view(
-            self.webrender_document,
+        let mut transaction = Transaction::new();
+        transaction.set_document_view(
             self.embedder_coordinates.get_viewport(),
             self.embedder_coordinates.hidpi_factor.get(),
         );
+        self.webrender_api
+            .send_transaction(self.webrender_document, transaction);
 
         let initial_viewport = self.embedder_coordinates.viewport.size.to_f32() / dppx;
 
@@ -1195,17 +1195,17 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     pub fn on_scroll_event(
         &mut self,
-        delta: ScrollLocation,
+        scroll_location: ScrollLocation,
         cursor: DeviceIntPoint,
         phase: TouchEventType,
     ) {
         match phase {
-            TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
+            TouchEventType::Move => self.on_scroll_window_event(scroll_location, cursor),
             TouchEventType::Up | TouchEventType::Cancel => {
-                self.on_scroll_window_event(delta, cursor);
+                self.on_scroll_window_event(scroll_location, cursor);
             },
             TouchEventType::Down => {
-                self.on_scroll_window_event(delta, cursor);
+                self.on_scroll_window_event(scroll_location, cursor);
             },
         }
     }
@@ -1213,7 +1213,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
-            scroll_location: scroll_location,
+            scroll_location,
             cursor: cursor,
             event_count: 1,
         });
@@ -1307,7 +1307,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.set_pinch_zoom_level(old_zoom * combined_event.magnification);
                 txn.set_pinch_zoom(ZoomFactor::new(self.pinch_zoom_level()));
             }
-            txn.generate_frame();
+            txn.generate_frame(0);
             self.webrender_api
                 .send_transaction(self.webrender_document, txn);
             self.waiting_for_results_of_scroll = true
@@ -1395,7 +1395,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn update_page_zoom_for_webrender(&mut self) {
         let page_zoom = ZoomFactor::new(self.page_zoom.get());
 
-        let mut txn = Transaction::new();
+        let mut txn = webrender::Transaction::new();
         txn.set_page_zoom(page_zoom);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
@@ -1609,7 +1609,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
                 self.clear_background();
-                self.webrender.render(size).ok();
+                self.webrender.render(size, 0 /* buffer_age */).ok();
             },
         );
 
@@ -1904,7 +1904,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender.set_debug_flags(flags);
 
         let mut txn = Transaction::new();
-        txn.generate_frame();
+        txn.generate_frame(0);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
     }

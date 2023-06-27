@@ -12,8 +12,8 @@ use crossbeam_channel::Sender;
 use profile_traits::mem;
 use profile_traits::time;
 use std::rc::Rc;
+use webrender::RenderApi;
 use webrender_api::DocumentId;
-use webrender_api::RenderApi;
 use webrender_surfman::WebrenderSurfman;
 
 mod compositor;

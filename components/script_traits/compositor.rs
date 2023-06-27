@@ -220,6 +220,9 @@ pub struct CompositorDisplayListInfo {
     /// The size of the viewport that this display list renders into.
     pub viewport_size: LayoutSize,
 
+    /// The size of this display list's content.
+    pub content_size: LayoutSize,
+
     /// The epoch of the display list.
     pub epoch: Epoch,
 
@@ -270,6 +273,7 @@ impl CompositorDisplayListInfo {
         CompositorDisplayListInfo {
             pipeline_id,
             viewport_size,
+            content_size,
             epoch,
             hit_test_info: Default::default(),
             scroll_tree,

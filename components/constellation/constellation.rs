@@ -179,7 +179,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use style_traits::CSSPixel;
 use webgpu::{self, WebGPU, WebGPURequest};
-use webrender_api::{DocumentId, RenderApi, RenderApiSender};
+use webrender::{RenderApi, RenderApiSender};
+use webrender_api::DocumentId;
 use webrender_traits::WebrenderExternalImageRegistry;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;

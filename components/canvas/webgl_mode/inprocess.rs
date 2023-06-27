@@ -13,7 +13,8 @@ use std::default::Default;
 use std::sync::{Arc, Mutex};
 use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{Device, SurfaceInfo, SurfaceTexture};
-use webrender_api::{DocumentId, RenderApiSender};
+use webrender::RenderApiSender;
+use webrender_api::DocumentId;
 use webrender_surfman::WebrenderSurfman;
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,

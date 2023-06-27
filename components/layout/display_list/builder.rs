@@ -71,10 +71,11 @@ use style::values::specified::ui::CursorKind;
 use style::values::RGBA;
 use style_traits::{CSSPixel, ToCss};
 use webrender_api::units::{LayoutRect, LayoutTransform, LayoutVector2D};
-use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
-use webrender_api::{ColorU, ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle};
-use webrender_api::{NinePatchBorder, NinePatchBorderSource, NormalBorder, PropertyBinding};
-use webrender_api::{ScrollSensitivity, StickyOffsetBounds};
+use webrender_api::{
+    self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ColorU,
+    ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder,
+    NinePatchBorderSource, NormalBorder, PropertyBinding, ScrollSensitivity, StickyOffsetBounds,
+};
 
 static THREAD_TINT_COLORS: [ColorF; 8] = [
     ColorF {
