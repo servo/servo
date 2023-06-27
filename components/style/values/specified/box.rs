@@ -72,7 +72,6 @@ pub enum DisplayOutside {
 #[repr(u8)]
 pub enum DisplayInside {
     None = 0,
-    #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
     Contents,
     Flow,
     FlowRoot,
@@ -142,7 +141,6 @@ impl Display {
 
     /// https://drafts.csswg.org/css-display/#the-display-properties
     pub const None: Self = Self::new(DisplayOutside::None, DisplayInside::None);
-    #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
     pub const Contents: Self = Self::new(DisplayOutside::None, DisplayInside::Contents);
     pub const Inline: Self = Self::new(DisplayOutside::Inline, DisplayInside::Flow);
     pub const InlineBlock: Self = Self::new(DisplayOutside::Inline, DisplayInside::FlowRoot);
@@ -352,7 +350,6 @@ impl Display {
     ///
     /// Also used for :root style adjustments.
     pub fn equivalent_block_display(&self, _is_root_element: bool) -> Self {
-        #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
         {
             // Special handling for `contents` and `list-item`s on the root element.
             if _is_root_element && (self.is_contents() || self.is_list_item()) {
@@ -398,7 +395,6 @@ impl Display {
     #[inline]
     pub fn is_contents(&self) -> bool {
         match *self {
-            #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
             Display::Contents => true,
             _ => false,
         }
@@ -463,7 +459,6 @@ fn parse_display_inside<'i, 't>(
     Ok(try_match_ident_ignore_ascii_case! { input,
         "flow" => DisplayInside::Flow,
         "flex" if flexbox_enabled() => DisplayInside::Flex,
-        #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
         "flow-root" => DisplayInside::FlowRoot,
         #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
         "table" => DisplayInside::Table,
@@ -562,7 +557,6 @@ impl Parse for Display {
         // Now parse the single-keyword `display` values.
         Ok(try_match_ident_ignore_ascii_case! { input,
             "none" => Display::None,
-            #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
             "contents" => Display::Contents,
             "inline-block" => Display::InlineBlock,
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
