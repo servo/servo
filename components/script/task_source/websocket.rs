@@ -8,7 +8,10 @@ use crate::task_source::{TaskSource, TaskSourceName};
 use msg::constellation_msg::PipelineId;
 
 #[derive(JSTraceable)]
-pub struct WebsocketTaskSource(pub Box<dyn ScriptChan + Send + 'static>, pub PipelineId);
+pub struct WebsocketTaskSource(
+    pub Box<dyn ScriptChan + Send + 'static>,
+    #[no_trace] pub PipelineId,
+);
 
 impl Clone for WebsocketTaskSource {
     fn clone(&self) -> WebsocketTaskSource {

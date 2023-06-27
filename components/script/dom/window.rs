@@ -225,6 +225,7 @@ pub struct Window {
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
     /// Parent id associated with this page, if any.
+    #[no_trace]
     parent_info: Option<PipelineId>,
 
     /// Global static data related to the DOM.

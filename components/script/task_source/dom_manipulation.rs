@@ -16,7 +16,7 @@ use std::fmt;
 use std::result::Result;
 
 #[derive(JSTraceable)]
-pub struct DOMManipulationTaskSource(pub Box<dyn ScriptChan + Send>, pub PipelineId);
+pub struct DOMManipulationTaskSource(pub Box<dyn ScriptChan + Send>, #[no_trace] pub PipelineId);
 
 impl Clone for DOMManipulationTaskSource {
     fn clone(&self) -> DOMManipulationTaskSource {

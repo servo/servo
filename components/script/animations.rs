@@ -569,6 +569,7 @@ impl TransitionOrAnimationEventType {
 /// A transition or animation event.
 pub struct TransitionOrAnimationEvent {
     /// The pipeline id of the layout task that sent this message.
+    #[no_trace]
     pub pipeline_id: PipelineId,
     /// The type of transition event this should trigger.
     pub event_type: TransitionOrAnimationEventType,

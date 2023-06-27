@@ -72,13 +72,16 @@ pub struct WindowProxy {
     /// The id of the browsing context.
     /// In the case that this is a nested browsing context, this is the id
     /// of the container.
+    #[no_trace]
     browsing_context_id: BrowsingContextId,
 
     // https://html.spec.whatwg.org/multipage/#opener-browsing-context
+    #[no_trace]
     opener: Option<BrowsingContextId>,
 
     /// The frame id of the top-level ancestor browsing context.
     /// In the case that this is a top-level window, this is our id.
+    #[no_trace]
     top_level_browsing_context_id: TopLevelBrowsingContextId,
 
     /// The name of the browsing context (sometimes, but not always,
@@ -89,6 +92,7 @@ pub struct WindowProxy {
     /// We do not try to keep the pipeline id for documents in other threads,
     /// as this would require the constellation notifying many script threads about
     /// the change, which could be expensive.
+    #[no_trace]
     currently_active: Cell<Option<PipelineId>>,
 
     /// Has the browsing context been discarded?

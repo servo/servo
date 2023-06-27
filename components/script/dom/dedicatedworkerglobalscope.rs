@@ -190,6 +190,7 @@ pub struct DedicatedWorkerGlobalScope {
     parent_sender: Box<dyn ScriptChan + Send>,
     #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<dyn ImageCache>,
+    #[no_trace]
     browsing_context: Option<BrowsingContextId>,
     /// A receiver of control messages,
     /// currently only used to signal shutdown.

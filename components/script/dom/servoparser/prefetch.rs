@@ -76,6 +76,7 @@ impl Tokenizer {
 #[derive(JSTraceable)]
 struct PrefetchSink {
     origin: ImmutableOrigin,
+    #[no_trace]
     pipeline_id: PipelineId,
     document_url: ServoUrl,
     base_url: Option<ServoUrl>,

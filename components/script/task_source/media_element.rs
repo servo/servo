@@ -18,7 +18,7 @@ use std::fmt;
 use std::result::Result;
 
 #[derive(Clone, JSTraceable)]
-pub struct MediaElementTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);
+pub struct MediaElementTaskSource(pub Sender<MainThreadScriptMsg>, #[no_trace] pub PipelineId);
 
 impl fmt::Debug for MediaElementTaskSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

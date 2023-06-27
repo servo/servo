@@ -40,6 +40,7 @@ pub struct XRSystem {
     active_immersive_session: MutNullableDom<XRSession>,
     active_inline_sessions: DomRefCell<Vec<Dom<XRSession>>>,
     test: MutNullableDom<XRTest>,
+    #[no_trace]
     pipeline: PipelineId,
 }
 

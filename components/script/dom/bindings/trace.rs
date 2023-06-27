@@ -89,10 +89,6 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use media::WindowGLContext;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use mime::Mime;
-use msg::constellation_msg::{
-    BlobId, BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
-    MessagePortRouterId, PipelineId, TopLevelBrowsingContextId,
-};
 use msg::constellation_msg::{ServiceWorkerId, ServiceWorkerRegistrationId};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -108,8 +104,6 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::message::PendingRestyle;
 use script_layout_interface::rpc::LayoutRPC;
 use script_layout_interface::StyleAndOpaqueLayoutData;
-use script_traits::serializable::BlobImpl;
-use script_traits::transferable::MessagePortImpl;
 use script_traits::{
     DocumentActivity, DrawAPaintImageResult, MediaSessionActionType, ScriptToConstellationChan,
     TimerEventId, TimerSource, UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData,
@@ -222,17 +216,8 @@ unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>, Box<dyn EventLoopWaker>);
 
 unsafe_no_jsmanaged_fields!(IncompleteParserContexts);
 
-unsafe_no_jsmanaged_fields!(MessagePortImpl);
-unsafe_no_jsmanaged_fields!(MessagePortId);
-unsafe_no_jsmanaged_fields!(MessagePortRouterId);
-
 unsafe_no_jsmanaged_fields!(ServiceWorkerId);
 unsafe_no_jsmanaged_fields!(ServiceWorkerRegistrationId);
-
-unsafe_no_jsmanaged_fields!(BroadcastChannelRouterId);
-
-unsafe_no_jsmanaged_fields!(BlobId);
-unsafe_no_jsmanaged_fields!(BlobImpl);
 
 unsafe_no_jsmanaged_fields!(CSSError);
 
@@ -569,12 +554,7 @@ unsafe_no_jsmanaged_fields!(Font);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 unsafe_no_jsmanaged_fields!(DocumentActivity, WindowSizeData, WindowSizeType);
-unsafe_no_jsmanaged_fields!(
-    BrowsingContextId,
-    HistoryStateId,
-    PipelineId,
-    TopLevelBrowsingContextId
-);
+
 unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
 unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);

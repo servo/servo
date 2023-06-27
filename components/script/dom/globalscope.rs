@@ -194,6 +194,7 @@ pub struct GlobalScope {
     worker_map: DomRefCell<HashMap<ServiceWorkerId, Dom<ServiceWorker>>>,
 
     /// Pipeline id associated with this global.
+    #[no_trace]
     pipeline_id: PipelineId,
 
     /// A flag to indicate whether the developer tools has requested
@@ -379,6 +380,7 @@ pub struct BlobInfo {
     /// The weak ref to the corresponding DOM object.
     tracker: BlobTracker,
     /// The data and logic backing the DOM object.
+    #[no_trace]
     blob_impl: BlobImpl,
     /// Whether this blob has an outstanding URL,
     /// <https://w3c.github.io/FileAPI/#url>.
@@ -389,7 +391,7 @@ pub struct BlobInfo {
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum BlobState {
     /// A map of managed blobs.
-    Managed(HashMap<BlobId, BlobInfo>),
+    Managed(#[no_trace] HashMap<BlobId, BlobInfo>),
     /// This global is not managing any blobs at this time.
     UnManaged,
 }
@@ -412,6 +414,7 @@ pub struct ManagedMessagePort {
     /// The option is needed to take out the port-impl
     /// as part of its transferring steps,
     /// without having to worry about rooting the dom-port.
+    #[no_trace]
     port_impl: Option<MessagePortImpl>,
     /// We keep ports pending when they are first transfer-received,
     /// and only add them, and ask the constellation to complete the transfer,
@@ -430,7 +433,7 @@ pub enum BroadcastChannelState {
     /// of https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage
     /// requires keeping track of creation order, hence the queue.
     Managed(
-        BroadcastChannelRouterId,
+        #[no_trace] BroadcastChannelRouterId,
         /// The map of channel-name to queue of channels, in order of creation.
         HashMap<DOMString, VecDeque<Dom<BroadcastChannel>>>,
     ),
@@ -444,8 +447,8 @@ pub enum BroadcastChannelState {
 pub enum MessagePortState {
     /// The message-port router id for this global, and a map of managed ports.
     Managed(
-        MessagePortRouterId,
-        HashMap<MessagePortId, ManagedMessagePort>,
+        #[no_trace] MessagePortRouterId,
+        #[no_trace] HashMap<MessagePortId, ManagedMessagePort>,
     ),
     /// This global is not managing any ports at this time.
     UnManaged,

@@ -53,6 +53,7 @@ pub trait MicrotaskRunnable {
 pub struct EnqueuedPromiseCallback {
     #[ignore_malloc_size_of = "Rc has unclear ownership"]
     pub callback: Rc<PromiseJobCallback>,
+    #[no_trace]
     pub pipeline: PipelineId,
     pub is_user_interacting: bool,
 }
@@ -63,6 +64,7 @@ pub struct EnqueuedPromiseCallback {
 pub struct UserMicrotask {
     #[ignore_malloc_size_of = "Rc has unclear ownership"]
     pub callback: Rc<VoidFunction>,
+    #[no_trace]
     pub pipeline: PipelineId,
 }
 

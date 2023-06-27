@@ -10,7 +10,10 @@ use std::fmt;
 
 #[derive(JSTraceable)]
 /// https://html.spec.whatwg.org/multipage/#timer-task-source
-pub struct TimerTaskSource(pub Box<dyn ScriptChan + Send + 'static>, pub PipelineId);
+pub struct TimerTaskSource(
+    pub Box<dyn ScriptChan + Send + 'static>,
+    #[no_trace] pub PipelineId,
+);
 
 impl Clone for TimerTaskSource {
     fn clone(&self) -> TimerTaskSource {

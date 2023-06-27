@@ -16,7 +16,10 @@ use std::fmt;
 use std::result::Result;
 
 #[derive(JSTraceable)]
-pub struct PerformanceTimelineTaskSource(pub Box<dyn ScriptChan + Send + 'static>, pub PipelineId);
+pub struct PerformanceTimelineTaskSource(
+    pub Box<dyn ScriptChan + Send + 'static>,
+    #[no_trace] pub PipelineId,
+);
 
 impl Clone for PerformanceTimelineTaskSource {
     fn clone(&self) -> PerformanceTimelineTaskSource {
