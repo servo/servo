@@ -34,6 +34,7 @@ pub struct CSSStyleDeclaration {
     reflector_: Reflector,
     owner: CSSStyleOwner,
     readonly: bool,
+    #[no_trace]
     pseudo: Option<PseudoElement>,
 }
 
@@ -43,7 +44,9 @@ pub enum CSSStyleOwner {
     Element(Dom<Element>),
     CSSRule(
         Dom<CSSRule>,
-        #[ignore_malloc_size_of = "Arc"] Arc<Locked<PropertyDeclarationBlock>>,
+        #[ignore_malloc_size_of = "Arc"]
+        #[no_trace]
+        Arc<Locked<PropertyDeclarationBlock>>,
     ),
 }
 

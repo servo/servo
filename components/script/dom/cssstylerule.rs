@@ -26,6 +26,7 @@ use style::stylesheets::{Origin, StyleRule};
 pub struct CSSStyleRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     stylerule: Arc<Locked<StyleRule>>,
     style_decl: MutNullableDom<CSSStyleDeclaration>,
 }

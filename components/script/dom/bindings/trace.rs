@@ -106,23 +106,8 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Instant, SystemTime};
-use style::animation::DocumentAnimationSet;
-use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::author_styles::AuthorStyles;
-use style::context::QuirksMode;
-use style::dom::OpaqueNode;
-use style::element_state::*;
-use style::media_queries::MediaList;
-use style::properties::style_structs::Font;
-use style::properties::PropertyDeclarationBlock;
-use style::selector_parser::{PseudoElement, Snapshot};
-use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLock};
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
-use style::stylesheets::keyframes_rule::Keyframe;
-use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
-use style::stylesheets::{ImportRule, NamespaceRule, StyleRule, SupportsRule};
-use style::stylist::CascadeData;
-use style::values::specified::Length;
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
 use tendril::{StrTendril, TendrilSink};
@@ -506,8 +491,6 @@ unsafe_no_jsmanaged_fields!(Error);
 unsafe_no_jsmanaged_fields!(ServoUrl, ImmutableOrigin, MutableOrigin);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
-unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
-unsafe_no_jsmanaged_fields!(Font);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 unsafe_no_jsmanaged_fields!(DocumentActivity, WindowSizeData, WindowSizeType);
@@ -515,28 +498,19 @@ unsafe_no_jsmanaged_fields!(DocumentActivity, WindowSizeData, WindowSizeType);
 unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
 unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);
-unsafe_no_jsmanaged_fields!(BufferQueue, QuirksMode, StrTendril);
+unsafe_no_jsmanaged_fields!(BufferQueue, StrTendril);
 unsafe_no_jsmanaged_fields!(Runtime);
 unsafe_no_jsmanaged_fields!(ContextForRequestInterrupt);
 unsafe_no_jsmanaged_fields!(HeaderMap, Method);
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);
-unsafe_no_jsmanaged_fields!(UntrustedNodeAddress, OpaqueNode);
-unsafe_no_jsmanaged_fields!(LengthOrPercentageOrAuto);
+unsafe_no_jsmanaged_fields!(UntrustedNodeAddress);
 unsafe_no_jsmanaged_fields!(RGBA);
 unsafe_no_jsmanaged_fields!(TimeProfilerChan);
 unsafe_no_jsmanaged_fields!(MemProfilerChan);
-unsafe_no_jsmanaged_fields!(PseudoElement);
-unsafe_no_jsmanaged_fields!(Length);
 unsafe_no_jsmanaged_fields!(ElementSelectorFlags);
-unsafe_no_jsmanaged_fields!(ElementState);
 unsafe_no_jsmanaged_fields!(DOMString);
 unsafe_no_jsmanaged_fields!(Mime);
-unsafe_no_jsmanaged_fields!(AttrIdentifier);
-unsafe_no_jsmanaged_fields!(AttrValue);
-unsafe_no_jsmanaged_fields!(Snapshot);
 unsafe_no_jsmanaged_fields!(PendingRestyle);
-unsafe_no_jsmanaged_fields!(Stylesheet);
-unsafe_no_jsmanaged_fields!(StyleSharedRwLock);
 unsafe_no_jsmanaged_fields!(USVString);
 unsafe_no_jsmanaged_fields!(StatusCode);
 unsafe_no_jsmanaged_fields!(SystemTime);
@@ -572,7 +546,6 @@ unsafe_no_jsmanaged_fields!(Option<ComputePass>);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
 unsafe_no_jsmanaged_fields!(GPUCommandEncoderState);
 unsafe_no_jsmanaged_fields!(Range<u64>);
-unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(
     webxr_api::Registry,
     webxr_api::Session,
@@ -594,13 +567,11 @@ unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>);
 unsafe_no_jsmanaged_fields!(Point2D<f32>, Rect<Au>);
 unsafe_no_jsmanaged_fields!(Rect<f32>);
-unsafe_no_jsmanaged_fields!(CascadeData);
 unsafe_no_jsmanaged_fields!(WindowGLContext);
 unsafe_no_jsmanaged_fields!(MediaSessionActionType);
 unsafe_no_jsmanaged_fields!(MediaMetadata);
 unsafe_no_jsmanaged_fields!(WebrenderIpcSender);
 unsafe_no_jsmanaged_fields!(StreamConsumer);
-unsafe_no_jsmanaged_fields!(DocumentAnimationSet);
 unsafe_no_jsmanaged_fields!(Stencil);
 
 unsafe impl<'a> JSTraceable for &'a str {
@@ -781,72 +752,6 @@ unsafe impl<Eye> JSTraceable for View<Eye> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<FontFaceRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<CssRules> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<Keyframe> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<KeyframesRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<ImportRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<SupportsRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<MediaRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<NamespaceRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<StyleRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<PropertyDeclarationBlock> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<MediaList> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
     }
 }
 

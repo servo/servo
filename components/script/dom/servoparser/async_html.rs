@@ -130,6 +130,7 @@ enum ParseOperation {
 
     SetQuirksMode {
         #[ignore_malloc_size_of = "Defined in style"]
+        #[no_trace]
         mode: ServoQuirksMode,
     },
 }

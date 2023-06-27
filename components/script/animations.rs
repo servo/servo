@@ -13,6 +13,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::NoTrace;
 use crate::dom::event::Event;
 use crate::dom::node::{from_untrusted_node_address, window_from_node, Node, NodeDamage};
 use crate::dom::transitionevent::TransitionEvent;
@@ -35,13 +36,14 @@ use style::selector_parser::PseudoElement;
 #[unrooted_must_root_lint::must_root]
 pub(crate) struct Animations {
     /// The map of nodes to their animation states.
+    #[no_trace]
     pub sets: DocumentAnimationSet,
 
     /// Whether or not we have animations that are running.
     has_running_animations: Cell<bool>,
 
     /// A list of nodes with in-progress CSS transitions or pending events.
-    rooted_nodes: DomRefCell<FxHashMap<OpaqueNode, Dom<Node>>>,
+    rooted_nodes: DomRefCell<FxHashMap<NoTrace<OpaqueNode>, Dom<Node>>>,
 
     /// A list of pending animation-related events.
     pending_events: DomRefCell<Vec<TransitionOrAnimationEvent>>,
@@ -81,7 +83,10 @@ impl Animations {
 
         let sets = self.sets.sets.read();
         let rooted_nodes = self.rooted_nodes.borrow();
-        for node in sets.keys().filter_map(|key| rooted_nodes.get(&key.node)) {
+        for node in sets
+            .keys()
+            .filter_map(|key| rooted_nodes.get(&NoTrace(key.node)))
+        {
             node.dirty(NodeDamage::NodeStyleDamaged);
         }
 
@@ -332,7 +337,7 @@ impl Animations {
         let mut rooted_nodes = self.rooted_nodes.borrow_mut();
         for (key, set) in sets.iter() {
             let opaque_node = key.node;
-            if rooted_nodes.contains_key(&opaque_node) {
+            if rooted_nodes.contains_key(&NoTrace(opaque_node)) {
                 continue;
             }
 
@@ -342,7 +347,7 @@ impl Animations {
                 let address = UntrustedNodeAddress(opaque_node.0 as *const c_void);
                 unsafe {
                     rooted_nodes.insert(
-                        opaque_node,
+                        NoTrace(opaque_node),
                         Dom::from_ref(&*from_untrusted_node_address(address)),
                     )
                 };
@@ -355,7 +360,7 @@ impl Animations {
         let pending_events = self.pending_events.borrow();
         let nodes: FxHashSet<OpaqueNode> = sets.keys().map(|key| key.node).collect();
         self.rooted_nodes.borrow_mut().retain(|node, _| {
-            nodes.contains(&node) || pending_events.iter().any(|event| event.node == *node)
+            nodes.contains(&node.0) || pending_events.iter().any(|event| event.node == node.0)
         });
     }
 
@@ -459,7 +464,7 @@ impl Animations {
         for event in events.into_iter() {
             // We root the node here to ensure that sending this event doesn't
             // unroot it as a side-effect.
-            let node = match self.rooted_nodes.borrow().get(&event.node) {
+            let node = match self.rooted_nodes.borrow().get(&NoTrace(event.node)) {
                 Some(node) => DomRoot::from_ref(&**node),
                 None => {
                     warn!("Tried to send an event for an unrooted node");
@@ -574,8 +579,10 @@ pub struct TransitionOrAnimationEvent {
     /// The type of transition event this should trigger.
     pub event_type: TransitionOrAnimationEventType,
     /// The address of the node which owns this transition.
+    #[no_trace]
     pub node: OpaqueNode,
     /// The pseudo element for this transition or animation, if applicable.
+    #[no_trace]
     pub pseudo_element: Option<PseudoElement>,
     /// The name of the property that is transitioning (in the case of a transition)
     /// or the name of the animation (in the case of an animation).

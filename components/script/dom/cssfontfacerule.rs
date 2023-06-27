@@ -17,6 +17,7 @@ use style::stylesheets::FontFaceRule;
 pub struct CSSFontFaceRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     fontfacerule: Arc<Locked<FontFaceRule>>,
 }
 

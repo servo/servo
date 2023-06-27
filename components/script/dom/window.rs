@@ -282,6 +282,7 @@ pub struct Window {
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
+    #[no_trace]
     scroll_offsets: DomRefCell<HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>>,
 
     /// All the MediaQueryLists we need to update

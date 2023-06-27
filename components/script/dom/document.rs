@@ -245,6 +245,7 @@ pub struct Document {
     activity: Cell<DocumentActivity>,
     url: DomRefCell<ServoUrl>,
     #[ignore_malloc_size_of = "defined in selectors"]
+    #[no_trace]
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
     id_map: DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
@@ -261,6 +262,7 @@ pub struct Document {
     applets: MutNullableDom<HTMLCollection>,
     /// Lock use for style attributes and author-origin stylesheet objects in this document.
     /// Can be acquired once for accessing many objects.
+    #[no_trace]
     style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     stylesheets: DomRefCell<DocumentStylesheetSet<StyleSheetInDocument>>,

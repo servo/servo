@@ -20,6 +20,7 @@ use style::stylesheets::keyframes_rule::Keyframe;
 pub struct CSSKeyframeRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     keyframerule: Arc<Locked<Keyframe>>,
     style_decl: MutNullableDom<CSSStyleDeclaration>,
 }

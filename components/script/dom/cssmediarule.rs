@@ -25,6 +25,7 @@ use style_traits::{ParsingMode, ToCss};
 pub struct CSSMediaRule {
     cssconditionrule: CSSConditionRule,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     mediarule: Arc<Locked<MediaRule>>,
     medialist: MutNullableDom<MediaList>,
 }

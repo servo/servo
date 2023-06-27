@@ -57,6 +57,7 @@ pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableDom<DOMTokenList>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
 

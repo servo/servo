@@ -27,7 +27,9 @@ use style::values::GenericAtomIdent;
 #[dom_struct]
 pub struct Attr {
     node_: Node,
+    #[no_trace]
     identifier: AttrIdentifier,
+    #[no_trace]
     value: DomRefCell<AttrValue>,
 
     /// the element that owns this attribute.

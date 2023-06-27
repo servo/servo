@@ -23,6 +23,7 @@ use style_traits::{ParsingMode, ToCss};
 pub struct CSSSupportsRule {
     cssconditionrule: CSSConditionRule,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     supportsrule: Arc<Locked<SupportsRule>>,
 }
 

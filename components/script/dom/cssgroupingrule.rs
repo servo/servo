@@ -20,6 +20,7 @@ use style::stylesheets::CssRules as StyleCssRules;
 pub struct CSSGroupingRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     rules: Arc<Locked<StyleCssRules>>,
     rulelist: MutNullableDom<CSSRuleList>,
 }

@@ -28,6 +28,7 @@ use style::stylesheets::{Stylesheet, StylesheetContents};
 #[unrooted_must_root_lint::must_root]
 pub struct StyleSheetInDocument {
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     pub sheet: Arc<Stylesheet>,
     pub owner: Dom<Element>,
 }
