@@ -23,8 +23,10 @@ pub struct AudioParam {
     reflector_: Reflector,
     context: Dom<BaseAudioContext>,
     #[ignore_malloc_size_of = "servo_media"]
+    #[no_trace]
     node: NodeId,
     #[ignore_malloc_size_of = "servo_media"]
+    #[no_trace]
     param: ParamType,
     automation_rate: Cell<AutomationRate>,
     default_value: f32,

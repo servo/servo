@@ -59,6 +59,7 @@ use std::rc::Rc;
 pub struct RTCPeerConnection {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "defined in servo-media"]
+    #[no_trace]
     controller: DomRefCell<Option<WebRtcController>>,
     closed: Cell<bool>,
     // Helps track state changes between the time createOffer/createAnswer

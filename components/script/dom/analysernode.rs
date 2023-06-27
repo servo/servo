@@ -31,6 +31,7 @@ use servo_media::audio::node::AudioNodeInit;
 pub struct AnalyserNode {
     node: AudioNode,
     #[ignore_malloc_size_of = "Defined in servo-media"]
+    #[no_trace]
     engine: DomRefCell<AnalysisEngine>,
 }
 
