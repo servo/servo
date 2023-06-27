@@ -87,7 +87,9 @@ pub enum WebGLFramebufferAttachmentRoot {
 #[dom_struct]
 pub struct WebGLFramebuffer {
     webgl_object: WebGLObject,
+    #[no_trace]
     webgl_version: WebGLVersion,
+    #[no_trace]
     id: WebGLFramebufferId,
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,

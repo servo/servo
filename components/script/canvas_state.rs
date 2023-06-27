@@ -80,12 +80,15 @@ impl CanvasFillOrStrokeStyle {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasContextState {
     global_alpha: f64,
+    #[no_trace]
     global_composition: CompositionOrBlending,
     image_smoothing_enabled: bool,
     fill_style: CanvasFillOrStrokeStyle,
     stroke_style: CanvasFillOrStrokeStyle,
     line_width: f64,
+    #[no_trace]
     line_cap: LineCapStyle,
+    #[no_trace]
     line_join: LineJoinStyle,
     miter_limit: f64,
     transform: Transform2D<f32>,
@@ -94,8 +97,11 @@ pub(crate) struct CanvasContextState {
     shadow_blur: f64,
     shadow_color: RGBA,
     font_style: Option<Font>,
+    #[no_trace]
     text_align: TextAlign,
+    #[no_trace]
     text_baseline: TextBaseline,
+    #[no_trace]
     direction: Direction,
 }
 
@@ -132,6 +138,7 @@ impl CanvasContextState {
 pub(crate) struct CanvasState {
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
+    #[no_trace]
     canvas_id: CanvasId,
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,

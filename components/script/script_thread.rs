@@ -629,6 +629,7 @@ pub struct ScriptThread {
     mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
 
     /// A handle to the WebGL thread
+    #[no_trace]
     webgl_chan: Option<WebGLPipeline>,
 
     /// The WebXR device registry

@@ -16,6 +16,7 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct WebGLSampler {
     webgl_object: WebGLObject,
+    #[no_trace]
     gl_id: WebGLSamplerId,
     marked_for_deletion: Cell<bool>,
 }

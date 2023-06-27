@@ -18,6 +18,7 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct WebGLQuery {
     webgl_object: WebGLObject,
+    #[no_trace]
     gl_id: WebGLQueryId,
     gl_target: Cell<Option<u32>>,
     marked_for_deletion: Cell<bool>,

@@ -46,22 +46,7 @@ use crate::script_runtime::{ContextForRequestInterrupt, StreamConsumer};
 use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
 use app_units::Au;
-use canvas_traits::canvas::{
-    CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle,
-};
-use canvas_traits::canvas::{
-    CompositionOrBlending, Direction, LineCapStyle, LineJoinStyle, RepetitionStyle, TextAlign,
-    TextBaseline,
-};
-use canvas_traits::webgl::WebGLVertexArrayId;
-use canvas_traits::webgl::{
-    ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, GlType, TexDataType, TexFormat,
-};
-use canvas_traits::webgl::{GLLimits, WebGLQueryId, WebGLSamplerId};
-use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextId, WebGLError};
-use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
-use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
-use canvas_traits::webgl::{WebGLShaderId, WebGLSyncId, WebGLTextureId, WebGLVersion};
+use canvas_traits::webgl::{WebGLReceiver, WebGLSender};
 use content_security_policy::CspList;
 use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
@@ -228,8 +213,6 @@ unsafe_no_jsmanaged_fields!(Decoder);
 unsafe_no_jsmanaged_fields!(Reflector);
 
 unsafe_no_jsmanaged_fields!(Duration);
-
-unsafe_no_jsmanaged_fields!(TexDataType, TexFormat);
 
 unsafe_no_jsmanaged_fields!(*mut JobQueue);
 
@@ -535,9 +518,6 @@ unsafe impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, 
     }
 }
 
-unsafe_no_jsmanaged_fields!(ActiveAttribInfo);
-unsafe_no_jsmanaged_fields!(ActiveUniformInfo);
-unsafe_no_jsmanaged_fields!(ActiveUniformBlockInfo);
 unsafe_no_jsmanaged_fields!(bool, f32, f64, String, AtomicBool, AtomicUsize, Uuid, char);
 unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
@@ -567,11 +547,6 @@ unsafe_no_jsmanaged_fields!(UntrustedNodeAddress, OpaqueNode);
 unsafe_no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 unsafe_no_jsmanaged_fields!(RGBA);
 unsafe_no_jsmanaged_fields!(StorageType);
-unsafe_no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
-unsafe_no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
-unsafe_no_jsmanaged_fields!(TextAlign, TextBaseline, Direction);
-unsafe_no_jsmanaged_fields!(RepetitionStyle);
-unsafe_no_jsmanaged_fields!(WebGLError, GLLimits, GlType);
 unsafe_no_jsmanaged_fields!(TimeProfilerChan);
 unsafe_no_jsmanaged_fields!(MemProfilerChan);
 unsafe_no_jsmanaged_fields!(PseudoElement);
@@ -607,21 +582,6 @@ unsafe_no_jsmanaged_fields!(DrawAPaintImageResult);
 unsafe_no_jsmanaged_fields!(DocumentId);
 unsafe_no_jsmanaged_fields!(ImageKey);
 unsafe_no_jsmanaged_fields!(ExternalImageId);
-unsafe_no_jsmanaged_fields!(WebGLBufferId);
-unsafe_no_jsmanaged_fields!(WebGLChan);
-unsafe_no_jsmanaged_fields!(WebGLFramebufferId);
-unsafe_no_jsmanaged_fields!(WebGLMsgSender);
-unsafe_no_jsmanaged_fields!(WebGLPipeline);
-unsafe_no_jsmanaged_fields!(WebGLProgramId);
-unsafe_no_jsmanaged_fields!(WebGLQueryId);
-unsafe_no_jsmanaged_fields!(WebGLRenderbufferId);
-unsafe_no_jsmanaged_fields!(WebGLSamplerId);
-unsafe_no_jsmanaged_fields!(WebGLShaderId);
-unsafe_no_jsmanaged_fields!(WebGLSyncId);
-unsafe_no_jsmanaged_fields!(WebGLTextureId);
-unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
-unsafe_no_jsmanaged_fields!(WebGLVersion);
-unsafe_no_jsmanaged_fields!(WebGLSLVersion);
 unsafe_no_jsmanaged_fields!(Arc<ParkMutex<Identities>>);
 unsafe_no_jsmanaged_fields!(WebGPU);
 unsafe_no_jsmanaged_fields!(WebGPUAdapter);
@@ -662,7 +622,6 @@ unsafe_no_jsmanaged_fields!(
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);
-unsafe_no_jsmanaged_fields!(CanvasId);
 unsafe_no_jsmanaged_fields!(SourceSet);
 unsafe_no_jsmanaged_fields!(AudioBuffer);
 unsafe_no_jsmanaged_fields!(Arc<Mutex<AudioContext>>);
@@ -681,7 +640,6 @@ unsafe_no_jsmanaged_fields!(Rect<f32>);
 unsafe_no_jsmanaged_fields!(CascadeData);
 unsafe_no_jsmanaged_fields!(WindowGLContext);
 unsafe_no_jsmanaged_fields!(VideoFrame);
-unsafe_no_jsmanaged_fields!(WebGLContextId);
 unsafe_no_jsmanaged_fields!(Arc<Mutex<dyn AudioRenderer>>);
 unsafe_no_jsmanaged_fields!(MediaSessionActionType);
 unsafe_no_jsmanaged_fields!(MediaMetadata);

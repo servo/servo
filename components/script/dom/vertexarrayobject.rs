@@ -17,6 +17,7 @@ use std::cell::Cell;
 #[unrooted_must_root_lint::must_root]
 pub struct VertexArrayObject {
     context: Dom<WebGLRenderingContext>,
+    #[no_trace]
     id: Option<WebGLVertexArrayId>,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
