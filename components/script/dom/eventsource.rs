@@ -61,6 +61,7 @@ enum ReadyState {
 pub struct EventSource {
     eventtarget: EventTarget,
     url: ServoUrl,
+    #[no_trace]
     request: DomRefCell<Option<RequestBuilder>>,
     last_event_id: DomRefCell<DOMString>,
     reconnection_time: Cell<u64>,

@@ -143,6 +143,7 @@ pub(crate) struct CanvasState {
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     /// The base URL for resolving CSS image URL values.
     /// Needed because of https://github.com/servo/servo/issues/17625

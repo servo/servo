@@ -162,7 +162,9 @@ pub struct XMLHttpRequest {
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
+    #[no_trace]
     referrer: Referrer,
+    #[no_trace]
     referrer_policy: Option<ReferrerPolicy>,
     canceller: DomRefCell<FetchCanceller>,
 }

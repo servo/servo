@@ -13,6 +13,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::trace::NoTrace;
 use crate::dom::document::Document;
 use crate::dom::element::{
     cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
@@ -117,9 +118,9 @@ unsafe extern "C" fn off_thread_compilation_callback(
             let compiled_script = FinishOffThreadStencil(*cx, token.0, ptr::null_mut());
 
             let load = if compiled_script.is_null() {
-                Err(NetworkError::Internal(
+                Err(NoTrace(NetworkError::Internal(
                     "Off-thread compilation failed.".into(),
-                ))
+                )))
             } else {
                 let script_text = DOMString::from(script);
                 let code = SourceCode::Compiled(CompiledSourceCode {
@@ -326,7 +327,7 @@ fn finish_fetching_a_classic_script(
     document.finish_load(LoadType::Script(url));
 }
 
-pub type ScriptResult = Result<ScriptOrigin, NetworkError>;
+pub type ScriptResult = Result<ScriptOrigin, NoTrace<NetworkError>>;
 
 /// The context required for asynchronously loading an external script source.
 struct ClassicContext {
@@ -400,7 +401,7 @@ impl FetchResponseListener for ClassicContext {
                     &*self.elem.root(),
                     self.kind.clone(),
                     self.url.clone(),
-                    Err(err.clone()),
+                    Err(NoTrace(err.clone())),
                 );
                 return;
             },

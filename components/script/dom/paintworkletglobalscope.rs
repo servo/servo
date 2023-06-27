@@ -73,6 +73,7 @@ pub struct PaintWorkletGlobalScope {
     worklet_global: WorkletGlobalScope,
     /// The image cache
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     /// <https://drafts.css-houdini.org/css-paint-api/#paint-definitions>
     paint_definitions: DomRefCell<HashMap<Atom, Box<PaintDefinition>>>,

@@ -80,8 +80,11 @@ struct PrefetchSink {
     pipeline_id: PipelineId,
     document_url: ServoUrl,
     base_url: Option<ServoUrl>,
+    #[no_trace]
     referrer: Referrer,
+    #[no_trace]
     referrer_policy: Option<ReferrerPolicy>,
+    #[no_trace]
     resource_threads: ResourceThreads,
     prefetching: bool,
 }

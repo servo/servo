@@ -146,7 +146,9 @@ struct ImageRequest {
     source_url: Option<USVString>,
     blocker: Option<LoadBlocker>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image: Option<Arc<Image>>,
+    #[no_trace]
     metadata: Option<ImageMetadata>,
     final_url: Option<ServoUrl>,
     current_pixel_density: Option<f64>,

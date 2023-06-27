@@ -330,10 +330,12 @@ pub struct Document {
     unload_event_start: Cell<u64>,
     unload_event_end: Cell<u64>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-https-state>
+    #[no_trace]
     https_state: Cell<HttpsState>,
     /// The document's origin.
     origin: MutableOrigin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
+    #[no_trace]
     referrer_policy: Cell<Option<ReferrerPolicy>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-document-referrer>
     referrer: Option<String>,
@@ -5369,6 +5371,7 @@ impl PendingInOrderScriptVec {
 #[unrooted_must_root_lint::must_root]
 struct PendingScript {
     element: Dom<HTMLScriptElement>,
+    // TODO(sagudev): could this be all no_trace?
     load: Option<ScriptResult>,
 }
 

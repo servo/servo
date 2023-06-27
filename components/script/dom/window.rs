@@ -157,6 +157,8 @@ use url::Position;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
 
+use super::bindings::trace::NoTrace;
+
 /// Current state of the window object
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WindowState {
@@ -199,6 +201,7 @@ pub struct Window {
     task_manager: TaskManager,
     navigator: MutNullableDom<Navigator>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[ignore_malloc_size_of = "channels are hard"]
     image_cache_chan: Sender<ImageCacheMsg>,
@@ -298,7 +301,7 @@ pub struct Window {
     /// initiated by layout during a reflow. They are stored in the script thread
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
-    pending_layout_images: DomRefCell<HashMap<PendingImageId, Vec<Dom<Node>>>>,
+    pending_layout_images: DomRefCell<HashMap<NoTrace<PendingImageId>, Vec<Dom<Node>>>>,
 
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
@@ -511,7 +514,7 @@ impl Window {
         //       rather than making the layout thread talk to the image cache to
         //       obtain the same data.
         let mut images = self.pending_layout_images.borrow_mut();
-        let nodes = images.entry(response.id);
+        let nodes = images.entry(NoTrace(response.id));
         let nodes = match nodes {
             Entry::Occupied(nodes) => nodes,
             Entry::Vacant(_) => return,
@@ -1953,7 +1956,7 @@ impl Window {
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
-            let nodes = images.entry(id).or_insert(vec![]);
+            let nodes = images.entry(NoTrace(id)).or_insert(vec![]);
             if nodes
                 .iter()
                 .find(|n| &***n as *const _ == &*node as *const _)

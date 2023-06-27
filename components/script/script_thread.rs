@@ -533,9 +533,11 @@ pub struct ScriptThread {
     /// A vector containing parser contexts which have not yet been fully processed
     incomplete_parser_contexts: IncompleteParserContexts,
     /// Image cache for this script thread.
+    #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
     /// there are many iframes.
+    #[no_trace]
     resource_threads: ResourceThreads,
     /// A handle to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothRequest>,

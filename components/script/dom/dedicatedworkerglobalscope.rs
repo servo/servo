@@ -189,6 +189,7 @@ pub struct DedicatedWorkerGlobalScope {
     /// Sender to the parent thread.
     parent_sender: Box<dyn ScriptChan + Send>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
     browsing_context: Option<BrowsingContextId>,

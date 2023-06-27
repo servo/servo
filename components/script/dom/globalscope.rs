@@ -238,6 +238,7 @@ pub struct GlobalScope {
 
     /// Associated resource threads for use by DOM objects like XMLHttpRequest,
     /// including resource_thread, filemanager_thread and storage_thread
+    #[no_trace]
     resource_threads: ResourceThreads,
 
     /// The mechanism by which time-outs and intervals are scheduled.
@@ -309,6 +310,7 @@ pub struct GlobalScope {
     frozen_supported_performance_entry_types: DomRefCell<Option<Heap<JSVal>>>,
 
     /// currect https state (from previous request)
+    #[no_trace]
     https_state: Cell<HttpsState>,
 
     /// The stack of active group labels for the Console APIs.

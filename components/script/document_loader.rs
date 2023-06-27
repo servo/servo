@@ -66,6 +66,7 @@ impl Drop for LoadBlocker {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct DocumentLoader {
+    #[no_trace]
     resource_threads: ResourceThreads,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,

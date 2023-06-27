@@ -183,6 +183,7 @@ pub struct ModuleTree {
     incomplete_fetch_urls: DomRefCell<IndexSet<ServoUrl>>,
     visited_urls: DomRefCell<HashSet<ServoUrl>>,
     rethrow_error: DomRefCell<Option<RethrowError>>,
+    #[no_trace]
     network_error: DomRefCell<Option<NetworkError>>,
     // A promise for owners to execute when the module tree
     // is finished
@@ -926,7 +927,7 @@ impl ModuleOwner {
 
                     let network_error = module_tree.get_network_error().borrow();
                     match network_error.as_ref() {
-                        Some(network_error) => Err(network_error.clone()),
+                        Some(network_error) => Err(network_error.clone().into()),
                         None => match module_identity {
                             ModuleIdentity::ModuleUrl(script_src) => Ok(ScriptOrigin::external(
                                 Rc::clone(&module_tree.get_text().borrow()),
@@ -1296,11 +1297,15 @@ pub unsafe extern "C" fn host_import_module_dynamically(
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 /// <https://html.spec.whatwg.org/multipage/#script-fetch-options>
 pub struct ScriptFetchOptions {
+    #[no_trace]
     pub referrer: Referrer,
     pub integrity_metadata: String,
+    #[no_trace]
     pub credentials_mode: CredentialsMode,
     pub cryptographic_nonce: String,
+    #[no_trace]
     pub parser_metadata: ParserMetadata,
+    #[no_trace]
     pub referrer_policy: Option<ReferrerPolicy>,
 }
 
