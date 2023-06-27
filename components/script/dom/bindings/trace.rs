@@ -136,6 +136,7 @@ use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::fmt::Display;
 use std::hash::{BuildHasher, Hash};
 use std::mem;
 use std::num::NonZeroU64;
@@ -185,6 +186,36 @@ unsafe_no_jsmanaged_fields!(JoinHandle<()>);
 pub unsafe trait JSTraceable {
     /// Trace `self`.
     unsafe fn trace(&self, trc: *mut JSTracer);
+}
+
+/// Wrapper type for nop traceble
+///
+/// SAFETY: Inner type must not impl JSTraceable
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct NoTrace<T>(pub T);
+
+impl<T: Display> Display for NoTrace<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T> From<T> for NoTrace<T> {
+    fn from(item: T) -> Self {
+        Self(item)
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl<T> JSTraceable for NoTrace<T> {
+    #[inline]
+    unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {}
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.size_of(ops)
+    }
 }
 
 unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>, Box<dyn EventLoopWaker>);
