@@ -10,7 +10,6 @@ use canvas_traits::webgl::ActiveAttribInfo;
 use canvas_traits::webgl::ActiveUniformBlockInfo;
 use canvas_traits::webgl::ActiveUniformInfo;
 use canvas_traits::webgl::AlphaTreatment;
-use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::GLContextAttributes;
 use canvas_traits::webgl::GLLimits;
 use canvas_traits::webgl::GlType;
@@ -239,8 +238,6 @@ pub(crate) struct WebGLThread {
     cached_context_info: FnvHashMap<WebGLContextId, WebGLContextInfo>,
     /// Current bound context.
     bound_context_id: Option<WebGLContextId>,
-    /// Texture ids and sizes used in DOM to texture outputs.
-    dom_outputs: FnvHashMap<webrender_api::PipelineId, DOMToTextureData>,
     /// List of registered webrender external images.
     /// We use it to get an unique ID for new WebGLContexts.
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -298,7 +295,6 @@ impl WebGLThread {
             contexts: Default::default(),
             cached_context_info: Default::default(),
             bound_context_id: None,
-            dom_outputs: Default::default(),
             external_images,
             sender,
             receiver: receiver.into_inner(),
@@ -409,9 +405,6 @@ impl WebGLThread {
             },
             WebGLMsg::SwapBuffers(swap_ids, sender, sent_time) => {
                 self.handle_swap_buffers(swap_ids, sender, sent_time);
-            },
-            WebGLMsg::DOMToTextureCommand(command) => {
-                self.handle_dom_to_texture(command);
             },
             WebGLMsg::Exit => {
                 return true;
@@ -890,88 +883,6 @@ impl WebGLThread {
         SurfaceAccess::GPUOnly
     }
 
-    fn handle_dom_to_texture(&mut self, command: DOMToTextureCommand) {
-        match command {
-            DOMToTextureCommand::Attach(context_id, texture_id, document_id, pipeline_id, size) => {
-                let data = Self::make_current_if_needed(
-                    &self.device,
-                    context_id,
-                    &self.contexts,
-                    &mut self.bound_context_id,
-                )
-                .expect("WebGLContext not found in a WebGL DOMToTextureCommand::Attach command");
-                // Initialize the texture that WR will use for frame outputs.
-                data.gl.tex_image_2d(
-                    gl::TEXTURE_2D,
-                    0,
-                    gl::RGBA as gl::GLint,
-                    size.width,
-                    size.height,
-                    0,
-                    gl::RGBA,
-                    gl::UNSIGNED_BYTE,
-                    gl::TexImageSource::Pixels(None),
-                );
-                self.dom_outputs.insert(
-                    pipeline_id,
-                    DOMToTextureData {
-                        context_id,
-                        texture_id,
-                        document_id,
-                        size,
-                    },
-                );
-                let mut txn = webrender_api::Transaction::new();
-                txn.enable_frame_output(pipeline_id, true);
-                self.webrender_api.send_transaction(document_id, txn);
-            },
-            DOMToTextureCommand::Lock(pipeline_id, gl_sync, sender) => {
-                let result = self.handle_dom_to_texture_lock(pipeline_id, gl_sync);
-                // Send the texture id and size to WR.
-                sender.send(result).unwrap();
-            },
-            DOMToTextureCommand::Detach(texture_id) => {
-                if let Some((pipeline_id, document_id)) = self
-                    .dom_outputs
-                    .iter()
-                    .find(|&(_, v)| v.texture_id == texture_id)
-                    .map(|(k, v)| (*k, v.document_id))
-                {
-                    let mut txn = webrender_api::Transaction::new();
-                    txn.enable_frame_output(pipeline_id, false);
-                    self.webrender_api.send_transaction(document_id, txn);
-                    self.dom_outputs.remove(&pipeline_id);
-                }
-            },
-        }
-    }
-
-    pub(crate) fn handle_dom_to_texture_lock(
-        &mut self,
-        pipeline_id: webrender_api::PipelineId,
-        gl_sync: usize,
-    ) -> Option<(u32, Size2D<i32>)> {
-        let device = &self.device;
-        let contexts = &self.contexts;
-        let bound_context_id = &mut self.bound_context_id;
-        self.dom_outputs.get(&pipeline_id).and_then(|dom_data| {
-            let data = Self::make_current_if_needed(
-                device,
-                dom_data.context_id,
-                contexts,
-                bound_context_id,
-            );
-            data.and_then(|data| {
-                // The next glWaitSync call is used to synchronize the two flows of
-                // OpenGL commands (WR and WebGL) in order to avoid using semi-ready WR textures.
-                // glWaitSync doesn't block WebGL CPU thread.
-                data.gl
-                    .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
-                Some((dom_data.texture_id.get(), dom_data.size))
-            })
-        })
-    }
-
     /// Gets a reference to a Context for a given WebGLContextId and makes it current if required.
     fn make_current_if_needed<'a>(
         device: &Device,
@@ -1104,14 +1015,6 @@ fn current_wr_texture_target(device: &Device) -> webrender_api::TextureTarget {
         gl::TEXTURE_RECTANGLE => webrender_api::TextureTarget::Rect,
         _ => webrender_api::TextureTarget::Default,
     }
-}
-
-/// Data about the linked DOM<->WebGLTexture elements.
-struct DOMToTextureData {
-    context_id: WebGLContextId,
-    texture_id: WebGLTextureId,
-    document_id: webrender_api::DocumentId,
-    size: Size2D<i32>,
 }
 
 /// WebGL Commands Implementation

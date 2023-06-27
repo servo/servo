@@ -20,7 +20,7 @@ use canvas_traits::webgl::{
     webgl_channel, TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt,
     WebGLResult, WebGLTextureId,
 };
-use canvas_traits::webgl::{DOMToTextureCommand, WebGLCommand, WebGLError};
+use canvas_traits::webgl::{WebGLCommand, WebGLError};
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::cmp;
@@ -62,8 +62,6 @@ pub struct WebGLTexture {
     // Store information for min and mag filters
     min_filter: Cell<u32>,
     mag_filter: Cell<u32>,
-    /// True if this texture is used for the DOMToTexture feature.
-    attached_to_dom: Cell<bool>,
     /// Framebuffer that this texture is attached to.
     attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
     /// Number of immutable levels.
@@ -90,7 +88,6 @@ impl WebGLTexture {
             min_filter: Cell::new(constants::NEAREST_MIPMAP_LINEAR),
             mag_filter: Cell::new(constants::LINEAR),
             image_info_array: DomRefCell::new([None; MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
-            attached_to_dom: Cell::new(false),
             attached_framebuffer: Default::default(),
         }
     }
@@ -224,12 +221,6 @@ impl WebGLTexture {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             let context = self.upcast::<WebGLObject>().context();
-            // Notify WR to release the frame output when using DOMToTexture feature
-            if self.attached_to_dom.get() {
-                let _ = context
-                    .webgl_sender()
-                    .send_dom_to_texture(DOMToTextureCommand::Detach(self.id));
-            }
 
             /*
             If a texture object is deleted while its image is attached to one or more attachment
@@ -467,10 +458,6 @@ impl WebGLTexture {
         assert!((self.base_mipmap_level as usize) < MAX_LEVEL_COUNT);
 
         self.image_info_at_face(0, self.base_mipmap_level)
-    }
-
-    pub fn set_attached_to_dom(&self) {
-        self.attached_to_dom.set(true);
     }
 
     pub fn attach_to_framebuffer(&self, fb: &WebGLFramebuffer) {
