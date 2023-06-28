@@ -62,7 +62,7 @@ pub(crate) enum BlockLevelBox {
 }
 
 impl BlockLevelBox {
-    fn find_block_margin_collapsing_with_parent_for_floats(
+    fn find_block_margin_collapsing_with_parent(
         &self,
         collected_margin: &mut CollapsedMargin,
         containing_block_writing_mode: WritingMode,
@@ -80,16 +80,19 @@ impl BlockLevelBox {
         let border = style.border_width(containing_block_writing_mode);
         let padding = style.padding(containing_block_writing_mode);
 
+        // FIXME: This should only return false when 'clear' causes clearance.
         if style.get_box().clear != Clear::None {
             return false;
         }
 
+        // FIXME: Percentages should be resolved against the width of the containing block.
         let start_margin = margin
             .block_start
             .percentage_relative_to(CSSPixelLength::zero())
             .auto_is(CSSPixelLength::zero);
         collected_margin.adjoin_assign(&CollapsedMargin::new(start_margin));
 
+        // FIXME: Should resolve padding percentages.
         let start_padding_is_zero = padding.block_start.is_zero();
         let start_border_is_zero = border.block_start.is_zero();
         if !start_border_is_zero || !start_padding_is_zero {
@@ -102,7 +105,7 @@ impl BlockLevelBox {
         };
         match contents {
             BlockContainer::BlockLevelBoxes(boxes) => {
-                if !Self::find_block_margin_collapsing_with_parent_for_floats_from_slice(
+                if !Self::find_block_margin_collapsing_with_parent_from_slice(
                     &boxes,
                     collected_margin,
                     style.writing_mode,
@@ -115,7 +118,10 @@ impl BlockLevelBox {
 
         let block_size_zero =
             style.content_block_size().is_definitely_zero() || style.content_block_size().is_auto();
-        if !style.min_block_size().is_definitely_zero() ||
+        let min_block_size_zero =
+            style.min_block_size().is_definitely_zero() || style.min_block_size().is_auto();
+        // FIXME: Should resolve padding percentages.
+        if !min_block_size_zero ||
             !block_size_zero ||
             !border.block_end.is_zero() ||
             !padding.block_end.is_zero()
@@ -123,6 +129,7 @@ impl BlockLevelBox {
             return false;
         }
 
+        // FIXME: Percentages should be resolved against the width of the containing block.
         let end_margin = margin
             .block_end
             .percentage_relative_to(CSSPixelLength::zero())
@@ -132,7 +139,7 @@ impl BlockLevelBox {
         true
     }
 
-    fn find_block_margin_collapsing_with_parent_for_floats_from_slice(
+    fn find_block_margin_collapsing_with_parent_from_slice(
         boxes: &[ArcRefCell<BlockLevelBox>],
         margin: &mut CollapsedMargin,
         writing_mode: WritingMode,
@@ -140,7 +147,7 @@ impl BlockLevelBox {
         boxes.iter().all(|block_level_box| {
             block_level_box
                 .borrow()
-                .find_block_margin_collapsing_with_parent_for_floats(margin, writing_mode)
+                .find_block_margin_collapsing_with_parent(margin, writing_mode)
         })
     }
 }
@@ -421,8 +428,7 @@ fn layout_block_level_children_sequentially(
     // tracks every float encountered so far (again in tree order).
     let fragments = child_boxes
         .iter()
-        .enumerate()
-        .map(|(index, child_box)| {
+        .map(|child_box| {
             let mut child_positioning_context =
                 PositioningContext::new_for_subtree(collects_for_nearest_positioned_ancestor);
             let mut fragment = child_box.borrow_mut().layout(
@@ -432,11 +438,7 @@ fn layout_block_level_children_sequentially(
                 Some(&mut *sequential_layout_state),
             );
 
-            let sequential_info = PlacementStateSequentialInfo {
-                sequential_layout_state,
-                following_boxes: &child_boxes[index..],
-            };
-            placement_state.place_fragment(&mut fragment, Some(sequential_info));
+            placement_state.place_fragment(&mut fragment, Some(sequential_layout_state));
 
             child_positioning_context.adjust_static_position_of_hoisted_fragments(&fragment);
             positioning_context.append(child_positioning_context);
@@ -656,7 +658,22 @@ fn layout_in_flow_non_replaced_block_level(
         None => parent_containing_block_position_info = None,
         Some(ref mut sequential_layout_state) => {
             sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_start));
-            if !start_margin_can_collapse_with_children {
+            if start_margin_can_collapse_with_children {
+                if let NonReplacedContents::SameFormattingContextBlock(
+                    BlockContainer::BlockLevelBoxes(child_boxes),
+                ) = block_level_kind
+                {
+                    // The block start margin may collapse with content margins,
+                    // compute the resulting one in order to place floats correctly.
+                    let mut future_margins = CollapsedMargin::zero();
+                    BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
+                        child_boxes,
+                        &mut future_margins,
+                        WritingMode::empty(),
+                    );
+                    sequential_layout_state.adjoin_assign(&future_margins);
+                }
+            } else {
                 sequential_layout_state.collapse_margins();
             }
 
@@ -867,18 +884,6 @@ fn solve_inline_margins_for_in_flow_block_level(
     }
 }
 
-/// Information passed to [PlacementState::place_fragment] when operating in sequential
-/// mode.
-struct PlacementStateSequentialInfo<'a> {
-    /// The sequential layout state of the current layout.
-    sequential_layout_state: &'a mut SequentialLayoutState,
-
-    /// The boxes that follow the one currently being placed. This is used to try
-    /// to calculate margins after the current box that will collapse with the
-    /// parent, if this current box is floating.
-    following_boxes: &'a [ArcRefCell<BlockLevelBox>],
-}
-
 /// State that we maintain when placing blocks.
 ///
 /// In parallel mode, this placement is done after all child blocks are laid out. In
@@ -910,7 +915,7 @@ impl PlacementState {
     fn place_fragment(
         &mut self,
         fragment: &mut Fragment,
-        sequential_info: Option<PlacementStateSequentialInfo>,
+        sequential_layout_state: Option<&mut SequentialLayoutState>,
     ) {
         match fragment {
             Fragment::Box(fragment) => {
@@ -974,30 +979,13 @@ impl PlacementState {
                 fragment.borrow_mut().adjust_offsets(offset);
             },
             Fragment::Float(box_fragment) => {
-                let info = sequential_info
-                    .expect("Tried to lay out a float with no sequential placement state!");
-
-                let mut margins_collapsing_with_parent_containing_block = self.start_margin;
-                if self.next_in_flow_margin_collapses_with_parent_start_margin {
-                    // If block start margins are still collapsing from the parent, margins of elements
-                    // that follow this float in tree order might collapse, pushing this float down
-                    // and changing the offset of the containing block of the float. We try to look
-                    // ahead to determine which margins from future elements will collapse with the
-                    // parent.
-                    let mut future_margins = CollapsedMargin::zero();
-                    BlockLevelBox::find_block_margin_collapsing_with_parent_for_floats_from_slice(
-                        info.following_boxes,
-                        &mut future_margins,
-                        WritingMode::empty(),
-                    );
-                    margins_collapsing_with_parent_containing_block.adjoin_assign(&future_margins)
-                }
-
+                let sequential_layout_state = sequential_layout_state
+                    .expect("Found float fragment without SequentialLayoutState");
                 let block_offset_from_containing_block_top =
                     self.current_block_direction_position + self.current_margin.solve();
-                info.sequential_layout_state.place_float_fragment(
+                sequential_layout_state.place_float_fragment(
                     box_fragment,
-                    margins_collapsing_with_parent_containing_block,
+                    self.start_margin,
                     block_offset_from_containing_block_top,
                 );
             },
