@@ -37,6 +37,7 @@ pub struct WebGPUContextId(pub u64);
 pub struct GPUCanvasContext {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     channel: WebGPU,
     canvas: Dom<HTMLCanvasElement>,
     size: Cell<Size2D<u32>>,

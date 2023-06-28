@@ -303,7 +303,7 @@ pub struct GlobalScope {
     gpu_id_hub: Arc<Mutex<Identities>>,
 
     /// WebGPU devices
-    gpu_devices: DomRefCell<HashMap<WebGPUDevice, Dom<GPUDevice>>>,
+    gpu_devices: DomRefCell<HashMap<NoTrace<WebGPUDevice>, Dom<GPUDevice>>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
@@ -3062,11 +3062,11 @@ impl GlobalScope {
     pub fn add_gpu_device(&self, device: &GPUDevice) {
         self.gpu_devices
             .borrow_mut()
-            .insert(device.id(), Dom::from_ref(device));
+            .insert(NoTrace(device.id()), Dom::from_ref(device));
     }
 
     pub fn remove_gpu_device(&self, device: WebGPUDevice) {
-        let _ = self.gpu_devices.borrow_mut().remove(&device);
+        let _ = self.gpu_devices.borrow_mut().remove(&NoTrace(device));
     }
 
     pub fn handle_wgpu_msg(
@@ -3077,7 +3077,7 @@ impl GlobalScope {
     ) {
         self.gpu_devices
             .borrow()
-            .get(&device)
+            .get(&NoTrace(device))
             .expect("GPUDevice not found")
             .handle_server_msg(scope, result);
     }

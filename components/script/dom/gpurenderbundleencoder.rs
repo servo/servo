@@ -24,9 +24,11 @@ use webgpu::{
 pub struct GPURenderBundleEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     channel: WebGPU,
     device: Dom<GPUDevice>,
     #[ignore_malloc_size_of = "defined in wgpu-core"]
+    #[no_trace]
     render_bundle_encoder: DomRefCell<Option<RenderBundleEncoder>>,
     label: DomRefCell<Option<USVString>>,
 }

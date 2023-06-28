@@ -18,6 +18,7 @@ use webrender_api::ImageKey;
 pub struct GPUSwapChain {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     channel: WebGPU,
     label: DomRefCell<Option<USVString>>,
     context: Dom<GPUCanvasContext>,

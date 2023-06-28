@@ -15,6 +15,7 @@ use webgpu::WebGPUBindGroupLayout;
 pub struct GPUBindGroupLayout {
     reflector_: Reflector,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     bind_group_layout: WebGPUBindGroupLayout,
 }
 

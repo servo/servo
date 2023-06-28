@@ -44,8 +44,10 @@ pub enum GPUCommandEncoderState {
 pub struct GPUCommandEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
+    #[no_trace]
     channel: WebGPU,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     encoder: webgpu::WebGPUCommandEncoder,
     buffers: DomRefCell<HashSet<DomRoot<GPUBuffer>>>,
     state: DomRefCell<GPUCommandEncoderState>,

@@ -108,6 +108,7 @@ struct ScopeContext {
 pub struct GPUDevice {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     channel: WebGPU,
     adapter: Dom<GPUAdapter>,
     #[ignore_malloc_size_of = "mozjs"]
@@ -115,6 +116,7 @@ pub struct GPUDevice {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     limits: GPULimits,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     device: webgpu::WebGPUDevice,
     default_queue: Dom<GPUQueue>,
     scope_context: DomRefCell<ScopeContext>,

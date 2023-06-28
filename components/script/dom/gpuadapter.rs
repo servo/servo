@@ -26,10 +26,12 @@ use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, WebGPURe
 pub struct GPUAdapter {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     channel: WebGPU,
     name: DOMString,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
+    #[no_trace]
     adapter: WebGPUAdapter,
 }
 

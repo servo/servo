@@ -113,13 +113,6 @@ use tendril::stream::LossyDecoder;
 use tendril::{StrTendril, TendrilSink};
 use time::{Duration, Timespec, Tm};
 use uuid::Uuid;
-use webgpu::{
-    wgpu::command::{ComputePass, RenderBundleEncoder, RenderPass},
-    WebGPU, WebGPUAdapter, WebGPUBindGroup, WebGPUBindGroupLayout, WebGPUBuffer,
-    WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePipeline, WebGPUDevice,
-    WebGPUPipelineLayout, WebGPUQueue, WebGPURenderBundle, WebGPURenderPipeline, WebGPUSampler,
-    WebGPUShaderModule, WebGPUTexture, WebGPUTextureView,
-};
 use webrender_api::{DocumentId, ExternalImageId, ImageKey};
 use webxr_api::{Finger, Hand, Ray, View};
 
@@ -522,27 +515,7 @@ unsafe_no_jsmanaged_fields!(DocumentId);
 unsafe_no_jsmanaged_fields!(ImageKey);
 unsafe_no_jsmanaged_fields!(ExternalImageId);
 unsafe_no_jsmanaged_fields!(Arc<ParkMutex<Identities>>);
-unsafe_no_jsmanaged_fields!(WebGPU);
-unsafe_no_jsmanaged_fields!(WebGPUAdapter);
-unsafe_no_jsmanaged_fields!(WebGPUBuffer);
-unsafe_no_jsmanaged_fields!(WebGPUBindGroup);
-unsafe_no_jsmanaged_fields!(WebGPUBindGroupLayout);
-unsafe_no_jsmanaged_fields!(WebGPUComputePipeline);
-unsafe_no_jsmanaged_fields!(WebGPURenderPipeline);
-unsafe_no_jsmanaged_fields!(WebGPURenderBundle);
-unsafe_no_jsmanaged_fields!(WebGPUPipelineLayout);
-unsafe_no_jsmanaged_fields!(WebGPUQueue);
-unsafe_no_jsmanaged_fields!(WebGPUShaderModule);
-unsafe_no_jsmanaged_fields!(WebGPUSampler);
-unsafe_no_jsmanaged_fields!(WebGPUTexture);
-unsafe_no_jsmanaged_fields!(WebGPUTextureView);
 unsafe_no_jsmanaged_fields!(WebGPUContextId);
-unsafe_no_jsmanaged_fields!(WebGPUCommandBuffer);
-unsafe_no_jsmanaged_fields!(WebGPUCommandEncoder);
-unsafe_no_jsmanaged_fields!(WebGPUDevice);
-unsafe_no_jsmanaged_fields!(Option<RenderPass>);
-unsafe_no_jsmanaged_fields!(Option<RenderBundleEncoder>);
-unsafe_no_jsmanaged_fields!(Option<ComputePass>);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
 unsafe_no_jsmanaged_fields!(GPUCommandEncoderState);
 unsafe_no_jsmanaged_fields!(Range<u64>);

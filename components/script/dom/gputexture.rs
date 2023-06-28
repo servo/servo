@@ -29,10 +29,12 @@ use webgpu::{
 #[dom_struct]
 pub struct GPUTexture {
     reflector_: Reflector,
+    #[no_trace]
     texture: WebGPUTexture,
     label: DomRefCell<Option<USVString>>,
     device: Dom<GPUDevice>,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     channel: WebGPU,
     #[ignore_malloc_size_of = "defined in webgpu"]
     texture_size: GPUExtent3DDict,

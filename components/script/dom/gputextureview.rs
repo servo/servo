@@ -16,6 +16,7 @@ use webgpu::WebGPUTextureView;
 pub struct GPUTextureView {
     reflector_: Reflector,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     texture_view: WebGPUTextureView,
     texture: Dom<GPUTexture>,
 }

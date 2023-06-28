@@ -26,8 +26,10 @@ impl Hash for DomRoot<GPUBuffer> {
 pub struct GPUCommandBuffer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
+    #[no_trace]
     channel: WebGPU,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     command_buffer: WebGPUCommandBuffer,
     buffers: DomRefCell<HashSet<Dom<GPUBuffer>>>,
 }

@@ -16,7 +16,9 @@ use webgpu::{WebGPUBindGroup, WebGPUDevice};
 pub struct GPUBindGroup {
     reflector_: Reflector,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     bind_group: WebGPUBindGroup,
+    #[no_trace]
     device: WebGPUDevice,
     layout: Dom<GPUBindGroupLayout>,
 }
