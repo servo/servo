@@ -255,6 +255,7 @@ pub struct HTMLInputElement {
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
     #[ignore_malloc_size_of = "#7193"]
+    #[no_trace]
     textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,

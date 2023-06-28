@@ -228,6 +228,7 @@ pub struct GlobalScope {
 
     /// A handle for communicating messages to the constellation thread.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     script_to_constellation_chan: ScriptToConstellationChan,
 
     #[ignore_malloc_size_of = "channels are hard"]

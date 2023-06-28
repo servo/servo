@@ -242,6 +242,7 @@ pub struct Document {
     encoding: Cell<&'static Encoding>,
     has_browsing_context: bool,
     is_html_document: bool,
+    #[no_trace]
     activity: Cell<DocumentActivity>,
     url: DomRefCell<ServoUrl>,
     #[ignore_malloc_size_of = "defined in selectors"]

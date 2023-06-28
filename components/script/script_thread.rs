@@ -200,10 +200,12 @@ struct InProgressLoad {
     #[no_trace]
     opener: Option<BrowsingContextId>,
     /// The current window size associated with this pipeline.
+    #[no_trace]
     window_size: WindowSizeData,
     /// Channel to the layout thread associated with this pipeline.
     layout_chan: Sender<message::Msg>,
     /// The activity level of the document (inactive, active or fully active).
+    #[no_trace]
     activity: DocumentActivity,
     /// Window is visible.
     is_visible: bool,
@@ -651,6 +653,7 @@ pub struct ScriptThread {
     webrender_document: DocumentId,
 
     /// Webrender API sender.
+    #[no_trace]
     webrender_api_sender: WebrenderIpcSender,
 
     /// Periodically print out on which events script threads spend their processing time.

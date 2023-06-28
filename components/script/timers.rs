@@ -57,12 +57,14 @@ pub struct OneshotTimers {
     ///  - the timer it was scheduled for got canceled or
     ///  - a timer was added with an earlier callback time. In this case the
     ///    original timer is rescheduled when it is the next one to get called.
+    #[no_trace]
     expected_event_id: Cell<TimerEventId>,
 }
 
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 struct OneshotTimer {
     handle: OneshotTimerHandle,
+    #[no_trace]
     source: TimerSource,
     callback: OneshotTimerCallback,
     scheduled_for: MsDuration,
@@ -371,6 +373,7 @@ struct JsTimerEntry {
 pub struct JsTimerTask {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     handle: JsTimerHandle,
+    #[no_trace]
     source: TimerSource,
     callback: InternalTimerCallback,
     is_interval: IsInterval,

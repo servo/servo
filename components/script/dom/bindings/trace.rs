@@ -81,11 +81,6 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::message::PendingRestyle;
 use script_layout_interface::rpc::LayoutRPC;
 use script_layout_interface::StyleAndOpaqueLayoutData;
-use script_traits::{
-    DocumentActivity, DrawAPaintImageResult, MediaSessionActionType, ScriptToConstellationChan,
-    TimerEventId, TimerSource, UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData,
-    WindowSizeType,
-};
 use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -484,11 +479,7 @@ unsafe_no_jsmanaged_fields!(Error);
 unsafe_no_jsmanaged_fields!(ServoUrl, ImmutableOrigin, MutableOrigin);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
-// These three are interdependent, if you plan to put jsmanaged data
-// in one of these make sure it is propagated properly to containing structs
-unsafe_no_jsmanaged_fields!(DocumentActivity, WindowSizeData, WindowSizeType);
 
-unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
 unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);
 unsafe_no_jsmanaged_fields!(BufferQueue, StrTendril);
@@ -496,7 +487,6 @@ unsafe_no_jsmanaged_fields!(Runtime);
 unsafe_no_jsmanaged_fields!(ContextForRequestInterrupt);
 unsafe_no_jsmanaged_fields!(HeaderMap, Method);
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);
-unsafe_no_jsmanaged_fields!(UntrustedNodeAddress);
 unsafe_no_jsmanaged_fields!(RGBA);
 unsafe_no_jsmanaged_fields!(TimeProfilerChan);
 unsafe_no_jsmanaged_fields!(MemProfilerChan);
@@ -510,7 +500,6 @@ unsafe_no_jsmanaged_fields!(SystemTime);
 unsafe_no_jsmanaged_fields!(Instant);
 unsafe_no_jsmanaged_fields!(StyleAndOpaqueLayoutData);
 unsafe_no_jsmanaged_fields!(PathBuf);
-unsafe_no_jsmanaged_fields!(DrawAPaintImageResult);
 unsafe_no_jsmanaged_fields!(DocumentId);
 unsafe_no_jsmanaged_fields!(ImageKey);
 unsafe_no_jsmanaged_fields!(ExternalImageId);
@@ -530,7 +519,6 @@ unsafe_no_jsmanaged_fields!(
     webxr_api::HitTestId,
     webxr_api::HitTestResult
 );
-unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);
 unsafe_no_jsmanaged_fields!(SourceSet);
@@ -541,9 +529,7 @@ unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>);
 unsafe_no_jsmanaged_fields!(Point2D<f32>, Rect<Au>);
 unsafe_no_jsmanaged_fields!(Rect<f32>);
 unsafe_no_jsmanaged_fields!(WindowGLContext);
-unsafe_no_jsmanaged_fields!(MediaSessionActionType);
 unsafe_no_jsmanaged_fields!(MediaMetadata);
-unsafe_no_jsmanaged_fields!(WebrenderIpcSender);
 unsafe_no_jsmanaged_fields!(StreamConsumer);
 unsafe_no_jsmanaged_fields!(Stencil);
 

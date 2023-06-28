@@ -91,6 +91,7 @@ pub struct PaintWorkletGlobalScope {
     /// The most recent arguments the worklet was drawn at
     cached_arguments: DomRefCell<Vec<String>>,
     /// The most recent result
+    #[no_trace]
     cached_result: DomRefCell<DrawAPaintImageResult>,
 }
 

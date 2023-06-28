@@ -225,6 +225,7 @@ pub struct Window {
     devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
     /// Pending resize event, if any.
+    #[no_trace]
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
     /// Parent id associated with this page, if any.
@@ -250,6 +251,7 @@ pub struct Window {
     layout_rpc: Box<dyn LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
+    #[no_trace]
     window_size: Cell<WindowSizeData>,
 
     /// A handle for communicating messages to the bluetooth thread.
@@ -324,6 +326,7 @@ pub struct Window {
 
     /// Webrender API Sender
     #[ignore_malloc_size_of = "Wraps an IpcSender"]
+    #[no_trace]
     webrender_api_sender: WebrenderIpcSender,
 
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
