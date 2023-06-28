@@ -220,6 +220,7 @@ pub struct Window {
 
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
+    #[no_trace]
     devtools_markers: DomRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_malloc_size_of = "channels are hard"]
     devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
@@ -361,6 +362,7 @@ pub struct Window {
 
     /// A mechanism to force the compositor to process events.
     #[ignore_malloc_size_of = "traits are cumbersome"]
+    #[no_trace]
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 
     visible: Cell<bool>,

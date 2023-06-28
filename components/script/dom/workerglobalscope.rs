@@ -97,6 +97,7 @@ pub struct WorkerGlobalScope {
     worker_name: DOMString,
     worker_type: WorkerType,
 
+    #[no_trace]
     worker_id: WorkerId,
     worker_url: DomRefCell<ServoUrl>,
     #[ignore_malloc_size_of = "Arc"]

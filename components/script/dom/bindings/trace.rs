@@ -46,12 +46,9 @@ use crate::script_runtime::{ContextForRequestInterrupt, StreamConsumer};
 use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
 use app_units::Au;
-use canvas_traits::webgl::{WebGLReceiver, WebGLSender};
 use content_security_policy::CspList;
 use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
-use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
-use embedder_traits::{EventLoopWaker, MediaMetadata};
 use encoding_rs::{Decoder, Encoding};
 use euclid::default::{Point2D, Rect, Rotation3D, Transform2D};
 use euclid::Length as EuclidLength;
@@ -76,8 +73,6 @@ use metrics::{InteractiveMetrics, InteractiveWindow};
 use mime::Mime;
 use msg::constellation_msg::{ServiceWorkerId, ServiceWorkerRegistrationId};
 use parking_lot::{Mutex as ParkMutex, RwLock};
-use profile_traits::mem::ProfilerChan as MemProfilerChan;
-use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::message::PendingRestyle;
 use script_layout_interface::rpc::LayoutRPC;
 use script_layout_interface::StyleAndOpaqueLayoutData;
@@ -150,14 +145,12 @@ impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
     }
 }
 
-unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>, Box<dyn EventLoopWaker>);
+unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 
 unsafe_no_jsmanaged_fields!(IncompleteParserContexts);
 
 unsafe_no_jsmanaged_fields!(ServiceWorkerId);
 unsafe_no_jsmanaged_fields!(ServiceWorkerRegistrationId);
-
-unsafe_no_jsmanaged_fields!(CSSError);
 
 unsafe_no_jsmanaged_fields!(&'static Encoding);
 
@@ -480,16 +473,12 @@ unsafe_no_jsmanaged_fields!(ServoUrl, ImmutableOrigin, MutableOrigin);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
 
-unsafe_no_jsmanaged_fields!(TimelineMarkerType);
-unsafe_no_jsmanaged_fields!(WorkerId);
 unsafe_no_jsmanaged_fields!(BufferQueue, StrTendril);
 unsafe_no_jsmanaged_fields!(Runtime);
 unsafe_no_jsmanaged_fields!(ContextForRequestInterrupt);
 unsafe_no_jsmanaged_fields!(HeaderMap, Method);
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);
 unsafe_no_jsmanaged_fields!(RGBA);
-unsafe_no_jsmanaged_fields!(TimeProfilerChan);
-unsafe_no_jsmanaged_fields!(MemProfilerChan);
 unsafe_no_jsmanaged_fields!(ElementSelectorFlags);
 unsafe_no_jsmanaged_fields!(DOMString);
 unsafe_no_jsmanaged_fields!(Mime);
@@ -529,7 +518,6 @@ unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>);
 unsafe_no_jsmanaged_fields!(Point2D<f32>, Rect<Au>);
 unsafe_no_jsmanaged_fields!(Rect<f32>);
 unsafe_no_jsmanaged_fields!(WindowGLContext);
-unsafe_no_jsmanaged_fields!(MediaMetadata);
 unsafe_no_jsmanaged_fields!(StreamConsumer);
 unsafe_no_jsmanaged_fields!(Stencil);
 
@@ -597,26 +585,6 @@ unsafe impl<T: Send> JSTraceable for Receiver<T> {
 }
 
 unsafe impl<T: Send> JSTraceable for Sender<T> {
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T: Send> JSTraceable for WebGLReceiver<T>
-where
-    T: for<'de> Deserialize<'de> + Serialize,
-{
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T: Send> JSTraceable for WebGLSender<T>
-where
-    T: for<'de> Deserialize<'de> + Serialize,
-{
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing

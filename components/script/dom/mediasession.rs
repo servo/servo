@@ -36,6 +36,7 @@ pub struct MediaSession {
     reflector_: Reflector,
     /// https://w3c.github.io/mediasession/#dom-mediasession-metadata
     #[ignore_malloc_size_of = "defined in embedder_traits"]
+    #[no_trace]
     metadata: DomRefCell<Option<EmbedderMediaMetadata>>,
     /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate
     playback_state: DomRefCell<MediaSessionPlaybackState>,

@@ -597,9 +597,11 @@ pub struct ScriptThread {
     /// The channel on which the image cache can send messages to ourself.
     image_cache_channel: Sender<ImageCacheMsg>,
     /// For providing contact with the time profiler.
+    #[no_trace]
     time_profiler_chan: profile_time::ProfilerChan,
 
     /// For providing contact with the memory profiler.
+    #[no_trace]
     mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
@@ -693,6 +695,7 @@ pub struct ScriptThread {
     player_context: WindowGLContext,
 
     /// A mechanism to force the compositor's event loop to process events.
+    #[no_trace]
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 
     /// A set of all nodes ever created in this script thread
