@@ -361,6 +361,14 @@ where
                             vec.push(PseudoElementContentItem::Replaced(replaced_content));
                         }
                     },
+                    ContentItem::Counter(_, _) |
+                    ContentItem::Counters(_, _, _) |
+                    ContentItem::OpenQuote |
+                    ContentItem::CloseQuote |
+                    ContentItem::NoOpenQuote |
+                    ContentItem::NoCloseQuote => {
+                        // TODO: Add support for counters and quotes.
+                    },
                 }
             }
             vec

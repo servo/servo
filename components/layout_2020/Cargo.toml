@@ -7,7 +7,7 @@ edition = "2018"
 publish = false
 
 [lib]
-name = "layout"
+name = "layout_2020"
 path = "lib.rs"
 test = false
 doctest = false
@@ -41,7 +41,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 servo_arc = { path = "../servo_arc" }
 servo_url = { path = "../url" }
-style = { path = "../style", features = ["servo", "servo-layout-2020"] }
+style = { path = "../style", features = ["servo"] }
 style_traits = { path = "../style_traits" }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }

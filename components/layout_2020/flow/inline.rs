@@ -473,6 +473,16 @@ impl Lines {
                     TextAlign::Start
                 }
             },
+            TextAlignKeyword::Justify => {
+                // TODO: Add support for justfied text.
+                TextAlign::Start
+            },
+            TextAlignKeyword::ServoCenter |
+            TextAlignKeyword::ServoLeft |
+            TextAlignKeyword::ServoRight => {
+                // TODO: Implement these modes which seem to be used by quirks mode.
+                TextAlign::Start
+            },
         };
         let move_by = match text_align {
             TextAlign::Start => Length::zero(),

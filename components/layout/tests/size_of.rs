@@ -7,8 +7,8 @@
 #[macro_use]
 extern crate size_of_test;
 
-use layout::Fragment;
-use layout::SpecificFragmentInfo;
+use layout_2013::Fragment;
+use layout_2013::SpecificFragmentInfo;
 
 #[cfg(debug_assertions)]
 size_of_test!(test_size_of_fragment, Fragment, 176);

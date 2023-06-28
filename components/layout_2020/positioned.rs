@@ -290,7 +290,7 @@ impl PositioningContext {
             match position {
                 Position::Fixed => {}, // fall through
                 Position::Absolute => return nearest.push(box_),
-                Position::Static | Position::Relative => unreachable!(),
+                Position::Static | Position::Relative | Position::Sticky => unreachable!(),
             }
         }
         self.for_nearest_containing_block_for_all_descendants

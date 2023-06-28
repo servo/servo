@@ -497,6 +497,18 @@ impl From<stylo::Display> for Display {
             // These should not be values of DisplayInside, but oh well
             stylo::DisplayInside::None => return Display::None,
             stylo::DisplayInside::Contents => return Display::Contents,
+
+            // TODO: Implement support for tables.
+            stylo::DisplayInside::Table |
+            stylo::DisplayInside::TableRowGroup |
+            stylo::DisplayInside::TableColumn |
+            stylo::DisplayInside::TableColumnGroup |
+            stylo::DisplayInside::TableHeaderGroup |
+            stylo::DisplayInside::TableFooterGroup |
+            stylo::DisplayInside::TableRow |
+            stylo::DisplayInside::TableCell => DisplayInside::Flow {
+                is_list_item: packed.is_list_item(),
+            },
         };
         let outside = match packed.outside() {
             stylo::DisplayOutside::Block => DisplayOutside::Block,
@@ -504,6 +516,11 @@ impl From<stylo::Display> for Display {
 
             // This should not be a value of DisplayInside, but oh well
             stylo::DisplayOutside::None => return Display::None,
+
+            // TODO: Implement support for tables.
+            stylo::DisplayOutside::TableCaption | stylo::DisplayOutside::InternalTable => {
+                DisplayOutside::Block
+            },
         };
         Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { outside, inside })
     }

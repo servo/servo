@@ -99,6 +99,7 @@
   "layout.animations.test.enabled": false,
   "layout.columns.enabled": false,
   "layout.flexbox.enabled": false,
+  "layout.legacy_layout": false,
   "layout.threads": 3,
   "layout.writing-mode.enabled": false,
   "media.glvideo.enabled": false,

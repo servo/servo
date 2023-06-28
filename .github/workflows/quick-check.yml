@@ -13,14 +13,4 @@ jobs:
     if: github.repository != 'servo/servo' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/linux.yml
     with:
-      layout: '2013'
       unit-tests: true
-
-  build-linux-layout-2020:
-    name: Linux (layout-2020)
-    if: github.repository != 'servo/servo' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/linux.yml
-    with:
-      layout: '2020'
-      # TODO: unit tests on layout-2020
-      unit-tests: false

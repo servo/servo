@@ -245,11 +245,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .add_flags(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE);
         }
 
-        #[cfg(feature = "servo-layout-2013")]
-        {
-            if self.style.get_parent_column().is_multicol() {
-                self.style.add_flags(ComputedValueFlags::CAN_BE_FRAGMENTED);
-            }
+        if self.style.get_parent_column().is_multicol() {
+            self.style.add_flags(ComputedValueFlags::CAN_BE_FRAGMENTED);
         }
     }
 

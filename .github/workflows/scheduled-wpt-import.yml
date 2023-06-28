@@ -15,17 +15,6 @@ jobs:
     name: Linux
     uses: ./.github/workflows/linux.yml
     with:
-      layout: '2013'
-      wpt: 'sync'
-      unit-tests: false
-
-  linux-layout-2020:
-    # This job is only useful when run on upstream servo.
-    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Linux (layout-2020)
-    uses: ./.github/workflows/linux.yml
-    with:
-      layout: '2020'
       wpt: 'sync'
       unit-tests: false
 
@@ -36,7 +25,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - "linux"
-      - "linux-layout-2020"
     steps:
       - name: Checkout code
         uses: actions/checkout@v3

@@ -8,7 +8,7 @@ ${helpers.four_sides_shorthand(
     "padding",
     "padding-%s",
     "specified::NonNegativeLengthPercentage::parse",
-    engines="gecko servo-2013 servo-2020",
+    engines="gecko servo",
     spec="https://drafts.csswg.org/css-box-3/#propdef-padding",
     allow_quirks="Yes",
 )}
@@ -18,7 +18,7 @@ ${helpers.two_properties_shorthand(
     "padding-block-start",
     "padding-block-end",
     "specified::NonNegativeLengthPercentage::parse",
-    engines="gecko servo-2013 servo-2020",
+    engines="gecko servo",
     spec="https://drafts.csswg.org/css-logical/#propdef-padding-block"
 )}
 
@@ -27,7 +27,7 @@ ${helpers.two_properties_shorthand(
     "padding-inline-start",
     "padding-inline-end",
     "specified::NonNegativeLengthPercentage::parse",
-    engines="gecko servo-2013 servo-2020",
+    engines="gecko servo",
     spec="https://drafts.csswg.org/css-logical/#propdef-padding-inline"
 )}
 

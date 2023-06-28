@@ -22,8 +22,6 @@ servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5eve
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "servo_url",
          "string_cache", "to_shmem/servo",
          "servo_arc/servo"]
-servo-layout-2013 = []
-servo-layout-2020 = []
 gecko_debug = []
 gecko_refcount_logging = []
 

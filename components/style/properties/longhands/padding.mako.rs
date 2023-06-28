@@ -16,7 +16,7 @@
         "padding-%s" % side[0],
         "NonNegativeLengthPercentage",
         "computed::NonNegativeLengthPercentage::zero()",
-        engines="gecko servo-2013 servo-2020",
+        engines="gecko servo",
         aliases=maybe_moz_logical_alias(engine, side, "-moz-padding-%s"),
         animation_value_type="NonNegativeLengthPercentage",
         logical=side[1],
