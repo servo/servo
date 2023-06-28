@@ -8,8 +8,8 @@ use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{
-    AnonymousFragment, BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, FontMetrics, Fragment,
-    TextFragment,
+    AnonymousFragment, BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
+    FontMetrics, Fragment, TextFragment,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{
@@ -349,30 +349,30 @@ impl InlineFormattingContext {
                             .fragments_so_far
                             .push(Fragment::AbsoluteOrFixedPositioned(hoisted_fragment));
                     },
-                    InlineLevelBox::OutOfFlowFloatBox(box_) => {
-                        let mut fragment = box_.layout(
+                    InlineLevelBox::OutOfFlowFloatBox(float_box) => {
+                        let mut box_fragment = float_box.layout(
                             layout_context,
                             ifc.positioning_context,
                             containing_block,
-                            ifc.sequential_layout_state.as_mut().map(|c| &mut **c),
                         );
-                        if let Some(state) = &ifc.sequential_layout_state {
-                            let offset_from_formatting_context_to_containing_block = Vec2 {
-                                inline: state.floats.containing_block_info.inline_start,
-                                block: state.floats.containing_block_info.block_start +
-                                    state
-                                        .floats
-                                        .containing_block_info
-                                        .block_start_margins_not_collapsed
-                                        .solve(),
-                            };
-                            if let Fragment::Float(ref mut box_fragment) = &mut fragment {
-                                box_fragment.content_rect.start_corner =
-                                    &box_fragment.content_rect.start_corner -
-                                        &offset_from_formatting_context_to_containing_block;
-                            }
-                        }
-                        ifc.current_nesting_level.fragments_so_far.push(fragment);
+
+                        let state = ifc
+                            .sequential_layout_state
+                            .as_mut()
+                            .expect("Tried to lay out a float with no sequential placement state!");
+
+                        let block_offset_from_containining_block_top = state
+                            .current_block_position_including_margins() -
+                            state.current_containing_block_offset();
+                        state.place_float_fragment(
+                            &mut box_fragment,
+                            CollapsedMargin::zero(),
+                            block_offset_from_containining_block_top,
+                        );
+
+                        ifc.current_nesting_level
+                            .fragments_so_far
+                            .push(Fragment::Float(box_fragment));
                     },
                 }
             } else
