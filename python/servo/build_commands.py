@@ -118,7 +118,6 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
 
         build_start = time()
-        env["CARGO_TARGET_DIR"] = target_path
 
         host = servo.platform.host_triple()
         target_triple = self.cross_compile_target or servo.platform.host_triple()
@@ -400,10 +399,6 @@ class MachCommands(CommandBase):
             print(["Calling", "cargo", "build"] + opts)
             for key in env:
                 print((key, env[key]))
-
-        if sys.platform != "win32":
-            env.setdefault("CC", "clang")
-            env.setdefault("CXX", "clang++")
 
         status = self.run_cargo_build_like_command(
             "build", opts, env=env, verbose=verbose,
