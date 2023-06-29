@@ -620,7 +620,7 @@ impl HoistedAbsolutelyPositionedBox {
                 pbm.padding,
                 pbm.border,
                 margin,
-                Length::zero(),
+                None,
                 CollapsedBlockMargins::zero(),
                 physical_overconstrained,
             )

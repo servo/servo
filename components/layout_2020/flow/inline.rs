@@ -554,7 +554,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
             self.padding.clone(),
             self.border.clone(),
             self.margin.clone(),
-            Length::zero(),
+            None,
             CollapsedBlockMargins::zero(),
         );
         let last_fragment = self.last_box_tree_fragment && !at_line_break;
@@ -619,7 +619,7 @@ fn layout_atomic(
                 pbm.padding,
                 pbm.border,
                 margin,
-                Length::zero(),
+                None,
                 CollapsedBlockMargins::zero(),
             )
         },
@@ -701,7 +701,7 @@ fn layout_atomic(
                 pbm.padding,
                 pbm.border,
                 margin,
-                Length::zero(),
+                None,
                 CollapsedBlockMargins::zero(),
             )
         },

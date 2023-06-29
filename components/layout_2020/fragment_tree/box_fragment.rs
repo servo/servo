@@ -31,7 +31,13 @@ pub(crate) struct BoxFragment {
     pub border: Sides<Length>,
     pub margin: Sides<Length>,
 
-    pub clearance: Length,
+    /// When the `clear` property is not set to `none`, it may introduce clearance.
+    /// Clearance is some extra spacing that is added above the top margin,
+    /// so that the element doesn't overlap earlier floats in the same BFC.
+    /// The presence of clearance prevents the top margin from collapsing with
+    /// earlier margins or with the bottom margin of the parent block.
+    /// https://drafts.csswg.org/css2/#clearance
+    pub clearance: Option<Length>,
 
     pub block_margins_collapsed_with_children: CollapsedBlockMargins,
 
@@ -51,7 +57,7 @@ impl BoxFragment {
         padding: Sides<Length>,
         border: Sides<Length>,
         margin: Sides<Length>,
-        clearance: Length,
+        clearance: Option<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
     ) -> BoxFragment {
         let position = style.get_box().position;
@@ -85,7 +91,7 @@ impl BoxFragment {
         padding: Sides<Length>,
         border: Sides<Length>,
         margin: Sides<Length>,
-        clearance: Length,
+        clearance: Option<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
         overconstrained: PhysicalSize<bool>,
     ) -> BoxFragment {

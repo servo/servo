@@ -183,7 +183,7 @@ impl BlockFormattingContext {
         // The content height of a BFC root should include any float participating in that BFC
         // (https://drafts.csswg.org/css2/#root-height), we implement this by imagining there is
         // an element with `clear: both` after the actual contents.
-        let clearance = sequential_layout_state.map_or(Length::zero(), |sequential_layout_state| {
+        let clearance = sequential_layout_state.and_then(|sequential_layout_state| {
             sequential_layout_state.calculate_clearance(ClearSide::Both)
         });
 
@@ -191,7 +191,7 @@ impl BlockFormattingContext {
             fragments: flow_layout.fragments,
             content_block_size: flow_layout.content_block_size +
                 flow_layout.collapsible_margins_in_children.end.solve() +
-                clearance,
+                clearance.unwrap_or_else(Length::zero),
         }
     }
 }
@@ -650,7 +650,7 @@ fn layout_in_flow_non_replaced_block_level(
         pbm.border.block_end == Length::zero() &&
         block_size == LengthOrAuto::Auto;
 
-    let mut clearance = Length::zero();
+    let mut clearance = None;
     let parent_containing_block_position_info;
     match sequential_layout_state {
         None => parent_containing_block_position_info = None,
@@ -667,7 +667,9 @@ fn layout_in_flow_non_replaced_block_level(
             // NB: This will be a no-op if we're collapsing margins with our children since that
             // can only happen if we have no block-start padding and border.
             sequential_layout_state.advance_block_position(
-                pbm.padding.block_start + pbm.border.block_start + clearance,
+                pbm.padding.block_start +
+                    pbm.border.block_start +
+                    clearance.unwrap_or_else(Length::zero),
             );
 
             // We are about to lay out children. Update the offset between the block formatting
@@ -776,7 +778,9 @@ fn layout_in_flow_non_replaced_block_level(
 
     let content_rect = Rect {
         start_corner: Vec2 {
-            block: pbm.padding.block_start + pbm.border.block_start + clearance,
+            block: pbm.padding.block_start +
+                pbm.border.block_start +
+                clearance.unwrap_or_else(Length::zero),
             inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
         },
         size: Vec2 {
@@ -821,20 +825,25 @@ fn layout_in_flow_replaced_block_level<'a>(
     };
     let fragments = replaced.make_fragments(style, size.clone());
 
-    let mut clearance = Length::zero();
+    let mut clearance = None;
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_start));
         sequential_layout_state.collapse_margins();
         clearance = sequential_layout_state.calculate_clearance(ClearSide::from_style(style));
         sequential_layout_state.advance_block_position(
-            pbm.border.block_sum() + pbm.padding.block_sum() + size.block + clearance,
+            pbm.border.block_sum() +
+                pbm.padding.block_sum() +
+                size.block +
+                clearance.unwrap_or_else(Length::zero),
         );
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
     };
 
     let content_rect = Rect {
         start_corner: Vec2 {
-            block: pbm.padding.block_start + pbm.border.block_start + clearance,
+            block: pbm.padding.block_start +
+                pbm.border.block_start +
+                clearance.unwrap_or_else(Length::zero),
             inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
         },
         size,
@@ -915,8 +924,7 @@ impl PlacementState {
         match fragment {
             Fragment::Box(fragment) => {
                 let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
-                let fragment_block_size = fragment.clearance +
-                    fragment.padding.block_sum() +
+                let mut fragment_block_size = fragment.padding.block_sum() +
                     fragment.border.block_sum() +
                     fragment.content_rect.size.block;
                 // We use `last_in_flow_margin_collapses_with_parent_end_margin` to implement
@@ -924,7 +932,8 @@ impl PlacementState {
                 // > If the top and bottom margins of an element with clearance are adjoining,
                 // > its margins collapse with the adjoining margins of following siblings but that
                 // > resulting margin does not collapse with the bottom margin of the parent block.
-                if fragment.clearance != Length::zero() {
+                if let Some(clearance) = fragment.clearance {
+                    fragment_block_size += clearance;
                     // Margins can't be adjoining if they are separated by clearance.
                     // Setting `next_in_flow_margin_collapses_with_parent_start_margin` to false
                     // prevents collapsing with the start margin of the parent, and will set
@@ -957,7 +966,7 @@ impl PlacementState {
                 if fragment_block_margins.collapsed_through {
                     // `fragment_block_size` is typically zero when collapsing through,
                     // but we still need to consider it in case there is clearance.
-                    self.current_block_direction_position += fragment.clearance;
+                    self.current_block_direction_position += fragment_block_size;
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.end);
                 } else {
