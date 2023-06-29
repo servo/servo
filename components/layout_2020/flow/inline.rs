@@ -623,16 +623,12 @@ fn layout_atomic(
     let pbm = style.padding_border_margin(&ifc.containing_block);
     let margin = pbm.margin.auto_is(Length::zero);
     let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
-    ifc.inline_position += pbm_sums.inline_start;
-    let mut start_corner = Vec2 {
-        block: pbm_sums.block_start,
-        inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
-    };
-    if style.clone_position().is_relative() {
-        start_corner += &relative_adjustement(&style, ifc.containing_block)
-    }
+    let position = style.clone_position();
 
-    let fragment = match atomic {
+    let mut child_positioning_context = None;
+
+    // We need to know the inline size of the atomic before deciding whether to do the line break.
+    let mut fragment = match atomic {
         IndependentFormattingContext::Replaced(replaced) => {
             let size = replaced.contents.used_size_as_if_inline_element(
                 ifc.containing_block,
@@ -643,7 +639,10 @@ fn layout_atomic(
             let fragments = replaced
                 .contents
                 .make_fragments(&replaced.style, size.clone());
-            let content_rect = Rect { start_corner, size };
+            let content_rect = Rect {
+                start_corner: Vec2::zero(),
+                size,
+            };
             BoxFragment::new(
                 replaced.base_fragment_info,
                 replaced.style.clone(),
@@ -696,16 +695,14 @@ fn layout_atomic(
             let collects_for_nearest_positioned_ancestor = ifc
                 .positioning_context
                 .collects_for_nearest_positioned_ancestor();
-            let mut child_positioning_context =
-                PositioningContext::new_for_subtree(collects_for_nearest_positioned_ancestor);
+            child_positioning_context = Some(PositioningContext::new_for_subtree(
+                collects_for_nearest_positioned_ancestor,
+            ));
             let independent_layout = non_replaced.layout(
                 layout_context,
-                &mut child_positioning_context,
+                child_positioning_context.as_mut().unwrap(),
                 &containing_block_for_children,
             );
-            child_positioning_context
-                .adjust_static_position_of_hoisted_fragments_with_offset(&start_corner);
-            ifc.positioning_context.append(child_positioning_context);
 
             // https://drafts.csswg.org/css2/visudet.html#block-root-margin
             let tentative_block_size = box_size
@@ -719,7 +716,7 @@ fn layout_atomic(
                 .clamp_between_extremums(min_box_size.block, max_box_size.block);
 
             let content_rect = Rect {
-                start_corner,
+                start_corner: Vec2::zero(),
                 size: Vec2 {
                     block: block_size,
                     inline: inline_size,
@@ -739,6 +736,31 @@ fn layout_atomic(
             )
         },
     };
+
+    if fragment.content_rect.size.inline + pbm_sums.inline_sum() >
+        ifc.containing_block.inline_size - ifc.inline_position &&
+        ifc.current_nesting_level.white_space.allow_wrap() &&
+        ifc.current_nesting_level.fragments_so_far.len() != 0
+    {
+        ifc.finish_line_and_reset(layout_context);
+    }
+
+    ifc.inline_position += pbm_sums.inline_start;
+    let mut start_corner = Vec2 {
+        block: pbm_sums.block_start,
+        inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
+    };
+    if position.is_relative() {
+        start_corner += &relative_adjustement(atomic.style(), ifc.containing_block)
+    }
+
+    if let Some(mut child_positioning_context) = child_positioning_context.take() {
+        child_positioning_context
+            .adjust_static_position_of_hoisted_fragments_with_offset(&start_corner);
+        ifc.positioning_context.append(child_positioning_context);
+    }
+
+    fragment.content_rect.start_corner = start_corner;
 
     ifc.inline_position += pbm_sums.inline_end + fragment.content_rect.size.inline;
     ifc.current_nesting_level
