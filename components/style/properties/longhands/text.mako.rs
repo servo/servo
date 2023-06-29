@@ -41,7 +41,7 @@ ${helpers.predefined_type(
 ${helpers.single_keyword(
     "text-decoration-style",
     "solid double dotted dashed wavy -moz-none",
-    engines="gecko servo-2020",
+    engines="gecko servo-2013 servo-2020",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-style",
 )}
@@ -50,7 +50,7 @@ ${helpers.predefined_type(
     "text-decoration-color",
     "Color",
     "computed_value::T::currentcolor()",
-    engines="gecko servo-2020",
+    engines="gecko servo-2013 servo-2020",
     initial_specified_value="specified::Color::currentcolor()",
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,

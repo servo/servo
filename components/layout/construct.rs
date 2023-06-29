@@ -73,6 +73,7 @@ use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::Image;
 use style::values::generics::counters::ContentItem;
+use style::LocalName;
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
@@ -861,6 +862,15 @@ where
                 for content_item in content_items.into_iter() {
                     let specific_fragment_info = match content_item {
                         ContentItem::String(string) => {
+                            let info =
+                                Box::new(UnscannedTextFragmentInfo::new(string.into(), None));
+                            SpecificFragmentInfo::UnscannedText(info)
+                        },
+                        ContentItem::Attr(attr) => {
+                            let element = node.as_element().expect("Expected an element");
+                            let attr_val = element
+                                .get_attr(&attr.namespace_url, &LocalName::from(&*attr.attribute));
+                            let string = attr_val.map_or("".to_string(), |s| s.to_string());
                             let info =
                                 Box::new(UnscannedTextFragmentInfo::new(string.into(), None));
                             SpecificFragmentInfo::UnscannedText(info)
