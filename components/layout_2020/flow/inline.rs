@@ -127,6 +127,34 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
 
         self.positioning_context.push(hoisted_box);
     }
+
+    /// Finish layout of all the partial inline boxes in the current line,
+    /// finish current line and start a new one.
+    fn finish_line_and_reset(&mut self, layout_context: &LayoutContext) {
+        self.current_nesting_level.inline_start = Length::zero();
+        let mut nesting_level = &mut self.current_nesting_level;
+        for partial in self.partial_inline_boxes_stack.iter_mut().rev() {
+            partial.finish_layout(
+                layout_context,
+                nesting_level,
+                &mut self.inline_position,
+                true,
+            );
+            partial.start_corner.inline = Length::zero();
+            partial.padding.inline_start = Length::zero();
+            partial.border.inline_start = Length::zero();
+            partial.margin.inline_start = Length::zero();
+            partial.parent_nesting_level.inline_start = Length::zero();
+            nesting_level = &mut partial.parent_nesting_level;
+        }
+        self.lines.finish_line(
+            nesting_level,
+            self.containing_block,
+            self.sequential_layout_state.as_mut().map(|c| &mut **c),
+            self.inline_position,
+        );
+        self.inline_position = Length::zero();
+    }
 }
 
 struct Lines {
@@ -893,30 +921,7 @@ impl TextRun {
             if runs.as_slice().is_empty() && !force_line_break {
                 break;
             } else {
-                // New line
-                ifc.current_nesting_level.inline_start = Length::zero();
-                let mut nesting_level = &mut ifc.current_nesting_level;
-                for partial in ifc.partial_inline_boxes_stack.iter_mut().rev() {
-                    partial.finish_layout(
-                        layout_context,
-                        nesting_level,
-                        &mut ifc.inline_position,
-                        true,
-                    );
-                    partial.start_corner.inline = Length::zero();
-                    partial.padding.inline_start = Length::zero();
-                    partial.border.inline_start = Length::zero();
-                    partial.margin.inline_start = Length::zero();
-                    partial.parent_nesting_level.inline_start = Length::zero();
-                    nesting_level = &mut partial.parent_nesting_level;
-                }
-                ifc.lines.finish_line(
-                    nesting_level,
-                    ifc.containing_block,
-                    ifc.sequential_layout_state.as_mut().map(|c| &mut **c),
-                    ifc.inline_position,
-                );
-                ifc.inline_position = Length::zero();
+                ifc.finish_line_and_reset(layout_context);
             }
         }
     }
