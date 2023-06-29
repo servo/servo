@@ -70,7 +70,7 @@ jobs:
         with:
           name: cargo-timings
           # Using a wildcard here ensures that the archive includes the path.
-          path: target/cargo-timings-*
+          path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Package
         run: python mach package --release
       - name: Upload Package
