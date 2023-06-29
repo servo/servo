@@ -26,29 +26,26 @@ import logging
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 import threading
 import time
 import unittest
 
 from functools import partial
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Type
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
 import flask
 import flask.cli
 import requests
-from exporter import SyncRun, WPTSync
-from exporter.step import CreateOrUpdateBranchForPRStep
+
+from .exporter import SyncRun, WPTSync
+from .exporter.step import CreateOrUpdateBranchForPRStep
 
 TESTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests")
 SYNC: Optional[WPTSync] = None
 TMP_DIR: Optional[str] = None
 PORT = 9000
-
-if "-v" in sys.argv or "--verbose" in sys.argv:
-    logging.getLogger().level = logging.DEBUG
 
 
 @dataclasses.dataclass
@@ -666,8 +663,16 @@ def tearDownModule():
     shutil.rmtree(TMP_DIR)
 
 
-if __name__ == "__main__":
-    # Uncomment this line to enable verbose logging.
-    # logging.getLogger().setLevel(logging.INFO)
+def run_tests():
+    verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
 
-    unittest.main()
+    def run_suite(test_case: Type[unittest.TestCase]):
+        return unittest.TextTestRunner(verbosity=verbosity).run(
+            unittest.TestLoader().loadTestsFromTestCase(test_case)
+        ).wasSuccessful()
+
+    return all([
+        run_suite(TestApplyCommitsToWPT),
+        run_suite(TestCleanUpBodyText),
+        run_suite(TestFullSyncRun),
+    ])

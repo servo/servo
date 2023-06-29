@@ -12,6 +12,8 @@ import sys
 
 import mozlog.commandline
 
+from . import test
+
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WPT_PATH = os.path.join(SERVO_ROOT, "tests", "wpt")
@@ -62,3 +64,7 @@ def update_args_for_legacy_layout(kwargs: dict):
     kwargs["include_manifest"] = os.path.join(
         WPT_PATH, "include-legacy-layout.ini"
     )
+
+
+def run_tests():
+    return test.run_tests()

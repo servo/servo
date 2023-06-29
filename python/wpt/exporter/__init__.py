@@ -127,7 +127,7 @@ class SyncRun:
         return SyncRun.clean_up_body_text(body) + f"\nReviewed in {self.servo_pr}"
 
 
-@dataclasses.dataclass(kw_only=True)
+@dataclasses.dataclass()
 class WPTSync:
     servo_repo: str
     wpt_repo: str
