@@ -191,7 +191,7 @@ impl BlockFormattingContext {
         // (https://drafts.csswg.org/css2/#root-height), we implement this by imagining there is
         // an element with `clear: both` after the actual contents.
         let clearance = sequential_layout_state.and_then(|sequential_layout_state| {
-            sequential_layout_state.calculate_clearance(ClearSide::Both)
+            sequential_layout_state.calculate_clearance(ClearSide::Both, &CollapsedMargin::zero())
         });
 
         IndependentLayout {
@@ -657,7 +657,7 @@ fn layout_in_flow_non_replaced_block_level(
     match sequential_layout_state {
         None => parent_containing_block_position_info = None,
         Some(ref mut sequential_layout_state) => {
-            sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_start));
+            let mut block_start_margin = CollapsedMargin::new(margin.block_start);
             if start_margin_can_collapse_with_children {
                 if let NonReplacedContents::SameFormattingContextBlock(
                     BlockContainer::BlockLevelBoxes(child_boxes),
@@ -665,21 +665,20 @@ fn layout_in_flow_non_replaced_block_level(
                 {
                     // The block start margin may collapse with content margins,
                     // compute the resulting one in order to place floats correctly.
-                    let mut future_margins = CollapsedMargin::zero();
                     BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
                         child_boxes,
-                        &mut future_margins,
+                        &mut block_start_margin,
                         WritingMode::empty(),
                     );
-                    sequential_layout_state.adjoin_assign(&future_margins);
                 }
-            } else {
-                sequential_layout_state.collapse_margins();
             }
 
             // Introduce clearance if necessary.
-            let clear_side = ClearSide::from_style(style);
-            clearance = sequential_layout_state.calculate_clearance(clear_side);
+            clearance = sequential_layout_state
+                .calculate_clearance_and_adjoin_margin(style, &block_start_margin);
+            if !start_margin_can_collapse_with_children {
+                sequential_layout_state.collapse_margins();
+            }
 
             // NB: This will be a no-op if we're collapsing margins with our children since that
             // can only happen if we have no block-start padding and border.
@@ -844,9 +843,11 @@ fn layout_in_flow_replaced_block_level<'a>(
 
     let mut clearance = None;
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
-        sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_start));
+        clearance = sequential_layout_state.calculate_clearance_and_adjoin_margin(
+            style,
+            &CollapsedMargin::new(margin.block_start),
+        );
         sequential_layout_state.collapse_margins();
-        clearance = sequential_layout_state.calculate_clearance(ClearSide::from_style(style));
         sequential_layout_state.advance_block_position(
             pbm.border.block_sum() +
                 pbm.padding.block_sum() +
@@ -943,6 +944,8 @@ impl PlacementState {
                     // Setting `next_in_flow_margin_collapses_with_parent_start_margin` to false
                     // prevents collapsing with the start margin of the parent, and will set
                     // `collapsed_through` to false, preventing the parent from collapsing through.
+                    self.current_block_direction_position += self.current_margin.solve();
+                    self.current_margin = CollapsedMargin::zero();
                     self.next_in_flow_margin_collapses_with_parent_start_margin = false;
                     if fragment_block_margins.collapsed_through {
                         self.last_in_flow_margin_collapses_with_parent_end_margin = false;
