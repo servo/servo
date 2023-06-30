@@ -1,11 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+/*
+ * The origin of this IDL file is
+ * https://streams.spec.whatwg.org/#rs-class-definition
+ */
 
-// This interface is entirely internal to Servo, and should not be accessible to
-// web pages.
+[Exposed=(Window,Worker)]
+interface ReadableStream {
+};
 
-[LegacyNoInterfaceObject, Exposed=(Window,Worker)]
-// Need to escape "ReadableStream" so it's treated as an identifier.
-interface _ReadableStream {
+dictionary ReadableStreamReadResult {
+ any value;
+ boolean done;
 };

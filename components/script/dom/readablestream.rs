@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::ReadableStreamReadResult;
+use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -14,17 +17,21 @@ use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
-use js::glue::{
+use js::conversions::ToJSValConvertible;
+use js::typedarray::{ArrayBuffer, CreateWith};
+/*use js::glue::{
     CreateReadableStreamUnderlyingSource, DeleteReadableStreamUnderlyingSource,
     ReadableStreamUnderlyingSourceTraps,
-};
+};*/
 use js::jsapi::{
-    AutoRequireNoGC, IsReadableStream, JS_GetArrayBufferViewData,
-    NewReadableExternalSourceStreamObject, ReadableStreamClose, ReadableStreamDefaultReaderRead,
+    AutoRequireNoGC,
+    /*IsReadableStream,*/
+    JS_GetArrayBufferViewData,
+    /*NewReadableExternalSourceStreamObject, ReadableStreamClose, ReadableStreamDefaultReaderRead,
     ReadableStreamError, ReadableStreamGetReader, ReadableStreamIsDisturbed,
     ReadableStreamIsLocked, ReadableStreamIsReadable, ReadableStreamReaderMode,
     ReadableStreamReaderReleaseLock, ReadableStreamUnderlyingSource,
-    ReadableStreamUpdateDataAvailableFromSource, UnwrapReadableStream,
+    ReadableStreamUpdateDataAvailableFromSource, UnwrapReadableStream,*/
 };
 use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject};
 use js::jsval::JSVal;
@@ -32,49 +39,65 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue as SafeHandleValue;
 use js::rust::IntoHandle;
 use std::cell::{Cell, RefCell};
+use std::mem;
 use std::os::raw::c_void;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
 use std::slice;
 
-static UNDERLYING_SOURCE_TRAPS: ReadableStreamUnderlyingSourceTraps =
-    ReadableStreamUnderlyingSourceTraps {
-        requestData: Some(request_data),
-        writeIntoReadRequestBuffer: Some(write_into_read_request_buffer),
-        cancel: Some(cancel),
-        onClosed: Some(close),
-        onErrored: Some(error),
-        finalize: Some(finalize),
-    };
+/*static UNDERLYING_SOURCE_TRAPS: ReadableStreamUnderlyingSourceTraps =
+ReadableStreamUnderlyingSourceTraps {
+    requestData: Some(request_data),
+    writeIntoReadRequestBuffer: Some(write_into_read_request_buffer),
+    cancel: Some(cancel),
+    onClosed: Some(close),
+    onErrored: Some(error),
+    finalize: Some(finalize),
+};*/
+
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+enum State {
+    Readable,
+    Closed,
+    Errored,
+}
 
 #[dom_struct]
 pub struct ReadableStream {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "SM handles JS values"]
+    /*#[ignore_malloc_size_of = "SM handles JS values"]
     js_stream: Heap<*mut JSObject>,
     #[ignore_malloc_size_of = "SM handles JS values"]
-    js_reader: Heap<*mut JSObject>,
+    js_reader: Heap<*mut JSObject>,*/
+    is_disturbed: Cell<bool>,
+    is_locked: Cell<bool>,
+    state: Cell<State>,
     has_reader: Cell<bool>,
-    #[ignore_malloc_size_of = "Rc is hard"]
-    external_underlying_source: Option<Rc<ExternalUnderlyingSourceController>>,
+    stored_error: Cell<()>,
+    external_underlying_source: Option<ExternalUnderlyingSourceController>,
 }
 
 impl ReadableStream {
     fn new_inherited(
-        external_underlying_source: Option<Rc<ExternalUnderlyingSourceController>>,
+        external_underlying_source: Option<ExternalUnderlyingSource>,
     ) -> ReadableStream {
         ReadableStream {
             reflector_: Reflector::new(),
-            js_stream: Heap::default(),
-            js_reader: Heap::default(),
+            //js_stream: Heap::default(),
+            //js_reader: Heap::default(),
+            is_disturbed: Default::default(),
+            is_locked: Default::default(),
+            state: Cell::new(State::Readable),
             has_reader: Default::default(),
-            external_underlying_source: external_underlying_source,
+            stored_error: Default::default(),
+            external_underlying_source: external_underlying_source
+                .map(ExternalUnderlyingSourceController::new),
         }
     }
 
     fn new(
         global: &GlobalScope,
-        external_underlying_source: Option<Rc<ExternalUnderlyingSourceController>>,
+        external_underlying_source: Option<ExternalUnderlyingSource>,
     ) -> DomRoot<ReadableStream> {
         reflect_dom_object(
             Box::new(ReadableStream::new_inherited(external_underlying_source)),
@@ -89,16 +112,18 @@ impl ReadableStream {
         obj: *mut JSObject,
         realm: InRealm,
     ) -> Result<DomRoot<ReadableStream>, ()> {
-        if !IsReadableStream(obj) {
-            return Err(());
-        }
+        /*if !IsReadableStream(obj) {
+                return Err(());
+        }*/
 
-        let global = GlobalScope::from_safe_context(cx, realm);
+        root_from_object(obj, *cx)
 
-        let stream = ReadableStream::new(&global, None);
-        stream.js_stream.set(UnwrapReadableStream(obj));
+        //let global = GlobalScope::from_safe_context(cx, realm);
 
-        Ok(stream)
+        //let stream = ReadableStream::new(&global, None);
+        //stream.js_stream.set(UnwrapReadableStream(obj));
+
+        //Ok(stream)
     }
 
     /// Build a stream backed by a Rust source that has already been read into memory.
@@ -122,11 +147,11 @@ impl ReadableStream {
         let _ais = AutoIncumbentScript::new(global);
         let cx = GlobalScope::get_cx();
 
-        let source = Rc::new(ExternalUnderlyingSourceController::new(source));
+        //let source = Rc::new(ExternalUnderlyingSourceController::new(source));
 
-        let stream = ReadableStream::new(&global, Some(source.clone()));
+        let stream = ReadableStream::new(&global, Some(source));
 
-        unsafe {
+        /*unsafe {
             let js_wrapper = CreateReadableStreamUnderlyingSource(
                 &UNDERLYING_SOURCE_TRAPS,
                 &*source as *const _ as *const c_void,
@@ -142,29 +167,29 @@ impl ReadableStream {
             );
 
             stream.js_stream.set(UnwrapReadableStream(js_stream.get()));
-        }
+        }*/
 
         stream
     }
 
-    /// Get a pointer to the underlying JS object.
+    /*/// Get a pointer to the underlying JS object.
     pub fn get_js_stream(&self) -> NonNull<JSObject> {
         NonNull::new(self.js_stream.get())
             .expect("Couldn't get a non-null pointer to JS stream object.")
-    }
+    }*/
 
     #[allow(unsafe_code)]
     pub fn enqueue_native(&self, bytes: Vec<u8>) {
-        let global = self.global();
-        let _ar = enter_realm(&*global);
+        /*let global = self.global();
+        let _ar = enter_realm(&*global);*/
         let cx = GlobalScope::get_cx();
 
-        let handle = unsafe { self.js_stream.handle() };
+        //let handle = unsafe { self.js_stream.handle() };
 
         self.external_underlying_source
             .as_ref()
             .expect("No external source to enqueue bytes.")
-            .enqueue_chunk(cx, handle, bytes);
+            .enqueue_chunk(self, cx, bytes);
     }
 
     #[allow(unsafe_code)]
@@ -173,15 +198,21 @@ impl ReadableStream {
         let _ar = enter_realm(&*global);
         let cx = GlobalScope::get_cx();
 
-        unsafe {
-            rooted!(in(*cx) let mut js_error = UndefinedValue());
-            error.to_jsval(*cx, &global, js_error.handle_mut());
-            ReadableStreamError(
-                *cx,
-                self.js_stream.handle(),
-                js_error.handle().into_handle(),
-            );
-        }
+        self.external_underlying_source
+            .as_ref()
+            .expect("No external source to report error.")
+            .report_error(cx, &global, error);
+
+        //unsafe {
+        //rooted!(in(*cx) let mut js_error = UndefinedValue());
+        //error.to_jsval(*cx, &global, js_error.handle_mut());
+
+        /*ReadableStreamError(
+            *cx,
+            self.js_stream.handle(),
+            js_error.handle().into_handle(),
+        );*/
+        //}
     }
 
     #[allow(unsafe_code)]
@@ -190,12 +221,12 @@ impl ReadableStream {
         let _ar = enter_realm(&*global);
         let cx = GlobalScope::get_cx();
 
-        let handle = unsafe { self.js_stream.handle() };
+        //let handle = unsafe { self.js_stream.handle() };
 
         self.external_underlying_source
             .as_ref()
             .expect("No external source to close.")
-            .close(cx, handle);
+            .close(cx, &global);
     }
 
     /// Does the stream have all data in memory?
@@ -226,14 +257,14 @@ impl ReadableStream {
         let cx = GlobalScope::get_cx();
 
         unsafe {
-            rooted!(in(*cx) let reader = ReadableStreamGetReader(
+            /*rooted!(in(*cx) let reader = ReadableStreamGetReader(
                 *cx,
                 self.js_stream.handle(),
                 ReadableStreamReaderMode::Default,
             ));
 
             // Note: the stream is locked to the reader.
-            self.js_reader.set(reader.get());
+            self.js_reader.set(reader.get());*/
         }
 
         self.has_reader.set(true);
@@ -249,19 +280,30 @@ impl ReadableStream {
             panic!("Attempt to read stream chunk without having acquired a reader.");
         }
 
+        self.is_disturbed.set(true);
+
         let global = self.global();
-        let _ar = enter_realm(&*global);
-        let _aes = AutoEntryScript::new(&*global);
+        //let _ar = enter_realm(&*global);
+        //let _aes = AutoEntryScript::new(&*global);
 
         let cx = GlobalScope::get_cx();
 
-        unsafe {
-            rooted!(in(*cx) let promise_obj = ReadableStreamDefaultReaderRead(
+        let reader_promise = Promise::new(&global);
+        self.external_underlying_source
+            .as_ref()
+            .expect("No external source to enqueue bytes.")
+            .add_reader(cx, reader_promise.clone());
+        reader_promise
+
+        //self.maybe_signal_available_bytes(buflen);
+        /*unsafe {
+            /*rooted!(in(*cx) let promise_obj = ReadableStreamDefaultReaderRead(
                 *cx,
                 self.js_reader.handle(),
             ));
-            Promise::new_with_js_promise(promise_obj.handle(), cx)
-        }
+            Promise::new_with_js_promise(promise_obj.handle(), cx)*/
+            todo!()
+        }*/
     }
 
     /// Releases the lock on the reader,
@@ -272,17 +314,22 @@ impl ReadableStream {
             panic!("ReadableStream::stop_reading called on a readerless stream.");
         }
 
-        self.has_reader.set(false);
-
         let global = self.global();
-        let _ar = enter_realm(&*global);
+        //let _ar = enter_realm(&*global);
         let cx = GlobalScope::get_cx();
 
-        unsafe {
-            ReadableStreamReaderReleaseLock(*cx, self.js_reader.handle());
-            // Note: is this the way to nullify the Heap?
-            self.js_reader.set(ptr::null_mut());
-        }
+        self.external_underlying_source
+            .as_ref()
+            .expect("No external source to enqueue bytes.")
+            .stop_reading(cx, &global);
+
+        self.has_reader.set(false);
+
+        //unsafe {
+        //ReadableStreamReaderReleaseLock(*cx, self.js_reader.handle());
+        // Note: is this the way to nullify the Heap?
+        //self.js_reader.set(ptr::null_mut());
+        //}
     }
 
     #[allow(unsafe_code)]
@@ -293,31 +340,17 @@ impl ReadableStream {
         }
 
         // Otherwise, still double-check that script didn't lock the stream.
-        let cx = GlobalScope::get_cx();
-        let mut locked_or_disturbed = false;
-
-        unsafe {
-            ReadableStreamIsLocked(*cx, self.js_stream.handle(), &mut locked_or_disturbed);
-        }
-
-        locked_or_disturbed
+        self.is_locked.get()
     }
 
     #[allow(unsafe_code)]
     pub fn is_disturbed(&self) -> bool {
         // Check that script didn't disturb the stream.
-        let cx = GlobalScope::get_cx();
-        let mut locked_or_disturbed = false;
-
-        unsafe {
-            ReadableStreamIsDisturbed(*cx, self.js_stream.handle(), &mut locked_or_disturbed);
-        }
-
-        locked_or_disturbed
+        self.is_disturbed.get()
     }
 }
 
-#[allow(unsafe_code)]
+/*#[allow(unsafe_code)]
 unsafe extern "C" fn request_data(
     source: *const c_void,
     cx: *mut JSContext,
@@ -377,7 +410,7 @@ unsafe extern "C" fn error(
 #[allow(unsafe_code)]
 unsafe extern "C" fn finalize(source: *mut ReadableStreamUnderlyingSource) {
     DeleteReadableStreamUnderlyingSource(source);
-}
+}*/
 
 pub enum ExternalUnderlyingSource {
     /// Facilitate partial integration with sources
@@ -390,10 +423,13 @@ pub enum ExternalUnderlyingSource {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[unrooted_must_root_lint::must_root]
 struct ExternalUnderlyingSourceController {
     /// Loosely matches the underlying queue,
     /// <https://streams.spec.whatwg.org/#internal-queues>
     buffer: RefCell<Vec<u8>>,
+    #[ignore_malloc_size_of = "Rc is hard"]
+    pending_reader: RefCell<Option<Rc<Promise>>>,
     /// Has the stream been closed by native code?
     closed: Cell<bool>,
     /// Does this stream contains all it's data in memory?
@@ -411,6 +447,7 @@ impl ExternalUnderlyingSourceController {
             buffer: RefCell::new(buffer),
             closed: Cell::new(false),
             in_memory: Cell::new(in_mem),
+            pending_reader: Default::default(),
         }
     }
 
@@ -427,64 +464,133 @@ impl ExternalUnderlyingSourceController {
         None
     }
 
+    fn add_reader(&self, cx: SafeJSContext, promise: Rc<Promise>) {
+        assert!(self.pending_reader.borrow().is_none());
+        *self.pending_reader.borrow_mut() = Some(promise.clone());
+        let buflen = self.buffer.borrow().len();
+        self.maybe_signal_available_bytes(cx, &promise.global(), buflen);
+        if self.closed.get() {
+            self.report_done(cx, &promise.global());
+        }
+    }
+
+    fn stop_reading(&self, cx: SafeJSContext, global: &GlobalScope) {
+        self.report_done(cx, global);
+    }
+
+    #[allow(unsafe_code)]
+    fn report_error(&self, cx: SafeJSContext, global: &GlobalScope, error: Error) {
+        if let Some(read_promise) = self.pending_reader.borrow().as_ref() {
+            unsafe {
+                //rooted!(in(*cx) let mut value = UndefinedValue());
+                rooted!(in(*cx) let mut js_error = UndefinedValue());
+                error.to_jsval(*cx, global, js_error.handle_mut());
+                read_promise.reject_native(&js_error.handle());
+            }
+        }
+        *self.pending_reader.borrow_mut() = None;
+    }
+
+    #[allow(unsafe_code)]
+    fn report_done(&self, cx: SafeJSContext, global: &GlobalScope) {
+        //assert!(self.buffer.borrow().is_empty());
+        let buflen = self.buffer.borrow().len();
+        self.maybe_signal_available_bytes(cx, global, buflen);
+
+        if let Some(read_promise) = self.pending_reader.borrow().as_ref() {
+            unsafe {
+                //rooted!(in(*cx) let mut value = UndefinedValue());
+                read_promise.resolve_native(&ReadableStreamReadResult {
+                    value: RootedTraceableBox::from_box(Heap::boxed(UndefinedValue())),
+                    done: Some(true),
+                });
+            }
+        }
+        *self.pending_reader.borrow_mut() = None;
+    }
+
     /// Signal available bytes if the stream is currently readable.
     #[allow(unsafe_code)]
     fn maybe_signal_available_bytes(
         &self,
         cx: SafeJSContext,
-        stream: HandleObject,
+        global: &GlobalScope,
         available: usize,
     ) {
         if available == 0 {
             return;
         }
-        unsafe {
-            let mut readable = false;
-            if !ReadableStreamIsReadable(*cx, stream, &mut readable) {
+
+        if let Some(read_promise) = self.pending_reader.borrow().as_ref() {
+            let mut buffer = self.buffer.borrow_mut();
+            let contents = mem::take(&mut *buffer);
+            unsafe {
+                /*rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+                assert!(
+                    ArrayBuffer::create(*cx, CreateWith::Slice(&contents), array_buffer.handle_mut())
+                        .is_ok()
+                );*/
+
+                rooted!(in(*cx) let mut value = UndefinedValue());
+                //let value = RootedTraceableBox::new(UndefinedValue())
+                contents.to_jsval(*cx, value.handle_mut());
+                //array_buffer.to_jsval(*cx, value.handle_mut());
+                read_promise.resolve_native(&ReadableStreamReadResult {
+                    value: RootedTraceableBox::from_box(Heap::boxed(*value)),
+                    done: Some(false),
+                });
+            }
+        }
+        *self.pending_reader.borrow_mut() = None;
+
+        /*unsafe {
+            //let mut readable = false;
+            /*if !ReadableStreamIsReadable(*cx, stream, &mut readable) {
                 return;
             }
             if readable {
                 ReadableStreamUpdateDataAvailableFromSource(*cx, stream, available as u32);
-            }
-        }
+            }*/
+        }*/
     }
 
     /// Close a currently readable js stream.
     #[allow(unsafe_code)]
-    fn maybe_close_js_stream(&self, cx: SafeJSContext, stream: HandleObject) {
+    fn maybe_close_js_stream(&self, global: &GlobalScope, cx: SafeJSContext) {
         unsafe {
             let mut readable = false;
-            if !ReadableStreamIsReadable(*cx, stream, &mut readable) {
+            self.report_done(cx, global);
+            /*if !ReadableStreamIsReadable(*cx, stream, &mut readable) {
                 return;
             }
             if readable {
                 ReadableStreamClose(*cx, stream);
-            }
+            }*/
         }
     }
 
-    fn close(&self, cx: SafeJSContext, stream: HandleObject) {
+    fn close(&self, cx: SafeJSContext, global: &GlobalScope) {
         self.closed.set(true);
-        self.maybe_close_js_stream(cx, stream);
+        self.maybe_close_js_stream(global, cx);
     }
 
-    fn enqueue_chunk(&self, cx: SafeJSContext, stream: HandleObject, mut chunk: Vec<u8>) {
+    fn enqueue_chunk(&self, stream: &ReadableStream, cx: SafeJSContext, mut chunk: Vec<u8>) {
         let available = {
             let mut buffer = self.buffer.borrow_mut();
             chunk.append(&mut buffer);
             *buffer = chunk;
             buffer.len()
         };
-        self.maybe_signal_available_bytes(cx, stream, available);
+        self.maybe_signal_available_bytes(cx, &stream.global(), available);
     }
 
-    #[allow(unsafe_code)]
-    fn pull(&self, cx: SafeJSContext, stream: HandleObject, _desired_size: usize) {
+    /*#[allow(unsafe_code)]
+    fn pull(&self, /*cx: SafeJSContext, stream: HandleObject,*/stream: &ReadableStream, _desired_size: usize) {
         // Note: for pull sources,
         // this would be the time to ask for a chunk.
 
         if self.closed.get() {
-            return self.maybe_close_js_stream(cx, stream);
+            return self.maybe_close_js_stream(/*cx, stream*/stream);
         }
 
         let available = {
@@ -492,8 +598,8 @@ impl ExternalUnderlyingSourceController {
             buffer.len()
         };
 
-        self.maybe_signal_available_bytes(cx, stream, available);
-    }
+        self.maybe_signal_available_bytes(/*cx, stream,*/stream, available);
+    }*/
 
     fn get_chunk_with_length(&self, length: usize) -> Vec<u8> {
         let mut buffer = self.buffer.borrow_mut();

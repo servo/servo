@@ -155,7 +155,7 @@ pub unsafe fn create_global_object(
     let mut options = RealmOptions::default();
     options.creationOptions_.traceGlobal_ = Some(trace);
     options.creationOptions_.sharedMemoryAndAtomics_ = false;
-    options.creationOptions_.streams_ = true;
+    options.creationOptions_.streams_ = false;
     select_compartment(cx, &mut options);
 
     let principal = ServoJSPrincipals::new(origin);
