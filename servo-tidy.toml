@@ -140,12 +140,11 @@ directories = [
   "./tests/wpt/mozilla/tests/mozilla/referrer-policy",
   "./tests/wpt/mozilla/tests/webgl",
   "./python/tidy/tests",
-  "./components/script/dom/bindings/codegen/parser",
-  "./components/script/dom/bindings/codegen/ply",
   "./python/_virtualenv*",
   "./python/mach",
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",
+  "./third_party",
 ]
 
 # Directories that are checked for correct file extension
