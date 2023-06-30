@@ -19,7 +19,6 @@ use profile_traits::time;
 use script_traits::{AnimationState, EventResult, MouseButton, MouseEventType};
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
-use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webrender_api;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
@@ -85,8 +84,6 @@ pub enum Msg {
     TouchEventProcessed(EventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
     CreatePng(Option<Rect<f32, CSSPixel>>, IpcSender<Option<Image>>),
-    /// Alerts the compositor that the viewport has been constrained in some manner
-    ViewportConstrained(PipelineId, ViewportConstraints),
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
     /// Pipeline visibility changed
@@ -158,7 +155,6 @@ impl Debug for Msg {
             Msg::Recomposite(..) => write!(f, "Recomposite"),
             Msg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             Msg::CreatePng(..) => write!(f, "CreatePng"),
-            Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             Msg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),

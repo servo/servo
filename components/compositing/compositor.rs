@@ -46,7 +46,6 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::units::{
@@ -505,13 +504,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 if let Err(e) = reply.send(img) {
                     warn!("Sending reply to create png failed ({:?}).", e);
                 }
-            },
-
-            (
-                Msg::ViewportConstrained(pipeline_id, constraints),
-                ShutdownState::NotShuttingDown,
-            ) => {
-                self.constrain_viewport(pipeline_id, constraints);
             },
 
             (Msg::IsReadyToSaveImageReply(is_ready), ShutdownState::NotShuttingDown) => {
@@ -1360,17 +1352,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let msg = ConstellationMsg::TickAnimation(pipeline_id, tick_type);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending tick to constellation failed ({:?}).", e);
-        }
-    }
-
-    fn constrain_viewport(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
-        let is_root = self.root_pipeline.id == Some(pipeline_id);
-
-        if is_root {
-            self.viewport_zoom = constraints.initial_zoom;
-            self.min_viewport_zoom = constraints.min_zoom;
-            self.max_viewport_zoom = constraints.max_zoom;
-            self.update_zoom_transform();
         }
     }
 

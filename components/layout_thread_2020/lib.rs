@@ -896,29 +896,7 @@ impl LayoutThread {
 
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
-        self.viewport_size =
-            self.stylist
-                .viewport_constraints()
-                .map_or(current_screen_size, |constraints| {
-                    Size2D::new(
-                        Au::from_f32_px(constraints.size.width),
-                        Au::from_f32_px(constraints.size.height),
-                    )
-                });
-
-        let viewport_size_changed = self.viewport_size != old_viewport_size;
-        if viewport_size_changed {
-            if let Some(constraints) = self.stylist.viewport_constraints() {
-                // let the constellation know about the viewport constraints
-                self.constellation_chan
-                    .send(ConstellationMsg::ViewportConstrained(
-                        self.id,
-                        constraints.clone(),
-                    ))
-                    .unwrap();
-            }
-        }
-
+        self.viewport_size = current_screen_size;
         if self.first_reflow.get() {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist

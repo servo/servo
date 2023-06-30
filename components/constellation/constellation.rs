@@ -176,7 +176,6 @@ use std::process;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webgpu::{self, WebGPU, WebGPURequest};
 use webrender_traits::WebrenderExternalImageRegistry;
@@ -2109,9 +2108,6 @@ where
             },
             FromLayoutMsg::PendingPaintMetric(pipeline_id, epoch) => {
                 self.handle_pending_paint_metric(pipeline_id, epoch);
-            },
-            FromLayoutMsg::ViewportConstrained(pipeline_id, constraints) => {
-                self.handle_viewport_constrained_msg(pipeline_id, constraints);
             },
         }
     }
@@ -4932,19 +4928,6 @@ where
     ) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         self.switch_fullscreen_mode(browsing_context_id);
-    }
-
-    /// Handle updating actual viewport / zoom due to @viewport rules
-    fn handle_viewport_constrained_msg(
-        &mut self,
-        pipeline_id: PipelineId,
-        constraints: ViewportConstraints,
-    ) {
-        self.compositor_proxy
-            .send(ToCompositorMsg::ViewportConstrained(
-                pipeline_id,
-                constraints,
-            ));
     }
 
     /// Checks the state of all script and layout pipelines to see if they are idle

@@ -1015,11 +1015,7 @@ impl LayoutThread {
 
                         let root_size = {
                             let root_flow = layout_root.base();
-                            if self.stylist.viewport_constraints().is_some() {
-                                root_flow.position.size.to_physical(root_flow.writing_mode)
-                            } else {
-                                root_flow.overflow.scroll.size
-                            }
+                            root_flow.overflow.scroll.size
                         };
 
                         let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size).to_layout();
@@ -1207,64 +1203,39 @@ impl LayoutThread {
 
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
-        self.viewport_size =
-            self.stylist
-                .viewport_constraints()
-                .map_or(current_screen_size, |constraints| {
-                    debug!("Viewport constraints: {:?}", constraints);
-
-                    // other rules are evaluated against the actual viewport
-                    Size2D::new(
-                        Au::from_f32_px(constraints.size.width),
-                        Au::from_f32_px(constraints.size.height),
-                    )
-                });
+        self.viewport_size = current_screen_size;
 
         let viewport_size_changed = self.viewport_size != old_viewport_size;
-        if viewport_size_changed {
-            if let Some(constraints) = self.stylist.viewport_constraints() {
-                // let the constellation know about the viewport constraints
-                rw_data
-                    .constellation_chan
-                    .send(ConstellationMsg::ViewportConstrained(
-                        self.id,
-                        constraints.clone(),
-                    ))
-                    .unwrap();
-            }
-            if had_used_viewport_units {
-                if let Some(mut data) = root_element.mutate_data() {
-                    data.hint.insert(RestyleHint::recascade_subtree());
-                }
+        if viewport_size_changed && had_used_viewport_units {
+            if let Some(mut data) = root_element.mutate_data() {
+                data.hint.insert(RestyleHint::recascade_subtree());
             }
         }
 
-        {
-            if self.first_reflow.get() {
-                debug!("First reflow, rebuilding user and UA rules");
-                for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                    self.stylist
-                        .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
-                    self.handle_add_stylesheet(&stylesheet.0, &ua_or_user_guard);
-                }
-
-                if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
-                    self.stylist.append_stylesheet(
-                        ua_stylesheets.quirks_mode_stylesheet.clone(),
-                        &ua_or_user_guard,
-                    );
-                    self.handle_add_stylesheet(
-                        &ua_stylesheets.quirks_mode_stylesheet.0,
-                        &ua_or_user_guard,
-                    );
-                }
-            }
-
-            if data.stylesheets_changed {
-                debug!("Doc sheets changed, flushing author sheets too");
+        if self.first_reflow.get() {
+            debug!("First reflow, rebuilding user and UA rules");
+            for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
-                    .force_stylesheet_origins_dirty(Origin::Author.into());
+                    .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
+                self.handle_add_stylesheet(&stylesheet.0, &ua_or_user_guard);
             }
+
+            if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
+                self.stylist.append_stylesheet(
+                    ua_stylesheets.quirks_mode_stylesheet.clone(),
+                    &ua_or_user_guard,
+                );
+                self.handle_add_stylesheet(
+                    &ua_stylesheets.quirks_mode_stylesheet.0,
+                    &ua_or_user_guard,
+                );
+            }
+        }
+
+        if data.stylesheets_changed {
+            debug!("Doc sheets changed, flushing author sheets too");
+            self.stylist
+                .force_stylesheet_origins_dirty(Origin::Author.into());
         }
 
         if viewport_size_changed {
