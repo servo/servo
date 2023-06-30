@@ -48,7 +48,6 @@ use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpe
 use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlmediaelement::{HTMLMediaElement, LayoutHTMLMediaElementHelpers};
-use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::mouseevent::MouseEvent;
@@ -1200,8 +1199,6 @@ impl Node {
             node.get_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
             node.get_stylesheet()
-        } else if let Some(node) = self.downcast::<HTMLMetaElement>() {
-            node.get_stylesheet()
         } else {
             None
         }
@@ -1211,8 +1208,6 @@ impl Node {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
             node.get_cssom_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
-            node.get_cssom_stylesheet()
-        } else if let Some(node) = self.downcast::<HTMLMetaElement>() {
             node.get_cssom_stylesheet()
         } else {
             None

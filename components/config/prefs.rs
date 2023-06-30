@@ -442,9 +442,6 @@ mod gen {
                 },
                 #[serde(default = "default_layout_threads")]
                 threads: i64,
-                viewport: {
-                    enabled: bool,
-                },
                 writing_mode: {
                     #[serde(rename = "layout.writing-mode.enabled")]
                     enabled: bool,

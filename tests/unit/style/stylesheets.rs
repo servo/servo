@@ -72,7 +72,6 @@ impl ParseErrorReporter for TestingErrorReporter {
 
 #[test]
 fn test_report_error_stylesheet() {
-    set_pref!(layout.viewport.enabled, true);
     let css = r"
     div {
         background-color: red;
@@ -88,7 +87,6 @@ fn test_report_error_stylesheet() {
     @media screen { @invalid; }
     @supports (color: green) and invalid and (margin: 0) {}
     @keyframes foo { from invalid {} to { margin: 0 invalid 0; } }
-    @viewport { width: 320px invalid auto; }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
     let error_reporter = TestingErrorReporter::new();
@@ -134,11 +132,6 @@ fn test_report_error_stylesheet() {
             19,
             52,
             "Unsupported keyframe property declaration: 'margin: 0 invalid 0;'",
-        ),
-        (
-            20,
-            29,
-            "Unsupported @viewport descriptor declaration: 'width: 320px invalid auto;'",
         ),
     ]);
 

@@ -36,16 +36,8 @@ use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use style_traits::{CssWriter, ParseError, PinchZoomFactor, StyleParseErrorKind, ToCss};
 
 /// Whether parsing and processing of `@viewport` rules is enabled.
-#[cfg(feature = "servo")]
 pub fn enabled() -> bool {
-    use servo_config::pref;
-    pref!(layout.viewport.enabled)
-}
-
-/// Whether parsing and processing of `@viewport` rules is enabled.
-#[cfg(not(feature = "servo"))]
-pub fn enabled() -> bool {
-    false // Gecko doesn't support @viewport.
+    false
 }
 
 macro_rules! declare_viewport_descriptor {

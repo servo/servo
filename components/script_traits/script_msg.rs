@@ -36,7 +36,6 @@ use servo_url::ServoUrl;
 use smallvec::SmallVec;
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
-use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webgpu::{wgpu, WebGPU, WebGPUResponseResult};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
@@ -60,8 +59,6 @@ pub enum LayoutMsg {
     /// Requests that the constellation inform the compositor that it needs to record
     /// the time when the frame with the given ID (epoch) is painted.
     PendingPaintMetric(PipelineId, Epoch),
-    /// Notifies the constellation that the viewport has been constrained in some manner
-    ViewportConstrained(PipelineId, ViewportConstraints),
 }
 
 impl fmt::Debug for LayoutMsg {
@@ -70,7 +67,6 @@ impl fmt::Debug for LayoutMsg {
         let variant = match *self {
             IFrameSizes(..) => "IFrameSizes",
             PendingPaintMetric(..) => "PendingPaintMetric",
-            ViewportConstrained(..) => "ViewportConstrained",
         };
         write!(formatter, "LayoutMsg::{}", variant)
     }

@@ -9,7 +9,6 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -226,13 +225,7 @@ impl DocumentOrShadowRoot {
         insertion_point: Option<StyleSheetInDocument>,
         style_shared_lock: &StyleSharedRwLock,
     ) {
-        // FIXME(emilio): It'd be nice to unify more code between the elements
-        // that own stylesheets, but StylesheetOwner is more about loading
-        // them...
-        debug_assert!(
-            owner.as_stylesheet_owner().is_some() || owner.is::<HTMLMetaElement>(),
-            "Wat"
-        );
+        debug_assert!(owner.as_stylesheet_owner().is_some(), "Wat");
 
         let sheet = StyleSheetInDocument {
             sheet,

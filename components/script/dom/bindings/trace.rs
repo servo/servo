@@ -160,7 +160,7 @@ use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLoc
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
 use style::stylesheets::keyframes_rule::Keyframe;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
-use style::stylesheets::{ImportRule, NamespaceRule, StyleRule, SupportsRule, ViewportRule};
+use style::stylesheets::{ImportRule, NamespaceRule, StyleRule, SupportsRule};
 use style::stylist::CascadeData;
 use style::values::specified::Length;
 use tendril::fmt::UTF8;
@@ -909,12 +909,6 @@ unsafe impl JSTraceable for StyleLocked<NamespaceRule> {
 }
 
 unsafe impl JSTraceable for StyleLocked<StyleRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<ViewportRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
