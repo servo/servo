@@ -23,6 +23,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
+use style::computed_values::white_space::T as WhiteSpace;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
@@ -74,6 +75,7 @@ struct InlineNestingLevelState<'box_tree> {
     inline_start: Length,
     max_block_size_of_fragments_so_far: Length,
     positioning_context: Option<PositioningContext>,
+    white_space: WhiteSpace,
     /// Indicates whether this nesting level have text decorations in effect.
     /// From https://drafts.csswg.org/css-text-decor/#line-decoration
     // "When specified on or propagated to a block container that establishes
@@ -124,6 +126,34 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
         }
 
         self.positioning_context.push(hoisted_box);
+    }
+
+    /// Finish layout of all the partial inline boxes in the current line,
+    /// finish current line and start a new one.
+    fn finish_line_and_reset(&mut self, layout_context: &LayoutContext) {
+        self.current_nesting_level.inline_start = Length::zero();
+        let mut nesting_level = &mut self.current_nesting_level;
+        for partial in self.partial_inline_boxes_stack.iter_mut().rev() {
+            partial.finish_layout(
+                layout_context,
+                nesting_level,
+                &mut self.inline_position,
+                true,
+            );
+            partial.start_corner.inline = Length::zero();
+            partial.padding.inline_start = Length::zero();
+            partial.border.inline_start = Length::zero();
+            partial.margin.inline_start = Length::zero();
+            partial.parent_nesting_level.inline_start = Length::zero();
+            nesting_level = &mut partial.parent_nesting_level;
+        }
+        self.lines.finish_line(
+            nesting_level,
+            self.containing_block,
+            self.sequential_layout_state.as_mut().map(|c| &mut **c),
+            self.inline_position,
+        );
+        self.inline_position = Length::zero();
     }
 }
 
@@ -297,6 +327,7 @@ impl InlineFormattingContext {
                 inline_start: Length::zero(),
                 max_block_size_of_fragments_so_far: Length::zero(),
                 positioning_context: None,
+                white_space: containing_block.style.clone_inherited_text().white_space,
                 text_decoration_line: self.text_decoration_line,
             },
             sequential_layout_state,
@@ -503,6 +534,7 @@ impl InlineBox {
             start_corner += &relative_adjustement(&style, ifc.containing_block)
         }
         let positioning_context = PositioningContext::new_for_style(&style);
+        let white_space = style.clone_inherited_text().white_space;
         let text_decoration_line =
             ifc.current_nesting_level.text_decoration_line | style.clone_text_decoration_line();
         PartialInlineBoxFragment {
@@ -523,6 +555,7 @@ impl InlineBox {
                     inline_start: ifc.inline_position,
                     max_block_size_of_fragments_so_far: Length::zero(),
                     positioning_context,
+                    white_space,
                     text_decoration_line: text_decoration_line,
                 },
             ),
@@ -590,16 +623,12 @@ fn layout_atomic(
     let pbm = style.padding_border_margin(&ifc.containing_block);
     let margin = pbm.margin.auto_is(Length::zero);
     let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
-    ifc.inline_position += pbm_sums.inline_start;
-    let mut start_corner = Vec2 {
-        block: pbm_sums.block_start,
-        inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
-    };
-    if style.clone_position().is_relative() {
-        start_corner += &relative_adjustement(&style, ifc.containing_block)
-    }
+    let position = style.clone_position();
 
-    let fragment = match atomic {
+    let mut child_positioning_context = None;
+
+    // We need to know the inline size of the atomic before deciding whether to do the line break.
+    let mut fragment = match atomic {
         IndependentFormattingContext::Replaced(replaced) => {
             let size = replaced.contents.used_size_as_if_inline_element(
                 ifc.containing_block,
@@ -610,7 +639,10 @@ fn layout_atomic(
             let fragments = replaced
                 .contents
                 .make_fragments(&replaced.style, size.clone());
-            let content_rect = Rect { start_corner, size };
+            let content_rect = Rect {
+                start_corner: Vec2::zero(),
+                size,
+            };
             BoxFragment::new(
                 replaced.base_fragment_info,
                 replaced.style.clone(),
@@ -663,16 +695,14 @@ fn layout_atomic(
             let collects_for_nearest_positioned_ancestor = ifc
                 .positioning_context
                 .collects_for_nearest_positioned_ancestor();
-            let mut child_positioning_context =
-                PositioningContext::new_for_subtree(collects_for_nearest_positioned_ancestor);
+            child_positioning_context = Some(PositioningContext::new_for_subtree(
+                collects_for_nearest_positioned_ancestor,
+            ));
             let independent_layout = non_replaced.layout(
                 layout_context,
-                &mut child_positioning_context,
+                child_positioning_context.as_mut().unwrap(),
                 &containing_block_for_children,
             );
-            child_positioning_context
-                .adjust_static_position_of_hoisted_fragments_with_offset(&start_corner);
-            ifc.positioning_context.append(child_positioning_context);
 
             // https://drafts.csswg.org/css2/visudet.html#block-root-margin
             let tentative_block_size = box_size
@@ -686,7 +716,7 @@ fn layout_atomic(
                 .clamp_between_extremums(min_box_size.block, max_box_size.block);
 
             let content_rect = Rect {
-                start_corner,
+                start_corner: Vec2::zero(),
                 size: Vec2 {
                     block: block_size,
                     inline: inline_size,
@@ -706,6 +736,31 @@ fn layout_atomic(
             )
         },
     };
+
+    if fragment.content_rect.size.inline + pbm_sums.inline_sum() >
+        ifc.containing_block.inline_size - ifc.inline_position &&
+        ifc.current_nesting_level.white_space.allow_wrap() &&
+        ifc.current_nesting_level.fragments_so_far.len() != 0
+    {
+        ifc.finish_line_and_reset(layout_context);
+    }
+
+    ifc.inline_position += pbm_sums.inline_start;
+    let mut start_corner = Vec2 {
+        block: pbm_sums.block_start,
+        inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
+    };
+    if position.is_relative() {
+        start_corner += &relative_adjustement(atomic.style(), ifc.containing_block)
+    }
+
+    if let Some(mut child_positioning_context) = child_positioning_context.take() {
+        child_positioning_context
+            .adjust_static_position_of_hoisted_fragments_with_offset(&start_corner);
+        ifc.positioning_context.append(child_positioning_context);
+    }
+
+    fragment.content_rect.start_corner = start_corner;
 
     ifc.inline_position += pbm_sums.inline_end + fragment.content_rect.size.inline;
     ifc.current_nesting_level
@@ -888,30 +943,7 @@ impl TextRun {
             if runs.as_slice().is_empty() && !force_line_break {
                 break;
             } else {
-                // New line
-                ifc.current_nesting_level.inline_start = Length::zero();
-                let mut nesting_level = &mut ifc.current_nesting_level;
-                for partial in ifc.partial_inline_boxes_stack.iter_mut().rev() {
-                    partial.finish_layout(
-                        layout_context,
-                        nesting_level,
-                        &mut ifc.inline_position,
-                        true,
-                    );
-                    partial.start_corner.inline = Length::zero();
-                    partial.padding.inline_start = Length::zero();
-                    partial.border.inline_start = Length::zero();
-                    partial.margin.inline_start = Length::zero();
-                    partial.parent_nesting_level.inline_start = Length::zero();
-                    nesting_level = &mut partial.parent_nesting_level;
-                }
-                ifc.lines.finish_line(
-                    nesting_level,
-                    ifc.containing_block,
-                    ifc.sequential_layout_state.as_mut().map(|c| &mut **c),
-                    ifc.inline_position,
-                );
-                ifc.inline_position = Length::zero();
+                ifc.finish_line_and_reset(layout_context);
             }
         }
     }
