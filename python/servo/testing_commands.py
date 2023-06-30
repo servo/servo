@@ -32,6 +32,8 @@ from mach.decorators import (
     CommandProvider,
     Command,
 )
+
+import servo.util
 import tidy
 
 from servo.command_base import (
@@ -245,10 +247,20 @@ class MachCommands(CommandBase):
         if nocapture:
             args += ["--", "--nocapture"]
 
+        # We are setting is_build here to true, because running `cargo test` can trigger builds.
+        env = self.build_env(is_build=True)
+
+        # on MSVC, we need some DLLs in the path. They were copied
+        # in to the servo.exe build dir, so just point PATH to that.
+        # TODO(mrobinson): This should be removed entirely.
+        if "msvc" in servo.platform.host_triple():
+            servo.util.prepend_paths_to_env(
+                env, "PATH", path.dirname(self.get_binary_path(False, False)))
+
         return self.run_cargo_build_like_command(
             "bench" if bench else "test",
             args,
-            env=self.build_env(test_unit=True),
+            env=env,
             with_layout_2020=with_layout_2020,
             **kwargs)
 

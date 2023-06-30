@@ -496,7 +496,7 @@ class CommandBase(object):
             'vcdir': vcinstalldir,
         }
 
-    def build_env(self, is_build=False, test_unit=False):
+    def build_env(self, is_build=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
 
@@ -557,6 +557,10 @@ class CommandBase(object):
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
+        if sys.platform != "win32":
+            env.setdefault("CC", "clang")
+            env.setdefault("CXX", "clang++")
+
         if extra_path:
             util.append_paths_to_env(env, "PATH", extra_path)
 
@@ -597,11 +601,6 @@ class CommandBase(object):
         if "ANDROID_TOOLCHAIN" in env:
             env["NDK_STANDALONE"] = env["ANDROID_TOOLCHAIN"]
 
-        if test_unit and "msvc" in servo.platform.host_triple():
-            # on MSVC, we need some DLLs in the path. They were copied
-            # in to the servo.exe build dir, so just point PATH to that.
-            util.prepend_paths_to_env(env, "PATH", path.dirname(self.get_binary_path(False, False)))
-
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
 
@@ -619,6 +618,7 @@ class CommandBase(object):
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
 
         env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
+        env["CARGO_TARGET_DIR"] = servo.util.get_target_dir()
 
         git_info = []
         if os.path.isdir('.git') and is_build:
