@@ -866,7 +866,6 @@ impl LayoutThread {
 
         let initial_viewport = data.window_size.initial_viewport;
         let device_pixel_ratio = data.window_size.device_pixel_ratio;
-        let old_viewport_size = self.viewport_size;
         let current_screen_size = Size2D::new(
             Au::from_f32_px(initial_viewport.width),
             Au::from_f32_px(initial_viewport.height),
