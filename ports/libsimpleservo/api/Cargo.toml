@@ -35,7 +35,6 @@ serde_json = { workspace = true }
 [features]
 debugmozjs = ["libservo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
-egl = ["libservo/egl"]
 googlevr = ["libservo/googlevr"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]

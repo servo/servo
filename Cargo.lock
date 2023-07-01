@@ -3722,9 +3722,9 @@ checksum = "eeb5a94c61e12e2cfc16ee3e2b6eca8f126a43c888586626337544a7e824a1af"
 
 [[package]]
 name = "mozangle"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abe944fd6e85e054436f598b5fb12f492da8cf9554981bd4a23a91982f72657c"
+checksum = "094982bba06f6658a8a7997983e44efb9b129cb032050cb3ec845e875e618ea0"
 dependencies = [
  "cc",
  "gl_generator 0.13.1",

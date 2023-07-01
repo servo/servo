@@ -122,4 +122,4 @@ webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 xml5ever = { workspace = true }
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
-mozangle = { version = "0.3", features = ["egl", "build_dlls"] }
+mozangle = { workspace = true }

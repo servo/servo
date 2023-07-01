@@ -31,7 +31,6 @@ cbindgen = "0.20"
 [features]
 debugmozjs = ["simpleservo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
-egl = ["simpleservo/egl"]
 googlevr = ["simpleservo/googlevr"]
 jitspew = ["simpleservo/jitspew"]
 js_backtrace = ["simpleservo/js_backtrace"]
