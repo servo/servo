@@ -656,13 +656,14 @@ fn layout_in_flow_non_replaced_block_level(
         NonReplacedContents::EstablishesAnIndependentFormattingContext(_) => false,
     };
 
+    let computed_block_size = style.content_block_size();
     let start_margin_can_collapse_with_children = block_is_same_formatting_context &&
         pbm.padding.block_start == Length::zero() &&
         pbm.border.block_start == Length::zero();
     let end_margin_can_collapse_with_children = block_is_same_formatting_context &&
         pbm.padding.block_end == Length::zero() &&
         pbm.border.block_end == Length::zero() &&
-        block_size == LengthOrAuto::Auto;
+        computed_block_size.is_auto();
 
     let mut clearance = None;
     let parent_containing_block_position_info;
@@ -763,12 +764,13 @@ fn layout_in_flow_non_replaced_block_level(
             } else {
                 content_block_size += collapsible_margins_in_children.end.solve();
             }
+            let computed_min_block_size = style.min_block_size();
             block_margins_collapsed_with_children.collapsed_through =
                 collapsible_margins_in_children.collapsed_through &&
-                    block_is_same_formatting_context &&
                     pbm.padding_border_sums.block == Length::zero() &&
-                    block_size.auto_is(|| Length::zero()) == Length::zero() &&
-                    min_box_size.block == Length::zero();
+                    (computed_block_size.is_definitely_zero() || computed_block_size.is_auto()) &&
+                    (computed_min_block_size.is_definitely_zero() ||
+                        computed_min_block_size.is_auto());
         },
         NonReplacedContents::EstablishesAnIndependentFormattingContext(non_replaced) => {
             let independent_layout = non_replaced.layout(
