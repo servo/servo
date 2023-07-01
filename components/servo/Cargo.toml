@@ -7,7 +7,7 @@ edition = "2018"
 publish = false
 
 [lib]
-name = "servo"
+name = "libservo"
 path = "lib.rs"
 crate-type = ["rlib"]
 

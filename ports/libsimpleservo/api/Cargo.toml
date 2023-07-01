@@ -9,7 +9,7 @@ publish = false
 [dependencies]
 getopts = { workspace = true }
 ipc-channel = { workspace = true }
-libservo = { path = "../../../components/servo" }
+servo = { package = "libservo", path = "../../../components/servo" }
 log = { workspace = true }
 servo-media = { git = "https://github.com/servo/media" }
 surfman = { workspace = true, features = ["sm-angle-default"] }
@@ -33,23 +33,23 @@ gl_generator = "0.14"
 serde_json = { workspace = true }
 
 [features]
-debugmozjs = ["libservo/debugmozjs"]
+debugmozjs = ["servo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
-egl = ["libservo/egl"]
-googlevr = ["libservo/googlevr"]
-jitspew = ["libservo/jitspew"]
-js_backtrace = ["libservo/js_backtrace"]
-layout-2013 = ["libservo/layout-2013"]
-layout-2020 = ["libservo/layout-2020"]
+egl = ["servo/egl"]
+googlevr = ["servo/googlevr"]
+jitspew = ["servo/jitspew"]
+js_backtrace = ["servo/js_backtrace"]
+layout-2013 = ["servo/layout-2013"]
+layout-2020 = ["servo/layout-2020"]
 max_log_level = ["log/release_max_level_info"]
-media-dummy = ["libservo/media-dummy"]
-media-gstreamer = ["libservo/media-gstreamer"]
-native-bluetooth = ["libservo/native-bluetooth"]
-no_static_freetype = ["libservo/no_static_freetype"]
-no-wgl = ["libservo/no-wgl"]
-profilemozjs = ["libservo/profilemozjs"]
-refcell_backtrace = ["libservo/refcell_backtrace"]
-uwp = ["libservo/uwp", "webxr/openxr-api"]
-webdriver = ["libservo/webdriver"]
-webgl_backtrace = ["libservo/webgl_backtrace"]
-xr-profile = ["libservo/xr-profile"]
+media-dummy = ["servo/media-dummy"]
+media-gstreamer = ["servo/media-gstreamer"]
+native-bluetooth = ["servo/native-bluetooth"]
+no_static_freetype = ["servo/no_static_freetype"]
+no-wgl = ["servo/no-wgl"]
+profilemozjs = ["servo/profilemozjs"]
+refcell_backtrace = ["servo/refcell_backtrace"]
+uwp = ["servo/uwp", "webxr/openxr-api"]
+webdriver = ["servo/webdriver"]
+webgl_backtrace = ["servo/webgl_backtrace"]
+xr-profile = ["servo/xr-profile"]

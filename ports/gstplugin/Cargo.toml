@@ -25,7 +25,7 @@ gstreamer-gl-sys = { version = "0.8", features = ["wayland"] }
 gstreamer-sys = "0.8"
 gstreamer-video = "0.15"
 lazy_static = { workspace = true }
-libservo = { path = "../../components/servo" }
+servo = { package = "libservo", path = "../../components/servo" }
 log = { workspace = true }
 servo-media = { git = "https://github.com/servo/media" }
 sparkle = { workspace = true }
