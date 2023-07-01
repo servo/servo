@@ -425,11 +425,6 @@ class MachCommands(CommandBase):
                 )
                 assert os.path.exists(servo_exe_dir)
 
-                # on msvc builds, use editbin to change the subsystem to windows, but only
-                # on release builds -- on debug builds, it hides log output
-                if not dev and not libsimpleservo:
-                    call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
-                         verbose=verbose)
                 # on msvc, we need to copy in some DLLs in to the servo.exe dir and the directory for unit tests.
                 for ssl_lib in ["libssl.dll", "libcrypto.dll"]:
                     ssl_path = path.join(env['OPENSSL_LIB_DIR'], "../bin", ssl_lib)
