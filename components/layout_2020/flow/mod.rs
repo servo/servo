@@ -26,7 +26,7 @@ use style::computed_values::clear::T as Clear;
 use style::computed_values::float::T as Float;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{CSSPixelLength, Length, LengthOrAuto};
+use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
 
 mod construct;
@@ -65,7 +65,7 @@ impl BlockLevelBox {
     fn find_block_margin_collapsing_with_parent(
         &self,
         collected_margin: &mut CollapsedMargin,
-        containing_block_writing_mode: WritingMode,
+        containing_block: &ContainingBlock,
     ) -> bool {
         // TODO(mrobinson,Loirooriol): Cache margins here so that we don't constantly
         // have to keep looking forward when dealing with sequences of floats.
@@ -76,39 +76,57 @@ impl BlockLevelBox {
             BlockLevelBox::Independent(ref context) => context.style(),
         };
 
-        let margin = style.margin(containing_block_writing_mode);
-        let border = style.border_width(containing_block_writing_mode);
-        let padding = style.padding(containing_block_writing_mode);
-
         // FIXME: This should only return false when 'clear' causes clearance.
         if style.get_box().clear != Clear::None {
             return false;
         }
 
-        // FIXME: Percentages should be resolved against the width of the containing block.
-        let start_margin = margin
-            .block_start
-            .percentage_relative_to(CSSPixelLength::zero())
-            .auto_is(CSSPixelLength::zero);
+        let pbm = style.padding_border_margin(containing_block);
+        let start_margin = pbm.margin.block_start.auto_is(Length::zero);
         collected_margin.adjoin_assign(&CollapsedMargin::new(start_margin));
-
-        // FIXME: Should resolve padding percentages.
-        let start_padding_is_zero = padding.block_start.is_zero();
-        let start_border_is_zero = border.block_start.is_zero();
-        if !start_border_is_zero || !start_padding_is_zero {
-            return false;
-        }
 
         let contents = match self {
             BlockLevelBox::SameFormattingContextBlock { ref contents, .. } => contents,
             _ => return false,
         };
+
+        if pbm.padding.block_start != Length::zero() || pbm.border.block_start != Length::zero() {
+            return false;
+        }
+
         match contents {
             BlockContainer::BlockLevelBoxes(boxes) => {
+                let min_inline_size = style
+                    .content_min_box_size(containing_block, &pbm)
+                    .auto_is(Length::zero)
+                    .inline;
+                let max_inline_size = style.content_max_box_size(containing_block, &pbm).inline;
+                let inline_size = style
+                    .content_box_size(containing_block, &pbm)
+                    .inline
+                    .auto_is(|| {
+                        let margin_inline_start = pbm.margin.inline_start.auto_is(Length::zero);
+                        let margin_inline_end = pbm.margin.inline_end.auto_is(Length::zero);
+                        containing_block.inline_size -
+                            pbm.padding_border_sums.inline -
+                            margin_inline_start -
+                            margin_inline_end
+                    })
+                    .clamp_between_extremums(min_inline_size, max_inline_size);
+
+                // The block size is irrelevant here.
+                let block_size = LengthOrAuto::Auto;
+
+                let containing_block_for_children = ContainingBlock {
+                    inline_size,
+                    block_size,
+                    style,
+                };
+
                 if !Self::find_block_margin_collapsing_with_parent_from_slice(
                     &boxes,
                     collected_margin,
-                    style.writing_mode,
+                    &containing_block_for_children,
                 ) {
                     return false;
                 }
@@ -120,20 +138,14 @@ impl BlockLevelBox {
             style.content_block_size().is_definitely_zero() || style.content_block_size().is_auto();
         let min_block_size_zero =
             style.min_block_size().is_definitely_zero() || style.min_block_size().is_auto();
-        // FIXME: Should resolve padding percentages.
         if !min_block_size_zero ||
             !block_size_zero ||
-            !border.block_end.is_zero() ||
-            !padding.block_end.is_zero()
+            pbm.padding_border_sums.block != Length::zero()
         {
             return false;
         }
 
-        // FIXME: Percentages should be resolved against the width of the containing block.
-        let end_margin = margin
-            .block_end
-            .percentage_relative_to(CSSPixelLength::zero())
-            .auto_is(CSSPixelLength::zero);
+        let end_margin = pbm.margin.block_end.auto_is(Length::zero);
         collected_margin.adjoin_assign(&CollapsedMargin::new(end_margin));
 
         true
@@ -142,12 +154,12 @@ impl BlockLevelBox {
     fn find_block_margin_collapsing_with_parent_from_slice(
         boxes: &[ArcRefCell<BlockLevelBox>],
         margin: &mut CollapsedMargin,
-        writing_mode: WritingMode,
+        containing_block: &ContainingBlock,
     ) -> bool {
         boxes.iter().all(|block_level_box| {
             block_level_box
                 .borrow()
-                .find_block_margin_collapsing_with_parent(margin, writing_mode)
+                .find_block_margin_collapsing_with_parent(margin, containing_block)
         })
     }
 }
@@ -668,7 +680,7 @@ fn layout_in_flow_non_replaced_block_level(
                     BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
                         child_boxes,
                         &mut block_start_margin,
-                        WritingMode::empty(),
+                        containing_block,
                     );
                 }
             }
