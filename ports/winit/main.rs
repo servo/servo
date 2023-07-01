@@ -14,6 +14,12 @@
 //!
 //! [winit]: https://github.com/rust-windowing/winit
 
+// Normally, rust uses the "Console" Windows subsystem, which pops up a console
+// when running an application. Switching to the "Windows" subsystem prevents
+// this, but also hides debugging output. Use the "Windows" console unless debug
+// mode is turned on.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 #[cfg(not(target_os = "android"))]
 include!("main2.rs");
 
