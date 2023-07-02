@@ -28,7 +28,6 @@ ProductName = "Servo"
 [features]
 debugmozjs = ["libservo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
-egl = ["libservo/egl"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 layout-2013 = ["libservo/layout-2013"]

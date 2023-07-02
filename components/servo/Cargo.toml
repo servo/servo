@@ -13,7 +13,6 @@ crate-type = ["rlib"]
 
 [features]
 debugmozjs = ["script/debugmozjs"]
-egl = ["mozangle/egl"]
 googlevr = ["webxr/googlevr"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
@@ -61,6 +60,7 @@ layout_thread_2013 = { path = "../layout_thread", optional = true }
 layout_thread_2020 = { path = "../layout_thread_2020", optional = true }
 log = { workspace = true }
 media = { path = "../media" }
+mozangle = { workspace = true }
 msg = { path = "../msg" }
 net = { path = "../net" }
 net_traits = { path = "../net_traits" }
@@ -92,4 +92,4 @@ webxr-api = { git = "https://github.com/servo/webxr" }
 gaol = "0.2.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-mozangle = { version = "0.3", features = ["egl", "build_dlls"] }
+mozangle = { workspace = true, features = ["egl", "build_dlls"] }

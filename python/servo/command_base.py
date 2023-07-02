@@ -833,9 +833,7 @@ class CommandBase(object):
             if self.is_uwp_build:
                 features.append("no-wgl")
                 features.append("uwp")
-            else:
-                # Non-UWP builds provide their own libEGL via mozangle.
-                features.append("egl")
+
             if with_layout_2020 or (self.config["build"]["layout-2020"] and not with_layout_2013):
                 features.append("layout-2020")
             elif "layout-2020" not in features:
