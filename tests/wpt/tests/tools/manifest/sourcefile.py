@@ -22,6 +22,7 @@ from .item import (ConformanceCheckerTest,
                    ManualTest,
                    PrintRefTest,
                    RefTest,
+                   SpecItem,
                    SupportFile,
                    TestharnessTest,
                    VisualTest,
@@ -1057,4 +1058,16 @@ class SourceFile:
                     del self.__dict__[prop]
             del self.__dict__["__cached_properties__"]
 
+        return rv
+
+    def manifest_spec_items(self) -> Optional[Tuple[Text, List[ManifestItem]]]:
+        specs = list(self.spec_links)
+        if not specs:
+            return None
+        rv: Tuple[Text, List[ManifestItem]] = (SpecItem.item_type, [
+            SpecItem(
+                self.tests_root,
+                self.rel_path,
+                specs
+            )])
         return rv

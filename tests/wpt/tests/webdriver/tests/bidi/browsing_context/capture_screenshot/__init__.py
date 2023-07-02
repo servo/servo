@@ -1,3 +1,4 @@
+from math import floor
 from webdriver.bidi.modules.script import ContextTarget
 
 from ... import get_device_pixel_ratio, get_viewport_dimensions
@@ -12,4 +13,4 @@ async def get_physical_viewport_dimensions(bidi_session, context):
     """
     viewport = await get_viewport_dimensions(bidi_session, context)
     dpr = await get_device_pixel_ratio(bidi_session, context)
-    return (viewport["width"] * dpr, viewport["height"] * dpr)
+    return (floor(viewport["width"] * dpr), floor(viewport["height"] * dpr))

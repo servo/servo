@@ -19,6 +19,7 @@
     { src: 'url(not a valid url/bar.ttf), url(foo.ttf)', valid: true },
     { src: 'url(foo.ttf) format(bad), url(foo.ttf)', valid: true },
     { src: 'url(foo.ttf) tech(unknown), url(foo.ttf)', valid: true },
+    { src: 'url(foo.ttf) tech(color-COLRv0) otherfunc(othervalue), url(foo.ttf)', valid: true },
     { src: 'url(foo.ttf), url(something.ttf) format(broken)', valid: true },
     { src: '/* an empty component */, url(foo.ttf)', valid: true },
     { src: 'local(""), url(foo.ttf), unparseable-garbage, local("another font name")', valid: true },
@@ -27,6 +28,7 @@
     { src: 'local("textfont") format(opentype), local("emoji") tech(color-COLRv0)', valid: false },
     { src: 'local(), /*empty*/, url(should be quoted.ttf), junk', valid: false },
     { src: 'url(foo.ttf) format(unknown), url(bar.ttf) tech(broken)', valid: false },
+    { src: 'url(foo.ttf) tech(color-COLRv0) otherfunc(othervalue), junk', valid: false },
   ];
 
   for (let t of tests) {

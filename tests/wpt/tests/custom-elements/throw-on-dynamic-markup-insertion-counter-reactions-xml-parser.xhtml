@@ -18,23 +18,23 @@
 async function custom_element_reactions_in_parser(test, code)
 {
     window.executed = false;
-    window.exception = false;
+    window.exception = null;
     const content_window = await create_window_in_test_async(test, 'application/xml', `<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <script>
 <![CDATA[
-let executed = false;
-let exception = null;
 class CustomElement extends window.HTMLElement {
     constructor() {
         super();
+        let exception = null;
         try {
             ${code}
         } catch (error) {
             exception = error;
         }
-        executed = true;
+        top.executed = true;
+        top.exception = exception;
     }
 }
 CustomElement.observedAttributes = ['title'];
@@ -44,10 +44,6 @@ customElements.define('some-element', CustomElement);
 </head>
 <body>
 <some-element title="some title"></some-element>
-<script>
-top.executed = executed;
-top.exception = exception;
-</script>
 </body>
 </html>`);
     let content_document;

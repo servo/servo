@@ -4,7 +4,7 @@ from atomicwrites import atomic_write
 from copy import deepcopy
 from logging import Logger
 from multiprocessing import Pool, cpu_count
-from typing import (Any, Container, Dict, IO, Iterator, Iterable, Optional, Set, Text, Tuple, Type,
+from typing import (Any, Callable, Container, Dict, IO, Iterator, Iterable, Optional, Set, Text, Tuple, Type,
                     Union)
 
 from . import jsonlib
@@ -15,6 +15,7 @@ from .item import (ConformanceCheckerTest,
                    ManualTest,
                    PrintRefTest,
                    RefTest,
+                   SpecItem,
                    SupportFile,
                    TestharnessTest,
                    VisualTest,
@@ -48,12 +49,24 @@ item_classes: Dict[Text, Type[ManifestItem]] = {"testharness": TestharnessTest,
                                                 "wdspec": WebDriverSpecTest,
                                                 "conformancechecker": ConformanceCheckerTest,
                                                 "visual": VisualTest,
+                                                "spec": SpecItem,
                                                 "support": SupportFile}
 
 
-def compute_manifest_items(source_file: SourceFile) -> Tuple[Tuple[Text, ...], Text, Set[ManifestItem], Text]:
+def compute_manifest_items(source_file: SourceFile) -> Optional[Tuple[Tuple[Text, ...], Text, Set[ManifestItem], Text]]:
     rel_path_parts = source_file.rel_path_parts
     new_type, manifest_items = source_file.manifest_items()
+    file_hash = source_file.hash
+    return rel_path_parts, new_type, set(manifest_items), file_hash
+
+
+def compute_manifest_spec_items(source_file: SourceFile) -> Optional[Tuple[Tuple[Text, ...], Text, Set[ManifestItem], Text]]:
+    spec_tuple = source_file.manifest_spec_items()
+    if not spec_tuple:
+        return None
+
+    new_type, manifest_items = spec_tuple
+    rel_path_parts = source_file.rel_path_parts
     file_hash = source_file.hash
     return rel_path_parts, new_type, set(manifest_items), file_hash
 
@@ -127,7 +140,8 @@ class Manifest:
                 if path[:tpath_len] == tpath:
                     yield from tests
 
-    def update(self, tree: Iterable[Tuple[Text, Optional[Text], bool]], parallel: bool = True) -> bool:
+    def update(self, tree: Iterable[Tuple[Text, Optional[Text], bool]], parallel: bool = True,
+               update_func: Callable[..., Any] = compute_manifest_items) -> bool:
         """Update the manifest given an iterable of items that make up the updated manifest.
 
         The iterable must either generate tuples of the form (SourceFile, True) for paths
@@ -189,7 +203,6 @@ class Manifest:
             logger.debug("Computing manifest update for %s items" % len(to_update))
             changed = True
 
-
         # 25 items was derived experimentally (2020-01) to be approximately the
         # point at which it is quicker to create a Pool and parallelize update.
         pool = None
@@ -211,16 +224,18 @@ class Manifest:
             chunksize = max(1, len(to_update) // 10000)
             logger.debug("Doing a multiprocessed update. CPU count: %s, "
                 "processes: %s, chunksize: %s" % (cpu_count(), processes, chunksize))
-            results: Iterator[Tuple[Tuple[Text, ...],
+            results: Iterator[Optional[Tuple[Tuple[Text, ...],
                                     Text,
-                                    Set[ManifestItem], Text]] = pool.imap_unordered(
-                                        compute_manifest_items,
+                                    Set[ManifestItem], Text]]] = pool.imap_unordered(
+                                        update_func,
                                         to_update,
                                         chunksize=chunksize)
         else:
-            results = map(compute_manifest_items, to_update)
+            results = map(update_func, to_update)
 
         for result in results:
+            if not result:
+                continue
             rel_path_parts, new_type, manifest_items, file_hash = result
             data[new_type][rel_path_parts] = manifest_items
             data[new_type].hashes[rel_path_parts] = file_hash

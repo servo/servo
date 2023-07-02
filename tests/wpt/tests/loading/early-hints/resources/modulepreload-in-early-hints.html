@@ -16,11 +16,14 @@ async function fetchModuleScript(url) {
     });
 }
 
+const params = new URLSearchParams(window.location.search);
+const description = params.get("description");
+
 promise_test(async (t) => {
-    const params = new URLSearchParams(window.location.search);
     const resource_url = params.get("resource-url");
+    const should_preload = params.get("should-preload") === "true";
     await fetchModuleScript(resource_url);
-    assert_true(isPreloadedByEarlyHints(resource_url));
-}, "Modulepreload in an early hints.");
+    assert_equals(isPreloadedByEarlyHints(resource_url), should_preload);
+}, description);
 </script>
 </body>

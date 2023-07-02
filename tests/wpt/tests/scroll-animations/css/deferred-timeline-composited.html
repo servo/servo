@@ -64,12 +64,13 @@
       // Switch out the timeline associated with timeline-scope:--t.
       scroller_block.classList.toggle('timeline');
       scroller_inline.classList.toggle('timeline');
-      await waitForCompositorReady();
+      await waitForNextFrame();
       let scrollPromise = new Promise((resolve) => {
         scroller_inline.addEventListener('scrollend', resolve);
-      })
+      });
       scroller_inline.scrollTo({left: 100, behavior: "smooth"}); // 50%
       await scrollPromise;
+      await waitForNextFrame();
       takeScreenshot();
     })();
   </script>

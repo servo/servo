@@ -26,7 +26,7 @@ t.step(function() {
       ctx.fillRect(0, 0, 100, 50);
       ctx.fillStyle = '#0f0';
       ctx.textBaseline = 'hanging';
-      ctx.fillText('CC', 0, -30);
+      ctx.fillText('CC', 0, 12.5);
       _assertPixelApprox(canvas, 5,5, 0,255,0,255, 2);
       _assertPixelApprox(canvas, 95,5, 0,255,0,255, 2);
       _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);

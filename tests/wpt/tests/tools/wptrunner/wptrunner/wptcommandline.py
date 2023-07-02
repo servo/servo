@@ -340,6 +340,10 @@ scheme host and port.""")
                              "(see http://searchfox.org/mozilla-central/source/mfbt/ChaosMode.h for "
                              "details). If no value is supplied, all features are activated")
 
+    gecko_view_group = parser.add_argument_group("GeckoView-specific")
+    gecko_view_group.add_argument("--setenv", dest="env", action="append", default=[],
+                                  help="Set target environment variable, like FOO=BAR")
+
     servo_group = parser.add_argument_group("Servo-specific")
     servo_group.add_argument("--user-stylesheet",
                              default=[], action="append", dest="user_stylesheets",

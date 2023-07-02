@@ -363,7 +363,10 @@ promise_test(async t => {
   const callbacks = {};
 
   let errors = 0;
-  callbacks.error = e => errors++;
+  let gotError = new Promise(resolve => callbacks.error = e => {
+    errors++;
+    resolve(e);
+  });
   callbacks.output = frame => { frame.close(); };
 
   const decoder = createVideoDecoder(t, callbacks);
@@ -372,9 +375,16 @@ promise_test(async t => {
   decoder.decode(new EncodedVideoChunk(
       {type: 'key', timestamp: 1, data: new ArrayBuffer(0)}));
 
-  await promise_rejects_dom(t, 'AbortError', decoder.flush());
+  await promise_rejects_dom(t, "EncodingError",
+    decoder.flush().catch((e) => {
+      assert_equals(errors, 0);
+      throw e;
+    })
+  );
 
-  assert_equals(errors, 1, 'errors');
+  let e = await gotError;
+  assert_true(e instanceof DOMException);
+  assert_equals(e.name, 'EncodingError');
   assert_equals(decoder.state, 'closed', 'state');
 }, 'Decode empty frame');
 
@@ -384,7 +394,10 @@ promise_test(async t => {
   const callbacks = {};
 
   let errors = 0;
-  callbacks.error = e => errors++;
+  let gotError = new Promise(resolve => callbacks.error = e => {
+    errors++;
+    resolve(e);
+  });
 
   let outputs = 0;
   callbacks.output = frame => {
@@ -397,10 +410,17 @@ promise_test(async t => {
   decoder.decode(CHUNKS[0]);  // Decode keyframe first.
   decoder.decode(createCorruptChunk(2));
 
-  await promise_rejects_dom(t, 'AbortError', decoder.flush());
+  await promise_rejects_dom(t, "EncodingError",
+    decoder.flush().catch((e) => {
+      assert_equals(errors, 0);
+      throw e;
+    })
+  );
 
   assert_less_than_equal(outputs, 1);
-  assert_equals(errors, 1, 'errors');
+  let e = await gotError;
+  assert_true(e instanceof DOMException);
+  assert_equals(e.name, 'EncodingError');
   assert_equals(decoder.state, 'closed', 'state');
 }, 'Decode corrupt frame');
 

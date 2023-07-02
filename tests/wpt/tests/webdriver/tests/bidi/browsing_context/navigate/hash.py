@@ -4,9 +4,9 @@ from . import navigate_and_assert
 
 pytestmark = pytest.mark.asyncio
 
-PAGE_EMPTY = "/webdriver/tests/bidi/browsing_context/navigate/support/empty.html"
+PAGE_EMPTY = "/webdriver/tests/bidi/browsing_context/support/empty.html"
 PAGE_EMPTY_WITH_HASH_FOO = f"{PAGE_EMPTY}#foo"
-PAGE_OTHER = "/webdriver/tests/bidi/browsing_context/navigate/support/other.html"
+PAGE_OTHER = "/webdriver/tests/bidi/browsing_context/support/other.html"
 
 
 @pytest.mark.parametrize(

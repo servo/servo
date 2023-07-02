@@ -103,9 +103,85 @@ test_scope_invalidation(document.currentScript, () => {
   assert_not_green(span);
   inner_div.classList.remove('b');
   assert_green(span);
-}, 'Element becoming scope limit');
+}, 'Parent element becoming scope limit');
 </script>
 
+<template>
+  <style>
+    @scope (.a) to (.b) {
+      span { background-color: green; }
+    }
+  </style>
+  <div class=a>
+    <div>
+      <span></span>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let span = main.querySelector('.a > div > span');
+  assert_green(span);
+  span.classList.add('b');
+  assert_not_green(span);
+  span.classList.remove('b');
+  assert_green(span);
+}, 'Subject element becoming scope limit');
+</script>
+
+<template>
+  <style>
+    @scope (.a) to (.b .c) {
+      span { background-color: green; }
+    }
+  </style>
+  <div class=a>
+    <div>
+      <div class=c>
+        <span></span>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let intermediate_div = main.querySelector('.a > div');
+  let span = main.querySelector('span');
+  assert_green(span);
+  intermediate_div.classList.add('b');
+  assert_not_green(span);
+  intermediate_div.classList.remove('b');
+  assert_green(span);
+}, 'Parent element affecting scope limit');
+</script>
+
+<template>
+  <style>
+    @scope (.a) to (.b ~ .c) {
+      span { background-color: green; }
+    }
+  </style>
+  <div class=a>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div class=c>
+      <span></span>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let sibling_div = main.querySelector('.a > div');
+  let span = main.querySelector('span');
+  assert_green(span);
+  sibling_div.classList.add('b');
+  assert_not_green(span);
+  sibling_div.classList.remove('b');
+  assert_green(span);
+}, 'Sibling element affecting scope limit');
+</script>
 
 <template>
   <style>

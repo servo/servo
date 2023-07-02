@@ -301,7 +301,7 @@
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.textBaseline = 'ideographic';
-        ctx.fillText('CC', 0, 81.25);
+        ctx.fillText('CC', 0, 31.25);
         @assert pixel 5,5 ==~ 0,255,0,255;
         @assert pixel 95,5 ==~ 0,255,0,255;
         @assert pixel 25,25 ==~ 0,255,0,255;
@@ -322,7 +322,7 @@
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.textBaseline = 'hanging';
-        ctx.fillText('CC', 0, -30);
+        ctx.fillText('CC', 0, 12.5);
         @assert pixel 5,5 ==~ 0,255,0,255; @moz-todo
         @assert pixel 95,5 ==~ 0,255,0,255; @moz-todo
         @assert pixel 25,25 ==~ 0,255,0,255;

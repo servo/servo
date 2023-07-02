@@ -1,3 +1,4 @@
+import asyncio
 import functools
 from typing import (
     Any,
@@ -73,7 +74,10 @@ class command:
 
             if result_fn is not None and not raw_result:
                 # Convert the result if we have a conversion function defined
-                result = result_fn(self, result)
+                if asyncio.iscoroutinefunction(result_fn):
+                    result = await result_fn(self, result)
+                else:
+                    result = result_fn(self, result)
             return result
 
         # Overwrite the method on the owner class with the wrapper

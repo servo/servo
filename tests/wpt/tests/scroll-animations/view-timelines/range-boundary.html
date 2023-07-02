@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="match" href="range-boundary-ref.html">
+  <title></title>
+</head>
+<style type="text/css">
+  @keyframes transform {
+    0% { transform: translateX(25px); }
+    100% { transform: translateX(50px); }
+  }
+
+  @keyframes background {
+    0% { background-color: #99f; }
+    100% { background-color: #9f9; }
+  }
+
+  .scroller {
+    display:  inline-block;
+    border: 2px solid black;
+    height:  100px;
+    width:  100px;
+    overflow: hidden;
+  }
+  .spacer {
+    height: 300px;
+    margin:  0;
+  }
+  .box {
+    background: gray;
+    height: 50px;
+    width: 50px;
+    margin: 0;
+    animation:  transform auto, background auto;
+    animation-timeline: view(), view();
+    animation-range: entry 0% entry 100%, contain 0% contain 100%;
+  }
+</style>
+<body>
+  <!-- scroll to bottom
+       top-box:
+         transform: none (after phase)
+         bg-color: #9f9 (at active-after boundary with inclusive endpoint)
+       bottom-box:
+         transform: 100px (at active-after boundary with inclusive endpoint)
+         bg-color: #99f (at active-before boundary with inclusive endpoint)
+  -->
+  <div id="scroller-1" class="scroller">
+    <div class="spacer"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+  </div>
+  <!-- scroll to top
+       top-box:
+         transform: none (after phase)
+         bg-color: gray (at active-after boundary with exclusive endpoint)
+       bottom-box:
+         transform: none (at active-after boundary with exclusive endpoint)
+         bg-color: #99f (at active-before boundary with inclusive endpoint)
+  -->
+  <div id="scroller-2" class="scroller">
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="spacer"></div>
+  </div>
+  <br>
+  <!-- scroll to midpoint
+       top-box:
+         transform: none (after phase)
+         bg-color: gray (at active-after boundary with exclusive endpoint)
+       bottom-box:
+         transform: none (at active-after boundary with exclusive endpoint)
+         bg-color: #99f (at active-before boundary with inclusive endpoint)
+  -->
+  <div id="scroller-3" class="scroller">
+    <div class="spacer"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="spacer"></div>
+  </div>
+  <!-- scroll to bottom + reverse
+       top-box:
+         transform: none (before phase)
+         bg-color: gray (at active-before boundary with exclusive endpoint)
+       bottom-box:
+         transform: none (at active-before boundary with exclusive endpoint)
+         bg-color: #9f9 (at active-after boundary with inclusive endpoint)
+  -->
+  <div id="scroller-4" class="scroller">
+    <div class="spacer"></div>
+    <div class="box reverse"></div>
+    <div class="box reverse"></div>
+  </div>
+  <br>
+  <!-- scroll to top + reverse
+       top-box:
+         transform: none (before phase)
+         bg-color:  #99f (at active-before boundary with inclusive endpoint)
+       bottom-box:
+         transform: 25px (at active-before boundary with inclusive endpoint)
+         bg-color: #9f9 (at active-after boundary with inclusive endpoint)
+  -->
+  <div id="scroller-5" class="scroller">
+    <div class="box reverse"></div>
+    <div class="box reverse"></div>
+    <div class="spacer"></div>
+  </div>
+  <!-- scroll to midpoint + reverse
+       top-box:
+         transform: none (before phase)
+         bg-color: gray (at active-before boundary with exclusive endpoint)
+       bottom-box:
+         transform: none (at active-before boundary with exclusive endpoint)
+         bg-color: #9f9 (at active-before boundary with inclusive endpoint)
+  -->
+  <div id="scroller-6" class="scroller">
+    <div class="spacer"></div>
+    <div class="box reverse"></div>
+    <div class="box reverse"></div>
+    <div class="spacer"></div>
+  </div>
+</body>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script>
+  function scrollTo(scroller_id, relative_offset) {
+    const scroller = document.getElementById(scroller_id);
+    const max_scroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = relative_offset * max_scroll;
+  }
+
+  window.onload = async () => {
+    await waitForCompositorReady();
+    document.querySelectorAll('.reverse').forEach(elem => {
+      elem.getAnimations().forEach(anim => {
+        anim.reverse();
+      });
+    });
+    // Playing forward
+    scrollTo('scroller-1', 1);
+    scrollTo('scroller-2', 0);
+    scrollTo('scroller-3', 0.5);
+    // Playing reverse
+    scrollTo('scroller-4', 1);
+    scrollTo('scroller-5', 0);
+    scrollTo('scroller-6', 0.5);
+    await waitForNextFrame();
+    takeScreenshot();
+  };
+</script>
+</html>

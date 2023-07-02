@@ -308,3 +308,30 @@ def test_update_from_json_modified():
         'url_base': '/',
         'version': 8
     }
+
+def test_manifest_spec_to_json():
+    m = manifest.Manifest("")
+
+    path = "a" + os.path.sep + "b"
+    hash = "0"*40
+    rel_path_parts = tuple(path.split(os.path.sep))
+    s = mock.Mock(rel_path=path,
+                  rel_path_parts=rel_path_parts,
+                  hash=hash)
+    spec = item.SpecItem("/foobar", path, ["specA"])
+    s.manifest_spec_items = mock.Mock(return_value=(item.SpecItem.item_type, [spec]))
+
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s, None, True)])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        assert m.update(tree, True, manifest.compute_manifest_spec_items) is True
+
+    assert m.to_json() == {
+        'version': 8,
+        'url_base': '/',
+        'items': {
+            'spec': {'a': {'b': [
+                '0000000000000000000000000000000000000000',
+                (None, {'spec_link1': 'specA'})
+            ]}},
+        }
+    }

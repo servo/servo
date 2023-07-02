@@ -86,11 +86,11 @@ async def get_device_pixel_ratio(bidi_session, context):
 
     :param bidi_session: BiDiSession
     :param context: Browsing context ID
-    :returns: (int) devicePixelRatio.
+    :returns: (float) devicePixelRatio.
     """
     result = await bidi_session.script.call_function(
         function_declaration="""() => {
-        return Math.floor(window.devicePixelRatio);
+        return window.devicePixelRatio;
     }""",
         target=ContextTarget(context["context"]),
         await_promise=False)

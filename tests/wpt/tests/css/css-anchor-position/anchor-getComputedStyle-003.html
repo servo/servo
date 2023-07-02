@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that getComputedStyle() returns used position fallback style</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+.cb {
+  position: relative;
+  width: 400px;
+  height: 400px;
+  background: lightgray;
+}
+
+.anchor {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
+
+.target {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: lime;
+  position-fallback: --pf;
+}
+
+@position-fallback --pf {
+  @try {
+    top: anchor(top);
+    left: anchor(right);
+  }
+
+  @try {
+    top: anchor(top);
+    right: anchor(left);
+  }
+}
+
+#anchor1 {
+  top: 0;
+  left: 0;
+  anchor-name: --a1;
+}
+
+#target1 {
+  anchor-default: --a1;
+}
+
+#anchor2 {
+  top: 200px;
+  right: 0;
+  anchor-name: --a2;
+}
+
+#target2 {
+  anchor-default: --a2;
+}
+</style>
+
+<div class="cb">
+  <div id="anchor1" class="anchor">anchor1</div>
+  <div id="anchor2" class="anchor">anchor2</div>
+
+  <div id="target1" class="target">target1</div>
+  <div id="target2" class="target">target2</div>
+</div>
+
+<script>
+test(() => {
+  const style1 = getComputedStyle(target1);
+  assert_equals(style1.top, '0px');
+  assert_equals(style1.left, '100px');
+  assert_equals(style1.right, '200px');
+}, 'getComputedStyle() should return and absolutize the first @try rule style for target1');
+
+test(() => {
+  const style2 = getComputedStyle(target2);
+  assert_equals(style2.top, '200px');
+  assert_equals(style2.left, '200px');
+  assert_equals(style2.right, '100px');
+}, 'getComputedStyle() should return and absolutize the second @try rule style for target2');
+</script>

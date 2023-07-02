@@ -16,7 +16,7 @@ import {request_options_with_mediation_required,
 
 fedcm_test(async t => {
   navigator.credentials.get(request_options_with_mediation_required());
-  const title = await fedcm_get_title_promise();
+  const title = await fedcm_get_title_promise(t);
   assert_true(title.toLowerCase().includes('sign in'));
 }, "FedCM call defaults to 'signin' context.");
 
@@ -28,13 +28,13 @@ fedcm_test(async t => {
 
 fedcm_test(async t => {
   navigator.credentials.get(request_options_with_context("manifest.py", "use"));
-  const title = await fedcm_get_title_promise();
+  const title = await fedcm_get_title_promise(t);
   assert_true(title.toLowerCase().includes('use'));
 }, "FedCM with 'use' context.");
 
 fedcm_test(async t => {
   navigator.credentials.get(request_options_with_context("manifest.py", "continue"));
-  const title = await fedcm_get_title_promise();
+  const title = await fedcm_get_title_promise(t);
   assert_true(title.toLowerCase().includes('continue'));
 }, "FedCM with 'continue' context.");
 </script>

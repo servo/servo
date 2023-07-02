@@ -38,7 +38,16 @@ function test_calculated_resolution_units() {
   test_computed_value_variants(
     'background-image',
     "image-set(url('http://{{host}}/example.png') calc(37dpcm + 0.79532dpcm))",
-    'image-set(url("http://{{host}}/example.png") 1dppx)'
+    [
+      'image-set(url("http://{{host}}/example.png") 1dppx)',
+      'image-set(url("http://{{host}}/example.png") 1.000001dppx)'
+    ]
+  );
+
+  test_computed_value_variants(
+    'background-image',
+    "image-set(url('http://{{host}}/example.png') calc(-1 * 1x))",
+    'image-set(url("http://{{host}}/example.png") 0dppx)'
   );
 }
 

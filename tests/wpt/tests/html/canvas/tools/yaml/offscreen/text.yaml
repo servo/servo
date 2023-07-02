@@ -620,7 +620,7 @@
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.textBaseline = 'ideographic';
-        ctx.fillText('CC', 0, 81.25);
+        ctx.fillText('CC', 0, 31.25);
         @assert pixel 5,5 ==~ 0,255,0,255;
         @assert pixel 95,5 ==~ 0,255,0,255;
         @assert pixel 25,25 ==~ 0,255,0,255;
@@ -644,7 +644,7 @@
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.textBaseline = 'hanging';
-        ctx.fillText('CC', 0, -30);
+        ctx.fillText('CC', 0, 12.5);
         @assert pixel 5,5 ==~ 0,255,0,255; @moz-todo
         @assert pixel 95,5 ==~ 0,255,0,255; @moz-todo
         @assert pixel 25,25 ==~ 0,255,0,255;
@@ -1125,16 +1125,16 @@
     f.load();
     fonts.add(f);
     fonts.ready.then(function() {
-       ctx.font = '50px CanvasTest';
-       ctx.direction = 'ltr';
-       ctx.align = 'left'
-       @assert Math.abs(ctx.measureText('A').getBaselines().alphabetic) === 0;
-       @assert ctx.measureText('A').getBaselines().ideographic === -39;
-       @assert ctx.measureText('A').getBaselines().hanging === 68;
+        ctx.font = '50px CanvasTest';
+        ctx.direction = 'ltr';
+        ctx.align = 'left'
+        @assert Math.abs(ctx.measureText('A').alphabeticBaseline) === 0;
+        @assert ctx.measureText('A').ideographicBaseline === 6.25;
+        @assert ctx.measureText('A').hangingBaseline === 25;
 
-       @assert Math.abs(ctx.measureText('ABCD').getBaselines().alphabetic) === 0;
-       @assert ctx.measureText('ABCD').getBaselines().ideographic === -39;
-       @assert ctx.measureText('ABCD').getBaselines().hanging === 68;
+        @assert Math.abs(ctx.measureText('ABCD').alphabeticBaseline) === 0;
+        @assert ctx.measureText('ABCD').ideographicBaseline === 6.25;
+        @assert ctx.measureText('ABCD').hangingBaseline === 25;
     }).then(t_pass, t_fail);
 
 - name: 2d.text.drawing.style.absolute.spacing
@@ -1496,37 +1496,123 @@
 - name: 2d.text.drawing.style.textRendering.settings
   desc: Testing basic functionalities of textRendering in Canvas
   code: |
-    // Setting textRendering with lower cases
+    // Setting textRendering with correct case.
     @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizeSpeed";
+    @assert ctx.textRendering === "optimizeSpeed";
+
+    ctx.textRendering = "optimizeLegibility";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "geometricPrecision";
+    @assert ctx.textRendering === "geometricPrecision";
 
     ctx.textRendering = "auto";
     @assert ctx.textRendering === "auto";
 
-    ctx.textRendering = "optimizespeed";
-    @assert ctx.textRendering === "optimizeSpeed";
-
-    ctx.textRendering = "optimizelegibility";
-    @assert ctx.textRendering === "optimizeLegibility";
-
-    ctx.textRendering = "geometricprecision";
-    @assert ctx.textRendering === "geometricPrecision";
-
-    // Setting textRendering with lower cases and upper cases word.
-    ctx.textRendering = "aUto";
+    // Setting textRendering with incorrect case is ignored.
+    ctx.textRendering = "OPtimizeSpeed";
     @assert ctx.textRendering === "auto";
 
-    ctx.textRendering = "OPtimizeSpeed";
-    @assert ctx.textRendering === "optimizeSpeed";
-
     ctx.textRendering = "OPtimizELEgibility";
-    @assert ctx.textRendering === "optimizeLegibility";
+    @assert ctx.textRendering === "auto";
 
     ctx.textRendering = "GeometricPrecision";
-    @assert ctx.textRendering === "geometricPrecision";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizespeed";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizelegibility";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "geometricprecision";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizeLegibility";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "AUTO";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "Auto";
+    @assert ctx.textRendering === "optimizeLegibility";
 
     // Setting textRendering with non-existing font variant.
     ctx.textRendering = "abcd";
-    @assert ctx.textRendering === "geometricPrecision";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "normal";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "auto";
+    @assert ctx.textRendering === "auto";
+
+    t.done();
+
+- name: 2d.text.drawing.style.fontStretch.settings
+  desc: Testing value setting of fontStretch in Canvas
+  code: |
+    // Setting textRendering with lower cases
+    ctx.fontStretch = "ultra-condensed";
+    @assert ctx.fontStretch === "ultra-condensed";
+
+    ctx.fontStretch = "extra-condensed";
+    @assert ctx.fontStretch === "extra-condensed";
+
+    ctx.fontStretch = "condensed";
+    @assert ctx.fontStretch === "condensed";
+
+    ctx.fontStretch = "semi-condensed";
+    @assert ctx.fontStretch === "semi-condensed";
+
+    ctx.fontStretch = "normal";
+    @assert ctx.fontStretch === "normal";
+
+    ctx.fontStretch = "semi-expanded";
+    @assert ctx.fontStretch === "semi-expanded";
+
+    ctx.fontStretch = "expanded";
+    @assert ctx.fontStretch === "expanded";
+
+    ctx.fontStretch = "extra-expanded";
+    @assert ctx.fontStretch === "extra-expanded";
+
+    ctx.fontStretch = "ultra-expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    // Setting fontStretch with lower cases and upper cases word,
+    // these values should be ignored.
+    ctx.fontStretch = "ulTra-condensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "Extra-condensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "cOndensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "Semi-Condensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "normaL";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "semi-Expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "Expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "eXtra-expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "abcd";
+    @assert ctx.fontStretch === "ultra-expanded";
     t.done();
 
 - name: 2d.text.drawing.style.measure.rtl.text

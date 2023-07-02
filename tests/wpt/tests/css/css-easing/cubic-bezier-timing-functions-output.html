@@ -13,12 +13,15 @@ href="https://drafts.csswg.org/css-easing/#cubic-bezier-timing-functions">
 <script>
 'use strict';
 
+// Precision of major rendering engines' layout systems.
+const epsilon = 0.02;
+
 function assert_style_left_at(animation, time, easingFunction) {
   animation.currentTime = time;
   var portion = time / animation.effect.getTiming()['duration'];
   assert_approx_equals(pxToNum(getComputedStyle(animation.effect.target).left),
                        easingFunction(portion) * 100,
-                       0.01,
+                       epsilon,
                        'The left of the animation should be approximately ' +
                        easingFunction(portion) * 100 + ' at ' + time + 'ms');
 }

@@ -125,22 +125,19 @@
 }`, 'color is changed, new rule is ignored');
   });
 
-  // We cannot insert anything starting with an tag, as that would cause
-  // the serialized rule not to parse back. Compounds starting with a tag
-  // that are _not_ the first compound in a complex selector are OK, though,
-  // as are complex selectors that are not the first in the list.
   test(() => {
     document.getElementById('ss').innerHTML = sampleSheetText;
     let [ss] = document.styleSheets;
-    ss.cssRules[0].cssRules[0].selectorText = 'div.b .c &';  // Ignored.
+    ss.cssRules[0].cssRules[0].selectorText = 'div.b .c &';  // Allowed
     ss.cssRules[0].cssRules[1].selectorText = '.c div.b &, div &';  // Allowed.
-    assert_throws_dom('SyntaxError', () => { ss.cssRules[0].insertRule('div & {}'); });
+    ss.cssRules[0].insertRule('div & {}'); // Allowed.
     assert_equals(ss.cssRules[0].cssText,
 `.a {
   color: red;
-  & .b { color: green; }
+  div & { }
+  div.b .c & { color: green; }
   .c div.b &, div & { color: blue; }
-}`, 'one rule is kept unchanged, the other is changed');
+}`, 'selectorText and insertRule');
   });
 
   // Rules that are dropped in forgiving parsing but that contain &,

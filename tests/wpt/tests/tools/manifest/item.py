@@ -340,3 +340,37 @@ class SupportFile(ManifestItem):
     @property
     def id(self) -> Text:
         return self.path
+
+
+class SpecItem(ManifestItem):
+    __slots__ = ("specs")
+
+    item_type = "spec"
+
+    def __init__(self,
+                 tests_root: Text,
+                 path: Text,
+                 specs: List[Text]
+                 ) -> None:
+        super().__init__(tests_root, path)
+        self.specs = specs
+
+    @property
+    def id(self) -> Text:
+        return self.path
+
+    def to_json(self) -> Tuple[Optional[Text], Dict[Text, Any]]:
+        rv: Tuple[Optional[Text], Dict[Any, Any]] = (None, {})
+        for i in range(len(self.specs)):
+            spec_key = f"spec_link{i+1}"
+            rv[-1][spec_key] = self.specs[i]
+        return rv
+
+    @classmethod
+    def from_json(cls,
+                  manifest: "Manifest",
+                  path: Text,
+                  obj: Any
+                  ) -> "ManifestItem":
+        """Not properly implemented and is not used."""
+        return cls("/", "", [])

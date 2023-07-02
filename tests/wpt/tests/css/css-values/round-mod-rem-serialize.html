@@ -11,7 +11,7 @@
 <script>
 function test_serialization(t,s,c) {
     test_specified_serialization('opacity', t, s);
-    test_specified_serialization('transform', `scale(${t})`, `scale(calc(${c}))`);
+    test_specified_serialization('transform', `scale(${t})`, `scale(${s})`);
     test_computed_serialization('opacity', t, c);
     test_computed_serialization('transform', `scale(${t})`, `matrix(${c}, 0, 0, ${c}, 0, 0)`);
 }
@@ -32,13 +32,13 @@ test_serialization(
 test_serialization(
     'calc(round(1,0))',
     'calc(NaN)',
-    'NaN');
+    '0');
 test_serialization(
     'calc(mod(1,0))',
     'calc(NaN)',
-    'NaN');
+    '0');
 test_serialization(
     'calc(rem(1,0))',
     'calc(NaN)',
-    'NaN');
+    '0');
 </script>

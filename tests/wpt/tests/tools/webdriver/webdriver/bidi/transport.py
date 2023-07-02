@@ -74,3 +74,7 @@ class Transport:
             if not isinstance(msg, str):
                 raise ValueError("Got a binary message")
             await self.handle(msg)
+
+    async def wait_closed(self) -> None:
+        if self.connection and not self.connection.closed:
+            await self.connection.wait_closed()

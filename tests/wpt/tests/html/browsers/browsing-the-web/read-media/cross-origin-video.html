@@ -21,6 +21,10 @@ promise_test(async () => {
     + '/service-workers/service-worker/resources/fetch-access-control.py?'
     + 'VIDEO%26PartialContent';
 
+  let v = document.createElement("video");
+  if (v.canPlayType("video/ogv") == "")
+    frame.src += "%26mp4";
+
   document.body.appendChild(frame);
   await new Promise(resolve => frame.onload = resolve);
 

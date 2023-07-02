@@ -33,7 +33,7 @@ async def test_multiple_frames(
 
     await navigate_and_assert(bidi_session, frame, inline(PAGE_CONTENT))
 
-    # Make sure that the sesond frame hasn't been navigated
+    # Make sure that the second frame hasn't been navigated
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
     assert contexts[0]["children"][1]["url"] == test_page2
 
