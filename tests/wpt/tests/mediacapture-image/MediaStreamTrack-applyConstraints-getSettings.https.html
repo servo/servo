@@ -101,20 +101,61 @@ image_capture_test(async t => {
   let stream = await navigator.mediaDevices.getUserMedia({video: true});
   let videoTrack = stream.getVideoTracks()[0];
 
-  const constraints = [{ pan: 8 }, { tilt: 9 }];
+  const constraints = [{ pan: { exact: 8 } }, { tilt: { exact: 9 } }];
   await Promise.all(constraints.map(async constraint => {
     try {
-      await videoTrack.applyConstraints({ advanced: [constraint] });
+      await videoTrack.applyConstraints(constraint);
     } catch (error) {
       assert_equals(error.name, 'OverconstrainedError');
       assert_equals(error.constraint, Object.keys(constraint)[0]);
       return;
     }
     assert_unreached(
-        "applyConstraints should throw a NotSupportedError for " +
+        "applyConstraints should throw an OverconstrainedError for " +
         JSON.stringify(constraint));
   }));
 
-}, 'exercises an applyConstraints() with PTZ permission denied');
+}, 'exercises an applyConstraints() with required constraints with PTZ permission denied');
+
+image_capture_test(async t => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+      'denied');
+
+  let stream = await navigator.mediaDevices.getUserMedia({video: true});
+  let videoTrack = stream.getVideoTracks()[0];
+
+  const constraints = [{ pan: { ideal: 8 } }, { tilt: { ideal: 9 } }];
+  await Promise.all(constraints.map(async constraint => {
+    try {
+      await videoTrack.applyConstraints(constraint);
+    } catch (error) {
+      assert_unreached(
+          `applyConstraints should not throw an ${error.name} for ` +
+          JSON.stringify(constraint));
+    }
+  }));
+
+}, 'exercises an applyConstraints() with ideal constraints with PTZ permission denied');
+
+image_capture_test(async t => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+      'denied');
+
+  let stream = await navigator.mediaDevices.getUserMedia({video: true});
+  let videoTrack = stream.getVideoTracks()[0];
+
+  const advanced_constraints = [{ pan: 8 }, { tilt: 9 }];
+  await Promise.all(advanced_constraints.map(async advanced_constraint => {
+    const constraint = { advanced: [advanced_constraint] };
+    try {
+      await videoTrack.applyConstraints(constraint);
+    } catch (error) {
+      assert_unreached(
+          `applyConstraints should not throw an ${error.name} for ` +
+          JSON.stringify(constraint));
+    }
+  }));
+
+}, 'exercises an applyConstraints() with advances constraints with PTZ permission denied');
 
 </script>

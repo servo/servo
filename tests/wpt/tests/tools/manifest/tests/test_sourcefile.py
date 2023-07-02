@@ -808,6 +808,21 @@ def test_spec_links_whitespace(url):
     assert s.spec_links == {"http://example.com/"}
 
 
+@pytest.mark.parametrize("input,expected", [
+    (b"""<link rel="help" title="Intel" href="foo">\n""", ["foo"]),
+    (b"""<link rel=help title="Intel" href="foo">\n""", ["foo"]),
+    (b"""<link  rel=help  href="foo" >\n""", ["foo"]),
+    (b"""<link rel="author" href="foo">\n""", []),
+    (b"""<link href="foo">\n""", []),
+    (b"""<link rel="help" href="foo">\n<link rel="help" href="bar">\n""", ["foo", "bar"]),
+    (b"""<link rel="help" href="foo">\n<script>\n""", ["foo"]),
+    (b"""random\n""", []),
+])
+def test_spec_links_complex(input, expected):
+    s = create("foo/test.html", input)
+    assert s.spec_links == set(expected)
+
+
 def test_url_base():
     contents = b"""// META: global=window,worker
 // META: variant=

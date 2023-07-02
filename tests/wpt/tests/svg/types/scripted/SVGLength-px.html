@@ -106,6 +106,9 @@ test(function() {
   referenceValue = 48 / 4;
   assert_equals(length.valueAsString, referenceValue + "mm");
   assert_approx_equals(length.valueInSpecifiedUnits, referenceValue, 0.01);
+  length.value = valueInPx("12q");
+  referenceValue = 3;
+  assert_approx_equals(length.valueInSpecifiedUnits, referenceValue, 0.01);
 }, document.title + ", q");
 
 test(function() {

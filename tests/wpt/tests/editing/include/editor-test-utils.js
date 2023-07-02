@@ -32,10 +32,13 @@ class EditorTestUtils {
 
   sendKey(key, modifier) {
     if (!modifier) {
-      return new this.window.test_driver.Actions()
-        .keyDown(key)
-        .keyUp(key)
-        .send();
+      return this.window.test_driver.send_keys(this.editingHost, key)
+        .catch(() => {
+          return new this.window.test_driver.Actions()
+          .keyDown(key)
+          .keyUp(key)
+          .send();
+        });
     }
     return new this.window.test_driver.Actions()
       .keyDown(modifier)

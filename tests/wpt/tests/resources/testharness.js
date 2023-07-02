@@ -1426,12 +1426,16 @@
         function assert_wrapper(...args) {
             let status = Test.statuses.TIMEOUT;
             let stack = null;
+            let new_assert_index = null;
             try {
                 if (settings.debug) {
                     console.debug("ASSERT", name, tests.current_test && tests.current_test.name, args);
                 }
                 if (tests.output) {
                     tests.set_assert(name, args);
+                    // Remember the newly pushed assert's index, because `apply`
+                    // below might push new asserts.
+                    new_assert_index = tests.asserts_run.length - 1;
                 }
                 const rv = f.apply(undefined, args);
                 status = Test.statuses.PASS;
@@ -1445,7 +1449,7 @@
                     stack = get_stack();
                 }
                 if (tests.output) {
-                    tests.set_assert_status(status, stack);
+                    tests.set_assert_status(new_assert_index, status, stack);
                 }
             }
         }
@@ -3673,8 +3677,8 @@
         this.asserts_run.push(new AssertRecord(this.current_test, assert_name, args))
     }
 
-    Tests.prototype.set_assert_status = function(status, stack) {
-        let assert_record = this.asserts_run[this.asserts_run.length - 1];
+    Tests.prototype.set_assert_status = function(index, status, stack) {
+        let assert_record = this.asserts_run[index];
         assert_record.status = status;
         assert_record.stack = stack;
     }

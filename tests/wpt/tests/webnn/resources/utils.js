@@ -318,6 +318,7 @@ const PrecisionMetrics = {
   sigmoid: {ULP: {float32: 32+2, float16: 3}}, // float32 (leaving a few ULP for roundoff)
   slice: {ULP: {float32: 0, float16: 0}},
   softmax: {ULP: {float32: getSoftmaxPrecisionTolerance, float16: getSoftmaxPrecisionTolerance}},
+  softplus: {ULP: {float32: 18, float16: 18}},
   softsign: {ULP: {float32: 3, float16: 3}},
   split: {ULP: {float32: 0, float16: 0}},
   squeeze: {ULP: {float32: 0, float16: 0}},

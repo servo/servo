@@ -36,6 +36,7 @@ test_invalid_value('animation-timeline', '"test"');
 // <axis> = block | inline | x | y
 // <scroller> = root | nearest | self
 test_valid_value('animation-timeline', 'scroll()');
+test_valid_value('animation-timeline', ' scroll() ', 'scroll()');
 test_valid_value('animation-timeline', 'scroll(block)', 'scroll()');
 test_valid_value('animation-timeline', 'scroll(inline)');
 test_valid_value('animation-timeline', 'scroll(x)');
@@ -56,6 +57,7 @@ test_invalid_value('animation-timeline', 'scroll("string")');
 
 // https://drafts.csswg.org/scroll-animations-1/#view-notation
 test_valid_value('animation-timeline', 'view()');
+test_valid_value('animation-timeline', ' view() ', 'view()');
 test_valid_value('animation-timeline', 'view(block)', 'view()');
 test_valid_value('animation-timeline', 'view(inline)');
 test_valid_value('animation-timeline', 'view(x)');

@@ -128,15 +128,13 @@
         from: 'ray(-10deg farthest-corner)',
         to: 'ray(-50deg farthest-corner at 100% 100%)'
       }, [
-        {at: -1, expect: 'ray(30deg farthest-corner at 0% 0%)'},
-        {at: 0, expect: 'ray(-10deg farthest-corner)'},
-        {at: 0.125, expect: 'ray(-15deg farthest-corner at 56.25% 56.25%)'},
-        {at: 0.875, expect: 'ray(-45deg farthest-corner at 93.75% 93.75%)'},
+        // TODO: Test intermediate values as well, once the expected behavior
+        // is clear in the spec. Right now it's a bit unclear whether or how to
+        // interpolate to/from the initial 'auto' value.
         {at: 1, expect: 'ray(-50deg farthest-corner at 100% 100%)'},
-        {at: 2, expect: 'ray(-90deg farthest-corner at 150% 150%)'},
       ]);
 
-      // No interpolation between different sizes and/or different containment.
+      // No interpolation between different sizes and/or different containment and/or coord-boxes.
       test_no_interpolation({
         property: 'offset-path',
         from: 'ray(200deg farthest-side)',
@@ -151,6 +149,11 @@
         property: 'offset-path',
         from: 'ray(200deg farthest-side contain)',
         to: 'ray(300deg sides)'
+      });
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'ray(-10deg farthest-corner) content-box',
+        to: 'ray(-50deg farthest-corner at 100% 100%) padding-box'
       });
     </script>
   </body>

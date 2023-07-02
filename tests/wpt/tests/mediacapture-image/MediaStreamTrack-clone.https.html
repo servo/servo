@@ -37,6 +37,9 @@ image_capture_test(async (t, imageCaptureTest) => {
 
                                       torch                : true
                                     }]};
+    for (const [key, value] of Object.entries(constraints.advanced[0])) {
+      constraints[key] = {exact: value};
+    }
 
     let stream = await navigator.mediaDevices.getUserMedia({video: true});
     let originalVideoTrack = stream.getVideoTracks()[0];
@@ -51,14 +54,20 @@ image_capture_test(async (t, imageCaptureTest) => {
     assert_equals(appliedClonedConstraints.advanced.length, 1);
     const appliedClonedAdvancedConstraints = appliedClonedConstraints.advanced[0];
 
-    // Check that |appliedClonedAdvancedConstraints| and |appliedAdvancedConstraints| are equal.
+    // Check that |appliedClonedConstraints| and |appliedConstraints| are equal.
     const appliedAdvancedConstraints = appliedConstraints.advanced[0];
     assert_equals(appliedAdvancedConstraints.length, appliedClonedAdvancedConstraints.length);
-    Object.keys(appliedClonedAdvancedConstraints).forEach((key, value) => {
+    Object.keys(appliedClonedAdvancedConstraints).forEach(key => {
+      assert_not_equals(appliedClonedConstraints[key], undefined, 'key ' + key);
+      assert_not_equals(appliedConstraints[key], undefined, 'key ' + key);
+      assert_not_equals(appliedConstraints[key].exact, undefined, 'key ' + key);
       assert_not_equals(appliedAdvancedConstraints[key], undefined, 'key ' + key);
       if (key != 'pointsOfInterest') {
+        assert_equals(appliedConstraints[key].exact, appliedClonedConstraints[key].exact, key);
         assert_equals(appliedAdvancedConstraints[key], appliedClonedAdvancedConstraints[key], key);
       } else {
+        assert_point2d_array_approx_equals(appliedConstraints[key].exact,
+                                           appliedClonedConstraints[key].exact, 0.01);
         assert_point2d_array_approx_equals(appliedAdvancedConstraints[key],
                                            appliedClonedAdvancedConstraints[key], 0.01);
       }

@@ -28,7 +28,7 @@ div {
     let [ss] = document.styleSheets;
     assert_equals(ss.cssRules.length, 1);
 
-    // The @layer rule should be ignored.
+    // The @font-face rule should be ignored.
     assert_equals(ss.cssRules[0].cssText,
 `div {
   @media screen {

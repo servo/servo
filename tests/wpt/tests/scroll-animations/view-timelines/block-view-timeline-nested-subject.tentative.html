@@ -92,8 +92,8 @@
                           "Timeline's currentTime at end offset");
     assert_percents_equal(anim.currentTime, 100,
                           "Animation's currentTime at end offset");
-    assert_equals(getComputedStyle(target).opacity, '0.7',
-                  'Effect is in the active phase at effect end time');
+    assert_equals(getComputedStyle(target).opacity, '1',
+                  'Effect is in the after phase at effect end time');
 
     // Advance to the scroll limit.
     container.scrollTop = 1600;

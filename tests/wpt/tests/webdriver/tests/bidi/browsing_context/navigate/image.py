@@ -4,10 +4,10 @@ from . import navigate_and_assert
 
 pytestmark = pytest.mark.asyncio
 
-PAGE_EMPTY = "/webdriver/tests/bidi/browsing_context/navigate/support/empty.html"
-PNG_BLACK_DOT = "/webdriver/tests/bidi/browsing_context/navigate/support/black_dot.png"
-PNG_RED_DOT = "/webdriver/tests/bidi/browsing_context/navigate/support/red_dot.png"
-SVG = "/webdriver/tests/bidi/browsing_context/navigate/support/other.svg"
+PAGE_EMPTY = "/webdriver/tests/bidi/browsing_context/support/empty.html"
+PNG_BLACK_DOT = "/webdriver/tests/bidi/browsing_context/support/black_dot.png"
+PNG_RED_DOT = "/webdriver/tests/bidi/browsing_context/support/red_dot.png"
+SVG = "/webdriver/tests/bidi/browsing_context/support/other.svg"
 
 
 @pytest.mark.parametrize(

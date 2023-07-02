@@ -94,7 +94,7 @@ test(t => {
   t.add_cleanup(() => pc.close());
   const transceiver = pc.addTransceiver('audio');
   const capabilities = transceiver.getHeaderExtensionsToNegotiate();
-  let capability = capabilities.find((capability) => {
+  const capability = capabilities.find((capability) => {
       return capability.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid';
   });
   ['sendonly', 'recvonly', 'inactive', 'stopped'].map(direction => {
@@ -109,14 +109,14 @@ test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
   const transceiver = pc.addTransceiver('audio');
-  let capabilities = transceiver.getHeaderExtensionsToNegotiate();
-  let selected_capability = capabilities.find((capability) => {
+  const capabilities = transceiver.getHeaderExtensionsToNegotiate();
+  const selected_capability = capabilities.find((capability) => {
       return capability.direction === 'sendrecv' &&
              capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
   });
   selected_capability.direction = 'stopped';
   const offered_capabilities = transceiver.getHeaderExtensionsToNegotiate();
-  let altered_capability = capabilities.find((capability) => {
+  const altered_capability = capabilities.find((capability) => {
       return capability.uri === selected_capability.uri &&
              capability.direction === 'stopped';
   });
@@ -292,4 +292,66 @@ promise_test(async t => {
   }
 }, 'Prior to negotiation, getNegotiatedHeaderExtensions() returns `stopped` for all extensions.');
 
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  // Disable a non-mandatory extension before first negotiation.
+  const transceiver = pc1.addTransceiver('video');
+  const capabilities = transceiver.getHeaderExtensionsToNegotiate();
+  const selected_capability = capabilities.find((capability) => {
+      return capability.direction === 'sendrecv' &&
+             capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
+  });
+  selected_capability.direction = 'stopped';
+  transceiver.setHeaderExtensionsToNegotiate(capabilities);
+
+  await negotiate(pc1, pc2);
+  const negotiated_capabilites = transceiver.getNegotiatedHeaderExtensions();
+
+  const local_negotiated = transceiver.getNegotiatedHeaderExtensions().find(ext => {
+    return ext.uri === selected_capability.uri;
+  });
+  assert_equals(local_negotiated.direction, 'stopped');
+  const remote_negotiated = pc2.getTransceivers()[0].getNegotiatedHeaderExtensions().find(ext => {
+    return ext.uri === selected_capability.uri;
+  });
+  assert_equals(remote_negotiated.direction, 'stopped');
+}, 'Answer header extensions are a subset of the offered header extensions');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  // Disable a non-mandatory extension before first negotiation.
+  const transceiver = pc1.addTransceiver('video');
+  const capabilities = transceiver.getHeaderExtensionsToNegotiate();
+  const selected_capability = capabilities.find((capability) => {
+      return capability.direction === 'sendrecv' &&
+             capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
+  });
+  selected_capability.direction = 'stopped';
+  transceiver.setHeaderExtensionsToNegotiate(capabilities);
+
+  await negotiate(pc1, pc2);
+  // Negotiate, switching sides.
+  await negotiate(pc2, pc1);
+
+  // PC2 will re-offer the extension.
+  const remote_reoffered = pc2.getTransceivers()[0].getHeaderExtensionsToNegotiate().find(ext => {
+    return ext.uri === selected_capability.uri;
+  });
+  assert_equals(remote_reoffered.direction, 'sendrecv');
+
+  // But PC1 will still reject the extension.
+  const negotiated_capabilites = transceiver.getNegotiatedHeaderExtensions();
+  const local_negotiated = transceiver.getNegotiatedHeaderExtensions().find(ext => {
+    return ext.uri === selected_capability.uri;
+  });
+  assert_equals(local_negotiated.direction, 'stopped');
+}, 'A subsequent offer from the other side will reoffer extensions not negotiated by the initial offerer');
 </script>

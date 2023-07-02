@@ -280,39 +280,37 @@ async_test(t => {
   */
 
 for (let bundle_policy of ['balanced', 'max-bundle', 'max-compat']) {
-
-
-    promise_test(async t => {
-      const caller = new RTCPeerConnection({bundlePolicy: bundle_policy});
-      t.add_cleanup(() => caller.close());
-      const stream = await getNoiseStream(
-          {audio: true, video:true});
-      t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
-      const [track1, track2] = stream.getTracks();
-      const sender1 = caller.addTrack(track1);
-      const sender2 = caller.addTrack(track2);
-      caller.createDataChannel('datachannel');
-      const callee = new RTCPeerConnection();
-      t.add_cleanup(() => callee.close());
-      exchangeIceCandidates(caller, callee);
-      const offer = await caller.createOffer();
-      await caller.setLocalDescription(offer);
-      const [caller_transceiver1, caller_transceiver2] = caller.getTransceivers();
-      assert_equals(sender1.transport, caller_transceiver1.sender.transport);
-      await callee.setRemoteDescription(offer);
-      const [callee_transceiver1, callee_transceiver2] = callee.getTransceivers();
-      const answer = await callee.createAnswer();
-      await callee.setLocalDescription(answer);
-      await caller.setRemoteDescription(answer);
-      // At this point, we should have a single ICE transport, and it
-      // should eventually get to the "connected" state.
-      await waitForState(caller_transceiver1.receiver.transport.iceTransport,
-                         'connected');
-      // The PeerConnection's iceConnectionState should therefore be 'connected'
-      assert_equals(caller.iceConnectionState, 'connected',
-                    'PC.iceConnectionState:');
-    }, 'iceConnectionState changes at the right time, with bundle policy ' +
-                 bundle_policy);
+  promise_test(async t => {
+    const caller = new RTCPeerConnection({bundlePolicy: bundle_policy});
+    t.add_cleanup(() => caller.close());
+    const stream = await getNoiseStream(
+        {audio: true, video:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track1, track2] = stream.getTracks();
+    const sender1 = caller.addTrack(track1);
+    const sender2 = caller.addTrack(track2);
+    caller.createDataChannel('datachannel');
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    exchangeIceCandidates(caller, callee);
+    const offer = await caller.createOffer();
+    await caller.setLocalDescription(offer);
+    const [caller_transceiver1, caller_transceiver2] = caller.getTransceivers();
+    assert_equals(sender1.transport, caller_transceiver1.sender.transport);
+    await callee.setRemoteDescription(offer);
+    const [callee_transceiver1, callee_transceiver2] = callee.getTransceivers();
+    const answer = await callee.createAnswer();
+    await callee.setLocalDescription(answer);
+    await caller.setRemoteDescription(answer);
+    // At this point, we should have a single ICE transport, and it
+    // should eventually get to the "connected" state.
+    await waitForState(caller_transceiver1.receiver.transport.iceTransport,
+                        'connected');
+    // The PeerConnection's iceConnectionState should therefore be 'connected'
+    assert_equals(caller.iceConnectionState, 'connected',
+                  'PC.iceConnectionState:');
+  }, 'iceConnectionState changes at the right time, with bundle policy ' +
+                bundle_policy);
 }
 
 promise_test(async t => {
@@ -393,4 +391,24 @@ promise_test(async t => {
   await new Promise(r => t.step_timeout(r, 100));
 }, 'Closing a PeerConnection should not fire iceconnectionstatechange event');
 
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  const stream = await getNoiseStream({ audio: true });
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+
+  stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+  // Only signal candidate from 1->2.
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc1.iceStates = [pc1.iceConnectionState];
+  pc1.oniceconnectionstatechange = () => {
+    pc1.iceStates.push(pc1.iceConnectionState);
+  };
+  exchangeOfferAnswer(pc1, pc2);
+  await listenToIceConnected(pc2);
+
+  assert_true(pc1.iceStates.length >= 2);
+  assert_equals(pc1.iceStates[1], 'checking');
+}, 'iceConnectionState can go to checking without explictly calling addIceCandidate');
 </script>

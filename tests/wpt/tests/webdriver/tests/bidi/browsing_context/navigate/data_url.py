@@ -31,7 +31,7 @@ IMG_RED_PIXEL = dataURL(
     None,
     True,
 )
-PAGE = "/webdriver/tests/bidi/browsing_context/navigate/support/empty.html"
+PAGE = "/webdriver/tests/bidi/browsing_context/support/empty.html"
 TEXT_BAR = dataURL("bar", "text/plain")
 TEXT_FOO = dataURL("foo", "text/plain")
 

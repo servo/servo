@@ -296,12 +296,6 @@
                                         inline: "nearest"});
             }
 
-            var pointerInteractablePaintTree = getPointerInteractablePaintTree(element);
-            if (pointerInteractablePaintTree.length === 0 ||
-                !element.contains(pointerInteractablePaintTree[0])) {
-                return Promise.reject(new Error("element send_keys intercepted error"));
-            }
-
             return window.test_driver_internal.send_keys(element, keys);
         },
 

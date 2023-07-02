@@ -340,14 +340,9 @@ function test_prerender_defer(fn, label) {
  * @param {RemoteContextConfig|object} extraConfig
  * @returns {Promise<RemoteContextWrapper>}
  */
-async function addPrerenderRC(referrerRemoteContext, extraConfig) {
-  let savedURL;
-  const prerenderedRC = await referrerRemoteContext.helper.createContext({
+function addPrerenderRC(referrerRemoteContext, extraConfig) {
+  return referrerRemoteContext.helper.createContext({
     executorCreator(url) {
-      // Save the URL which the remote context helper framework assembled for
-      // us, so that we can attach it to the returned `RemoteContextWrapper`.
-      savedURL = url;
-
       return referrerRemoteContext.executeScript(url => {
         const script = document.createElement("script");
         script.type = "speculationrules";
@@ -363,9 +358,6 @@ async function addPrerenderRC(referrerRemoteContext, extraConfig) {
       }, [url]);
     }, extraConfig
   });
-
-  prerenderedRC.url = savedURL;
-  return prerenderedRC;
 }
 
 /**

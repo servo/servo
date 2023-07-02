@@ -93,7 +93,7 @@
     #target {
       view-timeline: --t1;
       view-timeline-inset: 10px;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -108,16 +108,14 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 10, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 0, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset with one value');
 </script>
-
 <template id=test_two_values>
   <style>
     #target {
       view-timeline: --t1;
       view-timeline-inset: 10px 20px;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -132,7 +130,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset with two values');
 </script>
 
@@ -142,7 +139,7 @@
       font-size: 10px;
       view-timeline: --t1;
       view-timeline-inset: 10px 2em;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -157,7 +154,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset with em values');
 </script>
 
@@ -167,7 +163,7 @@
       font-size: 10px;
       view-timeline: --t1;
       view-timeline-inset: calc(5px + max(1%, 5%)) 20%;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -182,7 +178,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset with percentage values');
 </script>
 
@@ -191,7 +186,7 @@
     #target {
       view-timeline: --t1;
       view-timeline-inset: -10px -20px;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -206,7 +201,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 - 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 - 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 + 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:220, expected:-1 });
   }, 'view-timeline-inset with negative values');
 </script>
 
@@ -215,7 +209,7 @@
     #target {
       view-timeline: --t1 x;
       view-timeline-inset: 10px 20px;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -230,7 +224,6 @@
     await assertValueAt(scroller, target, { scrollLeft:70 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollLeft:135 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollLeft:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollLeft:200, expected:-1 });
   }, 'view-timeline-inset with horizontal scroller');
 </script>
 
@@ -239,7 +232,7 @@
     #target {
       view-timeline: --t1 block;
       view-timeline-inset: 10px 20px;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -254,7 +247,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset with block scroller');
 </script>
 
@@ -263,7 +255,7 @@
     #target {
       view-timeline: --t1 inline;
       view-timeline-inset: 10px 20px;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -278,7 +270,6 @@
     await assertValueAt(scroller, target, { scrollLeft:70 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollLeft:135 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollLeft:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollLeft:200, expected:-1 });
   }, 'view-timeline-inset with inline scroller');
 </script>
 
@@ -290,7 +281,7 @@
     #target {
       view-timeline: --t1 block;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -305,7 +296,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset:auto, block');
 </script>
 
@@ -318,7 +308,7 @@
     #target {
       view-timeline: --t1 block;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -333,7 +323,6 @@
     await assertValueAt(scroller, target, { scrollLeft:70 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollLeft:135 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollLeft:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollLeft:200, expected:-1 });
   }, 'view-timeline-inset:auto, block, vertical-lr');
 </script>
 
@@ -346,7 +335,7 @@
     #target {
       view-timeline: --t1 block;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -362,7 +351,6 @@
     await assertValueAt(scroller, target, { scrollLeft:-(70 + 20), expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollLeft:-(135 + 5), expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollLeft:-(200 - 10), expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollLeft:-200, expected:-1 });
   }, 'view-timeline-inset:auto, block, vertical-rl');
 </script>
 
@@ -374,7 +362,7 @@
     #target {
       view-timeline: --t1 inline;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -389,7 +377,6 @@
     await assertValueAt(scroller, target, { scrollLeft:70 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollLeft:135 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollLeft:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollLeft:200, expected:-1 });
   }, 'view-timeline-inset:auto, inline');
 </script>
 
@@ -402,7 +389,7 @@
     #target {
       view-timeline: --t1 inline;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -417,7 +404,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset:auto, inline, vertical-rl');
 </script>
 
@@ -430,7 +416,7 @@
     #target {
       view-timeline: --t1 inline;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -445,7 +431,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset:auto, inline, vertical-lr');
 </script>
 
@@ -458,7 +443,7 @@
     #target {
       view-timeline: --t1 inline;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -473,7 +458,6 @@
     await assertValueAt(scroller, target, { scrollLeft:-(70 + 20), expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollLeft:-(135 + 5), expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollLeft:-(200 - 10), expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollLeft:-200, expected:-1 });
   }, 'view-timeline-inset:auto, inline, rtl');
 </script>
 
@@ -487,7 +471,7 @@
     #target {
       view-timeline: --t1 inline;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -502,7 +486,6 @@
     await assertValueAt(scroller, target, { scrollTop:-(50 + 20), expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:-(125 + 5), expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:-(200 - 10), expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:-200, expected:-1 });
   }, 'view-timeline-inset:auto, inline, vertical-rl, rtl');
 </script>
 
@@ -516,7 +499,7 @@
     #target {
       view-timeline: --t1 inline;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -531,7 +514,6 @@
     await assertValueAt(scroller, target, { scrollTop:-(50 + 20), expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:-(125 + 5), expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:-(200 - 10), expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:-200, expected:-1 });
   }, 'view-timeline-inset:auto, inline, vertical-lr, rtl');
 </script>
 
@@ -543,7 +525,7 @@
     #target {
       view-timeline: --t1 y;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -558,7 +540,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset:auto, y');
 </script>
 
@@ -571,7 +552,7 @@
     #target {
       view-timeline: --t1 y;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -586,7 +567,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset:auto, y, vertical-rl');
 </script>
 
@@ -600,7 +580,7 @@
     #target {
       view-timeline: --t1 y;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -615,7 +595,6 @@
     await assertValueAt(scroller, target, { scrollTop:-(50 + 20), expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:-(125 + 5), expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:-(200 - 10), expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:-200, expected:-1 });
   }, 'view-timeline-inset:auto, y, vertical-rl, rtl');
 </script>
 
@@ -627,7 +606,7 @@
     #target {
       view-timeline: --t1 x;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -642,7 +621,6 @@
     await assertValueAt(scroller, target, { scrollLeft:70 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollLeft:135 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollLeft:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollLeft:200, expected:-1 });
   }, 'view-timeline-inset:auto, x');
 </script>
 
@@ -655,7 +633,7 @@
     #target {
       view-timeline: --t1 x;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -670,7 +648,6 @@
     await assertValueAt(scroller, target, { scrollLeft:-(70 + 20), expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollLeft:-(135 + 5), expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollLeft:-(200 - 10), expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollLeft:-200, expected:-1 });
   }, 'view-timeline-inset:auto, x, rtl');
 </script>
 
@@ -683,7 +660,7 @@
     #target {
       view-timeline: --t1 x;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -698,7 +675,6 @@
     await assertValueAt(scroller, target, { scrollLeft:70 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollLeft:135 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollLeft:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollLeft:200, expected:-1 });
   }, 'view-timeline-inset:auto, x, vertical-lr');
 </script>
 
@@ -711,7 +687,7 @@
     #target {
       view-timeline: --t1 x;
       view-timeline-inset: auto auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -726,7 +702,6 @@
     await assertValueAt(scroller, target, { scrollLeft:-(70 + 20), expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollLeft:-(135 + 5), expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollLeft:-(200 - 10), expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollLeft:-200, expected:-1 });
   }, 'view-timeline-inset:auto, x, vertical-rl');
 </script>
 
@@ -739,7 +714,7 @@
     #target {
       view-timeline: --t1;
       view-timeline-inset: 10% auto;
-      animation: anim 1s linear;
+      animation: anim 1s linear forwards;
       animation-timeline: --t1;
     }
   </style>
@@ -757,7 +732,6 @@
     await assertValueAt(scroller, target, { scrollTop:50 + 20, expected:0 }); // 0%
     await assertValueAt(scroller, target, { scrollTop:125 + 5, expected:50 }); // 50%
     await assertValueAt(scroller, target, { scrollTop:200 - 10, expected:100 }); // 100%
-    await assertValueAt(scroller, target, { scrollTop:200, expected:-1 });
   }, 'view-timeline-inset:auto, mix');
 </script>
 

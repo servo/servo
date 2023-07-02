@@ -5,7 +5,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/cq-testcommon.js"></script>
 <style>
-  :root { font-size: 10px; line-height: 10px; }
+  @import url("/fonts/ahem.css");
+  :root { font-family: 'Ahem'; font-size: 10px; line-height: 10px; }
   #em_container {
     container-type: inline-size;
     width: 100px;
@@ -16,6 +17,11 @@
     font-size: 50px;
     width: 10ex;
     height: 50rex;
+  }
+  #cap_container {
+    container-type: inline-size;
+    font-size: 50px;
+    width: 10cap;
   }
   #ch_container {
     container-type: inline-size;
@@ -38,10 +44,16 @@
   @container (width: 10rem) {
     #rem_test { color: green }
   }
+  @container (width: 10cap) {
+    #cap_test { color: green }
+  }
+  @container (width: 50rcap) {
+    #rcap_test { color: green }
+  }
   @container (width: 10ex) {
     #ex_test { color: green }
   }
-  @container (49rex <= width <= 100rex) {
+  @container (width: 50rex) {
     #rex_test { color: green }
   }
   @container (width: 10ch) {
@@ -66,6 +78,10 @@
 <div id="em_container">
   <div id="em_test"></div>
   <div id="rem_test"></div>
+</div>
+<div id="cap_container">
+  <div id="cap_test"></div>
+  <div id="rcap_test"></div>
 </div>
 <div id="ex_container">
   <div id="ex_test"></div>
@@ -97,4 +113,6 @@
   test(() => assert_equals(getComputedStyle(ric_test).color, green), "ric relative inline-size");
   test(() => assert_equals(getComputedStyle(lh_test).color, green), "lh relative inline-size");
   test(() => assert_equals(getComputedStyle(rlh_test).color, green), "rlh relative inline-size");
+  test(() => assert_equals(getComputedStyle(cap_test).color, green), "cap relative inline-size");
+  test(() => assert_equals(getComputedStyle(rcap_test).color, green), "rcap relative inline-size");
 </script>

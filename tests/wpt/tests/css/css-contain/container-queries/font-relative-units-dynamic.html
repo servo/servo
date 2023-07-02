@@ -157,6 +157,30 @@ test_template(document.currentScript.previousElementSibling, (t) => {
 
 <template>
   <style>
+    @import url("/fonts/ahem.css");
+    main { font-family: 'Ahem'; font-size: 10px; }
+    main.larger { font-size: 20px; }
+    @container (width <= 7cap) {
+      #test { color: green }
+    }
+  </style>
+  <div id="container">
+    <div>
+      <div id="test"></div>
+    </div>
+  </div>
+</template>
+<script>
+test_template(document.currentScript.previousElementSibling, (t) => {
+  t.add_cleanup(() => main.classList.remove("larger"));
+  assert_equals(getComputedStyle(main.querySelector("#test")).color, red);
+  main.classList.add("larger");
+  assert_equals(getComputedStyle(main.querySelector("#test")).color, green);
+}, 'cap units respond to changes');
+</script>
+
+<template>
+  <style>
     :root { font-size: 10px; }
     :root.larger { font-size: 20px; }
     @container (width <= 15rch) {
@@ -277,4 +301,28 @@ test_template(document.currentScript.previousElementSibling, (t) => {
   document.documentElement.classList.add("larger");
   assert_equals(getComputedStyle(main.querySelector("#test")).color, green);
 }, 'ric units respond to changes');
+</script>
+
+<template>
+  <style>
+    @import url("/fonts/ahem.css");
+    :root { font-family: 'Ahem'; font-size: 10px; }
+    :root.larger { font-size: 20px; }
+    @container (width <= 7rcap) {
+      #test { color: green }
+    }
+  </style>
+  <div id="container">
+    <div style="font-family: monospace;">
+      <div id="test"></div>
+    </div>
+  </div>
+</template>
+<script>
+test_template(document.currentScript.previousElementSibling, (t) => {
+  t.add_cleanup(() => document.documentElement.classList.remove("larger"));
+  assert_equals(getComputedStyle(main.querySelector("#test")).color, red);
+  document.documentElement.classList.add("larger");
+  assert_equals(getComputedStyle(main.querySelector("#test")).color, green);
+}, 'rcap units respond to changes');
 </script>

@@ -35,6 +35,10 @@ class InvalidArgumentException(BidiException):
     error_code = "invalid argument"
 
 
+class InvalidSessionIDError(BidiException):
+    error_code = "invalid session id"
+
+
 class MoveTargetOutOfBoundsException(BidiException):
     error_code = "move target out of bounds"
 

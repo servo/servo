@@ -28,17 +28,17 @@ promise_test(function(t) {
 // when called with an empty advanced constraint set, returns a Promise that is
 // resolved.
 promise_test(function(t) {
-var canvas = document.getElementById('canvas');
-var context = canvas.getContext("2d");
-context.fillStyle = "red";
-context.fillRect(0, 0, 10, 10);
+  var canvas = document.getElementById('canvas');
+  var context = canvas.getContext("2d");
+  context.fillStyle = "red";
+  context.fillRect(0, 0, 10, 10);
 
-var stream = canvas.captureStream();
-assert_equals(stream.getAudioTracks().length, 0);
-assert_equals(stream.getVideoTracks().length, 1);
+  var stream = canvas.captureStream();
+  assert_equals(stream.getAudioTracks().length, 0);
+  assert_equals(stream.getVideoTracks().length, 1);
 
-var videoTrack = stream.getVideoTracks()[0];
-return videoTrack.applyConstraints({advanced: []});
+  var videoTrack = stream.getVideoTracks()[0];
+  return videoTrack.applyConstraints({advanced: []});
 }, 'MediaStreamTrack.applyConstraints({advanced: []})');
 
 // This test verifies that applyConstraints() rejects the returned Promise if
@@ -55,7 +55,7 @@ promise_test(async function(t) {
   // Use e.g. |torch| as an example of unsupported constraint.
   assert_false("torch" in videoTrack.getCapabilities());
   try {
-    await videoTrack.applyConstraints({advanced : [ {torch : true} ]});
+    await videoTrack.applyConstraints({torch: {exact: true}});
   } catch (error) {
     assert_equals(error.name, 'OverconstrainedError');
     assert_equals(error.constraint, 'torch');

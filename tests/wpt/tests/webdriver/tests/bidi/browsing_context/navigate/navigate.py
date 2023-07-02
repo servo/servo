@@ -35,8 +35,8 @@ async def test_interactive_simultaneous_navigation(bidi_session, inline, new_tab
     # interactive wait condition for both.
     # Make sure that monitoring the DOMContentLoaded event for one frame does
     # prevent monitoring it for the other frame.
-    img_url = "/webdriver/tests/bidi/browsing_context/navigate/support/empty.svg"
-    script_url = "/webdriver/tests/bidi/browsing_context/navigate/support/empty.js"
+    img_url = "/webdriver/tests/bidi/browsing_context/support/empty.svg"
+    script_url = "/webdriver/tests/bidi/browsing_context/support/empty.js"
     # frame1 also has a slow loading image so that it won't reach a complete
     # navigation, and we can make sure we resolved with the interactive state.
     frame1_url = inline(
@@ -72,7 +72,7 @@ async def test_interactive_simultaneous_navigation(bidi_session, inline, new_tab
 
 async def test_relative_url(bidi_session, new_tab, url):
     url_before = url(
-        "/webdriver/tests/bidi/browsing_context/navigate/support/empty.html"
+        "/webdriver/tests/bidi/browsing_context/support/empty.html"
     )
 
     # Navigate to page1 with wait=interactive to make sure the document's base URI

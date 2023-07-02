@@ -33,8 +33,11 @@ test_serialization(
     'calc(log(1) + 0.5)',
     'calc(0.5)',
     '0.5');
-test_serialization(
-    'calc(log(0))',
-    'calc(-infinity)',
-    '-infinity');
+
+const t = 'calc(log(0))';
+const s = 'calc(-infinity)';
+const c = '0';
+test_specified_serialization('opacity', t, s);
+test_specified_serialization('transform', `scale(${t})`, `scale(${s})`);
+test_computed_serialization('opacity', t, c);
 </script>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1457423">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>body { margin: 0; }</style>
+<div style="
+  column-count: 2;
+  column-gap: 14px;
+  writing-mode: vertical-rl;
+  inline-size: 200px;
+  block-size: 100px;
+  padding: 10px;">
+<div style="block-size: 20px;"></div>
+<div style="column-span: all; block-size: 20px;"></div>
+<div id="child1" style="block-size: 70px; break-inside: avoid;"></div>
+<div id="child2" style="block-size: 70px; break-inside: avoid;"></div>
+</div>
+<script>
+const t = async_test('Hit-testing in vertical-rl writing-mode');
+t.step(() => {
+  assert_equals(document.elementFromPoint(15, 20), child1);
+  assert_equals(document.elementFromPoint(15, 130), child2);
+
+  const PADDING = 10;
+  const e1 = new MouseEvent('click', {clientX:15, clientY:20, bubbles:true, cancelable:true});
+  document.onclick = t.step_func(e => {
+    assert_equals(e.target, child1);
+    assert_equals(e.offsetX, e.clientX - PADDING);
+    assert_equals(e.offsetY, e.clientY - PADDING);
+  });
+  child1.dispatchEvent(e1);
+
+  const e2 = new MouseEvent('click', {clientX:15, clientY:130, bubbles:true, cancelable:true});
+  document.onclick = t.step_func_done(e => {
+    const COLUMN_GAP = 14;
+    const COLUMN_INLINE_SIZE = (200 - COLUMN_GAP) / 2;
+    assert_equals(e.target, child2);
+    assert_equals(e.offsetX, e.clientX - PADDING);
+    assert_equals(e.offsetY, e.clientY - PADDING - COLUMN_INLINE_SIZE - COLUMN_GAP);
+  });
+  child2.dispatchEvent(e2);
+});
+</script>

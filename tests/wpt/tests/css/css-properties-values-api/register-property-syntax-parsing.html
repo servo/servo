@@ -75,7 +75,6 @@ assert_valid("<time>", "2s");
 assert_valid("<time>", "calc(2s - 9ms)");
 assert_valid("<resolution>", "10dpi");
 assert_valid("<resolution>", "3dPpX");
-assert_valid("<resolution>", "-5.3dpcm");
 assert_valid("<transform-function>", "translateX(2px)");
 assert_valid("<transform-function>|<integer>", "5");
 assert_valid("<transform-function>|<integer>", "scale(2)");
@@ -247,6 +246,11 @@ assert_invalid("<angle>", "0");
 assert_invalid("<angle>", "10%");
 assert_invalid("<time>", "2px");
 assert_invalid("<resolution>", "10");
+
+// "The allowed range of <resolution> values always excludes negative values"
+// https://www.w3.org/TR/css-values-4/#resolution-value
+assert_invalid("<resolution>", "-5.3dpcm");
+
 assert_invalid("<transform-function>", "scale()");
 assert_invalid("<transform-list>", "scale()");
 assert_invalid("<transform-list>+", "translateX(2px) rotate(20deg)");

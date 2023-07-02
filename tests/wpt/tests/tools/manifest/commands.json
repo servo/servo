@@ -19,5 +19,12 @@
     "parser": "create_parser",
     "help": "Print test paths given a set of test ids",
     "virtualenv": false
+  },
+  "spec": {
+    "path": "spec.py",
+    "script": "run",
+    "parser": "create_parser",
+    "help": "Update the SPEC_MANIFEST.json file",
+    "virtualenv": false
   }
 }

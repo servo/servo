@@ -5,7 +5,7 @@ from . import navigate_and_assert
 pytestmark = pytest.mark.asyncio
 
 PAGE_ABOUT_BLANK = "about:blank"
-PAGE_EMPTY = "/webdriver/tests/bidi/browsing_context/navigate/support/empty.html"
+PAGE_EMPTY = "/webdriver/tests/bidi/browsing_context/support/empty.html"
 
 
 async def test_navigate_from_single_page(bidi_session, new_tab, url):

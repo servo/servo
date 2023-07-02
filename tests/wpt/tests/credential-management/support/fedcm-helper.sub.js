@@ -144,7 +144,7 @@ export function fedcm_get_title_promise(t) {
       const title = await window.test_driver.get_fedcm_dialog_title();
       resolve(title);
     } catch (ex) {
-      t.step_timeout(100, helper);
+      t.step_timeout(helper, 100);
     }
   }
   return new Promise(helper);

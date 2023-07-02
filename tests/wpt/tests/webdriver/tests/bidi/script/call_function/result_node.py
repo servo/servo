@@ -464,6 +464,7 @@ async def test_doctype_node(
                 "sharedId": any_string,
                 "value": {
                     "childNodeCount": 1,
+                    "mode": "open",
                     "nodeType": 11
                 }
             }

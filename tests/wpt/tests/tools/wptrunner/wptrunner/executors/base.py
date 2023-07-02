@@ -739,23 +739,22 @@ class CallbackHandler:
     def process_action(self, url, payload):
         action = payload["action"]
         cmd_id = payload["id"]
-        self.logger.debug("Got action: %s" % action)
+        self.logger.debug(f"Got action: {action}")
         try:
             action_handler = self.actions[action]
         except KeyError:
-            raise ValueError("Unknown action %s" % action)
+            raise ValueError(f"Unknown action {action}")
         try:
             with ActionContext(self.logger, self.protocol, payload.get("context")):
                 result = action_handler(payload)
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)
-            self._send_message(cmd_id, "complete", "error", "Action %s not implemented" % action)
+            self._send_message(cmd_id, "complete", "error", f"Action {action} not implemented")
         except self.expected_exc:
-            self.logger.debug("Action %s failed with an expected exception" % action)
-            self._send_message(cmd_id, "complete", "error")
+            self.logger.debug(f"Action {action} failed with an expected exception")
+            self._send_message(cmd_id, "complete", "error", f"Action {action} failed")
         except Exception:
-            self.logger.error("Action %s failed" % action)
-            self.logger.warning(traceback.format_exc())
+            self.logger.warning(f"Action {action} failed")
             self._send_message(cmd_id, "complete", "error")
             raise
         else:

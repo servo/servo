@@ -36,7 +36,7 @@ function runTestOnFormatSpecifiers(formats, expectFail) {
             if (!expectFail) {
                 return fontFace.load();
             } else {
-                return promise_rejects_dom(testDetails, "NetworkError", fontFace.load());
+                return promise_rejects_dom(testDetails, "SyntaxError", fontFace.load());
             }
         }, (expectFail ? "Do not load" : "Load") + " Ahem with format " + formats[i], {
             "format": formats[i]

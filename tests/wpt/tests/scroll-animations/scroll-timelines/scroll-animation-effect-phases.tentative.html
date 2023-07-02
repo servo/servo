@@ -217,8 +217,8 @@
           expected_effect_progress,
           0.001,
           "animation effect progress");
-      assert_phase_at_time(
-          animation, expected_effect_phase, animation.currentTime);
+      assert_phase(
+          animation, expected_effect_phase);
       assert_approx_equals(
           parseFloat(getComputedStyle(target).opacity), expected_opacity,
           0.001,
@@ -284,6 +284,81 @@
     });
     return animation;
   }
+
+
+  promise_test(async t => {
+    const animation = createScrollLinkedOpacityAnimationWithDelays(t);
+    const scroller = animation.timeline.source;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+    // scroll pos
+    // current time
+    // start time
+    // |
+    // |---- 25% before ----|----  50% active ----|---- 25% after ----|
+    animation.play();
+    await animation.ready;
+    assert_percents_equal(animation.startTime, 0);
+    assert_phase(animation, 'before');
+
+    // start time                 scroll pos
+    // |                          current time
+    // |                              |
+    // |---- 25% before ----|----  50% active ----|---- 25% after ----|
+    scroller.scrollTop = 0.5 * maxScroll;
+    await waitForNextFrame();
+    assert_phase(animation, 'active');
+
+    // start time                scroll pos                      current time
+    // |                              |                               |
+    // |---- 25% before ----|----  50% active ----|---- 25% after ----|
+    animation.playbackRate = 2;
+    assert_phase(animation, 'after');
+
+    // start time                scroll pos                      current time
+    // |                              |                                |
+    // |---- 33.3% before ----|----  66.7% active ---------------------|
+    animation.effect.updateTiming({ endDelay: 0 });
+    assert_phase(animation, 'active');
+
+    //                           scroll pos                        start time
+    //                           current time                           |
+    //                                |                                 |
+    // |---- 33.3% before ----|----  66.7% active ----------------------|
+    animation.playbackRate = -1;
+    assert_percents_equal(animation.startTime, 100);
+    assert_phase(animation, 'active');
+
+    //                                                             start time
+    //                             scroll pos                     current time
+    // |                               |                                  |
+    // |---- 33.3% before  ----|----  66.7% active -----------------------|
+    animation.playbackRate = -2;
+    assert_phase(animation, 'active');
+
+    // current time                                                  start time
+    // |                                                             scroll pos
+    // |                                                                  |
+    // |---- 33.3% before  ----|----  66.7% active -----------------------|
+    scroller.scrollTop = maxScroll;
+    await waitForNextFrame();
+    assert_phase(animation, 'before');
+
+    // current time                                                  start time
+    // |                                                             scroll pos
+    // |                                                                  |
+    // |---------------------  100% active -------------------------------|
+    animation.effect.updateTiming({ delay: 0 });
+    assert_phase(animation, 'active');
+
+    // Finally, switch to a document timeline.  The before-active boundary
+    // becomes exclusive.
+    animation.timeline = document.timeline;
+    animation.currentTime = 0;
+    await waitForNextFrame();
+    assert_phase(animation, 'before');
+
+  }, 'Playback rate affects whether active phase boundary is inclusive.');
 
   promise_test(async t => {
     const animation = createScrollLinkedOpacityAnimationWithDelays(t);

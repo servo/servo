@@ -5,14 +5,14 @@
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <p></p>
 <script>
-var cssPixelsPerInch = 96;
+const cssPixelsPerInch = 96;
 setup(function() {
   // Setup a real SVG document, so SVGLength can resolve relative units.
-  var svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  let svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svgElement.setAttribute("width", "150");
   svgElement.setAttribute("height", "50");
   svgElement.setAttribute("viewBox", "0 0 150 50");
-  var rectElement = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  let rectElement = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   rectElement.setAttribute("style", "visibility: hidden; font-size: 12px; font-family: Ahem;");
   svgElement.appendChild(rectElement);
   document.querySelector("p").appendChild(svgElement);
@@ -74,6 +74,17 @@ test(function() {
   assert_approx_equals(length.value, 2.0, 0.1);
   assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_EXS);
 }, document.title + " , exs");
+
+test(function() {
+  length.valueAsString = "2px";
+  length.convertToSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_EXS);
+  document.documentElement.setAttribute("style", "writing-mode: vertical-rl;");
+  // flush layout
+  document.body.offsetWidth;
+  document.documentElement.removeAttribute("style");
+  // value should be correct without flushing layout
+  assert_approx_equals(length.value, 2.0, 0.1);
+}, document.title + ", exs (check style flush)");
 
 test(function() {
   length.valueAsString = "48px";

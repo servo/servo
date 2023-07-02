@@ -17,14 +17,19 @@
 <script>
     // https://github.com/w3c/csswg-drafts/issues/7302: Specified values shouldn't resolve keyword colors or calc values
     test_valid_value(`color`, `color-mix(in srgb, red, blue)`, `color-mix(in srgb, red, blue)`);
+    test_valid_value(`color`, `color-mix(in srgb, 70% red, 50% blue)`, `color-mix(in srgb, red 70%, blue)`);
     test_valid_value(`color`, `color-mix(in hsl, red, blue)`, `color-mix(in hsl, red, blue)`);
     test_valid_value(`color`, `color-mix(in hsl, red calc(20%), blue)`, `color-mix(in hsl, red calc(20%), blue)`);
     test_valid_value(`color`, `color-mix(in hsl, red calc(var(--v)*1%), blue)`, `color-mix(in hsl, red calc(var(--v)*1%), blue)`);
     test_valid_value(`color`, `color-mix(in hsl, currentcolor, blue)`, `color-mix(in hsl, currentcolor, blue)`);
     test_valid_value(`color`, `color-mix(in hsl, red 60%, blue 40%)`, `color-mix(in hsl, red 60%, blue)`);
+    test_valid_value(`color`, `color-mix(in hsl, red 50%, blue)`, `color-mix(in hsl, red, blue)`);
+    test_valid_value(`color`, `color-mix(in hsl, red, blue 50%)`, `color-mix(in hsl, red, blue)`);
     test_valid_value(`color`, `color-mix(in lch decreasing hue, red, hsl(120, 100%, 50%))`, `color-mix(in lch decreasing hue, red, rgb(0, 255, 0))`);
 
     test_valid_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%), hsl(30deg 30% 40%))`, `color-mix(in hsl, rgb(46, 56, 46), rgb(133, 102, 71))`);
+    test_valid_value(`color`, `color-mix(in hsl, 50% hsl(120deg 10% 20%), hsl(30deg 30% 40%))`, `color-mix(in hsl, rgb(46, 56, 46), rgb(133, 102, 71))`);
+    test_valid_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%), 50% hsl(30deg 30% 40%))`, `color-mix(in hsl, rgb(46, 56, 46), rgb(133, 102, 71))`);
     test_valid_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%) 25%, hsl(30deg 30% 40%))`, `color-mix(in hsl, rgb(46, 56, 46) 25%, rgb(133, 102, 71))`);
     test_valid_value(`color`, `color-mix(in hsl, 25% hsl(120deg 10% 20%), hsl(30deg 30% 40%))`, `color-mix(in hsl, rgb(46, 56, 46) 25%, rgb(133, 102, 71))`);
     test_valid_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%), 25% hsl(30deg 30% 40%))`, `color-mix(in hsl, rgb(46, 56, 46) 75%, rgb(133, 102, 71))`);
@@ -103,6 +108,8 @@
     test_valid_value(`color`, `color-mix(in hsl, oklch(0 0.399 336.3) 100%, rgb(0, 0, 0) 0%)`, `color-mix(in hsl, oklch(0 0.399 336.3) 100%, rgb(0, 0, 0))`);
 
     test_valid_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%), hwb(30deg 30% 40%))`, `color-mix(in hwb, rgb(26, 204, 26), rgb(153, 115, 77))`);
+    test_valid_value(`color`, `color-mix(in hwb, 50% hwb(120deg 10% 20%), hwb(30deg 30% 40%))`, `color-mix(in hwb, rgb(26, 204, 26), rgb(153, 115, 77))`);
+    test_valid_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%), 50% hwb(30deg 30% 40%))`, `color-mix(in hwb, rgb(26, 204, 26), rgb(153, 115, 77))`);
     test_valid_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%) 25%, hwb(30deg 30% 40%))`, `color-mix(in hwb, rgb(26, 204, 26) 25%, rgb(153, 115, 77))`);
     test_valid_value(`color`, `color-mix(in hwb, 25% hwb(120deg 10% 20%), hwb(30deg 30% 40%))`, `color-mix(in hwb, rgb(26, 204, 26) 25%, rgb(153, 115, 77))`);
     test_valid_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%), 25% hwb(30deg 30% 40%))`, `color-mix(in hwb, rgb(26, 204, 26) 75%, rgb(153, 115, 77))`);
@@ -377,6 +384,8 @@
       const resultColorSpace = colorSpace == "xyz" ? "xyz-d65" : colorSpace;
 
       test_valid_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3), color(${colorSpace} .5 .6 .7))`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3), color(${resultColorSpace} 0.5 0.6 0.7))`);
+      test_valid_value(`color`, `color-mix(in ${colorSpace}, 50% color(${colorSpace} .1 .2 .3), color(${colorSpace} .5 .6 .7))`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3), color(${resultColorSpace} 0.5 0.6 0.7))`);
+      test_valid_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3), 50% color(${colorSpace} .5 .6 .7))`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3), color(${resultColorSpace} 0.5 0.6 0.7))`);
       test_valid_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3) 25%, color(${colorSpace} .5 .6 .7))`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3) 25%, color(${resultColorSpace} 0.5 0.6 0.7))`);
       test_valid_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3), color(${colorSpace} .5 .6 .7) 25%)`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3) 75%, color(${resultColorSpace} 0.5 0.6 0.7))`);
       test_valid_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3) 25%, color(${colorSpace} .5 .6 .7) 75%)`, `color-mix(in ${resultColorSpace}, color(${resultColorSpace} 0.1 0.2 0.3) 25%, color(${resultColorSpace} 0.5 0.6 0.7))`);

@@ -21,15 +21,15 @@ promise_test(async t => {
   await useWebSocket(rc1);
 
   // Create a remote context with the redirected URL.
-  let [rc1_redirected, saveUrl] =
-      await rcHelper.createContextWithUrl(/*extraConfig=*/ {
+  let rc1_redirected =
+      await rcHelper.createContext(/*extraConfig=*/ {
         origin: 'HTTP_ORIGIN',
         scripts: [],
         headers: [],
       });
 
   const redirectUrl =
-      `${ORIGIN}/common/redirect.py?location=${encodeURIComponent(saveUrl)}`;
+      `${ORIGIN}/common/redirect.py?location=${encodeURIComponent(rc1_redirected.url)}`;
   // Replace the history state.
   await rc1.executeScript((url) => {
     window.history.replaceState(null, '', url);

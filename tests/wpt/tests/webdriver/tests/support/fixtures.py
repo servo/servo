@@ -330,7 +330,7 @@ def get_test_page(iframe, inline):
             <input id="hidden" type="hidden"/>
             <input id="text" type="text"/>
 
-            {iframe(frame_doc)}
+            {iframe(frame_doc, **kwargs)}
 
             <img />
             <svg></svg>

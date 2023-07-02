@@ -66,10 +66,10 @@ async def test_primitive_values(bidi_session, top_context, await_promise, expres
             {
                 "type": "object",
                 "value": [
-                    ["foo", {"type": "object"}],
-                    ["qux", {"type": "string", "value": "quux"}],
                     ["1", {"type": "string", "value": "fred"}],
                     ["2", {"type": "string", "value": "thud"}],
+                    ["foo", {"type": "object"}],
+                    ["qux", {"type": "string", "value": "quux"}],
                 ],
             },
         ),

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Tests basics of the 'position-fallback' property</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#propdef-position-fallback-bounds">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<div id="container">
+  <div id="target"></div>
+</div>
+
+<script>
+// position-fallback-bounds: normal | <dashed-ident>
+test_valid_value('position-fallback-bounds', 'normal');
+test_valid_value('position-fallback-bounds', '--foo');
+test_invalid_value('position-fallback-bounds', 'foo-bar');
+test_invalid_value('position-fallback-bounds', '--foo --bar')
+test_invalid_value('position-fallback-bounds', '--foo, --bar')
+test_invalid_value('position-fallback-bounds', '100px');
+test_invalid_value('position-fallback-bounds', '100%');
+
+// Computed value: as specified
+test_computed_value('position-fallback-bounds', 'normal');
+test_computed_value('position-fallback-bounds', '--foo');
+
+// Initial: normal
+// Inherited: no
+assert_not_inherited('position-fallback-bounds', 'normal', '--foo');
+
+// Animation type: discrete
+test_no_interpolation({
+  property: 'position-fallback-bounds',
+  from: '--foo',
+  to: 'normal',
+});
+</script>

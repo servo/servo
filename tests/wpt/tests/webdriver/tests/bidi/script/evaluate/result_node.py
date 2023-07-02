@@ -452,6 +452,7 @@ async def test_doctype_node(bidi_session, get_test_page, top_context, expression
                 "sharedId": any_string,
                 "value": {
                     "childNodeCount": 1,
+                    "mode": "open",
                     "nodeType": 11
                 }
             }
