@@ -67,8 +67,6 @@ impl BlockLevelBox {
         collected_margin: &mut CollapsedMargin,
         containing_block: &ContainingBlock,
     ) -> bool {
-        // TODO(mrobinson,Loirooriol): Cache margins here so that we don't constantly
-        // have to keep looking forward when dealing with sequences of floats.
         let style = match self {
             BlockLevelBox::SameFormattingContextBlock { ref style, .. } => &style,
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
@@ -399,6 +397,7 @@ fn layout_block_level_children_in_parallel(
                 &mut child_positioning_context,
                 containing_block,
                 /* sequential_layout_state = */ None,
+                /* collapsible_with_parent_start_margin = */ None,
             );
             (fragment, child_positioning_context)
         })
@@ -448,6 +447,9 @@ fn layout_block_level_children_sequentially(
                 &mut child_positioning_context,
                 containing_block,
                 Some(&mut *sequential_layout_state),
+                Some(CollapsibleWithParentStartMargin(
+                    placement_state.next_in_flow_margin_collapses_with_parent_start_margin,
+                )),
             );
 
             placement_state.place_fragment(&mut fragment, Some(sequential_layout_state));
@@ -474,6 +476,7 @@ impl BlockLevelBox {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
+        collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
     ) -> Fragment {
         match self {
             BlockLevelBox::SameFormattingContextBlock {
@@ -493,6 +496,7 @@ impl BlockLevelBox {
                         style,
                         NonReplacedContents::SameFormattingContextBlock(contents),
                         sequential_layout_state,
+                        collapsible_with_parent_start_margin,
                     )
                 },
             )),
@@ -529,6 +533,7 @@ impl BlockLevelBox {
                                     non_replaced,
                                 ),
                                 sequential_layout_state,
+                                collapsible_with_parent_start_margin,
                             )
                         },
                     ))
@@ -591,6 +596,7 @@ fn layout_in_flow_non_replaced_block_level(
     style: &Arc<ComputedValues>,
     block_level_kind: NonReplacedContents,
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
+    collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
 ) -> BoxFragment {
     let pbm = style.padding_border_margin(containing_block);
     let box_size = style.content_box_size(containing_block, &pbm);
@@ -671,13 +677,27 @@ fn layout_in_flow_non_replaced_block_level(
         None => parent_containing_block_position_info = None,
         Some(ref mut sequential_layout_state) => {
             let mut block_start_margin = CollapsedMargin::new(margin.block_start);
-            if start_margin_can_collapse_with_children {
+
+            // The block start margin may collapse with content margins,
+            // compute the resulting one in order to place floats correctly.
+            // Only need to do this if the element isn't also collapsing with its parent,
+            // otherwise we should have already included the margin in an ancestor.
+            // Note this lookahead stops when finding a descendant whose `clear` isn't `none`
+            // (since clearance prevents collapsing margins with the parent).
+            // But then we have to decide whether to actually add clearance or not,
+            // so look forward again regardless of `collapsible_with_parent_start_margin`.
+            // TODO: This isn't completely right: if we don't add actual clearance,
+            // the margin should have been included in the parent (or some ancestor).
+            // The lookahead should stop for actual clearance, not just for `clear`.
+            let collapsible_with_parent_start_margin = collapsible_with_parent_start_margin.expect(
+                "We should know whether we are collapsing the block start margin with the parent \
+                when laying out sequentially",
+            ).0 && style.get_box().clear == Clear::None;
+            if !collapsible_with_parent_start_margin && start_margin_can_collapse_with_children {
                 if let NonReplacedContents::SameFormattingContextBlock(
                     BlockContainer::BlockLevelBoxes(child_boxes),
                 ) = block_level_kind
                 {
-                    // The block start margin may collapse with content margins,
-                    // compute the resulting one in order to place floats correctly.
                     BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
                         child_boxes,
                         &mut block_start_margin,
