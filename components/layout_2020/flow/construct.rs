@@ -62,6 +62,7 @@ impl BlockFormattingContext {
             text_decoration_line,
             has_first_formatted_line: true,
             contains_floats: false,
+            ends_with_whitespace: false,
         };
         let contents = BlockContainer::InlineFormattingContext(ifc);
         let bfc = Self {
@@ -186,6 +187,7 @@ impl BlockContainer {
             ongoing_inline_formatting_context: InlineFormattingContext::new(
                 text_decoration_line,
                 /* has_first_formatted_line = */ true,
+                /* ends_with_whitespace */ false,
             ),
             ongoing_inline_boxes_stack: Vec::new(),
             anonymous_style: None,
@@ -213,11 +215,7 @@ impl BlockContainer {
 
         debug_assert!(builder.ongoing_inline_boxes_stack.is_empty());
 
-        if !builder
-            .ongoing_inline_formatting_context
-            .inline_level_boxes
-            .is_empty()
-        {
+        if !builder.ongoing_inline_formatting_context.is_empty() {
             if builder.block_level_boxes.is_empty() {
                 return BlockContainer::InlineFormattingContext(
                     builder.ongoing_inline_formatting_context,
@@ -277,167 +275,166 @@ where
     }
 
     fn handle_text(&mut self, info: &NodeAndStyleInfo<Node>, input: Cow<'dom, str>) {
-        // Skip any leading whitespace as dictated by the node's style.
-        let white_space = info.style.get_inherited_text().white_space;
-        let (preserved_leading_whitespace, mut input) =
-            self.handle_leading_whitespace(&input, white_space);
-
-        if !preserved_leading_whitespace && input.is_empty() {
+        if input.is_empty() {
             return;
         }
 
-        // This text node should be pushed either to the next ongoing
-        // inline level box with the parent style of that inline level box
-        // that will be ended, or directly to the ongoing inline formatting
-        // context with the parent style of that builder.
+        let (output, has_uncollapsible_content) = collapse_and_transform_whitespace(
+            &input,
+            info.style.get_inherited_text().white_space,
+            self.ongoing_inline_formatting_context.ends_with_whitespace,
+        );
+        if output.is_empty() {
+            return;
+        }
+
+        self.ongoing_inline_formatting_context.ends_with_whitespace =
+            output.chars().last().unwrap().is_ascii_whitespace();
+
         let inlines = self.current_inline_level_boxes();
-
-        let mut new_text_run_contents;
-        let output;
-
-        {
-            let mut last_box = inlines.last_mut().map(|last| last.borrow_mut());
-            let last_text = last_box.as_mut().and_then(|last| match &mut **last {
-                InlineLevelBox::TextRun(last) => Some(&mut last.text),
-                _ => None,
-            });
-
-            if let Some(text) = last_text {
-                // Append to the existing text run
-                new_text_run_contents = None;
-                output = text;
-            } else {
-                new_text_run_contents = Some(String::new());
-                output = new_text_run_contents.as_mut().unwrap();
-            }
-
-            if preserved_leading_whitespace {
-                output.push(' ')
-            }
-
-            match (
-                white_space.preserve_spaces(),
-                white_space.preserve_newlines(),
-            ) {
-                // All whitespace is significant, so we don't need to transform
-                // the input at all.
-                (true, true) => {
-                    output.push_str(input);
+        match inlines.last_mut().map(|last| last.borrow_mut()) {
+            Some(mut last_box) => match *last_box {
+                InlineLevelBox::TextRun(ref mut text_run) => {
+                    text_run.text.push_str(&output);
+                    text_run.has_uncollapsible_content |= has_uncollapsible_content;
+                    return;
                 },
-
-                // There are no cases in CSS where where need to preserve spaces
-                // but not newlines.
-                (true, false) => unreachable!(),
-
-                // Spaces are not significant, but newlines might be. We need
-                // to collapse non-significant whitespace as appropriate.
-                (false, preserve_newlines) => loop {
-                    // If there are any spaces that need preserving, split the string
-                    // that precedes them, collapse them into a single whitespace,
-                    // then process the remainder of the string independently.
-                    if let Some(i) = input
-                        .bytes()
-                        .position(|b| b.is_ascii_whitespace() && (!preserve_newlines || b != b'\n'))
-                    {
-                        let (non_whitespace, rest) = input.split_at(i);
-                        output.push_str(non_whitespace);
-                        output.push(' ');
-
-                        // Find the first byte that is either significant whitespace or
-                        // non-whitespace to continue processing it.
-                        if let Some(i) = rest.bytes().position(|b| {
-                            !b.is_ascii_whitespace() || (preserve_newlines && b == b'\n')
-                        }) {
-                            input = &rest[i..];
-                        } else {
-                            break;
-                        }
-                    } else {
-                        // No whitespace found, so no transformation is required.
-                        output.push_str(input);
-                        break;
-                    }
-                },
-            }
+                _ => {},
+            },
+            _ => {},
         }
 
-        if let Some(text) = new_text_run_contents {
-            inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun {
-                base_fragment_info: info.into(),
-                parent_style: Arc::clone(&info.style),
-                text,
-            })))
-        }
+        inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun {
+            base_fragment_info: info.into(),
+            parent_style: Arc::clone(&info.style),
+            text: output,
+            has_uncollapsible_content,
+        })));
     }
+}
+
+fn preserve_segment_break() -> bool {
+    true
+}
+
+/// Collapse and transform whitespace in the given input according to the rules in
+/// <https://drafts.csswg.org/css-text-3/#white-space-phase-1>. This method doesn't
+/// follow the steps exactly since they are defined in a multi-pass appraoach, but it
+/// tries to be effectively the same transformation.
+///
+/// Returns the transformed text as a [String] and also whether or not the input had
+/// any uncollapsible content.
+fn collapse_and_transform_whitespace<'text>(
+    input: &'text str,
+    white_space: WhiteSpace,
+    trim_beginning_white_space: bool,
+) -> (String, bool) {
+    // Point 4.1.1 first bullet:
+    // > If white-space is set to normal, nowrap, or pre-line, whitespace
+    // > characters are considered collapsible
+    // If whitespace is not considered collapsible, it is preserved entirely, which
+    // means that we can simply return the input string exactly.
+    if white_space.preserve_spaces() {
+        return (input.to_owned(), true);
+    }
+
+    let mut output = String::with_capacity(input.len());
+    let mut has_uncollapsible_content = false;
+    let mut had_whitespace = false;
+    let mut following_newline = false;
+    let mut in_whitespace_at_beginning = true;
+
+    let is_leading_trimmed_whitespace =
+        |in_whitespace_at_beginning: bool| in_whitespace_at_beginning && trim_beginning_white_space;
+
+    // Point 4.1.1:
+    // > 2. Any sequence of collapsible spaces and tabs immediately preceding or
+    // >    following a segment break is removed.
+    // > 3. Every collapsible tab is converted to a collapsible space (U+0020).
+    // > 4. Any collapsible space immediately following another collapsible space—even
+    // >    one outside the boundary of the inline containing that space, provided both
+    // >    spaces are within the same inline formatting context—is collapsed to have zero
+    // >    advance width.
+    let push_pending_whitespace_if_needed =
+        |output: &mut String,
+         had_whitespace: bool,
+         following_newline: bool,
+         in_whitespace_at_beginning: bool| {
+            if had_whitespace &&
+                !following_newline &&
+                !is_leading_trimmed_whitespace(in_whitespace_at_beginning)
+            {
+                output.push(' ');
+            }
+        };
+
+    for character in input.chars() {
+        // Don't push non-newline whitespace immediately. Instead wait to push it until we
+        // know that it isn't followed by a newline. See `push_pending_whitespace_if_needed`
+        //  above.
+        if character.is_ascii_whitespace() && character != '\n' {
+            had_whitespace = true;
+            continue;
+        }
+
+        // Point 4.1.1:
+        // > 2. Collapsible segment breaks are transformed for rendering according to the
+        // >    segment break transformation rules.
+        if character == '\n' {
+            // From <https://drafts.csswg.org/css-text-3/#line-break-transform>
+            // (4.1.3 -- the segment break transformation rules):
+            //
+            // > When white-space is pre, pre-wrap, or pre-line, segment breaks are not
+            // > collapsible and are instead transformed  into a preserved line feed"
+            if white_space == WhiteSpace::PreLine {
+                has_uncollapsible_content = true;
+                had_whitespace = false;
+                output.push('\n');
+
+            // Point 4.1.3:
+            // > 1. First, any collapsible segment break immediately following another
+            // >    collapsible segment break is removed.
+            // > 2. Then any remaining segment break is either transformed into a space (U+0020)
+            // >    or removed depending on the context before and after the break.
+            } else if !following_newline &&
+                preserve_segment_break() &&
+                !is_leading_trimmed_whitespace(in_whitespace_at_beginning)
+            {
+                had_whitespace = false;
+                output.push(' ');
+            }
+            following_newline = true;
+            continue;
+        }
+
+        push_pending_whitespace_if_needed(
+            &mut output,
+            had_whitespace,
+            following_newline,
+            in_whitespace_at_beginning,
+        );
+
+        has_uncollapsible_content = true;
+        had_whitespace = false;
+        in_whitespace_at_beginning = false;
+        following_newline = false;
+        output.push(character);
+    }
+
+    push_pending_whitespace_if_needed(
+        &mut output,
+        had_whitespace,
+        following_newline,
+        in_whitespace_at_beginning,
+    );
+
+    (output, has_uncollapsible_content)
 }
 
 impl<'dom, Node> BlockContainerBuilder<'dom, '_, Node>
 where
     Node: NodeExt<'dom>,
 {
-    /// Returns:
-    ///
-    /// * Whether this text run has preserved (non-collapsible) leading whitespace
-    /// * The contents starting at the first non-whitespace character (or the empty string)
-    fn handle_leading_whitespace<'text>(
-        &mut self,
-        text: &'text str,
-        white_space: WhiteSpace,
-    ) -> (bool, &'text str) {
-        // FIXME: this is only an approximation of
-        // https://drafts.csswg.org/css2/text.html#white-space-model
-        if !text.starts_with(|c: char| c.is_ascii_whitespace()) || white_space.preserve_spaces() {
-            return (false, text);
-        }
-
-        let preserved = match whitespace_is_preserved(self.current_inline_level_boxes()) {
-            WhitespacePreservedResult::Unknown => {
-                // Paragraph start.
-                false
-            },
-            WhitespacePreservedResult::NotPreserved => false,
-            WhitespacePreservedResult::Preserved => true,
-        };
-
-        let text = text.trim_start_matches(|c: char| c.is_ascii_whitespace());
-        return (preserved, text);
-
-        fn whitespace_is_preserved(
-            inline_level_boxes: &[ArcRefCell<InlineLevelBox>],
-        ) -> WhitespacePreservedResult {
-            for inline_level_box in inline_level_boxes.iter().rev() {
-                match *inline_level_box.borrow() {
-                    InlineLevelBox::TextRun(ref r) => {
-                        if r.text.ends_with(' ') {
-                            return WhitespacePreservedResult::NotPreserved;
-                        }
-                        return WhitespacePreservedResult::Preserved;
-                    },
-                    InlineLevelBox::Atomic { .. } => {
-                        return WhitespacePreservedResult::NotPreserved;
-                    },
-                    InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
-                    InlineLevelBox::OutOfFlowFloatBox(_) => {},
-                    InlineLevelBox::InlineBox(ref b) => {
-                        match whitespace_is_preserved(&b.children) {
-                            WhitespacePreservedResult::Unknown => {},
-                            result => return result,
-                        }
-                    },
-                }
-            }
-
-            WhitespacePreservedResult::Unknown
-        }
-
-        #[derive(Clone, Copy, PartialEq)]
-        enum WhitespacePreservedResult {
-            Preserved,
-            NotPreserved,
-            Unknown,
-        }
-    }
-
     fn handle_list_item_marker_inside(
         &mut self,
         info: &NodeAndStyleInfo<Node>,
@@ -502,6 +499,7 @@ where
             inline_box.last_fragment = true;
             ArcRefCell::new(InlineLevelBox::InlineBox(inline_box))
         } else {
+            self.ongoing_inline_formatting_context.ends_with_whitespace = false;
             ArcRefCell::new(InlineLevelBox::Atomic(
                 IndependentFormattingContext::construct(
                     self.context,
@@ -668,14 +666,11 @@ where
     }
 
     fn end_ongoing_inline_formatting_context(&mut self) {
-        if self
-            .ongoing_inline_formatting_context
-            .inline_level_boxes
-            .is_empty()
-        {
+        if self.ongoing_inline_formatting_context.is_empty() {
             // There should never be an empty inline formatting context.
             self.ongoing_inline_formatting_context
                 .has_first_formatted_line = false;
+            self.ongoing_inline_formatting_context.ends_with_whitespace = false;
             return;
         }
 
@@ -695,6 +690,7 @@ where
         let mut ifc = InlineFormattingContext::new(
             self.ongoing_inline_formatting_context.text_decoration_line,
             /* has_first_formatted_line = */ false,
+            /* ends_with_whitespace */ false,
         );
         std::mem::swap(&mut self.ongoing_inline_formatting_context, &mut ifc);
         let kind = BlockLevelCreator::SameFormattingContextBlock(
@@ -709,6 +705,8 @@ where
         });
     }
 
+    // Retrieves the mutable reference of inline boxes either from the last
+    // element of a stack or directly from the formatting context, depending on the situation.
     fn current_inline_level_boxes(&mut self) -> &mut Vec<ArcRefCell<InlineLevelBox>> {
         match self.ongoing_inline_boxes_stack.last_mut() {
             Some(last) => &mut last.children,
@@ -717,10 +715,7 @@ where
     }
 
     fn has_ongoing_inline_formatting_context(&self) -> bool {
-        !self
-            .ongoing_inline_formatting_context
-            .inline_level_boxes
-            .is_empty() ||
+        !self.ongoing_inline_formatting_context.is_empty() ||
             !self.ongoing_inline_boxes_stack.is_empty()
     }
 }
@@ -809,4 +804,51 @@ impl IntermediateBlockContainer {
             },
         }
     }
+}
+
+#[test]
+fn test_collapase_and_transform_whitespace() {
+    let output = collapse_and_transform_whitespace("H ", WhiteSpace::Normal, false);
+    assert_eq!(output.0, "H ");
+    assert!(output.1);
+
+    let output = collapse_and_transform_whitespace(" W", WhiteSpace::Normal, true);
+    assert_eq!(output.0, "W");
+    assert!(output.1);
+
+    let output = collapse_and_transform_whitespace(" W", WhiteSpace::Normal, false);
+    assert_eq!(output.0, " W");
+    assert!(output.1);
+
+    let output = collapse_and_transform_whitespace(" H  W", WhiteSpace::Normal, false);
+    assert_eq!(output.0, " H W");
+    assert!(output.1);
+
+    let output = collapse_and_transform_whitespace("\n   H  \n \t  W", WhiteSpace::Normal, false);
+    assert_eq!(output.0, " H W");
+
+    let output = collapse_and_transform_whitespace("\n   H  \n \t  W   \n", WhiteSpace::Pre, false);
+    assert_eq!(output.0, "\n   H  \n \t  W   \n");
+    assert!(output.1);
+
+    let output =
+        collapse_and_transform_whitespace("\n   H  \n \t  W   \n ", WhiteSpace::PreLine, false);
+    assert_eq!(output.0, "\nH\nW\n");
+    assert!(output.1);
+
+    let output = collapse_and_transform_whitespace(" ", WhiteSpace::Normal, true);
+    assert_eq!(output.0, "");
+    assert!(!output.1);
+
+    let output = collapse_and_transform_whitespace(" ", WhiteSpace::Normal, false);
+    assert_eq!(output.0, " ");
+    assert!(!output.1);
+
+    let output = collapse_and_transform_whitespace("\n        ", WhiteSpace::Normal, true);
+    assert_eq!(output.0, "");
+    assert!(!output.1);
+
+    let output = collapse_and_transform_whitespace("\n        ", WhiteSpace::Normal, false);
+    assert_eq!(output.0, " ");
+    assert!(!output.1);
 }

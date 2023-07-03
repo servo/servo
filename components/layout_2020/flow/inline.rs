@@ -21,17 +21,19 @@ use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, Display
 use crate::ContainingBlock;
 use app_units::Au;
 use atomic_refcell::AtomicRef;
+use gfx::text::glyph::GlyphStore;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
+use style::values::generics::text::LineHeight;
 use style::values::specified::text::TextAlignKeyword;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::FontInstanceKey;
-
+use xi_unicode::LineBreakLeafIter;
 #[derive(Debug, Serialize)]
 pub(crate) struct InlineFormattingContext {
     pub(super) inline_level_boxes: Vec<ArcRefCell<InlineLevelBox>>,
@@ -40,6 +42,14 @@ pub(crate) struct InlineFormattingContext {
     // https://www.w3.org/TR/css-pseudo-4/#first-formatted-line
     pub(super) has_first_formatted_line: bool,
     pub(super) contains_floats: bool,
+    /// Whether this IFC being constructed currently ends with whitespace. This is used to
+    /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
+    ///
+    /// > Any collapsible space immediately following another collapsible space—even one
+    /// > outside the boundary of the inline containing that space, provided both spaces are
+    /// > within the same inline formatting context—is collapsed to have zero advance width.
+    /// > (It is invisible, but retains its soft wrap opportunity, if any.)
+    pub(super) ends_with_whitespace: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -68,6 +78,7 @@ pub(crate) struct TextRun {
     #[serde(skip_serializing)]
     pub parent_style: Arc<ComputedValues>,
     pub text: String,
+    pub has_uncollapsible_content: bool,
 }
 
 struct InlineNestingLevelState<'box_tree> {
@@ -91,7 +102,13 @@ struct PartialInlineBoxFragment<'box_tree> {
     padding: Sides<Length>,
     border: Sides<Length>,
     margin: Sides<Length>,
-    last_box_tree_fragment: bool,
+
+    /// Whether or not this inline box has already been part of a previous line.
+    /// We need to create at least one Fragment for every inline box, but on following
+    /// lines, if the inline box is totally empty (such as after a preserved line
+    /// break), then we don't want to create empty Fragments for it.
+    was_part_of_previous_line: bool,
+
     parent_nesting_level: InlineNestingLevelState<'box_tree>,
 }
 
@@ -99,7 +116,22 @@ struct InlineFormattingContextState<'box_tree, 'a, 'b> {
     positioning_context: &'a mut PositioningContext,
     containing_block: &'b ContainingBlock<'b>,
     lines: Lines,
+
+    /// The current inline position in this inline formatting context independent
+    /// of the depth in the nesting level.
     inline_position: Length,
+
+    /// Whether any active line box has added a glyph, border, margin, or padding
+    /// to this line, which indicates that the next run that exceeds the line length
+    /// can cause a line break.
+    line_had_any_content: bool,
+
+    // Whether or not this line had any absolutely positioned boxes.
+    line_had_any_absolutes: bool,
+
+    /// The line breaking state for this inline formatting context.
+    linebreaker: Option<LineBreakLeafIter>,
+
     partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
     current_nesting_level: InlineNestingLevelState<'box_tree>,
     sequential_layout_state: Option<&'a mut SequentialLayoutState>,
@@ -110,6 +142,8 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
         &mut self,
         hoisted_box: HoistedAbsolutelyPositionedBox,
     ) {
+        self.line_had_any_absolutes = true;
+
         if let Some(context) = self.current_nesting_level.positioning_context.as_mut() {
             context.push(hoisted_box);
             return;
@@ -139,7 +173,9 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
                 layout_context,
                 nesting_level,
                 &mut self.inline_position,
-                true,
+                &mut self.line_had_any_content,
+                self.line_had_any_absolutes,
+                false, /* at_end_of_inline_element */
             );
             partial.start_corner.inline = Length::zero();
             partial.padding.inline_start = Length::zero();
@@ -155,6 +191,29 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
             self.inline_position,
         );
         self.inline_position = Length::zero();
+        self.line_had_any_content = false;
+        self.line_had_any_absolutes = false;
+    }
+
+    /// Determine if we are in the final box of this inline formatting context.
+    ///
+    /// This is a big hack to trim the whitespace off the end of inline
+    /// formatting contexts, that must stay in place until there is a
+    /// better solution to use a temporary data structure to lay out
+    /// lines.
+    fn at_end_of_inline_formatting_context(&mut self) -> bool {
+        let mut nesting_level = &mut self.current_nesting_level;
+        if !nesting_level.remaining_boxes.at_end_of_iterator() {
+            return false;
+        }
+
+        for partial in self.partial_inline_boxes_stack.iter_mut().rev() {
+            nesting_level = &mut partial.parent_nesting_level;
+            if !nesting_level.remaining_boxes.at_end_of_iterator() {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
@@ -168,12 +227,14 @@ impl InlineFormattingContext {
     pub(super) fn new(
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
+        ends_with_whitespace: bool,
     ) -> InlineFormattingContext {
         InlineFormattingContext {
             inline_level_boxes: Default::default(),
             text_decoration_line,
             has_first_formatted_line,
             contains_floats: false,
+            ends_with_whitespace,
         }
     }
 
@@ -191,6 +252,12 @@ impl InlineFormattingContext {
             paragraph: ContentSizes,
             current_line: ContentSizes,
             current_line_percentages: Percentage,
+            /// Size for whitepsace pending to be added to this line.
+            pending_whitespace: Length,
+            /// Whether or not this IFC has seen any non-whitespace content.
+            had_non_whitespace_content_yet: bool,
+            /// The global linebreaking state.
+            linebreaker: Option<LineBreakLeafIter>,
         }
         impl Computation<'_> {
             fn traverse(&mut self, inline_level_boxes: &[ArcRefCell<InlineLevelBox>]) {
@@ -225,18 +292,31 @@ impl InlineFormattingContext {
                                 runs,
                                 break_at_start,
                                 ..
-                            } = text_run.break_and_shape(self.layout_context);
+                            } = text_run
+                                .break_and_shape(self.layout_context, &mut self.linebreaker);
                             if break_at_start {
                                 self.line_break_opportunity()
                             }
                             for run in &runs {
                                 let advance = Length::from(run.glyph_store.total_advance());
-                                if run.glyph_store.is_whitespace() {
-                                    self.line_break_opportunity()
+
+                                if !run.glyph_store.is_whitespace() {
+                                    self.had_non_whitespace_content_yet = true;
+                                    self.current_line.min_content += advance;
+                                    self.current_line.max_content +=
+                                        self.pending_whitespace + advance;
+                                    self.pending_whitespace = Length::zero();
                                 } else {
-                                    self.current_line.min_content += advance
+                                    // Discard any leading whitespace in the IFC. This will always be trimmed.
+                                    if !self.had_non_whitespace_content_yet {
+                                        continue;
+                                    }
+
+                                    // Wait to take into account other whitespace until we see more content.
+                                    // Whitespace at the end of the IFC will always be trimmed.
+                                    self.line_break_opportunity();
+                                    self.pending_whitespace += advance;
                                 }
-                                self.current_line.max_content += advance
                             }
                         },
                         InlineLevelBox::Atomic(atomic) => {
@@ -244,9 +324,13 @@ impl InlineFormattingContext {
                                 self.layout_context,
                                 self.containing_block_writing_mode,
                             );
-                            self.current_line.min_content += outer.min_content;
+
+                            self.current_line.min_content +=
+                                self.pending_whitespace + outer.min_content;
                             self.current_line.max_content += outer.max_content;
                             self.current_line_percentages += pc;
+                            self.pending_whitespace = Length::zero();
+                            self.had_non_whitespace_content_yet = true;
                         },
                         InlineLevelBox::OutOfFlowFloatBox(_) |
                         InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => {},
@@ -292,6 +376,9 @@ impl InlineFormattingContext {
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             current_line_percentages: Percentage::zero(),
+            pending_whitespace: Length::zero(),
+            had_non_whitespace_content_yet: false,
+            linebreaker: None,
         };
         computation.traverse(&self.inline_level_boxes);
         computation.forced_line_break();
@@ -323,6 +410,9 @@ impl InlineFormattingContext {
             } else {
                 Length::zero()
             },
+            line_had_any_content: false,
+            line_had_any_absolutes: false,
+            linebreaker: None,
             current_nesting_level: InlineNestingLevelState {
                 remaining_boxes: InlineBoxChildIter::from_formatting_context(self),
                 fragments_so_far: Vec::with_capacity(self.inline_level_boxes.len()),
@@ -408,30 +498,65 @@ impl InlineFormattingContext {
                             .push(Fragment::Float(box_fragment));
                     },
                 }
-            } else
-            // Reached the end of ifc.remaining_boxes
-            if let Some(mut partial) = ifc.partial_inline_boxes_stack.pop() {
+            } else if let Some(mut partial) = ifc.partial_inline_boxes_stack.pop() {
+                // We reached the end of the remaining boxes in this nesting level, so we finish it and
+                // start working on the parent nesting level again.
                 partial.finish_layout(
                     layout_context,
                     &mut ifc.current_nesting_level,
                     &mut ifc.inline_position,
-                    false,
+                    &mut ifc.line_had_any_content,
+                    ifc.line_had_any_absolutes,
+                    true, /* at_end_of_inline_element */
                 );
                 ifc.current_nesting_level = partial.parent_nesting_level
             } else {
-                ifc.lines.finish_line(
-                    &mut ifc.current_nesting_level,
-                    containing_block,
-                    ifc.sequential_layout_state,
-                    ifc.inline_position,
-                );
-                return FlowLayout {
-                    fragments: ifc.lines.fragments,
-                    content_block_size: ifc.lines.next_line_block_position,
-                    collapsible_margins_in_children: CollapsedBlockMargins::zero(),
-                };
+                // We reached the end of the entire IFC.
+                break;
             }
         }
+
+        ifc.lines.finish_line(
+            &mut ifc.current_nesting_level,
+            containing_block,
+            ifc.sequential_layout_state,
+            ifc.inline_position,
+        );
+
+        let mut collapsible_margins_in_children = CollapsedBlockMargins::zero();
+        let content_block_size = ifc.lines.next_line_block_position;
+        if content_block_size == Length::zero() {
+            collapsible_margins_in_children.collapsed_through = true;
+        }
+
+        return FlowLayout {
+            fragments: ifc.lines.fragments,
+            content_block_size,
+            collapsible_margins_in_children,
+        };
+    }
+
+    /// Return true if this [InlineFormattingContext] is empty for the purposes of ignoring
+    /// during box tree construction. An IFC is empty if it only contains TextRuns with
+    /// completely collapsible whitespace. When that happens it can be ignored completely.
+    pub fn is_empty(&self) -> bool {
+        fn inline_level_boxes_are_empty(boxes: &[ArcRefCell<InlineLevelBox>]) -> bool {
+            boxes
+                .iter()
+                .all(|inline_level_box| inline_level_box_is_empty(&*inline_level_box.borrow()))
+        }
+
+        fn inline_level_box_is_empty(inline_level_box: &InlineLevelBox) -> bool {
+            match inline_level_box {
+                InlineLevelBox::InlineBox(_) => false,
+                InlineLevelBox::TextRun(text_run) => !text_run.has_uncollapsible_content,
+                InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => false,
+                InlineLevelBox::OutOfFlowFloatBox(_) => false,
+                InlineLevelBox::Atomic(_) => false,
+            }
+        }
+
+        inline_level_boxes_are_empty(&self.inline_level_boxes)
     }
 }
 
@@ -510,12 +635,14 @@ impl Lines {
             sequential_layout_state.advance_block_position(size.block);
         }
 
-        self.fragments
-            .push(Fragment::Anonymous(AnonymousFragment::new(
-                Rect { start_corner, size },
-                line_contents,
-                containing_block.style.writing_mode,
-            )))
+        if !line_contents.is_empty() {
+            self.fragments
+                .push(Fragment::Anonymous(AnonymousFragment::new(
+                    Rect { start_corner, size },
+                    line_contents,
+                    containing_block.style.writing_mode,
+                )));
+        }
     }
 }
 
@@ -538,6 +665,7 @@ impl InlineBox {
             border.inline_start = Length::zero();
             margin.inline_start = Length::zero();
         }
+
         let mut start_corner = Vec2 {
             block: Length::zero(),
             inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
@@ -556,7 +684,7 @@ impl InlineBox {
             padding,
             border,
             margin,
-            last_box_tree_fragment: self.last_fragment,
+            was_part_of_previous_line: false,
             parent_nesting_level: std::mem::replace(
                 &mut ifc.current_nesting_level,
                 InlineNestingLevelState {
@@ -581,8 +709,37 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
         layout_context: &LayoutContext,
         nesting_level: &mut InlineNestingLevelState,
         inline_position: &mut Length,
-        at_line_break: bool,
+        line_had_any_content: &mut bool,
+        line_had_any_absolutes: bool,
+        at_end_of_inline_element: bool,
     ) {
+        let mut padding = self.padding.clone();
+        let mut border = self.border.clone();
+        let mut margin = self.margin.clone();
+
+        if padding.inline_sum() > Length::zero() ||
+            border.inline_sum() > Length::zero() ||
+            margin.inline_sum() > Length::zero()
+        {
+            *line_had_any_content = true;
+        }
+
+        if !*line_had_any_content && !line_had_any_absolutes && self.was_part_of_previous_line {
+            return;
+        }
+        *line_had_any_content = true;
+
+        // If we are finishing in order to fragment this InlineBox into multiple lines, do
+        // not add end margins, borders, and padding.
+        if !at_end_of_inline_element {
+            padding.inline_end = Length::zero();
+            border.inline_end = Length::zero();
+            margin.inline_end = Length::zero();
+        }
+
+        // TODO(mrobinson): `inline_position` is relative to the IFC, but `self.start_corner` is relative
+        // to the containing block, which means that this size will be incorrect with multiple levels
+        // of nesting.
         let content_rect = Rect {
             size: Vec2 {
                 inline: *inline_position - self.start_corner.inline,
@@ -591,35 +748,28 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
             start_corner: self.start_corner.clone(),
         };
 
+        self.parent_nesting_level
+            .max_block_size_of_fragments_so_far
+            .max_assign(content_rect.size.block);
+
+        *inline_position += padding.inline_end + border.inline_end + margin.inline_end;
+
         let mut fragment = BoxFragment::new(
             self.base_fragment_info,
             self.style.clone(),
             std::mem::take(&mut nesting_level.fragments_so_far),
             content_rect,
-            self.padding.clone(),
-            self.border.clone(),
-            self.margin.clone(),
+            padding,
+            border,
+            margin,
             None,
             CollapsedBlockMargins::zero(),
         );
-        let last_fragment = self.last_box_tree_fragment && !at_line_break;
-        if last_fragment {
-            *inline_position += fragment.padding.inline_end +
-                fragment.border.inline_end +
-                fragment.margin.inline_end;
-        } else {
-            fragment.padding.inline_end = Length::zero();
-            fragment.border.inline_end = Length::zero();
-            fragment.margin.inline_end = Length::zero();
-        }
-        self.parent_nesting_level
-            .max_block_size_of_fragments_so_far
-            .max_assign(fragment.content_rect.size.block);
-
         if let Some(context) = nesting_level.positioning_context.as_mut() {
             context.layout_collected_children(layout_context, &mut fragment);
         }
 
+        self.was_part_of_previous_line = true;
         self.parent_nesting_level
             .fragments_so_far
             .push(Fragment::Box(fragment));
@@ -774,6 +924,7 @@ fn layout_atomic(
 
     fragment.content_rect.start_corner = start_corner;
 
+    ifc.line_had_any_content = true;
     ifc.inline_position += pbm_sums.inline_end + fragment.content_rect.size.inline;
     ifc.current_nesting_level
         .max_block_size_of_fragments_so_far
@@ -781,6 +932,11 @@ fn layout_atomic(
     ifc.current_nesting_level
         .fragments_so_far
         .push(Fragment::Box(fragment));
+
+    // After every atomic, we need to create a line breaking opportunity for the next TextRun.
+    if let Some(linebreaker) = ifc.linebreaker.as_mut() {
+        linebreaker.next(" ");
+    }
 }
 
 struct BreakAndShapeResult {
@@ -791,7 +947,11 @@ struct BreakAndShapeResult {
 }
 
 impl TextRun {
-    fn break_and_shape(&self, layout_context: &LayoutContext) -> BreakAndShapeResult {
+    fn break_and_shape(
+        &self,
+        layout_context: &LayoutContext,
+        linebreaker: &mut Option<LineBreakLeafIter>,
+    ) -> BreakAndShapeResult {
         use gfx::font::ShapingFlags;
         use style::computed_values::text_rendering::T as TextRendering;
         use style::computed_values::word_break::T as WordBreak;
@@ -847,7 +1007,7 @@ impl TextRun {
                 &mut font,
                 &self.text,
                 &shaping_options,
-                &mut None,
+                linebreaker,
             );
 
             BreakAndShapeResult {
@@ -860,109 +1020,177 @@ impl TextRun {
     }
 
     fn layout(&self, layout_context: &LayoutContext, ifc: &mut InlineFormattingContextState) {
-        use style::values::generics::text::LineHeight;
+        let white_space = self.parent_style.get_inherited_text().white_space;
+        let preserving_newlines = white_space.preserve_newlines();
+        let preserving_spaces = white_space.preserve_spaces();
+        let last_box_in_ifc = ifc.at_end_of_inline_formatting_context();
 
         let BreakAndShapeResult {
             font_metrics,
             font_key,
             runs,
-            break_at_start: _,
-        } = self.break_and_shape(layout_context);
-        let font_size = self.parent_style.get_font().font_size.size.0;
-        let mut runs = runs.iter();
-        loop {
-            let mut glyphs = vec![];
-            let mut advance_width = Length::zero();
-            let mut last_break_opportunity = None;
-            let mut force_line_break = false;
-            // Fit as many glyphs within a single line as possible.
-            loop {
-                let next = runs.next();
-                // If there are no more text runs we still need to check if the last
-                // run was a forced line break
-                if next
-                    .as_ref()
-                    .map_or(true, |run| run.glyph_store.is_whitespace())
-                {
-                    // If this run exceeds the bounds of the containing block, then
-                    // we need to attempt to break the line.
-                    if advance_width > ifc.containing_block.inline_size - ifc.inline_position {
-                        // Reset the text run iterator to the last whitespace if possible,
-                        // to attempt to re-layout the most recent glyphs on a new line.
-                        if let Some((len, width, iter)) = last_break_opportunity.take() {
-                            glyphs.truncate(len);
-                            advance_width = width;
-                            runs = iter;
-                        }
-                        break;
-                    }
+            break_at_start,
+        } = self.break_and_shape(layout_context, &mut ifc.linebreaker);
+
+        let mut glyphs = vec![];
+        let mut inline_advance = Length::zero();
+        let mut pending_whitespace = None;
+
+        let mut iterator = runs.iter().enumerate().peekable();
+        while let Some((run_index, run)) = iterator.next() {
+            if run.glyph_store.is_whitespace() {
+                // If this whitespace forces a line break, finish the line and reset everything.
+                let last_byte = self.text.as_bytes().get(run.range.end().to_usize() - 1);
+                if last_byte == Some(&b'\n') && preserving_newlines {
+                    ifc.line_had_any_content = true;
+                    self.add_fragment_for_glyphs(
+                        ifc,
+                        glyphs.drain(..).collect(),
+                        inline_advance,
+                        font_metrics,
+                        font_key,
+                    );
+                    ifc.finish_line_and_reset(layout_context);
+                    inline_advance = Length::zero();
+                    continue;
                 }
-                if let Some(run) = next {
-                    if run.glyph_store.is_whitespace() {
-                        last_break_opportunity = Some((glyphs.len(), advance_width, runs.clone()));
-                        // If this whitespace ends with a newline, we need to check if
-                        // it's meaningful within the current style. If so, we force
-                        // a line break immediately.
-                        let last_byte = self.text.as_bytes().get(run.range.end().to_usize() - 1);
-                        if last_byte == Some(&b'\n') &&
-                            self.parent_style
-                                .get_inherited_text()
-                                .white_space
-                                .preserve_newlines()
-                        {
-                            force_line_break = true;
-                            break;
-                        }
+
+                if !preserving_spaces {
+                    // From <https://www.w3.org/TR/css-text-3/#white-space-phase-2>:
+                    // "Then, the entire block is rendered. Inlines are laid out, taking bidi
+                    // reordering into account, and wrapping as specified by the text-wrap
+                    // property. As each line is laid out,
+                    //
+                    // > 1. A sequence of collapsible spaces at the beginning of a line is removed.
+                    if !ifc.line_had_any_content {
+                        continue;
                     }
-                    glyphs.push(run.glyph_store.clone());
-                    advance_width += Length::from(run.glyph_store.total_advance());
-                } else {
-                    // No more runs, so we can end the line.
-                    break;
+
+                    // > 3. A sequence of collapsible spaces at the end of a line is removed,
+                    // >    as well as any trailing U+1680   OGHAM SPACE MARK whose white-space
+                    // >    property is normal, nowrap, or pre-line.
+                    // Try to trim whitespace at the end of lines. This is a hack. Ideally we
+                    // would keep a temporary data structure for a line and lay it out once we
+                    // know that we are going to make an entire one.
+                    if iterator.peek().is_none() && last_box_in_ifc {
+                        pending_whitespace = None;
+                        continue;
+                    }
+
+                    // Don't push a space until we know we aren't going to line break in the
+                    // next run.
+                    pending_whitespace = Some(run);
+                    continue;
                 }
             }
-            let line_height = match self.parent_style.get_inherited_text().line_height {
-                LineHeight::Normal => font_metrics.line_gap,
-                LineHeight::Number(n) => font_size * n.0,
-                LineHeight::Length(l) => l.0,
-            };
-            let rect = Rect {
-                start_corner: Vec2 {
-                    block: Length::zero(),
-                    inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
-                },
-                size: Vec2 {
-                    block: line_height,
-                    inline: advance_width,
-                },
-            };
-            ifc.inline_position += advance_width;
-            ifc.current_nesting_level
-                .max_block_size_of_fragments_so_far
-                .max_assign(line_height);
-            ifc.current_nesting_level
-                .fragments_so_far
-                .push(Fragment::Text(TextFragment {
-                    base: self.base_fragment_info.into(),
-                    parent_style: self.parent_style.clone(),
-                    rect,
+
+            let advance_from_pending_whitespace = pending_whitespace
+                .map_or_else(Length::zero, |run| {
+                    Length::from(run.glyph_store.total_advance())
+                });
+
+            // We break the line if this new advance and any advances from pending
+            // whitespace bring us past the inline end of the containing block.
+            let new_advance =
+                Length::from(run.glyph_store.total_advance()) + advance_from_pending_whitespace;
+            let will_advance_past_containing_block =
+                (new_advance + inline_advance + ifc.inline_position) >
+                    ifc.containing_block.inline_size;
+
+            // We can only break the line, if this isn't the first actual content (non-whitespace or
+            // preserved whitespace) on the line and this isn't the unbreakable run of this text run
+            // (or we can break at the start according to the text breaker).
+            let can_break = ifc.line_had_any_content && (break_at_start || run_index != 0);
+            if will_advance_past_containing_block && can_break {
+                self.add_fragment_for_glyphs(
+                    ifc,
+                    glyphs.drain(..).collect(),
+                    inline_advance,
                     font_metrics,
                     font_key,
-                    glyphs,
-                    text_decoration_line: ifc.current_nesting_level.text_decoration_line,
-                }));
-            // If this line is being broken because of a trailing newline, we can't ignore it.
-            if runs.as_slice().is_empty() && !force_line_break {
-                break;
-            } else {
+                );
+
+                pending_whitespace = None;
                 ifc.finish_line_and_reset(layout_context);
+                inline_advance = Length::zero();
             }
+
+            if let Some(pending_whitespace) = pending_whitespace.take() {
+                inline_advance += Length::from(pending_whitespace.glyph_store.total_advance());
+                glyphs.push(pending_whitespace.glyph_store.clone());
+            }
+
+            inline_advance += Length::from(run.glyph_store.total_advance());
+            glyphs.push(run.glyph_store.clone());
+            ifc.line_had_any_content = true;
         }
+
+        if let Some(pending_whitespace) = pending_whitespace.take() {
+            inline_advance += Length::from(pending_whitespace.glyph_store.total_advance());
+            glyphs.push(pending_whitespace.glyph_store.clone());
+        }
+
+        self.add_fragment_for_glyphs(
+            ifc,
+            glyphs.drain(..).collect(),
+            inline_advance,
+            font_metrics,
+            font_key,
+        );
+    }
+
+    fn add_fragment_for_glyphs(
+        &self,
+        ifc: &mut InlineFormattingContextState,
+        glyphs: Vec<std::sync::Arc<GlyphStore>>,
+        inline_advance: Length,
+        font_metrics: FontMetrics,
+        font_key: FontInstanceKey,
+    ) {
+        if glyphs.is_empty() {
+            return;
+        }
+
+        let font_size = self.parent_style.get_font().font_size.size.0;
+        let line_height = match self.parent_style.get_inherited_text().line_height {
+            LineHeight::Normal => font_metrics.line_gap,
+            LineHeight::Number(n) => font_size * n.0,
+            LineHeight::Length(l) => l.0,
+        };
+
+        let rect = Rect {
+            start_corner: Vec2 {
+                block: Length::zero(),
+                inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
+            },
+            size: Vec2 {
+                block: line_height,
+                inline: inline_advance,
+            },
+        };
+
+        ifc.inline_position += inline_advance;
+        ifc.current_nesting_level
+            .max_block_size_of_fragments_so_far
+            .max_assign(line_height);
+        ifc.current_nesting_level
+            .fragments_so_far
+            .push(Fragment::Text(TextFragment {
+                base: self.base_fragment_info.into(),
+                parent_style: self.parent_style.clone(),
+                rect,
+                font_metrics,
+                font_key,
+                glyphs,
+                text_decoration_line: ifc.current_nesting_level.text_decoration_line,
+            }));
     }
 }
 
 enum InlineBoxChildIter<'box_tree> {
-    InlineFormattingContext(std::slice::Iter<'box_tree, ArcRefCell<InlineLevelBox>>),
+    InlineFormattingContext(
+        std::iter::Peekable<std::slice::Iter<'box_tree, ArcRefCell<InlineLevelBox>>>,
+    ),
     InlineBox {
         inline_level_box: ArcRefCell<InlineLevelBox>,
         child_index: usize,
@@ -974,7 +1202,10 @@ impl<'box_tree> InlineBoxChildIter<'box_tree> {
         inline_formatting_context: &'box_tree InlineFormattingContext,
     ) -> InlineBoxChildIter<'box_tree> {
         InlineBoxChildIter::InlineFormattingContext(
-            inline_formatting_context.inline_level_boxes.iter(),
+            inline_formatting_context
+                .inline_level_boxes
+                .iter()
+                .peekable(),
         )
     }
 
@@ -984,6 +1215,21 @@ impl<'box_tree> InlineBoxChildIter<'box_tree> {
         InlineBoxChildIter::InlineBox {
             inline_level_box,
             child_index: 0,
+        }
+    }
+
+    fn at_end_of_iterator(&mut self) -> bool {
+        match *self {
+            InlineBoxChildIter::InlineFormattingContext(ref mut iter) => iter.peek().is_none(),
+            InlineBoxChildIter::InlineBox {
+                ref inline_level_box,
+                ref child_index,
+            } => match *inline_level_box.borrow() {
+                InlineLevelBox::InlineBox(ref inline_box) => {
+                    *child_index >= inline_box.children.len()
+                },
+                _ => unreachable!(),
+            },
         }
     }
 }
