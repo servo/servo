@@ -488,13 +488,13 @@ impl BlockLevelBox {
                 containing_block,
                 style,
                 |positioning_context| {
-                    layout_in_flow_non_replaced_block_level(
+                    layout_in_flow_non_replaced_block_level_same_formatting_context(
                         layout_context,
                         positioning_context,
                         containing_block,
                         *tag,
                         style,
-                        NonReplacedContents::SameFormattingContextBlock(contents),
+                        contents,
                         sequential_layout_state,
                         collapsible_with_parent_start_margin,
                     )
@@ -523,17 +523,14 @@ impl BlockLevelBox {
                         containing_block,
                         &non_replaced.style,
                         |positioning_context| {
-                            layout_in_flow_non_replaced_block_level(
+                            layout_in_flow_non_replaced_block_level_independent_formatting_context(
                                 layout_context,
                                 positioning_context,
                                 containing_block,
                                 non_replaced.base_fragment_info,
                                 &non_replaced.style,
-                                NonReplacedContents::EstablishesAnIndependentFormattingContext(
-                                    non_replaced,
-                                ),
+                                non_replaced,
                                 sequential_layout_state,
-                                collapsible_with_parent_start_margin,
                             )
                         },
                     ))
@@ -581,93 +578,33 @@ impl BlockLevelBox {
     }
 }
 
-enum NonReplacedContents<'a> {
-    SameFormattingContextBlock(&'a BlockContainer),
-    EstablishesAnIndependentFormattingContext(&'a NonReplacedFormattingContext),
-}
-
-/// https://drafts.csswg.org/css2/visudet.html#blockwidth
-/// https://drafts.csswg.org/css2/visudet.html#normal-block
-fn layout_in_flow_non_replaced_block_level(
+/// Lay out a normal flow non-replaced block that does not establish a new formatting
+/// context.
+///
+/// - https://drafts.csswg.org/css2/visudet.html#blockwidth
+/// - https://drafts.csswg.org/css2/visudet.html#normal-block
+fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     containing_block: &ContainingBlock,
     base_fragment_info: BaseFragmentInfo,
     style: &Arc<ComputedValues>,
-    block_level_kind: NonReplacedContents,
+    contents: &BlockContainer,
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
 ) -> BoxFragment {
-    let pbm = style.padding_border_margin(containing_block);
-    let box_size = style.content_box_size(containing_block, &pbm);
-    let max_box_size = style.content_max_box_size(containing_block, &pbm);
-    let min_box_size = style
-        .content_min_box_size(containing_block, &pbm)
-        .auto_is(Length::zero);
-
-    // https://drafts.csswg.org/css2/visudet.html#min-max-widths
-    let solve_inline_margins = |inline_size| {
-        solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size)
-    };
-    let (mut inline_size, mut inline_margins) =
-        if let Some(inline_size) = box_size.inline.non_auto() {
-            (inline_size, solve_inline_margins(inline_size))
-        } else {
-            let margin_inline_start = pbm.margin.inline_start.auto_is(Length::zero);
-            let margin_inline_end = pbm.margin.inline_end.auto_is(Length::zero);
-            let inline_size = containing_block.inline_size -
-                pbm.padding_border_sums.inline -
-                margin_inline_start -
-                margin_inline_end;
-            (inline_size, (margin_inline_start, margin_inline_end))
-        };
-    if let Some(max_inline_size) = max_box_size.inline {
-        if inline_size > max_inline_size {
-            inline_size = max_inline_size;
-            inline_margins = solve_inline_margins(inline_size);
-        }
-    }
-    if inline_size < min_box_size.inline {
-        inline_size = min_box_size.inline;
-        inline_margins = solve_inline_margins(inline_size);
-    }
-
-    let margin = Sides {
-        inline_start: inline_margins.0,
-        inline_end: inline_margins.1,
-        block_start: pbm.margin.block_start.auto_is(Length::zero),
-        block_end: pbm.margin.block_end.auto_is(Length::zero),
-    };
-
-    // https://drafts.csswg.org/css2/visudet.html#min-max-heights
-    let mut block_size = box_size.block;
-    if let LengthOrAuto::LengthPercentage(ref mut block_size) = block_size {
-        *block_size = block_size.clamp_between_extremums(min_box_size.block, max_box_size.block);
-    }
-
-    let containing_block_for_children = ContainingBlock {
-        inline_size,
-        block_size,
-        style,
-    };
-
-    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-    assert_eq!(
-        containing_block.style.writing_mode, containing_block_for_children.style.writing_mode,
-        "Mixed writing modes are not supported yet"
-    );
-
-    let block_is_same_formatting_context = match block_level_kind {
-        NonReplacedContents::SameFormattingContextBlock(_) => true,
-        NonReplacedContents::EstablishesAnIndependentFormattingContext(_) => false,
-    };
+    let ContainingBlockPaddingBorderAndMargin {
+        containing_block: containing_block_for_children,
+        pbm,
+        min_box_size,
+        max_box_size,
+        margin,
+    } = solve_containing_block_padding_border_and_margin_for_in_flow_box(containing_block, style);
 
     let computed_block_size = style.content_block_size();
-    let start_margin_can_collapse_with_children = block_is_same_formatting_context &&
-        pbm.padding.block_start == Length::zero() &&
-        pbm.border.block_start == Length::zero();
-    let end_margin_can_collapse_with_children = block_is_same_formatting_context &&
-        pbm.padding.block_end == Length::zero() &&
+    let start_margin_can_collapse_with_children =
+        pbm.padding.block_start == Length::zero() && pbm.border.block_start == Length::zero();
+    let end_margin_can_collapse_with_children = pbm.padding.block_end == Length::zero() &&
         pbm.border.block_end == Length::zero() &&
         computed_block_size.is_auto();
 
@@ -694,12 +631,9 @@ fn layout_in_flow_non_replaced_block_level(
                 when laying out sequentially",
             ).0 && style.get_box().clear == Clear::None;
             if !collapsible_with_parent_start_margin && start_margin_can_collapse_with_children {
-                if let NonReplacedContents::SameFormattingContextBlock(
-                    BlockContainer::BlockLevelBoxes(child_boxes),
-                ) = block_level_kind
-                {
+                if let BlockContainer::BlockLevelBoxes(child_boxes) = contents {
                     BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
-                        child_boxes,
+                        &child_boxes,
                         &mut block_start_margin,
                         containing_block,
                     );
@@ -737,7 +671,7 @@ fn layout_in_flow_non_replaced_block_level(
                 block_start: sequential_layout_state.bfc_relative_block_position,
                 block_start_margins_not_collapsed: sequential_layout_state.current_margin,
                 inline_start,
-                inline_end: inline_start + inline_size,
+                inline_end: inline_start + containing_block_for_children.inline_size,
             };
             parent_containing_block_position_info = Some(
                 sequential_layout_state.replace_containing_block_position_info(new_cb_offsets),
@@ -745,65 +679,47 @@ fn layout_in_flow_non_replaced_block_level(
         },
     };
 
+    let flow_layout = contents.layout(
+        layout_context,
+        positioning_context,
+        &containing_block_for_children,
+        sequential_layout_state.as_mut().map(|x| &mut **x),
+        CollapsibleWithParentStartMargin(start_margin_can_collapse_with_children),
+    );
+    let mut content_block_size = flow_layout.content_block_size;
+
+    // Update margins.
     let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
+    let mut collapsible_margins_in_children = flow_layout.collapsible_margins_in_children;
+    if start_margin_can_collapse_with_children {
+        block_margins_collapsed_with_children
+            .start
+            .adjoin_assign(&collapsible_margins_in_children.start);
+        if collapsible_margins_in_children.collapsed_through {
+            block_margins_collapsed_with_children
+                .start
+                .adjoin_assign(&std::mem::replace(
+                    &mut collapsible_margins_in_children.end,
+                    CollapsedMargin::zero(),
+                ));
+        }
+    }
+    if end_margin_can_collapse_with_children {
+        block_margins_collapsed_with_children
+            .end
+            .adjoin_assign(&collapsible_margins_in_children.end);
+    } else {
+        content_block_size += collapsible_margins_in_children.end.solve();
+    }
 
-    let fragments;
-    let mut content_block_size;
-    match block_level_kind {
-        NonReplacedContents::SameFormattingContextBlock(contents) => {
-            let flow_layout = contents.layout(
-                layout_context,
-                positioning_context,
-                &containing_block_for_children,
-                sequential_layout_state.as_mut().map(|x| &mut **x),
-                CollapsibleWithParentStartMargin(start_margin_can_collapse_with_children),
-            );
+    let computed_min_block_size = style.min_block_size();
+    block_margins_collapsed_with_children.collapsed_through = collapsible_margins_in_children
+        .collapsed_through &&
+        pbm.padding_border_sums.block == Length::zero() &&
+        (computed_block_size.is_definitely_zero() || computed_block_size.is_auto()) &&
+        (computed_min_block_size.is_definitely_zero() || computed_min_block_size.is_auto());
 
-            fragments = flow_layout.fragments;
-            content_block_size = flow_layout.content_block_size;
-
-            // Update margins.
-            let mut collapsible_margins_in_children = flow_layout.collapsible_margins_in_children;
-            if start_margin_can_collapse_with_children {
-                block_margins_collapsed_with_children
-                    .start
-                    .adjoin_assign(&collapsible_margins_in_children.start);
-                if collapsible_margins_in_children.collapsed_through {
-                    block_margins_collapsed_with_children
-                        .start
-                        .adjoin_assign(&std::mem::replace(
-                            &mut collapsible_margins_in_children.end,
-                            CollapsedMargin::zero(),
-                        ));
-                }
-            }
-            if end_margin_can_collapse_with_children {
-                block_margins_collapsed_with_children
-                    .end
-                    .adjoin_assign(&collapsible_margins_in_children.end);
-            } else {
-                content_block_size += collapsible_margins_in_children.end.solve();
-            }
-            let computed_min_block_size = style.min_block_size();
-            block_margins_collapsed_with_children.collapsed_through =
-                collapsible_margins_in_children.collapsed_through &&
-                    pbm.padding_border_sums.block == Length::zero() &&
-                    (computed_block_size.is_definitely_zero() || computed_block_size.is_auto()) &&
-                    (computed_min_block_size.is_definitely_zero() ||
-                        computed_min_block_size.is_auto());
-        },
-        NonReplacedContents::EstablishesAnIndependentFormattingContext(non_replaced) => {
-            let independent_layout = non_replaced.layout(
-                layout_context,
-                positioning_context,
-                &containing_block_for_children,
-            );
-            fragments = independent_layout.fragments;
-            content_block_size = independent_layout.content_block_size;
-        },
-    };
-
-    let block_size = block_size.auto_is(|| {
+    let block_size = containing_block_for_children.block_size.auto_is(|| {
         content_block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
     });
 
@@ -835,14 +751,92 @@ fn layout_in_flow_non_replaced_block_level(
         },
         size: Vec2 {
             block: block_size,
-            inline: inline_size,
+            inline: containing_block_for_children.inline_size,
         },
     };
 
     BoxFragment::new(
         base_fragment_info,
         style.clone(),
-        fragments,
+        flow_layout.fragments,
+        content_rect,
+        pbm.padding,
+        pbm.border,
+        margin,
+        clearance,
+        block_margins_collapsed_with_children,
+    )
+}
+
+/// Lay out a normal flow non-replaced block that establishes and independent formatting
+/// context in its containing formatting context.
+///
+/// - https://drafts.csswg.org/css2/visudet.html#blockwidth
+/// - https://drafts.csswg.org/css2/visudet.html#normal-block
+fn layout_in_flow_non_replaced_block_level_independent_formatting_context(
+    layout_context: &LayoutContext,
+    positioning_context: &mut PositioningContext,
+    containing_block: &ContainingBlock,
+    base_fragment_info: BaseFragmentInfo,
+    style: &Arc<ComputedValues>,
+    independent_formatting_context: &NonReplacedFormattingContext,
+    mut sequential_layout_state: Option<&mut SequentialLayoutState>,
+) -> BoxFragment {
+    let ContainingBlockPaddingBorderAndMargin {
+        containing_block: containing_block_for_children,
+        pbm,
+        min_box_size,
+        max_box_size,
+        margin,
+    } = solve_containing_block_padding_border_and_margin_for_in_flow_box(containing_block, style);
+
+    let layout = independent_formatting_context.layout(
+        layout_context,
+        positioning_context,
+        &containing_block_for_children,
+    );
+
+    let content_block_size = layout.content_block_size;
+    let block_size = containing_block_for_children.block_size.auto_is(|| {
+        content_block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
+    });
+
+    let mut clearance = None;
+    if let Some(ref mut sequential_layout_state) = sequential_layout_state {
+        clearance = sequential_layout_state.calculate_clearance_and_adjoin_margin(
+            style,
+            &CollapsedMargin::new(margin.block_start),
+        );
+        sequential_layout_state.collapse_margins();
+
+        // Account for padding and border. We also might have to readjust the
+        // `bfc_relative_block_position` if it was different from the content size (i.e. was
+        // non-`auto` and/or was affected by min/max block size).
+        sequential_layout_state.advance_block_position(
+            (block_size - content_block_size) + pbm.padding.block_sum() + pbm.border.block_sum(),
+        );
+
+        sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
+    }
+
+    let content_rect = Rect {
+        start_corner: Vec2 {
+            block: pbm.padding.block_start +
+                pbm.border.block_start +
+                clearance.unwrap_or_else(Length::zero),
+            inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
+        },
+        size: Vec2 {
+            block: block_size,
+            inline: containing_block_for_children.inline_size,
+        },
+    };
+
+    let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
+    BoxFragment::new(
+        base_fragment_info,
+        style.clone(),
+        layout.fragments,
         content_rect,
         pbm.padding,
         pbm.border,
@@ -913,6 +907,90 @@ fn layout_in_flow_replaced_block_level<'a>(
         clearance,
         block_margins_collapsed_with_children,
     )
+}
+
+struct ContainingBlockPaddingBorderAndMargin<'a> {
+    containing_block: ContainingBlock<'a>,
+    pbm: PaddingBorderMargin,
+    min_box_size: Vec2<Length>,
+    max_box_size: Vec2<Option<Length>>,
+    margin: Sides<Length>,
+}
+
+/// Given the style for in in flow box and its containing block, determine the containing
+/// block for its children and the margin it should use.
+fn solve_containing_block_padding_border_and_margin_for_in_flow_box<'a>(
+    containing_block: &ContainingBlock<'_>,
+    style: &'a Arc<ComputedValues>,
+) -> ContainingBlockPaddingBorderAndMargin<'a> {
+    let pbm = style.padding_border_margin(containing_block);
+    let box_size = style.content_box_size(containing_block, &pbm);
+    let max_box_size = style.content_max_box_size(containing_block, &pbm);
+    let min_box_size = style
+        .content_min_box_size(containing_block, &pbm)
+        .auto_is(Length::zero);
+
+    let (mut inline_size, mut inline_margins) =
+        if let Some(inline_size) = box_size.inline.non_auto() {
+            (
+                inline_size,
+                solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size),
+            )
+        } else {
+            let margin_inline_start = pbm.margin.inline_start.auto_is(Length::zero);
+            let margin_inline_end = pbm.margin.inline_end.auto_is(Length::zero);
+            let inline_size = containing_block.inline_size -
+                pbm.padding_border_sums.inline -
+                margin_inline_start -
+                margin_inline_end;
+            (inline_size, (margin_inline_start, margin_inline_end))
+        };
+
+    // https://drafts.csswg.org/css2/visudet.html#min-max-widths
+    if let Some(max_inline_size) = max_box_size.inline {
+        if inline_size > max_inline_size {
+            inline_size = max_inline_size;
+            inline_margins =
+                solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size);
+        }
+    }
+
+    if inline_size < min_box_size.inline {
+        inline_size = min_box_size.inline;
+        inline_margins =
+            solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size);
+    }
+
+    let margin = Sides {
+        inline_start: inline_margins.0,
+        inline_end: inline_margins.1,
+        block_start: pbm.margin.block_start.auto_is(Length::zero),
+        block_end: pbm.margin.block_end.auto_is(Length::zero),
+    };
+
+    // https://drafts.csswg.org/css2/visudet.html#min-max-heights
+    let mut block_size = box_size.block;
+    if let LengthOrAuto::LengthPercentage(ref mut block_size) = block_size {
+        *block_size = block_size.clamp_between_extremums(min_box_size.block, max_box_size.block);
+    }
+
+    let containing_block_for_children = ContainingBlock {
+        inline_size,
+        block_size,
+        style,
+    };
+    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+    assert_eq!(
+        containing_block.style.writing_mode, containing_block_for_children.style.writing_mode,
+        "Mixed writing modes are not supported yet"
+    );
+    ContainingBlockPaddingBorderAndMargin {
+        containing_block: containing_block_for_children,
+        pbm,
+        min_box_size,
+        max_box_size,
+        margin,
+    }
 }
 
 fn solve_inline_margins_for_in_flow_block_level(
