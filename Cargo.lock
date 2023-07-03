@@ -3051,7 +3051,6 @@ dependencies = [
  "quickcheck",
  "range",
  "rayon",
- "rayon_croissant",
  "script_layout_interface",
  "script_traits",
  "serde",
@@ -3687,12 +3686,6 @@ name = "mitochondria"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9de3eca27871df31c33b807f834b94ef7d000956f57aa25c5aed9c5f0aae8f6f"
-
-[[package]]
-name = "moite_moite"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eeb5a94c61e12e2cfc16ee3e2b6eca8f126a43c888586626337544a7e824a1af"
 
 [[package]]
 name = "mozangle"
@@ -4812,16 +4805,6 @@ dependencies = [
  "crossbeam-deque",
  "crossbeam-utils",
  "num_cpus",
-]
-
-[[package]]
-name = "rayon_croissant"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e4aafda434bd10fec689858e2b1d713d0b784b1e60df3761ac8fa727d7e8e27"
-dependencies = [
- "moite_moite",
- "rayon",
 ]
 
 [[package]]

@@ -34,7 +34,6 @@ net_traits = { path = "../net_traits" }
 parking_lot = { workspace = true }
 range = { path = "../range" }
 rayon = { workspace = true }
-rayon_croissant = "0.2.0"
 script_layout_interface = { path = "../script_layout_interface" }
 script_traits = { path = "../script_traits" }
 serde = { workspace = true }

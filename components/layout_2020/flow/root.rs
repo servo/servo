@@ -7,7 +7,6 @@ use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexLevelBox;
-use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineLevelBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
@@ -45,15 +44,17 @@ impl BoxTree {
     where
         Node: 'dom + Copy + LayoutNode<'dom> + Send + Sync,
     {
-        let (contains_floats, boxes) = construct_for_root_element(&context, root_element);
+        let boxes = construct_for_root_element(&context, root_element);
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(boxes.len() <= 1);
 
+        let contents = BlockContainer::BlockLevelBoxes(boxes);
+        let contains_floats = contents.contains_floats();
         Self {
             root: BlockFormattingContext {
-                contains_floats: contains_floats == ContainsFloats::Yes,
-                contents: BlockContainer::BlockLevelBoxes(boxes),
+                contents,
+                contains_floats,
             },
             canvas_background: CanvasBackground::for_root_element(context, root_element),
         }
@@ -209,14 +210,14 @@ impl BoxTree {
 fn construct_for_root_element<'dom>(
     context: &LayoutContext,
     root_element: impl NodeExt<'dom>,
-) -> (ContainsFloats, Vec<ArcRefCell<BlockLevelBox>>) {
+) -> Vec<ArcRefCell<BlockLevelBox>> {
     let info = NodeAndStyleInfo::new(root_element, root_element.style(context));
     let box_style = info.style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
         Display::None => {
             root_element.unset_all_boxes();
-            return (ContainsFloats::No, Vec::new());
+            return Vec::new();
         },
         Display::Contents => {
             // Unreachable because the style crate adjusts the computed values:
@@ -230,41 +231,32 @@ fn construct_for_root_element<'dom>(
 
     let contents =
         ReplacedContent::for_element(root_element).map_or(Contents::OfElement, Contents::Replaced);
-    let (contains_floats, root_box) = if box_style.position.is_absolutely_positioned() {
-        (
-            ContainsFloats::No,
-            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
-                AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
-            )),
-        )
+    let root_box = if box_style.position.is_absolutely_positioned() {
+        BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
+            AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
+        ))
     } else if box_style.float.is_floating() {
-        (
-            ContainsFloats::Yes,
-            BlockLevelBox::OutOfFlowFloatBox(FloatBox::construct(
-                context,
-                &info,
-                display_inside,
-                contents,
-            )),
-        )
+        BlockLevelBox::OutOfFlowFloatBox(FloatBox::construct(
+            context,
+            &info,
+            display_inside,
+            contents,
+        ))
     } else {
         let propagated_text_decoration_line = info.style.clone_text_decoration_line();
-        (
-            ContainsFloats::No,
-            BlockLevelBox::Independent(IndependentFormattingContext::construct(
-                context,
-                &info,
-                display_inside,
-                contents,
-                propagated_text_decoration_line,
-            )),
-        )
+        BlockLevelBox::Independent(IndependentFormattingContext::construct(
+            context,
+            &info,
+            display_inside,
+            contents,
+            propagated_text_decoration_line,
+        ))
     };
     let root_box = ArcRefCell::new(root_box);
     root_element
         .element_box_slot()
         .set(LayoutBox::BlockLevel(root_box.clone()));
-    (contains_floats, vec![root_box])
+    vec![root_box]
 }
 
 impl BoxTree {

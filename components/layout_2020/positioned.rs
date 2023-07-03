@@ -14,8 +14,8 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{LengthOrAuto, LengthPercentageOrAuto};
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
-use rayon::iter::{IntoParallelRefMutIterator, ParallelExtend};
-use rayon_croissant::ParallelIteratorExt;
+use rayon::iter::IntoParallelRefMutIterator;
+use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
 use style::values::computed::{CSSPixelLength, Length};
@@ -354,21 +354,27 @@ impl HoistedAbsolutelyPositionedBox {
         containing_block: &DefiniteContainingBlock,
     ) {
         if layout_context.use_rayon {
-            fragments.par_extend(boxes.par_iter_mut().mapfold_reduce_into(
-                for_nearest_containing_block_for_all_descendants,
-                |for_nearest_containing_block_for_all_descendants, box_| {
-                    let new_fragment = ArcRefCell::new(Fragment::Box(box_.layout(
+            let mut new_fragments = Vec::new();
+            let mut new_hoisted_boxes = Vec::new();
+
+            boxes
+                .par_iter_mut()
+                .map(|hoisted_box| {
+                    let mut new_hoisted_boxes: Vec<HoistedAbsolutelyPositionedBox> = Vec::new();
+                    let new_fragment = ArcRefCell::new(Fragment::Box(hoisted_box.layout(
                         layout_context,
-                        for_nearest_containing_block_for_all_descendants,
+                        &mut new_hoisted_boxes,
                         containing_block,
                     )));
 
-                    box_.fragment.borrow_mut().fragment = Some(new_fragment.clone());
-                    new_fragment
-                },
-                Vec::new,
-                vec_append_owned,
-            ))
+                    hoisted_box.fragment.borrow_mut().fragment = Some(new_fragment.clone());
+                    (new_fragment, new_hoisted_boxes)
+                })
+                .unzip_into_vecs(&mut new_fragments, &mut new_hoisted_boxes);
+
+            fragments.extend(new_fragments);
+            for_nearest_containing_block_for_all_descendants
+                .extend(new_hoisted_boxes.into_iter().flatten());
         } else {
             fragments.extend(boxes.iter_mut().map(|box_| {
                 let new_fragment = ArcRefCell::new(Fragment::Box(box_.layout(

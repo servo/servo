@@ -49,6 +49,17 @@ pub(crate) enum BlockContainer {
     InlineFormattingContext(InlineFormattingContext),
 }
 
+impl BlockContainer {
+    fn contains_floats(&self) -> bool {
+        match self {
+            BlockContainer::BlockLevelBoxes(boxes) => boxes
+                .iter()
+                .any(|block_level_box| block_level_box.borrow().contains_floats()),
+            BlockContainer::InlineFormattingContext { .. } => true,
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub(crate) enum BlockLevelBox {
     SameFormattingContextBlock {
@@ -56,6 +67,7 @@ pub(crate) enum BlockLevelBox {
         #[serde(skip_serializing)]
         style: Arc<ComputedValues>,
         contents: BlockContainer,
+        contains_floats: bool,
     },
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
     OutOfFlowFloatBox(FloatBox),
@@ -63,6 +75,16 @@ pub(crate) enum BlockLevelBox {
 }
 
 impl BlockLevelBox {
+    fn contains_floats(&self) -> bool {
+        match self {
+            BlockLevelBox::SameFormattingContextBlock {
+                contains_floats, ..
+            } => *contains_floats,
+            BlockLevelBox::OutOfFlowFloatBox { .. } => true,
+            _ => false,
+        }
+    }
+
     fn find_block_margin_collapsing_with_parent(
         &self,
         collected_margin: &mut CollapsedMargin,
@@ -482,6 +504,7 @@ impl BlockLevelBox {
                 base_fragment_info: tag,
                 style,
                 contents,
+                ..
             } => Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
                 layout_context,
                 containing_block,
