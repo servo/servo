@@ -1,0 +1,17 @@
+<style>
+  div {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background: red;
+    overflow: hidden;
+  }
+  iframe {
+    position: absolute;
+    height: 200px;
+    width: 100px;
+    border: none;
+  }
+</style>
+Test passes if there is a single 100x100px orange square.
+<div><iframe src="data:text/html,<style>body{background:orange}</style>"></iframe></div>

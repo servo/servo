@@ -1,0 +1,119 @@
+---
+root:
+  items:
+      # non-repeating
+    - type: gradient
+      bounds: 100 50 500 10
+      start: 100 0
+      end: 200 0.001
+      repeat: false
+      stops: [0.0, green,
+              0.5, green,
+              0.5, blue,
+              1.0, blue ]
+
+      # repeat 4 times
+    - type: gradient
+      bounds: 100 100 500 10
+      start: 100 0
+      end: 200 0.001
+      repeat: true
+      stops: [0.0, green,
+              0.5, green,
+              0.5, blue,
+              1.0, blue ]
+
+      # same but start doesn't line up with 0
+    - type: gradient
+      bounds: 100 150 500 10
+      start: 125 0
+      end: 225 0.001
+      repeat: true
+      stops: [0.0, green,
+              0.5, green,
+              0.5, blue,
+              1.0, blue ]
+
+      # more hard stops, non-uniform distribution
+    - type: gradient
+      bounds: 100 250 500 10
+      start: 200 0
+      end: 300 0.001
+      repeat: false
+      stops: [0.0, green,
+              0.25, green,
+              0.25, red,
+              0.75, red,
+              0.75, blue,
+              1.0, blue ]
+
+      # repeat the hard stops
+    - type: gradient
+      bounds: 100 300 500 10
+      start: 200 0
+      end: 300 0.001
+      repeat: true
+      stops: [0.0, green,
+              0.25, green,
+              0.25, red,
+              0.75, red,
+              0.75, blue,
+              1.0, blue ]
+
+      # same but start doesn't line up with 0
+    - type: gradient
+      bounds: 100 350 500 10
+      start: 175 0
+      end: 275 0.001
+      repeat: true
+      stops: [0.0, green,
+              0.25, green,
+              0.25, red,
+              0.75, red,
+              0.75, blue,
+              1.0, blue ]
+
+      # the entire gradient from 0 to 1 is
+      # "offscreen", we're only seeing its
+      # repeats. the gradient is 100 wide
+      # and ends at -75, so the first
+      # three-quarters of it would be hidden,
+      # that is, it should start with blue.
+    - type: gradient
+      bounds: 100 400 500 10
+      start: -175 0
+      end: -75 0.001
+      repeat: true
+      stops: [0.0, green,
+              0.25, green,
+              0.25, red,
+              0.75, red,
+              0.75, blue,
+              1.0, blue ]
+
+      # same but over on the right
+    - type: gradient
+      bounds: 100 450 500 10
+      start: 575 0
+      end: 675 0.001
+      repeat: true
+      stops: [0.0, green,
+              0.25, green,
+              0.25, red,
+              0.75, red,
+              0.75, blue,
+              1.0, blue ]
+
+      # a repeat, but not really because only part
+      # of the gradient is visible
+    - type: gradient
+      bounds: 100 500 500 10
+      start: -50 0
+      end: 550 0.001
+      repeat: true
+      stops: [0.0, green,
+              0.25, green,
+              0.25, red,
+              0.75, red,
+              0.75, blue,
+              1.0, blue ]

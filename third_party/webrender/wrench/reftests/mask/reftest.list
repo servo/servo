@@ -1,0 +1,16 @@
+== mask.yaml mask-ref.yaml
+== mask-tiling.yaml mask-ref.yaml
+== nested-mask.yaml nested-mask-ref.yaml
+== nested-mask-tiling.yaml nested-mask-ref.yaml
+!= mask.yaml green.yaml
+== aligned-layer-rect.yaml aligned-layer-rect-ref.yaml
+== mask-transformed-to-empty-rect.yaml mask-transformed-to-empty-rect-ref.yaml
+platform(linux,mac) == rounded-corners.yaml rounded-corners.png
+!= mask.yaml out-of-bounds.yaml
+platform(linux,mac) fuzzy(1,17500) color_targets(3) alpha_targets(1) == mask-atomicity.yaml mask-atomicity-ref.yaml
+platform(linux,mac) fuzzy(1,17500) == mask-atomicity-tiling.yaml mask-atomicity-ref.yaml
+platform(linux,mac) == mask-perspective.yaml mask-perspective.png
+== fuzzy(1,11) mask-perspective-tiling.yaml mask-perspective.yaml
+platform(linux,mac) == checkerboard.yaml checkerboard.png
+skip_on(android,device) == checkerboard.yaml checkerboard-tiling.yaml  # Fails on a Pixel2
+== missing-mask.yaml missing-mask-ref.yaml

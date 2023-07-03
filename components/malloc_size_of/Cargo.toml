@@ -49,5 +49,5 @@ tokio = { workspace = true }
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 void = "1.0.2"
-webrender_api = { git = "https://github.com/servo/webrender", optional = true }
+webrender_api = { workspace = true, optional = true }
 xml5ever = { workspace = true, optional = true }

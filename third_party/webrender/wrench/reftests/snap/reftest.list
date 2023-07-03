@@ -1,0 +1,3 @@
+platform(linux,mac) == snap.yaml snap.png
+== transform.yaml transform.png
+platform(linux,mac) == preserve-3d.yaml preserve-3d.png

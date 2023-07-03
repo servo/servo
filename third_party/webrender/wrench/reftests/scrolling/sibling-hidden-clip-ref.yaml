@@ -1,0 +1,8 @@
+---
+root:
+  items:
+    - type: rect
+      bounds: [10, 10, 40, 70]
+      color: red
+  id: [0, 0]
+pipelines: []

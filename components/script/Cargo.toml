@@ -117,7 +117,7 @@ utf-8 = "0.7"
 uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
 webgpu = { path = "../webgpu" }
-webrender_api = { git = "https://github.com/servo/webrender" }
+webrender_api = { workspace = true }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 xml5ever = { workspace = true }
 

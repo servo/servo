@@ -1,0 +1,73 @@
+# Tests the composite SVG filter primitive
+---
+root:
+  items:
+  - type: stacking-context
+    bounds: 0 0 0 0
+    items:
+    - type: rect
+      color: yellow
+      bounds: 10 10 100 100
+    - type: rect
+      color: blue
+      bounds: 60 60 100 100
+  - type: stacking-context
+    bounds: 200 0 0 0
+    items:
+    - type: rect
+      color: blue
+      bounds: 60 60 50 50
+  - type: stacking-context
+    bounds: 400 0 0 0
+    items:
+    - type: rect
+      color: yellow
+      bounds: 10 10 100 100
+    - type: rect
+      color: blue
+      bounds: 60 60 50 50
+  - type: stacking-context
+    bounds: 600 0 0 0
+    items:
+    - type: rect
+      color: blue
+      bounds: 60 60 100 100
+    - type: rect
+      color: white
+      bounds: 60 60 50 50
+  - type: stacking-context
+    bounds: 0 200 0 0
+    items:
+    - type: rect
+      color: yellow
+      bounds: 10 10 100 100
+    - type: rect
+      color: blue
+      bounds: 60 60 100 100
+    - type: rect
+      color: white
+      bounds: 60 60 50 50
+  - type: stacking-context
+    bounds: 200 200 0 0
+    items:
+    - type: rect
+      color: [255, 0, 0, 1.0]
+      bounds: 10 10 100 100
+    - type: rect
+      color: [0, 0, 255, 1.0]
+      bounds: 60 60 100 100
+    - type: rect
+      color: [255, 0, 255, 1.0]
+      bounds: 60 60 50 50
+  - type: stacking-context
+    bounds: 400 200 0 0
+    items:
+    - type: rect
+      color: [255, 255, 127, 1.0]
+      bounds: 10 10 100 100
+    - type: rect
+      color: [127, 127, 255, 1.0]
+      bounds: 60 60 100 100
+    - type: rect
+      color: [188, 188, 188, 1.0]
+      bounds: 60 60 50 50

@@ -1,0 +1,226 @@
+From 34d968adeda2e06b057a13d14a88df5766b38eda Mon Sep 17 00:00:00 2001
+From: Josh Matthews <josh@joshmatthews.net>
+Date: Mon, 6 Jul 2020 14:37:42 -0400
+Subject: [PATCH] Add signal handler to catch segfault in build script.
+
+---
+ Cargo.lock             |  11 +++++
+ webrender/Cargo.toml   |   5 ++
+ webrender/backtrace.rs | 103 +++++++++++++++++++++++++++++++++++++++++
+ webrender/build.rs     |  30 ++++++++++++
+ 4 files changed, 149 insertions(+)
+ create mode 100644 webrender/backtrace.rs
+
+diff --git a/Cargo.lock b/Cargo.lock
+index afdd336ae..cf91162d5 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1477,6 +1477,14 @@ dependencies = [
+  "libc 0.2.68 (registry+https://github.com/rust-lang/crates.io-index)",
+ ]
+ 
++[[package]]
++name = "sig"
++version = "1.0.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++dependencies = [
++ "libc 0.2.68 (registry+https://github.com/rust-lang/crates.io-index)",
++]
++
+ [[package]]
+ name = "slab"
+ version = "0.4.2"
+@@ -1750,6 +1758,7 @@ dependencies = [
+ name = "webrender"
+ version = "0.61.0"
+ dependencies = [
++ "backtrace 0.3.46 (registry+https://github.com/rust-lang/crates.io-index)",
+  "base64 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
+  "bincode 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+  "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+@@ -1780,6 +1789,7 @@ dependencies = [
+  "ron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+  "serde 1.0.106 (registry+https://github.com/rust-lang/crates.io-index)",
+  "serde_json 1.0.51 (registry+https://github.com/rust-lang/crates.io-index)",
++ "sig 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+  "smallvec 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+  "svg_fmt 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
+@@ -2178,6 +2188,7 @@ dependencies = [
+ "checksum servo-freetype-sys 4.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "2c4ccb6d0d32d277d3ef7dea86203d8210945eb7a45fba89dd445b3595dd0dfc"
+ "checksum sha-1 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f7d94d0bede923b3cea61f3f1ff57ff8cdfd77b400fb8f9998949e0cf04163df"
+ "checksum shared_library 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "5a9e7e0f2bfae24d8a5b5a66c5b257a83c7412304311512a0c054cd5e619da11"
++"checksum sig 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6567e29578f9bfade6a5d94a32b9a4256348358d2a3f448cab0021f9a02614a2"
+ "checksum slab 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
+ "checksum smallvec 0.6.13 (registry+https://github.com/rust-lang/crates.io-index)" = "f7b0758c52e15a8b5e3691eae6cc559f08eee9406e548a4477ba4e67770a82b6"
+ "checksum smallvec 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "05720e22615919e4734f6a99ceae50d00226c3c5aca406e102ebc33298214e0a"
+diff --git a/webrender/Cargo.toml b/webrender/Cargo.toml
+index dcf26d913..f7679da57 100644
+--- a/webrender/Cargo.toml
++++ b/webrender/Cargo.toml
+@@ -59,6 +59,11 @@ tracy-rs = { version = "0.1" }
+ mozangle = "0.3.1"
+ rand = "0.4"
+ 
++[target.'cfg(any(target_os = "macos", target_os = "linux"))'.build-dependencies]
++backtrace = "0.3"
++sig = "1.0"
++libc = "0.2"
++
+ [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
+ freetype = { version = "0.4", default-features = false }
+ libc = "0.2"
+diff --git a/webrender/backtrace.rs b/webrender/backtrace.rs
+new file mode 100644
+index 000000000..aa6bb6b32
+--- /dev/null
++++ b/webrender/backtrace.rs
+@@ -0,0 +1,103 @@
++/* This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this
++ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
++
++//! Similar to `println!("{:?}", Backtrace::new())`, but doesn’t allocate.
++//!
++//! Seems to fix some deadlocks: https://github.com/servo/servo/issues/24881
++//!
++//! FIXME: if/when a future version of the `backtrace` crate has
++//! https://github.com/rust-lang/backtrace-rs/pull/265, use that instead.
++
++use std::fmt::{self, Write};
++use backtrace::{BytesOrWideString, PrintFmt};
++
++#[inline(never)]
++pub(crate) fn print(w: &mut dyn std::io::Write) -> Result<(), std::io::Error> {
++    write!(w, "{:?}", Print {
++        print_fn_address: print as usize,
++    })
++}
++
++struct Print {
++    print_fn_address: usize,
++}
++
++impl fmt::Debug for Print {
++    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
++        // Safety: we’re in a signal handler that is about to call `libc::_exit`.
++        // Potential data races from using `*_unsynchronized` functions are perhaps
++        // less bad than potential deadlocks?
++        unsafe {
++            let mut print_fn_frame = 0;
++            let mut frame_count = 0;
++            backtrace::trace_unsynchronized(|frame| {
++                let found = frame.symbol_address() as usize == self.print_fn_address;
++                if found {
++                    print_fn_frame = frame_count;
++                }
++                frame_count += 1;
++                !found
++            });
++
++            let mode = PrintFmt::Short;
++            let mut p = print_path;
++            let mut f = backtrace::BacktraceFmt::new(fmt, mode, &mut p);
++            f.add_context()?;
++            let mut result = Ok(());
++            let mut frame_count = 0;
++            backtrace::trace_unsynchronized(|frame| {
++                let skip = frame_count < print_fn_frame;
++                frame_count += 1;
++                if skip {
++                    return true
++                }
++
++                let mut frame_fmt = f.frame();
++                let mut any_symbol = false;
++                backtrace::resolve_frame_unsynchronized(frame, |symbol| {
++                    any_symbol = true;
++                    if let Err(e) = frame_fmt.symbol(frame, symbol) {
++                        result = Err(e)
++                    }
++                });
++                if !any_symbol {
++                    if let Err(e) = frame_fmt.print_raw(frame.ip(), None, None, None) {
++                        result = Err(e)
++                    }
++                }
++                result.is_ok()
++            });
++            result?;
++            f.finish()
++        }
++    }
++}
++
++fn print_path(fmt: &mut fmt::Formatter, path: BytesOrWideString) -> fmt::Result {
++    match path {
++        BytesOrWideString::Bytes(mut bytes) => {
++            loop {
++                match std::str::from_utf8(bytes) {
++                    Ok(s) => {
++                        fmt.write_str(s)?;
++                        break;
++                    }
++                    Err(err) => {
++                        fmt.write_char(std::char::REPLACEMENT_CHARACTER)?;
++                        match err.error_len() {
++                            Some(len) => bytes = &bytes[err.valid_up_to() + len..],
++                            None => break,
++                        }
++                    }
++                }
++            }
++        }
++        BytesOrWideString::Wide(wide) => {
++            for c in std::char::decode_utf16(wide.iter().cloned()) {
++                fmt.write_char(c.unwrap_or(std::char::REPLACEMENT_CHARACTER))?
++            }
++        }
++    }
++    Ok(())
++}
+diff --git a/webrender/build.rs b/webrender/build.rs
+index 3521d1342..36a7f17a8 100644
+--- a/webrender/build.rs
++++ b/webrender/build.rs
+@@ -244,7 +244,37 @@ fn write_optimized_shaders(shader_dir: &Path, shader_file: &mut File, out_dir: &
+     Ok(())
+ }
+ 
++#[cfg(any(target_os = "macos", target_os = "linux"))]
++mod backtrace;
++
++#[cfg(any(target_os = "macos", target_os = "linux"))]
++extern "C" fn handler(sig: i32) {
++    use std::sync::atomic;
++    static BEEN_HERE_BEFORE: atomic::AtomicBool = atomic::AtomicBool::new(false);
++    if !BEEN_HERE_BEFORE.swap(true, atomic::Ordering::SeqCst) {
++        let stdout = std::io::stdout();
++        let mut stdout = stdout.lock();
++        let _ = write!(&mut stdout, "Stack trace");
++        if let Some(name) = std::thread::current().name() {
++            let _ = write!(&mut stdout, " for thread \"{}\"", name);
++        }
++        let _ = write!(&mut stdout, "\n");
++        let _ = backtrace::print(&mut stdout);
++    }
++    unsafe {
++        libc::_exit(sig);
++    }
++}
++
+ fn main() -> Result<(), std::io::Error> {
++    #[cfg(any(target_os = "macos", target_os = "linux"))]
++    {
++        sig::signal!(sig::ffi::Sig::SEGV, handler); // handle segfaults
++        sig::signal!(sig::ffi::Sig::ILL, handler); // handle stack overflow and unsupported CPUs
++        sig::signal!(sig::ffi::Sig::IOT, handler); // handle double panics
++        sig::signal!(sig::ffi::Sig::BUS, handler); // handle invalid memory access
++    }
++
+     let out_dir = env::var("OUT_DIR").unwrap_or("out".to_owned());
+ 
+     let shaders_file_path = Path::new(&out_dir).join("shaders.rs");
+-- 
+2.39.2
+

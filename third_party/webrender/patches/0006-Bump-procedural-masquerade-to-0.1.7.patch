@@ -1,0 +1,53 @@
+From 415b9ba32648667313f6f4ce7965752285bf0b26 Mon Sep 17 00:00:00 2001
+From: Martin Robinson <mrobinson@igalia.com>
+Date: Thu, 12 Jan 2023 12:35:31 +0100
+Subject: [PATCH 2/2] Bump procedural-masquerade to 0.1.7
+
+This fixes a build issue in this branch.
+---
+ Cargo.lock | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/Cargo.lock b/Cargo.lock
+index b6085604cae8e18de3273bcddac43fa0a7e1abd1..b7055733e57fcd0acff07881ef72369b560c2abe 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -417,7 +417,7 @@ version = "0.1.7"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ dependencies = [
+  "cstr-macros 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+- "procedural-masquerade 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
++ "procedural-masquerade 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ ]
+ 
+ [[package]]
+@@ -425,7 +425,7 @@ name = "cstr-macros"
+ version = "0.1.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ dependencies = [
+- "procedural-masquerade 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
++ "procedural-masquerade 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+  "syn 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ ]
+ 
+@@ -1212,7 +1212,7 @@ dependencies = [
+ 
+ [[package]]
+ name = "procedural-masquerade"
+-version = "0.1.6"
++version = "0.1.7"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ 
+ [[package]]
+@@ -2182,7 +2182,7 @@ dependencies = [
+ "checksum ppv-lite86 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "74490b50b9fbe561ac330df47c08f3f33073d2d00c150f719147d7c54522fa1b"
+ "checksum proc-macro2 0.4.30 (registry+https://github.com/rust-lang/crates.io-index)" = "cf3d2011ab5c909338f7887f4fc896d35932e29146c12c8d01da6b22a80ba759"
+ "checksum proc-macro2 1.0.10 (registry+https://github.com/rust-lang/crates.io-index)" = "df246d292ff63439fea9bc8c0a270bed0e390d5ebd4db4ba15aba81111b5abe3"
+-"checksum procedural-masquerade 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "9a1574a51c3fd37b26d2c0032b649d08a7d51d4cca9c41bbc5bf7118fa4509d0"
++"checksum procedural-masquerade 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "8f1383dff4092fe903ac180e391a8d4121cc48f08ccf850614b0290c6673b69d"
+ "checksum quick-error 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
+ "checksum quote 0.6.13 (registry+https://github.com/rust-lang/crates.io-index)" = "6ce23b6b870e8f94f81fb0a363d65d86675884b34a09043c81e5562f11c1f8e1"
+ "checksum quote 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2bdc6c187c65bca4260c9011c9e3132efe4909da44726bad24cf7572ae338d7f"
+-- 
+2.39.2
+

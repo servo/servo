@@ -1,0 +1,12 @@
+--- # Checks that segments are clipped correctly when opposite edges of the border overlap
+root:
+  items:
+    - type: stacking-context
+      bounds: [0, 0, 120, 40]
+      items:
+        - type: border
+          bounds: [ 10, 10, 100, 20 ]
+          width: 15
+          border-type: normal
+          style: solid
+          color: [ [0, 0, 255, 0.5] ]

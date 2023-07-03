@@ -1,0 +1,14 @@
+== tile-size.yaml tile-size-ref.yaml
+== very-big.yaml very-big-ref.yaml
+== very-big-tile-size.yaml very-big-tile-size-ref.yaml
+== tile-with-spacing.yaml tile-with-spacing-ref.yaml
+skip_on(android,device) fuzzy(1,331264) == tile-repeat-prim-or-decompose.yaml tile-repeat-prim-or-decompose-ref.yaml
+platform(linux,mac) options(allow-mipmaps) == downscale.yaml downscale.png
+skip_on(android,device) == segments.yaml segments.png
+platform(linux,mac) == yuv.yaml yuv.png
+skip_on(android,device) == tiled-clip-chain.yaml tiled-clip-chain-ref.yaml
+skip_on(android,device) == tiled-complex-clip.yaml tiled-complex-clip-ref.yaml
+platform(linux,mac) == texture-rect.yaml texture-rect-ref.yaml
+platform(linux) == occlusion.yaml occlusion.png
+# allow slight lerp change where the squares meet, but catch lerping problems on the boundary (should clamp)
+fuzzy-range(<=1,*450) == rgb_composite.yaml rgb_composite_ref.yaml

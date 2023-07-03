@@ -1,0 +1,13 @@
+[package]
+name = "compositor"
+version = "0.1.0"
+authors = ["Glenn Watson <gw@intuitionlibrary.com>"]
+edition = "2018"
+license = "MPL-2.0"
+
+[dependencies]
+webrender = { path = "../../webrender" }
+gleam = "0.12.0"
+
+[target.'cfg(windows)'.dependencies]
+compositor-windows = { path = "../compositor-windows" }

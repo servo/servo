@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            html, body {
+                margin: 0;
+            }
+            img {
+                display: block;
+            }
+            #container {
+                margin: 0;
+                position: absolute;
+                width: 100%;
+                height: 100%;
+            }
+            .rect {
+                position: absolute;
+                width: 25%;
+                height: 25%;
+                //background-image: url("color_pattern_1.png");
+            }
+            .overlay {
+                z-index: 1;
+            }
+            .inner {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                background-image: url("color_pattern_2.png");
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container">
+            <img src="color_pattern_1.png" class="rect" style="left:   0%; top:  0%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:   0%; top:  0%;" style="mix-blend-mode: normal;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  25%; top:  0%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  25%; top:  0%; mix-blend-mode: multiply;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  50%; top:  0%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  50%; top:  0%; mix-blend-mode: screen;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  75%; top:  0%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  75%; top:  0%; mix-blend-mode: overlay;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:   0%; top: 25%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:   0%; top: 25%; mix-blend-mode: darken;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  25%; top: 25%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  25%; top: 25%; mix-blend-mode: lighten;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  50%; top: 25%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  50%; top: 25%; mix-blend-mode: color-dodge;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  75%; top: 25%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  75%; top: 25%; mix-blend-mode: color-burn;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:   0%; top: 50%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:   0%; top: 50%; mix-blend-mode: hard-light;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  25%; top: 50%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  25%; top: 50%; mix-blend-mode: soft-light;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  50%; top: 50%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  50%; top: 50%; mix-blend-mode: difference;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  75%; top: 50%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  75%; top: 50%; mix-blend-mode: exclusion;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:   0%; top: 75%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:   0%; top: 75%; mix-blend-mode: hue;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  25%; top: 75%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  25%; top: 75%; mix-blend-mode: saturation;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  50%; top: 75%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  50%; top: 75%; mix-blend-mode: color;"/>
+
+            <img src="color_pattern_1.png" class="rect" style="left:  75%; top: 75%;"/>
+            <img src="color_pattern_2.png" class="rect" style="left:  75%; top: 75%; mix-blend-mode: luminosity;"/>
+        </div>
+    </body>
+</html>

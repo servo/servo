@@ -1,0 +1,15 @@
+# Tests the SVG offset filter primitive
+# An offset filter should have the same effect as changing the origin of the rectangle.
+---
+root:
+  items:
+    - type: stacking-context
+      bounds: 0 0 0 0
+      filter-primitives:
+      - type: offset
+        offset: 10 10
+        in: original
+      items:
+      - type: rect
+        bounds: 10 10 100 100
+        color: red
