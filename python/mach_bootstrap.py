@@ -241,13 +241,8 @@ def bootstrap_command_only(topdir):
     import servo.platform
     import servo.util
 
-    # We are not set up yet, so we always use the default cache directory
-    # for the initial bootstrap.
-    # TODO(mrobinson): Why not just run the bootstrap command in this case?
-
     try:
-        servo.platform.get().bootstrap(
-            servo.util.get_default_cache_dir(topdir), '-f' in sys.argv)
+        servo.platform.get().bootstrap('-f' in sys.argv or '--force' in sys.argv)
     except NotImplementedError as exception:
         print(exception)
         return 1

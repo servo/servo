@@ -54,7 +54,7 @@ class MacOS(Base):
             return False
         return True
 
-    def _platform_bootstrap(self, _cache_dir: str, force: bool) -> bool:
+    def _platform_bootstrap(self, _force: bool) -> bool:
         installed_something = False
         try:
             brewfile = os.path.join(util.SERVO_ROOT, "etc", "homebrew", "Brewfile")

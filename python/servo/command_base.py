@@ -476,8 +476,7 @@ class CommandBase(object):
         return self.get_executable(destination_folder)
 
     def msvc_package_dir(self, package):
-        return path.join(self.context.sharedir, "msvc-dependencies", package,
-                         servo.platform.windows.DEPENDENCIES[package])
+        return servo.platform.windows.get_dependency_dir(package)
 
     def vs_dirs(self):
         assert 'windows' in servo.platform.host_triple()
@@ -508,11 +507,7 @@ class CommandBase(object):
         extra_path = []
         effective_target = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in effective_target:
-            extra_path += [path.join(self.msvc_package_dir("cmake"), "bin")]
             extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
-            extra_path += [path.join(self.msvc_package_dir("ninja"), "bin")]
-            extra_path += [self.msvc_package_dir("nuget")]
-
             env.setdefault("CC", "clang-cl.exe")
             env.setdefault("CXX", "clang-cl.exe")
             if self.is_uwp_build:
@@ -911,10 +906,7 @@ class CommandBase(object):
         if self.context.bootstrapped:
             return
 
-        # Always check if all needed MSVC dependencies are installed
-        target_platform = self.cross_compile_target or servo.platform.host_triple()
-        if "msvc" in target_platform:
-            Registrar.dispatch("bootstrap", context=self.context)
+        servo.platform.get().passive_bootstrap()
 
         if self.config["tools"]["use-rustup"]:
             self.ensure_rustup_version()

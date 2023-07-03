@@ -43,9 +43,12 @@ manually, try the [manual build setup][manual-build].
 
  - Download and run [`rustup-init.exe`](https://win.rustup.rs/) then follow the onscreen instructions.
  - Install [chocolatey](https://chocolatey.org/)
- - Run `choco install support\windows\chocolatey.config`
-   *This will install CMake, Git, LLVM, Ninja, NuGet, Python and the Visual Studio 2019 Build Tools.*
- - Run `mach bootstrap-gstreamer`
+ - Run `mach bootstrap`
+  - *This will install CMake, Git, Ninja, NuGet, Python and the Visual Studio 2019 Build Tools
+     via choco in an Administrator console. It can take quite a while.*
+  - *If you already have Visual Studio 2019 installed, this may not install all necessary components.
+     Please follow the Visual Studio 2019 installation instructions in the [manual setup][manual-build].*
+- Run `refreshenv`
 
 See also [Windows Troubleshooting Tips][windows-tips].
 
