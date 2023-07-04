@@ -4,6 +4,10 @@ on:
   push:
     branches: ["auto", "try"]
 
+  # Use merge queue for landing PRs
+  merge_group:
+    types: [checks_requested]
+
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
