@@ -65,7 +65,7 @@ tokio-stream = "0.1"
 tungstenite = "0.19"
 url = { workspace = true }
 uuid = { workspace = true }
-webrender_api = { git = "https://github.com/servo/webrender" }
+webrender_api = { workspace = true }
 
 [dev-dependencies]
 futures = {version = "0.3", features = ["compat"]}

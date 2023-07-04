@@ -1,0 +1,25 @@
+[workspace]
+members = [
+    "direct-composition",
+    "examples",
+    "webrender",
+    "webrender_api",
+    "wrench",
+    "example-compositor/compositor",
+    "tileview",
+]
+
+[profile.release]
+debug = true
+panic = "abort"
+
+[profile.dev]
+panic = "abort"
+
+# Running wrench on android built with master cargo-apk results in a crash
+# due to a mismatched version of android_glue (a dependency of winit).
+# Override it to use a suitable version of android_glue.
+# See https://github.com/rust-windowing/android-rs-glue/issues/239.
+# This can be removed once a new version of android_glue is published to crates.io.
+[patch.crates-io]
+android_glue = { git = "https://github.com/rust-windowing/android-rs-glue.git", rev = "e3ac6edea5814e1faca0c31ea8fac6877cb929ea" }

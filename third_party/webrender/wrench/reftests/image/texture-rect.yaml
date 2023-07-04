@@ -1,0 +1,7 @@
+# Test to ensure external images using the textureRect sampler mode work correctly.
+root:
+  items:
+    - image: colorrect.png
+      bounds: [0, 0, 100, 100]
+      external: true
+      external-target: rect

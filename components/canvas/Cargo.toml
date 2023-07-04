@@ -44,8 +44,8 @@ surfman = { workspace = true, features = ["sm-angle","sm-angle-default"] }
 surfman-chains = { workspace = true }
 surfman-chains-api = { workspace = true }
 time = { workspace = true, optional = true }
-webrender = { git = "https://github.com/servo/webrender" }
-webrender_api = { git = "https://github.com/servo/webrender" }
+webrender = { workspace = true }
+webrender_api = { workspace = true }
 webrender_surfman = { path = "../webrender_surfman" }
 webrender_traits = { path = "../webrender_traits" }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

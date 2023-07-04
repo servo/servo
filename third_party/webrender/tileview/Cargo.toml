@@ -1,0 +1,15 @@
+[package]
+name = "tileview"
+version = "0.1.0"
+authors = ["Bert Peers <bpeers@mozilla.com>"]
+license = "MPL-2.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ron = "0.5"
+serde = {version = "1.0.88", features = ["derive"] }
+webrender = {path = "../webrender", features=["capture","replay","debugger","png","profiler","no_static_freetype", "leak_checks"]}
+webrender_api = {path = "../webrender_api", features=["serialize","deserialize"]}
+euclid = { version = "0.22.0", features = ["serde"] }

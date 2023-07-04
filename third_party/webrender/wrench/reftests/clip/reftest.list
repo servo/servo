@@ -1,0 +1,18 @@
+    platform(linux,mac) == border-with-rounded-clip.yaml border-with-rounded-clip.png
+== clip-mode.yaml clip-mode.png
+== clip-ellipse.yaml clip-ellipse.png
+platform(linux,mac) == clip-45-degree-rotation.yaml clip-45-degree-rotation-ref.png
+== clip-3d-transform.yaml clip-3d-transform-ref.yaml
+fuzzy(1,4) == clip-corner-overlap.yaml clip-corner-overlap-ref.yaml
+fuzzy(8,60) == custom-clip-chains.yaml custom-clip-chains-ref.yaml
+== custom-clip-chain-node-ancestors.yaml custom-clip-chain-node-ancestors-ref.yaml
+== fixed-position-clipping.yaml fixed-position-clipping-ref.yaml
+platform(linux,mac) == segmentation-with-other-coordinate-system-clip.yaml segmentation-with-other-coordinate-system-clip.png
+== segmentation-across-rotation.yaml segmentation-across-rotation-ref.yaml
+skip_on(android,device) == color_targets(3) alpha_targets(1) stacking-context-clip.yaml stacking-context-clip-ref.yaml
+== snapping.yaml snapping-ref.yaml
+fuzzy(70,2400) == clip-and-filter-with-rotation.yaml clip-and-filter-with-rotation-ref.yaml
+color_targets(1) alpha_targets(0) == clip-out-rotation.yaml blank.yaml # Unexpected color targets, see bug 1580795
+== clipped-occlusion.yaml clipped-occlusion-ref.yaml
+== clip-empty-inner-rect.yaml clip-empty-inner-rect-ref.yaml
+== iframe-nested-in-stacking-context.yaml iframe-nested-in-stacking-context-ref.yaml

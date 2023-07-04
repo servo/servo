@@ -1,0 +1,21 @@
+# This test ensures that we flatten the "flat" style trasformations.
+# If the flattening doesn't happen here, the rect gets rotated back
+# to the original position.
+---
+root:
+  items:
+    -
+      bounds: [100, 100, 0, 0]
+      type: stacking-context
+      transform: rotate-x(45)
+      transform-origin: 0 0
+      items:
+        -
+          type: "stacking-context"
+          transform: rotate-x(-45)
+          transform-origin: 0 0
+          items:
+            -
+              bounds: [0, 0, 200, 200]
+              type: rect
+              color: green

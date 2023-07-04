@@ -39,8 +39,8 @@ servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }
 time = { workspace = true }
-webrender = { git = "https://github.com/servo/webrender", features = ["capture"] }
-webrender_api = { git = "https://github.com/servo/webrender" }
+webrender = { workspace = true }
+webrender_api = { workspace = true }
 webrender_surfman = { path = "../webrender_surfman" }
 webxr = { git = "https://github.com/servo/webxr" }
 

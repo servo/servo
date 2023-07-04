@@ -78,6 +78,8 @@ unicode-script = "0.5"
 url = "2.0"
 uuid = { version = "1.3.4", features = ["v4"] }
 webdriver = "0.48.0"
+webrender = { git = "https://github.com/servo/webrender", features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender" }
 winapi = "0.3"
 xi-unicode = "0.1.0"
 xml5ever = "0.17"
@@ -104,7 +106,9 @@ mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 # fork that bumps crates since the original repo is archived.
 immeta = { git = "https://github.com/fabricedesre/immeta.git" }
 
-# https://github.com/servo/servo/issues/27515#issuecomment-671474054
+
+# This is required because we want all dependencies that use WebRender to
+# use our vendored version.
 [patch."https://github.com/servo/webrender"]
-webrender = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
-webrender_api = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
+webrender = { path = "third_party/webrender/webrender" }
+webrender_api = { path = "third_party/webrender/webrender_api" }

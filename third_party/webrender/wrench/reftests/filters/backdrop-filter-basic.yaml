@@ -1,0 +1,21 @@
+# Tests that a basic invert backdrop-filter works
+---
+root:
+  items:
+    - type: stacking-context
+      bounds: 0 0 0 0
+      items:
+      - type: rect
+        color: [255, 0, 0, 1]
+        bounds: 0 0 256 256
+      - type: clip
+        id: 2
+        bounds: 0 0 256 256
+        clip-rect: 0 0 256 256
+      - type: stacking-context
+        bounds: 0 0 0 0
+        items:
+        - type: backdrop-filter
+          bounds: 0 0 256 256
+          clip-node: 2
+          filters: invert(1)

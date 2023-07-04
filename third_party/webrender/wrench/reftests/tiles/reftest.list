@@ -1,0 +1,4 @@
+** rect.yaml
+** simple-gradient.yaml
+# TODO: Fix rasterizer inaccuracies so this is the same regardless of tile size!
+!* prim-suite.yaml

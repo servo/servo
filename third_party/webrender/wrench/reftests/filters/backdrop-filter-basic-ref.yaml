@@ -1,0 +1,11 @@
+
+# Tests that a basic invert backdrop-filter works
+---
+root:
+  items:
+    - type: stacking-context
+      bounds: 0 0 0 0
+      items:
+      - type: rect
+        color: [0, 255, 255, 1]
+        bounds: 0 0 256 256
