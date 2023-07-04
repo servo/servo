@@ -2616,6 +2616,8 @@ impl BlockFlow {
             clip: ClippingRegion::from_rect(border_box.to_layout()),
             content_rect: LayoutRect::zero(),
             node_type: ClipScrollNodeType::StickyFrame(sticky_frame_data),
+            scroll_node_id: None,
+            clip_chain_id: None,
         });
 
         let new_clipping_and_scrolling = ClippingAndScrolling::simple(new_clip_scroll_index);
@@ -2683,6 +2685,8 @@ impl BlockFlow {
             clip: clip,
             content_rect: Rect::new(content_box.origin, content_size).to_layout(),
             node_type: ClipScrollNodeType::ScrollFrame(sensitivity, external_id),
+            scroll_node_id: None,
+            clip_chain_id: None,
         });
 
         let new_clipping_and_scrolling = ClippingAndScrolling::simple(new_clip_scroll_index);
@@ -2719,6 +2723,8 @@ impl BlockFlow {
             clip: ClippingRegion::from_rect(clip_rect.to_layout()),
             content_rect: LayoutRect::zero(), // content_rect isn't important for clips.
             node_type: ClipScrollNodeType::Clip(ClipType::Rect),
+            scroll_node_id: None,
+            clip_chain_id: None,
         });
 
         let new_indices = ClippingAndScrolling::new(new_index, new_index);
