@@ -70,7 +70,7 @@ jobs:
       - name: Smoketest
         run: python mach smoketest --angle
       - name: Unit tests
-        if: ${{ inputs.unit-tests }}
+        if: ${{ inputs.unit-tests || github.ref_name == 'try-windows' }}
         run: python mach test-unit --release --with-${{ env.LAYOUT }}
       - name: Rename build timing
         run: cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows-${{ env.LAYOUT }} -Recurse

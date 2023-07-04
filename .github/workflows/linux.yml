@@ -78,7 +78,7 @@ jobs:
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
-        if: ${{ inputs.unit-tests }}
+        if: ${{ inputs.unit-tests || github.ref_name == 'try-linux' }}
         run: python3 ./mach test-unit --release --with-${{ env.LAYOUT }}
       - name: Rename build timing
         run: cp -r target/cargo-timings target/cargo-timings-linux-${{ env.LAYOUT }}
