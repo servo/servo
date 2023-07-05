@@ -16,7 +16,7 @@ bench = false
 [dependencies]
 android_injected_glue = "0.2"
 android_logger = "0.10"
-gstreamer = "0.15"
+# gstreamer = "0.15"
 jni = "0.18.0"
 libc = { workspace = true }
 log = { workspace = true }
@@ -32,7 +32,7 @@ default = ["max_log_level", "native-bluetooth", "webdriver"]
 googlevr = ["simpleservo/googlevr"]
 js_backtrace = ["simpleservo/js_backtrace"]
 max_log_level = ["simpleservo/max_log_level"]
-media-gstreamer = ["simpleservo/media-gstreamer"]
+# media-gstreamer = ["simpleservo/media-gstreamer"]
 native-bluetooth = ["simpleservo/native-bluetooth"]
 webdriver = ["simpleservo/webdriver"]
 webgl_backtrace = ["simpleservo/webgl_backtrace"]

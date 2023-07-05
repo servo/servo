@@ -365,6 +365,7 @@ dependencies = [
  "rustc-hash",
  "shlex",
  "syn 1.0.103",
+ "which",
 ]
 
 [[package]]
@@ -3619,9 +3620,8 @@ checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#f452fb2e642e158893a094b62956b5f40e015c3e"
+source = "git+https://github.com/servo/mozjs#071ccca2f78b587553d2ba78a1b09377b96232cd"
 dependencies = [
- "bindgen 0.68.1",
  "cc",
  "lazy_static",
  "libc",
@@ -3633,9 +3633,9 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.2"
-source = "git+https://github.com/servo/mozjs#f452fb2e642e158893a094b62956b5f40e015c3e"
+source = "git+https://github.com/servo/mozjs#071ccca2f78b587553d2ba78a1b09377b96232cd"
 dependencies = [
- "bindgen 0.68.1",
+ "bindgen 0.62.0",
  "cc",
  "encoding_c",
  "encoding_c_mem",
@@ -5471,7 +5471,6 @@ dependencies = [
  "android_injected_glue",
  "android_logger",
  "cc",
- "gstreamer",
  "jni",
  "libc",
  "log",
