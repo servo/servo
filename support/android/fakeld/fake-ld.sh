@@ -14,11 +14,11 @@ call_gcc()
 
   export _ANDROID_ARCH=$1
   export _ANDROID_TARGET=$3
-  export ANDROID_SYSROOT="${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/${_ANDROID_ARCH}"
+  export ANDROID_SYSROOT="${ANDROID_NDK_HOME}/platforms/${ANDROID_PLATFORM}/${_ANDROID_ARCH}"
   ANDROID_TOOLCHAIN=""
   for host in "linux-x86_64" "linux-x86" "darwin-x86_64" "darwin-x86"; do
-    if [[ -d "${ANDROID_NDK}/toolchains/llvm/prebuilt/${host}/bin" ]]; then
-      ANDROID_TOOLCHAIN="${ANDROID_NDK}/toolchains/llvm/prebuilt/${host}/bin"
+    if [[ -d "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${host}/bin" ]]; then
+      ANDROID_TOOLCHAIN="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${host}/bin"
       break
     fi
   done
@@ -31,9 +31,10 @@ call_gcc()
   echo "sysroot: ${ANDROID_SYSROOT}"
   echo "targetdir: ${TARGET_DIR}"
 
+  echo "${ANDROID_TOOLCHAIN}/clang" \
+      --target="${_ANDROID_TARGET}" ${_GCC_PARAMS} -lc++
+#      -L "${ANDROID_CXX_LIBS}" ${_GCC_PARAMS} -lc++
   "${ANDROID_TOOLCHAIN}/clang" \
-      --sysroot="${ANDROID_SYSROOT}" \
-      --gcc-toolchain="${GCC_TOOLCHAIN}" \
-      --target="${_ANDROID_TARGET}" \
-      -L "${ANDROID_CXX_LIBS}" ${_GCC_PARAMS} -lc++
+      --target="${_ANDROID_TARGET}" ${_GCC_PARAMS} -lc++
+#      -L "${ANDROID_CXX_LIBS}" ${_GCC_PARAMS} -lc++
 }

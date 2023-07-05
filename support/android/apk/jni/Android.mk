@@ -24,5 +24,5 @@ include $(PREBUILT_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_PATH:= $(SERVO_TARGET_DIR)/../../gstreamer/gst-build-$(APP_ABI)
 LOCAL_MODULE := gstreamer
-LOCAL_SRC_FILES := libgstreamer_android.so
+#LOCAL_SRC_FILES := libgstreamer_android.so
 include $(PREBUILT_SHARED_LIBRARY)

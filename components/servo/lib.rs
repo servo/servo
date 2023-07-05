@@ -1091,6 +1091,9 @@ fn default_user_agent_string_for(agent: UserAgent) -> &'static str {
     const DESKTOP_UA_STRING: &'static str =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Servo/1.0 Firefox/111.0";
 
+    #[cfg(target_os = "android")]
+    const DESKTOP_UA_STRING: &'static str = "";
+
     match agent {
         UserAgent::Desktop => DESKTOP_UA_STRING,
         UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:109.0) Servo/1.0 Firefox/111.0",

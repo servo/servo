@@ -9,17 +9,17 @@ use std::ptr::{null, null_mut};
 use std::sync::Arc;
 use std::thread;
 
-use android_logger::{self, Filter};
-use gstreamer::debug_set_threshold_from_string;
+use android_logger::{self, FilterBuilder, Filter, Config};
+//use gstreamer::debug_set_threshold_from_string;
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
 use simpleservo::{
-    self, self, deinit, gl_glue, gl_glue, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait,
+    self, deinit, gl_glue, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait,
     InitOptions, InputMethodType, MediaSessionPlaybackState, MouseButton, PromptResult, ServoGlue,
-    ServoGlue, VRInitOptions, SERVO, SERVO,
+    ServoGlue, VRInitOptions, SERVO,
 };
 
 struct HostCallbacks {
@@ -79,21 +79,25 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
             "compositing::compositor",
             "constellation::constellation",
         ];
-        let mut filter = Filter::default().with_min_level(Level::Debug);
+        let mut filter_builder = FilterBuilder::new();
         for &module in &filters {
-            filter = filter.with_allowed_module_path(module);
+            filter_builder.filter_module(module, log::LevelFilter::Debug);
         }
         if let Some(log_str) = log_str {
             for module in log_str.split(',') {
-                filter = filter.with_allowed_module_path(module);
+                filter_builder.filter_module(module, log::LevelFilter::Debug);
             }
         }
 
-        if let Some(gst_debug_str) = gst_debug_str {
-            debug_set_threshold_from_string(&gst_debug_str, true);
-        }
+        //if let Some(gst_debug_str) = gst_debug_str {
+        //    debug_set_threshold_from_string(&gst_debug_str, true);
+        //}
 
-        android_logger::init_once(filter, Some("simpleservo"));
+        android_logger::init_once(
+            Config::default()
+            .with_filter(filter_builder.build())
+            .with_tag("simpleservo")
+        )
     }
 
     info!("init");
@@ -379,19 +383,19 @@ impl HostCallbacks {
 }
 
 impl HostTrait for HostCallbacks {
-    fn flush(&self) {
-        debug!("flush");
-        let env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "flush", "()V", &[])
-            .unwrap();
-    }
+    // fn flush(&self) {
+    //     debug!("flush");
+    //     let env = self.jvm.get_env().unwrap();
+    //     env.call_method(self.callbacks.as_obj(), "flush", "()V", &[])
+    //         .unwrap();
+    // }
 
-    fn make_current(&self) {
-        debug!("make_current");
-        let env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "makeCurrent", "()V", &[])
-            .unwrap();
-    }
+    // fn make_current(&self) {
+    //     debug!("make_current");
+    //     let env = self.jvm.get_env().unwrap();
+    //     env.call_method(self.callbacks.as_obj(), "makeCurrent", "()V", &[])
+    //         .unwrap();
+    // }
 
     fn prompt_alert(&self, message: String, _trusted: bool) {
         debug!("prompt_alert");
@@ -446,9 +450,10 @@ impl HostTrait for HostCallbacks {
             .unwrap();
     }
 
-    fn on_title_changed(&self, title: String) {
+    fn on_title_changed(&self, title: Option<String>) {
         debug!("on_title_changed");
         let env = self.jvm.get_env().unwrap();
+        let title = title.unwrap_or_else(String::new);
         let s = match new_string(&env, &title) {
             Ok(s) => s,
             Err(_) => return,
@@ -529,7 +534,7 @@ impl HostTrait for HostCallbacks {
 
     fn on_ime_show(
         &self,
-        _type: InputEncoding,
+        _input_type: InputMethodType,
         _text: Option<(String, i32)>,
         _multiline: bool,
         _rect: DeviceIntRect,
@@ -610,11 +615,17 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn on_devtools_started(&self, port: Result<u16, ()>) {
+    fn on_devtools_started(&self, port: Result<u16, ()>, _token: String) {
         match port {
             Ok(p) => info!("Devtools Server running on port {}", p),
             Err(()) => error!("Error running devtools server"),
         }
+    }
+
+    fn show_context_menu(&self, _title: Option<String>, _items: Vec<String>) {
+    }
+
+    fn on_panic(&self, _reason: String, _backtrace: Option<String>) {
     }
 }
 
@@ -803,28 +814,21 @@ fn jni_coords_to_rust_coords(env: &JNIEnv, obj: JObject) -> Result<Coordinates, 
 
 fn get_field<'a>(
     env: &'a JNIEnv,
-    obj: JObject,
+    obj: JObject<'a>,
     field: &str,
     type_: &str,
 ) -> Result<Option<JValue<'a>>, String> {
     if env.get_field_id(obj, field, type_).is_err() {
-        return Err(format!("Can't find `{}` field", &field));
+        return Err(format!("Can't find `{}` field", field));
     }
     env.get_field(obj, field, type_)
         .map(|value| Some(value))
-        .or_else(|e| match *e.kind() {
-            errors::ErrorKind::NullPtr(_) => Ok(None),
-            _ => Err(format!(
-                "Can't find `{}` field: {}",
-                &field,
-                e.description()
-            )),
-        })
+        .or_else(|_| Err(format!("Can't find `{}` field", field)))
 }
 
 fn get_non_null_field<'a>(
     env: &'a JNIEnv,
-    obj: JObject,
+    obj: JObject<'a>,
     field: &str,
     type_: &str,
 ) -> Result<JValue<'a>, String> {
@@ -885,20 +889,21 @@ fn get_options(
         None => None,
     };
 
+        // enable_subpixel_text_antialiasing,
+        // vr_init: if vr_pointer.is_null() {
+        //     VRInitOptions::None
+        // } else {
+        //     VRInitOptions::VRExternal(vr_pointer)
+        // },
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),
-        url,
         coordinates,
         density,
-        enable_subpixel_text_antialiasing,
-        vr_init: if vr_pointer.is_null() {
-            VRInitOptions::None
-        } else {
-            VRInitOptions::VRExternal(vr_pointer)
-        },
         xr_discovery: None,
         gl_context_pointer: None,
         native_display_pointer: None,
+        surfman_integration: todo!(),
+        prefs: None,
     };
     Ok((opts, log, log_str, gst_debug_str))
 }
