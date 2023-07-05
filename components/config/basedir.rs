@@ -35,14 +35,9 @@ pub fn default_config_dir() -> Option<PathBuf> {
     Some(config_dir)
 }
 
-#[cfg(all(target_os = "windows", not(feature = "uwp")))]
+#[cfg(all(target_os = "windows"))]
 pub fn default_config_dir() -> Option<PathBuf> {
     let mut config_dir = ::dirs_next::config_dir().unwrap();
     config_dir.push("Servo");
     Some(config_dir)
-}
-
-#[cfg(all(target_os = "windows", feature = "uwp"))]
-pub fn default_config_dir() -> Option<PathBuf> {
-    None
 }

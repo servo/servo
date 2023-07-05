@@ -207,7 +207,6 @@ class CommandBase(object):
         self.context = context
         self.features = []
         self.cross_compile_target = None
-        self.is_uwp_build = False
         self.is_android_build = False
         self.target_path = util.get_target_dir()
 
@@ -513,11 +512,6 @@ class CommandBase(object):
             extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
             env.setdefault("CC", "clang-cl.exe")
             env.setdefault("CXX", "clang-cl.exe")
-            if self.is_uwp_build:
-                env.setdefault("TARGET_CFLAGS", "")
-                env.setdefault("TARGET_CXXFLAGS", "")
-                env["TARGET_CFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
-                env["TARGET_CXXFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
 
             arch = effective_target.split('-')[0]
             vcpkg_arch = {
@@ -526,8 +520,6 @@ class CommandBase(object):
                 "aarch64": "arm64-windows",
             }
             target_arch = vcpkg_arch[arch]
-            if self.is_uwp_build:
-                target_arch += "-uwp"
             openssl_base_dir = path.join(self.msvc_package_dir("openssl"), target_arch)
 
             # Link openssl
@@ -830,11 +822,6 @@ class CommandBase(object):
                 help='Build for Android. If --target is not specified, this '
                      'will choose a default target architecture.',
             ),
-            CommandArgument(
-                '--uwp',
-                group="Cross Compilation",
-                action='store_true',
-                help='Build for HoloLens (x64)'),
             CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target"),
             CommandArgumentGroup('Feature Selection'),
             CommandArgument(
@@ -881,9 +868,7 @@ class CommandBase(object):
         ]
 
         def configuration_decorator(self, *args, **kwargs):
-            self.configure_cross_compilation(
-                kwargs['target'], kwargs['android'],
-                kwargs['uwp'], kwargs['win_arm64'])
+            self.configure_cross_compilation(kwargs['target'], kwargs['android'], kwargs['win_arm64'])
 
             self.features = kwargs.get("features", None) or []
             self.configure_media_stack(kwargs['media_stack'])
@@ -899,15 +884,8 @@ class CommandBase(object):
             self,
             cross_compile_target: Optional[str],
             android: Optional[str],
-            uwp: Optional[str],
             win_arm64: Optional[str]):
         # Force the UWP-enabled target if the convenience UWP flags are passed.
-        if uwp and not cross_compile_target:
-            if win_arm64:
-                cross_compile_target = 'aarch64-uwp-windows-msvc'
-            else:
-                cross_compile_target = 'x86_64-uwp-windows-msvc'
-
         if android is None:
             android = self.config["build"]["android"]
         if android:
@@ -921,7 +899,6 @@ class CommandBase(object):
             self.setup_configuration_for_android_target(cross_compile_target)
 
         self.cross_compile_target = cross_compile_target
-        self.is_uwp_build = uwp or (cross_compile_target and "uwp" in cross_compile_target)
         self.is_android_build = (cross_compile_target and "android" in cross_compile_target)
         self.target_path = servo.util.get_target_dir()
         if self.is_android_build:
@@ -943,7 +920,6 @@ class CommandBase(object):
                 not self.cross_compile_target
                 or ("armv7" in self.cross_compile_target and self.is_android_build)
                 or "x86_64" in self.cross_compile_target
-                or "uwp" in self.cross_compile_target
             ):
                 media_stack = "gstreamer"
             else:
@@ -985,10 +961,6 @@ class CommandBase(object):
 
             features.append("native-bluetooth")
 
-            if self.is_uwp_build:
-                features.append("no-wgl")
-                features.append("uwp")
-
             if with_layout_2020 or (self.config["build"]["layout-2020"] and not with_layout_2013):
                 features.append("layout-2020")
             elif "layout-2020" not in features:
@@ -1007,8 +979,6 @@ class CommandBase(object):
         if with_debug_assertions or self.config["build"]["debug-assertions"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
-        if self.is_uwp_build:
-            cargo_args += ["-Z", "build-std"]
         return self.call_rustup_run(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
     def android_support_dir(self):
@@ -1094,7 +1064,6 @@ class CommandBase(object):
                     check_call(["rustup", "component", "add", "--toolchain", toolchain, component])
 
             needs_toolchain_install = self.cross_compile_target \
-                and not self.is_uwp_build \
                 and self.cross_compile_target.encode("utf-8") not in check_output(
                     ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
                 )

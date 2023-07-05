@@ -22,8 +22,6 @@ DEPENDENCIES = {
     "llvm": "15.0.5",
     "moztools": "3.2",
     "openssl": "111.3.0+1.1.1c-vs2017-2019-09-18",
-    "gstreamer-uwp": "1.16.0.5",
-    "openxr-loader-uwp": "1.0",
 }
 
 URL_BASE = "https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/"

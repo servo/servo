@@ -25,14 +25,9 @@ class Base:
     def set_gstreamer_environment_variables_if_necessary(
         self, env: Dict[str, str], cross_compilation_target: Optional[str], check_installation=True
     ):
-        # Environment variables are not needed when cross-compiling on any
-        # platform other than Windows. UWP doesn't support GStreamer. GStreamer
-        # for Android is handled elsewhere.
-        if cross_compilation_target and (
-            not self.is_windows
-            or "uwp" in cross_compilation_target
-            or "android" in cross_compilation_target
-        ):
+        # Environment variables are not needed when cross-compiling on any platform other
+        # than Windows. GStreamer for Android is handled elsewhere.
+        if cross_compilation_target and (not self.is_windows or "android" in cross_compilation_target):
             return
 
         # We may not need to update environment variables if GStreamer is installed

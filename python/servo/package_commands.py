@@ -12,7 +12,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 from datetime import datetime
 from github import Github
 
-import base64
 import hashlib
 import io
 import json
@@ -22,7 +21,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import xml
 
 from mach.decorators import (
     CommandArgument,
@@ -85,10 +83,6 @@ PACKAGES = {
 def packages_for_platform(platform):
     target_dir = get_target_dir()
 
-    if platform == "uwp":
-        yield r'support\hololens\AppPackages\ServoApp\FirefoxReality.zip'
-        return
-
     for package in PACKAGES[platform]:
         yield path.join(target_dir, package)
 
@@ -150,13 +144,8 @@ class PackageCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Create a local Maven repository')
-    @CommandArgument('--uwp',
-                     default=None,
-                     action='append',
-                     help='Create an APPX package')
-    @CommandArgument('--ms-app-store', default=None, action='store_true')
     def package(self, release=False, dev=False, android=None, target=None,
-                flavor=None, maven=False, uwp=None, ms_app_store=False):
+                flavor=None, maven=False):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -171,14 +160,10 @@ class PackageCommands(CommandBase):
         env = self.build_env()
         binary_path = self.get_binary_path(
             release, dev, target=target, android=android,
-            simpleservo=uwp is not None
         )
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
-        if uwp:
-            vs_info = self.vs_dirs()
-            build_uwp(uwp, dev, vs_info['msbuild'], ms_app_store)
-        elif android:
+        if android:
             android_target = self.config["android"]["target"]
             if "aarch64" in android_target:
                 build_type = "Arm64"
@@ -698,100 +683,3 @@ class PackageCommands(CommandBase):
             update_brew(packages[0], timestamp)
 
         return 0
-
-
-def setup_uwp_signing(ms_app_store, publisher):
-    # App package needs to be signed. If we find a certificate that has been installed
-    # already, we use it. Otherwise we create and install a temporary certificate.
-
-    if ms_app_store:
-        return ["/p:AppxPackageSigningEnabled=false"]
-
-    def run_powershell_cmd(cmd):
-        try:
-            return (
-                subprocess
-                .check_output(['powershell.exe', '-NoProfile', '-Command', cmd])
-                .decode('utf-8')
-            )
-        except subprocess.CalledProcessError:
-            print("ERROR: PowerShell command failed: ", cmd)
-            exit(1)
-
-    pfx = None
-    if 'CODESIGN_CERT' in os.environ:
-        pfx = os.environ['CODESIGN_CERT']
-
-    if pfx:
-        open("servo.pfx", "wb").write(base64.b64decode(pfx))
-        run_powershell_cmd('Import-PfxCertificate -FilePath .\\servo.pfx -CertStoreLocation Cert:\\CurrentUser\\My')
-        os.remove("servo.pfx")
-
-    # Powershell command that lists all certificates for publisher
-    cmd = '(dir cert: -Recurse | Where-Object {$_.Issuer -eq "' + publisher + '"}).Thumbprint'
-    certs = list(set(run_powershell_cmd(cmd).splitlines()))
-    if not certs:
-        print("No certificate installed for publisher " + publisher)
-        print("Creating and installing a temporary certificate")
-        # PowerShell command that creates and install signing certificate for publisher
-        cmd = '(New-SelfSignedCertificate -Type Custom -Subject ' + publisher + \
-              ' -FriendlyName "Allizom Signing Certificate (temporary)"' + \
-              ' -KeyUsage DigitalSignature -CertStoreLocation "Cert:\\CurrentUser\\My"' + \
-              ' -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")).Thumbprint'
-        thumbprint = run_powershell_cmd(cmd)
-    elif len(certs) > 1:
-        print("Warning: multiple signing certificate are installed for " + publisher)
-        print("Warning: Using first one")
-        thumbprint = certs[0]
-    else:
-        thumbprint = certs[0]
-    return ["/p:AppxPackageSigningEnabled=true", "/p:PackageCertificateThumbprint=" + thumbprint]
-
-
-def build_uwp(platforms, dev, msbuild_dir, ms_app_store):
-    if any(map(lambda p: p not in ['x64', 'x86', 'arm64'], platforms)):
-        raise Exception("Unsupported appx platforms: " + str(platforms))
-    if dev and len(platforms) > 1:
-        raise Exception("Debug package with multiple architectures is unsupported")
-
-    if dev:
-        Configuration = "Debug"
-    else:
-        Configuration = "Release"
-
-    # Parse appxmanifest to find the publisher name and version
-    manifest_file = path.join(os.getcwd(), 'support', 'hololens', 'ServoApp', 'Package.appxmanifest')
-    manifest = xml.etree.ElementTree.parse(manifest_file)
-    namespace = "{http://schemas.microsoft.com/appx/manifest/foundation/windows10}"
-    identity = manifest.getroot().find(namespace + "Identity")
-    publisher = identity.attrib["Publisher"]
-    version = identity.attrib["Version"]
-
-    msbuild = path.join(msbuild_dir, "msbuild.exe")
-    build_file_template = path.join('support', 'hololens', 'package.msbuild')
-    with open(build_file_template) as f:
-        template_contents = f.read()
-        build_file = tempfile.NamedTemporaryFile(delete=False)
-        build_file.write(
-            template_contents
-            .replace("%%BUILD_PLATFORMS%%", ';'.join(platforms))
-            .replace("%%PACKAGE_PLATFORMS%%", '|'.join(platforms))
-            .replace("%%CONFIGURATION%%", Configuration)
-            .replace("%%SOLUTION%%", path.join(os.getcwd(), 'support', 'hololens', 'ServoApp.sln'))
-            .encode('utf-8')
-        )
-        build_file.close()
-        # Generate an appxbundle.
-        msbuild_args = setup_uwp_signing(ms_app_store, publisher)
-        subprocess.check_call([msbuild, "/m", build_file.name] + msbuild_args)
-        os.unlink(build_file.name)
-
-    # Don't bother creating an archive that contains unsigned app packages.
-    if not ms_app_store:
-        print("Creating ZIP")
-        out_dir = path.join(os.getcwd(), 'support', 'hololens', 'AppPackages', 'ServoApp')
-        name = 'ServoApp_%s_%sTest' % (version, 'Debug_' if dev else '')
-        artifacts_dir = path.join(out_dir, name)
-        zip_path = path.join(out_dir, "FirefoxReality.zip")
-        archive_deterministically(artifacts_dir, zip_path, prepend_path='servo/')
-        print("Packaged Servo into " + zip_path)
