@@ -49,22 +49,6 @@ fn main() {
     let mut pkg_prefs = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     pkg_prefs.push("../../../resources/package-prefs.json");
     let pkg_prefs: Value = serde_json::from_reader(File::open(&pkg_prefs).unwrap()).unwrap();
-    if target.contains("uwp") {
-        // Assuming Hololens build
-        let to_merge = pkg_prefs
-            .as_object()
-            .unwrap()
-            .get("hololens")
-            .unwrap()
-            .as_object()
-            .unwrap();
-        for (key, value) in to_merge.iter() {
-            prefs
-                .as_object_mut()
-                .unwrap()
-                .insert(key.clone(), value.clone());
-        }
-    }
     let file = File::create(&dest.join("prefs.json")).unwrap();
     serde_json::to_writer(file, &prefs).unwrap();
 }

@@ -143,48 +143,6 @@ class MachCommands(CommandBase):
 
             env['PKG_CONFIG_ALLOW_CROSS'] = "1"
 
-        if self.is_uwp_build:
-            # Ensure libstd is ready for the new UWP target.
-            check_call(["rustup", "component", "add", "rust-src"])
-
-            # Don't try and build a desktop port.
-            libsimpleservo = True
-
-            arches = {
-                "aarch64": {
-                    "angle": "arm64",
-                    "gst": "ARM64",
-                    "gst_root": "arm64",
-                },
-                "x86_64": {
-                    "angle": "x64",
-                    "gst": "X86_64",
-                    "gst_root": "x64",
-                },
-            }
-            arch = arches.get(target_triple.split('-')[0])
-            if not arch:
-                print("Unsupported UWP target.")
-                sys.exit(1)
-
-            # Ensure that the NuGet ANGLE package containing libEGL is accessible
-            # to the Rust linker.
-            servo.util.append_paths_to_env(env, "LIB", angle_root(target_triple, env))
-
-            # Don't want to mix non-UWP libraries with vendored UWP libraries.
-            if "gstreamer" in env['LIB']:
-                print("Found existing GStreamer library path in LIB. Please remove it.")
-                sys.exit(1)
-
-            # Override any existing GStreamer installation with the vendored libraries.
-            env["GSTREAMER_1_0_ROOT_" + arch['gst']] = path.join(
-                servo.platform.windows.get_dependency_dir("gstreamer-uwp"), arch['gst_root']
-            )
-            env["PKG_CONFIG_PATH"] = path.join(
-                servo.platform.windows.get_dependency_dir("gstreamer-uwp"),
-                arch['gst_root'], "lib", "pkgconfig"
-            )
-
         if 'windows' in host:
             process = subprocess.Popen('("%s" %s > nul) && "python" -c "import os; print(repr(os.environ))"' %
                                        (os.path.join(vs_dirs['vcdir'], "Auxiliary", "Build", "vcvarsall.bat"), "x64"),
@@ -448,17 +406,15 @@ class MachCommands(CommandBase):
                     for lib in libs:
                         print("WARNING: could not find " + lib)
 
-                # UWP build has its own ANGLE library that it packages.
-                if not self.is_uwp_build:
-                    print("Packaging EGL DLLs")
-                    egl_libs = ["libEGL.dll", "libGLESv2.dll"]
-                    if not package_generated_shared_libraries(egl_libs, build_path, servo_exe_dir):
-                        status = 1
+                print("Packaging EGL DLLs")
+                egl_libs = ["libEGL.dll", "libGLESv2.dll"]
+                if not package_generated_shared_libraries(egl_libs, build_path, servo_exe_dir):
+                    status = 1
 
                 # copy needed gstreamer DLLs in to servo.exe dir
                 if has_media_stack:
                     print("Packaging gstreamer DLLs")
-                    if not package_gstreamer_dlls(env, servo_exe_dir, target_triple, self.is_uwp_build):
+                    if not package_gstreamer_dlls(env, servo_exe_dir, target_triple):
                         status = 1
 
                 # UWP app packaging already bundles all required DLLs for us.
@@ -507,7 +463,7 @@ class MachCommands(CommandBase):
         return status
 
     @Command('clean',
-             description='Clean the target/ and python/_virtualenv[version]/ and support/hololens/ directories',
+             description='Clean the target/ and python/_virtualenv[version]/ directories',
              category='build')
     @CommandArgument('--manifest-path',
                      default=None,
@@ -526,42 +482,11 @@ class MachCommands(CommandBase):
             print('Removing virtualenv directory: %s' % virtualenv_path)
             shutil.rmtree(virtualenv_path)
 
-        self.clean_uwp()
-
         opts = ["--manifest-path", manifest_path or path.join(self.context.topdir, "Cargo.toml")]
         if verbose:
             opts += ["-v"]
         opts += params
         return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
-
-    @Command('clean-uwp',
-             description='Clean the support/hololens/ directory',
-             category='build')
-    def clean_uwp(self):
-        uwp_artifacts = [
-            "support/hololens/x64/",
-            "support/hololens/ARM/",
-            "support/hololens/ARM64/",
-            "support/hololens/ServoApp/x64/",
-            "support/hololens/ServoApp/ARM/",
-            "support/hololens/ServoApp/ARM64/",
-            "support/hololens/ServoApp/Generated Files/",
-            "support/hololens/ServoApp/BundleArtifacts/",
-            "support/hololens/ServoApp/support/",
-            "support/hololens/ServoApp/Debug/",
-            "support/hololens/ServoApp/Release/",
-            "support/hololens/packages/",
-            "support/hololens/AppPackages/",
-            "support/hololens/ServoApp/ServoApp.vcxproj.user",
-        ]
-
-        for uwp_artifact in uwp_artifacts:
-            artifact = path.join(self.get_top_dir(), uwp_artifact)
-            if path.exists(artifact):
-                if path.isdir(artifact):
-                    shutil.rmtree(artifact)
-                else:
-                    os.remove(artifact)
 
     def notify(self, title: str, message: str):
         """Generate desktop notification when build is complete and the
@@ -610,36 +535,6 @@ class MachCommands(CommandBase):
             notification.message = message
             notification.icon = path.join(self.get_top_dir(), "resources", "servo_64.png")
             notification.send(block=False)
-
-
-def angle_root(target, nuget_env):
-    arch = {
-        "aarch64": "arm64",
-        "x86_64": "x64",
-    }
-    angle_arch = arch[target.split('-')[0]]
-
-    package_name = "ANGLE.WindowsStore.Servo"
-
-    import xml.etree.ElementTree as ET
-    tree = ET.parse(os.path.join('support', 'hololens', 'ServoApp', 'packages.config'))
-    root = tree.getroot()
-    for package in root.iter('package'):
-        if package.get('id') == package_name:
-            package_version = package.get('version')
-            break
-    else:
-        raise Exception("Couldn't locate ANGLE package")
-
-    angle_default_path = path.join(os.getcwd(), "support", "hololens", "packages",
-                                   package_name + "." + package_version, "bin", "UAP", angle_arch)
-
-    # Nuget executable command
-    nuget_app = path.join(os.getcwd(), "support", "hololens", "ServoApp.sln")
-    if not os.path.exists(angle_default_path):
-        check_call(['nuget.exe', 'restore', nuget_app], env=nuget_env)
-
-    return angle_default_path
 
 
 def otool(s):
@@ -757,7 +652,7 @@ def package_gstreamer_dylibs(cross_compilation_target, servo_bin):
     return True
 
 
-def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
+def package_gstreamer_dlls(env, servo_exe_dir, target):
     gst_root = servo.platform.get().gstreamer_root(cross_compilation_target=target)
     if not gst_root:
         print("Could not find GStreamer installation directory.")
@@ -775,48 +670,31 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
         "glib-2.0-0.dll",
         "gmodule-2.0-0.dll",
         "gobject-2.0-0.dll",
+        "graphene-1.0-0.dll",
         "intl-8.dll",
+        "libcrypto-1_1-x64.dll",
+        "libgmp-10.dll",
+        "libgnutls-30.dll",
+        "libhogweed-4.dll",
+        "libjpeg-8.dll",
+        "libnettle-6.dll.",
+        "libogg-0.dll",
+        "libopus-0.dll",
+        "libpng16-16.dll",
+        "libssl-1_1-x64.dll",
+        "libtasn1-6.dll",
+        "libtheora-0.dll",
+        "libtheoradec-1.dll",
+        "libtheoraenc-1.dll",
+        "libusrsctp-1.dll",
+        "libvorbis-0.dll",
+        "libvorbisenc-2.dll",
+        "libwinpthread-1.dll",
+        "nice-10.dll",
         "orc-0.4-0.dll",
         "swresample-3.dll",
         "z-1.dll",
-    ]
-
-    gst_dlls += windows_dlls(uwp)
-
-    if uwp:
-        # These come from a more recent version of ffmpeg and
-        # aren't present in the official GStreamer 1.16 release.
-        gst_dlls += [
-            "avresample-4.dll",
-            "postproc-55.dll",
-            "swscale-5.dll",
-            "x264-157.dll",
-        ]
-    else:
-        # These are built with MinGW and are not yet compatible
-        # with UWP's restrictions.
-        gst_dlls += [
-            "graphene-1.0-0.dll",
-            "libcrypto-1_1-x64.dll",
-            "libgmp-10.dll",
-            "libgnutls-30.dll",
-            "libhogweed-4.dll",
-            "libjpeg-8.dll",
-            "libnettle-6.dll.",
-            "libogg-0.dll",
-            "libopus-0.dll",
-            "libpng16-16.dll",
-            "libssl-1_1-x64.dll",
-            "libtasn1-6.dll",
-            "libtheora-0.dll",
-            "libtheoradec-1.dll",
-            "libtheoraenc-1.dll",
-            "libusrsctp-1.dll",
-            "libvorbis-0.dll",
-            "libvorbisenc-2.dll",
-            "libwinpthread-1.dll",
-            "nice-10.dll",
-        ]
+    ] + windows_dlls()
 
     missing = []
     for gst_lib in gst_dlls:
@@ -831,7 +709,7 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
         return False
 
     # Only copy a subset of the available plugins.
-    gst_dlls = windows_plugins(uwp)
+    gst_dlls = windows_plugins()
 
     gst_plugin_path_root = os.environ.get("GSTREAMER_PACKAGE_PLUGIN_PATH") or gst_root
     gst_plugin_path = path.join(gst_plugin_path_root, "lib", "gstreamer-1.0")
@@ -868,7 +746,7 @@ def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
         "msvcp140.dll",
         "vcruntime140.dll",
     ]
-    if target_arch != "aarch64" and "uwp" not in target and vs_version in ("14.0", "15.0", "16.0"):
+    if target_arch != "aarch64" and vs_version in ("14.0", "15.0", "16.0"):
         msvc_deps += ["api-ms-win-crt-runtime-l1-1-0.dll"]
 
     # Check if it's Visual C++ Build Tools or Visual Studio 2015

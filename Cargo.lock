@@ -4252,26 +4252,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "openxr"
-version = "0.12.2"
-source = "git+https://github.com/servo/openxrs.git?branch=secondary-views-2#87c0186c88f6e2bc22dbbe0bf5c02afc60fc37ef"
-dependencies = [
- "libc",
- "libloading 0.6.1",
- "openxr-sys",
- "winapi",
-]
-
-[[package]]
-name = "openxr-sys"
-version = "0.8.2"
-source = "git+https://github.com/servo/openxrs.git?branch=secondary-views-2#87c0186c88f6e2bc22dbbe0bf5c02afc60fc37ef"
-dependencies = [
- "libc",
- "winapi",
-]
-
-[[package]]
 name = "orbclient"
 version = "0.3.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7085,15 +7065,12 @@ dependencies = [
  "gl_generator 0.13.1",
  "gvr-sys",
  "log",
- "openxr",
  "serde",
  "sparkle",
  "surfman",
  "surfman-chains",
  "time 0.1.45",
  "webxr-api",
- "winapi",
- "wio",
 ]
 
 [[package]]

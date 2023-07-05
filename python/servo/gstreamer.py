@@ -78,18 +78,12 @@ GSTREAMER_PLUGINS = [
 ]
 
 
-def windows_dlls(uwp):
+def windows_dlls():
     libs = list(GSTREAMER_DYLIBS)
-    NON_UWP_DYLIBS = [
-        "gstnet",
-        "gstsctp",
-    ]
-    if uwp:
-        libs = filter(lambda x: x not in NON_UWP_DYLIBS, libs)
     return [f"{lib}-1.0-0.dll" for lib in libs]
 
 
-def windows_plugins(uwp):
+def windows_plugins():
     # FIXME: We should support newer gstreamer versions here that replace
     # gstvideoconvert and gstvideoscale with gstvideoconvertscale.
     libs = [
@@ -98,25 +92,6 @@ def windows_plugins(uwp):
         "gstvideoscale",
         "gstwasapi"
     ]
-    NON_UWP_PLUGINS = [
-        "gstnice",
-        # gst-plugins-base
-        "gstogg",
-        "gstopengl",
-        "gstopus",
-        "gstrtp",
-        "gsttheora",
-        "gstvorbis",
-        # gst-plugins-good
-        "gstmatroska",
-        "gstrtpmanager",
-        "gstvpx",
-        # gst-plugins-bad
-        "gstdtls",
-        "gstwebrtc",
-    ]
-    if uwp:
-        libs = filter(lambda x: x not in NON_UWP_PLUGINS, libs)
     return [f"{lib}.dll" for lib in libs]
 
 
@@ -156,7 +131,7 @@ def write_plugin_list(target):
     if "apple-" in target:
         plugins = [os.path.basename(x) for x in macos_plugins()]
     elif '-windows-' in target:
-        plugins = windows_plugins('-uwp-' in target)
+        plugins = windows_plugins()
     print('''/* This is a generated file. Do not modify. */
 
 pub(crate) static GSTREAMER_PLUGINS: &[&'static str] = &[

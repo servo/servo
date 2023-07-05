@@ -244,7 +244,7 @@ fn test_set_all_error_on_unknown_field() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[cfg(not(any(target_os = "android", feature = "uwp")))]
+#[cfg(not(target_os = "android"))]
 #[test]
 fn test_default_config_dir_create_read_write() {
     let json_str = "{\
