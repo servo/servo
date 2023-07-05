@@ -13,19 +13,17 @@ import datetime
 import locale
 import os
 import os.path as path
-import platform
 import shutil
 import stat
 import subprocess
 import sys
 import urllib
-import zipfile
 
 from time import time
+from typing import Dict
+import zipfile
 
 import notifypy
-import servo.platform
-import servo.util
 
 from mach.decorators import (
     CommandArgument,
@@ -34,8 +32,10 @@ from mach.decorators import (
 )
 from mach.registrar import Registrar
 
-from mach_bootstrap import _get_exec_path
-from servo.command_base import CommandBase, cd, call, check_call
+import servo.platform
+import servo.util
+
+from servo.command_base import CommandBase, call, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
 
 
@@ -70,14 +70,8 @@ class MachCommands(CommandBase):
         opts = params or []
         has_media_stack = "media-gstreamer" in self.features
 
-        target_path = base_path = servo.util.get_target_dir()
-        if self.is_android_build:
-            assert self.cross_compile_target
-            target_path = path.join(target_path, "android")
-            base_path = path.join(target_path, self.cross_compile_target)
-
-        release_path = path.join(base_path, "release", "servo")
-        dev_path = path.join(base_path, "debug", "servo")
+        release_path = path.join(self.target_path, "release", "servo")
+        dev_path = path.join(self.target_path, "debug", "servo")
 
         release_exists = path.exists(release_path)
         dev_exists = path.exists(dev_path)
@@ -202,196 +196,6 @@ class MachCommands(CommandBase):
                 print(stderr.decode(encoding))
                 exit(1)
 
-        if self.is_android_build:
-            if "ANDROID_NDK" not in env:
-                print("Please set the ANDROID_NDK environment variable.")
-                sys.exit(1)
-            if "ANDROID_SDK" not in env:
-                print("Please set the ANDROID_SDK environment variable.")
-                sys.exit(1)
-
-            android_platform = self.config["android"]["platform"]
-            android_toolchain_name = self.config["android"]["toolchain_name"]
-            android_toolchain_prefix = self.config["android"]["toolchain_prefix"]
-            android_lib = self.config["android"]["lib"]
-            android_arch = self.config["android"]["arch"]
-
-            # Build OpenSSL for android
-            env["OPENSSL_VERSION"] = "1.1.1d"
-            make_cmd = ["make"]
-            if jobs is not None:
-                make_cmd += ["-j" + jobs]
-            openssl_dir = path.join(target_path, self.cross_compile_target, "native", "openssl")
-            if not path.exists(openssl_dir):
-                os.makedirs(openssl_dir)
-            shutil.copy(path.join(self.android_support_dir(), "openssl.makefile"), openssl_dir)
-            shutil.copy(path.join(self.android_support_dir(), "openssl.sh"), openssl_dir)
-
-            # Check if the NDK version is 15
-            if not os.path.isfile(path.join(env["ANDROID_NDK"], 'source.properties')):
-                print("ANDROID_NDK should have file `source.properties`.")
-                print("The environment variable ANDROID_NDK may be set at a wrong path.")
-                sys.exit(1)
-            with open(path.join(env["ANDROID_NDK"], 'source.properties')) as ndk_properties:
-                lines = ndk_properties.readlines()
-                if lines[1].split(' = ')[1].split('.')[0] != '15':
-                    print("Currently only support NDK 15. Please re-run `./mach bootstrap-android`.")
-                    sys.exit(1)
-
-            env["RUST_TARGET"] = self.cross_compile_target
-            with cd(openssl_dir):
-                status = call(
-                    make_cmd + ["-f", "openssl.makefile"],
-                    env=env,
-                    verbose=verbose)
-                if status:
-                    return status
-            openssl_dir = path.join(openssl_dir, "openssl-{}".format(env["OPENSSL_VERSION"]))
-            env['OPENSSL_LIB_DIR'] = openssl_dir
-            env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
-            env['OPENSSL_STATIC'] = 'TRUE'
-            # Android builds also require having the gcc bits on the PATH and various INCLUDE
-            # path munging if you do not want to install a standalone NDK. See:
-            # https://dxr.mozilla.org/mozilla-central/source/build/autoconf/android.m4#139-161
-            os_type = platform.system().lower()
-            if os_type not in ["linux", "darwin"]:
-                raise Exception("Android cross builds are only supported on Linux and macOS.")
-            cpu_type = platform.machine().lower()
-            host_suffix = "unknown"
-            if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
-                host_suffix = "x86"
-            elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
-                host_suffix = "x86_64"
-            host = os_type + "-" + host_suffix
-
-            host_cc = env.get('HOST_CC') or _get_exec_path(["clang"]) or _get_exec_path(["gcc"])
-            host_cxx = env.get('HOST_CXX') or _get_exec_path(["clang++"]) or _get_exec_path(["g++"])
-
-            llvm_toolchain = path.join(env['ANDROID_NDK'], "toolchains", "llvm", "prebuilt", host)
-            gcc_toolchain = path.join(env['ANDROID_NDK'], "toolchains",
-                                      android_toolchain_prefix + "-4.9", "prebuilt", host)
-            gcc_libs = path.join(gcc_toolchain, "lib", "gcc", android_toolchain_name, "4.9.x")
-
-            env['PATH'] = (path.join(llvm_toolchain, "bin") + ':' + env['PATH'])
-            env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "sysroot")
-            support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
-            cpufeatures_include = path.join(env['ANDROID_NDK'], "sources", "android", "cpufeatures")
-            cxx_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
-                                    "llvm-libc++", "include")
-            clang_include = path.join(llvm_toolchain, "lib64", "clang", "3.8", "include")
-            cxxabi_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
-                                       "llvm-libc++abi", "include")
-            sysroot_include = path.join(env['ANDROID_SYSROOT'], "usr", "include")
-            arch_include = path.join(sysroot_include, android_toolchain_name)
-            android_platform_dir = path.join(env['ANDROID_NDK'], "platforms", android_platform, "arch-" + android_arch)
-            arch_libs = path.join(android_platform_dir, "usr", "lib")
-            clang_include = path.join(llvm_toolchain, "lib64", "clang", "5.0", "include")
-            android_api = android_platform.replace('android-', '')
-            env['HOST_CC'] = host_cc
-            env['HOST_CXX'] = host_cxx
-            env['HOST_CFLAGS'] = ''
-            env['HOST_CXXFLAGS'] = ''
-            env['CC'] = path.join(llvm_toolchain, "bin", "clang")
-            env['CPP'] = path.join(llvm_toolchain, "bin", "clang") + " -E"
-            env['CXX'] = path.join(llvm_toolchain, "bin", "clang++")
-            env['ANDROID_TOOLCHAIN'] = gcc_toolchain
-            env['ANDROID_TOOLCHAIN_DIR'] = gcc_toolchain
-            env['ANDROID_VERSION'] = android_api
-            env['ANDROID_PLATFORM_DIR'] = android_platform_dir
-            env['GCC_TOOLCHAIN'] = gcc_toolchain
-            gcc_toolchain_bin = path.join(gcc_toolchain, android_toolchain_name, "bin")
-            env['AR'] = path.join(gcc_toolchain_bin, "ar")
-            env['RANLIB'] = path.join(gcc_toolchain_bin, "ranlib")
-            env['OBJCOPY'] = path.join(gcc_toolchain_bin, "objcopy")
-            env['YASM'] = path.join(env['ANDROID_NDK'], 'prebuilt', host, 'bin', 'yasm')
-            # A cheat-sheet for some of the build errors caused by getting the search path wrong...
-            #
-            # fatal error: 'limits' file not found
-            #   -- add -I cxx_include
-            # unknown type name '__locale_t' (when running bindgen in mozjs_sys)
-            #   -- add -isystem sysroot_include
-            # error: use of undeclared identifier 'UINTMAX_C'
-            #   -- add -D__STDC_CONSTANT_MACROS
-            #
-            # Also worth remembering: autoconf uses C for its configuration,
-            # even for C++ builds, so the C flags need to line up with the C++ flags.
-            env['CFLAGS'] = ' '.join([
-                "--target=" + self.cross_compile_target,
-                "--sysroot=" + env['ANDROID_SYSROOT'],
-                "--gcc-toolchain=" + gcc_toolchain,
-                "-isystem", sysroot_include,
-                "-I" + arch_include,
-                "-B" + arch_libs,
-                "-L" + arch_libs,
-                "-D__ANDROID_API__=" + android_api,
-            ])
-            env['CXXFLAGS'] = ' '.join([
-                "--target=" + self.cross_compile_target,
-                "--sysroot=" + env['ANDROID_SYSROOT'],
-                "--gcc-toolchain=" + gcc_toolchain,
-                "-I" + cpufeatures_include,
-                "-I" + cxx_include,
-                "-I" + clang_include,
-                "-isystem", sysroot_include,
-                "-I" + cxxabi_include,
-                "-I" + clang_include,
-                "-I" + arch_include,
-                "-I" + support_include,
-                "-L" + gcc_libs,
-                "-B" + arch_libs,
-                "-L" + arch_libs,
-                "-D__ANDROID_API__=" + android_api,
-                "-D__STDC_CONSTANT_MACROS",
-                "-D__NDK_FPABI__=",
-            ])
-            env['CPPFLAGS'] = ' '.join([
-                "--target=" + self.cross_compile_target,
-                "--sysroot=" + env['ANDROID_SYSROOT'],
-                "-I" + arch_include,
-            ])
-            env["NDK_ANDROID_VERSION"] = android_api
-            env["ANDROID_ABI"] = android_lib
-            env["ANDROID_PLATFORM"] = android_platform
-            env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(env['ANDROID_NDK'], "build", "cmake", "android.toolchain.cmake")
-            env["CMAKE_TOOLCHAIN_FILE"] = path.join(self.android_support_dir(), "toolchain.cmake")
-            # Set output dir for gradle aar files
-            aar_out_dir = self.android_aar_dir()
-            if not os.path.exists(aar_out_dir):
-                os.makedirs(aar_out_dir)
-            env["AAR_OUT_DIR"] = aar_out_dir
-            # GStreamer and its dependencies use pkg-config and this flag is required
-            # to make it work in a cross-compilation context.
-            env["PKG_CONFIG_ALLOW_CROSS"] = '1'
-            # Build the name of the package containing all GStreamer dependencies
-            # according to the build target.
-            gst_lib = "gst-build-{}".format(self.config["android"]["lib"])
-            gst_lib_zip = "gstreamer-{}-1.16.0-20190517-095630.zip".format(self.config["android"]["lib"])
-            gst_dir = os.path.join(target_path, "gstreamer")
-            gst_lib_path = os.path.join(gst_dir, gst_lib)
-            pkg_config_path = os.path.join(gst_lib_path, "pkgconfig")
-            env["PKG_CONFIG_PATH"] = pkg_config_path
-            if not os.path.exists(gst_lib_path):
-                # Download GStreamer dependencies if they have not already been downloaded
-                # This bundle is generated with `libgstreamer_android_gen`
-                # Follow these instructions to build and deploy new binaries
-                # https://github.com/servo/libgstreamer_android_gen#build
-                print("Downloading GStreamer dependencies")
-                gst_url = "https://servo-deps-2.s3.amazonaws.com/gstreamer/%s" % gst_lib_zip
-                print(gst_url)
-                urllib.request.urlretrieve(gst_url, gst_lib_zip)
-                zip_ref = zipfile.ZipFile(gst_lib_zip, "r")
-                zip_ref.extractall(gst_dir)
-                os.remove(gst_lib_zip)
-
-                # Change pkgconfig info to make all GStreamer dependencies point
-                # to the libgstreamer_android.so bundle.
-                for each in os.listdir(pkg_config_path):
-                    if each.endswith('.pc'):
-                        print("Setting pkgconfig info for %s" % each)
-                        pc = os.path.join(pkg_config_path, each)
-                        expr = "s#libdir=.*#libdir=%s#g" % gst_lib_path
-                        subprocess.call(["perl", "-i", "-pe", expr, pc])
-
         # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
         opts = ["--timings"] + opts
 
@@ -400,6 +204,7 @@ class MachCommands(CommandBase):
             for key in env:
                 print((key, env[key]))
 
+        self.download_and_build_android_dependencies_if_needed(env)
         status = self.run_cargo_build_like_command(
             "build", opts, env=env, verbose=verbose,
             libsimpleservo=libsimpleservo, **kwargs
@@ -505,6 +310,50 @@ class MachCommands(CommandBase):
         print(build_message)
 
         return status
+
+    def download_and_build_android_dependencies_if_needed(self, env: Dict[str, str]):
+        if not self.is_android_build:
+            return
+
+        openssl_dir = os.path.join(self.target_path, "native", "openssl")
+        if not os.path.exists(openssl_dir):
+            os.makedirs(openssl_dir)
+        shutil.copy(os.path.join(self.android_support_dir(), "openssl.makefile"), openssl_dir)
+        shutil.copy(os.path.join(self.android_support_dir(), "openssl.sh"), openssl_dir)
+
+        status = call(["make", "-f", "openssl.makefile"], env=env, cwd=openssl_dir)
+        if status:
+            return status
+
+        # Build the name of the package containing all GStreamer dependencies
+        # according to the build target.
+        android_lib = self.config["android"]["lib"]
+        gst_lib = f"gst-build-{android_lib}"
+        gst_lib_zip = f"gstreamer-{android_lib}-1.16.0-20190517-095630.zip"
+        gst_lib_path = os.path.join(self.target_path, "gstreamer", gst_lib)
+        pkg_config_path = os.path.join(gst_lib_path, "pkgconfig")
+        env["PKG_CONFIG_PATH"] = pkg_config_path
+        if not os.path.exists(gst_lib_path):
+            # Download GStreamer dependencies if they have not already been downloaded
+            # This bundle is generated with `libgstreamer_android_gen`
+            # Follow these instructions to build and deploy new binaries
+            # https://github.com/servo/libgstreamer_android_gen#build
+            gst_url = f"https://servo-deps-2.s3.amazonaws.com/gstreamer/{gst_lib_zip}"
+            print(f"Downloading GStreamer dependencies ({gst_url})")
+
+            urllib.request.urlretrieve(gst_url, gst_lib_zip)
+            zip_ref = zipfile.ZipFile(gst_lib_zip, "r")
+            zip_ref.extractall(os.path.join(self.target_path, "gstreamer"))
+            os.remove(gst_lib_zip)
+
+            # Change pkgconfig info to make all GStreamer dependencies point
+            # to the libgstreamer_android.so bundle.
+            for each in os.listdir(pkg_config_path):
+                if each.endswith('.pc'):
+                    print(f"Setting pkgconfig info for {each}")
+                    target_path = os.path.join(pkg_config_path, each)
+                    expr = f"s#libdir=.*#libdir={gst_lib_path}#g"
+                    subprocess.call(["perl", "-i", "-pe", expr, target_path])
 
     @Command('clean',
              description='Clean the target/ and python/_virtualenv[version]/ and support/hololens/ directories',
