@@ -267,12 +267,9 @@ pub fn init(
 
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
-    let adapter = match create_adapter() {
-        Some(adapter) => adapter,
-        None => connection
-            .create_adapter()
-            .or(Err("Failed to create adapter"))?,
-    };
+    let adapter = connection
+        .create_adapter()
+        .or(Err("Failed to create adapter"))?;
     let surface_type = match init_opts.surfman_integration {
         SurfmanIntegration::Widget(native_widget) => {
             let native_widget = unsafe {
@@ -824,79 +821,6 @@ struct ServoWindowCallbacks {
 }
 
 impl EmbedderMethods for ServoEmbedderCallbacks {
-    #[cfg(feature = "uwp")]
-    fn register_webxr(
-        &mut self,
-        registry: &mut webxr::MainThreadRegistry,
-        embedder_proxy: EmbedderProxy,
-    ) {
-        use ipc_channel::ipc::{self, IpcReceiver};
-        use webxr::openxr;
-        debug!("EmbedderMethods::register_xr");
-        assert!(
-            self.xr_discovery.is_none(),
-            "UWP builds should not be initialized with a WebXR Discovery object"
-        );
-
-        #[derive(Clone)]
-        struct ContextMenuCallback(EmbedderProxy);
-
-        struct ContextMenuFuture(IpcReceiver<ContextMenuResult>);
-
-        impl openxr::ContextMenuProvider for ContextMenuCallback {
-            fn open_context_menu(&self) -> Box<dyn openxr::ContextMenuFuture> {
-                let (sender, receiver) = ipc::channel().unwrap();
-                self.0.send((
-                    None,
-                    EmbedderMsg::ShowContextMenu(
-                        sender,
-                        Some("Would you like to exit the XR session?".into()),
-                        vec!["Exit".into()],
-                    ),
-                ));
-
-                Box::new(ContextMenuFuture(receiver))
-            }
-            fn clone_object(&self) -> Box<dyn openxr::ContextMenuProvider> {
-                Box::new(self.clone())
-            }
-        }
-
-        impl openxr::ContextMenuFuture for ContextMenuFuture {
-            fn poll(&self) -> openxr::ContextMenuResult {
-                if let Ok(result) = self.0.try_recv() {
-                    if let ContextMenuResult::Selected(0) = result {
-                        openxr::ContextMenuResult::ExitSession
-                    } else {
-                        openxr::ContextMenuResult::Dismissed
-                    }
-                } else {
-                    openxr::ContextMenuResult::Pending
-                }
-            }
-        }
-
-        if openxr::create_instance(false, false).is_ok() {
-            let discovery =
-                openxr::OpenXrDiscovery::new(Box::new(ContextMenuCallback(embedder_proxy)));
-            registry.register(discovery);
-        } else {
-            let msg =
-                "Cannot initialize OpenXR - please ensure runtime is installed and enabled in \
-                       the OpenXR developer portal app.\n\nImmersive mode will not function until \
-                       this error is fixed.";
-            let (sender, _receiver) = ipc::channel().unwrap();
-            embedder_proxy.send((
-                None,
-                EmbedderMsg::Prompt(
-                    PromptDefinition::Alert(msg.to_owned(), sender),
-                    PromptOrigin::Trusted,
-                ),
-            ));
-        }
-    }
-
-    #[cfg(not(feature = "uwp"))]
     fn register_webxr(
         &mut self,
         registry: &mut webxr::MainThreadRegistry,
@@ -1001,14 +925,4 @@ impl ResourceReaderMethods for ResourceReaderInstance {
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
         vec![]
     }
-}
-
-#[cfg(feature = "uwp")]
-fn create_adapter() -> Option<Adapter> {
-    webxr::openxr::create_surfman_adapter()
-}
-
-#[cfg(not(feature = "uwp"))]
-fn create_adapter() -> Option<Adapter> {
-    None
 }

@@ -134,7 +134,6 @@ files = [
 directories = [
   # Upstream
   "./support/android/apk",
-  "./support/hololens",
   "./tests/wpt/harness",
   "./tests/wpt/tests",
   "./tests/wpt/mozilla/tests/mozilla/referrer-policy",

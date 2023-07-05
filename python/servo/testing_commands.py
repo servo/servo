@@ -36,10 +36,7 @@ from mach.decorators import (
 import servo.util
 import tidy
 
-from servo.command_base import (
-    CommandBase,
-    call, check_call, check_output,
-)
+from servo.command_base import CommandBase, call, check_call
 from servo.util import delete
 from distutils.dir_util import copy_tree
 
@@ -47,9 +44,6 @@ SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
-
-CLANGFMT_CPP_DIRS = ["support/hololens/"]
-CLANGFMT_VERSION = "15"
 
 TEST_SUITES = OrderedDict([
     ("wpt", {"kwargs": {"release": False},
@@ -301,14 +295,10 @@ class MachCommands(CommandBase):
         self.install_rustfmt()
         rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
 
-        print("Checking C++ files for tidiness...")
-        env = self.build_env()
-        clangfmt_failed = not run_clang_format(env, ["--dry-run", "--Werror"])
-
-        if rustfmt_failed or clangfmt_failed:
+        if rustfmt_failed:
             print("Run `./mach fmt` to fix the formatting")
 
-        return tidy_failed or manifest_dirty or rustfmt_failed or clangfmt_failed
+        return tidy_failed or manifest_dirty or rustfmt_failed
 
     @Command('test-scripts',
              description='Run tests for all build and support scripts.',
@@ -414,12 +404,9 @@ class MachCommands(CommandBase):
         return wpt.manifestupdate.update(check_clean=False)
 
     @Command('fmt',
-             description='Format the Rust and CPP source files with rustfmt and clang-format',
+             description='Format the Rust and CPP source files with rustfmt',
              category='testing')
     def format_code(self):
-        env = self.build_env()
-        run_clang_format(env, ['-i'])
-
         self.install_rustfmt()
         return self.call_rustup_run(["cargo", "fmt"])
 
@@ -611,20 +598,6 @@ class MachCommands(CommandBase):
 
         return check_call(
             [run_file, "|".join(tests), bin_path, base_dir])
-
-
-def run_clang_format(env, args):
-    gitfiles = check_output(
-        ['git', 'ls-files'] + CLANGFMT_CPP_DIRS,
-        universal_newlines=True).splitlines()
-    files = [line for line in gitfiles if line.endswith(".h") or line.endswith(".cpp")]
-    clang_cmd = "clang-format.exe" if sys.platform == "win32" else "clang-format"
-
-    if not files:
-        return True
-
-    returncode = call([clang_cmd] + args + files, env=env)
-    return returncode == 0
 
 
 def create_parser_create():

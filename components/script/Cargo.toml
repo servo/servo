@@ -21,7 +21,6 @@ default = ["unrooted_must_root_lint"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 js_backtrace = []
 refcell_backtrace = ["accountable-refcell"]
-uwp = ["js/uwp"]
 xr-profile = ["webxr-api/profile"]
 
 [build-dependencies]
