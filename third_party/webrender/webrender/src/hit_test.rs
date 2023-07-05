@@ -464,7 +464,6 @@ impl HitTester {
         let mut point_in_viewport = None;
 
         // For each hit test primitive
-        println!("WR: Hit test against {}", self.scene.items.len());
         for item in self.scene.items.iter().rev() {
             let scroll_node = &self.spatial_nodes[item.spatial_node_index.0 as usize];
             let pipeline_id = scroll_node.pipeline_id;
