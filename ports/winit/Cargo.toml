@@ -27,7 +27,7 @@ ProductName = "Servo"
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["webdriver", "max_log_level"]
+default = ["webdriver", "max_log_level", "minibrowser"]
 egl = ["libservo/egl"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
@@ -36,6 +36,7 @@ layout-2020 = ["libservo/layout-2020"]
 max_log_level = ["log/release_max_level_info"]
 media-dummy = ["libservo/media-dummy"]
 media-gstreamer = ["libservo/media-gstreamer"]
+minibrowser = ["dep:egui", "dep:egui-winit"]
 native-bluetooth = ["libservo/native-bluetooth"]
 no-wgl = ["libservo/no-wgl"]
 profilemozjs = ["libservo/profilemozjs"]
@@ -48,6 +49,8 @@ xr-profile = ["libservo/xr-profile"]
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = "0.3"
 clipboard = "0.5"
+egui = { version = "0.22.0", optional = true }
+egui-winit = { version = "0.22.0", optional = true }
 euclid = "0.22"
 getopts = "0.2.11"
 keyboard-types = "0.6"
