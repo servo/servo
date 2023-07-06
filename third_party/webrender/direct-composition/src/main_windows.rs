@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate direct_composition;
-extern crate euclid;
-extern crate gleam;
-extern crate webrender;
-extern crate winit;
+use direct_composition;
+use euclid;
+use gleam;
+use webrender;
+use winit;
 
 use euclid::size2;
 use direct_composition::DirectComposition;

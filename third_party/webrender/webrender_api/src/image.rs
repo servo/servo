@@ -340,7 +340,7 @@ pub enum ImageData {
 }
 
 mod serde_image_data_raw {
-    extern crate serde_bytes;
+    use serde_bytes;
 
     use std::sync::Arc;
     use serde::{Deserializer, Serializer};

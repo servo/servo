@@ -4,9 +4,9 @@
 
 #![cfg(windows)]
 
-extern crate gleam;
-extern crate mozangle;
-extern crate winapi;
+use gleam;
+use mozangle;
+use winapi;
 
 use com::{ComPtr, CheckHResult, as_ptr};
 use std::ptr;

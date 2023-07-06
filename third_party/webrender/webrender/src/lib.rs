@@ -72,8 +72,7 @@ extern crate serde;
 #[macro_use]
 extern crate tracy_rs;
 
-extern crate malloc_size_of;
-extern crate svg_fmt;
+use malloc_size_of;
 
 #[macro_use]
 mod profiler;
@@ -155,49 +154,34 @@ mod platform {
 }
 
 #[cfg(target_os = "macos")]
-extern crate core_foundation;
+use core_foundation;
 #[cfg(target_os = "macos")]
-extern crate core_graphics;
+use core_graphics;
 #[cfg(target_os = "macos")]
-extern crate core_text;
-
-#[cfg(all(unix, not(target_os = "macos")))]
-extern crate freetype;
-#[cfg(all(unix, not(target_os = "macos")))]
-extern crate libc;
+use core_text;
 
 #[cfg(target_os = "windows")]
-extern crate dwrote;
+use dwrote;
 
-extern crate bincode;
-extern crate byteorder;
-pub extern crate euclid;
-extern crate fxhash;
-extern crate gleam;
-extern crate num_traits;
-extern crate plane_split;
-extern crate rayon;
-#[cfg(feature = "ron")]
-extern crate ron;
+pub use euclid;
 #[cfg(feature = "debugger")]
-extern crate serde_json;
+use serde_json;
 #[macro_use]
 extern crate smallvec;
-extern crate time;
 #[cfg(feature = "debugger")]
-extern crate ws;
+use ws;
 #[cfg(feature = "debugger")]
-extern crate image_loader;
+use image_loader;
 #[cfg(feature = "debugger")]
-extern crate base64;
+use base64;
 #[cfg(all(feature = "capture", feature = "png"))]
-extern crate png;
+use png;
 #[cfg(test)]
-extern crate rand;
+use rand;
 
 #[macro_use]
 pub extern crate api;
-extern crate webrender_build;
+use webrender_build;
 
 #[doc(hidden)]
 pub use crate::composite::{CompositorConfig, Compositor, CompositorCapabilities};

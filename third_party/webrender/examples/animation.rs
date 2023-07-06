@@ -10,11 +10,11 @@
 //! rounded cornered rectangle, which is done automatically during the
 //! scene building for render optimization.
 
-extern crate euclid;
-extern crate gleam;
-extern crate glutin;
-extern crate webrender;
-extern crate winit;
+use euclid;
+use gleam;
+use glutin;
+use webrender;
+use winit;
 
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
