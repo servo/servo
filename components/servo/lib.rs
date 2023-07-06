@@ -33,7 +33,8 @@ pub use embedder_traits;
 pub use euclid;
 pub use gfx;
 pub use ipc_channel;
-pub use layout_thread;
+pub use layout_thread_2013;
+pub use layout_thread_2020;
 pub use media;
 pub use msg;
 pub use net;
@@ -887,12 +888,23 @@ fn create_constellation(
         wgpu_image_map,
     };
 
-    let constellation_chan = Constellation::<
-        script_layout_interface::message::Msg,
-        layout_thread::LayoutThread,
-        script::script_thread::ScriptThread,
-        script::serviceworker_manager::ServiceWorkerManager,
-    >::start(
+    let start_constellation_chan = if opts::get().legacy_layout {
+        Constellation::<
+            script_layout_interface::message::Msg,
+            layout_thread_2013::LayoutThread,
+            script::script_thread::ScriptThread,
+            script::serviceworker_manager::ServiceWorkerManager,
+        >::start
+    } else {
+        Constellation::<
+            script_layout_interface::message::Msg,
+            layout_thread_2020::LayoutThread,
+            script::script_thread::ScriptThread,
+            script::serviceworker_manager::ServiceWorkerManager,
+        >::start
+    };
+
+    start_constellation_chan(
         initial_state,
         initial_window_size,
         opts.random_pipeline_closure_probability,
@@ -902,9 +914,7 @@ fn create_constellation(
         !opts.debug.disable_canvas_antialiasing,
         canvas_create_sender,
         canvas_ipc_sender,
-    );
-
-    constellation_chan
+    )
 }
 
 struct FontCacheWR(CompositorProxy);
@@ -1017,14 +1027,23 @@ pub fn run_content_process(token: String) {
             set_logger(content.script_to_constellation_chan().clone());
 
             let background_hang_monitor_register = content.register_with_background_hang_monitor();
-
-            content.start_all::<script_layout_interface::message::Msg,
-                                             layout_thread::LayoutThread,
-                                             script::script_thread::ScriptThread>(
-                                                 true,
-                                                 background_hang_monitor_register,
-                                                 None,
-                                             );
+            if opts::get().legacy_layout {
+                content.start_all::<script_layout_interface::message::Msg,
+                                    layout_thread_2013::LayoutThread,
+                                    script::script_thread::ScriptThread>(
+                                        true,
+                                        background_hang_monitor_register,
+                                        None,
+                                    );
+            } else {
+                content.start_all::<script_layout_interface::message::Msg,
+                                    layout_thread_2020::LayoutThread,
+                                    script::script_thread::ScriptThread>(
+                                        true,
+                                        background_hang_monitor_register,
+                                        None,
+                                    );
+            }
         },
         UnprivilegedContent::ServiceWorker(content) => {
             content.start::<ServiceWorkerManager>();

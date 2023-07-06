@@ -638,6 +638,9 @@ impl<'a> BuilderForBoxFragment<'a> {
                         }
                     }
                 },
+                Image::PaintWorklet(_) => {
+                    // TODO: Add support for PaintWorklet rendering.
+                },
                 // Gecko-only value, represented as a (boxed) empty enum on non-Gecko.
                 Image::Rect(ref rect) => match **rect {},
                 Image::ImageSet(..) | Image::CrossFade(..) => {

@@ -16,8 +16,6 @@ debugmozjs = ["script/debugmozjs"]
 googlevr = ["webxr/googlevr"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
-layout-2013 = ["layout_thread_2013"]
-layout-2020 = ["layout_thread_2020"]
 max_log_level = ["log/release_max_level_info"]
 media-dummy = ["servo-media-dummy"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
@@ -55,8 +53,8 @@ gleam = { workspace = true }
 gstreamer = { version = "0.15", features = ["v1_16"], optional = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
-layout_thread_2013 = { path = "../layout_thread", optional = true }
-layout_thread_2020 = { path = "../layout_thread_2020", optional = true }
+layout_thread_2013 = { path = "../layout_thread" }
+layout_thread_2020 = { path = "../layout_thread_2020" }
 log = { workspace = true }
 media = { path = "../media" }
 mozangle = { workspace = true }

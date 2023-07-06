@@ -228,7 +228,7 @@ impl Image {
                 return Ok(generic::Image::CrossFade(Box::new(cf)));
             }
         }
-        #[cfg(feature = "servo-layout-2013")]
+        #[cfg(feature = "servo")]
         {
             if let Ok(paint_worklet) = input.try_parse(|i| PaintWorklet::parse(context, i)) {
                 return Ok(generic::Image::PaintWorklet(paint_worklet));

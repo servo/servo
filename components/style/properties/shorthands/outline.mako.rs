@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="outline"
-                    engines="gecko servo-2013 servo-2020"
+                    engines="gecko servo"
                     sub_properties="outline-color outline-style outline-width"
                     spec="https://drafts.csswg.org/css-ui/#propdef-outline">
     use crate::properties::longhands::{outline_color, outline_width, outline_style};

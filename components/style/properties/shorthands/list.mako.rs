@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="list-style"
-                    engines="gecko servo-2013 servo-2020"
+                    engines="gecko servo"
                     sub_properties="list-style-position list-style-image list-style-type"
                     spec="https://drafts.csswg.org/css-lists/#propdef-list-style">
     use crate::properties::longhands::{list_style_image, list_style_position, list_style_type};
@@ -110,9 +110,9 @@
             use longhands::list_style_type::SpecifiedValue as ListStyleType;
             use longhands::list_style_image::SpecifiedValue as ListStyleImage;
             let mut have_one_non_initial_value = false;
-            #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
+            #[cfg(feature = "gecko")]
             let position_is_initial = self.list_style_position == &ListStylePosition::Outside;
-            #[cfg(feature = "servo-layout-2020")]
+            #[cfg(feature = "servo")]
             let position_is_initial = self.list_style_position == Some(&ListStylePosition::Outside);
             if !position_is_initial {
                 self.list_style_position.to_css(dest)?;

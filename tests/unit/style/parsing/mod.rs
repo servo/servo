@@ -112,22 +112,16 @@ macro_rules! parse_longhand {
     };
 }
 
+mod background;
+mod border;
 mod box_;
+mod column;
 mod effects;
 mod image;
 mod inherited_text;
 mod outline;
 mod selectors;
 mod supports;
+mod text_overflow;
 mod transition_duration;
 mod transition_timing_function;
-
-// These tests test features that are only available in 2013 layout.
-#[cfg(feature = "layout_2013")]
-mod background;
-#[cfg(feature = "layout_2013")]
-mod border;
-#[cfg(feature = "layout_2013")]
-mod column;
-#[cfg(feature = "layout_2013")]
-mod text_overflow;

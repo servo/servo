@@ -440,6 +440,7 @@ mod gen {
                 flexbox: {
                     enabled: bool,
                 },
+                legacy_layout: bool,
                 #[serde(default = "default_layout_threads")]
                 threads: i64,
                 writing_mode: {

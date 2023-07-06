@@ -7,7 +7,7 @@ edition = "2018"
 publish = false
 
 [lib]
-name = "layout_thread"
+name = "layout_thread_2020"
 path = "lib.rs"
 
 [dependencies]

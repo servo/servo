@@ -177,7 +177,7 @@ pub mod shorthands {
         data.declare_shorthand(
             "all",
             logical_longhands + other_longhands,
-            engines="gecko servo-2013 servo-2020",
+            engines="gecko servo",
             spec="https://drafts.csswg.org/css-cascade-3/#all-shorthand"
         )
     %>
@@ -542,8 +542,7 @@ impl NonCustomPropertyId {
                 }] = [
                     % for property in data.longhands + data.shorthands + data.all_aliases():
                         <%
-                            attrs = {"servo-2013": "servo_2013_pref", "servo-2020": "servo_2020_pref"}
-                            pref = getattr(property, attrs[engine])
+                            pref = getattr(property, "servo_pref")
                         %>
                         % if pref:
                             Some("${pref}"),
@@ -1351,9 +1350,7 @@ impl LonghandId {
             LonghandId::BorderRightColor |
             LonghandId::BorderBottomColor |
             LonghandId::BorderLeftColor |
-            % if engine in ["gecko", "servo-2013"]:
             LonghandId::OutlineColor |
-            % endif
             LonghandId::Color
         )
     }
@@ -3817,7 +3814,7 @@ impl<'a> StyleBuilder<'a> {
     }
     % endif
 
-    % if not property.is_vector or property.simple_vector_bindings or engine in ["servo-2013", "servo-2020"]:
+    % if not property.is_vector or property.simple_vector_bindings or engine == "servo":
     /// Set the `${property.ident}` to the computed value `value`.
     #[allow(non_snake_case)]
     pub fn set_${property.ident}(
@@ -4207,7 +4204,7 @@ macro_rules! longhand_properties_idents {
     }
 }
 
-% if engine in ["servo-2013", "servo-2020"]:
+% if engine == "servo":
 % for effect_name in ["repaint", "reflow_out_of_flow", "reflow", "rebuild_and_reflow_inline", "rebuild_and_reflow"]:
     macro_rules! restyle_damage_${effect_name} {
         ($old: ident, $new: ident, $damage: ident, [ $($effect:expr),* ]) => ({

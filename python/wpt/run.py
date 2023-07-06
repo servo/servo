@@ -100,8 +100,11 @@ def run_tests(**kwargs):
         # TODO: Delete rr traces from green test runs?
 
     prefs = kwargs.pop("prefs")
+    kwargs.setdefault("binary_args", [])
     if prefs:
-        kwargs["binary_args"] = ["--pref=" + pref for pref in prefs]
+        kwargs["binary_args"] += ["--pref=" + pref for pref in prefs]
+    if not kwargs.get("layout_2020", False):
+        kwargs["binary_args"] += ["--legacy-layout"]
 
     if not kwargs.get("no_default_test_types"):
         test_types = {
@@ -116,6 +119,7 @@ def run_tests(**kwargs):
     raw_log_outputs = kwargs.get("log_raw", [])
 
     wptcommandline.check_args(kwargs)
+
     update_args_for_legacy_layout(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (

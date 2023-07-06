@@ -5,9 +5,9 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="columns"
-                    engines="gecko servo-2013"
+                    engines="gecko servo"
                     sub_properties="column-width column-count"
-                    servo_2013_pref="layout.columns.enabled",
+                    servo_pref="layout.columns.enabled"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-multicol/#propdef-columns">
     use crate::properties::longhands::{column_count, column_width};

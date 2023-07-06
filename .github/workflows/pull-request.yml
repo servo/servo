@@ -11,13 +11,4 @@ jobs:
     if: github.repository == 'servo/servo'
     uses: ./.github/workflows/linux.yml
     with:
-      layout: '2013'
       unit-tests: true
-
-  build-linux-layout-2020:
-    name: Linux (layout-2020)
-    if: github.repository == 'servo/servo'
-    uses: ./.github/workflows/linux.yml
-    with:
-      layout: '2020'
-      unit-tests: false

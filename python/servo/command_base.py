@@ -859,11 +859,6 @@ class CommandBase(object):
                 action='store_true',
                 help='Build with frame pointer enabled, used by the background hang monitor.',
             ),
-            CommandArgument(
-                '--with-layout-2020', '--layout-2020',
-                group="Feature Selection", default=None, action='store_true'),
-            CommandArgument(
-                '--with-layout-2013', '--layout-2013', group="Feature Selection", default=None, action='store_true'),
             CommandArgument('--without-wgl', group="Feature Selection", default=None, action='store_true'),
         ]
 
@@ -961,10 +956,6 @@ class CommandBase(object):
 
             features.append("native-bluetooth")
 
-            if with_layout_2020 or (self.config["build"]["layout-2020"] and not with_layout_2013):
-                features.append("layout-2020")
-            elif "layout-2020" not in features:
-                features.append("layout-2013")
             if with_frame_pointer:
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
                 features.append("profilemozjs")

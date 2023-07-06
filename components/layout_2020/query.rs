@@ -492,8 +492,9 @@ fn process_offset_parent_query_inner(
                             // TODO: Handle case 2
                             (true, _) |
                             (false, Position::Absolute) |
+                            (false, Position::Fixed) |
                             (false, Position::Relative) |
-                            (false, Position::Fixed) => true,
+                            (false, Position::Sticky) => true,
 
                             // Otherwise, it's not a valid parent
                             (false, Position::Static) => false,
