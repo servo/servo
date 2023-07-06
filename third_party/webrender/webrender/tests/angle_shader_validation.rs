@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate mozangle;
-extern crate webrender;
-extern crate webrender_build;
+use mozangle;
+use webrender;
+use webrender_build;
 
 use mozangle::shaders::{BuiltInResources, Output, ShaderSpec, ShaderValidator};
 use webrender_build::shader::{ShaderFeatureFlags, ShaderVersion, build_shader_strings, get_shader_features};

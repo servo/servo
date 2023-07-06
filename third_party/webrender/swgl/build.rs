@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate cc;
-extern crate glsl_to_cxx;
-extern crate webrender_build;
+use cc;
+use glsl_to_cxx;
+use webrender_build;
 
 use std::collections::HashSet;
 use std::fmt::Write;

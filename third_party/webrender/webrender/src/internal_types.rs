@@ -568,13 +568,13 @@ pub enum ResultMsg {
 
 #[derive(Clone, Debug)]
 pub struct ResourceCacheError {
-    description: String,
+    _description: String,
 }
 
 impl ResourceCacheError {
     pub fn new(description: String) -> ResourceCacheError {
         ResourceCacheError {
-            description,
+            _description: description,
         }
     }
 }

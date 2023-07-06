@@ -15,28 +15,23 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::float_cmp, clippy::too_many_arguments))]
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::unreadable_literal, clippy::new_without_default))]
 
-extern crate app_units;
 #[macro_use]
 extern crate bitflags;
-extern crate byteorder;
 #[cfg(feature = "nightly")]
-extern crate core;
+use core;
 #[cfg(target_os = "macos")]
-extern crate core_foundation;
+use core_foundation;
 #[cfg(target_os = "macos")]
-extern crate core_graphics;
+use core_graphics;
 #[macro_use]
 extern crate derive_more;
-pub extern crate euclid;
+pub use euclid;
 #[macro_use]
 extern crate malloc_size_of_derive;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate time;
 
-extern crate malloc_size_of;
-extern crate peek_poke;
+use malloc_size_of;
 
 mod api;
 pub mod channel;

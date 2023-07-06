@@ -4,8 +4,6 @@
 
 #![deny(missing_docs)]
 
-extern crate serde_bytes;
-
 use peek_poke::PeekPoke;
 use std::cell::Cell;
 use std::fmt;

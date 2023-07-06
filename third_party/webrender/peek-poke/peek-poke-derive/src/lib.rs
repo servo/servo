@@ -223,7 +223,7 @@ fn peek_poke_derive(mut s: Structure) -> TokenStream {
     };
 
     let poke_impl = s.gen_impl(quote! {
-        extern crate peek_poke;
+        use peek_poke;
 
         gen unsafe impl peek_poke::Poke for @Self {
             #max_size_fn
@@ -249,7 +249,7 @@ fn peek_poke_derive(mut s: Structure) -> TokenStream {
     let peek_impl = quote! {
         #[allow(non_upper_case_globals)]
         const #dummy_const: () = {
-            extern crate peek_poke;
+            use peek_poke;
 
             impl #impl_generics peek_poke::Peek for #name #ty_generics #where_clause {
                 #peek_from_fn

@@ -1003,10 +1003,10 @@ fn add_svg_filter_instances(
     let generic_int = match filter {
         SvgFilterInfo::Blend(mode) => *mode as u16,
         SvgFilterInfo::ComponentTransfer(data) =>
-            ((data.r_func.to_int() << 12 |
+            (data.r_func.to_int() << 12 |
               data.g_func.to_int() << 8 |
               data.b_func.to_int() << 4 |
-              data.a_func.to_int()) as u16),
+              data.a_func.to_int()) as u16,
         SvgFilterInfo::Composite(operator) =>
             operator.as_int() as u16,
         SvgFilterInfo::LinearToSrgb |
