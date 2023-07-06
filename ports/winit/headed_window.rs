@@ -504,6 +504,10 @@ impl WindowPortsMethods for Window {
         self.xr_window_poses.borrow_mut().push(pose.clone());
         Box::new(XRWindow { winit_window, pose })
     }
+
+    fn winit_window(&self) -> Option<&winit::window::Window> {
+        Some(&self.winit_window)
+    }
 }
 
 impl WindowMethods for Window {

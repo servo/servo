@@ -108,6 +108,10 @@ impl WindowPortsMethods for Window {
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         unimplemented!()
     }
+
+    fn winit_window(&self) -> Option<&winit::window::Window> {
+        None
+    }
 }
 
 impl WindowMethods for Window {

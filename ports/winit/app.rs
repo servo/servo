@@ -9,6 +9,8 @@ use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, ServoEvent};
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
+use egui::{RawInput, TopBottomPanel};
+use egui_winit::EventResponse;
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
 use servo::compositing::windowing::WindowEvent;
@@ -62,6 +64,50 @@ impl App {
             windows: HashMap::new(),
         };
 
+        struct Minibrowser {
+            integration: egui_winit::State,
+            egui: egui::Context,
+            location: RefCell<String>,
+        }
+
+        impl Minibrowser {
+            fn update(&mut self, window: &winit::window::Window) {
+                let Self { integration, egui, location } = self;
+                let input = integration.take_egui_input(window);
+                let output = egui.clone().run(input, |ctx| {
+                    TopBottomPanel::top("toolbar").show(ctx, |ui| {
+                        ui.allocate_ui_with_layout(
+                            ui.available_size(),
+                            egui::Layout::right_to_left(egui::Align::Center),
+                            |ui| {
+                                if ui.button("go").clicked() {
+                                    // TODO go
+                                    dbg!("go clicked");
+                                }
+                                ui.add_sized(
+                                    ui.available_size(),
+                                    egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                                );
+                            },
+                        );
+                    });
+                    dbg!(ctx.used_rect());
+                });
+                integration.handle_platform_output(window, egui, output.platform_output);
+            }
+        }
+
+        // Set up egui context for minibrowser ui
+        let mut minibrowser = window.winit_window().map(|window| Minibrowser {
+            integration: egui_winit::State::new(window),
+            egui: egui::Context::default(),
+            location: RefCell::new(String::default()),
+        });
+
+        if let Some(minibrowser) = minibrowser.as_mut() {
+            minibrowser.update(window.winit_window().unwrap());
+        }
+
         let ev_waker = events_loop.create_event_loop_waker();
         events_loop.run_forever(move |e, w, control_flow| {
             if let winit::event::Event::NewEvents(winit::event::StartCause::Init) = e {
@@ -114,7 +160,23 @@ impl App {
             }
 
             // Handle the event
-            app.winit_event_to_servo_event(e);
+            let response = match e {
+                winit::event::Event::WindowEvent { ref event, .. } => {
+                    if let Some(minibrowser) = minibrowser.as_mut() {
+                        minibrowser.integration.on_event(&minibrowser.egui, &event)
+                    } else {
+                        EventResponse { consumed: false, repaint: false }
+                    }
+                }
+                _ => EventResponse { consumed: false, repaint: false },
+            };
+            // TODO how do we handle the tab key? (see doc for consumed)
+            if !response.consumed {
+                app.winit_event_to_servo_event(e);
+            }
+            if response.repaint {
+                minibrowser.as_mut().unwrap().update(window.winit_window().unwrap());
+            }
 
             let animating = app.is_animating();
 
