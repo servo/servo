@@ -5,6 +5,9 @@ on:
       wpt:
         required: false
         type: string
+      layout:
+        required: false
+        type: string
       unit-tests:
         required: false
         default: false
@@ -23,6 +26,10 @@ on:
         required: false
         type: choice
         options: ["test", "sync"]
+      layout:
+        required: false
+        type: choice
+        options: ["2013", "2020", "all"]
       unit-tests:
         required: false
         default: false
@@ -106,117 +113,23 @@ jobs:
           name: release-binary
           path: target.tar.gz
 
-  linux-wpt:
-    if: ${{ github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt }}
-    name: Linux WPT Tests
-    runs-on: ubuntu-20.04
+  linux-wpt-2020:
+    if: ${{ github.ref_name == 'try-wpt-2020' || inputs.layout == '2020' || inputs.layout == 'all' }}
+    name: Linux WPT Tests 2020
     needs: ["build-linux"]
-    env:
-      max_chunk_id: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        layout: ["layout-2020", "layout-2013"]
-        chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - uses: actions/download-artifact@v3
-        with:
-          name: release-binary
-          path: release-binary
-      - name: unPackage binary
-        run: tar -xzf release-binary/target.tar.gz
-      - name: Prep test environment
-        run: |
-          python3 -m pip install --upgrade pip virtualenv
-          sudo apt update
-          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
-          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
-          sudo apt install ./libffi6_3.2.1-8_amd64.deb
-          python3 ./mach bootstrap-gstreamer
-      - name: Fetch upstream changes before testing
-        if: ${{ inputs.wpt == 'sync' }}
-        run: |
-          ./etc/ci/update-wpt-checkout fetch-upstream-changes
-      - name: Run tests
-        if: ${{ inputs.wpt != 'sync' }}
-        run: |
-          python3 ./mach test-wpt --with-${{ matrix.layout }} \
-            --release --processes $(nproc) --timeout-multiplier 2 \
-            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
-            --log-raw test-wpt-${{ matrix.layout }}.${{ matrix.chunk_id }}.log \
-            --log-raw-unexpected unexpected-test-wpt-${{ matrix.layout }}.${{ matrix.chunk_id }}.log \
-            --filter-intermittents filtered-test-wpt-${{ matrix.layout }}.${{ matrix.chunk_id }}.json
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET }}
-      - name: Run tests (sync)
-        if: ${{ inputs.wpt == 'sync' }}
-        run: |
-          python3 ./mach test-wpt --with-${{ matrix.layout }} \
-            --release --processes $(nproc) --timeout-multiplier 2 \
-            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
-            --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-            --always-succeed
-      - name: Archive filtered results
-        uses: actions/upload-artifact@v3
-        if: ${{ always() && inputs.wpt != 'sync' }}
-        with:
-          name: wpt-filtered-results-linux
-          path: |
-            filtered-test-wpt-${{ matrix.layout }}.${{ matrix.chunk_id }}.json
-            unexpected-test-wpt-${{ matrix.layout }}.${{ matrix.chunk_id }}.log
-      - name: Archive logs
-        uses: actions/upload-artifact@v3
-        if: ${{ failure() && inputs.wpt != 'sync' }}
-        with:
-          name: wpt-logs-linux
-          path: |
-            test-wpt-${{ matrix.layout }}.${{ matrix.chunk_id }}.log
-      - name: Archive logs
-        uses: actions/upload-artifact@v3
-        if: ${{ inputs.wpt == 'sync' }}
-        with:
-          name: wpt-logs-linux-${{ matrix.layout }}
-          path: |
-            test-wpt.${{ matrix.chunk_id }}.log
-            wpt-jsonsummary.${{ matrix.chunk_id }}.log
+    uses: ./.github/workflows/linux-wpt.yml
+    with:
+      wpt: ${{ inputs.wpt }}
+      layout: "layout-2020"
 
-  report-test-results:
-    name: Reporting test results
-    runs-on: ubuntu-latest
-    if: ${{ always() && !cancelled() && success('build-linux') && (github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt == 'test') }}
-    needs:
-      - "linux-wpt"
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - uses: actions/download-artifact@v3
-        with:
-          name: wpt-filtered-results-linux
-          path: wpt-filtered-results-linux
-      - name: Create aggregated unexpected results
-        run: |
-          cat wpt-filtered-results-linux/*-layout-2020.*.log > unexpected-test-wpt-layout-2020.log
-          cat wpt-filtered-results-linux/*-layout-2013.*.log > unexpected-test-wpt-layout-2013.log
-      - name: Archive aggregate results
-        uses: actions/upload-artifact@v3
-        with:
-          name: wpt-filtered-results-linux
-          path: |
-            unexpected-test-wpt-layout-2020.log
-            unexpected-test-wpt-layout-2013.log
-      - name: Comment on PR with results
-        run: |
-          etc/ci/report_aggregated_expected_results.py --tag="linux-wpt-2020" wpt-filtered-results-linux/*-layout-2020.*.json
-          etc/ci/report_aggregated_expected_results.py --tag="linux-wpt-2013" wpt-filtered-results-linux/*-layout-2013.*.json
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RESULTS: ${{ toJson(needs.*.result) }}
+  linux-wpt-2013:
+    if: ${{ github.ref_name == 'try-wpt' || inputs.layout == '2013' || inputs.layout == 'all' }}
+    name: Linux WPT Tests 2013
+    needs: ["build-linux"]
+    uses: ./.github/workflows/linux-wpt.yml
+    with:
+      wpt: ${{ inputs.wpt }}
+      layout: "layout-2013"
 
   build_result:
     name: homu build finished
@@ -225,8 +138,8 @@ jobs:
     # needs all build to detect cancellation
     needs:
       - "build-linux"
-      - "linux-wpt"
-      - "report-test-results"
+      - "linux-wpt-2020"
+      - "linux-wpt-2013"
 
     steps:
       - name: Mark the job as successful

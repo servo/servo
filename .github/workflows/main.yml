@@ -53,6 +53,7 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       wpt: 'test'
+      layout: 'all'
       unit-tests: true
 
   build_result:
