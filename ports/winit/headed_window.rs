@@ -525,8 +525,12 @@ impl WindowMethods for Window {
         let PhysicalSize { width, height } = self
             .winit_window
             .inner_size();
-        let inner_size = (Size2D::new(width as f32, height as f32) * dpr).to_i32();
-        let viewport = DeviceIntRect::new(Point2D::zero(), inner_size);
+
+        let toolbar_height = 32f32; // TODO get real value from egui
+        let viewport_origin = Point2D::new(0f32, toolbar_height * 0f32).to_i32(); // TODO this misbehaves
+        let viewport_size = (Size2D::new(width as f32, height as f32 - toolbar_height) * dpr).to_i32();
+        let viewport = DeviceIntRect::new(viewport_origin, viewport_size);
+
         let framebuffer = DeviceIntSize::from_untyped(viewport.size.to_untyped());
         EmbedderCoordinates {
             viewport,
