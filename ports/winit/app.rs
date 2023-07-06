@@ -90,6 +90,9 @@ impl App {
                             },
                         );
                     });
+
+                    // Get the toolbar size
+                    // TODO somehow pass this to the headed Window::get_coordinates
                     dbg!(ctx.used_rect());
                 });
                 context.paint(window);
