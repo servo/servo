@@ -36,7 +36,7 @@ layout-2020 = ["libservo/layout-2020"]
 max_log_level = ["log/release_max_level_info"]
 media-dummy = ["libservo/media-dummy"]
 media-gstreamer = ["libservo/media-gstreamer"]
-minibrowser = ["dep:egui", "dep:egui-winit"]
+minibrowser = ["dep:egui", "dep:egui-winit", "dep:egui_glow", "dep:glow"]
 native-bluetooth = ["libservo/native-bluetooth"]
 no-wgl = ["libservo/no-wgl"]
 profilemozjs = ["libservo/profilemozjs"]
@@ -50,9 +50,11 @@ xr-profile = ["libservo/xr-profile"]
 backtrace = "0.3"
 clipboard = "0.5"
 egui = { version = "0.22.0", optional = true }
+egui_glow = { version = "0.22.0", optional = true, features = ["winit"] }
 egui-winit = { version = "0.22.0", optional = true }
 euclid = "0.22"
 getopts = "0.2.11"
+glow = { version = "0.12.2", optional = true }
 keyboard-types = "0.6"
 lazy_static = "1"
 libc = "0.2"

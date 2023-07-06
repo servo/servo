@@ -23,6 +23,7 @@ use std::collections::HashMap;
 use std::env;
 use std::mem;
 use std::rc::Rc;
+use std::sync::Arc;
 use webxr::glwindow::GlWindowDiscovery;
 
 pub struct App {
@@ -65,16 +66,14 @@ impl App {
         };
 
         struct Minibrowser {
-            integration: egui_winit::State,
-            egui: egui::Context,
+            context: egui_glow::EguiGlow,
             location: RefCell<String>,
         }
 
         impl Minibrowser {
             fn update(&mut self, window: &winit::window::Window) {
-                let Self { integration, egui, location } = self;
-                let input = integration.take_egui_input(window);
-                let output = egui.clone().run(input, |ctx| {
+                let Self { context, location } = self;
+                let _duration = context.run(window, |ctx| {
                     TopBottomPanel::top("toolbar").show(ctx, |ui| {
                         ui.allocate_ui_with_layout(
                             ui.available_size(),
@@ -93,14 +92,27 @@ impl App {
                     });
                     dbg!(ctx.used_rect());
                 });
-                integration.handle_platform_output(window, egui, output.platform_output);
+                context.paint(window);
             }
         }
 
+        // TODO maybe we need to bind a framebuffer object?
+        // => glow::Context::create_framebuffer_from_gl_name says “Creates a framebuffer from an
+        //    external GL name. This can be useful when a framebuffer is created outside of glow
+        //    (e.g: via surfman or another crate that supports sharing of buffers between GL
+        //    contexts), but glow needs to set it as a target.”
+        // => see Servo::new in components/servo/lib.rs for how to do this
+        // let fbo = window.webrender_surfman().context_surface_info().unwrap().unwrap().framebuffer_object;
+
         // Set up egui context for minibrowser ui
-        let mut minibrowser = window.winit_window().map(|window| Minibrowser {
-            integration: egui_winit::State::new(window),
-            egui: egui::Context::default(),
+        // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
+        let gl = unsafe {
+            glow::Context::from_loader_function(|s| {
+                window.webrender_surfman().get_proc_address(s)
+            })
+        };
+        let mut minibrowser = window.winit_window().map(|_| Minibrowser {
+            context: egui_glow::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
             location: RefCell::new(String::default()),
         });
 
@@ -163,7 +175,7 @@ impl App {
             let response = match e {
                 winit::event::Event::WindowEvent { ref event, .. } => {
                     if let Some(minibrowser) = minibrowser.as_mut() {
-                        minibrowser.integration.on_event(&minibrowser.egui, &event)
+                        minibrowser.context.on_event(&event)
                     } else {
                         EventResponse { consumed: false, repaint: false }
                     }
