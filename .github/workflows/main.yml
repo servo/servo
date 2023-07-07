@@ -1,22 +1,27 @@
-name: Merge queue and try
+name: Main
 
 on:
   push:
-    branches: ["auto", "try"]
-
-  # Used by GH merge queue for landing PRs
+    # Run the entire pipeline for 'master' even though the merge queue already runs checks
+    # for every change. This just offers an extra layer of testing and covers the case of
+    # random force pushes.
+    branches: ["master", "try"]
+  pull_request:
+    types: ['opened', 'synchronize']
+    branches: ["**"]
   merge_group:
     types: [checks_requested]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
   decision:
-    name: Decision job
+    name: Decision
     runs-on: ubuntu-20.04
     steps:
-      - name: Previous successful build check
+      # If an identical build exists that suceeded, skip this workflow run. We don't do
+      # this check for pull_request and merge_group events, out of caution.
+      - name: Skip previous identical builds
+        if: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
         uses: actions/github-script@v6
         with:
           script: |
@@ -35,6 +40,7 @@ jobs:
 
   build-win:
     name: Windows
+    if: ${{ github.event_name == 'push' || github.event_name == 'merge_group' }}
     needs: ["decision"]
     uses: ./.github/workflows/windows.yml
     with:
@@ -42,6 +48,7 @@ jobs:
 
   build-mac:
     name: Mac
+    if: ${{ github.event_name == 'push' || github.event_name == 'merge_group' }}
     needs: ["decision"]
     uses: ./.github/workflows/mac.yml
     with:
@@ -53,11 +60,11 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       wpt: 'test'
-      layout: 'all'
-      unit-tests: true
+      layout: ${{ (github.event_name == 'push' || github.event_name == 'merge_group') && 'all' || 'none' }}
+      unit-tests: ${{ github.event_name == 'push' || github.event_name == 'merge_group' }}
 
   build_result:
-    name: homu build finished
+    name: Result
     runs-on: ubuntu-latest
     if: always()
     # needs all build to detect cancellation

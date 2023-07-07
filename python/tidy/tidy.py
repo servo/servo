@@ -153,7 +153,7 @@ class FileList(object):
                 yield os.path.join(root, f)
 
     def _git_changed_files(self):
-        args = ["git", "log", "-n1", "--merges", "--format=%H"]
+        args = ["git", "log", "-n1", "--committer", "noreply@github.com", "--format=%H"]
         last_merge = subprocess.check_output(args, universal_newlines=True).strip()
         if not last_merge:
             return
