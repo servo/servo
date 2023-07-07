@@ -281,8 +281,12 @@ impl Fragment {
             return;
         }
 
-        let mut common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
-        common.hit_info = builder.hit_info(&fragment.parent_style, fragment.base.tag, Cursor::Text);
+        let common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
+
+        let hit_info = builder.hit_info(&fragment.parent_style, fragment.base.tag, Cursor::Text);
+        let mut hit_test_common = common.clone();
+        hit_test_common.hit_info = hit_info;
+        builder.wr().push_hit_test(&hit_test_common);
 
         let color = fragment.parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
