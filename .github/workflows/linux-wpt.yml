@@ -90,7 +90,7 @@ jobs:
             wpt-jsonsummary.${{ matrix.chunk_id }}.log
 
   report-test-results:
-    name: Reporting Result
+    name: Report WPT Results
     runs-on: ubuntu-latest
     if: ${{ always() && !cancelled() && (github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt == 'test') }}
     needs:

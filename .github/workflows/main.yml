@@ -2,14 +2,19 @@ name: Main
 
 on:
   push:
-    branches: ["master", "merge-queue-test", "try"]
+    # Run the entire pipeline for 'master' even though the merge queue already runs checks
+    # for every change. This just offers an extra layer of testing and covers the case of
+    # random force pushes.
+    #
+    # 'gh-readonly-queue/**' is a temporary branch that the GitHub merge queue uses. Do
+    # not run the workflow for pushes for tese branches, because it will be run for
+    # 'merge_group' events below.
+    branches: ["master", "merge-queue-test", "try", "!gh-readonly-queue/**"]
   pull_request:
     types: ['opened', 'synchronize']
     branches: ["**"]
   merge_group:
     types: [checks_requested]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:

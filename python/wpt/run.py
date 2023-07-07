@@ -223,9 +223,17 @@ class TrackerDashboardFilter():
         run_id = github_context['run_id']
         build_url = f"{repo_url}/actions/runs/{run_id}"
 
-        commit_title = github_context["event"]["head_commit"]["message"]
-        match = re.match(r"^Auto merge of #(\d+)", commit_title)
-        pr_url = f"{repo_url}/pull/{match.group(1)}" if match else None
+        commit_title = "<no title>"
+        if "merge_group" in github_context["event"]:
+            commit_title = github_context["event"]["merge_group"]["head_commit"]["message"]
+        if "head_commit" in github_context["event"]:
+            commit_title = github_context["event"]["head_commit"]["message"]
+
+        pr_url = None
+        match = re.match(r"^Auto merge of #(\d+)", commit_title) or \
+            re.match(r"\(#(\d+)\)", commit_title)
+        if match:
+            pr_url = f"{repo_url}/pull/{match.group(1)}" if match else None
 
         return GithubContextInformation(
             build_url,
