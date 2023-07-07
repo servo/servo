@@ -2,7 +2,7 @@ name: Main
 
 on:
   push:
-    branches: ["master", "combine-workflows-for-merge-queue", "try"]
+    branches: ["master", "merge-queue-test", "try"]
   pull_request:
     types: ['opened', 'synchronize']
     branches: ["**"]
