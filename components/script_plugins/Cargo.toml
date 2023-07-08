@@ -12,3 +12,6 @@ plugin = true
 
 [features]
 unrooted_must_root_lint = []
+
+[package.metadata.rust-analyzer]
+rustc_private=true
