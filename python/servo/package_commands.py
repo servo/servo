@@ -53,13 +53,7 @@ PACKAGES = {
     'linux': [
         'release/servo-tech-demo.tar.gz',
     ],
-    'linux-layout2020': [
-        'release/servo-tech-demo.tar.gz',
-    ],
     'mac': [
-        'release/servo-tech-demo.dmg',
-    ],
-    'mac-layout2020': [
         'release/servo-tech-demo.dmg',
     ],
     'macbrew': [
@@ -70,10 +64,6 @@ PACKAGES = {
         'android/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
     ],
     'windows-msvc': [
-        r'release\msi\Servo.exe',
-        r'release\msi\Servo.zip',
-    ],
-    'windows-msvc-layout2020': [
         r'release\msi\Servo.exe',
         r'release\msi\Servo.zip',
     ],
