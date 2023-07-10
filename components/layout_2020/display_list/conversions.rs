@@ -8,7 +8,7 @@ use style::computed_values::text_decoration_style::T as ComputedTextDecorationSt
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::Filter as ComputedFilter;
 use style::values::computed::Length;
-use webrender_api as wr;
+use webrender_api::{units, FilterOp, LineStyle, MixBlendMode, TransformStyle};
 
 pub trait ToWebRender {
     type Type;
@@ -16,18 +16,18 @@ pub trait ToWebRender {
 }
 
 impl ToWebRender for ComputedFilter {
-    type Type = wr::FilterOp;
+    type Type = FilterOp;
     fn to_webrender(&self) -> Self::Type {
         match *self {
-            ComputedFilter::Blur(radius) => wr::FilterOp::Blur(radius.px()),
-            ComputedFilter::Brightness(amount) => wr::FilterOp::Brightness(amount.0),
-            ComputedFilter::Contrast(amount) => wr::FilterOp::Contrast(amount.0),
-            ComputedFilter::Grayscale(amount) => wr::FilterOp::Grayscale(amount.0),
-            ComputedFilter::HueRotate(angle) => wr::FilterOp::HueRotate(angle.radians()),
-            ComputedFilter::Invert(amount) => wr::FilterOp::Invert(amount.0),
-            ComputedFilter::Opacity(amount) => wr::FilterOp::Opacity(amount.0.into(), amount.0),
-            ComputedFilter::Saturate(amount) => wr::FilterOp::Saturate(amount.0),
-            ComputedFilter::Sepia(amount) => wr::FilterOp::Sepia(amount.0),
+            ComputedFilter::Blur(radius) => FilterOp::Blur(radius.px()),
+            ComputedFilter::Brightness(amount) => FilterOp::Brightness(amount.0),
+            ComputedFilter::Contrast(amount) => FilterOp::Contrast(amount.0),
+            ComputedFilter::Grayscale(amount) => FilterOp::Grayscale(amount.0),
+            ComputedFilter::HueRotate(angle) => FilterOp::HueRotate(angle.radians()),
+            ComputedFilter::Invert(amount) => FilterOp::Invert(amount.0),
+            ComputedFilter::Opacity(amount) => FilterOp::Opacity(amount.0.into(), amount.0),
+            ComputedFilter::Saturate(amount) => FilterOp::Saturate(amount.0),
+            ComputedFilter::Sepia(amount) => FilterOp::Sepia(amount.0),
             // Statically check that DropShadow is impossible.
             ComputedFilter::DropShadow(ref shadow) => match *shadow {},
             // Statically check that Url is impossible.
@@ -36,64 +36,64 @@ impl ToWebRender for ComputedFilter {
     }
 }
 impl ToWebRender for ComputedMixBlendMode {
-    type Type = wr::MixBlendMode;
+    type Type = MixBlendMode;
     fn to_webrender(&self) -> Self::Type {
         match *self {
-            ComputedMixBlendMode::Normal => wr::MixBlendMode::Normal,
-            ComputedMixBlendMode::Multiply => wr::MixBlendMode::Multiply,
-            ComputedMixBlendMode::Screen => wr::MixBlendMode::Screen,
-            ComputedMixBlendMode::Overlay => wr::MixBlendMode::Overlay,
-            ComputedMixBlendMode::Darken => wr::MixBlendMode::Darken,
-            ComputedMixBlendMode::Lighten => wr::MixBlendMode::Lighten,
-            ComputedMixBlendMode::ColorDodge => wr::MixBlendMode::ColorDodge,
-            ComputedMixBlendMode::ColorBurn => wr::MixBlendMode::ColorBurn,
-            ComputedMixBlendMode::HardLight => wr::MixBlendMode::HardLight,
-            ComputedMixBlendMode::SoftLight => wr::MixBlendMode::SoftLight,
-            ComputedMixBlendMode::Difference => wr::MixBlendMode::Difference,
-            ComputedMixBlendMode::Exclusion => wr::MixBlendMode::Exclusion,
-            ComputedMixBlendMode::Hue => wr::MixBlendMode::Hue,
-            ComputedMixBlendMode::Saturation => wr::MixBlendMode::Saturation,
-            ComputedMixBlendMode::Color => wr::MixBlendMode::Color,
-            ComputedMixBlendMode::Luminosity => wr::MixBlendMode::Luminosity,
+            ComputedMixBlendMode::Normal => MixBlendMode::Normal,
+            ComputedMixBlendMode::Multiply => MixBlendMode::Multiply,
+            ComputedMixBlendMode::Screen => MixBlendMode::Screen,
+            ComputedMixBlendMode::Overlay => MixBlendMode::Overlay,
+            ComputedMixBlendMode::Darken => MixBlendMode::Darken,
+            ComputedMixBlendMode::Lighten => MixBlendMode::Lighten,
+            ComputedMixBlendMode::ColorDodge => MixBlendMode::ColorDodge,
+            ComputedMixBlendMode::ColorBurn => MixBlendMode::ColorBurn,
+            ComputedMixBlendMode::HardLight => MixBlendMode::HardLight,
+            ComputedMixBlendMode::SoftLight => MixBlendMode::SoftLight,
+            ComputedMixBlendMode::Difference => MixBlendMode::Difference,
+            ComputedMixBlendMode::Exclusion => MixBlendMode::Exclusion,
+            ComputedMixBlendMode::Hue => MixBlendMode::Hue,
+            ComputedMixBlendMode::Saturation => MixBlendMode::Saturation,
+            ComputedMixBlendMode::Color => MixBlendMode::Color,
+            ComputedMixBlendMode::Luminosity => MixBlendMode::Luminosity,
         }
     }
 }
 
 impl ToWebRender for ComputedTransformStyle {
-    type Type = wr::TransformStyle;
+    type Type = TransformStyle;
     fn to_webrender(&self) -> Self::Type {
         match *self {
-            ComputedTransformStyle::Flat => wr::TransformStyle::Flat,
-            ComputedTransformStyle::Preserve3d => wr::TransformStyle::Preserve3D,
+            ComputedTransformStyle::Flat => TransformStyle::Flat,
+            ComputedTransformStyle::Preserve3d => TransformStyle::Preserve3D,
         }
     }
 }
 
 impl ToWebRender for PhysicalPoint<Length> {
-    type Type = webrender_api::units::LayoutPoint;
+    type Type = units::LayoutPoint;
     fn to_webrender(&self) -> Self::Type {
-        webrender_api::units::LayoutPoint::new(self.x.px(), self.y.px())
+        units::LayoutPoint::new(self.x.px(), self.y.px())
     }
 }
 
 impl ToWebRender for PhysicalSize<Length> {
-    type Type = webrender_api::units::LayoutSize;
+    type Type = units::LayoutSize;
     fn to_webrender(&self) -> Self::Type {
-        webrender_api::units::LayoutSize::new(self.width.px(), self.height.px())
+        units::LayoutSize::new(self.width.px(), self.height.px())
     }
 }
 
 impl ToWebRender for PhysicalRect<Length> {
-    type Type = webrender_api::units::LayoutRect;
+    type Type = units::LayoutRect;
     fn to_webrender(&self) -> Self::Type {
-        webrender_api::units::LayoutRect::new(self.origin.to_webrender(), self.size.to_webrender())
+        units::LayoutRect::new(self.origin.to_webrender(), self.size.to_webrender())
     }
 }
 
 impl ToWebRender for PhysicalSides<Length> {
-    type Type = webrender_api::units::LayoutSideOffsets;
+    type Type = units::LayoutSideOffsets;
     fn to_webrender(&self) -> Self::Type {
-        webrender_api::units::LayoutSideOffsets::new(
+        units::LayoutSideOffsets::new(
             self.top.px(),
             self.right.px(),
             self.bottom.px(),
@@ -103,14 +103,14 @@ impl ToWebRender for PhysicalSides<Length> {
 }
 
 impl ToWebRender for ComputedTextDecorationStyle {
-    type Type = webrender_api::LineStyle;
+    type Type = LineStyle;
     fn to_webrender(&self) -> Self::Type {
         match *self {
-            ComputedTextDecorationStyle::Solid => wr::LineStyle::Solid,
-            ComputedTextDecorationStyle::Dotted => wr::LineStyle::Dotted,
-            ComputedTextDecorationStyle::Dashed => wr::LineStyle::Dashed,
-            ComputedTextDecorationStyle::Wavy => wr::LineStyle::Wavy,
-            _ => wr::LineStyle::Solid,
+            ComputedTextDecorationStyle::Solid => LineStyle::Solid,
+            ComputedTextDecorationStyle::Dotted => LineStyle::Dotted,
+            ComputedTextDecorationStyle::Dashed => LineStyle::Dashed,
+            ComputedTextDecorationStyle::Wavy => LineStyle::Wavy,
+            _ => LineStyle::Solid,
         }
     }
 }

@@ -100,6 +100,7 @@ use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
+use webrender_api::{units, HitTestFlags, ScrollClamping};
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -1136,15 +1137,15 @@ impl LayoutThread {
                 &QueryMsg::StyleQuery => {},
                 &QueryMsg::NodesFromPointQuery(client_point, ref reflow_goal) => {
                     let mut flags = match reflow_goal {
-                        &NodesFromPointQueryType::Topmost => webrender_api::HitTestFlags::empty(),
-                        &NodesFromPointQueryType::All => webrender_api::HitTestFlags::FIND_ALL,
+                        &NodesFromPointQueryType::Topmost => HitTestFlags::empty(),
+                        &NodesFromPointQueryType::All => HitTestFlags::FIND_ALL,
                     };
 
                     // The point we get is not relative to the entire WebRender scene, but to this
                     // particular pipeline, so we need to tell WebRender about that.
-                    flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
+                    flags.insert(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                    let client_point = webrender_api::units::WorldPoint::from_untyped(client_point);
+                    let client_point = units::WorldPoint::from_untyped(client_point);
                     let results = self.webrender_api.hit_test(
                         Some(self.id.to_webrender()),
                         client_point,
@@ -1178,9 +1179,9 @@ impl LayoutThread {
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.webrender_api.send_scroll_node(
-            webrender_api::units::LayoutPoint::from_untyped(point),
+            units::LayoutPoint::from_untyped(point),
             state.scroll_id,
-            webrender_api::ScrollClamping::ToContentBounds,
+            ScrollClamping::ToContentBounds,
         );
     }
 
@@ -1248,7 +1249,7 @@ impl LayoutThread {
         epoch.next();
         self.epoch.set(epoch);
 
-        let viewport_size = webrender_api::units::LayoutSize::from_untyped(Size2D::new(
+        let viewport_size = units::LayoutSize::from_untyped(Size2D::new(
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
         ));

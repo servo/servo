@@ -12,6 +12,7 @@ use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::gputexture::GPUTexture;
 use dom_struct::dom_struct;
 use webgpu::{WebGPU, WebGPURequest, WebGPUTexture};
+use webrender_api::ImageKey;
 
 #[dom_struct]
 pub struct GPUSwapChain {
@@ -56,7 +57,7 @@ impl GPUSwapChain {
 }
 
 impl GPUSwapChain {
-    pub fn destroy(&self, external_id: u64, image_key: webrender_api::ImageKey) {
+    pub fn destroy(&self, external_id: u64, image_key: ImageKey) {
         if let Err(e) = self.channel.0.send((
             None,
             WebGPURequest::DestroySwapChain {

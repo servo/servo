@@ -66,7 +66,7 @@ pub(super) fn build_linear(
 ) {
     use style::values::specified::position::HorizontalPositionKeyword::*;
     use style::values::specified::position::VerticalPositionKeyword::*;
-    use webrender_api::units::LayoutVector2D as Vec2;
+    use units::LayoutVector2D as Vec2;
     let gradient_box = layer.tile_size;
 
     // A vector of length 1.0 in the direction of the gradient line

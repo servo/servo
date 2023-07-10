@@ -69,6 +69,11 @@ use surfman::SurfaceInfo;
 use surfman::SurfaceType;
 use surfman_chains::SwapChains;
 use surfman_chains_api::SwapChainsAPI;
+use webrender_api::{
+    units::DeviceIntSize, DirtyRect, DocumentId, ExternalImageData, ExternalImageId,
+    ExternalImageType, ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
+    RenderApi, RenderApiSender, TextureTarget, Transaction,
+};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use webxr::SurfmanGL as WebXRSurfman;
 use webxr_api::ContextId as WebXRContextId;
@@ -229,9 +234,9 @@ impl Default for GLState {
 pub(crate) struct WebGLThread {
     /// The GPU device.
     device: Device,
-    /// Channel used to generate/update or delete `webrender_api::ImageKey`s.
-    webrender_api: webrender_api::RenderApi,
-    webrender_doc: webrender_api::DocumentId,
+    /// Channel used to generate/update or delete `ImageKey`s.
+    webrender_api: RenderApi,
+    webrender_doc: DocumentId,
     /// Map of live WebGLContexts.
     contexts: FnvHashMap<WebGLContextId, GLContextData>,
     /// Cached information for WebGLContexts.
@@ -255,8 +260,8 @@ pub(crate) struct WebGLThread {
 
 /// The data required to initialize an instance of the WebGLThread type.
 pub(crate) struct WebGLThreadInit {
-    pub webrender_api_sender: webrender_api::RenderApiSender,
-    pub webrender_doc: webrender_api::DocumentId,
+    pub webrender_api_sender: RenderApiSender,
+    pub webrender_doc: DocumentId,
     pub external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     pub sender: WebGLSender<WebGLMsg>,
     pub receiver: WebGLReceiver<WebGLMsg>,
@@ -744,7 +749,7 @@ impl WebGLThread {
     fn remove_webgl_context(&mut self, context_id: WebGLContextId) {
         // Release webrender image keys.
         if let Some(info) = self.cached_context_info.remove(&context_id) {
-            let mut txn = webrender_api::Transaction::new();
+            let mut txn = Transaction::new();
             txn.delete_image(info.image_key);
             self.webrender_api.send_transaction(self.webrender_doc, txn)
         }
@@ -923,66 +928,63 @@ impl WebGLThread {
 
     /// Creates a `webrender_api::ImageKey` that uses shared textures.
     fn create_wr_external_image(
-        webrender_api: &mut webrender_api::RenderApi,
-        webrender_doc: webrender_api::DocumentId,
+        webrender_api: &mut RenderApi,
+        webrender_doc: DocumentId,
         size: Size2D<i32>,
         alpha: bool,
         context_id: WebGLContextId,
-        target: webrender_api::TextureTarget,
-    ) -> webrender_api::ImageKey {
+        target: TextureTarget,
+    ) -> ImageKey {
         let descriptor = Self::image_descriptor(size, alpha);
         let data = Self::external_image_data(context_id, target);
 
         let image_key = webrender_api.generate_image_key();
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = Transaction::new();
         txn.add_image(image_key, descriptor, data, None);
         webrender_api.send_transaction(webrender_doc, txn);
 
         image_key
     }
 
-    /// Updates a `webrender_api::ImageKey` that uses shared textures.
+    /// Updates a `ImageKey` that uses shared textures.
     fn update_wr_external_image(
-        webrender_api: &mut webrender_api::RenderApi,
-        webrender_doc: webrender_api::DocumentId,
+        webrender_api: &mut RenderApi,
+        webrender_doc: DocumentId,
         size: Size2D<i32>,
         alpha: bool,
         context_id: WebGLContextId,
-        image_key: webrender_api::ImageKey,
-        target: webrender_api::TextureTarget,
+        image_key: ImageKey,
+        target: TextureTarget,
     ) {
         let descriptor = Self::image_descriptor(size, alpha);
         let data = Self::external_image_data(context_id, target);
 
-        let mut txn = webrender_api::Transaction::new();
-        txn.update_image(image_key, descriptor, data, &webrender_api::DirtyRect::All);
+        let mut txn = Transaction::new();
+        txn.update_image(image_key, descriptor, data, &DirtyRect::All);
         webrender_api.send_transaction(webrender_doc, txn);
     }
 
-    /// Helper function to create a `webrender_api::ImageDescriptor`.
-    fn image_descriptor(size: Size2D<i32>, alpha: bool) -> webrender_api::ImageDescriptor {
-        let mut flags = webrender_api::ImageDescriptorFlags::empty();
-        flags.set(webrender_api::ImageDescriptorFlags::IS_OPAQUE, !alpha);
-        webrender_api::ImageDescriptor {
-            size: webrender_api::units::DeviceIntSize::new(size.width, size.height),
+    /// Helper function to create a `ImageDescriptor`.
+    fn image_descriptor(size: Size2D<i32>, alpha: bool) -> ImageDescriptor {
+        let mut flags = ImageDescriptorFlags::empty();
+        flags.set(ImageDescriptorFlags::IS_OPAQUE, !alpha);
+        ImageDescriptor {
+            size: DeviceIntSize::new(size.width, size.height),
             stride: None,
-            format: webrender_api::ImageFormat::BGRA8,
+            format: ImageFormat::BGRA8,
             offset: 0,
             flags,
         }
     }
 
-    /// Helper function to create a `webrender_api::ImageData::External` instance.
-    fn external_image_data(
-        context_id: WebGLContextId,
-        target: webrender_api::TextureTarget,
-    ) -> webrender_api::ImageData {
-        let data = webrender_api::ExternalImageData {
-            id: webrender_api::ExternalImageId(context_id.0 as u64),
+    /// Helper function to create a `ImageData::External` instance.
+    fn external_image_data(context_id: WebGLContextId, target: TextureTarget) -> ImageData {
+        let data = ExternalImageData {
+            id: ExternalImageId(context_id.0 as u64),
             channel_index: 0,
-            image_type: webrender_api::ExternalImageType::TextureHandle(target),
+            image_type: ExternalImageType::TextureHandle(target),
         };
-        webrender_api::ImageData::External(data)
+        ImageData::External(data)
     }
 
     /// Gets the GLSL Version supported by a GLContext.
@@ -1006,14 +1008,14 @@ impl WebGLThread {
 /// Helper struct to store cached WebGLContext information.
 struct WebGLContextInfo {
     /// Currently used WebRender image key.
-    image_key: webrender_api::ImageKey,
+    image_key: ImageKey,
 }
 
 // TODO(pcwalton): Add `GL_TEXTURE_EXTERNAL_OES`?
-fn current_wr_texture_target(device: &Device) -> webrender_api::TextureTarget {
+fn current_wr_texture_target(device: &Device) -> TextureTarget {
     match device.surface_gl_texture_target() {
-        gl::TEXTURE_RECTANGLE => webrender_api::TextureTarget::Rect,
-        _ => webrender_api::TextureTarget::Default,
+        gl::TEXTURE_RECTANGLE => TextureTarget::Rect,
+        _ => TextureTarget::Default,
     }
 }
 

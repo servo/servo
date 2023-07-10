@@ -9,6 +9,7 @@ use crate::{GLPlayerMsg, GLPlayerMsgForward};
 use fnv::FnvHashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use webrender_api::ExternalImageId;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 
 /// A GLPlayerThread manages the life cycle and message demultiplexing of
@@ -69,7 +70,7 @@ impl GLPlayerThread {
                 self.external_images
                     .lock()
                     .unwrap()
-                    .remove(&webrender_api::ExternalImageId(id));
+                    .remove(&ExternalImageId(id));
                 if self.players.remove(&id).is_none() {
                     warn!("Tried to remove an unknown player");
                 }

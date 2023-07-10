@@ -5,11 +5,12 @@
 #![deny(unsafe_code)]
 
 use euclid::default::Size2D;
-
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-
 use webrender_api::units::TexelRect;
+use webrender_api::{
+    ExternalImage, ExternalImageHandler, ExternalImageId, ExternalImageSource, ImageRendering,
+};
 
 /// This trait is used as a bridge between the different GL clients
 /// in Servo that handles WebRender ExternalImages and the WebRender
@@ -39,7 +40,7 @@ pub enum WebrenderImageHandlerType {
 /// It ensures that external image identifiers are unique.
 pub struct WebrenderExternalImageRegistry {
     /// Map of all generated external images.
-    external_images: HashMap<webrender_api::ExternalImageId, WebrenderImageHandlerType>,
+    external_images: HashMap<ExternalImageId, WebrenderImageHandlerType>,
     /// Id generator for the next external image identifier.
     next_image_id: u64,
 }
@@ -52,21 +53,18 @@ impl WebrenderExternalImageRegistry {
         }
     }
 
-    pub fn next_id(
-        &mut self,
-        handler_type: WebrenderImageHandlerType,
-    ) -> webrender_api::ExternalImageId {
+    pub fn next_id(&mut self, handler_type: WebrenderImageHandlerType) -> ExternalImageId {
         self.next_image_id += 1;
-        let key = webrender_api::ExternalImageId(self.next_image_id);
+        let key = ExternalImageId(self.next_image_id);
         self.external_images.insert(key, handler_type);
         key
     }
 
-    pub fn remove(&mut self, key: &webrender_api::ExternalImageId) {
+    pub fn remove(&mut self, key: &ExternalImageId) {
         self.external_images.remove(key);
     }
 
-    pub fn get(&self, key: &webrender_api::ExternalImageId) -> Option<&WebrenderImageHandlerType> {
+    pub fn get(&self, key: &ExternalImageId) -> Option<&WebrenderImageHandlerType> {
         self.external_images.get(key)
     }
 }
@@ -110,17 +108,17 @@ impl WebrenderExternalImageHandlers {
     }
 }
 
-impl webrender_api::ExternalImageHandler for WebrenderExternalImageHandlers {
+impl ExternalImageHandler for WebrenderExternalImageHandlers {
     /// Lock the external image. Then, WR could start to read the
     /// image content.
     /// The WR client should not change the image content until the
     /// unlock() call.
     fn lock(
         &mut self,
-        key: webrender_api::ExternalImageId,
+        key: ExternalImageId,
         _channel_index: u8,
-        _rendering: webrender_api::ImageRendering,
-    ) -> webrender_api::ExternalImage {
+        _rendering: ImageRendering,
+    ) -> ExternalImage {
         let external_images = self.external_images.lock().unwrap();
         let handler_type = external_images
             .get(&key)
@@ -132,9 +130,9 @@ impl webrender_api::ExternalImageHandler for WebrenderExternalImageHandlers {
                     WebrenderImageSource::TextureHandle(b) => b,
                     _ => panic!("Wrong type"),
                 };
-                webrender_api::ExternalImage {
+                ExternalImage {
                     uv: TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
-                    source: webrender_api::ExternalImageSource::NativeTexture(texture_id),
+                    source: ExternalImageSource::NativeTexture(texture_id),
                 }
             },
             WebrenderImageHandlerType::Media => {
@@ -143,9 +141,9 @@ impl webrender_api::ExternalImageHandler for WebrenderExternalImageHandlers {
                     WebrenderImageSource::TextureHandle(b) => b,
                     _ => panic!("Wrong type"),
                 };
-                webrender_api::ExternalImage {
+                ExternalImage {
                     uv: TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
-                    source: webrender_api::ExternalImageSource::NativeTexture(texture_id),
+                    source: ExternalImageSource::NativeTexture(texture_id),
                 }
             },
             WebrenderImageHandlerType::WebGPU => {
@@ -154,9 +152,9 @@ impl webrender_api::ExternalImageHandler for WebrenderExternalImageHandlers {
                     WebrenderImageSource::Raw(b) => b,
                     _ => panic!("Wrong type"),
                 };
-                webrender_api::ExternalImage {
+                ExternalImage {
                     uv: TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
-                    source: webrender_api::ExternalImageSource::RawData(buffer),
+                    source: ExternalImageSource::RawData(buffer),
                 }
             },
         }
@@ -164,7 +162,7 @@ impl webrender_api::ExternalImageHandler for WebrenderExternalImageHandlers {
 
     /// Unlock the external image. The WR should not read the image
     /// content after this call.
-    fn unlock(&mut self, key: webrender_api::ExternalImageId, _channel_index: u8) {
+    fn unlock(&mut self, key: ExternalImageId, _channel_index: u8) {
         let external_images = self.external_images.lock().unwrap();
         let handler_type = external_images
             .get(&key)

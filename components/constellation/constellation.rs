@@ -178,6 +178,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use style_traits::CSSPixel;
 use webgpu::{self, WebGPU, WebGPURequest};
+use webrender_api::{DocumentId, RenderApi, RenderApiSender};
 use webrender_traits::WebrenderExternalImageRegistry;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
@@ -221,7 +222,7 @@ struct MessagePortInfo {
 /// Webrender related objects required by WebGPU threads
 struct WebrenderWGPU {
     /// Webrender API.
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: RenderApi,
 
     /// List of Webrender external images
     webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -394,7 +395,7 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     timer_scheduler: TimerScheduler,
 
     /// A single WebRender document the constellation operates on.
-    webrender_document: webrender_api::DocumentId,
+    webrender_document: DocumentId,
 
     /// Webrender related objects required by WebGPU threads
     webrender_wgpu: WebrenderWGPU,
@@ -543,10 +544,10 @@ pub struct InitialConstellationState {
     pub mem_profiler_chan: mem::ProfilerChan,
 
     /// Webrender document ID.
-    pub webrender_document: webrender_api::DocumentId,
+    pub webrender_document: DocumentId,
 
     /// Webrender API.
-    pub webrender_api_sender: webrender_api::RenderApiSender,
+    pub webrender_api_sender: RenderApiSender,
 
     /// Webrender external images
     pub webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,

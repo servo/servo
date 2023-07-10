@@ -83,6 +83,7 @@ use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
+use webrender_api::ImageKey;
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -165,7 +166,7 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Channels are hard"]
     webgl_sender: WebGLMessageSender,
     #[ignore_malloc_size_of = "Defined in webrender"]
-    webrender_image: webrender_api::ImageKey,
+    webrender_image: ImageKey,
     webgl_version: WebGLVersion,
     glsl_version: WebGLSLVersion,
     #[ignore_malloc_size_of = "Defined in surfman"]

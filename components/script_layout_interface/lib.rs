@@ -27,6 +27,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use std::any::Any;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
+use webrender_api::ImageKey;
 
 #[derive(MallocSizeOf)]
 pub struct StyleData {
@@ -121,9 +122,9 @@ pub enum LayoutElementType {
 }
 
 pub enum HTMLCanvasDataSource {
-    WebGL(webrender_api::ImageKey),
+    WebGL(ImageKey),
     Image(Option<IpcSender<CanvasMsg>>),
-    WebGPU(webrender_api::ImageKey),
+    WebGPU(ImageKey),
 }
 
 pub struct HTMLCanvasData {
@@ -162,5 +163,5 @@ pub struct PendingImage {
 }
 
 pub struct HTMLMediaData {
-    pub current_frame: Option<(webrender_api::ImageKey, i32, i32)>,
+    pub current_frame: Option<(ImageKey, i32, i32)>,
 }

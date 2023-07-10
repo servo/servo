@@ -25,6 +25,7 @@ use std::sync::{Arc, Mutex};
 use std::{f32, fmt, mem, thread};
 use style::font_face::{EffectiveSources, Source};
 use style::values::computed::font::FamilyName;
+use webrender_api::{FontInstanceKey, FontKey};
 
 /// A list of font templates that make up a given font family.
 pub struct FontTemplates {
@@ -34,13 +35,13 @@ pub struct FontTemplates {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FontTemplateInfo {
     pub font_template: Arc<FontTemplateData>,
-    pub font_key: webrender_api::FontKey,
+    pub font_key: FontKey,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SerializedFontTemplateInfo {
     pub serialized_font_template: SerializedFontTemplate,
-    pub font_key: webrender_api::FontKey,
+    pub font_key: FontKey,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -128,11 +129,7 @@ pub enum Command {
         FontFamilyDescriptor,
         IpcSender<Reply>,
     ),
-    GetFontInstance(
-        webrender_api::FontKey,
-        Au,
-        IpcSender<webrender_api::FontInstanceKey>,
-    ),
+    GetFontInstance(FontKey, Au, IpcSender<FontInstanceKey>),
     AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
     AddDownloadedWebFont(LowercaseString, ServoUrl, Vec<u8>, IpcSender<()>),
     Exit(IpcSender<()>),
@@ -156,8 +153,8 @@ struct FontCache {
     font_context: FontContextHandle,
     core_resource_thread: CoreResourceThread,
     webrender_api: Box<dyn WebrenderApi>,
-    webrender_fonts: HashMap<Atom, webrender_api::FontKey>,
-    font_instances: HashMap<(webrender_api::FontKey, Au), webrender_api::FontInstanceKey>,
+    webrender_fonts: HashMap<Atom, FontKey>,
+    font_instances: HashMap<(FontKey, Au), FontInstanceKey>,
 }
 
 fn populate_generic_fonts() -> HashMap<FontFamilyName, LowercaseString> {
@@ -536,11 +533,7 @@ impl FontCacheThread {
 }
 
 impl FontSource for FontCacheThread {
-    fn get_font_instance(
-        &mut self,
-        key: webrender_api::FontKey,
-        size: Au,
-    ) -> webrender_api::FontInstanceKey {
+    fn get_font_instance(&mut self, key: FontKey, size: Au) -> FontInstanceKey {
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.chan
             .send(Command::GetFontInstance(key, size, response_chan))

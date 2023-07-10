@@ -25,6 +25,11 @@ pub mod transferable;
 pub mod webdriver_msg;
 
 use crate::compositor::CompositorDisplayListInfo;
+pub use crate::script_msg::{
+    DOMMessage, EventResult, HistoryEntryReplacement, IFrameSizeMsg, Job, JobError, JobResult,
+    JobResultValue, JobType, LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings,
+    ScriptMsg, ServiceWorkerMsg,
+};
 use crate::serializable::{BlobData, BlobImpl};
 use crate::transferable::MessagePortImpl;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
@@ -74,16 +79,10 @@ use webrender_api::units::{
     DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, LayoutSize, WorldPoint,
 };
 use webrender_api::{
-    BuiltDisplayList, DocumentId, ExternalImageData, ExternalScrollId, ImageData, ImageDescriptor,
-    ImageKey, ScrollClamping,
+    BuiltDisplayList, BuiltDisplayListDescriptor, DocumentId, ExternalImageData, ExternalScrollId,
+    HitTestFlags, ImageData, ImageDescriptor, ImageKey, PipelineId as WebRenderPipelineId,
+    ScrollClamping,
 };
-use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags};
-
-pub use crate::script_msg::{
-    DOMMessage, HistoryEntryReplacement, Job, JobError, JobResult, JobResultValue, JobType,
-    SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg,
-};
-pub use crate::script_msg::{EventResult, IFrameSizeMsg, LayoutMsg, LogEntry, ScriptMsg};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -1128,7 +1127,7 @@ pub struct CompositorHitTestResult {
 #[derive(Deserialize, Serialize)]
 pub enum WebrenderMsg {
     /// Inform WebRender of the existence of this pipeline.
-    SendInitialTransaction(webrender_api::PipelineId),
+    SendInitialTransaction(WebRenderPipelineId),
     /// Perform a scroll operation.
     SendScrollNode(LayoutPoint, ExternalScrollId, ScrollClamping),
     /// Inform WebRender of a new display list for the given pipeline.
@@ -1145,7 +1144,7 @@ pub enum WebrenderMsg {
     /// Perform a hit test operation. The result will be returned via
     /// the provided channel sender.
     HitTest(
-        Option<webrender_api::PipelineId>,
+        Option<WebRenderPipelineId>,
         WorldPoint,
         HitTestFlags,
         IpcSender<Vec<CompositorHitTestResult>>,
@@ -1168,7 +1167,7 @@ impl WebrenderIpcSender {
     }
 
     /// Inform WebRender of the existence of this pipeline.
-    pub fn send_initial_transaction(&self, pipeline: webrender_api::PipelineId) {
+    pub fn send_initial_transaction(&self, pipeline: WebRenderPipelineId) {
         if let Err(e) = self.0.send(WebrenderMsg::SendInitialTransaction(pipeline)) {
             warn!("Error sending initial transaction: {}", e);
         }
@@ -1193,7 +1192,7 @@ impl WebrenderIpcSender {
     pub fn send_display_list(
         &self,
         display_list_info: CompositorDisplayListInfo,
-        (_, content_size, list): (webrender_api::PipelineId, LayoutSize, BuiltDisplayList),
+        (_, content_size, list): (WebRenderPipelineId, LayoutSize, BuiltDisplayList),
     ) {
         let (display_list_data, display_list_descriptor) = list.into_data();
         let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
@@ -1215,7 +1214,7 @@ impl WebrenderIpcSender {
     /// and a result is available.
     pub fn hit_test(
         &self,
-        pipeline: Option<webrender_api::PipelineId>,
+        pipeline: Option<WebRenderPipelineId>,
         point: WorldPoint,
         flags: HitTestFlags,
     ) -> Vec<CompositorHitTestResult> {

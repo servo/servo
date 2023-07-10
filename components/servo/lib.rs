@@ -51,6 +51,7 @@ pub use style;
 pub use style_traits;
 pub use webgpu;
 pub use webrender_api;
+use webrender_api::{DocumentId, FontInstanceKey, FontKey, ImageKey, RenderApiSender};
 pub use webrender_surfman;
 pub use webrender_traits;
 
@@ -226,7 +227,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
 
     fn new_frame_ready(
         &self,
-        _document_id: webrender_api::DocumentId,
+        _document_id: DocumentId,
         scrolled: bool,
         composite_needed: bool,
         _render_time_ns: Option<u64>,
@@ -829,8 +830,8 @@ fn create_constellation(
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-    webrender_document: webrender_api::DocumentId,
-    webrender_api_sender: webrender_api::RenderApiSender,
+    webrender_document: DocumentId,
+    webrender_api_sender: RenderApiSender,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
     webgl_threads: Option<WebGLThreads>,
@@ -920,18 +921,14 @@ fn create_constellation(
 struct FontCacheWR(CompositorProxy);
 
 impl gfx_traits::WebrenderApi for FontCacheWR {
-    fn add_font_instance(
-        &self,
-        font_key: webrender_api::FontKey,
-        size: f32,
-    ) -> webrender_api::FontInstanceKey {
+    fn add_font_instance(&self, font_key: FontKey, size: f32) -> FontInstanceKey {
         let (sender, receiver) = unbounded();
         let _ = self.0.send(Msg::Webrender(WebrenderMsg::Font(
             WebrenderFontMsg::AddFontInstance(font_key, size, sender),
         )));
         receiver.recv().unwrap()
     }
-    fn add_font(&self, data: gfx_traits::FontData) -> webrender_api::FontKey {
+    fn add_font(&self, data: gfx_traits::FontData) -> FontKey {
         let (sender, receiver) = unbounded();
         let _ = self.0.send(Msg::Webrender(WebrenderMsg::Font(
             WebrenderFontMsg::AddFont(data, sender),
@@ -944,7 +941,7 @@ impl gfx_traits::WebrenderApi for FontCacheWR {
 struct CanvasWebrenderApi(CompositorProxy);
 
 impl canvas_paint_thread::WebrenderApi for CanvasWebrenderApi {
-    fn generate_key(&self) -> Result<webrender_api::ImageKey, ()> {
+    fn generate_key(&self) -> Result<ImageKey, ()> {
         let (sender, receiver) = unbounded();
         let _ = self.0.send(Msg::Webrender(WebrenderMsg::Canvas(
             WebrenderCanvasMsg::GenerateKey(sender),

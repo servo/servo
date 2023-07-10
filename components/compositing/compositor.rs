@@ -51,7 +51,11 @@ use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutVector2D, WorldPoint,
 };
-use webrender_api::{self, ExternalScrollId, HitTestFlags, ScrollClamping, ScrollLocation};
+use webrender_api::{
+    self, BuiltDisplayList, CaptureBits, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
+    ExternalScrollId, HitTestFlags, PipelineId as WebRenderPipelineId, RenderApi, ScrollClamping,
+    ScrollLocation, Transaction, ZoomFactor,
+};
 use webrender_surfman::WebrenderSurfman;
 
 #[derive(Debug, PartialEq)]
@@ -74,7 +78,7 @@ trait ConvertPipelineIdFromWebRender {
     fn from_webrender(&self) -> PipelineId;
 }
 
-impl ConvertPipelineIdFromWebRender for webrender_api::PipelineId {
+impl ConvertPipelineIdFromWebRender for WebRenderPipelineId {
     fn from_webrender(&self) -> PipelineId {
         PipelineId {
             namespace_id: PipelineNamespaceId(self.0),
@@ -182,10 +186,10 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     webrender: webrender::Renderer,
 
     /// The active webrender document.
-    webrender_document: webrender_api::DocumentId,
+    webrender_document: DocumentId,
 
     /// The webrender interface, if enabled.
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: RenderApi,
 
     /// The surfman instance that webrender targets
     webrender_surfman: WebrenderSurfman,
@@ -628,9 +632,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         match msg {
             WebrenderMsg::Layout(script_traits::WebrenderMsg::SendInitialTransaction(pipeline)) => {
                 self.waiting_on_pending_frame = true;
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 txn.set_display_list(
-                    webrender_api::Epoch(0),
+                    WebRenderEpoch(0),
                     None,
                     Default::default(),
                     (pipeline, Default::default(), Default::default()),
@@ -647,7 +651,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             )) => {
                 self.waiting_for_results_of_scroll = true;
 
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 txn.scroll_node_with_id(point, scroll_id, clamping);
                 txn.generate_frame();
                 self.webrender_api
@@ -668,7 +672,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     details.hit_test_items = display_list_info.hit_test_info;
                     details.install_new_scroll_tree(display_list_info.scroll_tree);
 
-                    let mut txn = webrender_api::Transaction::new();
+                    let mut txn = Transaction::new();
                     txn.set_display_list(
                         display_list_info.epoch,
                         None,
@@ -676,10 +680,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         (
                             pipeline_id,
                             content_size,
-                            webrender_api::BuiltDisplayList::from_data(
-                                data,
-                                display_list_descriptor,
-                            ),
+                            BuiltDisplayList::from_data(data, display_list_descriptor),
                         ),
                         true,
                     );
@@ -718,7 +719,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::UpdateImages(updates)) => {
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 for update in updates {
                     match update {
                         script_traits::SerializedImageUpdate::AddImage(key, desc, data) => {
@@ -732,12 +733,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         },
                         script_traits::SerializedImageUpdate::UpdateImage(key, desc, data) => {
                             match data.to_image_data() {
-                                Ok(data) => txn.update_image(
-                                    key,
-                                    desc,
-                                    data,
-                                    &webrender_api::DirtyRect::All,
-                                ),
+                                Ok(data) => txn.update_image(key, desc, data, &DirtyRect::All),
                                 Err(e) => warn!("error when sending image data: {:?}", e),
                             }
                         },
@@ -748,7 +744,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Net(net_traits::WebrenderImageMsg::AddImage(key, desc, data)) => {
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 txn.add_image(key, desc, data, None);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
@@ -756,7 +752,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             WebrenderMsg::Font(WebrenderFontMsg::AddFontInstance(font_key, size, sender)) => {
                 let key = self.webrender_api.generate_font_instance_key();
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 txn.add_font_instance(key, font_key, size, None, None, Vec::new());
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
@@ -765,7 +761,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             WebrenderMsg::Font(WebrenderFontMsg::AddFont(data, sender)) => {
                 let font_key = self.webrender_api.generate_font_key();
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 match data {
                     FontData::Raw(bytes) => txn.add_raw_font(font_key, bytes, 0),
                     FontData::Native(native_font) => txn.add_native_font(font_key, native_font),
@@ -780,14 +776,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Canvas(WebrenderCanvasMsg::UpdateImages(updates)) => {
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 for update in updates {
                     match update {
                         ImageUpdate::Add(key, descriptor, data) => {
                             txn.add_image(key, descriptor, data, None)
                         },
                         ImageUpdate::Update(key, descriptor, data) => {
-                            txn.update_image(key, descriptor, data, &webrender_api::DirtyRect::All)
+                            txn.update_image(key, descriptor, data, &DirtyRect::All)
                         },
                         ImageUpdate::Delete(key) => txn.delete_image(key),
                     }
@@ -866,7 +862,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
 
         let pipeline_id = frame_tree.pipeline.id.to_webrender();
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = Transaction::new();
         txn.set_root_pipeline(pipeline_id);
         txn.generate_frame();
         self.webrender_api
@@ -1026,7 +1022,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         &self,
         point: WorldPoint,
         flags: HitTestFlags,
-        pipeline_id: Option<webrender_api::PipelineId>,
+        pipeline_id: Option<WebRenderPipelineId>,
     ) -> Vec<CompositorHitTestResult> {
         let root_pipeline_id = match self.root_pipeline.id {
             Some(root_pipeline_id) => root_pipeline_id,
@@ -1271,7 +1267,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = WorldPoint::from_untyped(cursor);
-            let mut txn = webrender_api::Transaction::new();
+            let mut txn = Transaction::new();
 
             let result = match self.hit_test_at_point(cursor) {
                 Some(result) => result,
@@ -1298,7 +1294,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             if combined_event.magnification != 1.0 {
                 let old_zoom = self.pinch_zoom_level();
                 self.set_pinch_zoom_level(old_zoom * combined_event.magnification);
-                txn.set_pinch_zoom(webrender_api::ZoomFactor::new(self.pinch_zoom_level()));
+                txn.set_pinch_zoom(ZoomFactor::new(self.pinch_zoom_level()));
             }
             txn.generate_frame();
             self.webrender_api
@@ -1390,9 +1386,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn update_page_zoom_for_webrender(&mut self) {
-        let page_zoom = webrender_api::ZoomFactor::new(self.page_zoom.get());
+        let page_zoom = ZoomFactor::new(self.page_zoom.get());
 
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = Transaction::new();
         txn.set_page_zoom(page_zoom);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
@@ -1464,7 +1460,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let mut pipeline_epochs = HashMap::new();
                 for (id, _) in &self.pipeline_details {
                     let webrender_pipeline_id = id.to_webrender();
-                    if let Some(webrender_api::Epoch(epoch)) = self
+                    if let Some(WebRenderEpoch(epoch)) = self
                         .webrender
                         .current_epoch(self.webrender_document, webrender_pipeline_id)
                     {
@@ -1613,7 +1609,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             // For each pending paint metrics pipeline id
             for (id, pending_epoch) in &self.pending_paint_metrics {
                 // we get the last painted frame id from webrender
-                if let Some(webrender_api::Epoch(epoch)) = self
+                if let Some(WebRenderEpoch(epoch)) = self
                     .webrender
                     .current_epoch(self.webrender_document, id.to_webrender())
                 {
@@ -1877,7 +1873,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         flags.toggle(flag);
         self.webrender.set_debug_flags(flags);
 
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = Transaction::new();
         txn.generate_frame();
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
@@ -1909,7 +1905,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     &revision_file_path
                 );
                 self.webrender_api
-                    .save_capture(capture_path, webrender_api::CaptureBits::all());
+                    .save_capture(capture_path, CaptureBits::all());
 
                 match File::create(revision_file_path) {
                     Ok(mut file) => {

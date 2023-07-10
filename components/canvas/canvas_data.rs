@@ -27,7 +27,8 @@ use std::sync::{Arc, Mutex};
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font;
 use style_traits::values::ToCss;
-use webrender_api::units::RectExt as RectExt_;
+use webrender_api::units::{DeviceIntSize, RectExt as RectExt_};
+use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
 
 /// The canvas data stores a state machine for the current status of
 /// the path data and any relevant transformations that are
@@ -405,11 +406,11 @@ pub struct CanvasData<'a> {
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
     webrender_api: Box<dyn WebrenderApi>,
-    image_key: Option<webrender_api::ImageKey>,
+    image_key: Option<ImageKey>,
     /// An old webrender image key that can be deleted when the next epoch ends.
-    old_image_key: Option<webrender_api::ImageKey>,
+    old_image_key: Option<ImageKey>,
     /// An old webrender image key that can be deleted when the current epoch ends.
-    very_old_image_key: Option<webrender_api::ImageKey>,
+    very_old_image_key: Option<ImageKey>,
     font_cache_thread: Mutex<FontCacheThread>,
 }
 
@@ -1107,15 +1108,15 @@ impl<'a> CanvasData<'a> {
     pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
         let size = self.drawtarget.get_size();
 
-        let descriptor = webrender_api::ImageDescriptor {
-            size: webrender_api::units::DeviceIntSize::new(size.width, size.height),
+        let descriptor = ImageDescriptor {
+            size: DeviceIntSize::new(size.width, size.height),
             stride: None,
-            format: webrender_api::ImageFormat::BGRA8,
+            format: ImageFormat::BGRA8,
             offset: 0,
-            flags: webrender_api::ImageDescriptorFlags::empty(),
+            flags: ImageDescriptorFlags::empty(),
         };
         let data = self.drawtarget.snapshot_data_owned();
-        let data = webrender_api::ImageData::Raw(Arc::new(data));
+        let data = ImageData::Raw(Arc::new(data));
 
         let mut updates = vec![];
 

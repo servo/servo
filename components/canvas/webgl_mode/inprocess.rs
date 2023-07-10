@@ -16,6 +16,7 @@ use surfman::SurfaceTexture;
 use surfman_chains::SwapChains;
 use surfman_chains_api::SwapChainAPI;
 use surfman_chains_api::SwapChainsAPI;
+use webrender_api::{DocumentId, RenderApiSender};
 use webrender_surfman::WebrenderSurfman;
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
@@ -33,8 +34,8 @@ impl WebGLComm {
     /// Creates a new `WebGLComm` object.
     pub fn new(
         surfman: WebrenderSurfman,
-        webrender_api_sender: webrender_api::RenderApiSender,
-        webrender_doc: webrender_api::DocumentId,
+        webrender_api_sender: RenderApiSender,
+        webrender_doc: DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         api_type: GlType,
     ) -> WebGLComm {

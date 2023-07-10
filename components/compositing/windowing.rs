@@ -16,8 +16,7 @@ use std::fmt::{Debug, Error, Formatter};
 use std::time::Duration;
 use style_traits::DevicePixel;
 
-use webrender_api::units::DevicePoint;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint};
 use webrender_api::ScrollLocation;
 use webrender_surfman::WebrenderSurfman;
 

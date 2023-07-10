@@ -58,6 +58,12 @@ use std::os::raw::c_void;
 #[cfg(feature = "servo")]
 use uuid::Uuid;
 use void::Void;
+use webrender_api::{
+    BorderRadius, BorderStyle, BoxShadowClipMode, ColorF, ComplexClipRegion, ExtendMode,
+    ExternalScrollId, FilterOp, FontInstanceKey, GlyphInstance, GradientStop, ImageKey,
+    ImageRendering, LineStyle, MixBlendMode, NinePatchBorder, NormalBorder, RepeatMode,
+    ScrollSensitivity, StickyOffsetBounds, TransformStyle,
+};
 
 /// A C function that takes a pointer to a heap allocation and returns its size.
 type VoidPtrToSizeFn = unsafe extern "C" fn(ptr: *const c_void) -> usize;
@@ -800,47 +806,47 @@ impl MallocSizeOf for url::Host {
     }
 }
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BorderRadius);
+malloc_size_of_is_0!(BorderRadius);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BorderStyle);
+malloc_size_of_is_0!(BorderStyle);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BoxShadowClipMode);
+malloc_size_of_is_0!(BoxShadowClipMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ColorF);
+malloc_size_of_is_0!(ColorF);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ComplexClipRegion);
+malloc_size_of_is_0!(ComplexClipRegion);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ExtendMode);
+malloc_size_of_is_0!(ExtendMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::FilterOp);
+malloc_size_of_is_0!(FilterOp);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ExternalScrollId);
+malloc_size_of_is_0!(ExternalScrollId);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::FontInstanceKey);
+malloc_size_of_is_0!(FontInstanceKey);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::GradientStop);
+malloc_size_of_is_0!(GradientStop);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::GlyphInstance);
+malloc_size_of_is_0!(GlyphInstance);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::NinePatchBorder);
+malloc_size_of_is_0!(NinePatchBorder);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ImageKey);
+malloc_size_of_is_0!(ImageKey);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ImageRendering);
+malloc_size_of_is_0!(ImageRendering);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::LineStyle);
+malloc_size_of_is_0!(LineStyle);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::MixBlendMode);
+malloc_size_of_is_0!(MixBlendMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::NormalBorder);
+malloc_size_of_is_0!(NormalBorder);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::RepeatMode);
+malloc_size_of_is_0!(RepeatMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ScrollSensitivity);
+malloc_size_of_is_0!(ScrollSensitivity);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::StickyOffsetBounds);
+malloc_size_of_is_0!(StickyOffsetBounds);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::TransformStyle);
+malloc_size_of_is_0!(TransformStyle);
 
 #[cfg(feature = "servo")]
 impl MallocSizeOf for keyboard_types::Key {
