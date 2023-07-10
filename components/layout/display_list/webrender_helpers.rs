@@ -258,7 +258,7 @@ impl DisplayItem {
                 let stacking_context = &item.stacking_context;
                 debug_assert_eq!(stacking_context.context_type, StackingContextType::Real);
 
-                //let mut info = webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds);
+                //let mut info = LayoutPrimitiveInfo::new(stacking_context.bounds);
                 let mut bounds = stacking_context.bounds;
                 let spatial_id =
                     if let Some(frame_index) = stacking_context.established_reference_frame {

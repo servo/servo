@@ -117,6 +117,7 @@ use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
+use webrender_api::{units, ColorF, HitTestFlags, ScrollClamping};
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -1060,7 +1061,7 @@ impl LayoutThread {
 
                 debug!("Layout done!");
 
-                let viewport_size = webrender_api::units::LayoutSize::new(
+                let viewport_size = units::LayoutSize::new(
                     self.viewport_size.width.to_f32_px(),
                     self.viewport_size.height.to_f32_px(),
                 );
@@ -1471,15 +1472,15 @@ impl LayoutThread {
                 &QueryMsg::StyleQuery => {},
                 &QueryMsg::NodesFromPointQuery(client_point, ref reflow_goal) => {
                     let mut flags = match reflow_goal {
-                        &NodesFromPointQueryType::Topmost => webrender_api::HitTestFlags::empty(),
-                        &NodesFromPointQueryType::All => webrender_api::HitTestFlags::FIND_ALL,
+                        &NodesFromPointQueryType::Topmost => HitTestFlags::empty(),
+                        &NodesFromPointQueryType::All => HitTestFlags::FIND_ALL,
                     };
 
                     // The point we get is not relative to the entire WebRender scene, but to this
                     // particular pipeline, so we need to tell WebRender about that.
-                    flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
+                    flags.insert(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                    let client_point = webrender_api::units::WorldPoint::from_untyped(client_point);
+                    let client_point = units::WorldPoint::from_untyped(client_point);
                     let results = self.webrender_api.hit_test(
                         Some(self.id.to_webrender()),
                         client_point,
@@ -1516,9 +1517,9 @@ impl LayoutThread {
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.webrender_api.send_scroll_node(
-            webrender_api::units::LayoutPoint::from_untyped(point),
+            units::LayoutPoint::from_untyped(point),
             state.scroll_id,
-            webrender_api::ScrollClamping::ToContentBounds,
+            ScrollClamping::ToContentBounds,
         );
     }
 
@@ -1769,8 +1770,8 @@ impl ProfilerMetadataFactory for LayoutThread {
 // clearing the frame buffer to white. This ensures that setting a background
 // color on an iframe element, while the iframe content itself has a default
 // transparent background color is handled correctly.
-fn get_root_flow_background_color(flow: &mut dyn Flow) -> webrender_api::ColorF {
-    let transparent = webrender_api::ColorF {
+fn get_root_flow_background_color(flow: &mut dyn Flow) -> ColorF {
+    let transparent = ColorF {
         r: 0.0,
         g: 0.0,
         b: 0.0,
@@ -1797,7 +1798,7 @@ fn get_root_flow_background_color(flow: &mut dyn Flow) -> webrender_api::ColorF 
             .get_background()
             .background_color,
     );
-    webrender_api::ColorF::new(
+    ColorF::new(
         color.red_f32(),
         color.green_f32(),
         color.blue_f32(),

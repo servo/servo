@@ -14,6 +14,7 @@ use gfx_traits::print_tree::PrintTree;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use style::values::computed::Length;
+use webrender_api::units;
 
 #[derive(Serialize)]
 pub struct FragmentTree {
@@ -61,8 +62,8 @@ impl FragmentTree {
         }
     }
 
-    pub fn scrollable_overflow(&self) -> webrender_api::units::LayoutSize {
-        webrender_api::units::LayoutSize::from_untyped(Size2D::new(
+    pub fn scrollable_overflow(&self) -> units::LayoutSize {
+        units::LayoutSize::from_untyped(Size2D::new(
             self.scrollable_overflow.size.width.px(),
             self.scrollable_overflow.size.height.px(),
         ))

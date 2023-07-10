@@ -20,8 +20,8 @@ use script_traits::{AnimationState, EventResult, MouseButton, MouseEventType};
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use style_traits::CSSPixel;
-use webrender_api;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+use webrender_api::{self, DocumentId, FontInstanceKey, FontKey, ImageKey, RenderApi};
 use webrender_surfman::WebrenderSurfman;
 
 /// Sends messages to the compositor.
@@ -124,16 +124,12 @@ pub enum Msg {
 }
 
 pub enum WebrenderFontMsg {
-    AddFontInstance(
-        webrender_api::FontKey,
-        f32,
-        Sender<webrender_api::FontInstanceKey>,
-    ),
-    AddFont(gfx_traits::FontData, Sender<webrender_api::FontKey>),
+    AddFontInstance(FontKey, f32, Sender<FontInstanceKey>),
+    AddFont(gfx_traits::FontData, Sender<FontKey>),
 }
 
 pub enum WebrenderCanvasMsg {
-    GenerateKey(Sender<webrender_api::ImageKey>),
+    GenerateKey(Sender<ImageKey>),
     UpdateImages(Vec<ImageUpdate>),
 }
 
@@ -186,8 +182,8 @@ pub struct InitialCompositorState {
     pub mem_profiler_chan: mem::ProfilerChan,
     /// Instance of webrender API
     pub webrender: webrender::Renderer,
-    pub webrender_document: webrender_api::DocumentId,
-    pub webrender_api: webrender_api::RenderApi,
+    pub webrender_document: DocumentId,
+    pub webrender_api: RenderApi,
     pub webrender_surfman: WebrenderSurfman,
     pub webrender_gl: Rc<dyn gleam::gl::Gl>,
     pub webxr_main_thread: webxr::MainThreadRegistry,

@@ -27,6 +27,7 @@ use style::computed_values::{font_stretch, font_style, font_variant_caps, font_w
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use unicode_script::Script;
+use webrender_api::FontInstanceKey;
 
 macro_rules! ot_tag {
     ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => {
@@ -145,7 +146,7 @@ pub struct Font {
     shaper: Option<Shaper>,
     shape_cache: RefCell<HashMap<ShapeCacheEntry, Arc<GlyphStore>>>,
     glyph_advance_cache: RefCell<HashMap<u32, FractionalPixel>>,
-    pub font_key: webrender_api::FontInstanceKey,
+    pub font_key: FontInstanceKey,
 }
 
 impl Font {
@@ -153,7 +154,7 @@ impl Font {
         handle: FontHandle,
         descriptor: FontDescriptor,
         actual_pt_size: Au,
-        font_key: webrender_api::FontInstanceKey,
+        font_key: FontInstanceKey,
     ) -> Font {
         let metrics = handle.metrics();
 

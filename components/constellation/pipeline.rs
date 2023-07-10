@@ -48,6 +48,7 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use webrender_api::DocumentId;
 
 /// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an
 /// event loop (executed by a script thread) and a layout thread. A script thread
@@ -190,7 +191,7 @@ pub struct InitialPipelineState {
     pub webrender_api_sender: script_traits::WebrenderIpcSender,
 
     /// The ID of the document processed by this script thread.
-    pub webrender_document: webrender_api::DocumentId,
+    pub webrender_document: DocumentId,
 
     /// A channel to the WebGL thread.
     pub webgl_chan: Option<WebGLPipeline>,
@@ -514,7 +515,7 @@ pub struct UnprivilegedPipelineContent {
     pipeline_namespace_id: PipelineNamespaceId,
     webrender_api_sender: script_traits::WebrenderIpcSender,
     webrender_image_api_sender: net_traits::WebrenderIpcSender,
-    webrender_document: webrender_api::DocumentId,
+    webrender_document: DocumentId,
     webgl_chan: Option<WebGLPipeline>,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,

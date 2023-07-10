@@ -27,7 +27,7 @@ pub enum ImageUpdate {
 }
 
 pub trait WebrenderApi {
-    fn generate_key(&self) -> Result<webrender_api::ImageKey, ()>;
+    fn generate_key(&self) -> Result<ImageKey, ()>;
     fn update_images(&self, updates: Vec<ImageUpdate>);
     fn clone(&self) -> Box<dyn WebrenderApi>;
 }

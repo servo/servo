@@ -25,6 +25,10 @@ use ipc_channel::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::cell::Cell;
 use webgpu::{wgpu::id, wgt, WebGPU, WebGPURequest, PRESENTATION_BUFFER_COUNT};
+use webrender_api::{
+    units, ExternalImageData, ExternalImageId, ExternalImageType, ImageData, ImageDescriptor,
+    ImageDescriptorFlags, ImageFormat, ImageKey,
+};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct WebGPUContextId(pub u64);
@@ -78,7 +82,7 @@ impl GPUCanvasContext {
         let image_key = if self.webrender_image.get().is_some() {
             self.webrender_image.get().unwrap()
         } else {
-            webrender_api::ImageKey::DUMMY
+            ImageKey::DUMMY
         };
         HTMLCanvasDataSource::WebGPU(image_key)
     }
@@ -145,13 +149,13 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             );
         }
 
-        let image_desc = webrender_api::ImageDescriptor {
+        let image_desc = ImageDescriptor {
             format: match descriptor.format {
-                GPUTextureFormat::Rgba8unorm => webrender_api::ImageFormat::RGBA8,
-                GPUTextureFormat::Bgra8unorm => webrender_api::ImageFormat::BGRA8,
+                GPUTextureFormat::Rgba8unorm => ImageFormat::RGBA8,
+                GPUTextureFormat::Bgra8unorm => ImageFormat::BGRA8,
                 _ => panic!("SwapChain format({:?}) not supported", descriptor.format),
             },
-            size: webrender_api::units::DeviceIntSize::new(
+            size: units::DeviceIntSize::new(
                 self.size.get().width as i32,
                 self.size.get().height as i32,
             ),
@@ -160,13 +164,13 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
                     as i32,
             ),
             offset: 0,
-            flags: webrender_api::ImageDescriptorFlags::from_bits(1).unwrap(),
+            flags: ImageDescriptorFlags::from_bits(1).unwrap(),
         };
 
-        let image_data = webrender_api::ImageData::External(webrender_api::ExternalImageData {
-            id: webrender_api::ExternalImageId(self.context_id.0),
+        let image_data = ImageData::External(ExternalImageData {
+            id: ExternalImageId(self.context_id.0),
             channel_index: 0,
-            image_type: webrender_api::ExternalImageType::Buffer,
+            image_type: ExternalImageType::Buffer,
         });
 
         let (sender, receiver) = ipc::channel().unwrap();

@@ -22,8 +22,9 @@ use std::collections::HashMap;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use webrender_api::units::DeviceIntSize;
-use webrender_api::ImageDescriptorFlags;
+use webrender_api::{
+    units::DeviceIntSize, ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat,
+};
 
 ///
 /// TODO(gw): Remaining work on image cache:
@@ -77,14 +78,14 @@ fn set_webrender_image_key(webrender_api: &WebrenderIpcSender, image: &mut Image
     };
     let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
     flags.set(ImageDescriptorFlags::IS_OPAQUE, is_opaque);
-    let descriptor = webrender_api::ImageDescriptor {
+    let descriptor = ImageDescriptor {
         size: DeviceIntSize::new(image.width as i32, image.height as i32),
         stride: None,
-        format: webrender_api::ImageFormat::BGRA8,
+        format: ImageFormat::BGRA8,
         offset: 0,
         flags,
     };
-    let data = webrender_api::ImageData::new(bytes);
+    let data = ImageData::new(bytes);
     let image_key = webrender_api.generate_image_key();
     webrender_api.add_image(image_key, descriptor, data);
     image.id = Some(image_key);

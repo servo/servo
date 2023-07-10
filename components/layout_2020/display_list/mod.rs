@@ -42,7 +42,7 @@ pub struct WebRenderImageInfo {
     pub key: Option<wr::ImageKey>,
 }
 
-// `webrender_api::display_item::ItemTag` is private
+// webrender's `ItemTag` is private.
 type ItemTag = (u64, u16);
 type HitInfo = Option<ItemTag>;
 

@@ -34,14 +34,14 @@ use style::values::generics::text::LineHeight;
 use style_traits::CSSPixel;
 use style_traits::ToCss;
 use webrender_api::units::LayoutPixel;
-use webrender_api::ExternalScrollId;
+use webrender_api::{DisplayListBuilder, ExternalScrollId};
 
 /// Mutable data belonging to the LayoutThread.
 ///
 /// This needs to be protected by a mutex so we can do fast RPCs.
 pub struct LayoutThreadData {
     /// The root stacking context.
-    pub display_list: Option<webrender_api::DisplayListBuilder>,
+    pub display_list: Option<DisplayListBuilder>,
 
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Option<Rect<Au>>,
