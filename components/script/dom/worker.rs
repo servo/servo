@@ -4,6 +4,7 @@
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -23,13 +24,13 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::realms::enter_realm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{ContextForRequestInterrupt, JSContext};
 use crate::task::TaskOnce;
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{Heap, JSObject, JS_RequestInterruptCallback};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
 use script_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
@@ -51,6 +52,8 @@ pub struct Worker {
     #[ignore_malloc_size_of = "Arc"]
     closing: Arc<AtomicBool>,
     terminated: Cell<bool>,
+    #[ignore_malloc_size_of = "Arc"]
+    context_for_interrupt: DomRefCell<Option<ContextForRequestInterrupt>>,
 }
 
 impl Worker {
@@ -60,6 +63,7 @@ impl Worker {
             sender: sender,
             closing: closing,
             terminated: Cell::new(false),
+            context_for_interrupt: Default::default(),
         }
     }
 
@@ -156,6 +160,7 @@ impl Worker {
             .recv()
             .expect("Couldn't receive a context for worker.");
 
+        worker.set_context_for_interrupt(context.clone());
         global.track_worker(closing, join_handle, control_sender, context);
 
         Ok(worker)
@@ -163,6 +168,14 @@ impl Worker {
 
     pub fn is_terminated(&self) -> bool {
         self.terminated.get()
+    }
+
+    pub fn set_context_for_interrupt(&self, cx: ContextForRequestInterrupt) {
+        assert!(
+            self.context_for_interrupt.borrow().is_none(),
+            "Context for interrupt must be set only once"
+        );
+        *self.context_for_interrupt.borrow_mut() = Some(cx);
     }
 
     pub fn handle_message(address: TrustedWorkerAddress, data: StructuredSerializedData) {
@@ -241,7 +254,6 @@ impl WorkerMethods for Worker {
         self.post_message_impl(cx, message, guard)
     }
 
-    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#terminate-a-worker
     fn Terminate(&self) {
         // Step 1
@@ -253,8 +265,10 @@ impl WorkerMethods for Worker {
         self.terminated.set(true);
 
         // Step 3
-        let cx = GlobalScope::get_cx();
-        unsafe { JS_RequestInterruptCallback(*cx) };
+        self.context_for_interrupt
+            .borrow()
+            .as_ref()
+            .map(|cx| cx.request_interrupt());
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage

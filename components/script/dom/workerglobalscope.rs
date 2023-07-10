@@ -30,8 +30,8 @@ use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::JSContext;
 use crate::script_runtime::{get_reports, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
+use crate::script_runtime::{ContextForRequestInterrupt, JSContext};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
@@ -166,7 +166,10 @@ impl WorkerGlobalScope {
     }
 
     /// Clear various items when the worker event-loop shuts-down.
-    pub fn clear_js_runtime(&self) {
+    pub fn clear_js_runtime(&self, cx_for_interrupt: ContextForRequestInterrupt) {
+        // Ensure parent thread can no longer request interrupt
+        // using our JSContext that will soon be destroyed
+        cx_for_interrupt.revoke();
         self.upcast::<GlobalScope>()
             .remove_web_messaging_and_dedicated_workers_infra();
 
