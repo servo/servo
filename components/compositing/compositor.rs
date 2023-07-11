@@ -1678,11 +1678,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let gl = &self.webrender_gl;
         self.assert_gl_framebuffer_complete();
 
-        // Make framebuffer fully transparent.
-        gl.clear_color(0.0, 0.0, 0.0, 0.0);
-        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
-        self.assert_gl_framebuffer_complete();
-
         // Make the viewport white.
         let viewport = self.embedder_coordinates.get_flipped_viewport();
         gl.scissor(
