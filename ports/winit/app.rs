@@ -30,6 +30,8 @@ use std::sync::Arc;
 use surfman::GLApi;
 use webxr::glwindow::GlWindowDiscovery;
 
+pub static mut TOOLBAR_HEIGHT: f32 = 0.0;
+
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
     browser: RefCell<Browser<dyn WindowPortsMethods>>,
@@ -70,8 +72,8 @@ impl App {
         };
 
         struct Minibrowser {
-            context: egui_glow::EguiGlow,
-            location: RefCell<String>,
+        context: egui_glow::EguiGlow,
+        location: RefCell<String>,
         }
 
         impl Minibrowser {
@@ -95,9 +97,9 @@ impl App {
                         );
                     });
 
-                    // Get the toolbar size
-                    // TODO somehow pass this to the headed Window::get_coordinates
-                    dbg!(ctx.used_rect());
+                    unsafe {
+                        TOOLBAR_HEIGHT = ctx.used_rect().height();
+                    }
                 });
                 context.paint(window);
             }
@@ -143,7 +145,7 @@ impl App {
 
         let mut minibrowser = window.winit_window().map(|_| Minibrowser {
             context: egui_glow::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
-            location: RefCell::new(String::default()),
+            location: RefCell::new(String::default())
         });
 
         if let Some(minibrowser) = minibrowser.as_mut() {

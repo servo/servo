@@ -4,6 +4,7 @@
 
 //! A winit window implementation.
 
+use crate::app;
 use crate::events_loop::{EventsLoop, ServoEvent};
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
@@ -530,7 +531,10 @@ impl WindowMethods for Window {
             .winit_window
             .inner_size();
 
-        let toolbar_height = 32f32; // TODO get real value from egui
+        let value = unsafe { app::TOOLBAR_HEIGHT };
+        dbg!(value);
+
+        let toolbar_height = value;
         let viewport_origin = Point2D::new(0f32, toolbar_height * 0f32).to_i32(); // TODO this misbehaves
         let viewport_size = (Size2D::new(width as f32, height as f32 - toolbar_height) * dpr).to_i32();
         let viewport = DeviceIntRect::new(viewport_origin, viewport_size);
