@@ -139,7 +139,9 @@ impl App {
 
         // glow needs to set framebuffer as a target
         unsafe {
-            gl.bind_framebuffer(glow::FRAMEBUFFER, Some(NativeFramebuffer(NonZeroU32::new(framebuffer_object).unwrap())));
+            gl.bind_framebuffer(
+                glow::FRAMEBUFFER,
+                Some(NativeFramebuffer(NonZeroU32::new(framebuffer_object).unwrap())));
         };
 
 
