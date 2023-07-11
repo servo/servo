@@ -18,6 +18,7 @@ use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{self, StackingContextId};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
+use script_traits::compositor::ScrollTreeNodeId;
 use servo_geometry::MaxRect;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -31,6 +32,7 @@ use webrender_api::{
     FilterOp, GlyphInstance, GradientStop, ImageKey, MixBlendMode, PrimitiveFlags,
     ScrollSensitivity, Shadow, SpatialId, StickyOffsetBounds, TransformStyle,
 };
+use wr::ClipChainId;
 
 pub use style::dom::OpaqueNode;
 
@@ -369,6 +371,12 @@ pub struct ClipScrollNode {
 
     /// The type of this ClipScrollNode.
     pub node_type: ClipScrollNodeType,
+
+    /// The WebRender spatial id of this node assigned during WebRender conversion.
+    pub scroll_node_id: Option<ScrollTreeNodeId>,
+
+    /// The WebRender clip id of this node assigned during WebRender conversion.
+    pub clip_chain_id: Option<ClipChainId>,
 }
 
 impl ClipScrollNode {
@@ -378,6 +386,8 @@ impl ClipScrollNode {
             clip: ClippingRegion::from_rect(LayoutRect::zero()),
             content_rect: LayoutRect::zero(),
             node_type: ClipScrollNodeType::Placeholder,
+            scroll_node_id: None,
+            clip_chain_id: None,
         }
     }
 
@@ -400,6 +410,8 @@ impl ClipScrollNode {
             clip: ClippingRegion::from_rect(clip_rect),
             content_rect: LayoutRect::zero(), // content_rect isn't important for clips.
             node_type: ClipScrollNodeType::Clip(ClipType::Rounded(complex_region)),
+            scroll_node_id: None,
+            clip_chain_id: None,
         }
     }
 }

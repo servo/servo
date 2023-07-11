@@ -37,7 +37,7 @@ pub(crate) struct ContainingBlock {
 
     /// The WebRender ClipId to use for this children of this containing
     /// block.
-    clip_id: wr::ClipId,
+    clip_chain_id: wr::ClipChainId,
 
     /// The physical rect of this containing block.
     rect: PhysicalRect<Length>,
@@ -47,11 +47,11 @@ impl ContainingBlock {
     pub(crate) fn new(
         rect: &PhysicalRect<Length>,
         scroll_node_id: ScrollTreeNodeId,
-        clip_id: wr::ClipId,
+        clip_chain_id: wr::ClipChainId,
     ) -> Self {
         ContainingBlock {
             scroll_node_id,
-            clip_id,
+            clip_chain_id,
             rect: *rect,
         }
     }
@@ -76,15 +76,19 @@ pub(crate) enum StackingContextSection {
 
 impl DisplayList {
     pub fn build_stacking_context_tree(&mut self, fragment_tree: &FragmentTree) -> StackingContext {
+        let root_clip_chain_id = self
+            .wr
+            .define_clip_chain(None, [wr::ClipId::root(self.wr.pipeline_id)]);
+
         let cb_for_non_fixed_descendants = ContainingBlock::new(
             &fragment_tree.initial_containing_block,
             self.compositor_info.root_scroll_node_id,
-            wr::ClipId::root(self.wr.pipeline_id),
+            root_clip_chain_id,
         );
         let cb_for_fixed_descendants = ContainingBlock::new(
             &fragment_tree.initial_containing_block,
             self.compositor_info.root_reference_frame_id,
-            wr::ClipId::root(self.wr.pipeline_id),
+            root_clip_chain_id,
         );
 
         // We need to specify all three containing blocks here, because absolute
@@ -142,27 +146,40 @@ impl DisplayList {
     fn define_scroll_frame(
         &mut self,
         parent_scroll_node_id: &ScrollTreeNodeId,
-        parent_clip_id: &wr::ClipId,
+        parent_clip_chain_id: &wr::ClipChainId,
         external_id: wr::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
         scroll_sensitivity: wr::ScrollSensitivity,
         external_scroll_offset: LayoutVector2D,
-    ) -> (ScrollTreeNodeId, wr::ClipId) {
-        let new_space_and_clip = self.wr.define_scroll_frame(
-            &wr::SpaceAndClipInfo {
-                spatial_id: parent_scroll_node_id.spatial_id,
-                clip_id: *parent_clip_id,
-            },
-            Some(external_id),
-            content_rect,
-            clip_rect,
-            scroll_sensitivity,
-            external_scroll_offset,
-        );
+    ) -> (ScrollTreeNodeId, wr::ClipChainId) {
+        let parent_space_and_clip_info = wr::SpaceAndClipInfo {
+            spatial_id: parent_scroll_node_id.spatial_id,
+            clip_id: wr::ClipId::root(self.wr.pipeline_id),
+        };
+
+        let new_clip_id = self
+            .wr
+            .define_clip_rect(&parent_space_and_clip_info, clip_rect);
+        let new_clip_chain_id = self
+            .wr
+            .define_clip_chain(Some(*parent_clip_chain_id), [new_clip_id]);
+
+        let new_spatial_id = self
+            .wr
+            .define_scroll_frame(
+                &parent_space_and_clip_info,
+                Some(external_id),
+                content_rect,
+                clip_rect,
+                scroll_sensitivity,
+                external_scroll_offset,
+            )
+            .spatial_id;
+
         let new_scroll_node_id = self.compositor_info.scroll_tree.add_scroll_tree_node(
             Some(&parent_scroll_node_id),
-            new_space_and_clip.spatial_id,
+            new_spatial_id,
             Some(ScrollableNodeInfo {
                 external_id,
                 scrollable_size: content_rect.size - clip_rect.size,
@@ -170,13 +187,13 @@ impl DisplayList {
                 offset: LayoutVector2D::zero(),
             }),
         );
-        (new_scroll_node_id, new_space_and_clip.clip_id)
+        (new_scroll_node_id, new_clip_chain_id)
     }
 }
 
 pub(crate) struct StackingContextFragment {
     scroll_node_id: ScrollTreeNodeId,
-    clip_id: wr::ClipId,
+    clip_chain_id: wr::ClipChainId,
     section: StackingContextSection,
     containing_block: PhysicalRect<Length>,
     fragment: ArcRefCell<Fragment>,
@@ -185,7 +202,7 @@ pub(crate) struct StackingContextFragment {
 impl StackingContextFragment {
     fn build_display_list(&self, builder: &mut DisplayListBuilder) {
         builder.current_scroll_node_id = self.scroll_node_id;
-        builder.current_clip_id = self.clip_id;
+        builder.current_clip_id = wr::ClipId::ClipChain(self.clip_chain_id);
         self.fragment
             .borrow()
             .build_display_list(builder, &self.containing_block, self.section);
@@ -346,7 +363,7 @@ impl StackingContext {
             LayoutPoint::zero(), // origin
             self.spatial_id,
             style.get_webrender_primitive_flags(),
-            None, // clip_id
+            None, // clip_chain_id
             style.get_used_transform_style().to_webrender(),
             effects.mix_blend_mode.to_webrender(),
             &filters,
@@ -608,7 +625,7 @@ impl Fragment {
                 stacking_context.fragments.push(StackingContextFragment {
                     section: StackingContextSection::Content,
                     scroll_node_id: containing_block.scroll_node_id,
-                    clip_id: containing_block.clip_id,
+                    clip_chain_id: containing_block.clip_chain_id,
                     containing_block: containing_block.rect,
                     fragment: fragment_ref.clone(),
                 });
@@ -721,7 +738,7 @@ impl BoxFragment {
                 .rect
                 .translate(-reference_frame_data.origin.to_vector()),
             new_spatial_id,
-            containing_block.clip_id,
+            containing_block.clip_chain_id,
         );
         let new_containing_block_info =
             containing_block_info.new_for_non_absolute_descendants(&adjusted_containing_block);
@@ -796,19 +813,19 @@ impl BoxFragment {
         stacking_context: &mut StackingContext,
     ) {
         let mut new_scroll_node_id = containing_block.scroll_node_id;
-        let mut new_clip_id = containing_block.clip_id;
-        if let Some(clip_id) = self.build_clip_frame_if_necessary(
+        let mut new_clip_chain_id = containing_block.clip_chain_id;
+        if let Some(clip_chain_id) = self.build_clip_frame_if_necessary(
             display_list,
             &new_scroll_node_id,
-            &new_clip_id,
+            &new_clip_chain_id,
             &containing_block.rect,
         ) {
-            new_clip_id = clip_id;
+            new_clip_chain_id = clip_chain_id;
         }
 
         stacking_context.fragments.push(StackingContextFragment {
             scroll_node_id: new_scroll_node_id,
-            clip_id: new_clip_id,
+            clip_chain_id: new_clip_chain_id,
             section: self.get_stacking_context_section(),
             containing_block: containing_block.rect,
             fragment: fragment.clone(),
@@ -816,7 +833,7 @@ impl BoxFragment {
         if self.style.get_outline().outline_width.px() > 0.0 {
             stacking_context.fragments.push(StackingContextFragment {
                 scroll_node_id: new_scroll_node_id,
-                clip_id: new_clip_id,
+                clip_chain_id: new_clip_chain_id,
                 section: StackingContextSection::Outline,
                 containing_block: containing_block.rect,
                 fragment: fragment.clone(),
@@ -825,14 +842,14 @@ impl BoxFragment {
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
-        if let Some((scroll_node_id, clip_id)) = self.build_scroll_frame_if_necessary(
+        if let Some((scroll_node_id, clip_chain_id)) = self.build_scroll_frame_if_necessary(
             display_list,
             &new_scroll_node_id,
-            &new_clip_id,
+            &new_clip_chain_id,
             &containing_block.rect,
         ) {
             new_scroll_node_id = scroll_node_id;
-            new_clip_id = clip_id;
+            new_clip_chain_id = clip_chain_id;
         }
 
         let padding_rect = self
@@ -845,9 +862,9 @@ impl BoxFragment {
             .translate(containing_block.rect.origin.to_vector());
 
         let for_absolute_descendants =
-            ContainingBlock::new(&padding_rect, new_scroll_node_id, new_clip_id);
+            ContainingBlock::new(&padding_rect, new_scroll_node_id, new_clip_chain_id);
         let for_non_absolute_descendants =
-            ContainingBlock::new(&content_rect, new_scroll_node_id, new_clip_id);
+            ContainingBlock::new(&content_rect, new_scroll_node_id, new_clip_chain_id);
 
         // Create a new `ContainingBlockInfo` for descendants depending on
         // whether or not this fragment establishes a containing block for
@@ -887,9 +904,9 @@ impl BoxFragment {
         &self,
         display_list: &mut DisplayList,
         parent_scroll_node_id: &ScrollTreeNodeId,
-        parent_clip_id: &wr::ClipId,
+        parent_clip_chain_id: &wr::ClipChainId,
         containing_block_rect: &PhysicalRect<Length>,
-    ) -> Option<wr::ClipId> {
+    ) -> Option<wr::ClipChainId> {
         let position = self.style.get_box().position;
         // https://drafts.csswg.org/css2/#clipping
         // The clip property applies only to absolutely positioned elements
@@ -911,22 +928,28 @@ impl BoxFragment {
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
 
-        Some(display_list.wr.define_clip_rect(
-            &wr::SpaceAndClipInfo {
-                spatial_id: parent_scroll_node_id.spatial_id,
-                clip_id: *parent_clip_id,
-            },
-            clip_rect,
-        ))
+        let parent_space_and_clip = &wr::SpaceAndClipInfo {
+            spatial_id: parent_scroll_node_id.spatial_id,
+            clip_id: wr::ClipId::root(display_list.wr.pipeline_id),
+        };
+
+        let clip_id = display_list
+            .wr
+            .define_clip_rect(&parent_space_and_clip, clip_rect);
+        Some(
+            display_list
+                .wr
+                .define_clip_chain(Some(*parent_clip_chain_id), [clip_id]),
+        )
     }
 
     fn build_scroll_frame_if_necessary(
         &self,
         display_list: &mut DisplayList,
         parent_scroll_node_id: &ScrollTreeNodeId,
-        parent_clip_id: &wr::ClipId,
+        parent_clip_id: &wr::ClipChainId,
         containing_block_rect: &PhysicalRect<Length>,
-    ) -> Option<(ScrollTreeNodeId, wr::ClipId)> {
+    ) -> Option<(ScrollTreeNodeId, wr::ClipChainId)> {
         let overflow_x = self.style.get_box().overflow_x;
         let overflow_y = self.style.get_box().overflow_y;
         if overflow_x == ComputedOverflow::Visible && overflow_y == ComputedOverflow::Visible {

@@ -13,22 +13,24 @@ use msg::constellation_msg::PipelineId;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId, ScrollableNodeInfo};
 use webrender_api::units::{LayoutPoint, LayoutSize, LayoutVector2D};
 use webrender_api::{
-    self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder, Epoch,
-    PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem, RasterSpace,
-    ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
+    self, ClipChainId, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem,
+    DisplayListBuilder, Epoch, PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem,
+    RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
 };
 
-struct ClipScrollState {
-    clip_ids: Vec<Option<ClipId>>,
-    scroll_node_ids: Vec<Option<ScrollTreeNodeId>>,
+struct ClipScrollState<'a> {
+    clip_scroll_nodes: &'a mut Vec<ClipScrollNode>,
     compositor_info: CompositorDisplayListInfo,
 }
 
-impl ClipScrollState {
-    fn new(size: usize, compositor_info: CompositorDisplayListInfo) -> Self {
+impl<'a> ClipScrollState<'a> {
+    fn new(
+        clip_scroll_nodes: &'a mut Vec<ClipScrollNode>,
+        compositor_info: CompositorDisplayListInfo,
+        builder: &mut DisplayListBuilder,
+    ) -> Self {
         let mut state = ClipScrollState {
-            clip_ids: vec![None; size],
-            scroll_node_ids: vec![None; size],
+            clip_scroll_nodes,
             compositor_info,
         };
 
@@ -37,32 +39,38 @@ impl ClipScrollState {
         // automatically. We also follow the "old" WebRender API for clip/scroll for now,
         // hence both arrays are initialized based on FIRST_SPATIAL_NODE_INDEX, while
         // FIRST_CLIP_NODE_INDEX is not taken into account.
-        state.scroll_node_ids[0] = Some(state.compositor_info.root_reference_frame_id);
-        state.scroll_node_ids[1] = Some(state.compositor_info.root_scroll_node_id);
+        state.clip_scroll_nodes[0].scroll_node_id =
+            Some(state.compositor_info.root_reference_frame_id);
+        state.clip_scroll_nodes[1].scroll_node_id = Some(state.compositor_info.root_scroll_node_id);
 
-        let root_clip_id = ClipId::root(state.compositor_info.pipeline_id);
-        state.add_clip_node_mapping(0, root_clip_id);
-        state.add_clip_node_mapping(1, root_clip_id);
+        let root_clip_chain =
+            builder.define_clip_chain(None, [ClipId::root(state.compositor_info.pipeline_id)]);
+        state.add_clip_node_mapping(0, root_clip_chain);
+        state.add_clip_node_mapping(1, root_clip_chain);
 
         state
     }
 
-    fn webrender_clip_id_for_index(&mut self, index: usize) -> ClipId {
-        self.clip_ids[index].expect("Tried to use WebRender parent ClipId before it was defined.")
+    fn webrender_clip_id_for_index(&mut self, index: usize) -> ClipChainId {
+        self.clip_scroll_nodes[index]
+            .clip_chain_id
+            .expect("Tried to access WebRender ClipId before definining it.")
     }
 
     fn webrender_spatial_id_for_index(&mut self, index: usize) -> SpatialId {
-        self.scroll_node_ids[index]
+        self.clip_scroll_nodes[index]
+            .scroll_node_id
             .expect("Tried to use WebRender parent SpatialId before it was defined.")
             .spatial_id
     }
 
-    fn add_clip_node_mapping(&mut self, index: usize, webrender_id: ClipId) {
-        self.clip_ids[index] = Some(webrender_id);
+    fn add_clip_node_mapping(&mut self, index: usize, webrender_id: ClipChainId) {
+        self.clip_scroll_nodes[index].clip_chain_id = Some(webrender_id);
     }
 
     fn scroll_node_id_from_index(&self, index: usize) -> ScrollTreeNodeId {
-        self.scroll_node_ids[index]
+        self.clip_scroll_nodes[index]
+            .scroll_node_id
             .expect("Tried to use WebRender parent SpatialId before it was defined.")
     }
 
@@ -74,15 +82,17 @@ impl ClipScrollState {
         scroll_info: Option<ScrollableNodeInfo>,
     ) {
         let parent_scroll_node_id = parent_index.map(|index| self.scroll_node_id_from_index(index));
-        self.scroll_node_ids[index] = Some(self.compositor_info.scroll_tree.add_scroll_tree_node(
-            parent_scroll_node_id.as_ref(),
-            spatial_id,
-            scroll_info,
-        ));
+        self.clip_scroll_nodes[index].scroll_node_id =
+            Some(self.compositor_info.scroll_tree.add_scroll_tree_node(
+                parent_scroll_node_id.as_ref(),
+                spatial_id,
+                scroll_info,
+            ));
     }
 
     fn add_spatial_node_mapping_to_parent_index(&mut self, index: usize, parent_index: usize) {
-        self.scroll_node_ids[index] = self.scroll_node_ids[parent_index];
+        self.clip_scroll_nodes[index].scroll_node_id =
+            self.clip_scroll_nodes[parent_index].scroll_node_id
     }
 }
 
@@ -100,27 +110,22 @@ impl DisplayList {
         epoch: Epoch,
     ) -> (DisplayListBuilder, CompositorDisplayListInfo, IsContentful) {
         let webrender_pipeline = pipeline_id.to_webrender();
-        let mut state = ClipScrollState::new(
-            self.clip_scroll_nodes.len(),
-            CompositorDisplayListInfo::new(
-                viewport_size,
-                self.bounds().size,
-                webrender_pipeline,
-                epoch,
-            ),
-        );
-
         let mut builder = DisplayListBuilder::with_capacity(
             webrender_pipeline,
             self.bounds().size,
             1024 * 1024, // 1 MB of space
         );
 
+        let content_size = self.bounds().size;
+        let mut state = ClipScrollState::new(
+            &mut self.clip_scroll_nodes,
+            CompositorDisplayListInfo::new(viewport_size, content_size, webrender_pipeline, epoch),
+            &mut builder,
+        );
+
         let mut is_contentful = IsContentful(false);
         for item in &mut self.list {
-            is_contentful.0 |= item
-                .convert_to_webrender(&self.clip_scroll_nodes, &mut state, &mut builder)
-                .0;
+            is_contentful.0 |= item.convert_to_webrender(&mut state, &mut builder).0;
         }
 
         (builder, state.compositor_info, is_contentful)
@@ -130,7 +135,6 @@ impl DisplayList {
 impl DisplayItem {
     fn convert_to_webrender(
         &mut self,
-        clip_scroll_nodes: &[ClipScrollNode],
         state: &mut ClipScrollState,
         builder: &mut DisplayListBuilder,
     ) -> IsContentful {
@@ -165,7 +169,7 @@ impl DisplayItem {
             CommonItemProperties {
                 clip_rect: base.clip_rect,
                 spatial_id: current_scroll_node_id.spatial_id,
-                clip_id: current_clip_id,
+                clip_id: ClipId::ClipChain(current_clip_id),
                 // TODO(gw): Make use of the WR backface visibility functionality.
                 flags: PrimitiveFlags::default(),
                 hit_info: tag,
@@ -339,48 +343,54 @@ impl DisplayItem {
             },
             DisplayItem::DefineClipScrollNode(ref mut item) => {
                 let index = item.node_index.to_index();
-                let node = &clip_scroll_nodes[index];
+                let node = state.clip_scroll_nodes[index].clone();
                 let item_rect = node.clip.main;
 
                 let parent_index = node.parent_index.to_index();
                 let parent_spatial_id = state.webrender_spatial_id_for_index(parent_index);
-                let parent_clip_id = state.webrender_clip_id_for_index(parent_index);
+                let parent_clip_chain_id = state.webrender_clip_id_for_index(parent_index);
+
+                let parent_space_and_clip_info = SpaceAndClipInfo {
+                    clip_id: ClipId::root(state.compositor_info.pipeline_id),
+                    spatial_id: parent_spatial_id,
+                };
 
                 match node.node_type {
                     ClipScrollNodeType::Clip(clip_type) => {
-                        let space_and_clip_info = SpaceAndClipInfo {
-                            clip_id: parent_clip_id,
-                            spatial_id: parent_spatial_id,
-                        };
                         let clip_id = match clip_type {
                             ClipType::Rect => {
-                                builder.define_clip_rect(&space_and_clip_info, item_rect)
+                                builder.define_clip_rect(&parent_space_and_clip_info, item_rect)
                             },
-                            ClipType::Rounded(complex) => {
-                                builder.define_clip_rounded_rect(&space_and_clip_info, complex)
-                            },
+                            ClipType::Rounded(complex) => builder
+                                .define_clip_rounded_rect(&parent_space_and_clip_info, complex),
                         };
 
-                        state.add_clip_node_mapping(index, clip_id);
+                        let clip_chain_id =
+                            builder.define_clip_chain(Some(parent_clip_chain_id), [clip_id]);
+                        state.add_clip_node_mapping(index, clip_chain_id);
                         state.add_spatial_node_mapping_to_parent_index(index, parent_index);
                     },
                     ClipScrollNodeType::ScrollFrame(scroll_sensitivity, external_id) => {
-                        let space_clip_info = builder.define_scroll_frame(
-                            &SpaceAndClipInfo {
-                                clip_id: parent_clip_id,
-                                spatial_id: parent_spatial_id,
-                            },
-                            Some(external_id),
-                            node.content_rect,
-                            item_rect,
-                            scroll_sensitivity,
-                            LayoutVector2D::zero(),
-                        );
+                        let clip_id =
+                            builder.define_clip_rect(&parent_space_and_clip_info, item_rect);
+                        let clip_chain_id =
+                            builder.define_clip_chain(Some(parent_clip_chain_id), [clip_id]);
+                        state.add_clip_node_mapping(index, clip_chain_id);
 
-                        state.add_clip_node_mapping(index, space_clip_info.clip_id);
+                        let spatial_id = builder
+                            .define_scroll_frame(
+                                &parent_space_and_clip_info,
+                                Some(external_id),
+                                node.content_rect,
+                                item_rect,
+                                scroll_sensitivity,
+                                LayoutVector2D::zero(),
+                            )
+                            .spatial_id;
+
                         state.register_spatial_node(
                             index,
-                            space_clip_info.spatial_id,
+                            spatial_id,
                             Some(parent_index),
                             Some(ScrollableNodeInfo {
                                 external_id,
@@ -401,7 +411,7 @@ impl DisplayItem {
                             LayoutVector2D::zero(),
                         );
 
-                        state.add_clip_node_mapping(index, parent_clip_id);
+                        state.add_clip_node_mapping(index, parent_clip_chain_id);
                         state.register_spatial_node(index, id, Some(current_scrolling_index), None);
                     },
                     ClipScrollNodeType::Placeholder => {
