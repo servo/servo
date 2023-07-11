@@ -54,6 +54,7 @@ egui_glow = { version = "0.22.0", optional = true, features = ["winit"] }
 egui-winit = { version = "0.22.0", optional = true }
 euclid = "0.22"
 getopts = "0.2.11"
+gleam = "0.12"
 glow = { version = "0.12.2", optional = true }
 keyboard-types = "0.6"
 lazy_static = "1"

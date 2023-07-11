@@ -5760,6 +5760,7 @@ dependencies = [
  "egui_glow",
  "euclid",
  "getopts",
+ "gleam",
  "glow",
  "image 0.24.6",
  "keyboard-types",

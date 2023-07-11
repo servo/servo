@@ -9,8 +9,10 @@ use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, ServoEvent};
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
-use egui::{RawInput, TopBottomPanel};
+use egui::TopBottomPanel;
 use egui_winit::EventResponse;
+use gleam::gl;
+use glow::{NativeFramebuffer, HasContext};
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
 use servo::compositing::windowing::WindowEvent;
@@ -21,9 +23,11 @@ use servo::Servo;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::env;
+use std::num::NonZeroU32;
 use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
+use surfman::GLApi;
 use webxr::glwindow::GlWindowDiscovery;
 
 pub struct App {
@@ -99,21 +103,44 @@ impl App {
             }
         }
 
-        // TODO maybe we need to bind a framebuffer object?
-        // => glow::Context::create_framebuffer_from_gl_name says “Creates a framebuffer from an
-        //    external GL name. This can be useful when a framebuffer is created outside of glow
-        //    (e.g: via surfman or another crate that supports sharing of buffers between GL
-        //    contexts), but glow needs to set it as a target.”
-        // => see Servo::new in components/servo/lib.rs for how to do this
-        // let fbo = window.webrender_surfman().context_surface_info().unwrap().unwrap().framebuffer_object;
+        // Create FrameBufferObject
+        let webrender_surfman = window.webrender_surfman();
+        let webrender_gl = match webrender_surfman.connection().gl_api() {
+            GLApi::GL => unsafe { gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s)) },
+            GLApi::GLES => unsafe {
+                gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
+            },
+        };
+
+        // Make sure the gl context is made current.
+        webrender_surfman.make_gl_context_current().unwrap();
+        debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
+
+        // Bind the webrender framebuffer
+        let framebuffer_object = webrender_surfman
+            .context_surface_info()
+            .unwrap_or(None)
+            .map(|info| info.framebuffer_object)
+            .unwrap_or(0);
+
+        let native_framebuffer = NativeFramebuffer(NonZeroU32::new(framebuffer_object).unwrap());
+
+        let framebuffer_object = native_framebuffer.0.get();
 
         // Set up egui context for minibrowser ui
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         let gl = unsafe {
             glow::Context::from_loader_function(|s| {
-                window.webrender_surfman().get_proc_address(s)
+                webrender_surfman.get_proc_address(s)
             })
         };
+
+        // glow needs to set framebuffer as a target
+        unsafe {
+            gl.bind_framebuffer(glow::FRAMEBUFFER, Some(NativeFramebuffer(NonZeroU32::new(framebuffer_object).unwrap())));
+        };
+
+
         let mut minibrowser = window.winit_window().map(|_| Minibrowser {
             context: egui_glow::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
             location: RefCell::new(String::default()),
@@ -185,6 +212,7 @@ impl App {
                 }
                 _ => EventResponse { consumed: false, repaint: false },
             };
+
             // TODO how do we handle the tab key? (see doc for consumed)
             if !response.consumed {
                 app.winit_event_to_servo_event(e);
