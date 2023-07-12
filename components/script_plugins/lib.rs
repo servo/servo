@@ -216,7 +216,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         }
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
             for ref field in def.fields() {
-                let field_type = cx.tcx.type_of(field.def_id);
+                let field_type = cx.tcx.type_of(field.def_id).skip_binder();
                 if is_unrooted_ty(&self.symbols, cx, field_type, false) {
                     cx.lint(
                         UNROOTED_MUST_ROOT,
@@ -239,7 +239,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             match var.data {
                 hir::VariantData::Tuple(fields, ..) => {
                     for field in fields {
-                        let field_type = cx.tcx.type_of(field.def_id);
+                        let field_type = cx.tcx.type_of(field.def_id).skip_binder();
                         if is_unrooted_ty(&self.symbols, cx, field_type, false) {
                             cx.lint(
                                 UNROOTED_MUST_ROOT,
@@ -273,7 +273,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         };
 
         if !in_derive_expn(span) {
-            let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
+            let fn_type = cx.tcx.type_of(def_id).skip_binder();
+            let sig = fn_type.fn_sig(cx.tcx);
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
                 if is_unrooted_ty(&self.symbols, cx, *ty, false) {

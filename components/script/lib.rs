@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![feature(core_intrinsics)]
-#![feature(drain_filter)]
+#![feature(extract_if)]
 #![feature(plugin)]
 #![feature(register_tool)]
 #![deny(unsafe_code)]

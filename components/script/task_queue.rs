@@ -119,7 +119,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
         // 4. Filter tasks from non-priority task-sources.
         let to_be_throttled: Vec<T> = incoming
-            .drain_filter(|msg| {
+            .extract_if(|msg| {
                 let task_source = match msg.task_source_name() {
                     Some(task_source) => task_source,
                     None => return false,
