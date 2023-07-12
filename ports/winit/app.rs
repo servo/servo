@@ -105,7 +105,7 @@ impl App {
             }
         }
 
-        // Create FrameBufferObject
+        // Make sure the gl context is made current.
         let webrender_surfman = window.webrender_surfman();
         let webrender_gl = match webrender_surfman.connection().gl_api() {
             GLApi::GL => unsafe { gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s)) },
@@ -113,29 +113,13 @@ impl App {
                 gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
             },
         };
-
-        // Make sure the gl context is made current.
-        webrender_surfman.make_gl_context_current().unwrap();
-        debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
-
-        // Bind the webrender framebuffer
-        let framebuffer_object = webrender_surfman
-            .context_surface_info()
-            .unwrap_or(None)
-            .and_then(|info| NonZeroU32::new(info.framebuffer_object))
-            .map(NativeFramebuffer);
-
         let gl = unsafe {
             glow::Context::from_loader_function(|s| {
                 webrender_surfman.get_proc_address(s)
             })
         };
-
-        // glow needs to set framebuffer as a target
-        unsafe {
-            gl.bind_framebuffer(glow::FRAMEBUFFER, framebuffer_object);
-        };
-
+        webrender_surfman.make_gl_context_current().unwrap();
+        debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
         // Set up egui context for minibrowser ui
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
