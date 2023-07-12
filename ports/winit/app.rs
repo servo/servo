@@ -122,15 +122,9 @@ impl App {
         let framebuffer_object = webrender_surfman
             .context_surface_info()
             .unwrap_or(None)
-            .map(|info| info.framebuffer_object)
-            .unwrap_or(0);
+            .and_then(|info| NonZeroU32::new(info.framebuffer_object))
+            .map(NativeFramebuffer);
 
-        let native_framebuffer = NativeFramebuffer(NonZeroU32::new(framebuffer_object).unwrap());
-
-        let framebuffer_object = native_framebuffer.0.get();
-
-        // Set up egui context for minibrowser ui
-        // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         let gl = unsafe {
             glow::Context::from_loader_function(|s| {
                 webrender_surfman.get_proc_address(s)
@@ -139,12 +133,12 @@ impl App {
 
         // glow needs to set framebuffer as a target
         unsafe {
-            gl.bind_framebuffer(
-                glow::FRAMEBUFFER,
-                Some(NativeFramebuffer(NonZeroU32::new(framebuffer_object).unwrap())));
+            gl.bind_framebuffer(glow::FRAMEBUFFER, framebuffer_object);
         };
 
 
+        // Set up egui context for minibrowser ui
+        // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         let mut minibrowser = window.winit_window().map(|_| Minibrowser {
             context: egui_glow::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
             location: RefCell::new(String::default())
