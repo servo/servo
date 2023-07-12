@@ -104,6 +104,7 @@
   "layout.writing-mode.enabled": false,
   "media.glvideo.enabled": false,
   "media.testing.enabled": false,
+  "minibrowser.enabled": false,
   "network.enforce_tls.enabled": false,
   "network.enforce_tls.localhost": false,
   "network.enforce_tls.onion": false,

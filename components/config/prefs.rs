@@ -456,6 +456,9 @@ mod gen {
                     enabled: bool,
                 }
             },
+            minibrowser: {
+                enabled: bool,
+            },
             network: {
                 enforce_tls: {
                     enabled: bool,
