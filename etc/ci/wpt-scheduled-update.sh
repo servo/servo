@@ -28,7 +28,7 @@ function unsafe_update_metadata_chunk() {
 
 function update_metadata_chunk() {
     unsafe_update_metadata_chunk "${1}" || \
-        { code="${?}"; cleanup; return "${code}"; }
+        { code="${?}"; return "${code}"; }
 }
 
 function main() {
@@ -42,6 +42,4 @@ function main() {
     done
 }
 
-# Ensure we clean up after ourselves if this script is interrupted.
-trap 'cleanup' SIGINT SIGTERM
 main

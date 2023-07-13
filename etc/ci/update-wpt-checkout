@@ -91,55 +91,6 @@ function unsafe_update_metadata() {
     git commit -a --amend --no-edit || return 3
 }
 
-# Push the branch to a remote branch, then open a PR for the branch
-# against servo/servo.
-function unsafe_open_pull_request() {
-    WPT_SYNC_USER=servo-wpt-sync
-
-    # If the branch doesn't exist, we'll silently exit. This deals with the
-    # case where an earlier step either failed or discovered that syncing
-    # is unnecessary.
-    git checkout "${BRANCH_NAME}" || return 0
-
-    if [[ -z "${WPT_SYNC_TOKEN+set}" ]]; then
-        echo "Github auth token missing from WPT_SYNC_TOKEN."
-        return 1
-    fi
-
-    # Push the changes to a remote branch owned by the bot.
-    AUTH="${WPT_SYNC_USER}:${WPT_SYNC_TOKEN}"
-    UPSTREAM="https://${AUTH}@github.com/${WPT_SYNC_USER}/servo.git"
-    git remote add "${REMOTE_NAME}" "${UPSTREAM}" || return 2
-    git push -f "${REMOTE_NAME}" "${BRANCH_NAME}:${REMOTE_BRANCH_NAME}" &>/dev/null || return 3
-
-    # Prepare the pull request metadata.
-    BODY="Automated downstream sync of changes from upstream as of "
-    BODY+="${CURRENT_DATE}.\n"
-    BODY+="[no-wpt-sync]\n"
-    BODY+="r? @servo-wpt-sync\n"
-    cat <<EOF >prdata.json || return 4
-{
-  "title": "Sync WPT with upstream (${CURRENT_DATE})",
-  "head": "${WPT_SYNC_USER}:${REMOTE_BRANCH_NAME}",
-  "base": "master",
-  "body": "${BODY}",
-  "maintainer_can_modify": true
-}
-EOF
-
-    # Open a pull request using the new branch.
-    OPEN_PR_RESPONSE=$(curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
-                            -H "Content-Type: application/json" \
-                            --data @prdata.json \
-                            https://api.github.com/repos/servo/servo/pulls) || return 5
-
-    echo "${OPEN_PR_RESPONSE}" | \
-        jq '.review_comments_url' | \
-        sed 's/pulls/issues/' | \
-        xargs curl -H "Authorization: token ${WPT_SYNC_TOKEN}" \
-                   --data "{\"body\":\"@bors-servo r+\"}" || return 6
-}
-
 function pull_from_upstream() {
     unsafe_pull_from_upstream "${1}" || { code="${?}"; cleanup; return "${code}"; }
 }
@@ -150,10 +101,6 @@ function run_tests() {
 
 function update_metadata() {
     unsafe_update_metadata "${1}" "${2}" "${3}" || { code="${?}"; cleanup; return "${code}"; }
-}
-
-function open_pull_request() {
-    unsafe_open_pull_request || { code="${?}"; cleanup; return "${code}"; }
 }
 
 SCRIPT_NAME="${0}"
@@ -173,7 +120,6 @@ function usage() {
     echo "  - fetch-upstream-changes: create a branch with the latest changes from upstream"
     echo "  - update-test-results: run the tests, update the expected test results, and commit the changes"
     echo "  - fetch-and-update-expectations: combines fetch-upstream-changes and update-test-results"
-    echo "  - open-pr: open a pull request with the latest changes"
     echo "  - cleanup: cleanup all traces of an in-progress sync and checkout the master branch"
     exit 1
 }
@@ -196,9 +142,6 @@ function main() {
 
     if [[ "${1}" == "update-test-results" ]] || [[ "${1}" == "fetch-and-update-expectations" ]]; then
         update_test_results
-
-    elif [[ "${1}" == "open-pr" ]]; then
-        open_pull_request
 
     elif [[ "${1}" == "cleanup" ]]; then
         cleanup

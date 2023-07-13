@@ -16,6 +16,7 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       wpt: 'sync'
+      layout: 'all'
       unit-tests: false
 
   sync:
@@ -72,4 +73,4 @@ jobs:
           )
           gh pr create \
             --title "Sync WPT with upstream (${{ env.CURRENT_DATE }})" \
-            --body "$BODY" --head ${{ env.UPDATE_BRANCH }} | xargs gh pr comment $1 --body "@bors-servo r+"
+            --body "$BODY" --head ${{ env.UPDATE_BRANCH }}"
