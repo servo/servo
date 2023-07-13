@@ -1,4 +1,4 @@
-name: Linux workflow
+name: Linux
 on:
   workflow_call:
     inputs:
@@ -29,7 +29,7 @@ on:
       layout:
         required: false
         type: choice
-        options: ["2013", "2020", "all"]
+        options: ["none", "2013", "2020", "all"]
       unit-tests:
         required: false
         default: false
@@ -50,7 +50,7 @@ env:
   CARGO_INCREMENTAL: 0
 
 jobs:
-  build-linux:
+  build:
     name: Build
     runs-on: ubuntu-20.04
     steps:
@@ -113,33 +113,33 @@ jobs:
           name: release-binary
           path: target.tar.gz
 
-  linux-wpt-2020:
+  wpt-2020:
     if: ${{ github.ref_name == 'try-wpt-2020' || inputs.layout == '2020' || inputs.layout == 'all' }}
     name: Linux WPT Tests 2020
-    needs: ["build-linux"]
+    needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
       wpt: ${{ inputs.wpt }}
       layout: "layout-2020"
 
-  linux-wpt-2013:
+  wpt-2013:
     if: ${{ github.ref_name == 'try-wpt' || inputs.layout == '2013' || inputs.layout == 'all' }}
     name: Linux WPT Tests 2013
-    needs: ["build-linux"]
+    needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
       wpt: ${{ inputs.wpt }}
       layout: "layout-2013"
 
-  build_result:
-    name: homu build finished
+  result:
+    name: Result
     runs-on: ubuntu-latest
     if: always()
     # needs all build to detect cancellation
     needs:
-      - "build-linux"
-      - "linux-wpt-2020"
-      - "linux-wpt-2013"
+      - "build"
+      - "wpt-2020"
+      - "wpt-2013"
 
     steps:
       - name: Mark the job as successful
@@ -148,3 +148,4 @@ jobs:
       - name: Mark the job as unsuccessful
         run: exit 1
         if: contains(join(needs.*.result, ','), 'failure') || contains(join(needs.*.result, ','), 'cancelled')
+

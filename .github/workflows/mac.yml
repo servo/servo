@@ -1,4 +1,4 @@
-name: Mac workflow
+name: Mac
 
 on:
   workflow_call:
@@ -36,7 +36,7 @@ env:
   CARGO_INCREMENTAL: 0
 
 jobs:
-  build-mac:
+  build:
     name: Build
     runs-on: macos-12
     steps:
@@ -143,13 +143,13 @@ jobs:
   #           test-wpt.${{ matrix.chunk_id }}.log
   #           filtered-wpt-summary.${{ matrix.chunk_id }}.log
 
-  build_result:
-    name: homu build finished
+  result:
+    name: Result
     runs-on: ubuntu-latest
     if: always()
     # needs all build to detect cancellation
     needs:
-      - "build-mac"
+      - "build"
 
     steps:
       - name: Mark the job as successful
