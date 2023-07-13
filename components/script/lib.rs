@@ -8,10 +8,17 @@
 #![feature(register_tool)]
 #![deny(unsafe_code)]
 #![doc = "The script crate contains all matters DOM."]
-#![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
+#![cfg_attr(
+    not(any(
+        feature = "unrooted_must_root_lint",
+        feature = "trace_in_no_trace_lint"
+    )),
+    allow(unknown_lints)
+)]
 #![allow(deprecated)] // FIXME: Can we make `allow` only apply to the `plugin` crate attribute?
 #![plugin(script_plugins)]
 #![register_tool(unrooted_must_root_lint)]
+#![register_tool(trace_in_no_trace_lint)]
 
 #[macro_use]
 extern crate bitflags;

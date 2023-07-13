@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::{in_derive_expn, match_def_path, symbols};
 
 use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_driver::plugin::Registry;
@@ -350,24 +351,6 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
 
     fn nested_visit_map(&mut self) -> Self::Map {
         self.cx.tcx.hir()
-    }
-}
-
-macro_rules! symbols {
-    ($($s: ident)+) => {
-        #[derive(Clone)]
-        #[allow(non_snake_case)]
-        pub(crate) struct Symbols {
-            $( $s: Symbol, )+
-        }
-
-        impl Symbols {
-            fn new() -> Self {
-                Symbols {
-                    $( $s: Symbol::intern(stringify!($s)), )+
-                }
-            }
-        }
     }
 }
 

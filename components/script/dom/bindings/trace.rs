@@ -119,6 +119,7 @@ pub unsafe trait JSTraceable {
 ///
 /// SAFETY: Inner type must not impl JSTraceable
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[trace_in_no_trace_lint::must_not_have_traceable]
 pub struct NoTrace<T>(pub T);
 
 impl<T: Display> Display for NoTrace<T> {
