@@ -27,10 +27,6 @@ name = "document"
 path = "document.rs"
 
 [[bin]]
-name = "frame_output"
-path = "frame_output.rs"
-
-[[bin]]
 name = "iframe"
 path = "iframe.rs"
 
@@ -55,13 +51,13 @@ name = "yuv"
 path = "yuv.rs"
 
 [features]
-debug = ["webrender/capture", "webrender/debugger", "webrender/profiler"]
+debug = ["webrender/capture", "webrender/profiler"]
 
 [dependencies]
 app_units = "0.7"
 env_logger = "0.5"
 euclid = "0.22"
-gleam = "0.12"
+gleam = "0.13"
 glutin = "0.21"
 rayon = "1"
 webrender = { path = "../webrender" }

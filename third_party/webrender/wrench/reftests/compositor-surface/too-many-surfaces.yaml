@@ -1,0 +1,39 @@
+# Test that when there are too many compositor surfaces present that
+# the additional compositor surfaces are correctly drawn as regular
+# primitives into picture cache content tiles.
+---
+root:
+  items:
+    - type: rect
+      bounds: [50, 50, 400, 88]
+      color: green
+    - image: transparent-checkerboard(2,8,8)
+      bounds: [60, 60, 68, 68]
+      prefer-compositor-surface: true
+    - type: rect
+      bounds: [55, 70, 390, 5]
+      color: [255, 0, 0, 0.9]
+    - image: transparent-checkerboard(2,8,8)
+      bounds: [138, 60, 68, 68]
+      prefer-compositor-surface: true
+    - type: rect
+      bounds: [55, 80, 390, 5]
+      color: [255, 0, 0, 0.9]
+    - image: transparent-checkerboard(2,8,8)
+      bounds: [216, 60, 68, 68]
+      prefer-compositor-surface: true
+    - type: rect
+      bounds: [55, 90, 390, 5]
+      color: [255, 0, 0, 0.9]
+    - image: transparent-checkerboard(2,8,8)
+      bounds: [294, 60, 68, 68]
+      prefer-compositor-surface: true
+    - type: rect
+      bounds: [55, 100, 390, 5]
+      color: [255, 0, 0, 0.9]
+    - image: transparent-checkerboard(2,8,8)
+      bounds: [372, 60, 68, 68]
+      prefer-compositor-surface: true
+    - type: rect
+      bounds: [55, 110, 390, 5]
+      color: [255, 0, 0, 0.9]

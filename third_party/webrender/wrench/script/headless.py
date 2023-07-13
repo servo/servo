@@ -96,18 +96,16 @@ def optimized_build():
 
 def set_osmesa_env(bin_path):
     """Set proper LD_LIBRARY_PATH and DRIVE for software rendering on Linux and OSX"""
+    base = find_dep_path_newest('osmesa-src', bin_path)
+    osmesa_path = path.join(base, "out", "mesa", "src", "gallium", "targets", "osmesa")
+    os.environ["GALLIUM_DRIVER"] = "llvmpipe"
     if is_linux():
-        osmesa_path = path.join(find_dep_path_newest('osmesa-src', bin_path), "out", "lib", "gallium")
         print(osmesa_path)
         os.environ["LD_LIBRARY_PATH"] = osmesa_path
-        os.environ["GALLIUM_DRIVER"] = "softpipe"
     elif is_macos():
-        osmesa_path = path.join(find_dep_path_newest('osmesa-src', bin_path),
-                                "out", "src", "gallium", "targets", "osmesa", ".libs")
-        glapi_path = path.join(find_dep_path_newest('osmesa-src', bin_path),
-                               "out", "src", "mapi", "shared-glapi", ".libs")
+        osmesa_path = path.join(base, "out", "mesa", "src", "gallium", "targets", "osmesa")
+        glapi_path = path.join(base, "out", "mesa", "src", "mapi", "shared-glapi")
         os.environ["DYLD_LIBRARY_PATH"] = osmesa_path + ":" + glapi_path
-        os.environ["GALLIUM_DRIVER"] = "softpipe"
 
 
 extra_flags = os.getenv('CARGOFLAGS', None)
@@ -149,6 +147,6 @@ set_osmesa_env(target_folder)
 #           cause 1.0 / 255.0 pixel differences in a subsequent test. For now, we
 #           run tests with no-scissor mode, which ensures a complete target clear
 #           between test runs. But we should investigate this further...
-cmd = dbg_cmd + [target_folder + 'wrench', '--no-scissor', '-h'] + sys.argv[1:]
+cmd = dbg_cmd + [target_folder + 'wrench', '--no-scissor', '--headless'] + sys.argv[1:]
 print('Running: `' + ' '.join(cmd) + '`')
-subprocess.check_call(cmd)
+subprocess.check_call(cmd, stderr=subprocess.STDOUT)

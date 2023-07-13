@@ -17,6 +17,7 @@ use std::sync::mpsc::Receiver;
 use time;
 use webrender;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 use webrender::{DebugFlags, RenderResults, ShaderPrecacheFlags};
 use crate::{WindowWrapper, NotifierEvent};
@@ -95,7 +96,7 @@ impl RenderNotifier for Notifier {
         Box::new(Notifier(self.0.clone()))
     }
 
-    fn wake_up(&self) {
+    fn wake_up(&self, _composite_needed: bool) {
         self.update(false);
     }
 
@@ -229,7 +230,6 @@ impl Wrench {
         size: DeviceIntSize,
         do_rebuild: bool,
         no_subpixel_aa: bool,
-        no_picture_caching: bool,
         verbose: bool,
         no_scissor: bool,
         no_batch: bool,
@@ -263,12 +263,14 @@ impl Wrench {
             precache_flags,
             blob_image_handler: Some(Box::new(blob::CheckerboardRenderer::new(callbacks.clone()))),
             chase_primitive,
-            enable_picture_caching: !no_picture_caching,
             testing: true,
-            max_texture_size: Some(8196), // Needed for rawtest::test_resize_image.
+            max_internal_texture_size: Some(8196), // Needed for rawtest::test_resize_image.
             allow_dual_source_blending: !disable_dual_source_blending,
-            allow_advanced_blend_equation: true,
+            allow_advanced_blend_equation: window.is_software(),
             dump_shader_source,
+            // SWGL doesn't support the GL_ALWAYS depth comparison function used by
+            // `clear_caches_with_quads`, but scissored clears work well.
+            clear_caches_with_quads: !window.is_software(),
             ..Default::default()
         };
 
@@ -289,11 +291,10 @@ impl Wrench {
             notifier,
             opts,
             None,
-            size,
         ).unwrap();
 
         let api = sender.create_api();
-        let document_id = api.add_document(size, 0);
+        let document_id = api.add_document(size);
 
         let graphics_api = renderer.get_graphics_api_info();
         let zoom_factor = ZoomFactor::new(zoom_factor);
@@ -585,7 +586,7 @@ impl Wrench {
     pub fn send_lists(
         &mut self,
         frame_number: u32,
-        display_lists: Vec<(PipelineId, LayoutSize, BuiltDisplayList)>,
+        display_lists: Vec<(PipelineId, BuiltDisplayList)>,
         scroll_offsets: &HashMap<ExternalScrollId, LayoutPoint>,
     ) {
         let root_background_color = Some(ColorF::new(1.0, 1.0, 1.0, 1.0));
@@ -605,7 +606,7 @@ impl Wrench {
             txn.scroll_node_with_id(*offset, *id, ScrollClamping::NoClamping);
         }
 
-        txn.generate_frame();
+        txn.generate_frame(0);
         self.api.send_transaction(self.document_id, txn);
     }
 
@@ -619,14 +620,14 @@ impl Wrench {
         self.renderer.update();
         let _ = self.renderer.flush_pipeline_info();
         self.renderer
-            .render(self.window_size)
+            .render(self.window_size, 0)
             .expect("errors encountered during render!")
     }
 
     pub fn refresh(&mut self) {
         self.begin_frame();
         let mut txn = Transaction::new();
-        txn.generate_frame();
+        txn.generate_frame(0);
         self.api.send_transaction(self.document_id, txn);
     }
 

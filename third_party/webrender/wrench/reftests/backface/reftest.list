@@ -5,3 +5,5 @@
 == backface-picture.yaml backface-picture-ref.yaml
 == backface-double-flip.yaml blank.yaml
 == backface-both-sides.yaml backface-both-sides-ref.yaml
+== backface-vis-3d.yaml blank.yaml
+== backface-flatten.yaml blank.yaml

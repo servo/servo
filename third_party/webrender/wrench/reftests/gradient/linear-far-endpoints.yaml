@@ -1,0 +1,10 @@
+# Axis-aligned linear gradient with very far endpoints. It goes through the gradient
+# decomposition path which should not choke on overflow or casting failure.
+---
+root:
+  items:
+    - type: gradient
+      bounds: 50 50 500 500
+      start: -19958788096 0
+      end: 19958788096 0
+      stops: [0.0, red, 1.0, blue]

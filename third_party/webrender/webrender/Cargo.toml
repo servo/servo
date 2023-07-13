@@ -12,30 +12,28 @@ edition = "2018"
 default = ["freetype-lib"]
 freetype-lib = ["freetype/freetype-sys"]
 profiler = ["tracy-rs/enable_profiler"]
-debugger = ["ws", "serde_json", "serde", "image_loader", "base64"]
-capture = ["api/serialize", "ron", "serde", "smallvec/serde"]
-replay = ["api/deserialize", "ron", "serde", "smallvec/serde"]
+capture = ["api/serialize", "ron", "serde", "smallvec/serde", "etagere/serialization"]
+replay = ["api/deserialize", "ron", "serde", "smallvec/serde", "etagere/serialization"]
 display_list_stats = ["api/display_list_stats"]
 serialize_program = ["serde", "webrender_build/serialize_program"]
 no_static_freetype = []
 leak_checks = []
+gecko = []
+sw_compositor = ["swgl"]
 
 [build-dependencies]
-build-parallel = "0.1.1"
-glslopt = "0.1.2"
+build-parallel = "0.1.2"
+glslopt = "0.1.9"
 webrender_build = { version = "0.0.1", path = "../webrender_build" }
 
 [dependencies]
-base64 = { optional = true, version = "0.10" }
 bincode = "1.0"
 bitflags = "1.2"
 byteorder = "1.0"
-cfg-if = "0.1.2"
-cstr = "0.1.2"
+cstr = "0.2"
 euclid = { version = "0.22.0", features = ["serde"] }
 fxhash = "0.2.1"
-gleam = "0.12.1"
-image_loader = { optional = true, version = "0.23", package = "image", default-features = false, features = ["png"] }
+gleam = "0.13.1"
 lazy_static = "1"
 log = "0.4"
 malloc_size_of_derive = "0.1"
@@ -43,26 +41,22 @@ num-traits = "0.2"
 plane-split = "0.17"
 png = { optional = true, version = "0.16" }
 rayon = "1"
-ron = { optional = true, version = "0.5" }
+ron = { optional = true, version = "0.6.2" }
 serde = { optional = true, version = "1.0", features = ["serde_derive"] }
-serde_json = { optional = true, version = "1.0" }
 smallvec = "1"
 time = "0.1"
 api = { version = "0.61.0", path = "../webrender_api", package = "webrender_api" }
 webrender_build = { version = "0.0.1", path = "../webrender_build" }
 malloc_size_of = { version = "0.0.1", path = "../wr_malloc_size_of", package = "wr_malloc_size_of" }
-ws = { optional = true, version = "0.9" }
 svg_fmt = "0.4"
-tracy-rs = { version = "0.1" }
+tracy-rs = "0.1.2"
+derive_more = "0.99"
+etagere = "0.2.4"
+swgl = { path = "../swgl", optional = true }
 
 [dev-dependencies]
-mozangle = "0.3.1"
+mozangle = "0.3.3"
 rand = "0.4"
-
-[target.'cfg(any(target_os = "macos", target_os = "linux"))'.build-dependencies]
-backtrace = "0.3"
-sig = "1.0"
-libc = "0.2"
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 freetype = { version = "0.7", default-features = false }
@@ -75,3 +69,4 @@ dwrote = "0.11"
 core-foundation = "0.9"
 core-graphics = "0.22"
 core-text = { version = "19", default-features = false }
+objc = "0.2"

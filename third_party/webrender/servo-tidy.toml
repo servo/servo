@@ -6,18 +6,17 @@ check-alphabetical-order = false
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
+    "cfg-if",
     "core-foundation",
     "core-foundation-sys",
     "core-graphics",
     "gl_generator",
     "gleam",
-    "rand",
     "rand_core",
     # https://github.com/trimental/andrew/issues/5
     "rusttype",
     # https://bugzilla.mozilla.org/show_bug.cgi?id=1615148
     "smallvec",
-    "winapi",
     "yaml-rust",
     # These are tracked in bug 1587468, see there for pending work.
     "proc-macro2",

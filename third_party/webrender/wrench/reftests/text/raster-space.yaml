@@ -4,6 +4,7 @@ root:
       transform: scale(5.0) rotate(-45)
       transform-origin: 300 300
       raster-space: local(1.0)
+      filters: [opacity(0.5)]
       items:
       - text: "Local"
         origin: 20 50

@@ -11,14 +11,15 @@
 #ifdef WR_VERTEX_SHADER
 
 #ifdef WR_FEATURE_TEXTURE_RECT
-    #define TEX_SIZE(sampler) vec2(1.0)
+    #define TEX_SIZE_YUV(sampler) vec2(1.0)
 #else
-    #define TEX_SIZE(sampler) vec2(textureSize(sampler, 0).xy)
+    #define TEX_SIZE_YUV(sampler) vec2(TEX_SIZE(sampler).xy)
 #endif
 
 #define YUV_COLOR_SPACE_REC601      0
 #define YUV_COLOR_SPACE_REC709      1
 #define YUV_COLOR_SPACE_REC2020     2
+#define YUV_COLOR_SPACE_IDENTITY    3
 
 // The constants added to the Y, U and V components are applied in the fragment shader.
 
@@ -64,14 +65,31 @@ const mat3 YuvColorMatrixRec2020 = mat3(
     1.67867410714286 , -0.650424318505057,  0.0
 );
 
+// The matrix is stored in column-major.
+// Identity is stored as GBR
+const mat3 IdentityColorMatrix = mat3(
+    0.0              ,  1.0,                0.0,
+    0.0              ,  0.0,                1.0,
+    1.0              ,  0.0,                0.0
+);
+
 mat3 get_yuv_color_matrix(int color_space) {
-    switch (color_space) {
-        case YUV_COLOR_SPACE_REC601:
-            return YuvColorMatrixRec601;
-        case YUV_COLOR_SPACE_REC709:
-            return YuvColorMatrixRec709;
-        default:
-            return YuvColorMatrixRec2020;
+    if (color_space == YUV_COLOR_SPACE_REC601) {
+        return YuvColorMatrixRec601;
+    } else if (color_space == YUV_COLOR_SPACE_REC709) {
+        return YuvColorMatrixRec709;
+    } else if (color_space == YUV_COLOR_SPACE_IDENTITY) {
+        return IdentityColorMatrix;
+    } else {
+        return YuvColorMatrixRec2020;
+    }
+}
+
+vec3 get_yuv_offset_vector(int color_space) {
+    if (color_space == YUV_COLOR_SPACE_IDENTITY) {
+        return vec3(0.0, 0.0, 0.0);
+    } else {
+        return vec3(0.06275, 0.50196, 0.50196);
     }
 }
 
@@ -99,8 +117,8 @@ void write_uv_rect(
 vec4 sample_yuv(
     int format,
     mat3 yuv_color_matrix,
+    vec3 yuv_offset_vector,
     float coefficient,
-    vec3 yuv_layers,
     vec2 in_uv_y,
     vec2 in_uv_u,
     vec2 in_uv_v,
@@ -117,9 +135,9 @@ vec4 sample_yuv(
                 vec2 uv_y = clamp(in_uv_y, uv_bounds_y.xy, uv_bounds_y.zw);
                 vec2 uv_u = clamp(in_uv_u, uv_bounds_u.xy, uv_bounds_u.zw);
                 vec2 uv_v = clamp(in_uv_v, uv_bounds_v.xy, uv_bounds_v.zw);
-                yuv_value.x = TEX_SAMPLE(sColor0, vec3(uv_y, yuv_layers.x)).r;
-                yuv_value.y = TEX_SAMPLE(sColor1, vec3(uv_u, yuv_layers.y)).r;
-                yuv_value.z = TEX_SAMPLE(sColor2, vec3(uv_v, yuv_layers.z)).r;
+                yuv_value.x = TEX_SAMPLE(sColor0, uv_y).r;
+                yuv_value.y = TEX_SAMPLE(sColor1, uv_u).r;
+                yuv_value.z = TEX_SAMPLE(sColor2, uv_v).r;
             }
             break;
 
@@ -127,8 +145,8 @@ vec4 sample_yuv(
             {
                 vec2 uv_y = clamp(in_uv_y, uv_bounds_y.xy, uv_bounds_y.zw);
                 vec2 uv_uv = clamp(in_uv_u, uv_bounds_u.xy, uv_bounds_u.zw);
-                yuv_value.x = TEX_SAMPLE(sColor0, vec3(uv_y, yuv_layers.x)).r;
-                yuv_value.yz = TEX_SAMPLE(sColor1, vec3(uv_uv, yuv_layers.y)).rg;
+                yuv_value.x = TEX_SAMPLE(sColor0, uv_y).r;
+                yuv_value.yz = TEX_SAMPLE(sColor1, uv_uv).rg;
             }
             break;
 
@@ -138,7 +156,7 @@ vec4 sample_yuv(
                 // the existing green, blue and red color channels."
                 // https://www.khronos.org/registry/OpenGL/extensions/APPLE/APPLE_rgb_422.txt
                 vec2 uv_y = clamp(in_uv_y, uv_bounds_y.xy, uv_bounds_y.zw);
-                yuv_value = TEX_SAMPLE(sColor0, vec3(uv_y, yuv_layers.x)).gbr;
+                yuv_value = TEX_SAMPLE(sColor0, uv_y).gbr;
             }
             break;
 
@@ -148,7 +166,13 @@ vec4 sample_yuv(
     }
 
     // See the YuvColorMatrix definition for an explanation of where the constants come from.
-    vec3 rgb = yuv_color_matrix * (yuv_value * coefficient - vec3(0.06275, 0.50196, 0.50196));
+    vec3 yuv = yuv_value * coefficient - yuv_offset_vector;
+    vec3 rgb = yuv_color_matrix * yuv;
+    #if defined(WR_FEATURE_ALPHA_PASS) && defined(SWGL_CLIP_MASK)
+        // Avoid out-of-range RGB values that can mess with blending. These occur due to invalid
+        // YUV values outside the mappable space that never the less can be generated.
+        rgb = clamp(rgb, 0.0, 1.0);
+    #endif
     vec4 color = vec4(rgb, 1.0);
 
     return color;

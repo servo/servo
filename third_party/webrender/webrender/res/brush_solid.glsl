@@ -2,19 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#define VECS_PER_SOLID_BRUSH 1
-#define VECS_PER_SPECIFIC_BRUSH VECS_PER_SOLID_BRUSH
-
-#define WR_BRUSH_VS_FUNCTION solid_brush_vs
-#define WR_BRUSH_FS_FUNCTION solid_brush_fs
+#define VECS_PER_SPECIFIC_BRUSH 1
 
 #include shared,prim_shared,brush
 
-#define V_COLOR             flat_varying_vec4_0
-
-#ifdef WR_FEATURE_ALPHA_PASS
-#define V_LOCAL_POS         varying_vec4_0.xy
-#endif
+flat varying vec4 v_color;
 
 #ifdef WR_VERTEX_SHADER
 
@@ -27,7 +19,7 @@ SolidBrush fetch_solid_primitive(int address) {
     return SolidBrush(data);
 }
 
-void solid_brush_vs(
+void brush_vs(
     VertexInfo vi,
     int prim_address,
     RectWithSize local_rect,
@@ -42,24 +34,27 @@ void solid_brush_vs(
     SolidBrush prim = fetch_solid_primitive(prim_address);
 
     float opacity = float(prim_user_data.x) / 65535.0;
-    V_COLOR = prim.color * opacity;
-
-#ifdef WR_FEATURE_ALPHA_PASS
-    V_LOCAL_POS = vi.local_pos;
-#endif
+    v_color = prim.color * opacity;
 }
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
-Fragment solid_brush_fs() {
-    vec4 color = V_COLOR;
+Fragment brush_fs() {
+    vec4 color = v_color;
 #ifdef WR_FEATURE_ALPHA_PASS
-    color *= init_transform_fs(V_LOCAL_POS);
+    color *= antialias_brush();
 #endif
     return Fragment(color);
 }
+
+#if defined(SWGL_DRAW_SPAN) && (!defined(WR_FEATURE_ALPHA_PASS) || !defined(WR_FEATURE_DUAL_SOURCE_BLENDING))
+void swgl_drawSpanRGBA8() {
+    swgl_commitSolidRGBA8(v_color);
+}
+
+void swgl_drawSpanR8() {
+    swgl_commitSolidR8(v_color.x);
+}
 #endif
 
-// Undef macro names that could be re-defined by other shaders.
-#undef V_COLOR
-#undef V_LOCAL_POS
+#endif

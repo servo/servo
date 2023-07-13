@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use mozangle;
-use webrender;
-use webrender_build;
+extern crate mozangle;
+extern crate webrender;
+extern crate webrender_build;
 
 use mozangle::shaders::{BuiltInResources, Output, ShaderSpec, ShaderValidator};
 use webrender_build::shader::{ShaderFeatureFlags, ShaderVersion, build_shader_strings, get_shader_features};
@@ -35,8 +35,9 @@ fn validate_shaders() {
                 &|f| webrender::get_unoptimized_shader_source(f, None)
             );
 
-            validate(&vs_validator, shader, vs);
-            validate(&fs_validator, shader, fs);
+            let full_shader_name = format!("{} {}", shader, config);
+            validate(&vs_validator, &full_shader_name, vs);
+            validate(&fs_validator, &full_shader_name, fs);
         }
     }
 }
@@ -49,6 +50,18 @@ fn validate(validator: &ShaderValidator, name: &str, source: String) {
     // Run Angle validator
     match validator.compile_and_translate(&[&source]) {
         Ok(_) => {
+            // Ensure that the shader uses at most 16 varying vectors. This counts the number of
+            // vectors assuming that the driver does not perform additional packing. The spec states
+            // that the driver should pack varyings, however, on some Adreno 3xx devices we have
+            // observed that this is not the case. See bug 1695912.
+            let varying_vectors = validator.get_num_unpacked_varying_vectors();
+            let max_varying_vectors = 16;
+            assert!(
+                varying_vectors <= max_varying_vectors,
+                "Shader {} uses {} varying vectors. Max allowed {}",
+                name, varying_vectors, max_varying_vectors
+            );
+
             println!("Shader translated succesfully: {}", name);
         }
         Err(_) => {

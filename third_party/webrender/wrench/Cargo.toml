@@ -7,30 +7,25 @@ license = "MPL-2.0"
 edition = "2018"
 
 [dependencies]
-base64 = "0.10"
-bincode = "1.0"
-byteorder = "1.0"
+base64 = "0.12"
 env_logger = { version = "0.5", optional = true }
-euclid = "0.22"
-gleam = "0.12"
+gleam = "0.13"
 glutin = "0.21"
-app_units = "0.7"
 clap = { version = "2", features = ["yaml"] }
 log = "0.4"
 yaml-rust = "0.4"
 serde_json = "1.0"
-ron = "0.5"
 time = "0.1"
 chrono = "0.2"
 crossbeam = "0.2"
 osmesa-sys = { version = "0.1.2", optional = true }
-osmesa-src = { git = "https://github.com/servo/osmesa-src", optional = true }
-webrender = {path = "../webrender", features=["capture","replay","debugger","png","profiler","no_static_freetype", "leak_checks"]}
-webrender_api = {path = "../webrender_api", features=["serialize","deserialize"]}
+osmesa-src = { version = "0.2", git = "https://github.com/servo/osmesa-src", optional = true }
+webrender = { path = "../webrender", features = ["capture", "replay", "png", "profiler", "no_static_freetype", "leak_checks"] }
 winit = "0.19"
-serde = {version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
 semver = "0.9.0"
 swgl = { path = "../swgl", optional = true }
+tracy-rs = "0.1.2"
 
 [dependencies.image]
 version = "0.23"
@@ -48,7 +43,7 @@ software = [ "swgl" ]
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.11"
-mozangle = {version = "0.3.1", features = ["egl"]}
+mozangle = { version = "0.3.2", features = ["egl"] }
 
 [target.'cfg(all(unix, not(target_os = "android")))'.dependencies]
 font-loader = "0.11"
@@ -57,7 +52,8 @@ font-loader = "0.11"
 [package.metadata.android]
 package_name = "org.mozilla.wrench"
 label = "Wrench"
-android_version = 29
+# keep it in sync with android-sdk-version in android-sdk.configure
+android_version = 30
 target_sdk_version = 18
 min_sdk_version = 18
 fullscreen = true

@@ -6,12 +6,12 @@
 use api::{ExternalScrollId, PipelineId, PropertyBinding, PropertyBindingId, ReferenceFrameKind, ScrollClamping, ScrollLocation};
 use api::{TransformStyle, ScrollSensitivity, StickyOffsetBounds};
 use api::units::*;
-use crate::spatial_tree::{CoordinateSystem, CoordinateSystemId, SpatialNodeIndex, TransformUpdateState};
+use crate::spatial_tree::{CoordinateSystem, SpatialNodeIndex, TransformUpdateState};
+use crate::spatial_tree::{CoordinateSystemId, StaticCoordinateSystemId};
 use euclid::{Point2D, Vector2D, SideOffsets2D};
 use crate::scene::SceneProperties;
 use crate::util::{LayoutFastTransform, MatrixHelpers, ScaleOffset, TransformedRectKind, PointHelpers};
 
-#[derive(Clone, Debug)]
 pub enum SpatialNodeType {
     /// A special kind of node that adjusts its position based on the position
     /// of its parent node and a given set of sticky positioning offset bounds.
@@ -28,7 +28,6 @@ pub enum SpatialNodeType {
 }
 
 /// Contains information common among all types of SpatialTree nodes.
-#[derive(Clone, Debug)]
 pub struct SpatialNode {
     /// The scale/offset of the viewport for this spatial node, relative to the
     /// coordinate system. Includes any accumulated scrolling offsets from nodes
@@ -44,6 +43,10 @@ pub struct SpatialNode {
 
     /// The axis-aligned coordinate system id of this node.
     pub coordinate_system_id: CoordinateSystemId,
+
+    /// Coordinate system statically assigned during scene building (doesn't change regardless of
+    /// the current property binding value during frame building).
+    pub static_coordinate_system_id: StaticCoordinateSystemId,
 
     /// The current transform kind of this node.
     pub transform_kind: TransformedRectKind,
@@ -89,7 +92,7 @@ fn compute_offset_from(
                 break;
             },
             SpatialNodeType::ScrollFrame(ref info) => {
-                if info.external_id == Some(external_id) {
+                if info.external_id == external_id {
                     break;
                 }
 
@@ -132,12 +135,14 @@ impl SpatialNode {
         pipeline_id: PipelineId,
         parent_index: Option<SpatialNodeIndex>,
         node_type: SpatialNodeType,
+        static_coordinate_system_id: StaticCoordinateSystemId,
     ) -> Self {
         SpatialNode {
             viewport_transform: ScaleOffset::identity(),
             content_transform: ScaleOffset::identity(),
             snapping_transform: None,
             coordinate_system_id: CoordinateSystemId(0),
+            static_coordinate_system_id,
             transform_kind: TransformedRectKind::AxisAligned,
             parent: parent_index,
             children: Vec::new(),
@@ -152,12 +157,13 @@ impl SpatialNode {
     pub fn new_scroll_frame(
         pipeline_id: PipelineId,
         parent_index: SpatialNodeIndex,
-        external_id: Option<ExternalScrollId>,
+        external_id: ExternalScrollId,
         frame_rect: &LayoutRect,
         content_size: &LayoutSize,
         scroll_sensitivity: ScrollSensitivity,
         frame_kind: ScrollFrameKind,
         external_scroll_offset: LayoutVector2D,
+        static_coordinate_system_id: StaticCoordinateSystemId,
     ) -> Self {
         let node_type = SpatialNodeType::ScrollFrame(ScrollFrameInfo::new(
                 *frame_rect,
@@ -172,7 +178,12 @@ impl SpatialNode {
             )
         );
 
-        Self::new(pipeline_id, Some(parent_index), node_type)
+        Self::new(
+            pipeline_id,
+            Some(parent_index),
+            node_type,
+            static_coordinate_system_id,
+        )
     }
 
     pub fn new_reference_frame(
@@ -182,6 +193,7 @@ impl SpatialNode {
         kind: ReferenceFrameKind,
         origin_in_parent_reference_frame: LayoutVector2D,
         pipeline_id: PipelineId,
+        static_coordinate_system_id: StaticCoordinateSystemId,
     ) -> Self {
         let info = ReferenceFrameInfo {
             transform_style,
@@ -190,15 +202,26 @@ impl SpatialNode {
             origin_in_parent_reference_frame,
             invertible: true,
         };
-        Self::new(pipeline_id, parent_index, SpatialNodeType::ReferenceFrame(info))
+        Self::new(
+            pipeline_id,
+            parent_index,
+            SpatialNodeType::ReferenceFrame(info),
+            static_coordinate_system_id,
+        )
     }
 
     pub fn new_sticky_frame(
         parent_index: SpatialNodeIndex,
         sticky_frame_info: StickyFrameInfo,
         pipeline_id: PipelineId,
+        static_coordinate_system_id: StaticCoordinateSystemId,
     ) -> Self {
-        Self::new(pipeline_id, Some(parent_index), SpatialNodeType::StickyFrame(sticky_frame_info))
+        Self::new(
+            pipeline_id,
+            Some(parent_index),
+            SpatialNodeType::StickyFrame(sticky_frame_info),
+            static_coordinate_system_id,
+        )
     }
 
     pub fn add_child(&mut self, child: SpatialNodeIndex) {
@@ -319,9 +342,14 @@ impl SpatialNode {
 
                 if info.invertible {
                     // Resolve the transform against any property bindings.
-                    let source_transform = LayoutFastTransform::from(
-                        scene_properties.resolve_layout_transform(&info.source_transform)
-                    );
+                    let source_transform = {
+                        let source_transform = scene_properties.resolve_layout_transform(&info.source_transform);
+                        if let ReferenceFrameKind::Transform { is_2d_scale_translation: true, .. } = info.kind {
+                            assert!(source_transform.is_2d_scale_translation(), "Reference frame was marked as only having 2d scale or translation");
+                        }
+
+                        LayoutFastTransform::from(source_transform)
+                    };
 
                     // Do a change-basis operation on the perspective matrix using
                     // the scroll offset.
@@ -340,7 +368,7 @@ impl SpatialNode {
                                 .then_translate(-scroll_offset)
                         }
                         ReferenceFrameKind::Perspective { scrolling_relative_to: None } |
-                        ReferenceFrameKind::Transform | ReferenceFrameKind::Zoom => source_transform,
+                        ReferenceFrameKind::Transform { .. } => source_transform,
                     };
 
                     let resolved_transform =
@@ -370,10 +398,9 @@ impl SpatialNode {
                             Some(ref scale_offset) => {
                                 // We generally do not want to snap animated transforms as it causes jitter.
                                 // However, we do want to snap the visual viewport offset when scrolling.
-                                // Therefore only snap the transform for Zoom reference frames. This may still
-                                // cause jitter when zooming, unfortunately.
+                                // This may still cause jitter when zooming, unfortunately.
                                 let mut maybe_snapped = scale_offset.clone();
-                                if info.kind == ReferenceFrameKind::Zoom {
+                                if let ReferenceFrameKind::Transform { should_snap: true, .. } = info.kind {
                                     maybe_snapped.offset = snap_offset(
                                         scale_offset.offset,
                                         state.coordinate_system_relative_scale_offset.scale,
@@ -408,7 +435,7 @@ impl SpatialNode {
                                 transform,
                                 world_transform,
                                 should_flatten: match (info.transform_style, info.kind) {
-                                    (TransformStyle::Flat, ReferenceFrameKind::Transform) => true,
+                                    (TransformStyle::Flat, ReferenceFrameKind::Transform { .. }) => true,
                                     (_, _) => false,
                                 },
                                 parent: Some(state.current_coordinate_system_id),
@@ -673,7 +700,7 @@ impl SpatialNode {
 
     pub fn matches_external_id(&self, external_id: ExternalScrollId) -> bool {
         match self.node_type {
-            SpatialNodeType::ScrollFrame(info) if info.external_id == Some(external_id) => true,
+            SpatialNodeType::ScrollFrame(info) if info.external_id == external_id => true,
             _ => false,
         }
     }
@@ -750,7 +777,9 @@ impl SpatialNode {
 /// or an explicitly defined scroll frame from the display list.
 #[derive(Copy, Clone, Debug)]
 pub enum ScrollFrameKind {
-    PipelineRoot,
+    PipelineRoot {
+        is_root_pipeline: bool,
+    },
     Explicit,
 }
 
@@ -768,7 +797,7 @@ pub struct ScrollFrameInfo {
     /// An external id to identify this scroll frame to API clients. This
     /// allows setting scroll positions via the API without relying on ClipsIds
     /// which may change between frames.
-    pub external_id: Option<ExternalScrollId>,
+    pub external_id: ExternalScrollId,
 
     /// Stores whether this is a scroll frame added implicitly by WR when adding
     /// a pipeline (either the root or an iframe). We need to exclude these
@@ -783,7 +812,14 @@ pub struct ScrollFrameInfo {
     /// pre-scrolled in their local coordinates.
     pub external_scroll_offset: LayoutVector2D,
 
-    /// The current offset of this scroll node.
+    /// The negated scroll offset of this scroll node. including the
+    /// pre-scrolled amount. If, for example, a scroll node was pre-scrolled
+    /// to y=10 (10 pixels down from the initial unscrolled position), then
+    /// `external_scroll_offset` would be (0,10), and this `offset` field would
+    /// be (0,-10). If WebRender is then asked to change the scroll position by
+    /// an additional 10 pixels (without changing the pre-scroll amount in the
+    /// display list), `external_scroll_offset` would remain at (0,10) and
+    /// `offset` would change to (0,-20).
     pub offset: LayoutVector2D,
 }
 
@@ -793,7 +829,7 @@ impl ScrollFrameInfo {
         viewport_rect: LayoutRect,
         scroll_sensitivity: ScrollSensitivity,
         scrollable_size: LayoutSize,
-        external_id: Option<ExternalScrollId>,
+        external_id: ExternalScrollId,
         frame_kind: ScrollFrameKind,
         external_scroll_offset: LayoutVector2D,
     ) -> ScrollFrameInfo {
@@ -819,14 +855,9 @@ impl ScrollFrameInfo {
         self,
         old_scroll_info: &ScrollFrameInfo
     ) -> ScrollFrameInfo {
-        let offset =
-            old_scroll_info.offset +
-            self.external_scroll_offset -
-            old_scroll_info.external_scroll_offset;
-
         ScrollFrameInfo {
             viewport_rect: self.viewport_rect,
-            offset,
+            offset: old_scroll_info.offset,
             scroll_sensitivity: self.scroll_sensitivity,
             scrollable_size: self.scrollable_size,
             external_id: self.external_id,
@@ -908,14 +939,17 @@ fn test_cst_perspective_relative_scroll() {
         None,
         TransformStyle::Flat,
         PropertyBinding::Value(LayoutTransform::identity()),
-        ReferenceFrameKind::Transform,
+        ReferenceFrameKind::Transform {
+            is_2d_scale_translation: false,
+            should_snap: false,
+        },
         LayoutVector2D::zero(),
         pipeline_id,
     );
 
     let scroll_frame_1 = cst.add_scroll_frame(
         root,
-        Some(ext_scroll_id),
+        ext_scroll_id,
         pipeline_id,
         &LayoutRect::new(LayoutPoint::zero(), LayoutSize::new(100.0, 100.0)),
         &LayoutSize::new(100.0, 500.0),
@@ -926,7 +960,7 @@ fn test_cst_perspective_relative_scroll() {
 
     let scroll_frame_2 = cst.add_scroll_frame(
         scroll_frame_1,
-        None,
+        ExternalScrollId(2, pipeline_id),
         pipeline_id,
         &LayoutRect::new(LayoutPoint::zero(), LayoutSize::new(100.0, 100.0)),
         &LayoutSize::new(100.0, 500.0),

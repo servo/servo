@@ -26,6 +26,7 @@ serde_bytes = "0.11"
 time = "0.1"
 malloc_size_of = { version = "0.0.1", path = "../wr_malloc_size_of", package = "wr_malloc_size_of" }
 peek-poke = { version = "0.2", path = "../peek-poke", features = ["extras"] }
+crossbeam-channel = "0.5"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.9"

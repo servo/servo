@@ -1,0 +1,27 @@
+# Verify that a tiled clip mask is correctly applied to a surface that
+# is both a raster root and has a device-pixel ratio different than the
+# primary surface (due to the scale transform).
+---
+root:
+  items:
+    - type: stacking-context
+      transform-origin: [0, 0]
+      transform: scale(20)
+      items:
+        - type: clip
+          bounds: [10, 10, 10, 10]
+          id: 2
+          image-mask:
+            image: "circle.png"
+            rect: [10, 10, 10, 10]
+            repeat: false
+            tile-size: 200
+        - type: stacking-context
+          filters: [opacity(0.5)]
+          items:
+            - type: stacking-context
+              clip-node: 2
+              items:
+                - type: rect
+                  bounds: [10, 10, 10, 10]
+                  color: blue

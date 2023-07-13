@@ -113,6 +113,20 @@ pub fn ensure_red_zone<T: Poke>(bytes: &mut Vec<u8>) {
     }
 }
 
+/// Remove the "red zone" (padding of zeroes) from the end of the vec of `bytes`.
+/// This is effectively the inverse of `ensure_red_zone`, with the caveat that
+/// space reserved for the red zone is not un-reserved. Callers are repsonsible
+/// for making sure the vec actually has a red zone, otherwise data bytes can
+/// get stripped instead.
+pub fn strip_red_zone<T: Poke>(bytes: &mut Vec<u8>) {
+    assert!(bytes.len() >= T::max_size());
+    unsafe {
+        let end_ptr = bytes.as_end_mut_ptr();
+        end_ptr.write_bytes(0, T::max_size());
+        bytes.set_end_ptr(end_ptr.sub(T::max_size()));
+    }
+}
+
 #[inline]
 unsafe fn read_verbatim<T>(src: *const u8, dst: *mut T) -> *const u8 {
     *dst = (src as *const T).read_unaligned();

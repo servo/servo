@@ -93,9 +93,9 @@ vec4 get_node_pos(vec2 pos, Transform transform) {
 
 #ifdef WR_FRAGMENT_SHADER
 
-float signed_distance_rect(vec2 pos, vec2 p0, vec2 p1) {
-    vec2 d = max(p0 - pos, pos - p1);
-    return length(max(vec2(0.0), d)) + min(0.0, max(d.x, d.y));
+// Assume transform bounds are set to a large scale to signal they are invalid.
+bool has_valid_transform_bounds() {
+    return vTransformBounds.w < 1.0e15;
 }
 
 float init_transform_fs(vec2 local_pos) {

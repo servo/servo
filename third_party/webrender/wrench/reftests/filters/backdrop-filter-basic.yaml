@@ -3,6 +3,7 @@
 root:
   items:
     - type: stacking-context
+      backdrop-root: true
       bounds: 0 0 0 0
       items:
       - type: rect

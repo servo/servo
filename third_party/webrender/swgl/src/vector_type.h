@@ -39,6 +39,16 @@ SI VectorType<T, 16> combine(VectorType<T, 8> a, VectorType<T, 8> b) {
 }
 
 template <typename T>
+SI VectorType<T, 2> lowHalf(VectorType<T, 4> a) {
+  return __builtin_shufflevector(a, a, 0, 1);
+}
+
+template <typename T>
+SI VectorType<T, 2> highHalf(VectorType<T, 4> a) {
+  return __builtin_shufflevector(a, a, 2, 3);
+}
+
+template <typename T>
 SI VectorType<T, 4> lowHalf(VectorType<T, 8> a) {
   return __builtin_shufflevector(a, a, 0, 1, 2, 3);
 }
@@ -104,7 +114,7 @@ struct VectorType {
     };
   };
 
-  VectorType() : data{0} { }
+  VectorType() : data{0} {}
 
   constexpr VectorType(const VectorType& rhs) : data(rhs.data) {}
   // GCC vector extensions only support broadcasting scalars on arithmetic ops,
@@ -305,10 +315,27 @@ struct VectorType {
     return VectorType<T, N * 2>::wrap(data, high.data);
   }
 
+#  define xxxx swizzle(0, 0, 0, 0)
+#  define yyyy swizzle(1, 1, 1, 1)
+#  define zzzz swizzle(2, 2, 2, 2)
+#  define wwww swizzle(3, 3, 3, 3)
+#  define xxyy swizzle(0, 0, 1, 1)
+#  define xxzz swizzle(0, 0, 2, 2)
+#  define yyww swizzle(1, 1, 3, 3)
+#  define zzww swizzle(2, 2, 3, 3)
 #  define xyxy swizzle(0, 1, 0, 1)
+#  define xzxz swizzle(0, 2, 0, 2)
+#  define ywyw swizzle(1, 3, 1, 3)
 #  define zwzw swizzle(2, 3, 2, 3)
+#  define zwxy swizzle(2, 3, 0, 1)
 #  define zyxw swizzle(2, 1, 0, 3)
+#  define xxyz swizzle(0, 0, 1, 2)
+#  define xyyz swizzle(0, 1, 1, 2)
 #  define xyzz swizzle(0, 1, 2, 2)
+#  define xzyw swizzle(0, 2, 1, 3)
+#  define yzwx swizzle(1, 2, 3, 0)
+#  define wxyz swizzle(3, 0, 1, 2)
+#  define wzyx swizzle(3, 2, 1, 0)
 #  define xxxxyyyy XXXXYYYY()
   VectorType<T, 8> XXXXYYYY() const {
     return swizzle(0, 0, 0, 0).combine(swizzle(1, 1, 1, 1));
@@ -331,6 +358,10 @@ struct VectorType {
   VectorType<T, 8> XXYYZZWW() const {
     return swizzle(0, 0, 1, 1).combine(swizzle(2, 2, 3, 3));
   }
+#  define xxxxyyyyzzzzwwww XXXXYYYYZZZZWWWW()
+  VectorType<T, 16> XXXXYYYYZZZZWWWW() {
+    return XXXXYYYY().combine(ZZZZWWWW());
+  }
 };
 
 template <typename T>
@@ -343,6 +374,17 @@ struct VectorType<T, 2> {
     };
     T elements[2];
   };
+
+  SI VectorType wrap(const data_type& data) {
+    VectorType v;
+    v.data = data;
+    return v;
+  }
+
+  VectorType operator&(VectorType x) const { return wrap(data & x.data); }
+  VectorType operator&(T x) const { return wrap(data & x); }
+  VectorType operator|(VectorType x) const { return wrap(data | x.data); }
+  VectorType operator|(T x) const { return wrap(data | x); }
 };
 
 #  define CONVERT(vector, type) ((type)(vector))
@@ -368,6 +410,32 @@ SI VectorType<T, N * 2> expand(VectorType<T, N> a) {
   return combine(a, a);
 }
 #endif
+
+template <typename T, int N>
+SI VectorType<T, N * 4> combine(VectorType<T, N> a, VectorType<T, N> b,
+                                VectorType<T, N> c, VectorType<T, N> d) {
+  return combine(combine(a, b), combine(c, d));
+}
+
+template <typename T, int N>
+SI VectorType<T, N> combineLow(VectorType<T, N> a, VectorType<T, N> b) {
+  return combine(lowHalf(a), lowHalf(b));
+}
+
+template <typename T, int N>
+SI VectorType<T, N> combineHigh(VectorType<T, N> a, VectorType<T, N> b) {
+  return combine(highHalf(a), highHalf(b));
+}
+
+template <typename T, int N>
+SI VectorType<T, N * 2> repeat2(VectorType<T, N> a) {
+  return combine(a, a);
+}
+
+template <typename T, int N>
+SI VectorType<T, N * 4> repeat4(VectorType<T, N> a) {
+  return combine(a, a, a, a);
+}
 
 template <typename T>
 SI VectorType<T, 4> zipLow(VectorType<T, 4> a, VectorType<T, 4> b) {
@@ -409,6 +477,23 @@ template <typename T>
 SI VectorType<T, 8> zip2High(VectorType<T, 8> a, VectorType<T, 8> b) {
   return SHUFFLE(a, b, 4, 5, 12, 13, 6, 7, 14, 15);
 }
+
+#ifdef __clang__
+template <typename T>
+SI VectorType<T, 8> zip(VectorType<T, 4> a, VectorType<T, 4> b) {
+  return SHUFFLE(a, b, 0, 4, 1, 5, 2, 6, 3, 7);
+}
+
+template <typename T>
+SI VectorType<T, 16> zip(VectorType<T, 8> a, VectorType<T, 8> b) {
+  return SHUFFLE(a, b, 0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15);
+}
+#else
+template <typename T, int N>
+SI VectorType<T, N * 2> zip(VectorType<T, N> a, VectorType<T, N> b) {
+  return combine(zipLow(a, b), zipHigh(a, b));
+}
+#endif
 
 template <typename T>
 struct Unaligned {
