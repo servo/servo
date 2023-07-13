@@ -83,8 +83,11 @@ impl BlockLevelBox {
         let start_margin = pbm.margin.block_start.auto_is(Length::zero);
         collected_margin.adjoin_assign(&CollapsedMargin::new(start_margin));
 
-        let contents = match self {
-            BlockLevelBox::SameFormattingContextBlock { ref contents, .. } => contents,
+        let child_boxes = match self {
+            BlockLevelBox::SameFormattingContextBlock { ref contents, .. } => match contents {
+                BlockContainer::BlockLevelBoxes(boxes) => boxes,
+                BlockContainer::InlineFormattingContext(_) => return false,
+            },
             _ => return false,
         };
 
@@ -92,44 +95,39 @@ impl BlockLevelBox {
             return false;
         }
 
-        match contents {
-            BlockContainer::BlockLevelBoxes(boxes) => {
-                let min_inline_size = style
-                    .content_min_box_size(containing_block, &pbm)
-                    .auto_is(Length::zero)
-                    .inline;
-                let max_inline_size = style.content_max_box_size(containing_block, &pbm).inline;
-                let inline_size = style
-                    .content_box_size(containing_block, &pbm)
-                    .inline
-                    .auto_is(|| {
-                        let margin_inline_start = pbm.margin.inline_start.auto_is(Length::zero);
-                        let margin_inline_end = pbm.margin.inline_end.auto_is(Length::zero);
-                        containing_block.inline_size -
-                            pbm.padding_border_sums.inline -
-                            margin_inline_start -
-                            margin_inline_end
-                    })
-                    .clamp_between_extremums(min_inline_size, max_inline_size);
+        let min_inline_size = style
+            .content_min_box_size(containing_block, &pbm)
+            .auto_is(Length::zero)
+            .inline;
+        let max_inline_size = style.content_max_box_size(containing_block, &pbm).inline;
+        let inline_size = style
+            .content_box_size(containing_block, &pbm)
+            .inline
+            .auto_is(|| {
+                let margin_inline_start = pbm.margin.inline_start.auto_is(Length::zero);
+                let margin_inline_end = pbm.margin.inline_end.auto_is(Length::zero);
+                containing_block.inline_size -
+                    pbm.padding_border_sums.inline -
+                    margin_inline_start -
+                    margin_inline_end
+            })
+            .clamp_between_extremums(min_inline_size, max_inline_size);
 
-                // The block size is irrelevant here.
-                let block_size = LengthOrAuto::Auto;
+        // The block size is irrelevant here.
+        let block_size = LengthOrAuto::Auto;
 
-                let containing_block_for_children = ContainingBlock {
-                    inline_size,
-                    block_size,
-                    style,
-                };
+        let containing_block_for_children = ContainingBlock {
+            inline_size,
+            block_size,
+            style,
+        };
 
-                if !Self::find_block_margin_collapsing_with_parent_from_slice(
-                    &boxes,
-                    collected_margin,
-                    &containing_block_for_children,
-                ) {
-                    return false;
-                }
-            },
-            BlockContainer::InlineFormattingContext(_) => return false,
+        if !Self::find_block_margin_collapsing_with_parent_from_slice(
+            &child_boxes,
+            collected_margin,
+            &containing_block_for_children,
+        ) {
+            return false;
         }
 
         let block_size_zero =
