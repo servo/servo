@@ -5,6 +5,9 @@
 use crate::{get_trait_def_id, implements_trait, symbols};
 
 use rustc_ast::ast::{AttrKind, Attribute};
+use rustc_ast::token::TokenKind;
+use rustc_ast::tokenstream::TokenTree;
+use rustc_ast::AttrArgs;
 use rustc_driver::plugin::Registry;
 use rustc_error_messages::MultiSpan;
 use rustc_hir::{self as hir};
@@ -16,20 +19,17 @@ use rustc_span::symbol::Symbol;
 declare_lint!(
     TRACE_IN_NO_TRACE,
     Deny,
-    "Warn and report usage of traceable (jsmanaged) objects in NoTrace wrappers"
+    "Warn and report incorect usage of Traceable (jsmanaged) objects in must_not_have_traceable marked wrappers"
 );
-
-const TRACE_IN_NO_TRACE_MSG: &str =
-    "NoTrace wrapper must not have jsmanaged inside. Consider removing the wrapper.";
 
 declare_lint!(
     EMPTY_TRACE_IN_NO_TRACE,
     Warn,
-    "Warn about usage of empty traceable objects in NoTrace wrappers"
+    "Warn about usage of empty Traceable objects in must_not_have_traceable marked wrappers"
 );
 const EMPTY_TRACE_IN_NO_TRACE_MSG: &str =
-    "NoTrace wrapper is not needed for types that implements empty Traceable (like primitive types). \
-    Consider removing the wrapper.";
+    "must_not_have_traceable marked wrapper is not needed for types that implements \
+empty Traceable (like primitive types). Consider removing the wrapper.";
 
 pub fn register(reg: &mut Registry) {
     let symbols = Symbols::new();
@@ -42,7 +42,10 @@ pub fn register(reg: &mut Registry) {
 /// Lint for ensuring safe usage of NoTrace wrappers
 ///
 /// This lint (disable with `-A trace-in-no-trace`/`#[allow(trace_in_no_trace)]`) ensures that
-/// NoTrace wrappers stores only non-jsmanaged types (types that DO NOT implement JSTraceble)
+/// wrappers marked with must_not_have_traceable(i: usize) only stores
+/// non-jsmanaged (DOES NOT implement JSTraceble) type in i-th generic
+///
+/// For example usage look at the tests
 pub(crate) struct NotracePass {
     symbols: Symbols,
 }
@@ -59,19 +62,42 @@ impl LintPass for NotracePass {
     }
 }
 
-fn has_lint_attr(sym: &Symbols, attrs: &[Attribute], name: Symbol) -> bool {
-    attrs.iter().any(|attr| {
-        matches!(
-            &attr.kind,
-            AttrKind::Normal(normal)
-            if normal.item.path.segments.len() == 2 &&
-            normal.item.path.segments[0].ident.name == sym.trace_in_no_trace_lint &&
-            normal.item.path.segments[1].ident.name == name
-        )
-    })
+fn get_must_not_have_traceable(sym: &Symbols, attrs: &[Attribute]) -> Option<usize> {
+    attrs
+        .iter()
+        .find(|attr| {
+            matches!(
+                &attr.kind,
+                AttrKind::Normal(normal)
+                if normal.item.path.segments.len() == 2 &&
+                normal.item.path.segments[0].ident.name == sym.trace_in_no_trace_lint &&
+                normal.item.path.segments[1].ident.name == sym.must_not_have_traceable
+            )
+        })
+        .map(|x| match &x.get_normal_item().args {
+            AttrArgs::Empty => 0,
+            AttrArgs::Delimited(a) => match a
+                .tokens
+                .trees()
+                .next()
+                .expect("Arguments not found for must_not_have_traceable")
+            {
+                TokenTree::Token(tok, _) => match tok.kind {
+                    TokenKind::Literal(lit) => lit.symbol.as_str().parse().unwrap(),
+                    _ => panic!("must_not_have_traceable expected integer literal here"),
+                },
+                TokenTree::Delimited(_, _, _) => {
+                    todo!("must_not_have_traceable does not support multiple notraceable positions")
+                },
+            },
+            _ => {
+                panic!("must_not_have_traceable does not support key-value arguments")
+            },
+        })
 }
 
 fn is_jstraceable<'tcx>(cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {
+    // TODO(sagudev): get_trait_def_id is expensive, use lazy and cache it for whole pass
     if let Some(trait_id) =
         get_trait_def_id(cx, &["script", "dom", "bindings", "trace", "JSTraceable"])
     {
@@ -109,11 +135,10 @@ fn incorrect_no_trace<'tcx, I: Into<MultiSpan> + Copy>(
         };
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
-                let has_attr =
-                    |did, name| has_lint_attr(sym, &cx.tcx.get_attrs_unchecked(did), name);
-                if has_attr(did.did(), sym.must_not_have_traceable) {
-                    // TODO(sagudev): handle partial types like HashMapTracedValues<NoTraceable, Traceable>
-                    let inner = substs.type_at(0);
+                if let Some(pos) =
+                    get_must_not_have_traceable(sym, &cx.tcx.get_attrs_unchecked(did.did()))
+                {
+                    let inner = substs.type_at(pos);
                     if inner.is_primitive_ty() {
                         cx.lint(
                             EMPTY_TRACE_IN_NO_TRACE,
@@ -121,9 +146,14 @@ fn incorrect_no_trace<'tcx, I: Into<MultiSpan> + Copy>(
                             |lint| lint.set_span(span),
                         )
                     } else if is_jstraceable(cx, inner) {
-                        cx.lint(TRACE_IN_NO_TRACE, TRACE_IN_NO_TRACE_MSG, |lint| {
-                            lint.set_span(span)
-                        })
+                        cx.lint(
+                            TRACE_IN_NO_TRACE,
+                            format!(
+                                "must_not_have_traceable marked wrapper must not have \
+jsmanaged inside on {pos}-th position. Consider removing the wrapper."
+                            ),
+                            |lint| lint.set_span(span),
+                        )
                     }
                     false
                 } else {

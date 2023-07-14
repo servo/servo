@@ -113,4 +113,52 @@ pub mod trace_in_no_trace_lint {
     ```
     */
     pub fn works() {}
+
+    /**
+    ```
+    #![allow(deprecated)]
+    #![feature(plugin, register_tool)]
+    #![plugin(script_plugins)]
+    #![register_tool(trace_in_no_trace_lint)]
+
+    use script_plugins_tests::trace_in_no_trace_lint::JSTraceable;
+
+    // second generic argument must not be traceable
+    #[trace_in_no_trace_lint::must_not_have_traceable(1)]
+    struct NoTraceComposable<Traceable, NoTraceable> {
+        t: Traceable,
+        n: NoTraceable,
+    }
+
+    // this is ok u32 is not traceable
+    struct Foo(NoTraceComposable<i32, u32>);
+
+    fn main() {}
+    ```
+    */
+    pub fn composable_ok() {}
+
+    /**
+    ```
+    #![allow(deprecated)]
+    #![feature(plugin, register_tool)]
+    #![plugin(script_plugins)]
+    #![register_tool(trace_in_no_trace_lint)]
+
+    use script_plugins_tests::trace_in_no_trace_lint::JSTraceable;
+
+    // second generic argument must not be traceable
+    #[trace_in_no_trace_lint::must_not_have_traceable(1)]
+    struct NoTraceComposable<Traceable, NoTraceable> {
+        t: Traceable,
+        n: NoTraceable,
+    }
+
+    // this is not ok i32 is traceable
+    struct Foo(NoTraceComposable<u32, i32>);
+
+    fn main() {}
+    ```
+    */
+    pub fn composable_works() {}
 }
