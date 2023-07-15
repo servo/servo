@@ -41,10 +41,10 @@ jobs:
           wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
           sudo apt install ./libffi6_3.2.1-8_amd64.deb
           python3 ./mach bootstrap-gstreamer
-      - name: Fetch upstream changes before testing
+      - name: Sync from upstream WPT
         if: ${{ inputs.wpt == 'sync' }}
         run: |
-          ./etc/ci/update-wpt-checkout fetch-upstream-changes
+          ./mach update-wpt --sync --patch
       - name: Run tests
         if: ${{ inputs.wpt != 'sync' }}
         run: |
