@@ -83,6 +83,15 @@ test_computed_value("offset-path", "ellipse(farthest-side 4% at bottom left)", "
 test_computed_value("offset-path", "polygon(1% 2%)");
 test_computed_value("offset-path", "polygon(1px 2px, 3% 4%)");
 
+// All <basic-shape-rect> functions compute to the equivalent inset() function.
+// https://drafts.csswg.org/css-shapes-1/#basic-shape-computed-values
+// https://github.com/w3c/csswg-drafts/issues/9053
+test_computed_value("offset-path", "xywh(0 1% 2px 3em)", "inset(1% calc(100% - 2px) calc(99% - 48px) 0px)");
+test_computed_value("offset-path", "xywh(0px 1% 2px 3em round 0)", "inset(1% calc(100% - 2px) calc(99% - 48px) 0px)");
+test_computed_value("offset-path", "xywh(0px 1% 2px 3em round 0 1px)", "inset(1% calc(100% - 2px) calc(99% - 48px) 0px round 0px 1px)");
+test_computed_value("offset-path", "xywh(0px 1% 2px 3% round 0px 1px 2em)", "inset(1% calc(100% - 2px) 96% 0px round 0px 1px 32px)");
+test_computed_value("offset-path", "xywh(0px 1% 2px 3% round 0px 1px 2% 3px)", "inset(1% calc(100% - 2px) 96% 0px round 0px 1px 2% 3px)");
+
 test_computed_value("offset-path", "content-box");
 test_computed_value("offset-path", "border-box");
 test_computed_value("offset-path", "view-box");

@@ -168,3 +168,169 @@ test((t) => {
   assert_equals(getComputedStyle(div).zIndex, '2');
 }, 'Nesting-selector within :scope rule (double nested)');
 </script>
+
+<template id=test_scope_within_style_rule>
+  <div>
+    <style>
+      .a {
+        @scope (.b) {
+          .c { z-index: 1; }
+        }
+      }
+    </style>
+    <div class=a>
+      <div class=b>
+        <div class=c>
+        </div>
+      </div>
+      <div id=out_of_scope class=c>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_scope_within_style_rule.content.cloneNode(true));
+
+  let c = document.querySelector('.c');
+  assert_equals(getComputedStyle(c).zIndex, '1');
+  assert_equals(getComputedStyle(out_of_scope).zIndex, 'auto');
+}, '@scope nested within style rule');
+</script>
+
+<template id=test_parent_pseudo_in_nested_scope_start>
+  <div>
+    <style>
+      .a {
+        @scope (&.b) {
+          :scope { z-index: 1; }
+        }
+      }
+    </style>
+    <div class=a></div>
+    <div class=b></div>
+    <div class="a b"></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_parent_pseudo_in_nested_scope_start.content.cloneNode(true));
+
+  let a = document.querySelector('.a:not(.b)');
+  let b = document.querySelector('.b:not(.a)');
+  let ab = document.querySelector('.a.b');
+  assert_equals(getComputedStyle(a).zIndex, 'auto');
+  assert_equals(getComputedStyle(b).zIndex, 'auto');
+  assert_equals(getComputedStyle(ab).zIndex, '1');
+}, 'Parent pseudo class within scope-start');
+</script>
+
+<template id=test_parent_pseudo_in_nested_scope_end>
+  <div>
+    <style>
+      .a {
+        /* Note that & in <scope-end> refers to <scope-start>,
+           not the outer style rule. */
+        @scope (&.b) to (&.c) {
+           :scope, * { z-index: 1; }
+        }
+      }
+    </style>
+    <div class="a b">
+      <div class="a c">
+        <div class="a b c">
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_parent_pseudo_in_nested_scope_end.content.cloneNode(true));
+
+  let ab = document.querySelector('.a.b:not(.c)');
+  let ac = document.querySelector('.a.c:not(.b)');
+  let abc = document.querySelector('.a.b.c');
+  assert_equals(getComputedStyle(ab).zIndex, '1');
+  assert_equals(getComputedStyle(ac).zIndex, '1');
+  assert_equals(getComputedStyle(abc).zIndex, 'auto', 'limit element is not in scope');
+}, 'Parent pseudo class within scope-end');
+</script>
+
+<template id=test_parent_pseudo_in_nested_scope_body>
+  <div>
+    <style>
+      .a {
+        @scope (.b) {
+           /* The & points to <scope-start>, which contains an implicit &
+              which points to .a. */
+           &.c { z-index: 1; }
+        }
+      }
+    </style>
+    <div class=a>
+      <div class=b>
+        <div class="c"></div>
+        <div class="a c"></div>
+        <div class="a b c" matching></div>
+      </div>
+    </div>
+    <div>
+      <div class=a></div>
+      <div class=b></div>
+      <div class=c></div>
+      <div class="a b"></div>
+      <div class="a c"></div>
+      <div class="b c"></div>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_parent_pseudo_in_nested_scope_body.content.cloneNode(true));
+
+  let matching = main.querySelectorAll("div[matching]");
+  let non_matching = main.querySelectorAll("div:not([matching])");
+
+  for (let m of matching) {
+    assert_equals(getComputedStyle(m).zIndex, '1', `matching: ${m.nodeName}${m.className}`);
+  }
+  for (let m of non_matching) {
+    assert_equals(getComputedStyle(m).zIndex, 'auto', `non-matching: ${m.nodeName}${m.className}`);
+  }
+}, 'Parent pseudo class within body of nested @scope');
+</script>
+
+<template id=test_direct_declarations_in_nested_scope>
+  <div>
+    <style>
+      .a {
+        @scope (.b) {
+          z-index: 1;
+        }
+      }
+    </style>
+    <div class=a>
+      <div class=b>
+        <div class="c"></div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_direct_declarations_in_nested_scope.content.cloneNode(true));
+
+  let a = document.querySelector('.a');
+  let b = document.querySelector('.b');
+  let c = document.querySelector('.c');
+  assert_equals(getComputedStyle(a).zIndex, 'auto');
+  assert_equals(getComputedStyle(b).zIndex, '1');
+  assert_equals(getComputedStyle(c).zIndex, 'auto');
+}, 'Implicit rule within nested @scope ');
+</script>

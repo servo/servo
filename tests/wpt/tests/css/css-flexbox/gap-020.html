@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Flex gaps</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-align/#gaps">
+<link rel="help" href="https://crbug.com/1459336">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert"
+  content="Intrinsic max size of item-less but not childless row container doesn't underflow" />
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div id=reference-overlapped-red></div>
+
+<div
+  style="display: flex; column-gap: 10px; width: max-content; min-width: 100px; height: 100px; background: green;">
+  <div style="position: absolute;"></div>
+</div>

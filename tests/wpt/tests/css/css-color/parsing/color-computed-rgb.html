@@ -85,6 +85,25 @@ tests = [
     ["rgba(0%, 0%, 0%, 0%)", "rgba(0, 0, 0, 0)", "Percent alpha values are accepted in rgb/rgba"],
     ["rgba(0%, 0%, 0%)", "rgb(0, 0, 0)", "RGB and RGBA are synonyms"],
     ["rgba(0, 0, 0)", "rgb(0, 0, 0)", "RGB and RGBA are synonyms"],
+
+    // calc(+/-infinity) remains infinity but calc(NaN) becomes zero for all channels.
+    // See: https://github.com/w3c/csswg-drafts/issues/8629
+    ["rgb(calc(infinity), 0, 0)", "rgb(255, 0, 0)", "Red channel resolves positive infinity to 255"],
+    ["rgb(0, calc(infinity), 0)", "rgb(0, 255, 0)", "Green channel resolves positive infinity to 255"],
+    ["rgb(0, 0, calc(infinity))", "rgb(0, 0, 255)", "Blue channel resolves positive infinity to 255"],
+    ["rgba(0, 0, 0, calc(infinity))", "rgb(0, 0, 0)", "Alpha channel resolves positive infinity to fully opaque"],
+    ["rgb(calc(-infinity), 0, 0)", "rgb(0, 0, 0)", "Red channel resolves negative infinity to zero"],
+    ["rgb(0, calc(-infinity), 0)", "rgb(0, 0, 0)", "Green channel resolves negative infinity to zero"],
+    ["rgb(0, 0, calc(-infinity))", "rgb(0, 0, 0)", "Blue channel resolves negative infinity to zero"],
+    ["rgba(0, 0, 0, calc(-infinity))", "rgba(0, 0, 0, 0)", "Alpha channel resolves negative infinity to fully transparent"],
+    ["rgb(calc(NaN), 0, 0)", "rgb(0, 0, 0)", "Red channel resolves NaN to zero"],
+    ["rgb(0, calc(NaN), 0)", "rgb(0, 0, 0)", "Green channel resolves NaN to zero"],
+    ["rgb(0, 0, calc(NaN))", "rgb(0, 0, 0)", "Blue channel resolves NaN to zero"],
+    ["rgba(0, 0, 0, calc(NaN))", "rgba(0, 0, 0, 0)", "Alpha channel resolves NaN to zero"],
+    ["rgb(calc(0 / 0), 0, 0)", "rgb(0, 0, 0)", "Red channel resolves NaN equivalent calc statements to zero"],
+    ["rgb(0, calc(0 / 0), 0)", "rgb(0, 0, 0)", "Green channel resolves NaN equivalent calc statements to zero"],
+    ["rgb(0, 0, calc(0 / 0))", "rgb(0, 0, 0)", "Blue channel resolves NaN equivalent calc statements to zero"],
+    ["rgba(0, 0, 0, calc(0 / 0))", "rgba(0, 0, 0, 0)", "Alpha channel resolves NaN equivalent calc statements to zero"],
 ];
 
 for (const test of tests) {

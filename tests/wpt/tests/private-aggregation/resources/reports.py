@@ -1,6 +1,6 @@
 """Methods for the report-shared-storage and report-protected-audience endpoints (including debug endpoints)"""
 import json
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 import urllib.parse
 
 from wptserve.request import Request
@@ -13,7 +13,7 @@ REPORTS_KEY = "9d285691-4386-45ad-9a79-d2ec29557bfe"
 CLEAR_STASH_AS_BYTES = isomorphic_encode("clear_stash")
 
 Header = Tuple[str, str]
-Status = Tuple[int, str]
+Status = Union[int, Tuple[int, str]]
 Response = Tuple[Status, List[Header], str]
 
 def get_request_origin(request: Request) -> str:

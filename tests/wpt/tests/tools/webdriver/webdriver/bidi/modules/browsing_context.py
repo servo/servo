@@ -6,6 +6,11 @@ from ._module import BidiModule, command
 
 class BrowsingContext(BidiModule):
     @command
+    def activate(self,
+                 context: str) -> Mapping[str, Any]:
+        return {"context": context}
+
+    @command
     def capture_screenshot(self, context: str) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"context": context}
 

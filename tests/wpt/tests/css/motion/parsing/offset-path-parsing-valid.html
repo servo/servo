@@ -76,6 +76,12 @@ test_valid_value("offset-path", "ellipse(farthest-side 4% at 0% 100%)");
 test_valid_value("offset-path", "polygon(1% 2%)");
 test_valid_value("offset-path", "polygon(1px 2px, 3em 4em)");
 
+test_valid_value("offset-path", "xywh(0 1% 2px 3em)", "xywh(0px 1% 2px 3em)");
+test_valid_value("offset-path", "xywh(0px 1% 2px 3em round 0)", "xywh(0px 1% 2px 3em)");
+test_valid_value("offset-path", "xywh(0px 1% 2px 3em round 0 1px)", "xywh(0px 1% 2px 3em round 0px 1px)");
+test_valid_value("offset-path", "xywh(0px 1% 2px 3em round 0px 1px 2%)");
+test_valid_value("offset-path", "xywh(0px 1% 2px 3em round 0px 1px 2% 3em)");
+
 test_valid_value("offset-path", "content-box");
 test_valid_value("offset-path", "border-box");
 test_valid_value("offset-path", "view-box");

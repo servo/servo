@@ -12,9 +12,6 @@ function getPreservesPitch(audio) {
     if ("preservesPitch" in HTMLAudioElement.prototype) {
         return audio.preservesPitch;
     }
-    if ("mozPreservesPitch" in HTMLAudioElement.prototype) {
-        return audio.mozPreservesPitch;
-    }
     if ("webkitPreservesPitch" in HTMLAudioElement.prototype) {
         return audio.webkitPreservesPitch;
     }
@@ -25,8 +22,6 @@ function getPreservesPitch(audio) {
 function setPreservesPitch(audio, value) {
     if ("preservesPitch" in HTMLAudioElement.prototype) {
         audio.preservesPitch = value;
-    } else if ("mozPreservesPitch" in HTMLAudioElement.prototype) {
-        audio.mozPreservesPitch = value;
     } else if ("webkitPreservesPitch" in HTMLAudioElement.prototype) {
         audio.webkitPreservesPitch = value;
     }

@@ -71,6 +71,10 @@ class UnknownErrorException(BidiException):
     error_code = "unknown error"
 
 
+class UnsupportedOperationException(BidiException):
+    error_code = "unsupported operation"
+
+
 def from_error_details(error: str, message: str, stacktrace: Optional[str]) -> BidiException:
     """Create specific WebDriver BiDi exception class from error details.
 

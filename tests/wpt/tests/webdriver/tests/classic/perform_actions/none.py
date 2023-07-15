@@ -1,12 +1,5 @@
 from tests.support.asserts import assert_error, assert_success
-
-
-def perform_actions(session, actions):
-    return session.transport.send(
-        "POST",
-        "/session/{session_id}/actions".format(**vars(session)),
-        {"actions": actions},
-    )
+from . import perform_actions
 
 
 def test_null_response_value(session, none_chain):

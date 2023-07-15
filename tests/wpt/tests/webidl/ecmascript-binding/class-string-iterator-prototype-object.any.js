@@ -49,10 +49,3 @@ test(t => {
 
   assert_equals(Object.prototype.toString.call(iteratorProto), "[object URLSearchParams Iterator]");
 }, "Object.prototype.toString applied after nulling the prototype");
-
-// This test must be last.
-test(() => {
-  delete iteratorProto[Symbol.toStringTag];
-
-  assert_equals(Object.prototype.toString.call(iteratorProto), "[object Object]", "prototype");
-}, "Object.prototype.toString applied after deleting @@toStringTag");

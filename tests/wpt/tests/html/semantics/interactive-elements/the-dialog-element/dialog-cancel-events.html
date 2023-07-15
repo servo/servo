@@ -19,6 +19,14 @@
 
   var hasCancelEventFired = false;
   var hasCloseEventFired = false;
+  var oncancelWasCalled = false;
+  var oncloseWasCalled = false;
+
+  function maybeDone() {
+    if (oncloseWasCalled && hasCloseEventFired) {
+      done();
+    }
+  }
 
   const dialog = document.querySelector("dialog");
 
@@ -30,13 +38,30 @@
     hasCancelEventFired = true;
   });
 
+  assert_equals(dialog.oncancel, null);
+  dialog.oncancel = function(event) {
+    assert_true(true, "oncancel event handler is called");
+    assert_false(oncancelWasCalled, "oncancel handler should only be called once");
+    assert_false(oncloseWasCalled, "onclose handler should be called after oncancel");
+    oncancelWasCalled = true;
+  }
+
   dialog.addEventListener("close", function() {
     assert_true(true, "close event is fired");
     assert_false(hasCloseEventFired, "close event should only be fired once");
     assert_true(hasCancelEventFired, "cancel event should be fired before close event");
     hasCloseEventFired = true;
-    done();
+    maybeDone();
   });
+
+  assert_equals(dialog.onclose, null);
+  dialog.onclose = function(event) {
+    assert_true(true, "onclose event handler is called");
+    assert_false(oncloseWasCalled, "onclose handler should only be called once");
+    assert_true(oncancelWasCalled, "oncancel handler should be called before onclose");
+    oncloseWasCalled = true;
+    maybeDone();
+  }
 
   dialog.showModal();
   test_driver.send_keys(document.documentElement, "\uE00C"); // ESC key

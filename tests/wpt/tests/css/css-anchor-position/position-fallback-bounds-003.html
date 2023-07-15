@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<title>Tests basic interaction between 'position-fallback-bounds' and scrolling</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-bounds">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  position: relative;
+  width: 200vw;
+  height: 200vh;
+}
+
+#bounds {
+  position: fixed;
+  inset: 50px;
+  background: gray;
+  opacity: 0.1;
+  z-index: -1;
+  anchor-name: --bounds;
+}
+
+#anchor {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  left: 200px;
+  top: 200px;
+  background-color: orange;
+  anchor-name: --a;
+}
+
+#target {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background-color: lime;
+  anchor-default: --a;
+  position-fallback-bounds: --bounds;
+  position-fallback: --corners;
+}
+
+@position-fallback --corners {
+  @try {
+    bottom: anchor(top);
+    right: anchor(left);
+  }
+  @try {
+    top: anchor(bottom);
+    right: anchor(left);
+  }
+  @try {
+    bottom: anchor(top);
+    left: anchor(right);
+  }
+  @try {
+    top: anchor(bottom);
+    left: anchor(right);
+  }
+}
+</style>
+
+<div id="bounds"></div>
+<div id="anchor"></div>
+<div id="target"></div>
+
+<script>
+promise_test(async () => {
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'top');
+  assert_fallback_position(target, anchor, 'left');
+}, "Target is at anchor's top-left corner at initial scroll position");
+
+promise_test(async () => {
+  document.documentElement.scrollTop = 100;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'bottom');
+  assert_fallback_position(target, anchor, 'left');
+}, "Target falls back to anchor's bottom-left corner after anchor is scrolled upwards");
+
+promise_test(async () => {
+  document.documentElement.scrollLeft = 100;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'bottom');
+  assert_fallback_position(target, anchor, 'right');
+}, "Target falls back to anchor's bottom-right corner after anchor is further scrolled leftwards");
+
+promise_test(async () => {
+  document.documentElement.scrollTop = 0;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'top');
+  assert_fallback_position(target, anchor, 'right');
+}, "Target falls back to anchor's top-left corner after anchor is scrolled back downwards");
+</script>

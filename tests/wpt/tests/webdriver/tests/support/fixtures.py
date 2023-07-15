@@ -31,7 +31,7 @@ def pytest_configure(config):
     )
 
 
-def pytest_sessionfinish(session, exitstatus):
+def pytest_sessionfinish():
     # Cleanup at the end of a test run
     global _current_session
 
@@ -421,16 +421,16 @@ def test_page_with_pdf_js(inline):
 <canvas></canvas>
 <script>
 async function getText() {
-  pages = [];
-  let loadingTask = pdfjsLib.getDocument({data: atob("%s")});
-  let pdf = await loadingTask.promise;
-  for (let pageNumber=1; pageNumber<=pdf.numPages; pageNumber++) {
-    let page = await pdf.getPage(pageNumber);
-    textContent = await page.getTextContent()
-    text = textContent.items.map(x => x.str).join("");
+  const pages = [];
+  const loadingTask = pdfjsLib.getDocument({data: atob("%s")});
+  const pdf = await loadingTask.promise;
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+    const page = await pdf.getPage(pageNumber);
+    const textContent = await page.getTextContent();
+    const text = textContent.items.map(x => x.str).join("");
     pages.push(text);
   }
-  return pages
+  return pages;
 }
 </script>
 """ % encoded_pdf_data)

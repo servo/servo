@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Tests anchor-scroll resolving name conflicts</title>
+<title>Tests anchor positioned scrolling resolving name conflicts</title>
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <script src="/resources/testharness.js"></script>
@@ -45,7 +45,7 @@ body {
   height: 50px;
   top: anchor(--a1 top);
   left: anchor(--a1 right);
-  anchor-scroll: --a1;
+  anchor-default: --a1;
 }
 </style>
 

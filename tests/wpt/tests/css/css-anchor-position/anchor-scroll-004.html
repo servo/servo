@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Tests anchor-scroll with relatively positioned inline containers</title>
+<title>Tests anchor positioned scrolling with relatively positioned inline containers</title>
 <link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/#scroll">
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <link rel="stylesheet" href="/fonts/ahem.css">
@@ -32,7 +32,7 @@ body {
 
 .target {
   position: absolute;
-  anchor-scroll: --a;
+  anchor-default: --a;
   top: anchor(--a bottom);
   left: anchor(--a left);
   color: lime;

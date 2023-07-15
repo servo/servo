@@ -10,6 +10,8 @@ from tests.classic.perform_actions.support.mouse import (
 )
 from tests.classic.perform_actions.support.refine import get_events
 
+from . import assert_pointer_events, record_pointer_events
+
 
 def test_null_response_value(session, pen_chain):
     value = pen_chain.click().perform()
@@ -32,6 +34,44 @@ def test_stale_element_reference(session, stale_element, pen_chain, as_frame):
 
     with pytest.raises(StaleElementReferenceException):
         pen_chain.click(element=element).perform()
+
+
+@pytest.mark.parametrize("mode", ["open", "closed"])
+@pytest.mark.parametrize("nested", [False, True], ids=["outer", "inner"])
+def test_pen_pointer_in_shadow_tree(
+    session, get_test_page, pen_chain, mode, nested
+):
+    session.url = get_test_page(
+        shadow_doc="""
+        <div id="pointer-target"
+             style="width: 10px; height: 10px; background-color:blue;">
+        </div>""",
+        shadow_root_mode=mode,
+        nested_shadow_dom=nested,
+    )
+
+    shadow_root = session.find.css("custom-element", all=False).shadow_root
+
+    if nested:
+        shadow_root = shadow_root.find_element(
+            "css selector", "inner-custom-element"
+        ).shadow_root
+
+    target = shadow_root.find_element("css selector", "#pointer-target")
+
+    record_pointer_events(session, target)
+
+    pen_chain.pointer_move(0, 0, origin=target) \
+        .pointer_down() \
+        .pointer_up() \
+        .perform()
+
+    assert_pointer_events(
+        session,
+        expected_events=["pointerdown", "pointerup"],
+        target="pointer-target",
+        pointer_type="pen",
+    )
 
 
 def test_pen_pointer_properties(session, test_actions_pointer_page, pen_chain):

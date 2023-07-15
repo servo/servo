@@ -4,6 +4,8 @@
 // META: variant=?vp9
 // META: variant=?h264_avc
 // META: variant=?h264_annexb
+// META: variant=?h265_hevc
+// META: variant=?h265_annexb
 
 const AV1_DATA = {
   src: 'av1.mp4',
@@ -99,6 +101,43 @@ const H264_ANNEXB_DATA = {
   ]
 };
 
+const H265_HEVC_DATA = {
+  src: 'h265.mp4',
+  config: {
+    codec: 'hev1.1.6.L60.90',
+    description: {offset: 5821, size: 2406},
+    codedWidth: 320,
+    codedHeight: 240,
+    displayAspectWidth: 320,
+    displayAspectHeight: 240,
+  },
+  chunks: [
+    {offset: 44, size: 2515}, {offset: 2559, size: 279},
+    {offset: 2838, size: 327}, {offset: 3165, size: 329},
+    {offset: 3494, size: 308}, {offset: 3802, size: 292},
+    {offset: 4094, size: 352}, {offset: 4446, size: 296},
+    {offset: 4742, size: 216}, {offset: 4958, size: 344}
+  ]
+};
+
+const H265_ANNEXB_DATA = {
+  src: 'h265.annexb',
+  config: {
+    codec: 'hev1.1.6.L60.90',
+    codedWidth: 320,
+    codedHeight: 240,
+    displayAspectWidth: 320,
+    displayAspectHeight: 240,
+  },
+  chunks: [
+    {offset: 0, size: 4894}, {offset: 4894, size: 279},
+    {offset: 5173, size: 327}, {offset: 5500, size: 329},
+    {offset: 5829, size: 308}, {offset: 6137, size: 292},
+    {offset: 6429, size: 352}, {offset: 6781, size: 296},
+    {offset: 7077, size: 216}, {offset: 7293, size: 344}
+  ]
+};
+
 // Allows mutating `callbacks` after constructing the VideoDecoder, wraps calls
 // in t.step().
 function createVideoDecoder(t, callbacks) {
@@ -158,7 +197,9 @@ promise_setup(async () => {
     '?vp8': VP8_DATA,
     '?vp9': VP9_DATA,
     '?h264_avc': H264_AVC_DATA,
-    '?h264_annexb': H264_ANNEXB_DATA
+    '?h264_annexb': H264_ANNEXB_DATA,
+    '?h265_hevc': H265_HEVC_DATA,
+    '?h265_annexb': H265_ANNEXB_DATA
   }[location.search];
 
   // Fetch the media data and prepare buffers.

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>Tests relayout after 'position-fallback-bounds' change</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-bounds">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+.bounds {
+  position: absolute;
+  left: 100px;
+  width: 200px;
+  height: 200px;
+  background: gray;
+  opacity: 0.1;
+}
+
+#bounds1 {
+  top: 0;
+  anchor-name: --bounds1;
+}
+
+#bounds2 {
+  top: 300px;
+  anchor-name: --bounds2;
+}
+
+#anchor {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: orange;
+  left: 150px;
+  top: 200px;
+  anchor-name: --a;
+}
+
+#target {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background: lime;
+  left: anchor(left);
+  anchor-default: --a;
+  position-fallback: --top-then-bottom;
+  position-fallback-bounds: --bounds1;
+}
+
+@position-fallback --top-then-bottom {
+  @try { bottom: anchor(top); }
+  @try { top: anchor(bottom); }
+}
+</style>
+
+<div class="bounds" id="bounds1"></div>
+<div class="bounds" id="bounds2"></div>
+<div id="anchor"></div>
+<div id="target"></div>
+
+<script>
+test(() => {
+  assert_fallback_position(target, anchor, 'top');
+}, 'Initial layout');
+
+test(() => {
+  target.style = 'position-fallback-bounds: --bounds2';
+  assert_fallback_position(target, anchor, 'bottom');
+}, 'Layout is updated after position-fallback-bounds property changes');
+
+test(() => {
+  bounds2.style = 'top: 0; height: 500px';
+  assert_fallback_position(target, anchor, 'top');
+}, 'Layout is updated after additional fallback-bounds rect changes');
+</script>

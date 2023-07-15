@@ -382,7 +382,7 @@ that looks on a UNIX-like command line:
 
     $ ls fetch
     api/                           DIR_METADATA  OWNERS
-    connection-pool/               h1-parsing/   local-network-access/
+    connection-pool/               h1-parsing/   private-network-access/
     content-encoding/              http-cache/   range/
     content-length/                images/       README.md
     content-type/                  metadata/     redirect-navigate/

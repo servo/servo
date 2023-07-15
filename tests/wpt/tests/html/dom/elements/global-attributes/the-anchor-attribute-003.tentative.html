@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<title>Tests that ::before and ::after pseudo elements use originating element's implicit anchor</title>
+<title>Tests that ::before, ::after and ::backdrop pseudo elements use originating element's implicit anchor</title>
 <link rel="help" href="https://github.com/whatwg/html/pull/9144">
-<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8913">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#implicit">
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -33,9 +33,16 @@ body {
   left: anchor(right);
   top: anchor(top);
 }
+
+dialog::backdrop {
+  inset: calc(anchor(auto-same) - 10px);
+  background: lime;
+}
+
 </style>
 <div id="anchor"></div>
 <div id="target" anchor="anchor"></div>
+<dialog id="dialog" anchor="anchor"></div>
 
 <script>
 test(() => {
@@ -49,4 +56,13 @@ test(() => {
   assert_equals(style.left, '250px');
   assert_equals(style.top, '50px');
 }, "::after uses originating element's implicit anchor");
+
+test(() => {
+  dialog.showModal();
+  let style = getComputedStyle(dialog, '::backdrop');
+  assert_equals(style.left, '140px');
+  assert_equals(style.top, '40px');
+  assert_equals(style.width, '120px');
+  assert_equals(style.height, '120px');
+}, "::backdrop uses originating element's implicit anchor");
 </script>

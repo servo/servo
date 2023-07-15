@@ -15,14 +15,15 @@ async def test_this(bidi_session, top_context):
                 "some_property",
                 {
                     "type": "number",
-                    "value": 42
+                    "value": 42,
                 }]]},
         await_promise=False,
         target=ContextTarget(top_context["context"]))
 
     assert result == {
         'type': 'number',
-        'value': 42}
+        'value': 42,
+    }
 
 
 @pytest.mark.asyncio
@@ -99,7 +100,7 @@ async def test_remote_value_deserialization(
                 "value": {
                     "channel": "channel_name",
                     "serializationOptions": {
-                        "maxObjectDepth": 0
+                        "maxObjectDepth": 0,
                     },
                 },
             },
@@ -130,7 +131,7 @@ async def test_channel(
         function_declaration="function() { return this({'foo': 'bar'}) }",
         await_promise=False,
         target=ContextTarget(top_context["context"]),
-        this=channel
+        this=channel,
     )
     event_data = await on_entry_added
 

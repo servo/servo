@@ -1,143 +1,117 @@
 <!DOCTYPE HTML>
+<title>Effect of pointer event prevent-default on compat mouse event</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
-<script type="text/javascript" src="../pointerevent_support.js"></script>
+<script src="../pointerevent_support.js"></script>
 <style>
-div.box {
-  margin: 10px;
-  padding: 50px;
-  float: left;
-}
+  div {
+    margin: 20px;
+    padding: 20px;
+    background-color: green;
+    user-select: none; // Prevents text selection on drag.
+  }
+
 </style>
-<h1>Verifies the effect of pointer event prevent-default on following pointer & mouse events.</h1>
-<div id="target" class="box" style="background-color:green;">
+<div id="preventer" draggable="false">
+  <div id="logger" draggable="false"></div>
+  <!-- The following div makes the center of "preventer" outside "logger", which
+    simplifies TestDriver action coordinates below. -->
+  <div></div>
 </div>
+<div id="done"></div>
 
 <script>
-    var receivedEvents = [];
-    var receivedMouseEvents = [];
-    var receivedPointerEvents = [];
-    var mouseEventList = ["mousedown", "mouseup", "mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"];
-    var pointerEventList = ["pointerdown", "pointerup", "pointerenter", "pointerleave", "pointerover", "pointerout", "pointermove"];
+  'use strict';
 
-    var preventDefaultList = ["none"].concat(pointerEventList);
-    var eventToPreventDefault = "";
+  const logger = document.getElementById("logger");
+  const preventer = document.getElementById("preventer");
+  const done = document.getElementById("done");
 
-    function init() {
-      var targetDiv = document.getElementById("target");
+  const preventing_handler = e => e.preventDefault();
 
-    mouseEventList.forEach(function (eventName) {
-      targetDiv.addEventListener(eventName, function (event) {
-        receivedEvents.push(eventName);
-        receivedMouseEvents.push(eventName);
-      });
-    });
+  let received_events = [];
 
-    pointerEventList.forEach(function (eventName) {
-      targetDiv.addEventListener(eventName, function (event) {
-        if (event.type == eventToPreventDefault) {
-          event.preventDefault();
-        }
-        receivedEvents.push(eventName);
-        receivedPointerEvents.push(eventName);
-      });
-    });
+  const logged_pointer_events = ["pointerdown", "pointermove", "pointerup",
+    "pointerenter", "pointerleave", "pointerover", "pointerout"];
+  const logged_mouse_events = ["mousedown", "mousemove", "mouseup",
+    "mouseenter", "mouseleave", "mouseover", "mouseout"];
+
+  const expected_pointer_events = [
+    "pointerover", "pointerenter", "pointermove", "pointerdown",
+    "pointerout", "pointerleave", "pointerover", "pointerenter",
+    "pointermove", "pointerup", "pointerout", "pointerleave"
+  ];
+
+  const expected_mouse_events_when_unaffected_by_pointer_events = [
+    "mouseover", "mouseenter", "mousemove", "mousedown",
+    "mouseout", "mouseleave", "mouseover", "mouseenter",
+    "mousemove", "mouseup", "mouseout", "mouseleave"
+  ];
+
+  const expected_mouse_events_for_canceled_pointerdown = [
+    "mouseover", "mouseenter", "mousemove",
+    "mouseout", "mouseleave", "mouseover", "mouseenter",
+    "mouseout", "mouseleave"
+  ];
+
+  logged_pointer_events.forEach(ename =>
+    logger.addEventListener(ename, e => received_events.push(e.type)));
+
+  logged_mouse_events.forEach(ename =>
+    logger.addEventListener(ename, e => received_events.push(e.type)));
+
+  for (let i = 0; i < logged_pointer_events.length; i++) {
+    let event_to_cancel = logged_pointer_events[i];
+
+    promise_test(async (test) => {
+      received_events = [];
+
+      preventer.addEventListener(event_to_cancel, preventing_handler);
+      test.add_cleanup(() =>
+          preventer.removeEventListener(event_to_cancel, preventing_handler));
+
+      let click_on_done = getEvent("click", done, test);
+
+      let actions = new test_driver.Actions()
+        // Start outside all event listeners
+        .pointerMove(0, 0)
+        .pointerDown()
+        .pointerUp()
+        // Drag from inside to outside of "logger" then drag back to inside,
+        // staying within "preventer" all the time
+        .pointerMove(0, 0, { origin: logger })
+        .pointerDown()
+        .pointerMove(0, 0, { origin: preventer })
+        .pointerUp()
+        .pointerDown()
+        .pointerMove(0, 0, { origin: logger })
+        .pointerUp()
+        // Click "done"
+        .pointerMove(0, 0, { origin: done })
+        .pointerDown()
+        .pointerUp()
+        .send();
+
+      await actions;
+      await click_on_done;
+
+      assert_array_equals(received_events.filter(isPointerEvent),
+        expected_pointer_events, "expected pointer events");
+
+      if (event_to_cancel == "pointerdown") {
+        assert_array_equals(received_events.filter(isMouseEvent),
+          expected_mouse_events_for_canceled_pointerdown,
+          "expected mouse events");
+      } else {
+        assert_array_equals(received_events.filter(isMouseEvent),
+          expected_mouse_events_when_unaffected_by_pointer_events,
+          "expected mouse events");
+        assert_true(arePointerEventsBeforeCompatMouseEvents(received_events),
+          "compat mouse events follow corresponding pointer events");
+      }
+    }, `Effect of canceling ${event_to_cancel} on compat mouse events`);
   }
-
-  function expectedPointerEvents() {
-    return [
-      "pointerover", "pointerenter", "pointermove", "pointerdown", "pointerup",
-      "pointerdown", "pointermove", "pointerout", "pointerleave", "pointerover",
-      "pointerenter", "pointermove", "pointerup", "pointerout", "pointerleave"
-    ];
-  }
-
-  // When "pointerdown" is not prevented, all compat mouse events are fired.
-  // Otherwise, the "mousedown/move/up" events between "pointerdown" and
-  // "pointerup" are suppressed.
-  function expectedMouseEvents(prevented_event) {
-    return prevented_event === "pointerdown"
-      ? ["mouseover", "mouseenter", "mousemove",
-        "mouseout", "mouseleave", "mouseover", "mouseenter",
-        "mouseout", "mouseleave"]
-      : ["mouseover", "mouseenter", "mousemove",
-        "mousedown", "mouseup", "mousedown", "mousemove",
-        "mouseout", "mouseleave", "mouseover", "mouseenter",
-        "mousemove", "mouseup",
-        "mouseout", "mouseleave"];
-  }
-
-async function runTestForDefaultEvent(preventDefaultEvent) {
-    promise_test((test)=>
-    new Promise(async (resolve, reject)=>{
-        test.add_cleanup(()=>{
-          receivedEvents = [];
-          receivedPointerEvents = [];
-          receivedMouseEvents = [];
-          eventToPreventDefault = "";
-        });
-        eventToPreventDefault = preventDefaultEvent;
-
-        try{
-          // if awaited Promise rejects then fail the test
-          await performActions(test, preventDefaultEvent);
-        }
-        catch(e){
-          reject(e);
-        }
-        test.step(()=>{
-          if(eventToPreventDefault === 'none'){
-            assert_true(arePointerEventsBeforeCompatMouseEvents(receivedEvents), "There are no compatible mouse events for all pointer events:" + receivedEvents);
-          }
-          assert_array_equals(receivedPointerEvents, expectedPointerEvents());
-          assert_array_equals(receivedMouseEvents, expectedMouseEvents(preventDefaultEvent));
-        });
-        resolve();
-    }), `Verifies the effect of pointer event prevent-default on ${preventDefaultEvent}`);
-}
-
-async function runTests(){
-  // create one test for each event in preventDefaultList
-  // run all tests one by one
-  preventDefaultList.forEach(preventDefaultEvent=>runTestForDefaultEvent(preventDefaultEvent));
-}
-
-function performActions(test, preventDefaultEvent){
-  let targetDiv = document.getElementById("target");
-  let rect = targetDiv.getBoundingClientRect();
-  let x1 = Math.ceil(rect.left - 3);
-  let y1 = Math.ceil(rect.top - 5);
-  let x2 = Math.ceil(rect.left + 3);
-  let y2 = Math.ceil(rect.top + 5);
-
-  let eventWatcher = new EventWatcher(test, targetDiv, ["mouseleave"]);
-  // wait for all expected events to happen.
-  // Because each test ends with mouseleave and there are 2 mouseleave events,
-  // we use EventWatcher to wait for the two mouseleave events to happen
-  let donePromise = eventWatcher.wait_for(["mouseleave", "mouseleave"], { record: 'all' });
-  let actionsPromise = new test_driver.Actions()
-                .pointerMove(0, 0)
-                // start with mouse outside target
-                .pointerMove(x1, y1)
-                // move into target and click
-                .pointerMove(x2, y2)
-                .pointerDown()
-                .pointerUp()
-                // drag out of and into target & release within target
-                .pointerDown()
-                .pointerMove(x2+5, y2+5)
-                .pointerMove(x1, y1)
-                .pointerMove(x2+1, y2+1)
-                .pointerUp()
-                // move outside target again
-                .pointerMove(x1, y1)
-                .send();
-  return Promise.all([donePromise, actionsPromise]);
-}
-
-init();
-runTests();
 </script>

@@ -110,6 +110,25 @@
         {at: 2, expect: 'xywh(15px 15px 50% 50%)'},
       ]);
 
+      // All <basic-shape-rect>s compute to the equivalent inset() function, so
+      // they are interpolatable.
+      // https://drafts.csswg.org/css-shapes-1/#basic-shape-computed-values
+      // https://github.com/w3c/csswg-drafts/issues/9053
+      test_interpolation({
+        property: 'offset-path',
+        // The equivalent function is
+        // "inset(5px calc(100% - 210px) calc(100% - 105px) 10px)".
+        from: 'xywh(10px 10px 200px 100px)',
+        to: 'inset(50px)'
+      }, [
+        {at: -1, expect: 'inset(-30px calc(200% - 470px) calc(200% - 270px) -30px)'},
+        {at: 0, expect: 'inset(10px calc(100% - 210px) calc(100% - 110px) 10px)'},
+        {at: 0.125, expect: 'inset(15px calc(87.5% - 177.5px) calc(87.5% - 90px) 15px)'},
+        {at: 0.875, expect: 'inset(45px calc(12.5% + 17.5px) calc(12.5% + 30px) 45px)'},
+        {at: 1, expect: 'inset(50px calc(0% + 50px) calc(0% + 50px) 50px)'},
+        {at: 2, expect: 'inset(90px calc(-100% + 310px) calc(-100% + 210px) 90px)'},
+      ]);
+
       // No interpolation between different radius keywords.
       test_no_interpolation({
         property: 'offset-path',

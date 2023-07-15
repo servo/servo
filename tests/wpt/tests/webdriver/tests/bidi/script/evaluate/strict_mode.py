@@ -1,8 +1,8 @@
 import pytest
 
 from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultException
-from ... import any_int, any_string, recursive_compare
-from .. import any_stack_trace, specific_error_response
+from ... import recursive_compare
+from .. import specific_error_response
 
 
 @pytest.mark.asyncio

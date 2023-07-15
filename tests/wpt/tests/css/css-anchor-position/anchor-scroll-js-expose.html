@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<title>Tests that anchor element's actual rendered location is property exposed via JS APIs under anchor-scroll</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-scroll">
+<title>Tests that anchored element's actual rendered location is property exposed via JS APIs under scrolling</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -35,7 +35,7 @@
   bottom: anchor(--anchor top);
   width: 100px;
   height: 100px;
-  anchor-scroll: --anchor;
+  anchor-default: --anchor;
   background-color: green;
 }
 </style>
@@ -50,11 +50,11 @@
 <script>
 promise_setup(async () => {
   // Move both the anchor and the anchored elements into the visible area of the
-  // scroller. This also runs layout to setup an empty anchor-scroll snapshot.
+  // scroller. This also runs layout to setup an empty scroll snapshot.
   scroller.scrollTop = 300;
   scroller.scrollLeft = 1300;
 
-  // Ensure up-to-date anchor-scroll snapshot.
+  // Ensure up-to-date scroll snapshot.
   await new Promise(resolve => requestAnimationFrame(resolve));
 });
 
@@ -85,5 +85,5 @@ promise_test(() => new Promise(resolve => {
       resolve();
   });
   observer.observe(anchored);
-}), 'IntersectionObserver should fire when anchor-scroll moves element into visible area');
+}), 'IntersectionObserver should fire when anchored element is moved into visible area');
 </script>

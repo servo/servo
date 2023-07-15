@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
-<title>SET: Blend modes are set up only in paired transitions</title>
-<link rel="help" href="https://github.com/WICG/view-transitions">
+<title>view-transitions: Blend modes are set up only in paired transitions</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
 <link rel="author" href="mailto:vmpstr@chromium.org">
 
 <script src="/resources/testharness.js"></script>
@@ -17,11 +17,22 @@ div {
 .tagone { view-transition-name: one }
 .tagtwo { view-transition-name: two }
 .tagthree { view-transition-name: three }
+.tagfour { view-transition-name: four }
+.tagfive { view-transition-name: five }
+
+::view-transition-old(four) {
+  animation-name: unset;
+}
+::view-transition-new(five) {
+  animation-name: unset;
+}
 </style>
 
 <div id=first class=tagone></div>
 <div id=second></div>
-<div id=third class=tagthree></div>
+<div class=tagthree></div>
+<div class=tagfour></div>
+<div class=tagfive></div>
 
 <script>
 async_test(t => {
@@ -33,11 +44,21 @@ async_test(t => {
       requestAnimationFrame(() => {
         t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(one)").isolation, "auto"));
         t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(one)").mixBlendMode, "normal"));
+
         t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(two)").isolation, "auto"));
         t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(two)").mixBlendMode, "normal"));
+
         t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(three)").isolation, "isolate"));
         t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(three)").mixBlendMode, "plus-lighter"));
         t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(three)").mixBlendMode, "plus-lighter"));
+
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(four)").isolation, "isolate"));
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(four)").mixBlendMode, "normal"));
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(four)").mixBlendMode, "plus-lighter"));
+
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(five)").isolation, "isolate"));
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(five)").mixBlendMode, "plus-lighter"));
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(five)").mixBlendMode, "normal"));
         t.done();
       });
     });

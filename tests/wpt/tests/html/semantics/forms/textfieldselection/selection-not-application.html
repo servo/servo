@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<meta name=variant content="">
+<meta name=variant content="?default">
 <meta name=variant content="?week,month">
 <title>text field selection</title>
 <link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
@@ -12,9 +12,9 @@
   var nonApplicableTypes = ["hidden", "email", "datetime-local", "date", "time", "number", "range", "color", "checkbox", "radio", "file", "submit", "image", "reset", "button"];
   var applicableTypes = ["text", "search", "tel", "url", "password", "aninvalidtype", null];
 
-  if (location.search) {
-    // If the <meta name=variant> tag used is non-empty, then use it instead of
-    // nonApplicableTypes.
+  if (location.search !== "?default") {
+    // For non default case, use the parameters passed in through query string
+    // instead of nonApplicableTypes.
     nonApplicableTypes = location.search.substr(1).split(',');
   }
 

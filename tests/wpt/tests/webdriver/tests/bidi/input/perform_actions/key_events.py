@@ -20,9 +20,10 @@ pytestmark = pytest.mark.asyncio
         (Keys.ESCAPE, "ESCAPE"),
         (Keys.RIGHT, "RIGHT"),
     ],
+
 )
 async def test_non_printable_key_sends_events(
-    bidi_session, top_context, setup_key_test, key, event
+    bidi_session, top_context, key, event
 ):
     code = ALL_EVENTS[event]["code"]
     value = ALL_EVENTS[event]["key"]
@@ -143,11 +144,9 @@ async def test_key_printable_key(
 
 
 @pytest.mark.parametrize("use_keyup", [True, False])
-async def test_key_printable_sequence(
-    bidi_session, top_context, setup_key_test, use_keyup
-):
+async def test_key_printable_sequence(bidi_session, top_context, use_keyup):
     actions = Actions()
-    key_source = actions.add_key()
+    actions.add_key()
     if use_keyup:
         actions.add_key().send_keys("ab")
     else:
@@ -166,7 +165,7 @@ async def test_key_printable_sequence(
         {"code": "KeyB", "key": "b", "type": "keypress"},
         {"code": "KeyB", "key": "b", "type": "keyup"},
     ]
-    expected = [e for e in expected if use_keyup or e["type"] is not "keyup"]
+    expected = [e for e in expected if use_keyup or e["type"] != "keyup"]
 
     (events, expected) = filter_supported_key_events(all_events, expected)
     assert events == expected
@@ -232,7 +231,7 @@ async def test_key_special_key_sends_keydown(
         assert len(keys_value) == 0
 
 
-async def test_key_space(bidi_session, top_context, setup_key_test):
+async def test_key_space(bidi_session, top_context):
     actions = Actions()
     (
         actions.add_key()
@@ -257,7 +256,7 @@ async def test_key_space(bidi_session, top_context, setup_key_test):
         assert events[0] == events[1]
 
 
-async def test_keyup_only_sends_no_events(bidi_session, top_context, setup_key_test):
+async def test_keyup_only_sends_no_events(bidi_session, top_context):
     actions = Actions()
     actions.add_key().key_up("a")
     await bidi_session.input.perform_actions(

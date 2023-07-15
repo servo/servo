@@ -13,7 +13,6 @@
   background: blue;
   width: 100px;
   height: 100px;
-  contain:  paint;
   view-transition-name: shared;
 }
 
@@ -36,14 +35,31 @@ html::view-transition-image-pair(*) {
 <script>
 async_test(t => {
   assert_implements(document.startViewTransition, "Missing document.startViewTransition");
-  let names = [];
+  let groupAnimationCount = 0;
+  let oldAnimationCount = 0;
+  let newAnimationCount = 0;
+  let wrapperAnimationCount = 0;
+
   document.documentElement.addEventListener("animationstart", (e) => {
-    names.push(e.pseudoElement);
-    if (names.length == 4) {
-      t.step(() => assert_true(names.includes("::view-transition-group(shared)")));
-      t.step(() => assert_true(names.includes("::view-transition-image-pair(shared)")));
-      t.step(() => assert_true(names.includes("::view-transition-new(shared)")));
-      t.step(() => assert_true(names.includes("::view-transition-old(shared)")));
+    let pseudo = e.pseudoElement;
+    if (pseudo == "::view-transition-group(shared)") {
+      groupAnimationCount++;
+    } else if (pseudo == "::view-transition-new(shared)") {
+      newAnimationCount++;
+    } else if (pseudo == "::view-transition-old(shared)") {
+      oldAnimationCount++;
+    } else if (pseudo = "::view-transition-image-pair(shared)") {
+      wrapperAnimationCount++;
+    }
+
+    let total =
+      groupAnimationCount + oldAnimationCount + newAnimationCount + wrapperAnimationCount;
+    // Old/new images have 2 animations : opacity and mix-blend-mode.
+    if (total == 6) {
+      t.step(() => assert_equals(groupAnimationCount, 1));
+      t.step(() => assert_equals(wrapperAnimationCount, 1));
+      t.step(() => assert_equals(oldAnimationCount, 2));
+      t.step(() => assert_equals(newAnimationCount, 2));
       t.done();
     }
   });

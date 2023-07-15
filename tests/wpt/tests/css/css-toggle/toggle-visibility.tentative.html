@@ -214,23 +214,26 @@ promise_test(async function() {
   assert_equals(vis.clientHeight, kVisibleHeight, "with toggle active and onscreen");
   toggle.value = 0;
   await wait_for_content_visibility_auto();
-  assert_equals(vis.clientHeight, kHiddenHeight, "with toggle inactive and onscreen");
+  // Note that because content-visibility: auto implies contain-intrinsic-size: auto,
+  // the rest of the expected heights are kVisibleHeight since that will be the last
+  // remembered size.
+  assert_equals(vis.clientHeight, kVisibleHeight, "with toggle inactive and onscreen");
   toggle.value = 1;
   await wait_for_content_visibility_auto();
   assert_equals(vis.clientHeight, kVisibleHeight, "with toggle active and onscreen (2)");
   toggle.value = 0;
   t.before(spacer);
   await wait_for_content_visibility_auto();
-  assert_equals(vis.clientHeight, kHiddenHeight, "with toggle inactive and offscreen (2)");
+  assert_equals(vis.clientHeight, kVisibleHeight, "with toggle inactive and offscreen (2)");
   spacer.remove();
   await wait_for_content_visibility_auto();
-  assert_equals(vis.clientHeight, kHiddenHeight, "with toggle inactive and onscreen (2)");
+  assert_equals(vis.clientHeight, kVisibleHeight, "with toggle inactive and onscreen (2)");
   toggle.value = 1;
   await wait_for_content_visibility_auto();
   assert_equals(vis.clientHeight, kVisibleHeight, "with toggle active and onscreen (3)");
   t.before(spacer);
   await wait_for_content_visibility_auto();
-  assert_equals(vis.clientHeight, kHiddenHeight, "with toggle active and offscreen (2)");
+  assert_equals(vis.clientHeight, kVisibleHeight, "with toggle active and offscreen (2)");
 }, "interaction of toggle-visibility and content-visibility: auto");
 
 promise_test(async function() {

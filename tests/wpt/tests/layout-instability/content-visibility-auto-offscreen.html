@@ -22,14 +22,14 @@ promise_test(async () => {
   target.style.top = '100100px';
 
   await watcher.promise;
-  const expectedScore = computeExpectedScore(100 * 100, 100);
-  assert_equals(watcher.score, expectedScore);
+  const expectedScore = computeExpectedScore(100 * 100, 1);
+  assert_approx_equals(watcher.score, expectedScore, 1e-8, "before scroll to top");
 
-  // No new layout shift should be reported when target is scrolled out of screeen.
+  // No new layout shift should be reported when target is scrolled out of screen.
   window.scrollTo(0, 0);
   await waitForAnimationFrames(2);
 
-  assert_equals(watcher.score, expectedScore);
+  assert_approx_equals(watcher.score, expectedScore, 1e-8, "after scroll to top");
 }, 'off-screen content-visibility:auto');
 </script>
 <style>

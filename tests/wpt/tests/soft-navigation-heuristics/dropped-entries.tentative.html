@@ -24,6 +24,9 @@
       link: link,
       clicks: 52,
       extraValidations: async (entries, options)=>{
+        if (!performance.softNavPaintMetricsSupported) {
+          return;
+        }
         const [paint_entries, paint_options] = await new Promise(resolve => {
           new PerformanceObserver((list, obs, options) =>
             resolve([list.getEntries(), options])).observe(

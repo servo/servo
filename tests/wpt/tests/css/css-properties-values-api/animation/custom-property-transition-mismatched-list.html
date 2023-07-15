@@ -11,6 +11,7 @@ transition_test({
   from: '100deg, 200deg',
   to: '300deg',
   expected: '300deg',
+  animationType: 'discrete',
 }, 'A custom property of type <angle># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
 transition_test({
@@ -18,6 +19,7 @@ transition_test({
   from: '100deg 200deg',
   to: '300deg',
   expected: '300deg',
+  animationType: 'discrete',
 }, 'A custom property of type <angle>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
 transition_test({
@@ -25,6 +27,7 @@ transition_test({
   from: 'rgb(100, 100, 100), rgb(150, 150, 150)',
   to: 'rgb(200, 200, 200)',
   expected: 'rgb(200, 200, 200)',
+  animationType: 'discrete',
 }, 'A custom property of type <color># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
 transition_test({
