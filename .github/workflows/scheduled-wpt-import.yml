@@ -1,4 +1,4 @@
-name: Scheduled WPT import
+name: WPT Import
 
 on:
   schedule:
@@ -40,22 +40,25 @@ jobs:
           python3 ./mach bootstrap
       - name: Add upstream remote
         run: |
-          git config --local user.email "josh+wptsync@joshmatthews.net"
-          git config --local user.name "WPT Sync Bot"
           git remote add upstream https://github.com/servo/servo.git
           git fetch --unshallow upstream
       - name: Fetch upstream changes before syncing
         run: |
-          ./etc/ci/update-wpt-checkout fetch-upstream-changes
-      - name: Run WPT Update
+          ./mach update-wpt --sync --patch
+      - name: Amend commit with test results
         env:
-          MAX_CHUNK_ID: 20
-          WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
+          GIT_AUTHOR_NAME: "Servo WPT Sync"
+          GIT_AUTHOR_EMAIL: "josh+wptsync@joshmatthews.net"
+          GIT_COMMITTER_NAME: "Servo WPT Sync"
+          GIT_COMMITTER_EMAIL: "josh+wptsync@joshmatthews.net"
         run: |
           export CURRENT_DATE=$(date +"%d-%m-%Y")
           echo $CURRENT_DATE
           echo "CURRENT_DATE=$CURRENT_DATE" >> $GITHUB_ENV
-          ./etc/ci/wpt-scheduled-update.sh
+          ./mach update-wpt wpt-logs-linux-layout-2013/test-wpt.*.log
+          ./mach update-wpt --layout-2020 wpt-logs-linux-layout-2020/test-wpt.*.log
+          git add tests/wpt/meta tests/wpt/meta-legacy-layout
+          git commit -a --amend --no-edit
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
@@ -68,9 +71,8 @@ jobs:
           BODY=$(cat <<EOF
           Automated downstream sync of changes from upstream as of ${{ env.CURRENT_DATE }}
           [no-wpt-sync]
-          r? @servo-wpt-sync
           EOF
           )
           gh pr create \
             --title "Sync WPT with upstream (${{ env.CURRENT_DATE }})" \
-            --body "$BODY" --head ${{ env.UPDATE_BRANCH }}"
+            --body "$BODY" --head ${{ env.UPDATE_BRANCH }}
