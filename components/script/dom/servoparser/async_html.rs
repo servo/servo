@@ -43,6 +43,7 @@ type ParseNodeId = usize;
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct ParseNode {
     id: ParseNodeId,
+    #[no_trace]
     qual_name: Option<QualName>,
 }
 
@@ -54,6 +55,7 @@ enum NodeOrText {
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct Attribute {
+    #[no_trace]
     name: QualName,
     value: String,
 }
@@ -67,6 +69,7 @@ enum ParseOperation {
 
     CreateElement {
         node: ParseNodeId,
+        #[no_trace]
         name: QualName,
         attrs: Vec<Attribute>,
         current_line: u64,

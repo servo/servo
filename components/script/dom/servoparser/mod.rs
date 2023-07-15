@@ -95,9 +95,11 @@ pub struct ServoParser {
     network_decoder: DomRefCell<Option<NetworkDecoder>>,
     /// Input received from network.
     #[ignore_malloc_size_of = "Defined in html5ever"]
+    #[no_trace]
     network_input: DomRefCell<BufferQueue>,
     /// Input received from script. Used only to support document.write().
     #[ignore_malloc_size_of = "Defined in html5ever"]
+    #[no_trace]
     script_input: DomRefCell<BufferQueue>,
     /// The tokenizer of this parser.
     tokenizer: DomRefCell<Tokenizer>,
@@ -116,6 +118,7 @@ pub struct ServoParser {
     // building the DOM. https://github.com/servo/servo/pull/19203
     prefetch_tokenizer: DomRefCell<prefetch::Tokenizer>,
     #[ignore_malloc_size_of = "Defined in html5ever"]
+    #[no_trace]
     prefetch_input: DomRefCell<BufferQueue>,
 }
 

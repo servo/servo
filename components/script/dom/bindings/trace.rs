@@ -45,18 +45,10 @@ use crate::dom::identityhub::Identities;
 use crate::script_runtime::{ContextForRequestInterrupt, StreamConsumer};
 use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
-use app_units::Au;
 use content_security_policy::CspList;
 use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
 use encoding_rs::{Decoder, Encoding};
-use euclid::default::{Point2D, Rect, Rotation3D, Transform2D};
-use euclid::Length as EuclidLength;
-use html5ever::buffer_queue::BufferQueue;
-use html5ever::{LocalName, Namespace, Prefix, QualName};
-use http::header::HeaderMap;
-use http::Method;
-use http::StatusCode;
 use indexmap::IndexMap;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallScriptTracer, CallStringTracer, CallValueTracer};
@@ -70,7 +62,6 @@ use js::typedarray::TypedArrayElement;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use media::WindowGLContext;
 use metrics::{InteractiveMetrics, InteractiveWindow};
-use mime::Mime;
 use parking_lot::{Mutex as ParkMutex, RwLock};
 use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
@@ -573,20 +564,16 @@ unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 unsafe_no_jsmanaged_fields!(NonZeroU64);
 unsafe_no_jsmanaged_fields!(Error);
-unsafe_no_jsmanaged_fields!(Prefix, LocalName, Namespace, QualName);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
 
-unsafe_no_jsmanaged_fields!(BufferQueue, StrTendril);
+unsafe_no_jsmanaged_fields!(StrTendril);
 unsafe_no_jsmanaged_fields!(Runtime);
 unsafe_no_jsmanaged_fields!(ContextForRequestInterrupt);
-unsafe_no_jsmanaged_fields!(HeaderMap, Method);
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);
 unsafe_no_jsmanaged_fields!(RGBA);
 unsafe_no_jsmanaged_fields!(ElementSelectorFlags);
 unsafe_no_jsmanaged_fields!(DOMString);
-unsafe_no_jsmanaged_fields!(Mime);
 unsafe_no_jsmanaged_fields!(USVString);
-unsafe_no_jsmanaged_fields!(StatusCode);
 unsafe_no_jsmanaged_fields!(SystemTime);
 unsafe_no_jsmanaged_fields!(Instant);
 unsafe_no_jsmanaged_fields!(PathBuf);
@@ -612,9 +599,6 @@ unsafe_no_jsmanaged_fields!(SourceSet);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(Timespec);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
-unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>);
-unsafe_no_jsmanaged_fields!(Point2D<f32>, Rect<Au>);
-unsafe_no_jsmanaged_fields!(Rect<f32>);
 unsafe_no_jsmanaged_fields!(WindowGLContext);
 unsafe_no_jsmanaged_fields!(StreamConsumer);
 unsafe_no_jsmanaged_fields!(Stencil);
@@ -677,83 +661,6 @@ unsafe impl<T: Send> JSTraceable for Receiver<T> {
 unsafe impl<T: Send> JSTraceable for Sender<T> {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<U> JSTraceable for euclid::Vector2D<f32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T, U> JSTraceable for euclid::Scale<f32, T, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T, U> JSTraceable for euclid::RigidTransform3D<f32, T, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T, U> JSTraceable for euclid::RigidTransform3D<f64, T, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T, U> JSTraceable for euclid::Transform3D<f32, T, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T, U> JSTraceable for euclid::Transform3D<f64, T, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T> JSTraceable for EuclidLength<u64, T> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<U> JSTraceable for euclid::Size2D<i32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<U> JSTraceable for euclid::Size2D<f32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<U> JSTraceable for euclid::Size2D<u32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<U> JSTraceable for euclid::Rect<i32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
     }
 }

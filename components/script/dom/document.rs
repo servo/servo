@@ -237,6 +237,7 @@ pub struct Document {
     window: Dom<Window>,
     implementation: MutNullableDom<DOMImplementation>,
     #[ignore_malloc_size_of = "type from external crate"]
+    #[no_trace]
     content_type: Mime,
     last_modified: Option<String>,
     encoding: Cell<&'static Encoding>,
@@ -252,8 +253,8 @@ pub struct Document {
     /// Caches for the getElement methods
     id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
     name_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
-    tag_map: DomRefCell<HashMap<LocalName, Dom<HTMLCollection>>>,
-    tagns_map: DomRefCell<HashMap<QualName, Dom<HTMLCollection>>>,
+    tag_map: DomRefCell<HashMapTracedValues<LocalName, Dom<HTMLCollection>>>,
+    tagns_map: DomRefCell<HashMapTracedValues<QualName, Dom<HTMLCollection>>>,
     classes_map: DomRefCell<HashMapTracedValues<Vec<Atom>, Dom<HTMLCollection>>>,
     images: MutNullableDom<HTMLCollection>,
     embeds: MutNullableDom<HTMLCollection>,
@@ -348,6 +349,7 @@ pub struct Document {
     target_element: MutNullableDom<Element>,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
@@ -3087,8 +3089,8 @@ impl Document {
             encoding: Cell::new(encoding),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             activity: Cell::new(activity),
-            tag_map: DomRefCell::new(HashMap::new()),
-            tagns_map: DomRefCell::new(HashMap::new()),
+            tag_map: DomRefCell::new(HashMapTracedValues::new()),
+            tagns_map: DomRefCell::new(HashMapTracedValues::new()),
             classes_map: DomRefCell::new(HashMapTracedValues::new()),
             images: Default::default(),
             embeds: Default::default(),

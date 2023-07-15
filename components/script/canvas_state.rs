@@ -91,6 +91,7 @@ pub(crate) struct CanvasContextState {
     #[no_trace]
     line_join: LineJoinStyle,
     miter_limit: f64,
+    #[no_trace]
     transform: Transform2D<f32>,
     shadow_offset_x: f64,
     shadow_offset_y: f64,

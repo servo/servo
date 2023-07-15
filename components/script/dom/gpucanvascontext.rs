@@ -40,6 +40,7 @@ pub struct GPUCanvasContext {
     #[no_trace]
     channel: WebGPU,
     canvas: Dom<HTMLCanvasElement>,
+    #[no_trace]
     size: Cell<Size2D<u32>>,
     swap_chain: DomRefCell<Option<Dom<GPUSwapChain>>>,
     #[ignore_malloc_size_of = "Defined in webrender"]

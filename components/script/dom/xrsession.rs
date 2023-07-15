@@ -67,6 +67,7 @@ pub struct XRSession {
     pending_render_state: MutNullableDom<XRRenderState>,
     active_render_state: MutDom<XRRenderState>,
     /// Cached projection matrix for inline sessions
+    #[no_trace]
     inline_projection_matrix: DomRefCell<Transform3D<f32, Viewer, Display>>,
 
     next_raf_id: Cell<i32>,

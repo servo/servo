@@ -141,17 +141,21 @@ pub struct XMLHttpRequest {
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     response_json: Heap<JSVal>,
     #[ignore_malloc_size_of = "Defined in hyper"]
+    #[no_trace]
     response_headers: DomRefCell<HeaderMap>,
     #[ignore_malloc_size_of = "Defined in hyper"]
+    #[no_trace]
     override_mime_type: DomRefCell<Option<Mime>>,
     override_charset: DomRefCell<Option<&'static Encoding>>,
 
     // Associated concepts
     #[ignore_malloc_size_of = "Defined in hyper"]
+    #[no_trace]
     request_method: DomRefCell<Method>,
     #[no_trace]
     request_url: DomRefCell<Option<ServoUrl>>,
     #[ignore_malloc_size_of = "Defined in hyper"]
+    #[no_trace]
     request_headers: DomRefCell<HeaderMap>,
     request_body_len: Cell<usize>,
     sync: Cell<bool>,

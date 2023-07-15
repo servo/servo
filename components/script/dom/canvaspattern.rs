@@ -15,6 +15,7 @@ use euclid::default::Size2D;
 pub struct CanvasPattern {
     reflector_: Reflector,
     surface_data: Vec<u8>,
+    #[no_trace]
     surface_size: Size2D<u32>,
     repeat_x: bool,
     repeat_y: bool,

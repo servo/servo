@@ -149,13 +149,17 @@ use xml5ever::serialize::TraversalScope::IncludeNode as XmlIncludeNode;
 #[dom_struct]
 pub struct Element {
     node: Node,
+    #[no_trace]
     local_name: LocalName,
     tag_name: TagName,
+    #[no_trace]
     namespace: Namespace,
+    #[no_trace]
     prefix: DomRefCell<Option<Prefix>>,
     attrs: DomRefCell<Vec<Dom<Attr>>>,
     #[no_trace]
     id_attribute: DomRefCell<Option<Atom>>,
+    #[no_trace]
     is: DomRefCell<Option<LocalName>>,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -3676,6 +3680,7 @@ impl<'a> AttributeMutation<'a> {
 /// owner changes.
 #[derive(JSTraceable, MallocSizeOf)]
 struct TagName {
+    #[no_trace]
     ptr: DomRefCell<Option<LocalName>>,
 }
 

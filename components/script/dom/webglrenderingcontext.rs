@@ -195,6 +195,7 @@ pub struct WebGLRenderingContext {
     current_scissor: Cell<(i32, i32, u32, u32)>,
     #[ignore_malloc_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
+    #[no_trace]
     size: Cell<Size2D<u32>>,
     extension_manager: WebGLExtensions,
     capabilities: Capabilities,

@@ -264,6 +264,7 @@ pub struct Window {
 
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
+    #[no_trace]
     page_clip_rect: Cell<UntypedRect<Au>>,
 
     /// Flag to suppress reflows. The first reflow will come either with
@@ -281,6 +282,7 @@ pub struct Window {
     /// The current state of the window object
     current_state: Cell<WindowState>,
 
+    #[no_trace]
     current_viewport: Cell<UntypedRect<Au>>,
 
     error_reporter: CSSErrorReporter,
@@ -2680,7 +2682,7 @@ impl Window {
     /// Create a new cached instance of the given value.
     pub fn cache_layout_value<T>(&self, value: T) -> LayoutValue<T>
     where
-        T: Copy + JSTraceable + MallocSizeOf,
+        T: Copy + MallocSizeOf,
     {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
     }
@@ -2690,14 +2692,21 @@ impl Window {
 /// value can only be read as long as the associated layout marker that is considered
 /// valid. It will automatically become unavailable when the next layout operation is
 /// performed.
-#[derive(JSTraceable, MallocSizeOf)]
-pub struct LayoutValue<T: JSTraceable + MallocSizeOf> {
+#[derive(MallocSizeOf)]
+pub struct LayoutValue<T: MallocSizeOf> {
     #[ignore_malloc_size_of = "Rc is hard"]
     is_valid: Rc<Cell<bool>>,
     value: T,
 }
 
-impl<T: Copy + JSTraceable + MallocSizeOf> LayoutValue<T> {
+#[allow(unsafe_code)]
+unsafe impl<T: JSTraceable + MallocSizeOf> JSTraceable for LayoutValue<T> {
+    unsafe fn trace(&self, trc: *mut js::jsapi::JSTracer) {
+        self.value.trace(trc)
+    }
+}
+
+impl<T: Copy + MallocSizeOf> LayoutValue<T> {
     fn new(marker: Rc<Cell<bool>>, value: T) -> Self {
         LayoutValue {
             is_valid: marker,

@@ -35,6 +35,7 @@ use style_traits::DevicePixel;
 #[dom_struct]
 pub struct PaintRenderingContext2D {
     context: CanvasRenderingContext2D,
+    #[no_trace]
     device_pixel_ratio: Cell<Scale<f32, CSSPixel, DevicePixel>>,
 }
 

@@ -85,8 +85,10 @@ pub struct PaintWorkletGlobalScope {
     #[no_trace]
     cached_name: DomRefCell<Atom>,
     /// The most recent size the worklet was drawn at
+    #[no_trace]
     cached_size: Cell<Size2D<f32, CSSPixel>>,
     /// The most recent device pixel ratio the worklet was drawn at
+    #[no_trace]
     cached_device_pixel_ratio: Cell<Scale<f32, CSSPixel, DevicePixel>>,
     /// The most recent properties the worklet was drawn at
     #[no_trace]

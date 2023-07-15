@@ -19,6 +19,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 pub struct DOMTokenList {
     reflector_: Reflector,
     element: Dom<Element>,
+    #[no_trace]
     local_name: LocalName,
     #[no_trace]
     supported_tokens: Option<Vec<Atom>>,

@@ -17,6 +17,7 @@ pub struct XRWebGLSubImage {
     color_texture: Dom<WebGLTexture>,
     depth_stencil_texture: Option<Dom<WebGLTexture>>,
     image_index: Option<u32>,
+    #[no_trace]
     size: Size2D<u32, Viewport>,
 }
 
