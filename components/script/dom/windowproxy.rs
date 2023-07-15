@@ -114,12 +114,15 @@ pub struct WindowProxy {
     delaying_load_events_mode: Cell<bool>,
 
     /// The creator browsing context's base url.
+    #[no_trace]
     creator_base_url: Option<ServoUrl>,
 
     /// The creator browsing context's url.
+    #[no_trace]
     creator_url: Option<ServoUrl>,
 
     /// The creator browsing context's origin.
+    #[no_trace]
     creator_origin: Option<ImmutableOrigin>,
 }
 

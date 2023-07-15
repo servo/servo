@@ -149,6 +149,7 @@ pub struct XMLHttpRequest {
     // Associated concepts
     #[ignore_malloc_size_of = "Defined in hyper"]
     request_method: DomRefCell<Method>,
+    #[no_trace]
     request_url: DomRefCell<Option<ServoUrl>>,
     #[ignore_malloc_size_of = "Defined in hyper"]
     request_headers: DomRefCell<HeaderMap>,

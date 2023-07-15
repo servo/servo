@@ -60,6 +60,7 @@ enum ReadyState {
 #[dom_struct]
 pub struct EventSource {
     eventtarget: EventTarget,
+    #[no_trace]
     url: ServoUrl,
     #[no_trace]
     request: DomRefCell<Option<RequestBuilder>>,

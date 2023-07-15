@@ -172,6 +172,7 @@ pub struct ServiceWorkerGlobalScope {
     #[ignore_malloc_size_of = "Defined in std"]
     swmanager_sender: IpcSender<ServiceWorkerMsg>,
 
+    #[no_trace]
     scope_url: ServoUrl,
 
     /// A receiver of control messages,

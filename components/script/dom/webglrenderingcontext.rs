@@ -166,6 +166,7 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Channels are hard"]
     webgl_sender: WebGLMessageSender,
     #[ignore_malloc_size_of = "Defined in webrender"]
+    #[no_trace]
     webrender_image: ImageKey,
     #[no_trace]
     webgl_version: WebGLVersion,

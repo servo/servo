@@ -20,6 +20,7 @@ pub struct DOMTokenList {
     reflector_: Reflector,
     element: Dom<Element>,
     local_name: LocalName,
+    #[no_trace]
     supported_tokens: Option<Vec<Atom>>,
 }
 

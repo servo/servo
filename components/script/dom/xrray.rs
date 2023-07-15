@@ -24,6 +24,7 @@ use webxr_api::{ApiSpace, Ray};
 pub struct XRRay {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webxr"]
+    #[no_trace]
     ray: Ray<ApiSpace>,
     #[ignore_malloc_size_of = "defined in mozjs"]
     matrix: Heap<*mut JSObject>,

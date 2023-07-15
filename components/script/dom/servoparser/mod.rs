@@ -1046,6 +1046,7 @@ fn insert(
 #[derive(JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]
 pub struct Sink {
+    #[no_trace]
     base_url: ServoUrl,
     document: Dom<Document>,
     current_line: u64,

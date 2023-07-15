@@ -151,6 +151,7 @@ pub struct Node {
 
     /// Style+Layout information.
     #[ignore_malloc_size_of = "trait object"]
+    #[no_trace]
     style_and_layout_data: DomRefCell<Option<Box<StyleAndOpaqueLayoutData>>>,
 }
 

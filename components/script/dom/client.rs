@@ -18,6 +18,7 @@ use uuid::Uuid;
 pub struct Client {
     reflector_: Reflector,
     active_worker: MutNullableDom<ServiceWorker>,
+    #[no_trace]
     url: ServoUrl,
     frame_type: FrameType,
     #[ignore_malloc_size_of = "Defined in uuid"]

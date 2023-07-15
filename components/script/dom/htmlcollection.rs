@@ -245,6 +245,7 @@ impl HTMLCollection {
     ) -> DomRoot<HTMLCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct ClassNameFilter {
+            #[no_trace]
             classes: Vec<Atom>,
         }
         impl CollectionFilter for ClassNameFilter {

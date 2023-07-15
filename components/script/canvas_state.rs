@@ -148,9 +148,12 @@ pub(crate) struct CanvasState {
     image_cache: Arc<dyn ImageCache>,
     /// The base URL for resolving CSS image URL values.
     /// Needed because of https://github.com/servo/servo/issues/17625
+    #[no_trace]
     base_url: ServoUrl,
+    #[no_trace]
     origin: ImmutableOrigin,
     /// Any missing image URLs.
+    #[no_trace]
     missing_image_urls: DomRefCell<Vec<ServoUrl>>,
     saved_states: DomRefCell<Vec<CanvasContextState>>,
 }

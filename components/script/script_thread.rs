@@ -210,8 +210,10 @@ struct InProgressLoad {
     /// Window is visible.
     is_visible: bool,
     /// The requested URL of the load.
+    #[no_trace]
     url: ServoUrl,
     /// The origin for the document
+    #[no_trace]
     origin: MutableOrigin,
     /// Timestamp reporting the time when the browser started this load.
     navigation_start: u64,
@@ -652,6 +654,7 @@ pub struct ScriptThread {
     custom_element_reaction_stack: CustomElementReactionStack,
 
     /// The Webrender Document ID associated with this thread.
+    #[no_trace]
     webrender_document: DocumentId,
 
     /// Webrender API sender.

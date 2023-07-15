@@ -258,6 +258,7 @@ pub enum SourceCode {
 pub struct ScriptOrigin {
     #[ignore_malloc_size_of = "Rc is hard"]
     code: SourceCode,
+    #[no_trace]
     url: ServoUrl,
     external: bool,
     fetch_options: ScriptFetchOptions,

@@ -12,14 +12,15 @@ use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::iter::Iterator;
 use style::custom_properties;
+
+use super::bindings::trace::HashMapTracedValues;
 
 #[dom_struct]
 pub struct StylePropertyMapReadOnly {
     reflector: Reflector,
-    entries: HashMap<Atom, Dom<CSSStyleValue>>,
+    entries: HashMapTracedValues<Atom, Dom<CSSStyleValue>>,
 }
 
 impl StylePropertyMapReadOnly {
@@ -29,7 +30,7 @@ impl StylePropertyMapReadOnly {
     {
         StylePropertyMapReadOnly {
             reflector: Reflector::new(),
-            entries: entries.into_iter().collect(),
+            entries: HashMapTracedValues(entries.into_iter().collect()),
         }
     }
 
@@ -78,6 +79,7 @@ impl StylePropertyMapReadOnlyMethods for StylePropertyMapReadOnly {
     fn GetProperties(&self) -> Vec<DOMString> {
         let mut result: Vec<DOMString> = self
             .entries
+            .0
             .keys()
             .map(|key| DOMString::from(&**key))
             .collect();

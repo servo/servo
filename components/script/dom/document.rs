@@ -176,7 +176,7 @@ use url::Host;
 use uuid::Uuid;
 use webrender_api::units::DeviceIntRect;
 
-use super::bindings::trace::HashMapTracedValues;
+use super::bindings::trace::{HashMapTracedValues, NoTrace};
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -244,16 +244,17 @@ pub struct Document {
     is_html_document: bool,
     #[no_trace]
     activity: Cell<DocumentActivity>,
+    #[no_trace]
     url: DomRefCell<ServoUrl>,
     #[ignore_malloc_size_of = "defined in selectors"]
     #[no_trace]
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
-    id_map: DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
-    name_map: DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
+    id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
+    name_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
     tag_map: DomRefCell<HashMap<LocalName, Dom<HTMLCollection>>>,
     tagns_map: DomRefCell<HashMap<QualName, Dom<HTMLCollection>>>,
-    classes_map: DomRefCell<HashMap<Vec<Atom>, Dom<HTMLCollection>>>,
+    classes_map: DomRefCell<HashMapTracedValues<Vec<Atom>, Dom<HTMLCollection>>>,
     images: MutNullableDom<HTMLCollection>,
     embeds: MutNullableDom<HTMLCollection>,
     links: MutNullableDom<HTMLCollection>,
@@ -314,7 +315,7 @@ pub struct Document {
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
     /// Information on elements needing restyle to ship over to the layout thread when the
     /// time comes.
-    pending_restyles: DomRefCell<HashMap<Dom<Element>, PendingRestyle>>,
+    pending_restyles: DomRefCell<HashMap<Dom<Element>, NoTrace<PendingRestyle>>>,
     /// This flag will be true if layout suppressed a reflow attempt that was
     /// needed in order for the page to be painted.
     needs_paint: Cell<bool>,
@@ -336,6 +337,7 @@ pub struct Document {
     #[no_trace]
     https_state: Cell<HttpsState>,
     /// The document's origin.
+    #[no_trace]
     origin: MutableOrigin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
     #[no_trace]
@@ -369,7 +371,7 @@ pub struct Document {
     /// whenever any element with the same ID as the form attribute
     /// is inserted or removed from the document.
     /// See https://html.spec.whatwg.org/multipage/#form-owner
-    form_id_listener_map: DomRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
+    form_id_listener_map: DomRefCell<HashMapTracedValues<Atom, HashSet<Dom<Element>>>>,
     interactive_time: DomRefCell<InteractiveMetrics>,
     tti_window: DomRefCell<InteractiveWindow>,
     /// RAII canceller for Fetch
@@ -2873,11 +2875,11 @@ impl Document {
             .for_each(|(_, context)| context.send_swap_chain_present());
     }
 
-    pub fn id_map(&self) -> Ref<HashMap<Atom, Vec<Dom<Element>>>> {
+    pub fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         self.id_map.borrow()
     }
 
-    pub fn name_map(&self) -> Ref<HashMap<Atom, Vec<Dom<Element>>>> {
+    pub fn name_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         self.name_map.borrow()
     }
 }
@@ -3079,15 +3081,15 @@ impl Document {
             url: DomRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
-            id_map: DomRefCell::new(HashMap::new()),
-            name_map: DomRefCell::new(HashMap::new()),
+            id_map: DomRefCell::new(HashMapTracedValues::new()),
+            name_map: DomRefCell::new(HashMapTracedValues::new()),
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding: Cell::new(encoding),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             activity: Cell::new(activity),
             tag_map: DomRefCell::new(HashMap::new()),
             tagns_map: DomRefCell::new(HashMap::new()),
-            classes_map: DomRefCell::new(HashMap::new()),
+            classes_map: DomRefCell::new(HashMapTracedValues::new()),
             images: Default::default(),
             embeds: Default::default(),
             links: Default::default(),
@@ -3502,8 +3504,10 @@ impl Document {
     pub fn ensure_pending_restyle(&self, el: &Element) -> RefMut<PendingRestyle> {
         let map = self.pending_restyles.borrow_mut();
         RefMut::map(map, |m| {
-            m.entry(Dom::from_ref(el))
-                .or_insert_with(PendingRestyle::new)
+            &mut m
+                .entry(Dom::from_ref(el))
+                .or_insert_with(|| NoTrace(PendingRestyle::new()))
+                .0
         })
     }
 
@@ -3872,7 +3876,7 @@ impl Document {
                     return None;
                 }
                 node.note_dirty_descendants();
-                Some((node.to_trusted_node_address(), restyle))
+                Some((node.to_trusted_node_address(), restyle.0))
             })
             .collect()
     }
@@ -4846,6 +4850,7 @@ impl DocumentMethods for Document {
         // Step 4.
         #[derive(JSTraceable, MallocSizeOf)]
         struct DocumentNamedGetter {
+            #[no_trace]
             name: Atom,
         }
         impl CollectionFilter for DocumentNamedGetter {
@@ -4886,7 +4891,7 @@ impl DocumentMethods for Document {
         let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
 
         let name_map = self.name_map.borrow();
-        for (name, elements) in &*name_map {
+        for (name, elements) in &(*name_map).0 {
             if name.is_empty() {
                 continue;
             }
@@ -4898,7 +4903,7 @@ impl DocumentMethods for Document {
             }
         }
         let id_map = self.id_map.borrow();
-        for (id, elements) in &*id_map {
+        for (id, elements) in &(*id_map).0 {
             if id.is_empty() {
                 continue;
             }

@@ -34,8 +34,10 @@ pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 pub struct ServiceWorker {
     eventtarget: EventTarget,
     script_url: DomRefCell<String>,
+    #[no_trace]
     scope_url: ServoUrl,
     state: Cell<ServiceWorkerState>,
+    #[no_trace]
     worker_id: ServiceWorkerId,
 }
 

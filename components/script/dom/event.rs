@@ -39,6 +39,7 @@ pub struct Event {
     reflector_: Reflector,
     current_target: MutNullableDom<EventTarget>,
     target: MutNullableDom<EventTarget>,
+    #[no_trace]
     type_: DomRefCell<Atom>,
     phase: Cell<EventPhase>,
     canceled: Cell<EventDefault>,

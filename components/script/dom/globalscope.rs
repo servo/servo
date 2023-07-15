@@ -189,11 +189,12 @@ pub struct GlobalScope {
     blob_state: DomRefCell<BlobState>,
 
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-registration-object-map>
-    registration_map:
-        DomRefCell<HashMap<ServiceWorkerRegistrationId, Dom<ServiceWorkerRegistration>>>,
+    registration_map: DomRefCell<
+        HashMapTracedValues<ServiceWorkerRegistrationId, Dom<ServiceWorkerRegistration>>,
+    >,
 
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-object-map>
-    worker_map: DomRefCell<HashMap<ServiceWorkerId, Dom<ServiceWorker>>>,
+    worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>>>,
 
     /// Pipeline id associated with this global.
     #[no_trace]
@@ -209,7 +210,7 @@ pub struct GlobalScope {
     /// module map is used when importing JavaScript modules
     /// https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map
     #[ignore_malloc_size_of = "mozjs"]
-    module_map: DomRefCell<HashMap<ServoUrl, Rc<ModuleTree>>>,
+    module_map: DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>>,
 
     #[ignore_malloc_size_of = "mozjs"]
     inline_module_map: DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>>,
@@ -252,9 +253,11 @@ pub struct GlobalScope {
     init_timers: Cell<bool>,
 
     /// The origin of the globalscope
+    #[no_trace]
     origin: MutableOrigin,
 
     /// https://html.spec.whatwg.org/multipage/#concept-environment-creation-url
+    #[no_trace]
     creation_url: Option<ServoUrl>,
 
     /// A map for storing the previous permission state read results.
@@ -749,8 +752,8 @@ impl GlobalScope {
             blob_state: DomRefCell::new(BlobState::UnManaged),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
-            registration_map: DomRefCell::new(HashMap::new()),
-            worker_map: DomRefCell::new(HashMap::new()),
+            registration_map: DomRefCell::new(HashMapTracedValues::new()),
+            worker_map: DomRefCell::new(HashMapTracedValues::new()),
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
@@ -2219,7 +2222,7 @@ impl GlobalScope {
         self.module_map.borrow_mut().insert(url, Rc::new(module));
     }
 
-    pub fn get_module_map(&self) -> &DomRefCell<HashMap<ServoUrl, Rc<ModuleTree>>> {
+    pub fn get_module_map(&self) -> &DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>> {
         &self.module_map
     }
 

@@ -28,11 +28,13 @@ pub struct ServiceWorkerRegistration {
     installing: DomRefCell<Option<Dom<ServiceWorker>>>,
     waiting: DomRefCell<Option<Dom<ServiceWorker>>>,
     navigation_preload: MutNullableDom<NavigationPreloadManager>,
+    #[no_trace]
     scope: ServoUrl,
     navigation_preload_enabled: Cell<bool>,
     navigation_preload_header_value: DomRefCell<Option<ByteString>>,
     update_via_cache: ServiceWorkerUpdateViaCache,
     uninstalling: Cell<bool>,
+    #[no_trace]
     registration_id: ServiceWorkerRegistrationId,
 }
 

@@ -17,11 +17,11 @@ use servo_url::ServoUrl;
 
 #[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum LoadType {
-    Image(ServoUrl),
-    Script(ServoUrl),
-    Subframe(ServoUrl),
-    Stylesheet(ServoUrl),
-    PageSource(ServoUrl),
+    Image(#[no_trace] ServoUrl),
+    Script(#[no_trace] ServoUrl),
+    Subframe(#[no_trace] ServoUrl),
+    Stylesheet(#[no_trace] ServoUrl),
+    PageSource(#[no_trace] ServoUrl),
     Media,
 }
 

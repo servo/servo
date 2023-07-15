@@ -206,6 +206,7 @@ pub struct Tokenizer {
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
     #[ignore_malloc_size_of = "Defined in std"]
     nodes: HashMap<ParseNodeId, Dom<Node>>,
+    #[no_trace]
     url: ServoUrl,
     parsing_algorithm: ParsingAlgorithm,
 }

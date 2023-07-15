@@ -43,7 +43,9 @@ pub struct Response {
     status: DomRefCell<Option<StatusCode>>,
     raw_status: DomRefCell<Option<(u16, Vec<u8>)>>,
     response_type: DomRefCell<DOMResponseType>,
+    #[no_trace]
     url: DomRefCell<Option<ServoUrl>>,
+    #[no_trace]
     url_list: DomRefCell<Vec<ServoUrl>>,
     /// The stream of https://fetch.spec.whatwg.org/#body.
     body_stream: MutNullableDom<ReadableStream>,

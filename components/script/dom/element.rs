@@ -154,6 +154,7 @@ pub struct Element {
     namespace: Namespace,
     prefix: DomRefCell<Option<Prefix>>,
     attrs: DomRefCell<Vec<Dom<Attr>>>,
+    #[no_trace]
     id_attribute: DomRefCell<Option<Atom>>,
     is: DomRefCell<Option<LocalName>>,
     #[ignore_malloc_size_of = "Arc"]

@@ -249,6 +249,7 @@ pub struct Window {
 
     /// A handle to perform RPC calls into the layout, quickly.
     #[ignore_malloc_size_of = "trait objects are hard"]
+    #[no_trace]
     layout_rpc: Box<dyn LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
@@ -320,6 +321,7 @@ pub struct Window {
     paint_worklet: MutNullableDom<Worklet>,
     /// The Webrender Document id associated with this window.
     #[ignore_malloc_size_of = "defined in webrender_api"]
+    #[no_trace]
     webrender_document: DocumentId,
 
     /// Flag to identify whether mutation observers are present(true)/absent(false)
@@ -1480,6 +1482,7 @@ impl WindowMethods for Window {
         // Step 4.
         #[derive(JSTraceable, MallocSizeOf)]
         struct WindowNamedGetter {
+            #[no_trace]
             name: Atom,
         }
         impl CollectionFilter for WindowNamedGetter {
@@ -1520,7 +1523,7 @@ impl WindowMethods for Window {
 
         let document = self.Document();
         let name_map = document.name_map();
-        for (name, elements) in &*name_map {
+        for (name, elements) in &(*name_map).0 {
             if name.is_empty() {
                 continue;
             }
@@ -1532,7 +1535,7 @@ impl WindowMethods for Window {
             }
         }
         let id_map = document.id_map();
-        for (id, elements) in &*id_map {
+        for (id, elements) in &(*id_map).0 {
             if id.is_empty() {
                 continue;
             }

@@ -355,9 +355,11 @@ pub struct HTMLMediaElement {
     /// https://html.spec.whatwg.org/multipage/#dom-media-muted
     muted: Cell<bool>,
     /// URL of the media resource, if any.
+    #[no_trace]
     resource_url: DomRefCell<Option<ServoUrl>>,
     /// URL of the media resource, if the resource is set through the src_object attribute and it
     /// is a blob.
+    #[no_trace]
     blob_url: DomRefCell<Option<ServoUrl>>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
     #[ignore_malloc_size_of = "Rc"]
@@ -2473,6 +2475,7 @@ pub enum MediaElementMicrotask {
     ResourceSelectionTask {
         elem: DomRoot<HTMLMediaElement>,
         generation_id: u32,
+        #[no_trace]
         base_url: ServoUrl,
     },
     PauseIfNotInDocumentTask {

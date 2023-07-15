@@ -71,16 +71,10 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use media::WindowGLContext;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use mime::Mime;
-use msg::constellation_msg::{ServiceWorkerId, ServiceWorkerRegistrationId};
 use parking_lot::{Mutex as ParkMutex, RwLock};
-use script_layout_interface::message::PendingRestyle;
-use script_layout_interface::rpc::LayoutRPC;
-use script_layout_interface::StyleAndOpaqueLayoutData;
 use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
-use servo_atoms::Atom;
-use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell, UnsafeCell};
@@ -104,8 +98,7 @@ use tendril::stream::LossyDecoder;
 use tendril::{StrTendril, TendrilSink};
 use time::{Duration, Timespec, Tm};
 use uuid::Uuid;
-use webrender_api::{DocumentId, ExternalImageId, ImageKey};
-use webxr_api::{Finger, Hand, Ray, View};
+use webxr_api::{Finger, Hand};
 
 unsafe_no_jsmanaged_fields!(Tm);
 unsafe_no_jsmanaged_fields!(JoinHandle<()>);
@@ -262,9 +255,6 @@ unsafe impl<K, V: JSTraceable, S> JSTraceable for HashMapTracedValues<K, V, S> {
 unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 
 unsafe_no_jsmanaged_fields!(IncompleteParserContexts);
-
-unsafe_no_jsmanaged_fields!(ServiceWorkerId);
-unsafe_no_jsmanaged_fields!(ServiceWorkerRegistrationId);
 
 unsafe_no_jsmanaged_fields!(&'static Encoding);
 
@@ -583,8 +573,7 @@ unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 unsafe_no_jsmanaged_fields!(NonZeroU64);
 unsafe_no_jsmanaged_fields!(Error);
-unsafe_no_jsmanaged_fields!(ServoUrl, ImmutableOrigin, MutableOrigin);
-unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
+unsafe_no_jsmanaged_fields!(Prefix, LocalName, Namespace, QualName);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
 
 unsafe_no_jsmanaged_fields!(BufferQueue, StrTendril);
@@ -596,16 +585,11 @@ unsafe_no_jsmanaged_fields!(RGBA);
 unsafe_no_jsmanaged_fields!(ElementSelectorFlags);
 unsafe_no_jsmanaged_fields!(DOMString);
 unsafe_no_jsmanaged_fields!(Mime);
-unsafe_no_jsmanaged_fields!(PendingRestyle);
 unsafe_no_jsmanaged_fields!(USVString);
 unsafe_no_jsmanaged_fields!(StatusCode);
 unsafe_no_jsmanaged_fields!(SystemTime);
 unsafe_no_jsmanaged_fields!(Instant);
-unsafe_no_jsmanaged_fields!(StyleAndOpaqueLayoutData);
 unsafe_no_jsmanaged_fields!(PathBuf);
-unsafe_no_jsmanaged_fields!(DocumentId);
-unsafe_no_jsmanaged_fields!(ImageKey);
-unsafe_no_jsmanaged_fields!(ExternalImageId);
 unsafe_no_jsmanaged_fields!(Arc<ParkMutex<Identities>>);
 unsafe_no_jsmanaged_fields!(WebGPUContextId);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
@@ -653,14 +637,6 @@ unsafe impl<T> JSTraceable for IpcSender<T>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-// Safe thanks to the Send bound.
-unsafe impl JSTraceable for Box<dyn LayoutRPC + Send + 'static> {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -776,20 +752,6 @@ unsafe impl<U> JSTraceable for euclid::Size2D<u32, U> {
 }
 
 unsafe impl<U> JSTraceable for euclid::Rect<i32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<Space> JSTraceable for Ray<Space> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<Eye> JSTraceable for View<Eye> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

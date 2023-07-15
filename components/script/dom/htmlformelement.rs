@@ -76,10 +76,11 @@ use style::element_state::ElementState;
 use style::str::split_html_space_chars;
 
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
-use std::collections::HashMap;
 use time::{now, Duration, Tm};
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
+
+use super::bindings::trace::HashMapTracedValues;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -93,7 +94,7 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
-    past_names_map: DomRefCell<HashMap<Atom, (Dom<Element>, Tm)>>,
+    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, Tm)>>,
     firing_submission_events: Cell<bool>,
     rel_list: MutNullableDom<DOMTokenList>,
 }
@@ -116,7 +117,7 @@ impl HTMLFormElement {
             elements: Default::default(),
             generation_id: Cell::new(GenerationId(0)),
             controls: DomRefCell::new(Vec::new()),
-            past_names_map: DomRefCell::new(HashMap::new()),
+            past_names_map: DomRefCell::new(HashMapTracedValues::new()),
             firing_submission_events: Cell::new(false),
             rel_list: Default::default(),
         }
@@ -1336,7 +1337,7 @@ impl HTMLFormElement {
             // changes form owner, then its entries must be removed
             // from that map."
             let mut past_names_map = self.past_names_map.borrow_mut();
-            past_names_map.retain(|_k, v| v.0 != control);
+            past_names_map.0.retain(|_k, v| v.0 != control);
         }
         self.update_validity();
     }

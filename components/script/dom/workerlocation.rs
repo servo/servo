@@ -15,6 +15,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 #[dom_struct]
 pub struct WorkerLocation {
     reflector_: Reflector,
+    #[no_trace]
     url: ServoUrl,
 }
 

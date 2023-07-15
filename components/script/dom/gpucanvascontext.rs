@@ -43,6 +43,7 @@ pub struct GPUCanvasContext {
     size: Cell<Size2D<u32>>,
     swap_chain: DomRefCell<Option<Dom<GPUSwapChain>>>,
     #[ignore_malloc_size_of = "Defined in webrender"]
+    #[no_trace]
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     context_id: WebGPUContextId,
 }
