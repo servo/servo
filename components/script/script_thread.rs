@@ -34,7 +34,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::{JSTraceable, NoTrace};
+use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
@@ -443,29 +443,29 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
 #[derive(JSTraceable)]
 #[unrooted_must_root_lint::must_root]
 pub struct Documents {
-    map: HashMap<NoTrace<PipelineId>, Dom<Document>>,
+    map: HashMapTracedValues<PipelineId, Dom<Document>>,
 }
 
 impl Documents {
     pub fn new() -> Documents {
         Documents {
-            map: HashMap::new(),
+            map: HashMapTracedValues::new(),
         }
     }
 
     pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
-        self.map.insert(NoTrace(pipeline_id), Dom::from_ref(doc));
+        self.map.insert(pipeline_id, Dom::from_ref(doc));
     }
 
     pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
         self.map
-            .remove(&NoTrace(pipeline_id))
+            .remove(&pipeline_id)
             .map(|ref doc| DomRoot::from_ref(&**doc))
     }
 
     pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
         self.map
-            .get(&NoTrace(pipeline_id))
+            .get(&pipeline_id)
             .map(|doc| DomRoot::from_ref(&**doc))
     }
 
@@ -497,7 +497,7 @@ impl Documents {
 
 #[allow(unrooted_must_root)]
 pub struct DocumentsIter<'a> {
-    iter: hash_map::Iter<'a, NoTrace<PipelineId>, Dom<Document>>,
+    iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
 }
 
 impl<'a> Iterator for DocumentsIter<'a> {
@@ -506,7 +506,7 @@ impl<'a> Iterator for DocumentsIter<'a> {
     fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {
         self.iter
             .next()
-            .map(|(id, doc)| (id.0, DomRoot::from_ref(&**doc)))
+            .map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
     }
 }
 
@@ -529,7 +529,7 @@ pub struct ScriptThread {
     documents: DomRefCell<Documents>,
     /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
-    window_proxies: DomRefCell<HashMap<NoTrace<BrowsingContextId>, Dom<WindowProxy>>>,
+    window_proxies: DomRefCell<HashMapTracedValues<BrowsingContextId, Dom<WindowProxy>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
@@ -1110,7 +1110,7 @@ impl ScriptThread {
                 script_thread
                     .window_proxies
                     .borrow()
-                    .get(&NoTrace(id))
+                    .get(&id)
                     .map(|context| DomRoot::from_ref(&**context))
             })
         })
@@ -1312,7 +1312,7 @@ impl ScriptThread {
 
         ScriptThread {
             documents: DomRefCell::new(Documents::new()),
-            window_proxies: DomRefCell::new(HashMap::new()),
+            window_proxies: DomRefCell::new(HashMapTracedValues::new()),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
 
@@ -3129,11 +3129,7 @@ impl ScriptThread {
     ) -> Option<DomRoot<WindowProxy>> {
         let (browsing_context_id, parent_pipeline_id) =
             self.ask_constellation_for_browsing_context_info(pipeline_id)?;
-        if let Some(window_proxy) = self
-            .window_proxies
-            .borrow()
-            .get(&NoTrace(browsing_context_id))
-        {
+        if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             return Some(DomRoot::from_ref(window_proxy));
         }
 
@@ -3163,7 +3159,7 @@ impl ScriptThread {
         );
         self.window_proxies
             .borrow_mut()
-            .insert(NoTrace(browsing_context_id), Dom::from_ref(&*window_proxy));
+            .insert(browsing_context_id, Dom::from_ref(&*window_proxy));
         Some(window_proxy)
     }
 
@@ -3181,11 +3177,7 @@ impl ScriptThread {
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
     ) -> DomRoot<WindowProxy> {
-        if let Some(window_proxy) = self
-            .window_proxies
-            .borrow()
-            .get(&NoTrace(browsing_context_id))
-        {
+        if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             // Note: we do not set the window to be the currently-active one,
             // this will be done instead when the script-thread handles the `SetDocumentActivity` msg.
             return DomRoot::from_ref(window_proxy);
@@ -3224,7 +3216,7 @@ impl ScriptThread {
         );
         self.window_proxies
             .borrow_mut()
-            .insert(NoTrace(browsing_context_id), Dom::from_ref(&*window_proxy));
+            .insert(browsing_context_id, Dom::from_ref(&*window_proxy));
         window_proxy
     }
 

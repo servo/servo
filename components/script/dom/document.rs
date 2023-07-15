@@ -176,7 +176,7 @@ use url::Host;
 use uuid::Uuid;
 use webrender_api::units::DeviceIntRect;
 
-use super::bindings::trace::NoTrace;
+use super::bindings::trace::HashMapTracedValues;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -406,7 +406,8 @@ pub struct Document {
     /// hosting the media controls UI.
     media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
     /// List of all WebGL context IDs that need flushing.
-    dirty_webgl_contexts: DomRefCell<HashMap<NoTrace<WebGLContextId>, Dom<WebGLRenderingContext>>>,
+    dirty_webgl_contexts:
+        DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
     /// List of all WebGPU context IDs that need flushing.
     dirty_webgpu_contexts: DomRefCell<HashMap<WebGPUContextId, Dom<GPUCanvasContext>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-csp-list
@@ -2825,7 +2826,7 @@ impl Document {
     pub fn add_dirty_webgl_canvas(&self, context: &WebGLRenderingContext) {
         self.dirty_webgl_contexts
             .borrow_mut()
-            .entry(NoTrace(context.context_id()))
+            .entry(context.context_id())
             .or_insert_with(|| Dom::from_ref(context));
     }
 
@@ -2835,7 +2836,7 @@ impl Document {
             .borrow_mut()
             .drain()
             .filter(|(_, context)| context.onscreen())
-            .map(|(id, _)| id.0)
+            .map(|(id, _)| id)
             .collect();
 
         if dirty_context_ids.is_empty() {
@@ -3171,7 +3172,7 @@ impl Document {
             shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
-            dirty_webgl_contexts: DomRefCell::new(HashMap::new()),
+            dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             dirty_webgpu_contexts: DomRefCell::new(HashMap::new()),
             csp_list: DomRefCell::new(None),
             selection: MutNullableDom::new(None),

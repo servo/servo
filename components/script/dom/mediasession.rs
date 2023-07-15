@@ -26,10 +26,9 @@ use embedder_traits::MediaMetadata as EmbedderMediaMetadata;
 use embedder_traits::MediaSessionEvent;
 use script_traits::MediaSessionActionType;
 use script_traits::ScriptMsg;
-use std::collections::HashMap;
 use std::rc::Rc;
 
-use super::bindings::trace::NoTrace;
+use super::bindings::trace::HashMapTracedValues;
 
 #[dom_struct]
 pub struct MediaSession {
@@ -43,7 +42,7 @@ pub struct MediaSession {
     /// https://w3c.github.io/mediasession/#supported-media-session-actions
     #[ignore_malloc_size_of = "Rc"]
     action_handlers:
-        DomRefCell<HashMap<NoTrace<MediaSessionActionType>, Rc<MediaSessionActionHandler>>>,
+        DomRefCell<HashMapTracedValues<MediaSessionActionType, Rc<MediaSessionActionHandler>>>,
     /// The media instance controlled by this media session.
     /// For now only HTMLMediaElements are controlled by media sessions.
     media_instance: MutNullableDom<HTMLMediaElement>,
@@ -56,7 +55,7 @@ impl MediaSession {
             reflector_: Reflector::new(),
             metadata: DomRefCell::new(None),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
-            action_handlers: DomRefCell::new(HashMap::new()),
+            action_handlers: DomRefCell::new(HashMapTracedValues::new()),
             media_instance: Default::default(),
         };
         media_session
@@ -72,7 +71,6 @@ impl MediaSession {
 
     pub fn handle_action(&self, action: MediaSessionActionType) {
         debug!("Handle media session action {:?}", action);
-        let action = NoTrace(action);
 
         if let Some(handler) = self.action_handlers.borrow().get(&action) {
             if handler.Call__(ExceptionHandling::Report).is_err() {
@@ -83,7 +81,7 @@ impl MediaSession {
 
         // Default action.
         if let Some(media) = self.media_instance.get() {
-            match action.0 {
+            match action {
                 MediaSessionActionType::Play => {
                     let realm = enter_realm(self);
                     media.Play(InRealm::Entered(&realm));
@@ -191,11 +189,8 @@ impl MediaSessionMethods for MediaSession {
             Some(handler) => self
                 .action_handlers
                 .borrow_mut()
-                .insert(NoTrace(action.into()), handler.clone()),
-            None => self
-                .action_handlers
-                .borrow_mut()
-                .remove(&NoTrace(action.into())),
+                .insert(action.into(), handler.clone()),
+            None => self.action_handlers.borrow_mut().remove(&action.into()),
         };
     }
 
