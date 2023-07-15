@@ -84,6 +84,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell, UnsafeCell};
+use std::collections::hash_map::RandomState;
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::fmt::Display;
 use std::hash::{BuildHasher, Hash};
@@ -118,7 +119,7 @@ pub unsafe trait JSTraceable {
 /// Wrapper type for nop traceble
 ///
 /// SAFETY: Inner type must not impl JSTraceable
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[trace_in_no_trace_lint::must_not_have_traceable]
 pub struct NoTrace<T>(pub T);
 
@@ -143,6 +144,118 @@ unsafe impl<T> JSTraceable for NoTrace<T> {
 impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.0.size_of(ops)
+    }
+}
+
+/// HashMap wrapper, that has non-jsmanaged keys
+///
+/// Not all methods are reexposed, but you can access inner type via .0
+#[trace_in_no_trace_lint::must_not_have_traceable(0)]
+#[derive(Clone, Debug)]
+pub struct HashMapTracedValues<K, V, S = RandomState>(pub HashMap<K, V, S>);
+
+impl<K, V, S: Default> Default for HashMapTracedValues<K, V, S> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
+impl<K, V> HashMapTracedValues<K, V, RandomState> {
+    /// Wrapper for HashMap::new()
+    #[inline]
+    #[must_use]
+    pub fn new() -> HashMapTracedValues<K, V, RandomState> {
+        Self(HashMap::new())
+    }
+}
+
+impl<K, V, S> HashMapTracedValues<K, V, S> {
+    #[inline]
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, K, V> {
+        self.0.iter()
+    }
+
+    #[inline]
+    pub fn drain(&mut self) -> std::collections::hash_map::Drain<'_, K, V> {
+        self.0.drain()
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl<K, V, S> HashMapTracedValues<K, V, S>
+where
+    K: Eq + Hash,
+    S: BuildHasher,
+{
+    #[inline]
+    pub fn insert(&mut self, k: K, v: V) -> Option<V> {
+        self.0.insert(k, v)
+    }
+
+    #[inline]
+    pub fn get<Q: ?Sized>(&self, k: &Q) -> Option<&V>
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.0.get(k)
+    }
+
+    #[inline]
+    pub fn get_mut<Q: ?Sized>(&mut self, k: &Q) -> Option<&mut V>
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.0.get_mut(k)
+    }
+
+    #[inline]
+    pub fn contains_key<Q: ?Sized>(&self, k: &Q) -> bool
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.0.contains_key(k)
+    }
+
+    #[inline]
+    pub fn remove<Q: ?Sized>(&mut self, k: &Q) -> Option<V>
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.0.remove(k)
+    }
+
+    #[inline]
+    pub fn entry(&mut self, key: K) -> std::collections::hash_map::Entry<'_, K, V> {
+        self.0.entry(key)
+    }
+}
+
+impl<K, V, S> MallocSizeOf for HashMapTracedValues<K, V, S>
+where
+    K: Eq + Hash + MallocSizeOf,
+    V: MallocSizeOf,
+    S: BuildHasher,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.size_of(ops)
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl<K, V: JSTraceable, S> JSTraceable for HashMapTracedValues<K, V, S> {
+    #[inline]
+    unsafe fn trace(&self, trc: *mut ::js::jsapi::JSTracer) {
+        for v in self.0.values() {
+            v.trace(trc);
+        }
     }
 }
 
