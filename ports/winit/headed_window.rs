@@ -4,7 +4,6 @@
 
 //! A winit window implementation.
 
-use crate::app;
 use crate::events_loop::{EventsLoop, ServoEvent};
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
@@ -54,6 +53,7 @@ pub struct Window {
     webrender_surfman: WebrenderSurfman,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<Size2D<u32, DeviceIndependentPixel>>,
+    toolbar_size: Cell<f32>,
     mouse_down_button: Cell<Option<winit::event::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
     primary_monitor: winit::monitor::MonitorHandle,
@@ -157,6 +157,7 @@ impl Window {
             device_pixels_per_px,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
+            toolbar_size: Cell::new(0.0), // Initial value
         }
     }
 
@@ -509,6 +510,10 @@ impl WindowPortsMethods for Window {
     fn winit_window(&self) -> Option<&winit::window::Window> {
         Some(&self.winit_window)
     }
+
+    fn set_toolbar_size(&self, height: f32) {
+        self.toolbar_size.set(height);
+    }
 }
 
 impl WindowMethods for Window {
@@ -531,10 +536,8 @@ impl WindowMethods for Window {
             .winit_window
             .inner_size();
 
-        let value = unsafe { app::TOOLBAR_HEIGHT };
-        dbg!(value);
-
-        let toolbar_height = value;
+        // Get the height of toolbar for minibrowser
+        let toolbar_height = self.toolbar_size.get();
         let viewport_origin = Point2D::new(0f32, toolbar_height * 0f32).to_i32(); // TODO this misbehaves
         let viewport_size = (Size2D::new(width as f32, height as f32 - toolbar_height) * dpr).to_i32();
         let viewport = DeviceIntRect::new(viewport_origin, viewport_size);

@@ -30,8 +30,6 @@ use std::sync::Arc;
 use surfman::GLApi;
 use webxr::glwindow::GlWindowDiscovery;
 
-pub static mut TOOLBAR_HEIGHT: f32 = 0.0;
-
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
     browser: RefCell<Browser<dyn WindowPortsMethods>>,
@@ -77,8 +75,9 @@ impl App {
         }
 
         impl Minibrowser {
-            fn update(&mut self, window: &winit::window::Window) {
+            fn update(&mut self, window: &winit::window::Window) -> f32 {
                 let Self { context, location } = self;
+                let mut toolbar_height= 0.0;
                 let _duration = context.run(window, |ctx| {
                     TopBottomPanel::top("toolbar").show(ctx, |ui| {
                         ui.allocate_ui_with_layout(
@@ -97,11 +96,11 @@ impl App {
                         );
                     });
 
-                    unsafe {
-                        TOOLBAR_HEIGHT = ctx.used_rect().height();
-                    }
+                    toolbar_height = ctx.used_rect().height();
                 });
                 context.paint(window);
+
+                toolbar_height
             }
         }
 
@@ -129,7 +128,7 @@ impl App {
         });
 
         if let Some(minibrowser) = minibrowser.as_mut() {
-            minibrowser.update(window.winit_window().unwrap());
+            window.set_toolbar_size(minibrowser.update(window.winit_window().unwrap()));
         }
 
         let ev_waker = events_loop.create_event_loop_waker();

@@ -32,4 +32,5 @@ pub trait WindowPortsMethods: WindowMethods {
         events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
     ) -> Box<dyn webxr::glwindow::GlWindow>;
     fn winit_window(&self) -> Option<&winit::window::Window>;
+    fn set_toolbar_size(&self, height: f32);
 }

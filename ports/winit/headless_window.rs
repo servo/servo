@@ -112,6 +112,10 @@ impl WindowPortsMethods for Window {
     fn winit_window(&self) -> Option<&winit::window::Window> {
         None
     }
+
+    fn set_toolbar_size(&self, _height: f32) {
+        // Skip for now
+    }
 }
 
 impl WindowMethods for Window {
