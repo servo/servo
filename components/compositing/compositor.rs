@@ -487,7 +487,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             (Msg::SetFrameTree(frame_tree), ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree);
-                self.send_viewport_rects();
+                self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
             },
 
             (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
@@ -1208,8 +1208,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn process_pending_scroll_events(&mut self) {
-        let had_events = self.pending_scroll_zoom_events.len() > 0;
-
         // Batch up all scroll events into one, or else we'll do way too much painting.
         let mut last_combined_event: Option<ScrollZoomEvent> = None;
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
@@ -1290,6 +1288,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     None => {},
                 }
             }
+            self.send_scroll_positions_to_layout_for_pipeline(&result.pipeline_id);
 
             if combined_event.magnification != 1.0 {
                 let old_zoom = self.pinch_zoom_level();
@@ -1300,10 +1299,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.webrender_api
                 .send_transaction(self.webrender_document, txn);
             self.waiting_for_results_of_scroll = true
-        }
-
-        if had_events {
-            self.send_viewport_rects();
         }
     }
 
@@ -1404,28 +1399,29 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         });
     }
 
-    fn send_viewport_rects(&self) {
-        let mut scroll_states_per_pipeline = HashMap::new();
-        for scroll_layer_state in self
-            .webrender_api
-            .get_scroll_node_state(self.webrender_document)
-        {
-            let scroll_state = ScrollState {
-                scroll_id: scroll_layer_state.id,
-                scroll_offset: scroll_layer_state.scroll_offset,
-            };
+    fn send_scroll_positions_to_layout_for_pipeline(&self, pipeline_id: &PipelineId) {
+        let details = match self.pipeline_details.get(&pipeline_id) {
+            Some(details) => details,
+            None => return,
+        };
 
-            scroll_states_per_pipeline
-                .entry(scroll_layer_state.id.pipeline_id())
-                .or_insert(vec![])
-                .push(scroll_state);
-        }
-
-        for (pipeline_id, scroll_states) in scroll_states_per_pipeline {
-            if let Some(pipeline) = self.pipeline(pipeline_id.from_webrender()) {
-                let msg = LayoutControlMsg::SetScrollStates(scroll_states);
-                let _ = pipeline.layout_chan.send(msg);
+        let mut scroll_states = Vec::new();
+        details.scroll_tree.nodes.iter().for_each(|node| {
+            match (node.external_id(), node.offset()) {
+                (Some(scroll_id), Some(scroll_offset)) => {
+                    scroll_states.push(ScrollState {
+                        scroll_id,
+                        scroll_offset,
+                    });
+                },
+                _ => {},
             }
+        });
+
+        if let Some(pipeline) = details.pipeline.as_ref() {
+            let _ = pipeline
+                .layout_chan
+                .send(LayoutControlMsg::SetScrollStates(scroll_states));
         }
     }
 
