@@ -153,53 +153,71 @@ impl DisplayItem {
             .clipping
             .unwrap_or(clip_and_scroll_indices.scrolling);
         let current_clip_id = state.webrender_clip_id_for_index(internal_clip_id.to_index());
+        let hit_test_bounds = self.bounds().intersection(&self.base().clip_rect);
 
-        let mut build_common_item_properties = |base: &BaseDisplayItem| {
-            let tag = match base.metadata.cursor {
-                Some(cursor) => {
-                    let hit_test_index = state.compositor_info.add_hit_test_info(
-                        base.metadata.node.0 as u64,
-                        Some(cursor),
-                        current_scroll_node_id,
-                    );
-                    Some((hit_test_index as u64, 0u16))
-                },
-                None => None,
-            };
+        let build_common_item_properties = |base: &BaseDisplayItem| {
             CommonItemProperties {
                 clip_rect: base.clip_rect,
                 spatial_id: current_scroll_node_id.spatial_id,
                 clip_id: ClipId::ClipChain(current_clip_id),
                 // TODO(gw): Make use of the WR backface visibility functionality.
                 flags: PrimitiveFlags::default(),
-                hit_info: tag,
+                hit_info: None,
             }
+        };
+
+        let mut push_hit_test = |base: &BaseDisplayItem| {
+            let bounds = match hit_test_bounds {
+                Some(bounds) => bounds,
+                None => return,
+            };
+
+            let cursor = match base.metadata.cursor {
+                Some(cursor) => cursor,
+                None => return,
+            };
+
+            let hit_test_index = state.compositor_info.add_hit_test_info(
+                base.metadata.node.0 as u64,
+                Some(cursor),
+                current_scroll_node_id,
+            );
+
+            let mut common = build_common_item_properties(base);
+            common.hit_info = Some((hit_test_index as u64, 0u16));
+            common.clip_rect = bounds;
+            builder.push_hit_test(&common);
         };
 
         match *self {
             DisplayItem::Rectangle(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 builder.push_item(&WrDisplayItem::Rectangle(item.item));
                 IsContentful(false)
             },
             DisplayItem::Text(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 builder.push_item(&WrDisplayItem::Text(item.item));
                 builder.push_iter(item.data.iter());
                 IsContentful(true)
             },
             DisplayItem::Image(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 builder.push_item(&WrDisplayItem::Image(item.item));
                 IsContentful(true)
             },
             DisplayItem::RepeatingImage(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 builder.push_item(&WrDisplayItem::RepeatingImage(item.item));
                 IsContentful(true)
             },
             DisplayItem::Border(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 if !item.data.is_empty() {
                     builder.push_stops(item.data.as_ref());
                 }
@@ -208,28 +226,33 @@ impl DisplayItem {
             },
             DisplayItem::Gradient(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 builder.push_stops(item.data.as_ref());
                 builder.push_item(&WrDisplayItem::Gradient(item.item));
                 IsContentful(false)
             },
             DisplayItem::RadialGradient(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 builder.push_stops(item.data.as_ref());
                 builder.push_item(&WrDisplayItem::RadialGradient(item.item));
                 IsContentful(false)
             },
             DisplayItem::Line(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 builder.push_item(&WrDisplayItem::Line(item.item));
                 IsContentful(false)
             },
             DisplayItem::BoxShadow(ref mut item) => {
                 item.item.common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 builder.push_item(&WrDisplayItem::BoxShadow(item.item));
                 IsContentful(false)
             },
             DisplayItem::PushTextShadow(ref mut item) => {
                 let common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 builder.push_shadow(
                     &SpaceAndClipInfo {
                         spatial_id: common.spatial_id,
@@ -246,6 +269,7 @@ impl DisplayItem {
             },
             DisplayItem::Iframe(ref mut item) => {
                 let common = build_common_item_properties(&item.base);
+                push_hit_test(&item.base);
                 builder.push_iframe(
                     item.bounds,
                     common.clip_rect,
