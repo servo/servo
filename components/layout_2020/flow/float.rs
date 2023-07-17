@@ -112,7 +112,7 @@ impl<'a> PlacementAmongFloats<'a> {
 
     fn accumulate_enough_bands_for_block_size(&mut self) {
         while self.current_bands_height() < self.object_size.block {
-            assert!(self.current_bands.len() > 0);
+            assert!(!self.current_bands.is_empty());
             let next_band = self
                 .float_context
                 .bands
@@ -125,7 +125,9 @@ impl<'a> PlacementAmongFloats<'a> {
     fn calculate_viable_inline_space(&self) -> (Length, Length) {
         let mut max_inline_start = self.float_context.containing_block_info.inline_start;
         let mut min_inline_end = self.float_context.containing_block_info.inline_end;
-        for band in self.current_bands.iter() {
+        assert!(!self.current_bands.is_empty());
+
+        for band in self.current_bands.iter().take(self.current_bands.len() - 1) {
             if let Some(left) = band.left {
                 max_inline_start = max_inline_start.max(left);
             }
