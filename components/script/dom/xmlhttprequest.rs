@@ -146,6 +146,7 @@ pub struct XMLHttpRequest {
     #[ignore_malloc_size_of = "Defined in hyper"]
     #[no_trace]
     override_mime_type: DomRefCell<Option<Mime>>,
+    #[no_trace]
     override_charset: DomRefCell<Option<&'static Encoding>>,
 
     // Associated concepts

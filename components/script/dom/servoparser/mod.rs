@@ -1405,6 +1405,7 @@ impl NetworkDecoder {
 
 #[derive(Default, JSTraceable)]
 struct NetworkSink {
+    #[no_trace]
     output: StrTendril,
 }
 

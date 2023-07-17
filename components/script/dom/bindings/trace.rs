@@ -45,12 +45,7 @@ use crate::dom::identityhub::Identities;
 use crate::script_runtime::{ContextForRequestInterrupt, StreamConsumer};
 use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
-use content_security_policy::CspList;
-use crossbeam_channel::{Receiver, Sender};
-use cssparser::RGBA;
-use encoding_rs::{Decoder, Encoding};
 use indexmap::IndexMap;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallScriptTracer, CallStringTracer, CallValueTracer};
 use js::jsapi::{
     GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, JobQueue, TraceKind,
@@ -60,11 +55,7 @@ use js::rust::{GCMethods, Handle, Runtime, Stencil};
 use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use media::WindowGLContext;
-use metrics::{InteractiveMetrics, InteractiveWindow};
 use parking_lot::{Mutex as ParkMutex, RwLock};
-use selectors::matching::ElementSelectorFlags;
-use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
@@ -86,12 +77,9 @@ use style::author_styles::AuthorStyles;
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
-use tendril::{StrTendril, TendrilSink};
-use time::{Duration, Timespec, Tm};
-use uuid::Uuid;
+use tendril::TendrilSink;
 use webxr_api::{Finger, Hand};
 
-unsafe_no_jsmanaged_fields!(Tm);
 unsafe_no_jsmanaged_fields!(JoinHandle<()>);
 
 /// A trait to allow tracing (only) DOM objects.
@@ -247,19 +235,11 @@ unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 
 unsafe_no_jsmanaged_fields!(IncompleteParserContexts);
 
-unsafe_no_jsmanaged_fields!(&'static Encoding);
-
-unsafe_no_jsmanaged_fields!(Decoder);
-
 unsafe_no_jsmanaged_fields!(Reflector);
-
-unsafe_no_jsmanaged_fields!(Duration);
 
 unsafe_no_jsmanaged_fields!(*mut JobQueue);
 
 unsafe_no_jsmanaged_fields!(Cow<'static, str>);
-
-unsafe_no_jsmanaged_fields!(CspList);
 
 /// Trace a `JSScript`.
 pub fn trace_script(tracer: *mut JSTracer, description: &str, script: &Heap<*mut JSScript>) {
@@ -559,19 +539,16 @@ unsafe impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, 
     }
 }
 
-unsafe_no_jsmanaged_fields!(bool, f32, f64, String, AtomicBool, AtomicUsize, Uuid, char);
+unsafe_no_jsmanaged_fields!(bool, f32, f64, String, AtomicBool, AtomicUsize, char);
 unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 unsafe_no_jsmanaged_fields!(NonZeroU64);
 unsafe_no_jsmanaged_fields!(Error);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
 
-unsafe_no_jsmanaged_fields!(StrTendril);
 unsafe_no_jsmanaged_fields!(Runtime);
 unsafe_no_jsmanaged_fields!(ContextForRequestInterrupt);
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);
-unsafe_no_jsmanaged_fields!(RGBA);
-unsafe_no_jsmanaged_fields!(ElementSelectorFlags);
 unsafe_no_jsmanaged_fields!(DOMString);
 unsafe_no_jsmanaged_fields!(USVString);
 unsafe_no_jsmanaged_fields!(SystemTime);
@@ -593,13 +570,9 @@ unsafe_no_jsmanaged_fields!(
     webxr_api::HitTestId,
     webxr_api::HitTestResult
 );
-unsafe_no_jsmanaged_fields!(InteractiveMetrics);
-unsafe_no_jsmanaged_fields!(InteractiveWindow);
 unsafe_no_jsmanaged_fields!(SourceSet);
 unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
-unsafe_no_jsmanaged_fields!(Timespec);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
-unsafe_no_jsmanaged_fields!(WindowGLContext);
 unsafe_no_jsmanaged_fields!(StreamConsumer);
 unsafe_no_jsmanaged_fields!(Stencil);
 
@@ -617,16 +590,6 @@ unsafe impl<A, B> JSTraceable for fn(A) -> B {
     }
 }
 
-unsafe impl<T> JSTraceable for IpcSender<T>
-where
-    T: for<'de> Deserialize<'de> + Serialize,
-{
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
 unsafe impl JSTraceable for () {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
@@ -634,31 +597,7 @@ unsafe impl JSTraceable for () {
     }
 }
 
-unsafe impl<T> JSTraceable for IpcReceiver<T>
-where
-    T: for<'de> Deserialize<'de> + Serialize,
-{
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
 unsafe impl<T: DomObject> JSTraceable for Trusted<T> {
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T: Send> JSTraceable for Receiver<T> {
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T: Send> JSTraceable for Sender<T> {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing

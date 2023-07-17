@@ -281,9 +281,11 @@ impl TransmitBodyConnectHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct TransmitBodyPromiseHandler {
     #[ignore_malloc_size_of = "Channels are hard"]
+    #[no_trace]
     bytes_sender: IpcSender<BodyChunkResponse>,
     stream: DomRoot<ReadableStream>,
     #[ignore_malloc_size_of = "Channels are hard"]
+    #[no_trace]
     control_sender: IpcSender<BodyChunkRequest>,
 }
 
@@ -328,9 +330,11 @@ impl Callback for TransmitBodyPromiseHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct TransmitBodyPromiseRejectionHandler {
     #[ignore_malloc_size_of = "Channels are hard"]
+    #[no_trace]
     bytes_sender: IpcSender<BodyChunkResponse>,
     stream: DomRoot<ReadableStream>,
     #[ignore_malloc_size_of = "Channels are hard"]
+    #[no_trace]
     control_sender: IpcSender<BodyChunkRequest>,
 }
 

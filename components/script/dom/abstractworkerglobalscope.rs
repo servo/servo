@@ -20,6 +20,7 @@ use devtools_traits::DevtoolScriptControlMsg;
 /// Worker object will remain alive.
 #[derive(Clone, JSTraceable)]
 pub struct SendableWorkerScriptChan {
+    #[no_trace]
     pub sender: Sender<DedicatedWorkerScriptMsg>,
     pub worker: TrustedWorkerAddress,
 }
@@ -46,6 +47,7 @@ impl ScriptChan for SendableWorkerScriptChan {
 /// Worker object will remain alive.
 #[derive(Clone, JSTraceable)]
 pub struct WorkerThreadWorkerChan {
+    #[no_trace]
     pub sender: Sender<DedicatedWorkerScriptMsg>,
     pub worker: TrustedWorkerAddress,
 }

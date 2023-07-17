@@ -23,6 +23,7 @@ use webxr_api::{
 pub struct FakeXRInputController {
     reflector: Reflector,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
+    #[no_trace]
     sender: IpcSender<MockDeviceMsg>,
     #[ignore_malloc_size_of = "defined in webxr-api"]
     id: InputId,

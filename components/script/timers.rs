@@ -36,11 +36,13 @@ pub struct OneshotTimerHandle(i32);
 pub struct OneshotTimers {
     js_timers: JsTimers,
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     /// The sender, to be cloned for each timer,
     /// on which the timer scheduler in the constellation can send an event
     /// when the timer is due.
     timer_event_chan: DomRefCell<Option<IpcSender<TimerEvent>>>,
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     /// The sender to the timer scheduler in the constellation.
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     next_timer_handle: Cell<OneshotTimerHandle>,

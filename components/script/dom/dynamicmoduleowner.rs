@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 /// An unique id for dynamic module
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
-pub struct DynamicModuleId(pub Uuid);
+pub struct DynamicModuleId(#[no_trace] pub Uuid);
 
 #[dom_struct]
 pub struct DynamicModuleOwner {

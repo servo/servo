@@ -61,7 +61,7 @@ use style_traits::values::ToCss;
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(dead_code)]
 pub(crate) enum CanvasFillOrStrokeStyle {
-    Color(RGBA),
+    Color(#[no_trace] RGBA),
     Gradient(Dom<CanvasGradient>),
     Pattern(Dom<CanvasPattern>),
 }
@@ -96,6 +96,7 @@ pub(crate) struct CanvasContextState {
     shadow_offset_x: f64,
     shadow_offset_y: f64,
     shadow_blur: f64,
+    #[no_trace]
     shadow_color: RGBA,
     #[no_trace]
     font_style: Option<Font>,
@@ -139,6 +140,7 @@ impl CanvasContextState {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasState {
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
+    #[no_trace]
     ipc_renderer: IpcSender<CanvasMsg>,
     #[no_trace]
     canvas_id: CanvasId,

@@ -649,6 +649,7 @@ pub struct EventSourceTimeoutCallback {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     event_source: Trusted<EventSource>,
     #[ignore_malloc_size_of = "Because it is non-owning"]
+    #[no_trace]
     action_sender: ipc::IpcSender<FetchResponseMsg>,
 }
 

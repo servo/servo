@@ -372,6 +372,7 @@ pub struct HTMLMediaElement {
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Time of last timeupdate notification.
     #[ignore_malloc_size_of = "Defined in time"]
+    #[no_trace]
     next_timeupdate_event: Cell<Timespec>,
     /// Latest fetch request context.
     current_fetch_context: DomRefCell<Option<HTMLMediaElementFetchContext>>,
@@ -383,6 +384,7 @@ pub struct HTMLMediaElement {
     /// keeping a whitelist of media controls identifiers.
     media_controls_id: DomRefCell<Option<String>>,
     #[ignore_malloc_size_of = "Defined in other crates"]
+    #[no_trace]
     player_context: WindowGLContext,
 }
 

@@ -109,11 +109,13 @@ pub struct WorkerGlobalScope {
     navigator: MutNullableDom<WorkerNavigator>,
 
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
+    #[no_trace]
     /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
     /// to the server from within the worker
     from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
 
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     /// This `Receiver` will be ignored later if the corresponding
     /// `IpcSender` doesn't exist
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,

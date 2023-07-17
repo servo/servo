@@ -203,6 +203,7 @@ struct InProgressLoad {
     #[no_trace]
     window_size: WindowSizeData,
     /// Channel to the layout thread associated with this pipeline.
+    #[no_trace]
     layout_chan: Sender<message::Msg>,
     /// The activity level of the document (inactive, active or fully active).
     #[no_trace]
@@ -407,7 +408,7 @@ impl ScriptPort for Receiver<(TrustedServiceWorkerAddress, CommonScriptMsg)> {
 
 /// Encapsulates internal communication of shared messages within the script thread.
 #[derive(JSTraceable)]
-pub struct SendableMainThreadScriptChan(pub Sender<CommonScriptMsg>);
+pub struct SendableMainThreadScriptChan(#[no_trace] pub Sender<CommonScriptMsg>);
 
 impl ScriptChan for SendableMainThreadScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
@@ -421,7 +422,7 @@ impl ScriptChan for SendableMainThreadScriptChan {
 
 /// Encapsulates internal communication of main thread messages within the script thread.
 #[derive(JSTraceable)]
-pub struct MainThreadScriptChan(pub Sender<MainThreadScriptMsg>);
+pub struct MainThreadScriptChan(#[no_trace] pub Sender<MainThreadScriptMsg>);
 
 impl ScriptChan for MainThreadScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
@@ -544,6 +545,7 @@ pub struct ScriptThread {
     #[no_trace]
     resource_threads: ResourceThreads,
     /// A handle to the bluetooth thread.
+    #[no_trace]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A queue of tasks to be executed in this script-thread.
@@ -562,12 +564,15 @@ pub struct ScriptThread {
 
     dom_manipulation_task_sender: Box<dyn ScriptChan>,
 
+    #[no_trace]
     media_element_task_sender: Sender<MainThreadScriptMsg>,
 
+    #[no_trace]
     user_interaction_task_sender: Sender<MainThreadScriptMsg>,
 
     networking_task_sender: Box<dyn ScriptChan>,
 
+    #[no_trace]
     history_traversal_task_sender: Sender<MainThreadScriptMsg>,
 
     file_reading_task_sender: Box<dyn ScriptChan>,
@@ -581,22 +586,28 @@ pub struct ScriptThread {
     remote_event_task_sender: Box<dyn ScriptChan>,
 
     /// A channel to hand out to threads that need to respond to a message from the script thread.
+    #[no_trace]
     control_chan: IpcSender<ConstellationControlMsg>,
 
     /// The port on which the constellation and layout threads can communicate with the
     /// script thread.
+    #[no_trace]
     control_port: Receiver<ConstellationControlMsg>,
 
     /// For communicating load url messages to the constellation
+    #[no_trace]
     script_sender: IpcSender<(PipelineId, ScriptMsg)>,
 
     /// A sender for new layout threads to communicate to the constellation.
+    #[no_trace]
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
     /// The port on which we receive messages from the image cache
+    #[no_trace]
     image_cache_port: Receiver<ImageCacheMsg>,
 
     /// The channel on which the image cache can send messages to ourself.
+    #[no_trace]
     image_cache_channel: Sender<ImageCacheMsg>,
     /// For providing contact with the time profiler.
     #[no_trace]
@@ -607,10 +618,13 @@ pub struct ScriptThread {
     mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
+    #[no_trace]
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// For receiving commands from an optional devtools server. Will be ignored if
     /// no such server exists.
+    #[no_trace]
     devtools_port: Receiver<DevtoolScriptControlMsg>,
+    #[no_trace]
     devtools_sender: IpcSender<DevtoolScriptControlMsg>,
 
     /// The JavaScript runtime.
@@ -623,8 +637,10 @@ pub struct ScriptThread {
     #[no_trace]
     closed_pipelines: DomRefCell<HashSet<PipelineId>>,
 
+    #[no_trace]
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
+    #[no_trace]
     content_process_shutdown_chan: Sender<()>,
 
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
@@ -695,6 +711,7 @@ pub struct ScriptThread {
     user_agent: Cow<'static, str>,
 
     /// Application window's GL Context for Media player
+    #[no_trace]
     player_context: WindowGLContext,
 
     /// A mechanism to force the compositor's event loop to process events.
@@ -711,6 +728,7 @@ pub struct ScriptThread {
     gpu_id_hub: Arc<Mutex<Identities>>,
 
     /// Receiver to receive commands from optional WebGPU server.
+    #[no_trace]
     webgpu_port: RefCell<Option<Receiver<WebGPUMsg>>>,
 
     // Secure context

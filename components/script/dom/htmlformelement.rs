@@ -80,7 +80,7 @@ use time::{now, Duration, Tm};
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 
-use super::bindings::trace::HashMapTracedValues;
+use super::bindings::trace::{HashMapTracedValues, NoTrace};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -94,7 +94,7 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
-    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, Tm)>>,
+    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<Tm>)>>,
     firing_submission_events: Cell<bool>,
     rel_list: MutNullableDom<DOMTokenList>,
 }
@@ -442,7 +442,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             name,
             (
                 Dom::from_ref(&*element_node.downcast::<Element>().unwrap()),
-                now(),
+                NoTrace(now()),
             ),
         );
 
@@ -556,7 +556,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             let entry = SourcedName {
                 name: key.clone(),
                 element: DomRoot::from_ref(&*val.0),
-                source: SourcedNameSource::Past(now() - val.1), // calculate difference now()-val.1 to find age
+                source: SourcedNameSource::Past(now() - val.1 .0), // calculate difference now()-val.1 to find age
             };
             sourced_names_vec.push(entry);
         }

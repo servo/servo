@@ -10,7 +10,10 @@ use crossbeam_channel::Sender;
 use msg::constellation_msg::PipelineId;
 
 #[derive(Clone, JSTraceable)]
-pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>, #[no_trace] pub PipelineId);
+pub struct HistoryTraversalTaskSource(
+    #[no_trace] pub Sender<MainThreadScriptMsg>,
+    #[no_trace] pub PipelineId,
+);
 
 impl TaskSource for HistoryTraversalTaskSource {
     const NAME: TaskSourceName = TaskSourceName::HistoryTraversal;

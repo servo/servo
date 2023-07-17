@@ -131,6 +131,7 @@ pub enum MixedMessage {
 
 #[derive(Clone, JSTraceable)]
 pub struct ServiceWorkerChan {
+    #[no_trace]
     pub sender: Sender<ServiceWorkerScriptMsg>,
 }
 
@@ -150,16 +151,16 @@ impl ScriptChan for ServiceWorkerChan {
     }
 }
 
-unsafe_no_jsmanaged_fields!(TaskQueue<ServiceWorkerScriptMsg>);
-
 #[dom_struct]
 pub struct ServiceWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
 
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     task_queue: TaskQueue<ServiceWorkerScriptMsg>,
 
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     own_sender: Sender<ServiceWorkerScriptMsg>,
 
     /// A port on which a single "time-out" message can be received,
@@ -167,9 +168,11 @@ pub struct ServiceWorkerGlobalScope {
     /// while still draining the task-queue
     // and running all enqueued, and not cancelled, tasks.
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     time_out_port: Receiver<Instant>,
 
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     swmanager_sender: IpcSender<ServiceWorkerMsg>,
 
     #[no_trace]
@@ -178,6 +181,7 @@ pub struct ServiceWorkerGlobalScope {
     /// A receiver of control messages,
     /// currently only used to signal shutdown.
     #[ignore_malloc_size_of = "Channels are hard"]
+    #[no_trace]
     control_receiver: Receiver<ServiceWorkerControlMsg>,
 }
 

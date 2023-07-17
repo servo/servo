@@ -139,6 +139,7 @@ pub struct AutoCloseWorker {
     join_handle: Option<JoinHandle<()>>,
     /// A sender of control messages,
     /// currently only used to signal shutdown.
+    #[no_trace]
     control_sender: Sender<DedicatedWorkerControlMsg>,
     /// The context to request an interrupt on the worker thread.
     context: ContextForRequestInterrupt,
@@ -217,6 +218,7 @@ pub struct GlobalScope {
 
     /// For providing instructions to an optional devtools server.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 
     /// For sending messages to the memory profiler.
@@ -235,6 +237,7 @@ pub struct GlobalScope {
     script_to_constellation_chan: ScriptToConstellationChan,
 
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
     /// <https://html.spec.whatwg.org/multipage/#in-error-reporting-mode>

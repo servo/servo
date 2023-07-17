@@ -46,6 +46,7 @@ pub type TrustedWorkerAddress = Trusted<Worker>;
 pub struct Worker {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
     sender: Sender<DedicatedWorkerScriptMsg>,

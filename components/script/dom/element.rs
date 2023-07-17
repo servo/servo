@@ -173,6 +173,7 @@ pub struct Element {
     /// flags are not atomic, so the style system takes care of only set them
     /// when it has exclusive access to the element.
     #[ignore_malloc_size_of = "bitflags defined in rust-selectors"]
+    #[no_trace]
     selector_flags: Cell<ElementSelectorFlags>,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
 }

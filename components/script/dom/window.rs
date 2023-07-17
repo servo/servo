@@ -204,6 +204,7 @@ pub struct Window {
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     image_cache_chan: Sender<ImageCacheMsg>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
@@ -223,6 +224,7 @@ pub struct Window {
     #[no_trace]
     devtools_markers: DomRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
     /// Pending resize event, if any.
@@ -245,6 +247,7 @@ pub struct Window {
     /// This channel shouldn't be accessed directly, but through `Window::layout_chan()`,
     /// which returns `None` if there's no layout thread anymore.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     layout_chan: Sender<Msg>,
 
     /// A handle to perform RPC calls into the layout, quickly.
@@ -258,6 +261,7 @@ pub struct Window {
 
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
@@ -277,6 +281,7 @@ pub struct Window {
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     webdriver_script_chan: DomRefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
@@ -362,6 +367,7 @@ pub struct Window {
 
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
+    #[no_trace]
     player_context: WindowGLContext,
 
     /// A mechanism to force the compositor to process events.

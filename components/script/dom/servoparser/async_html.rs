@@ -204,8 +204,10 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
 pub struct Tokenizer {
     document: Dom<Document>,
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     receiver: Receiver<ToTokenizerMsg>,
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
     #[ignore_malloc_size_of = "Defined in std"]
     nodes: HashMap<ParseNodeId, Dom<Node>>,

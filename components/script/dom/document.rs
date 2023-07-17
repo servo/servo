@@ -240,6 +240,7 @@ pub struct Document {
     #[no_trace]
     content_type: Mime,
     last_modified: Option<String>,
+    #[no_trace]
     encoding: Cell<&'static Encoding>,
     has_browsing_context: bool,
     is_html_document: bool,
@@ -374,7 +375,9 @@ pub struct Document {
     /// is inserted or removed from the document.
     /// See https://html.spec.whatwg.org/multipage/#form-owner
     form_id_listener_map: DomRefCell<HashMapTracedValues<Atom, HashSet<Dom<Element>>>>,
+    #[no_trace]
     interactive_time: DomRefCell<InteractiveMetrics>,
+    #[no_trace]
     tti_window: DomRefCell<InteractiveWindow>,
     /// RAII canceller for Fetch
     canceller: FetchCanceller,
@@ -416,6 +419,7 @@ pub struct Document {
     dirty_webgpu_contexts: DomRefCell<HashMap<WebGPUContextId, Dom<GPUCanvasContext>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-csp-list
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
+    #[no_trace]
     csp_list: DomRefCell<Option<CspList>>,
     /// https://w3c.github.io/slection-api/#dfn-selection
     selection: MutNullableDom<Selection>,

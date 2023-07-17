@@ -145,7 +145,7 @@ unsafe extern "C" fn off_thread_compilation_callback(
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
-pub struct ScriptId(Uuid);
+pub struct ScriptId(#[no_trace] Uuid);
 
 #[dom_struct]
 pub struct HTMLScriptElement {

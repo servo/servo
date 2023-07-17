@@ -45,6 +45,7 @@ pub struct WorkletGlobalScope {
     base_url: ServoUrl,
     /// Sender back to the script thread
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Worklet task executor
     executor: WorkletExecutor,
