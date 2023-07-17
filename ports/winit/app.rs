@@ -12,7 +12,6 @@ use crate::{headed_window, headless_window};
 use egui::TopBottomPanel;
 use egui_winit::EventResponse;
 use gleam::gl;
-use glow::{NativeFramebuffer, HasContext};
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
 use servo::compositing::windowing::WindowEvent;
@@ -23,7 +22,6 @@ use servo::Servo;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::env;
-use std::num::NonZeroU32;
 use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -70,8 +68,8 @@ impl App {
         };
 
         struct Minibrowser {
-        context: egui_glow::EguiGlow,
-        location: RefCell<String>,
+            context: egui_glow::EguiGlow,
+            location: RefCell<String>,
         }
 
         impl Minibrowser {
@@ -124,7 +122,7 @@ impl App {
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         let mut minibrowser = window.winit_window().map(|_| Minibrowser {
             context: egui_glow::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
-            location: RefCell::new(String::default())
+            location: RefCell::new(ServoUrl::into_string(get_default_url()))
         });
 
         if let Some(minibrowser) = minibrowser.as_mut() {
@@ -311,6 +309,7 @@ fn get_default_url() -> ServoUrl {
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
     let cmdline_url = opts::get().url.clone();
+
     let pref_url = {
         let homepage_url = pref!(shell.homepage);
         parse_url_or_filename(&cwd, &homepage_url).ok()
