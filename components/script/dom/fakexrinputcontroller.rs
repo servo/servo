@@ -26,6 +26,7 @@ pub struct FakeXRInputController {
     #[no_trace]
     sender: IpcSender<MockDeviceMsg>,
     #[ignore_malloc_size_of = "defined in webxr-api"]
+    #[no_trace]
     id: InputId,
 }
 

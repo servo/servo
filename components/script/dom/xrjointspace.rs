@@ -15,8 +15,10 @@ use webxr_api::{BaseSpace, Frame, InputId, Joint, JointFrame, Space};
 pub struct XRJointSpace {
     xrspace: XRSpace,
     #[ignore_malloc_size_of = "defined in rust-webxr"]
+    #[no_trace]
     input: InputId,
     #[ignore_malloc_size_of = "defined in rust-webxr"]
+    #[no_trace]
     joint: Joint,
 }
 

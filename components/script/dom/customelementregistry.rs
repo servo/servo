@@ -43,7 +43,7 @@ use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use std::cell::Cell;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::mem;
 use std::ops::Deref;
 use std::ptr;

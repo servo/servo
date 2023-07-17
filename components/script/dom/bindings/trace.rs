@@ -40,8 +40,7 @@ use crate::dom::gpubuffer::GPUBufferState;
 use crate::dom::gpucanvascontext::WebGPUContextId;
 use crate::dom::gpucommandencoder::GPUCommandEncoderState;
 use crate::dom::htmlimageelement::SourceSet;
-use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
-use crate::dom::identityhub::Identities;
+use crate::dom::htmlmediaelement::HTMLMediaElementFetchContext;
 use crate::script_runtime::{ContextForRequestInterrupt, StreamConsumer};
 use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
@@ -55,7 +54,7 @@ use js::rust::{GCMethods, Handle, Runtime, Stencil};
 use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use parking_lot::{Mutex as ParkMutex, RwLock};
+use parking_lot::RwLock;
 use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
@@ -70,7 +69,7 @@ use std::ops::{Deref, DerefMut, Range};
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Instant, SystemTime};
 use style::author_styles::AuthorStyles;
@@ -554,24 +553,11 @@ unsafe_no_jsmanaged_fields!(USVString);
 unsafe_no_jsmanaged_fields!(SystemTime);
 unsafe_no_jsmanaged_fields!(Instant);
 unsafe_no_jsmanaged_fields!(PathBuf);
-unsafe_no_jsmanaged_fields!(Arc<ParkMutex<Identities>>);
 unsafe_no_jsmanaged_fields!(WebGPUContextId);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
 unsafe_no_jsmanaged_fields!(GPUCommandEncoderState);
 unsafe_no_jsmanaged_fields!(Range<u64>);
-unsafe_no_jsmanaged_fields!(
-    webxr_api::Registry,
-    webxr_api::Session,
-    webxr_api::Frame,
-    webxr_api::LayerId,
-    webxr_api::InputSource,
-    webxr_api::InputId,
-    webxr_api::Joint,
-    webxr_api::HitTestId,
-    webxr_api::HitTestResult
-);
 unsafe_no_jsmanaged_fields!(SourceSet);
-unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 unsafe_no_jsmanaged_fields!(StreamConsumer);
 unsafe_no_jsmanaged_fields!(Stencil);

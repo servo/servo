@@ -336,6 +336,7 @@ pub struct HTMLMediaElement {
     #[no_trace]
     player: DomRefCell<Option<Arc<Mutex<dyn Player>>>>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     video_renderer: Arc<Mutex<MediaFrameRenderer>>,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]

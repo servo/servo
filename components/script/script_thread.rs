@@ -657,6 +657,7 @@ pub struct ScriptThread {
     webgl_chan: Option<WebGLPipeline>,
 
     /// The WebXR device registry
+    #[no_trace]
     webxr_registry: webxr_api::Registry,
 
     /// The worklet thread pool
@@ -725,6 +726,7 @@ pub struct ScriptThread {
     is_user_interacting: Cell<bool>,
 
     /// Identity manager for WebGPU resources
+    #[no_trace]
     gpu_id_hub: Arc<Mutex<Identities>>,
 
     /// Receiver to receive commands from optional WebGPU server.

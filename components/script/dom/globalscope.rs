@@ -309,6 +309,7 @@ pub struct GlobalScope {
 
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
+    #[no_trace]
     gpu_id_hub: Arc<Mutex<Identities>>,
 
     /// WebGPU devices

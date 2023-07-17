@@ -41,6 +41,7 @@ pub struct FakeXRDevice {
     #[no_trace]
     sender: IpcSender<MockDeviceMsg>,
     #[ignore_malloc_size_of = "defined in webxr-api"]
+    #[no_trace]
     next_input_id: Cell<InputId>,
 }
 

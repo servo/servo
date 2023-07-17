@@ -16,6 +16,7 @@ use webxr_api::HitTestResult;
 pub struct XRHitTestResult {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webxr"]
+    #[no_trace]
     result: HitTestResult,
     frame: Dom<XRFrame>,
 }

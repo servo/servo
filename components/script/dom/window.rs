@@ -307,6 +307,7 @@ pub struct Window {
     webgl_chan: Option<WebGLChan>,
 
     #[ignore_malloc_size_of = "defined in webxr"]
+    #[no_trace]
     webxr_registry: webxr_api::Registry,
 
     /// All of the elements that have an outstanding image request that was

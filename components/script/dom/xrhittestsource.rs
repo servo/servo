@@ -14,6 +14,7 @@ use webxr_api::HitTestId;
 pub struct XRHitTestSource {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webxr"]
+    #[no_trace]
     id: HitTestId,
     session: Dom<XRSession>,
 }
