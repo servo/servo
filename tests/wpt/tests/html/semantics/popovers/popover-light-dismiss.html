@@ -326,6 +326,7 @@
     await new test_driver.Actions()
        .scroll(0, 0, 0, 50, {origin: popover6})
        .send();
+    await waitForRender();
     assert_true(popover6.matches(':popover-open'),'popover6 should stay open');
     assert_equals(popover6.scrollTop,50,'popover6 should be scrolled');
     popover6.hidePopover();

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
-<title>Basic of anchor-scroll: anchored elements should update location on `anchor-scroll` property changes</title>
+<title>Anchored elements should update location on `anchor-default` property changes</title>
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
 <link rel="match" href="reference/anchor-scroll-ref.html">
@@ -75,8 +75,8 @@ function raf() {
 async function runTest() {
   await raf();
   await raf();
-  document.getElementById('inner-anchored').style.anchorScroll = '--anchor';
-  document.getElementById('outer-anchored').style.anchorScroll = '--anchor';
+  document.getElementById('inner-anchored').style.anchorDefault = '--anchor';
+  document.getElementById('outer-anchored').style.anchorDefault = '--anchor';
   document.documentElement.classList.remove('reftest-wait');
 }
 runTest();

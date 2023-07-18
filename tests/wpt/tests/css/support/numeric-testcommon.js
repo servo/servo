@@ -185,9 +185,15 @@ function _test_math({stage, testEl, testString, expectedString, type, approx, ms
         testEl.style[prop] = e;
         const expectedValue = getComputedStyle(testEl)[prop];
         assert_not_equals(expectedValue, defaultValue, `${expectedString} isn't valid in '${prop}'; got the default value instead.`)
-        if(approx && (type == "number" || type == "angle")){
-            let parsedUsed = usedValue.split('(')[1].split(')')[0].split(',').map(parseFloat);
-            let parsedExpected = expectedValue.split('(')[1].split(')')[0].split(',').map(parseFloat);
+        if (approx) {
+            let extractValues = function(value) {
+                if (type == "number" || type == "angle") {
+                    return value.split('(')[1].split(')')[0].split(',').map(parseFloat);
+                }
+                return [parseFloat(value)];
+            };
+            let parsedUsed = extractValues(usedValue);
+            let parsedExpected = extractValues(expectedValue);
             assert_array_approx_equals(parsedUsed, parsedExpected, approx, `${testString} and ${expectedString} ${approx} serialize to the same thing in ${stage} values.`);
         } else {
             assert_equals(usedValue, expectedValue, `${testString} and ${expectedString} serialize to the same thing in ${stage} values.`);

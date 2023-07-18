@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#round-func">
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
 <link rel="author" title="Apple Inc">
@@ -79,10 +79,10 @@ test_math_used('mod(10em,6em)', '4em');
 test_math_used('mod(10ex,6ex)', '4ex');
 test_math_used('mod(10ch,6ch)', '4ch');
 test_math_used('mod(10rem,6rem)', '4rem');
-test_math_used('mod(10vh,6vh)', '4vh');
-test_math_used('mod(10vw,6vw)', '4vw');
-test_math_used('mod(10vmin,6vmin)', '4vmin');
-test_math_used('mod(10vmax,6vmax)', '4vmax');
+test_math_used('mod(10vh,6vh)', '4vh', {approx: 0.1});
+test_math_used('mod(10vw,6vw)', '4vw', {approx: 0.1});
+test_math_used('mod(10vmin,6vmin)', '4vmin', {approx: 0.1});
+test_math_used('mod(10vmax,6vmax)', '4vmax', {approx: 0.1});
 test_math_used('mod(10s,6s)', '4s', {type:'time'});
 test_math_used('mod(10ms,6ms)', '4ms', {type:'time'});
 test_math_used('mod(10deg,6deg)', '4deg', {type:'angle', approx:0.1});
@@ -100,10 +100,10 @@ test_math_used('rem(10em,6em)', '4em');
 test_math_used('rem(10ex,6ex)', '4ex');
 test_math_used('rem(10ch,6ch)', '4ch');
 test_math_used('rem(10rem,6rem)', '4rem');
-test_math_used('rem(10vh,6vh)', '4vh');
-test_math_used('rem(10vw,6vw)', '4vw');
-test_math_used('rem(10vmin,6vmin)', '4vmin');
-test_math_used('rem(10vmax,6vmax)', '4vmax');
+test_math_used('rem(10vh,6vh)', '4vh', {approx: 0.1});
+test_math_used('rem(10vw,6vw)', '4vw', {approx: 0.1});
+test_math_used('rem(10vmin,6vmin)', '4vmin', {approx: 0.1});
+test_math_used('rem(10vmax,6vmax)', '4vmax', {approx: 0.1});
 test_math_used('rem(10s,6s)', '4s', {type:'time'});
 test_math_used('rem(10ms,6ms)', '4ms', {type:'time'});
 test_math_used('rem(10deg,6deg)', '4deg', {type:'angle', approx:0.1});
@@ -125,12 +125,12 @@ test_math_used('mod(2rem,5px)', '2px');
 test_math_used('mod(100px,1rem)', '4px');
 test_math_used('mod(10s,6000ms)', '4s', {type:'time'});
 test_math_used('mod(10000ms,6s)', '4s', {type:'time'});
-test_math_used('mod(18px,100% / 15)', '3px');
+test_math_used('mod(18px,100% / 15)', '3px', {approx: 0.1});
 test_math_used('mod(-18px,100% / 10)', '4.5px');
 test_math_used('mod(18%,5%)', '3%');
 test_math_used('mod(-19%,5%)', '1%');
 test_math_used('mod(18vw,5vw)', '3vw');
-test_math_used('mod(-18vw,5vw)', '2vw');
+test_math_used('mod(-18vw,5vw)', '2vw', {approx: 0.1});
 
 test_math_used('rem(10%,1px)', '0.5px');
 test_math_used('rem(10%,5px)', '2.5px');
@@ -138,8 +138,8 @@ test_math_used('rem(2rem,5px)', '2px');
 test_math_used('rem(100px,1rem)', '4px');
 test_math_used('rem(10s,6000ms)', '4s', {type:'time'});
 test_math_used('rem(10000ms,6s)', '4s', {type:'time'});
-test_math_used('rem(18px,100% / 15)', '3px');
-test_math_used('rem(-18px,100% / 15)', '-3px');
+test_math_used('rem(18px,100% / 15)', '3px', {approx: 0.1});
+test_math_used('rem(-18px,100% / 15)', '-3px', {approx: 0.1});
 test_math_used('rem(18vw,5vw)', '3vw');
 test_math_used('rem(-18vw,5vw)', '-3vw');
 

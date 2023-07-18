@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Tests inline boxes are trimmed at text-over/text-under baselines</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#leading-trim">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="match" href="text-box-trim-half-leading-inline-box-003-ref.html">
+
+<style>
+div {
+  border: 1px solid orange;
+  font-size: 20px;
+  line-height: 1;
+  writing-mode:vertical-lr;
+}
+
+span {
+  border: 1px solid blue;
+  border-top: 0;
+  border-bottom: 0;
+  font-family: Ahem;
+  font-size: 20px;
+  line-height: 3;
+}
+</style>
+
+<div>
+  <span style="text-box-trim:both">Test</span>
+</div>
+<div>
+  <span style="text-box-trim:start">Test</span>
+</div>
+<div>
+  <span style="text-box-trim:end">Test</span>
+</div>

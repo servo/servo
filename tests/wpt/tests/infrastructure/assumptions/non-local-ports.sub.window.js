@@ -3,10 +3,10 @@
 // See the corresponding WPT RFC:
 // https://github.com/web-platform-tests/rfcs/blob/master/rfcs/address_space_overrides.md
 //
-// These ports are used to test the Local Network Access specification:
-// https://wicg.github.io/local-network-access/
+// These ports are used to test the Private Network Access specification:
+// https://wicg.github.io/private-network-access/
 //
-// More tests can be found in `fetch/local-network-access/`.
+// More tests can be found in `fetch/private-network-access/`.
 
 const alternatePorts = {
   httpPrivate:  "{{ports[http-private][0]}}",

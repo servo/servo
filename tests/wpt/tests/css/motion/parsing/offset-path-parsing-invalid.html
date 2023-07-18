@@ -30,6 +30,10 @@ test_invalid_value("offset-path", "ray(closest-side 0deg closest-side)");
 test_invalid_value("offset-path", "ray(0deg closest-side 0deg)");
 test_invalid_value("offset-path", "ray(contain 0deg closest-side contain)");
 
+test_invalid_value("offset-path", "xywh(0px)");
+test_invalid_value("offset-path", "xywh(0px 1%)");
+test_invalid_value("offset-path", "xywh(0px 1% 2em)");
+
 </script>
 </body>
 </html>

@@ -23,12 +23,14 @@
 
 <script>
 promise_test(async function() {
-   document.scrollingElement.scrollTo(0, 20000);
-   await new Promise(resolve => {
-     document.addEventListener("scroll", resolve, { once: true });
-     document.getElementById("target").focus();
-   });
-  // Should be around 4900 (5000 - 200px of margin). Give some leeway to account for line height / borders / input padding / etc.
-  assert_between_exclusive(document.scrollingElement.scrollTop, 4600, 4850, "Should honor date input scroll-margin");
+  document.scrollingElement.scrollTo(0, 20000);
+  await new Promise(resolve => {
+    document.addEventListener("scroll", resolve, { once: true });
+    document.getElementById("target").focus();
+  });
+  // Should be around 5000 - 200px of margin - (window.innerHeight / 2)
+  const targetPos = 4900 - (window.innerHeight / 2);
+  assert_between_exclusive(document.scrollingElement.scrollTop, targetPos - 300,
+                           targetPos + 300, "Should honor date input scroll-margin");
 });
 </script>

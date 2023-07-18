@@ -51,3 +51,9 @@ async def test_params_type_invalid_type(bidi_session, value):
 async def test_params_type_invalid_value(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.browsing_context.create(type_hint=value)
+
+
+@pytest.mark.parametrize("value", [None, '', 42, {}, []])
+async def test_params_background_invalid_type(bidi_session, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.create(type_hint="tab", background = value)

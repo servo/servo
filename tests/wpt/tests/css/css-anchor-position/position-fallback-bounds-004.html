@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<title>Tests complex interaction between 'position-fallback-bounds' and scrolling</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-bounds">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+#anchor-scroller {
+  position: absolute;
+  height: 175px;
+  width: 200px;
+  left: 200px;
+  top: 100px;
+  overflow-y: scroll;
+  z-index: 100;
+}
+
+#anchor {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  left: 0;
+  top: 150px;
+  background-color: orange;
+  anchor-name: --a;
+}
+
+#bounds-scroller {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  left: 100px;
+  top: 0;
+  overflow-y: scroll;
+}
+
+#bounds {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  top: 100px;
+  background: gray;
+  anchor-name: --bounds;
+}
+
+#target {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background-color: lime;
+  left: anchor(left);
+  anchor-default: --a;
+  position-fallback-bounds: --bounds;
+  position-fallback: --top-then-bottom;
+}
+
+@position-fallback --top-then-bottom {
+  @try { bottom: anchor(top); }
+  @try { top: anchor(bottom); }
+}
+</style>
+
+<div id="anchor-scroller">
+  <div id="anchor"></div>
+</div>
+
+<div id="bounds-scroller">
+  <div id="bounds"></div>
+</div>
+
+<div id="target"></div>
+
+<script>
+promise_test(async () => {
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'top');
+}, 'Target is above anchor at initial scroll position');
+
+promise_test(async () => {
+  const anchorScroller = document.getElementById('anchor-scroller');
+  anchorScroller.scrollTop = 100;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'bottom');
+}, 'Target falls back to below anchor after anchor is scrolled upwards');
+
+promise_test(async () => {
+  const boundsScroller = document.getElementById('bounds-scroller');
+  boundsScroller.scrollTop = 100;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'top');
+}, 'Target returns to above anchor after bounds are scrolled upwards');
+</script>

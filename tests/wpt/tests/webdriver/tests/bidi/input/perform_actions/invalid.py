@@ -47,7 +47,7 @@ async def test_params_actions_invalid_value_multiple_codepoints(
 @pytest.mark.parametrize("missing", ["x", "y"])
 async def test_params_actions_missing_coordinates(bidi_session, top_context, missing):
     actions = Actions()
-    pointer_input_source = actions.add_pointer().pointer_move(x=0, y=0)
+    actions.add_pointer().pointer_move(x=0, y=0)
 
     json_actions = actions.to_json()
     pointer_input_source_json = json_actions[-1]["actions"]
@@ -64,7 +64,7 @@ async def test_params_actions_missing_wheel_property(
     bidi_session, top_context, missing
 ):
     actions = Actions()
-    wheel_input_source = actions.add_wheel().scroll(x=0, y=0, delta_x=5, delta_y=10)
+    actions.add_wheel().scroll(x=0, y=0, delta_x=5, delta_y=10)
 
     json_actions = actions.to_json()
     wheel_input_actions_json = json_actions[-1]["actions"]
@@ -161,6 +161,7 @@ async def test_params_actions_origin_invalid_value_serialized_element(
         await bidi_session.input.perform_actions(
             actions=actions, context=top_context["context"]
         )
+
 
 @pytest.mark.parametrize(
     "expression",

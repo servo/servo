@@ -64,6 +64,56 @@ def test_wheel_scroll_iframe(session, test_actions_scroll_page, wheel_chain):
     assert events[0]["target"] == "iframeContent"
 
 
+@pytest.mark.parametrize("mode", ["open", "closed"])
+@pytest.mark.parametrize("nested", [False, True], ids=["outer", "inner"])
+def test_wheel_scroll_shadow_tree(session, get_test_page, wheel_chain, mode, nested):
+    session.url = get_test_page(
+        shadow_doc="""
+        <div id="scrollableShadowTree"
+             style="width: 100px; height: 100px; overflow: auto;">
+            <div
+                id="scrollableShadowTreeContent"
+                style="width: 600px; height: 1000px; background-color:blue"></div>
+        </div>""",
+        shadow_root_mode=mode,
+        nested_shadow_dom=nested,
+    )
+
+    shadow_root = session.find.css("custom-element", all=False).shadow_root
+
+    if nested:
+        shadow_root = shadow_root.find_element(
+            "css selector", "inner-custom-element"
+        ).shadow_root
+
+    scrollable = shadow_root.find_element("css selector", "#scrollableShadowTree")
+
+    # Add a simplified event recorder to track events in the test ShadowRoot.
+    session.execute_script(
+        """
+        window.wheelEvents = [];
+        arguments[0].addEventListener("wheel",
+            function(event) {
+                window.wheelEvents.push({
+                    "deltaX": event.deltaX,
+                    "deltaY": event.deltaY,
+                    "target": event.target.id
+                });
+            }
+        );
+    """,
+        args=(scrollable,),
+    )
+
+    wheel_chain.scroll(0, 0, 5, 10, origin=scrollable).perform()
+
+    events = session.execute_script("return window.wheelEvents;") or []
+    assert len(events) == 1
+    assert events[0]["deltaX"] >= 5
+    assert events[0]["deltaY"] >= 10
+    assert events[0]["target"] == "scrollableShadowTreeContent"
+
+
 @pytest.mark.parametrize("missing", ["x", "y", "deltaX", "deltaY"])
 def test_wheel_missing_prop(session, test_actions_scroll_page, wheel_chain, missing):
     session.execute_script("document.scrollingElement.scrollTop = 0")

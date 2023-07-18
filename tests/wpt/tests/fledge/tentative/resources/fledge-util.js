@@ -171,9 +171,8 @@ function createRenderUrl(uuid, script) {
 //
 // `interestGroupOverrides` may be used to override fields in the joined
 // interest group.
-async function joinInterestGroup(test, uuid, interestGroupOverrides = {}) {
-  const INTEREST_GROUP_LIFETIME_SECS = 60;
-
+async function joinInterestGroup(test, uuid, interestGroupOverrides = {},
+                                 durationSeconds = 60) {
   let interestGroup = {
     owner: window.location.origin,
     name: DEFAULT_INTEREST_GROUP_NAME,
@@ -183,8 +182,7 @@ async function joinInterestGroup(test, uuid, interestGroupOverrides = {}) {
     ...interestGroupOverrides
   };
 
-  await navigator.joinAdInterestGroup(interestGroup,
-                                      INTEREST_GROUP_LIFETIME_SECS);
+  await navigator.joinAdInterestGroup(interestGroup, durationSeconds);
   test.add_cleanup(
       async () => {await navigator.leaveAdInterestGroup(interestGroup)});
 }

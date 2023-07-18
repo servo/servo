@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<title>CSS Scrollbars: scrollbar-color on scrollable areas correctly interacts with ::-webkit-scrollbar-corner</title>
+<link rel="author" title="Luke Warlow" href="mailto:luke@warlow.dev" />
+<link rel="match" href="scrollbar-color-006-ref.html" />
+<link rel="help" href="https://drafts.csswg.org/css-scrollbars-1/" />
+<style>
+  .container {
+    scrollbar-gutter: stable;
+    overflow: auto;
+    height: 200px;
+    min-width: 200px;
+    margin: 1px;
+    padding: 0px;
+    border: none;
+    background: deepskyblue;
+    scrollbar-color: yellow blue;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background-color: purple;
+  }
+
+  .content {
+    height: 300px;
+    width: 300px;
+    background: red;
+  }
+</style>
+<div id="one" class="container">
+  <div class="content"></div>
+</div>

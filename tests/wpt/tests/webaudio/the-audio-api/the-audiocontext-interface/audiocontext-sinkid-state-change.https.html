@@ -7,7 +7,6 @@
 <script>
 "use strict";
 
-const audioContext = new AudioContext();
 let outputDeviceList = null;
 let firstDeviceId = null;
 
@@ -25,6 +24,7 @@ promise_setup(async t => {
 // Test the sink change when from a suspended context.
 promise_test(async t => {
   let events = [];
+  const audioContext = new AudioContext();
   await audioContext.suspend();
 
   // Step 6. Set wasRunning to false if the [[rendering thread state]] on the
@@ -43,40 +43,55 @@ promise_test(async t => {
 }, 'Calling setSinkId() on a suspended AudioContext should fire only sink ' +
    'change events.');
 
-// Test the sink change when from a running context.
+// Test the sink change on a running AudioContext.
 promise_test(async t => {
   let events = [];
+  let silentSinkOption = {type: 'none'};
+  const audioContext = new AudioContext();
+
+  // Make sure the context is "running". This also will fire a state change
+  // event upon resolution.
   await audioContext.resume();
 
-  // Step 9. If wasRunning is true:
-  assert_equals(audioContext.state, 'running');
+  return new Promise(async resolve => {
 
-  // Step 9.2.1. Set the state attribute of the AudioContext to "suspended".
-  // Fire an event named statechange at the associated AudioContext.
-  audioContext.onstatechange = t.step_func(() => {
-    events.push('statechange:suspended');
-    assert_equals(audioContext.state, 'suspended');
+    function eventCheckpoint() {
+      // We're expecting 4 events from AudioContext.
+      if (events.length === 4) {
+        // The initial context state was "running".
+        assert_equals(events[0], 'statechange:running');
+        assert_equals(events[1], 'statechange:suspended');
+        assert_equals(events[2], 'sinkchange');
+        assert_equals(events[3], 'statechange:running');
+        resolve();
+      }
+    }
+
+    // This is to catch a sink change event:
+    // - Step 11.5. Fire an event named sinkchange at the associated
+    //   AudioContext.
+    audioContext.onsinkchange = t.step_func(() => {
+      assert_equals(audioContext.sinkId.type, silentSinkOption.type);
+      events.push('sinkchange');
+      eventCheckpoint();
+    });
+
+    // The following event handler will catch 3 state change events:
+    // - The initial 'running' state change.
+    // - Step 9.2.1. Set the state attribute of the AudioContext to "suspended".
+    //   Fire an event named statechange at the associated AudioContext.
+    // - Step 12.2. Set the state attribute of the AudioContext to "running".
+    //   Fire an event named statechange at the associated AudioContext.
+    audioContext.onstatechange = async () => {
+      events.push(`statechange:${audioContext.state}`);
+      eventCheckpoint();
+    };
+
+    // To trigger a series of state changes, we need a device change. The
+    // context started with the default device, and this call changes it to a
+    // silent sink.
+    audioContext.setSinkId(silentSinkOption);
   });
-
-  // Step 11.5. Fire an event named sinkchange at the associated AudioContext.
-  audioContext.onsinkchange = t.step_func(() => {
-    events.push('sinkchange');
-    assert_equals(audioContext.sinkId, firstDeviceId);
-  });
-
-  // Step 12.2. Set the state attribute of the AudioContext to "running".
-  // Fire an event named statechange at the associated AudioContext.
-  audioContext.onstatechange = t.step_func(() => {
-    events.push('statechange:running');
-    assert_equals(audioContext.state, 'running');
-  });
-
-  await audioContext.setSinkId(firstDeviceId);
-  assert_equals(events.length, 3);
-  assert_equals(events[0], 'statechange:suspended');
-  assert_equals(events[1], 'sinkchange');
-  assert_equals(events[2], 'statechange:running');
-  t.done();
 }, 'Calling setSinkId() on a running AudioContext should fire both state ' +
    'and sink change events.');
 </script>

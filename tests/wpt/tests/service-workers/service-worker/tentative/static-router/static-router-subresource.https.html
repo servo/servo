@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Static Router: simply skip fetch handler if pattern matches</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+const SCRIPT = 'resources/static-router-sw.js';
+const SCOPE = 'resources/';
+const HTML_FILE = 'resources/simple.html';
+const TXT_FILE = 'resources/direct.txt';
+
+// Register a service worker, then create an iframe at url.
+function iframeTest(url, callback, name) {
+  return promise_test(async t => {
+    const reg = await service_worker_unregister_and_register(t, SCRIPT, SCOPE);
+    add_completion_callback(() => reg.unregister());
+    await wait_for_state(t, reg.installing, 'activated');
+    const iframe = await with_iframe(url);
+    const iwin = iframe.contentWindow;
+    t.add_cleanup(() => iframe.remove());
+    await callback(t, iwin);
+  }, name);
+}
+
+function randomString() {
+  let result = "";
+  for (let i = 0; i < 5; i++) {
+    result += String.fromCharCode(97 + Math.floor(Math.random() * 26));
+  }
+  return result;
+}
+
+iframeTest(HTML_FILE, async (t, iwin) => {
+  const rnd = randomString();
+  const response = await iwin.fetch('?nonce=' + rnd);
+  assert_equals(await response.text(), rnd);
+}, 'Subresource load not matched with the condition');
+
+iframeTest(TXT_FILE, async (t, iwin) => {
+  const rnd = randomString();
+  const response = await iwin.fetch('?nonce=' + rnd);
+  assert_equals(await response.text(), "Network\n");
+}, 'Subresource load matched with the condition');
+
+</script>
+</body>

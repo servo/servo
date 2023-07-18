@@ -5,48 +5,30 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/css-animations/support/testcommon.js"></script>
 
-<div id=target1 class=target>hello</div>
-<div id=target2 class=target>hello</div>
+<div id=target>hello</div>
 
 <style>
-.target {
+#target {
   float: left;
   width: 100px;
   height: 100px;
-}
-.target.animated {
-  float: right;
-}
-
-#target1 {
-  transition: all 1s, float 1s;
-}
-
-#target2 {
+  transition-animation-type: discrete;
   transition: all 1s;
+}
+#target.animated {
+  float: right;
 }
 </style>
 
 <script>
 promise_test(async () => {
   let transitionstartFired = false;
-  target1.addEventListener('transitionstart', () => {
+  target.addEventListener('transitionstart', () => {
     transitionstartFired = true;
   });
   await waitForAnimationFrames(2);
-  target1.classList.add('animated');
+  target.classList.add('animated');
   await waitForAnimationFrames(1);
   assert_true(transitionstartFired);
-}, 'all with an explicit discrete property should animate.');
-
-promise_test(async () => {
-  let transitionstartFired = false;
-  target2.addEventListener('transitionstart', () => {
-    transitionstartFired = true;
-  });
-  await waitForAnimationFrames(2);
-  target2.classList.add('animated');
-  await waitForAnimationFrames(1);
-  assert_false(transitionstartFired);
-}, 'all without an explicit discrete property should not animate.');
+}, 'transition:all with transition-animation-type:discrete should animate discrete properties.');
 </script>

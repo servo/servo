@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Same-origin prerendering can access Indexed Database</title>
+<title>Service Workers APIs with prerendering</title>
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -44,7 +44,7 @@ promise_test(async t => {
           resolve({prerendering: document.prerendering});
         });
     });
-  }, scope);
+  }, [scope]);
 
   await new Promise(resolve => t.step_timeout(resolve, ACTIVATION_DELAY));
 
@@ -68,7 +68,7 @@ promise_test(async t => {
       await reg.unregister();
       return {prerendering: document.prerendering};
     })();
-  }, uid);
+  }, [uid]);
 
   await new Promise(resolve => t.step_timeout(resolve, ACTIVATION_DELAY));
 
@@ -92,7 +92,7 @@ promise_test(async t => {
       await reg.update();
       return {prerendering: document.prerendering};
     })();
-  }, uid);
+  }, [uid]);
 
   await new Promise(resolve => t.step_timeout(resolve, ACTIVATION_DELAY));
 

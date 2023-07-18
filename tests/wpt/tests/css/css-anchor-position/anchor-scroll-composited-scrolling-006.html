@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
-<title>Tests anchor-scroll element paint order in composited scrolling</title>
+<title>Tests anchor-positioned element paint order in composited scrolling</title>
 <link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/#scroll">
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <link rel="match" href="reference/anchor-scroll-composited-scrolling-006-ref.html">
@@ -29,7 +29,7 @@ body {
   background: red;
   left: 0;
   bottom: anchor(--a top);
-  anchor-scroll: --a;
+  anchor-default: --a;
 }
 #overlap {
   position: absolute;

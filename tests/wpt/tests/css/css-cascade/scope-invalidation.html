@@ -349,3 +349,216 @@ test_scope_invalidation(document.currentScript, () => {
   assert_green(b);
 }, 'Scope limit with :has()');
 </script>
+
+<template>
+  <style>
+    @scope (.a) {
+      .b ~ :scope { background-color:green; }
+    }
+  </style>
+  <div></div>
+  <div></div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let div1 = main.querySelector('main > div:nth-of-type(1)');
+  let div2 = main.querySelector('main > div:nth-of-type(2)');
+
+  assert_not_green(div2);
+  div1.classList.add('b');
+  assert_not_green(div2);
+  div2.classList.add('a');
+  assert_green(div2);
+  div1.classList.remove('b');
+  assert_not_green(div2);
+}, 'Element becoming root, with :scope selected by ~ combinator');
+</script>
+
+<template>
+  <style>
+    @scope (.a ~ .b) {
+      .c { background-color:green; }
+    }
+  </style>
+  <div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div class=b>
+      <div class=c></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let root = main.querySelector('div > div:first-child');
+  let c = main.querySelector('.c');
+  assert_not_green(c);
+  root.classList.add('a');
+  assert_green(c);
+  root.classList.remove('a');
+  assert_not_green(c);
+}, 'Element becoming root via ~ combinator');
+</script>
+
+<template>
+  <style>
+    @scope (.a + .b) {
+      .c { background-color:green; }
+    }
+  </style>
+  <div>
+    <div></div>
+    <div class=b>
+      <div class=c></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let root = main.querySelector('div > div:first-child');
+  let c = main.querySelector('.c');
+  assert_not_green(c);
+  root.classList.add('a');
+  assert_green(c);
+  root.classList.remove('a');
+  assert_not_green(c);
+}, 'Element becoming root via + combinator');
+</script>
+
+<template>
+  <style>
+    @scope (.root) {
+      :not(:scope) { background-color:green; }
+    }
+  </style>
+  <div class=root>
+    <div class=a></div>
+    <div class=b></div>
+    <div class=c></div>
+  </div>
+  <div class=a></div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let root = main.querySelector('.root');
+  let a1 = main.querySelector('.root > .a');
+  let b = main.querySelector('.root > .b');
+  let c = main.querySelector('.root > .c');
+  let a2 = main.querySelector('main > .a');
+
+  assert_not_green(root);
+  assert_green(a1);
+  assert_green(b);
+  assert_green(c);
+  assert_not_green(a2);
+
+  root.classList.remove('root');
+  assert_not_green(root);
+  assert_not_green(a1);
+  assert_not_green(b);
+  assert_not_green(c);
+  assert_not_green(a2);
+
+  root.classList.add('root');
+  assert_not_green(root);
+  assert_green(a1);
+  assert_green(b);
+  assert_green(c);
+  assert_not_green(a2);
+}, ':not(scope) in subject');
+</script>
+
+<template>
+  <style>
+    @scope (.root) {
+      :not(:scope) > .a { background-color:green; }
+    }
+  </style>
+  <div class=root>
+    <div class=a></div>
+    <div>
+      <div class=a></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let root = main.querySelector('.root');
+  let outer_a = main.querySelector('.root > .a');
+  let inner_a = main.querySelector('.root > div > .a');
+
+  assert_not_green(outer_a);
+  assert_green(inner_a);
+
+  root.classList.remove('root');
+  assert_not_green(outer_a);
+  assert_not_green(inner_a);
+
+  root.classList.add('root');
+  assert_not_green(outer_a);
+  assert_green(inner_a);
+}, ':not(scope) in ancestor');
+</script>
+
+<template>
+  <style>
+    @scope (.root) to (:not(:scope)) {
+      :is(div, :scope) { background-color: green; }
+    }
+  </style>
+  <div class=root>
+    <div class=a></div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let root = main.querySelector('.root');
+  let a = main.querySelector('.root > .a');
+
+  assert_green(root);
+  assert_not_green(a);
+
+  root.classList.remove('root');
+  assert_not_green(root);
+  assert_not_green(a);
+
+  root.classList.add('root');
+  assert_green(root);
+  assert_not_green(a);
+}, ':not(scope) in limit subject');
+</script>
+
+<template>
+  <style>
+    @scope (.root) to (:not(:scope) > .a) {
+      :is(div, :scope) { background-color: green; }
+    }
+  </style>
+  <div class=root>
+    <div class=a>
+      <div class=a></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let root = main.querySelector('.root');
+  let outer_a = main.querySelector('.root > .a');
+  let inner_a = main.querySelector('.root > .a > .a');
+
+  assert_green(root);
+  assert_green(outer_a);
+  assert_not_green(inner_a);
+
+  root.classList.remove('root');
+  assert_not_green(root);
+  assert_not_green(outer_a);
+  assert_not_green(inner_a);
+
+  root.classList.add('root');
+  assert_green(root);
+  assert_green(outer_a);
+  assert_not_green(inner_a);
+}, ':not(scope) in limit ancestor');
+</script>

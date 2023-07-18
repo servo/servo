@@ -34,12 +34,17 @@
   </div>
 </div>
 
+<div id="multicol" style="width: max-content; column-count: 2; column-gap: 50px">
+  <div style="width: 100px"></div>
+</div>
+
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
 const parent = document.getElementById("parent");
 const target = document.getElementById("target");
 const contents = document.getElementById("contents");
+const multicol = document.getElementById("multicol");
 
 function checkSize(expectedWidth, expectedHeight, msg) {
   assert_equals(target.clientWidth, expectedWidth, msg + " - clientWidth");
@@ -87,4 +92,20 @@ promise_test(async function() {
   target.classList.add("skip-contents");
   checkSize(75, 25, "Using the new last remembered size");
 }, "Basic usage");
+
+promise_test(async function() {
+  multicol.className = "cis-auto skip-contents";
+
+  assert_equals(multicol.clientWidth, 50, "initial multicolumn clientWidth");
+
+  multicol.classList.remove("skip-contents");
+
+  assert_equals(multicol.clientWidth, 250, "multicolumn clientWidth without content-visibility");
+
+  await nextRendering();
+
+  multicol.classList.add("skip-contents");
+
+  assert_equals(multicol.clientWidth, 250, "multicolumn clientWidth last remembered size");
+}, "Multicol test");
 </script>

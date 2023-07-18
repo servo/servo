@@ -21,7 +21,6 @@ async_test(t => {
         // Step 7
         window.addEventListener("message", t.step_func(e => {
             assert_equals(e.data, "MissingDeviceMemory");
-            new_window.close();
             t.done();
         }), {once: true});
 
@@ -31,6 +30,7 @@ async_test(t => {
 
     // Step 1
     new_window = window.open("/client-hints/clear-site-data/resources/check-client-hints.py");
+    t.add_cleanup(() => new_window.close());
 }, "Clear-Site-Data for * should remove all client hints.");
 </script>
 </body>

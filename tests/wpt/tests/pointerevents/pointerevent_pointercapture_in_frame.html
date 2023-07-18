@@ -142,11 +142,9 @@ function run() {
         var watcher_promise = pointerdown_happened.then(()=>{
             // For this test we're going to wait for both pointerup and lostpointercapture,
             // as pointerup fires on innerFrame on Windows (see crbug.com/1186788)
-            var watch_outer_frame_for_pointerup = new EventWatcher(t, document.getElementById('outerFrame'), ["pointerup"], eventTimeout());
-            return watch_outer_frame_for_pointerup.wait_for(["pointerup"]).then(()=>{
-                var watch_outer_frame_for_lostpointercapture = new EventWatcher(t, document.getElementById('outerFrame'), ["lostpointercapture"], eventTimeout());
-                return watch_outer_frame_for_lostpointercapture.wait_for(["lostpointercapture"]);
-            });
+            var watch_outer_frame_for_pointerup_and_lostpointercapture =
+              new EventWatcher(t, document.getElementById('outerFrame'), ["pointerup", "lostpointercapture"], eventTimeout());
+            return watch_outer_frame_for_pointerup_and_lostpointercapture.wait_for(["pointerup", "lostpointercapture"]);
         });
 
         await new test_driver.Actions()

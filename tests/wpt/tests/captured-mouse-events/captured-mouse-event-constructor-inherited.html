@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel='help' href='https://screen-share.github.io/captured-mouse-events/#captured-mouse-change-event'>
+<link rel='help' href='https://dom.spec.whatwg.org/#event'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+      assert_equals((new CapturedMouseEvent("custom")).type, "custom");
+  }, "type argument is passed to the Event's constructor");
+
+  const inherited_options = ["bubbles", "cancelable", "composed"];
+  test(() => {
+      const event = new CapturedMouseEvent("");
+      inherited_options.forEach(name => {
+          assert_equals(event[name], false, `event.${name} with default eventInitDict`);
+      });
+
+      inherited_options.forEach(name => {
+          const options = {};
+          options[name] = true;
+          const event = new CapturedMouseEvent("", options);
+          inherited_options.forEach(other_name => {
+              assert_equals(event[other_name], other_name == name,
+                  `event.${other_name} with eventInitDict={${name}: true}`);
+          });
+      });
+  }, "EventInit options are passed to the Event's constructor");
+</script>

@@ -77,7 +77,6 @@ test(() => {
   'http://foobar.example.com/%s',
   'mailto:%s@example.com',
   'mailto:%s',
-  `ftp://${location.host}/%s`,
   `chrome://${location.host}/%s`,
   `foo://${location.host}/%s`,
   URL.createObjectURL(new Blob()) + "#%s",
@@ -104,7 +103,6 @@ test(() => {
   'cid',
   'data',
   'file',
-  'ftp',
   'http',
   'https',
   'javascript',
@@ -170,6 +168,8 @@ test(() => {
   /* safelisted schemes listed in
    * https://html.spec.whatwg.org/multipage/system-state.html#safelisted-scheme */
   'bitcoin',
+  'ftp',
+  'ftps',
   'geo',
   'im',
   'irc',
@@ -181,6 +181,7 @@ test(() => {
   'news',
   'nntp',
   'openpgp4fpr',
+  'sftp',
   'sip',
   'sms',
   'smsto',

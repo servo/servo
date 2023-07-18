@@ -3,7 +3,7 @@ import pytest
 from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultException
 
 from ... import any_int, any_string, recursive_compare
-from .. import any_stack_trace
+from .. import any_stack_trace, PRIMITIVE_VALUES
 
 
 @pytest.mark.asyncio
@@ -120,25 +120,10 @@ async def test_await_resolve_map(bidi_session, top_context):
     }
 
 
-@pytest.mark.parametrize(
-    "expression, expected, type",
-    [
-        ("undefined", None, "undefined"),
-        ("null", None, "null"),
-        ('"text"', "text", "string"),
-        ("42", 42, "number"),
-        ("Number.NaN", "NaN", "number"),
-        ("-0", "-0", "number"),
-        ("Infinity", "Infinity", "number"),
-        ("-Infinity", "-Infinity", "number"),
-        ("true", True, "boolean"),
-        ("false", False, "boolean"),
-        ("42n", "42", "bigint"),
-    ],
-)
+@pytest.mark.parametrize("expression, expected", PRIMITIVE_VALUES)
 @pytest.mark.asyncio
 async def test_await_resolve_primitive(
-    bidi_session, top_context, expression, expected, type
+    bidi_session, top_context, expression, expected
 ):
     result = await bidi_session.script.evaluate(
         expression=f"Promise.resolve({expression})",
@@ -146,10 +131,7 @@ async def test_await_resolve_primitive(
         target=ContextTarget(top_context["context"]),
     )
 
-    if expected is None:
-        assert result == {"type": type}
-    else:
-        assert result == {"type": type, "value": expected}
+    assert result == expected
 
 
 @pytest.mark.asyncio

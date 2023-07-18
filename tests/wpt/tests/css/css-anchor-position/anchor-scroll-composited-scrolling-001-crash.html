@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Tests that anchor-scroll doesn't crash renderer when anchor is in a scroller whose content doesn't overflow</title>
+<title>Tests that scrolling doesn't crash renderer when anchor is in a scroller whose content doesn't overflow</title>
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
 <style>
@@ -23,7 +23,7 @@
 
 #anchored {
   position: absolute;
-  anchor-scroll: --a;
+  anchor-default: --a;
   left: anchor(--a left);
   bottom: anchor(--a top);
   width: 100px;

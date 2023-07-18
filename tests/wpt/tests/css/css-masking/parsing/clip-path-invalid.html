@@ -52,6 +52,9 @@ test_invalid_value("clip-path", 'path(abc, "m 20 0 h -100 z")');
 test_invalid_value("clip-path", 'path(nonzero)');
 test_invalid_value("clip-path", 'path("m 20 0 h -100", nonzero)');
 
+test_invalid_value("clip-path", "xywh(0px)");
+test_invalid_value("clip-path", "xywh(0px 1%)");
+test_invalid_value("clip-path", "xywh(0px 1% 2em)");
 
 </script>
 </body>

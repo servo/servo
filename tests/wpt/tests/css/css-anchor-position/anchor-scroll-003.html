@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Tests anchor-scroll with fragmented containing block</title>
+<title>Tests anchor positioned scrolling with fragmented containing block</title>
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <script src="/resources/testharness.js"></script>
@@ -47,7 +47,7 @@ body {
   position: absolute;
   left: anchor(--a left);
   bottom: anchor(--a top);
-  anchor-scroll: --a;
+  anchor-default: --a;
   width: 50px;
   height: 50px;
   background: lime;
@@ -72,5 +72,5 @@ promise_test(async () => {
 
   let targetRect = target.getBoundingClientRect();
   assert_equals(targetRect.top, 30);
-}, 'anchor-scroll should work in fragmented containing block');
+}, 'Scrolling should work in fragmented containing block');
 </script>

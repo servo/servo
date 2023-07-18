@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS Content Visibility: content-visibility: auto descendant in popover is shown on showPopover"</title>
+<meta name="assert" content="content-visibility: auto descendant in popover is shown on showPopover">
+
+<div id="spacer" style="height: 100vh"></div>
+<div popover="manual" style="display: block; position: static;" id="popover">
+  <span>Test passes if this is visible</span>
+</div>
+
+<script>
+  popover.showPopover();
+</script>

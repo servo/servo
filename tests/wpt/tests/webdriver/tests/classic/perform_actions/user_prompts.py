@@ -4,7 +4,7 @@ import pytest
 
 from tests.classic.perform_actions.support.refine import get_keys
 from tests.support.asserts import assert_error, assert_success, assert_dialog_handled
-
+from . import perform_actions
 
 actions = [{
     "type": "key",
@@ -14,13 +14,6 @@ actions = [{
         {"type": "keyUp", "value": "a"},
     ]
 }]
-
-
-def perform_actions(session, actions):
-    return session.transport.send(
-        "POST",
-        "/session/{session_id}/actions".format(session_id=session.session_id),
-        {"actions": actions})
 
 
 @pytest.fixture
