@@ -18,8 +18,6 @@ import sys
 
 import colorama
 import toml
-import voluptuous
-import yaml
 
 from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
 
@@ -68,8 +66,7 @@ COMMENTS = [b"// ", b"# ", b" *", b"/* "]
 # File patterns to include in the non-WPT tidy check.
 FILE_PATTERNS_TO_CHECK = ["*.rs", "*.rc", "*.cpp", "*.c",
                           "*.h", "*.py", "*.sh",
-                          "*.toml", "*.webidl", "*.json", "*.html",
-                          "*.yml"]
+                          "*.toml", "*.webidl", "*.json", "*.html"]
 
 # File patterns that are ignored for all tidy and lint checks.
 FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc", "fake-ld.sh", "*.ogv", "*.webm"]
@@ -217,7 +214,7 @@ def is_apache_licensed(header):
 
 
 def check_license(file_name, lines):
-    if any(file_name.endswith(ext) for ext in (".yml", ".toml", ".lock", ".json", ".html")) or \
+    if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json", ".html")) or \
        config["skip-check-licenses"]:
         return
 
@@ -255,7 +252,7 @@ def check_modeline(file_name, lines):
 
 
 def check_length(file_name, idx, line):
-    if any(file_name.endswith(ext) for ext in (".yml", ".lock", ".json", ".html", ".toml")) or \
+    if any(file_name.endswith(ext) for ext in (".lock", ".json", ".html", ".toml")) or \
        config["skip-check-length"]:
         return
 
@@ -760,67 +757,6 @@ def check_webidl_spec(file_name, contents):
     yield (0, "No specification link found.")
 
 
-def duplicate_key_yaml_constructor(loader, node, deep=False):
-    mapping = {}
-    for key_node, value_node in node.value:
-        key = loader.construct_object(key_node, deep=deep)
-        if key in mapping:
-            raise KeyError(key)
-        value = loader.construct_object(value_node, deep=deep)
-        mapping[key] = value
-    return loader.construct_mapping(node, deep)
-
-
-def lint_buildbot_steps_yaml(mapping):
-    from voluptuous import Any, Extra, Required, Schema
-
-    # Note: dictionary keys are optional by default in voluptuous
-    env = Schema({Extra: str})
-    commands = Schema([str])
-    schema = Schema({
-        'env': env,
-        Extra: Any(
-            commands,
-            {
-                'env': env,
-                Required('commands'): commands,
-            },
-        ),
-    })
-
-    # Signals errors via exception throwing
-    schema(mapping)
-
-
-class SafeYamlLoader(yaml.SafeLoader):
-    """Subclass of yaml.SafeLoader to avoid mutating the global SafeLoader."""
-    pass
-
-
-def check_yaml(file_name, contents):
-    if not file_name.endswith("buildbot_steps.yml"):
-        return
-
-    # YAML specification doesn't explicitly disallow
-    # duplicate keys, but they shouldn't be allowed in
-    # buildbot_steps.yml as it could lead to confusion
-    SafeYamlLoader.add_constructor(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-        duplicate_key_yaml_constructor
-    )
-
-    try:
-        contents = yaml.load(contents, Loader=SafeYamlLoader)
-        lint_buildbot_steps_yaml(contents)
-    except yaml.YAMLError as e:
-        line = e.problem_mark.line + 1 if hasattr(e, 'problem_mark') else None
-        yield (line, e)
-    except KeyError as e:
-        yield (None, "Duplicated Key ({})".format(e.args[0]))
-    except voluptuous.MultipleInvalid as e:
-        yield (None, str(e))
-
-
 def check_for_possible_duplicate_json_keys(key_value_pairs):
     keys = [x[0] for x in key_value_pairs]
     seen_keys = set()
@@ -1115,7 +1051,7 @@ def scan(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
     directory_errors = check_directory_files(config['check_ext'])
     # standard checks
     files_to_check = filter_files('.', only_changed_files and not stylo, progress)
-    checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json, check_yaml)
+    checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_shell,
                                check_rust, check_spec, check_modeline)
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
