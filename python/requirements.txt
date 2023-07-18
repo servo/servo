@@ -36,10 +36,6 @@ six == 1.15
 # For sending build notifications.
 notify-py == 0.3.42
 
-# A few more requirements for tidy.
-voluptuous == 0.12.1
-PyYAML == 5.4
-
 # For wpt scripts and their tests.
 flask
 requests
