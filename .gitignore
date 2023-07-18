@@ -60,3 +60,6 @@ layout_trace*
 
 # Package managers
 etc/homebrew/Brewfile.lock.json
+
+# direnv
+.envrc
