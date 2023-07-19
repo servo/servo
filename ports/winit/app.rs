@@ -114,7 +114,7 @@ impl App {
             }
 
             // Handle the event
-            app.winit_event_to_servo_event(e);
+            app.winit_event_to_embedder_event(e);
 
             let animating = app.is_animating();
 
@@ -141,8 +141,9 @@ impl App {
         std::mem::take(&mut *self.event_queue.borrow_mut())
     }
 
-    // This function decides whether the event should be handled during `run_forever`.
-    fn winit_event_to_servo_event(&self, event: winit::event::Event<'_, ServoEvent>) {
+    /// Processes the given winit Event, possibly converting it to an EmbedderEvent and
+    /// routing that to the App or relevant Window event queues.
+    fn winit_event_to_embedder_event(&self, event: winit::event::Event<'_, ServoEvent>) {
         match event {
             // App level events
             winit::event::Event::Suspended => {
@@ -170,7 +171,7 @@ impl App {
                         warn!("Got an event from unknown window");
                     },
                     Some(window) => {
-                        window.winit_event_to_servo_event(event);
+                        window.winit_event_to_embedder_event(event);
                     },
                 }
             },
