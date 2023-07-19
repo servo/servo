@@ -223,16 +223,30 @@ fn calculate_inline_content_size_for_block_level_boxes(
     writing_mode: WritingMode,
 ) -> ContentSizes {
     let get_box_info = |box_: &ArcRefCell<BlockLevelBox>| {
-        let size = box_
-            .borrow_mut()
-            .inline_content_sizes(layout_context, writing_mode);
-        if let BlockLevelBox::OutOfFlowFloatBox(ref float_box) = *box_.borrow_mut() {
-            let style_box = &float_box.contents.style().get_box();
-            (size, style_box.float, style_box.clear)
-        } else {
-            // The element may in fact have clearance, but the logic below ignores it,
-            // so don't bother retrieving it from the style.
-            (size, Float::None, Clear::None)
+        match &mut *box_.borrow_mut() {
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => None,
+            BlockLevelBox::OutOfFlowFloatBox(ref mut float_box) => {
+                let size = float_box
+                    .contents
+                    .outer_inline_content_sizes(layout_context, writing_mode);
+                let style_box = &float_box.contents.style().get_box();
+                Some((size, style_box.float, style_box.clear))
+            },
+            BlockLevelBox::SameFormattingContextBlock {
+                style, contents, ..
+            } => {
+                let size = sizing::outer_inline(&style, writing_mode, || {
+                    contents.inline_content_sizes(layout_context, style.writing_mode)
+                });
+                // The element may in fact have clearance, but the logic below ignores it,
+                // so don't bother retrieving it from the style.
+                Some((size, Float::None, Clear::None))
+            },
+            BlockLevelBox::Independent(ref mut independent) => {
+                let size = independent.outer_inline_content_sizes(layout_context, writing_mode);
+                // TODO: do the right thing instead of copying SameFormattingContextBlock.
+                Some((size, Float::None, Clear::None))
+            },
         }
     };
 
@@ -295,12 +309,12 @@ fn calculate_inline_content_size_for_block_level_boxes(
     let data = if layout_context.use_rayon {
         boxes
             .par_iter()
-            .map(get_box_info)
+            .filter_map(get_box_info)
             .collect::<Vec<_>>()
             .into_iter()
             .fold(zero, accumulate)
     } else {
-        boxes.iter().map(get_box_info).fold(zero, accumulate)
+        boxes.iter().filter_map(get_box_info).fold(zero, accumulate)
     };
     data.max_size_including_uncleared_floats()
 }
@@ -550,26 +564,6 @@ impl BlockLevelBox {
                 positioning_context,
                 containing_block,
             )),
-        }
-    }
-
-    fn inline_content_sizes(
-        &mut self,
-        layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
-    ) -> ContentSizes {
-        match self {
-            Self::SameFormattingContextBlock {
-                style, contents, ..
-            } => sizing::outer_inline(style, containing_block_writing_mode, || {
-                contents.inline_content_sizes(layout_context, style.writing_mode)
-            }),
-            Self::Independent(independent) => independent
-                .outer_inline_content_sizes(layout_context, containing_block_writing_mode),
-            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => ContentSizes::zero(),
-            BlockLevelBox::OutOfFlowFloatBox(float_box) => float_box
-                .contents
-                .outer_inline_content_sizes(layout_context, containing_block_writing_mode),
         }
     }
 }
