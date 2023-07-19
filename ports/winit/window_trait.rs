@@ -6,7 +6,7 @@
 //! Implemented by headless and headed windows.
 
 use crate::events_loop::ServoEvent;
-use servo::compositing::windowing::{WindowEvent, WindowMethods};
+use servo::compositing::windowing::{EmbedderEvent, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
@@ -15,7 +15,7 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 pub const LINE_HEIGHT: f32 = 38.0;
 
 pub trait WindowPortsMethods: WindowMethods {
-    fn get_events(&self) -> Vec<WindowEvent>;
+    fn get_events(&self) -> Vec<EmbedderEvent>;
     fn id(&self) -> winit::window::WindowId;
     fn has_events(&self) -> bool;
     fn page_height(&self) -> f32;

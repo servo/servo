@@ -16,7 +16,7 @@ use winit::window::Icon;
 use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
 
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
-use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
+use servo::compositing::windowing::{AnimationState, MouseWindowEvent, EmbedderEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::script_traits::{TouchEventType, WheelDelta, WheelMode};
@@ -55,7 +55,7 @@ pub struct Window {
     mouse_down_button: Cell<Option<winit::event::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
     primary_monitor: winit::monitor::MonitorHandle,
-    event_queue: RefCell<Vec<WindowEvent>>,
+    event_queue: RefCell<Vec<EmbedderEvent>>,
     mouse_pos: Cell<Point2D<i32, DevicePixel>>,
     last_pressed: Cell<Option<(KeyboardEvent, Option<VirtualKeyCode>)>>,
     /// A map of winit's key codes to key values that are interpreted from
@@ -199,7 +199,7 @@ impl Window {
         }
         self.event_queue
             .borrow_mut()
-            .push(WindowEvent::Keyboard(event));
+            .push(EmbedderEvent::Keyboard(event));
     }
 
     fn handle_keyboard_input(&self, input: KeyboardInput) {
@@ -227,7 +227,7 @@ impl Window {
             }
             self.event_queue
                 .borrow_mut()
-                .push(WindowEvent::Keyboard(event));
+                .push(EmbedderEvent::Keyboard(event));
         }
     }
 
@@ -265,7 +265,7 @@ impl Window {
                         if pixel_dist < max_pixel_dist {
                             self.event_queue
                                 .borrow_mut()
-                                .push(WindowEvent::MouseWindowEventClass(mouse_up_event));
+                                .push(EmbedderEvent::MouseWindowEventClass(mouse_up_event));
                             MouseWindowEvent::Click(mouse_button, coords.to_f32())
                         } else {
                             mouse_up_event
@@ -277,7 +277,7 @@ impl Window {
         };
         self.event_queue
             .borrow_mut()
-            .push(WindowEvent::MouseWindowEventClass(event));
+            .push(EmbedderEvent::MouseWindowEventClass(event));
     }
 
     fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
@@ -296,7 +296,7 @@ impl Window {
 }
 
 impl WindowPortsMethods for Window {
-    fn get_events(&self) -> Vec<WindowEvent> {
+    fn get_events(&self) -> Vec<EmbedderEvent> {
         std::mem::take(&mut *self.event_queue.borrow_mut())
     }
 
@@ -408,7 +408,7 @@ impl WindowPortsMethods for Window {
                 self.mouse_pos.set(Point2D::new(x, y));
                 self.event_queue
                     .borrow_mut()
-                    .push(WindowEvent::MouseWindowMoveEventClass(Point2D::new(
+                    .push(EmbedderEvent::MouseWindowMoveEventClass(Point2D::new(
                         x as f32, y as f32,
                     )));
             },
@@ -433,7 +433,7 @@ impl WindowPortsMethods for Window {
                 };
                 let pos = self.mouse_pos.get();
                 let position = Point2D::new(pos.x as f32, pos.y as f32);
-                let wheel_event = WindowEvent::Wheel(wheel_delta, position);
+                let wheel_event = EmbedderEvent::Wheel(wheel_delta, position);
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -446,7 +446,7 @@ impl WindowPortsMethods for Window {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
                 let phase = winit_phase_to_touch_event_type(phase);
                 let scroll_event =
-                    WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
+                    EmbedderEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
 
                 // Send events
                 self.event_queue.borrow_mut().push(wheel_event);
@@ -461,10 +461,10 @@ impl WindowPortsMethods for Window {
                 let point = Point2D::new(position.x as f32, position.y as f32);
                 self.event_queue
                     .borrow_mut()
-                    .push(WindowEvent::Touch(phase, id, point));
+                    .push(EmbedderEvent::Touch(phase, id, point));
             },
             winit::event::WindowEvent::CloseRequested => {
-                self.event_queue.borrow_mut().push(WindowEvent::Quit);
+                self.event_queue.borrow_mut().push(EmbedderEvent::Quit);
             },
             winit::event::WindowEvent::Resized(physical_size) => {
                 let (width, height) = physical_size.into();
@@ -475,7 +475,7 @@ impl WindowPortsMethods for Window {
                         .resize(physical_size.to_i32())
                         .expect("Failed to resize");
                     self.inner_size.set(new_size);
-                    self.event_queue.borrow_mut().push(WindowEvent::Resize);
+                    self.event_queue.borrow_mut().push(EmbedderEvent::Resize);
                 }
             },
             _ => {},

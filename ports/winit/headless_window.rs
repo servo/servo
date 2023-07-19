@@ -7,7 +7,7 @@
 use crate::events_loop::ServoEvent;
 use crate::window_trait::WindowPortsMethods;
 use euclid::{Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
-use servo::compositing::windowing::{AnimationState, WindowEvent};
+use servo::compositing::windowing::{AnimationState, EmbedderEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
@@ -63,7 +63,7 @@ impl Window {
 }
 
 impl WindowPortsMethods for Window {
-    fn get_events(&self) -> Vec<WindowEvent> {
+    fn get_events(&self) -> Vec<EmbedderEvent> {
         vec![]
     }
 

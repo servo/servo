@@ -11,7 +11,7 @@ use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
-use servo::compositing::windowing::WindowEvent;
+use servo::compositing::windowing::EmbedderEvent;
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
@@ -26,7 +26,7 @@ use webxr::glwindow::GlWindowDiscovery;
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
     browser: RefCell<Browser<dyn WindowPortsMethods>>,
-    event_queue: RefCell<Vec<WindowEvent>>,
+    event_queue: RefCell<Vec<EmbedderEvent>>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
 }
@@ -100,7 +100,7 @@ impl App {
 
                 let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
                 let mut servo = servo_data.servo;
-                servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
+                servo.handle_events(vec![EmbedderEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
                 servo.setup_logging();
 
                 app.windows.insert(window.id(), window.clone());
@@ -137,7 +137,7 @@ impl App {
         self.windows.iter().any(|(_, window)| window.is_animating())
     }
 
-    fn get_events(&self) -> Vec<WindowEvent> {
+    fn get_events(&self) -> Vec<EmbedderEvent> {
         std::mem::take(&mut *self.event_queue.borrow_mut())
     }
 
@@ -150,15 +150,15 @@ impl App {
             },
             winit::event::Event::Resumed => {
                 self.suspended.set(false);
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
             },
             winit::event::Event::UserEvent(_) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
             },
             winit::event::Event::DeviceEvent { .. } => {},
 
             winit::event::Event::RedrawRequested(_) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
             },
 
             // Window level events
