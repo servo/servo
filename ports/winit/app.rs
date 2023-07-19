@@ -183,6 +183,13 @@ impl App {
         }
     }
 
+    /// Pumps events and messages between the embedder and Servo, where embedder events flow
+    /// towards Servo and embedder messages flow away from Servo, and also runs the compositor.
+    ///
+    /// As the embedder, we push embedder events through our event queues, from the App queue and
+    /// Window queues to the Browser queue, and from the Browser queue to Servo. We receive and
+    /// collect embedder messages from the various Servo components, then take them out of the
+    /// Servo interface so that the Browser can handle them.
     fn handle_events(&mut self) -> bool {
         let mut browser = self.browser.borrow_mut();
 
@@ -193,23 +200,33 @@ impl App {
         // browser instance. Pressing the "a" key on the glwindow
         // will send a key event to the servo window.
 
-        let mut app_events = self.get_events();
+        // Take any outstanding embedder events from the App and its Windows.
+        let mut embedder_events = self.get_events();
         for (_win_id, window) in &self.windows {
-            app_events.extend(window.get_events());
+            embedder_events.extend(window.get_events());
         }
 
-        browser.handle_window_events(app_events);
+        // Catch some keyboard events, and push the rest onto the Browser event queue.
+        browser.handle_window_events(embedder_events);
 
-        let mut servo_events = self.servo.as_mut().unwrap().get_events();
+        // Take any new embedder messages from Servo itself.
+        let mut embedder_messages = self.servo.as_mut().unwrap().get_events();
         let mut need_resize = false;
         loop {
-            browser.handle_servo_events(servo_events);
+            // Consume and handle those embedder messages.
+            browser.handle_servo_events(embedder_messages);
+
+            // Route embedder events from the Browser to the relevant Servo components,
+            // receives and collects embedder messages from various Servo components,
+            // and runs the compositor.
             need_resize |= self.servo.as_mut().unwrap().handle_events(browser.get_events());
             if browser.shutdown_requested() {
                 return true;
             }
-            servo_events = self.servo.as_mut().unwrap().get_events();
-            if servo_events.is_empty() {
+
+            // Take any new embedder messages from Servo itself.
+            embedder_messages = self.servo.as_mut().unwrap().get_events();
+            if embedder_messages.is_empty() {
                 break;
             }
         }
