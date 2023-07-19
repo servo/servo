@@ -1,3 +1,5 @@
+// META: script=/common/utils.js
+// META: script=/fenced-frame/resources/utils.js
 'use strict';
 
 async function IsSharedStorageSelectUrlAllowedByPermissionsPolicy() {
@@ -112,4 +114,73 @@ function validateSelectURLResult(result, resolve_to_config) {
   }
 
   return result.startsWith('urn:uuid:');
+}
+
+function updateUrlToUseNewOrigin(url, newOriginString) {
+  const origin = url.origin;
+  return new URL(url.toString().replace(origin, newOriginString));
+}
+
+function appendExpectedKeyAndValue(url, expectedKey, expectedValue) {
+  url.searchParams.append('expectedKey', expectedKey);
+  url.searchParams.append('expectedValue', expectedValue);
+  return url;
+}
+
+function parseExpectedKeyAndValueData() {
+  const url = new URL(location.href);
+  const key = url.searchParams.get('expectedKey');
+  const value = url.searchParams.get('expectedValue');
+  return {'expectedKey': key, 'expectedValue': value};
+}
+
+function appendExpectedKey(url, expectedKey) {
+  url.searchParams.append('expectedKey', expectedKey);
+  return url;
+}
+
+function parseExpectedKeyData() {
+  const url = new URL(location.href);
+  const key = url.searchParams.get('expectedKey');
+  return {'expectedKey': key};
+}
+
+async function verifyKeyValueForOrigin(key, value, origin) {
+  const outerKey = token();
+  const innerKey = token();
+  let iframeUrl = generateURL(
+      '/shared-storage/resources/verify-key-value.https.html',
+      [outerKey, innerKey]);
+  iframeUrl = updateUrlToUseNewOrigin(iframeUrl, origin);
+  appendExpectedKeyAndValue(iframeUrl, key, value);
+
+  attachIFrame(iframeUrl);
+  const result = await nextValueFromServer(outerKey);
+  assert_equals(result, 'verify_key_value_loaded');
+}
+
+async function verifyKeyNotFoundForOrigin(key, origin) {
+  const outerKey = token();
+  const innerKey = token();
+  let iframeUrl = generateURL(
+      '/shared-storage/resources/verify-key-not-found.https.html',
+      [outerKey, innerKey]);
+  iframeUrl = updateUrlToUseNewOrigin(iframeUrl, origin);
+  appendExpectedKey(iframeUrl, key);
+
+  attachIFrame(iframeUrl);
+  const result = await nextValueFromServer(outerKey);
+  assert_equals(result, 'verify_key_not_found_loaded');
+}
+
+async function setKeyValueForOrigin(key, value, origin) {
+  const outerKey = token();
+  let setIframeUrl = generateURL(
+      '/shared-storage/resources/set-key-value.https.html', [outerKey]);
+  setIframeUrl = updateUrlToUseNewOrigin(setIframeUrl, origin);
+  appendExpectedKeyAndValue(setIframeUrl, key, value);
+
+  attachIFrame(setIframeUrl);
+  const result = await nextValueFromServer(outerKey);
+  assert_equals(result, 'set_key_value_loaded');
 }

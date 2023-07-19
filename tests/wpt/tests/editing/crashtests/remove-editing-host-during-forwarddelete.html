@@ -12,29 +12,36 @@ svg {
 @keyframes kf {}
 </style>
 <script>
-document.addEventListener("DOMContentLoaded", async () => {
-  const dir = document.querySelector("dir");
-  const waitForAnimationEnd = new Promise(resolve => {
-    let count = 0;
-    function onAnimationEnd() {
-      window.find("AAAAAAAAAA");
-      document.execCommand("forwardDelete");
-      count++;
-      function getRemainingEventCount() {
-        if (count >= 2) {
-          return 0;
-        }
-        // If `animationend` is delayed and `<dir>` has already been removed,
-        // `animationend` for it is never fired anymore.
-        return !dir.isConnected ? 0 : 1;
+let dir;
+// animationend for <svg> and <dir> may be fired before "DOMContentLoaded".
+// Therefore, let's start to listen them immediately.
+const waitForAnimationEnd = new Promise(resolve => {
+  let count = 0;
+  function onAnimationEnd() {
+    window.find("AAAAAAAAAA");
+    document.execCommand("forwardDelete");
+    count++;
+    function getRemainingEventCount(event) {
+      if (count >= 2) {
+        return 0;
       }
-      if (!getRemainingEventCount()) {
-        window.removeEventListener("animationend", onAnimationEnd);
-        resolve();
+      if (event.target.tagName == "DIR") {
+        return 0;
       }
+      // If `animationend` is delayed and `<dir>` has already been removed,
+      // `animationend` for it is never fired anymore.
+      return dir && !dir.isConnected ? 0 : 1;
     }
-    window.addEventListener("animationend", onAnimationEnd);
-  });
+    if (!getRemainingEventCount()) {
+      window.removeEventListener("animationend", onAnimationEnd);
+      resolve();
+    }
+  }
+  window.addEventListener("animationend", onAnimationEnd);
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+  dir = document.querySelector("dir");
   window.find("A");
   document.execCommand("insertHTML", false, "AAAAAAAAAAAAAAAA");
   dir.addEventListener("DOMNodeRemoved", event => {

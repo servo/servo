@@ -3,7 +3,6 @@ import pytest_asyncio
 
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.support.keys import Keys
 
 @pytest.fixture
 def get_focused_key_input(bidi_session, top_context):

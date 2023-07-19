@@ -25,8 +25,5 @@
       test_feature_availability('shared-storage', t, cross_origin_src,
           expect_feature_unavailable_default);
     }, header + ' disallows sharedStorage in cross-origin iframes.');
-
-    // TODO(crbug.com/1434529): Add tests with
-    // `fetch(<url>, {sharedStorageWritable: true})`, including redirects.
   </script>
 </body>

@@ -56,5 +56,23 @@ test(function(t) {
                 'The radius of inset is clamped to zero at 61%');
 }, 'Test inset with negative easing on clip-path');
 
+// All <basic-shape-rect>s compute to the equivalent inset() function, so
+// they are interpolatable.
+// https://drafts.csswg.org/css-shapes-1/#basic-shape-computed-values
+// https://github.com/w3c/csswg-drafts/issues/9053
+test(function(t) {
+  var div = createDiv(t);
+  div.style.clipPath = 'inset(10px round 20px)';
+  div.style.transition = 'all 100s linear -50s';
+  getComputedStyle(div).clipPath;
+
+  // The equivalent function is
+  // "inset(10px calc(100% - 220px) calc(100% - 110px) 20px)".
+  div.style.clipPath = 'xywh(20px 10px 200px 100px)';
+  assert_equals(getComputedStyle(div).clipPath,
+                'inset(10px calc(50% - 105px) calc(50% - 50px) 15px round 10px)',
+                'The equivalent inset at 50%');
+}, 'Test inset and xywh on clip-path');
+
 </script>
 </html>

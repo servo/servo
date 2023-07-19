@@ -21,19 +21,18 @@ async function sendTab() {
   await new test_driver.send_keys(document.documentElement,kTab);
   await waitForRender();
 }
-// Waiting for crbug.com/893480:
-// async function sendShiftTab() {
-//   await waitForRender();
-//   const kShift = '\uE008';
-//   const kTab = '\uE004';
-//   await new test_driver.Actions()
-//     .keyDown(kShift)
-//     .keyDown(kTab)
-//     .keyUp(kTab)
-//     .keyUp(kShift)
-//     .send();
-//   await waitForRender();
-// }
+async function sendShiftTab() {
+  await waitForRender();
+  const kShift = '\uE008';
+  const kTab = '\uE004';
+  await new test_driver.Actions()
+    .keyDown(kShift)
+    .keyDown(kTab)
+    .keyUp(kTab)
+    .keyUp(kShift)
+    .send();
+  await waitForRender();
+}
 async function sendEscape() {
   await waitForRender();
   await new test_driver.send_keys(document.documentElement,'\uE00C'); // Escape

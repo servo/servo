@@ -7,13 +7,15 @@
 <body>
 <script>
 
-function terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_remaining) {
+function terminateWorkerAfterMultipleSetTimeouts(video, test, worker, timeouts_remaining) {
   if (timeouts_remaining <= 0) {
+    // Terminating the worker may introduce errors in the video element we don't care about.
+    video.onerror = null;
     worker.terminate();
     test.step_timeout(() => { test.done(); }, 0);
   } else {
     test.step_timeout(() => {
-      terminateWorkerAfterMultipleSetTimeouts(test, worker, --timeouts_remaining);
+      terminateWorkerAfterMultipleSetTimeouts(video, test, worker, --timeouts_remaining);
     }, 0);
   }
 }
@@ -28,11 +30,14 @@ function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to
 
   const video = document.createElement("video");
   document.body.appendChild(video);
-  video.onerror = test.unreached_func("video element error");
+  video.onerror = _ => {
+    assert_unreached(
+        `video element error: \"${video.error.message}\": ${video.error.code}`);
+  }
 
   if (when_to_start_timeouts == "after first ended event") {
     video.addEventListener("ended", test.step_func(() => {
-      terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
+      terminateWorkerAfterMultipleSetTimeouts(video, test, worker, timeouts_to_await);
       video.currentTime = 0;
       video.loop = true;
     }), { once : true });
@@ -41,7 +46,7 @@ function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to
   }
 
   if (when_to_start_timeouts == "before setting srcObject") {
-    terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
+    terminateWorkerAfterMultipleSetTimeouts(video, test, worker, timeouts_to_await);
   }
 
   worker.onmessage = test.step_func(e => {
@@ -55,7 +60,7 @@ function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to
         const handle = e.data.info;
         video.srcObject = handle;
         if (when_to_start_timeouts == "after setting srcObject") {
-          terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
+          terminateWorkerAfterMultipleSetTimeouts(video, test, worker, timeouts_to_await);
         }
         video.play().catch(error => {
           // Only rejections due to MEDIA_ERR_SRC_NOT_SUPPORTED are expected to possibly

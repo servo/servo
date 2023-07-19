@@ -13,6 +13,8 @@ from tests.support.asserts import assert_move_to_coordinates
 from tests.support.helpers import filter_dict
 from tests.support.sync import Poll
 
+from . import assert_pointer_events, record_pointer_events
+
 
 def test_null_response_value(session, mouse_chain):
     value = mouse_chain.click().perform()
@@ -99,6 +101,36 @@ def test_click_element_center(session, test_actions_page, mouse_chain):
             assert e["pageX"] == pytest.approx(center["x"], abs=1.0)
             assert e["pageY"] == pytest.approx(center["y"], abs=1.0)
             assert e["target"] == "outer"
+
+
+@pytest.mark.parametrize("mode", ["open", "closed"])
+@pytest.mark.parametrize("nested", [False, True], ids=["outer", "inner"])
+def test_click_element_in_shadow_tree(
+    session, get_test_page, mouse_chain, mode, nested
+):
+    session.url = get_test_page(
+        shadow_doc="""
+        <div id="pointer-target"
+             style="width: 10px; height: 10px; background-color:blue;">
+        </div>""",
+        shadow_root_mode=mode,
+        nested_shadow_dom=nested,
+    )
+
+    shadow_root = session.find.css("custom-element", all=False).shadow_root
+    if nested:
+        shadow_root = shadow_root.find_element("css selector", "inner-custom-element").shadow_root
+
+    target = shadow_root.find_element("css selector", "#pointer-target")
+    record_pointer_events(session, target)
+
+    mouse_chain.click(element=target).perform()
+    assert_pointer_events(
+        session,
+        expected_events=["pointerdown", "pointerup"],
+        target="pointer-target",
+        pointer_type="mouse",
+    )
 
 
 def test_click_navigation(session, url, inline):

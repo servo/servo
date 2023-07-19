@@ -74,3 +74,13 @@ promise_test(async () => {
 promise_test(async () => {
   await fetchORB(`${path}/script-iso-8559-1.js`, null, contentType("application/json"));
 }, "ORB shouldn't block opaque text/javascript (iso-8559-1 encoded)");
+
+// Test javascript validation can correctly parse asm.js.
+promise_test(async () => {
+  await fetchORB(`${path}/script-asm-js-valid.js`, null, contentType("application/json"));
+}, "ORB shouldn't block text/javascript with valid asm.js");
+
+// Test javascript validation can correctly parse invalid asm.js with valid JS syntax.
+promise_test(async () => {
+  await fetchORB(`${path}/script-asm-js-invalid.js`, null, contentType("application/json"));
+}, "ORB shouldn't block text/javascript with invalid asm.js");

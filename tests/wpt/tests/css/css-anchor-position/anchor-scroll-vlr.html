@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<title>Tests that anchor-scroll works in vertical-lr writing mode</title>
+<title>Tests that anchor positioned scrolling works in vertical-lr writing mode</title>
 <link rel="author" href="mailto:xiaochengh@chromium.org">
-<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#scrolling">
 <link rel="match" href="reference/anchor-scroll-vlr-ref.html">
 <link rel="stylesheet" href="/fonts/ahem.css">
 <style>
@@ -50,7 +50,7 @@ body {
   position: absolute;
   top: anchor(--anchor top);
   left: anchor(--anchor right);
-  anchor-scroll: --anchor;
+  anchor-default: --anchor;
 }
 
 #outer-anchored {
@@ -58,7 +58,7 @@ body {
   position: absolute;
   top: anchor(--anchor top);
   right: anchor(--anchor left);
-  anchor-scroll: --anchor;
+  anchor-default: --anchor;
 }
 </style>
 

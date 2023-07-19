@@ -39,18 +39,18 @@ async def add_preload_script(bidi_session):
 
 @pytest_asyncio.fixture
 async def subscribe_events(bidi_session):
-    subscriptions = [];
-    async def subscribe_events(events, contexts = None):
-       await bidi_session.session.subscribe(events=events, contexts=contexts)
-       subscriptions.append((events, contexts))
+    subscriptions = []
+
+    async def subscribe_events(events, contexts=None):
+        await bidi_session.session.subscribe(events=events, contexts=contexts)
+        subscriptions.append((events, contexts))
 
     yield subscribe_events
 
     for events, contexts in reversed(subscriptions):
         try:
-            await bidi_session.session.unsubscribe(
-                events=events, contexts=contexts
-        )
+            await bidi_session.session.unsubscribe(events=events,
+                                                   contexts=contexts)
         except (InvalidArgumentException, NoSuchFrameException):
             pass
 
@@ -59,9 +59,13 @@ async def subscribe_events(bidi_session):
 async def new_tab(bidi_session):
     """Open and focus a new tab to run the test in a foreground tab."""
     new_tab = await bidi_session.browsing_context.create(type_hint='tab')
+
     yield new_tab
-    # Close the tab.
-    await bidi_session.browsing_context.close(context=new_tab["context"])
+
+    try:
+        await bidi_session.browsing_context.close(context=new_tab["context"])
+    except NoSuchFrameException:
+        print(f"Tab with id {new_tab['context']} has already been closed")
 
 
 @pytest.fixture
@@ -77,10 +81,11 @@ def send_blocking_command(bidi_session):
 def wait_for_event(bidi_session, event_loop):
     """Wait until the BiDi session emits an event and resolve the event data."""
     remove_listeners = []
+
     def wait_for_event(event_name: str):
         future = event_loop.create_future()
 
-        async def on_event(method, data):
+        async def on_event(_, data):
             remove_listener()
             remove_listeners.remove(remove_listener)
             future.set_result(data)
@@ -94,6 +99,7 @@ def wait_for_event(bidi_session, event_loop):
     # Cleanup any leftover callback for which no event was captured.
     for remove_listener in remove_listeners:
         remove_listener()
+
 
 @pytest.fixture
 def current_time(bidi_session, top_context):
@@ -113,17 +119,17 @@ def current_time(bidi_session, top_context):
 
 
 @pytest.fixture
-def add_and_remove_iframe(bidi_session, inline):
+def add_and_remove_iframe(bidi_session):
     """Create a frame, wait for load, and remove it.
 
     Return the frame's context id, which allows to test for invalid
     browsing context references.
     """
-    async def closed_frame(context, url=inline("test-frame")):
+
+    async def closed_frame(context):
         initial_contexts = await bidi_session.browsing_context.get_tree(root=context["context"])
         resp = await bidi_session.script.call_function(
-            function_declaration=
-            """(url) => {
+            function_declaration="""(url) => {
                 const iframe = document.createElement("iframe");
                 // Once we're confident implementations support returning the iframe, just
                 // return that directly. For now generate a unique id to use as a handle.
@@ -131,7 +137,7 @@ def add_and_remove_iframe(bidi_session, inline):
                 iframe.id = id;
                 iframe.src = url;
                 document.documentElement.lastElementChild.append(iframe);
-                return new Promise(resolve => iframe.onload = () => resolve(id))
+                return new Promise(resolve => iframe.onload = () => resolve(id));
             }""",
             target={"context": context["context"]},
             await_promise=True)
@@ -172,7 +178,7 @@ def get_pdf_content(bidi_session, top_context, load_pdf_bidi):
         await load_pdf_bidi(encoded_pdf_data=encoded_pdf_data, context=context)
 
         result = await bidi_session.script.call_function(
-            function_declaration="""() => { return window.getText()}""",
+            function_declaration="() => { return window.getText(); }",
             target=ContextTarget(context),
             await_promise=True,
         )
@@ -207,6 +213,7 @@ def assert_pdf_dimensions(render_pdf_to_png_bidi):
         png = await render_pdf_to_png_bidi(pdf)
         width, height = png_dimensions(png)
 
+        # account for potential rounding errors
         assert (height - 1) <= cm_to_px(expected_dimensions["height"]) <= (height + 1)
         assert (width - 1) <= cm_to_px(expected_dimensions["width"]) <= (width + 1)
 
@@ -341,7 +348,8 @@ def render_pdf_to_png_bidi(bidi_session, new_tab, url):
         assert 0 <= index < len(value)
 
         image_string = value[index]["value"]
-        image_string_without_data_type = image_string[image_string.find(",") + 1 :]
+        image_string_without_data_type = image_string[image_string.find(",") +
+                                                      1:]
 
         return base64.b64decode(image_string_without_data_type)
 

@@ -19,7 +19,7 @@ def fetch(bidi_session, top_context, configuration):
         method_arg = f"method: '{method}',"
 
         headers_arg = ""
-        if headers != None:
+        if headers is not None:
             headers_arg = f"headers: {json.dumps(headers)},"
 
         timeout_in_seconds = timeout_in_seconds * configuration["timeout_multiplier"]

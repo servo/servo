@@ -16,6 +16,9 @@ function iframePopupAboutBlankTest(
     origin, {expectedCrossOriginIsolated}, description) {
   promise_test(async t => {
     assert_true(crossOriginIsolated, 'Is main frame crossOriginIsolated?');
+    assert_true(
+        'SharedArrayBuffer' in globalThis,
+        'Is SharedArrayBuffer defined in main frame?');
 
     const reply_token = token();
     const iframe_token = token();
@@ -41,6 +44,13 @@ function iframePopupAboutBlankTest(
         await receive(reply_token), `${expectedCrossOriginIsolated}`,
         'Is popup crossOriginIsolated?');
 
+    send(iframe_token, `
+        send('${reply_token}', 'SharedArrayBuffer' in popup.window.globalThis);
+    `);
+    assert_equals(
+        await receive(reply_token), `${expectedCrossOriginIsolated}`,
+        'Is SharedArrayBuffer defined in popup?');
+
     // Test whether the popup's subframe is crossOriginIsolated
     const popup_iframe_token = token();
     const popup_iframe_src = origin + executor_path + coep_require_corp_header +
@@ -51,17 +61,58 @@ function iframePopupAboutBlankTest(
         popup.document.body.appendChild(iframe);
     `);
 
-    send(
-        popup_iframe_token,
-        `send('${reply_token}', 'Iframe in popup loaded');`);
+    send(popup_iframe_token, `
+        send('${reply_token}', 'Iframe in popup loaded');
+    `);
     assert_equals(await receive(reply_token), 'Iframe in popup loaded');
 
-    send(
-        popup_iframe_token,
-        `send('${reply_token}', crossOriginIsolated);`);
+    send(popup_iframe_token, `
+        send('${reply_token}', crossOriginIsolated);
+    `);
     assert_equals(
         await receive(reply_token), `${expectedCrossOriginIsolated}`,
         'Is iframe in popup crossOriginIsolated?');
+
+    send(popup_iframe_token, `
+        send('${reply_token}', 'SharedArrayBuffer' in globalThis);
+    `);
+    assert_equals(
+        await receive(reply_token), `${expectedCrossOriginIsolated}`,
+        'Is SharedArrayBuffer defined in iframe in popup?');
+
+    // Test whether a nested iframe is crossOriginIsolated
+    const popup_nested_iframe_token = token();
+    const popup_nested_iframe_src = origin + executor_path +
+        coep_require_corp_header + corp_cross_origin_header +
+        `&uuid=${popup_nested_iframe_token}`;
+    send(iframe_token, `
+        blank_iframe = popup.document.createElement('iframe');
+        blank_iframe.src = '';
+        popup.document.body.appendChild(blank_iframe);
+        nested_iframe =
+            blank_iframe.contentDocument.createElement('iframe');
+        nested_iframe.src = '${popup_nested_iframe_src}';
+        blank_iframe.contentDocument.body.appendChild(nested_iframe);
+    `);
+
+    send(popup_nested_iframe_token, `
+        send('${reply_token}', 'Nested iframe in popup loaded');
+    `);
+    assert_equals(await receive(reply_token), 'Nested iframe in popup loaded');
+
+    send(popup_nested_iframe_token, `
+        send('${reply_token}', crossOriginIsolated);
+    `);
+    assert_equals(
+        await receive(reply_token), `${expectedCrossOriginIsolated}`,
+        'Is nested iframe in popup crossOriginIsolated?');
+
+    send(popup_nested_iframe_token, `
+        send('${reply_token}', 'SharedArrayBuffer' in globalThis);
+    `);
+    assert_equals(
+        await receive(reply_token), `${expectedCrossOriginIsolated}`,
+        'Is SharedArrayBuffer defined in nested iframe in popup?');
 
     // Navigate the popup out of the initial empty document, with COOP:RP and
     // COEP: require-corp. Expect to be crossOriginIsolated.
@@ -75,7 +126,15 @@ function iframePopupAboutBlankTest(
 
     send(popup_token, `send('${reply_token}', crossOriginIsolated);`);
     assert_equals(
-        await receive(reply_token), 'true', 'Is popup crossOriginIsolated?');
+        await receive(reply_token), 'true',
+        'Is popup crossOriginIsolated after navigation?');
+
+    send(popup_token, `
+        send('${reply_token}', 'SharedArrayBuffer' in globalThis);
+    `);
+    assert_equals(
+        await receive(reply_token), 'true',
+        'Is SharedArrayBuffer defined in popup after navigation?');
   }, description);
 }
 

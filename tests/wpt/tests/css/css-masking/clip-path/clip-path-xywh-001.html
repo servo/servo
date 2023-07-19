@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Masking: Test clip-path property and xywh function</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#funcdef-basic-shape-xywh">
+  <link rel="match" href="reference/clip-path-rectangle-ref.html">
+  <meta name="assert" content="The clip-path property takes the basic shape
+	'xywh()' for clipping. On pass you should see a green rect.">
+</head>
+<style>
+  #rect {
+    width: 400px;
+    height: 200px;
+    background-color: green;
+    clip-path: xywh(50px 50px 150px 100px);
+  }
+</style>
+<body>
+  <p>The test passes if there is a green box.</p>
+  <div id="rect"></div>
+</body>
+</html>

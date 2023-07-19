@@ -26,10 +26,9 @@ const alwaysHidden = [
 
 test_interpolation({
   property: 'content-visibility',
+  animationType: 'discrete',
   from: 'visible',
   to: 'hidden',
-  // transition:all is not supposed to allow content-visibility to be transitioned.
-  'CSS Transitions with transition: all': alwaysHidden,
 }, [
   {at: -1, expect: 'visible'},
   {at: 0, expect: 'visible'},
@@ -41,10 +40,9 @@ test_interpolation({
 
 test_interpolation({
   property: 'content-visibility',
+  animationType: 'discrete',
   from: 'hidden',
   to: 'visible',
-  // transition:all is not supposed to allow content-visibility to be transitioned.
-  'CSS Transitions with transition: all': alwaysVisible,
 }, [
   {at: -1, expect: 'hidden'},
   {at: 0, expect: 'hidden'},

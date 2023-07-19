@@ -9,10 +9,10 @@
 
 <style>
 .small_child {
-  height: 1000px;
+  height: 10000px;
 }
 .large_child {
-  height: 20000px;
+  height: 40000px;
   position: relative;
 }
 #target {
@@ -21,11 +21,11 @@
 }
 </style>
 
-<div class=auto><div class=small_child></div></div>
-<div class=auto><div class=small_child></div></div>
-<div class=auto><div class=large_child><div id=target>PASS</div></div></div>
-<div class=auto><div class=large_child></div></div>
-<div class=auto><div class=small_child></div></div>
+<div id=e1 class=auto><div class=large_child></div></div>
+<div id=e2 class=auto><div class=large_child></div></div>
+<div id=e3 class=auto><div class=large_child><div id=target>PASS</div></div></div>
+<div id=e4 class=auto><div class=large_child></div></div>
+<div id=e5 class=auto><div class=small_child></div></div>
 
 <script>
 function runReference() {

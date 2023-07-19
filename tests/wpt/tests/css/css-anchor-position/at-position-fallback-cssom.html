@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>Tests the CSSOM interfaces of @position-fallback and @try rules</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#interfaces">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="anchor"></div>
+<div id="not-anchor"></div>
+<div id="target"></div>
+
+<script>
+function createStyle(t, text) {
+  const style = document.createElement('style');
+  style.textContent = text;
+  t.add_cleanup(() => style.remove());
+  document.head.appendChild(style);
+  return style;
+}
+
+test(t => {
+  const style = createStyle(
+      t, '@position-fallback --pf { @try { left: anchor(right); } }');
+  const positionFallbackRule = style.sheet.cssRules[0];
+  assert_true(positionFallbackRule instanceof CSSPositionFallbackRule);
+  assert_equals(positionFallbackRule.name, '--pf');
+  assert_equals(positionFallbackRule.cssRules.length, 1);
+
+  const tryRule = positionFallbackRule.cssRules[0];
+  assert_true(tryRule instanceof CSSTryRule);
+  assert_true(tryRule.style instanceof CSSStyleDeclaration);
+  assert_equals(tryRule.style.length, 1);
+  assert_equals(tryRule.style.left, 'anchor(right)');
+}, 'CSSPositionFallbackRule and CSSTryRule attribute values');
+
+test(t => {
+  const style = createStyle(t, '@position-fallback --pf {}');
+  const positionFallbackRule = style.sheet.cssRules[0];
+
+  assert_equals(positionFallbackRule.insertRule('@try {}', 0), 0,
+                '@try rules can be inserted');
+  assert_throws_dom('HierarchyRequestError',
+                    () => positionFallbackRule.insertRule('#target { color: red; }', 1),
+                    'style rules cannot be inserted');
+  assert_throws_dom('HierarchyRequestError',
+                    () => positionFallbackRule.insertRule('@keyframes foo {}', 1),
+                    'other at-rules cannot be inserted');
+}, 'CSSPositionFallbackRule.insertRule can insert @try rules only');
+
+
+test(t => {
+  const style = createStyle(t, `
+    @position-fallback --pf { @try { top: anchor(top); } }
+    #anchor, #not-anchor, #target {
+      position: absolute; width: 100px; height: 100px; left: 0;
+    }
+    #anchor { top: 100px; anchor-name: --a; }
+    #not-anchor { top: 200px; anchor-name: --b; }
+    #target { position-fallback: --pf; anchor-default: --a; }
+  `);
+  const positionFallbackRule = style.sheet.cssRules[0];
+  const tryRule = positionFallbackRule.cssRules[0];
+
+  // Check the initial position fallback result
+  assert_equals(target.getBoundingClientRect().left, 0);
+  assert_equals(target.getBoundingClientRect().top, 100);
+
+  // `left` is an allowed property in `@try` and should affect position fallback.
+  tryRule.style.setProperty('left', 'anchor(right)');
+  assert_equals(target.getBoundingClientRect().left, 100);
+  assert_equals(target.getBoundingClientRect().top, 100);
+
+  // These properties are disallowed in `@try` rule, and hence should not affect
+  // position fallback.
+  tryRule.style.setProperty('anchor-default', '--b');
+  tryRule.style.setProperty('position', 'static');
+  assert_equals(target.getBoundingClientRect().left, 100);
+  assert_equals(target.getBoundingClientRect().top, 100);
+}, 'CSSTryRule.style.setProperty setting allowed and disallowed properties');
+
+</script>

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html class="test-wait">
-<title>Tests that anchor-scroll doesn't crash renderer with `overflow: hidden` scroller</title>
+<title>Tests that scrolling doesn't crash renderer with `overflow: hidden` scroller</title>
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
 
@@ -23,7 +23,7 @@
   position: fixed;
   top: anchor(--a bottom);
   left: anchor(--a left);
-  anchor-scroll: --a;
+  anchor-default: --a;
 }
 </style>
 

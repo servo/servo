@@ -17,9 +17,9 @@ def call_function(bidi_session, top_context):
         serialization_options: Optional[SerializationOptions] = None,
     ) -> Mapping[str, Any]:
         if sandbox is None:
-            target = ContextTarget(top_context["context"])
+            target = ContextTarget(context)
         else:
-            target = ContextTarget(top_context["context"], sandbox)
+            target = ContextTarget(context, sandbox)
 
         result = await bidi_session.script.call_function(
             function_declaration=function_declaration,
@@ -51,9 +51,9 @@ def evaluate(bidi_session, top_context):
         serialization_options: Optional[SerializationOptions] = None,
     ) -> Mapping[str, Any]:
         if sandbox is None:
-            target = ContextTarget(top_context["context"])
+            target = ContextTarget(context)
         else:
-            target = ContextTarget(top_context["context"], sandbox)
+            target = ContextTarget(context, sandbox)
 
         result = await bidi_session.script.evaluate(
             expression=expression,

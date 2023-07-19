@@ -24,7 +24,7 @@
     background-color: green;
     top: anchor(--a top);
     left: 0;
-    anchor-scroll: --a;
+    anchor-default: --a;
   }
 </style>
 <div id="cb">
@@ -49,7 +49,7 @@ async function runTest() {
   document.getElementById('spacer').classList.add('changed');
   document.documentElement.classList.remove('reftest-wait');
 
-  // Should change scroll offset and anchor-scroll adjustment to 200.
+  // Should change scroll offset and scroll adjustment to 200.
 }
 runTest();
 </script>

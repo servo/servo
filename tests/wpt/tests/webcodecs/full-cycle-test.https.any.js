@@ -6,27 +6,58 @@
 // META: variant=?vp9_p2
 // META: variant=?h264_avc
 // META: variant=?h264_annexb
+// META: variant=?h265_hevc
+// META: variant=?h265_annexb
 
 var ENCODER_CONFIG = null;
 promise_setup(async () => {
   const config = {
     // FIXME: H.264 has embedded color space information too.
-    '?av1': {codec: 'av01.0.04M.08', hasEmbeddedColorSpace: true},
-    '?vp8': {codec: 'vp8', hasEmbeddedColorSpace: false},
-    '?vp9_p0': {codec: 'vp09.00.10.08', hasEmbeddedColorSpace: true},
-    '?vp9_p2': {codec: 'vp09.02.10.10', hasEmbeddedColorSpace: true},
+    '?av1': {
+      codec: 'av01.0.04M.08',
+      hasEmbeddedColorSpace: true,
+      hardwareAcceleration: 'prefer-software',
+    },
+    '?vp8': {
+      codec: 'vp8',
+      hasEmbeddedColorSpace: false,
+      hardwareAcceleration: 'prefer-software',
+    },
+    '?vp9_p0': {
+      codec: 'vp09.00.10.08',
+      hasEmbeddedColorSpace: true,
+      hardwareAcceleration: 'prefer-software',
+    },
+    '?vp9_p2': {
+      codec: 'vp09.02.10.10',
+      hasEmbeddedColorSpace: true,
+      hardwareAcceleration: 'prefer-software',
+    },
     '?h264_avc': {
       codec: 'avc1.42001E',
       avc: {format: 'avc'},
-      hasEmbeddedColorSpace: true
+      hasEmbeddedColorSpace: true,
+      hardwareAcceleration: 'prefer-software',
     },
     '?h264_annexb': {
       codec: 'avc1.42001E',
       avc: {format: 'annexb'},
-      hasEmbeddedColorSpace: true
+      hasEmbeddedColorSpace: true,
+      hardwareAcceleration: 'prefer-software',
+    },
+    '?h265_hevc': {
+      codec: 'hvc1.1.6.L123.00',
+      hevc: {format: 'hevc'},
+      hasEmbeddedColorSpace: true,
+      hardwareAcceleration: 'prefer-hardware',
+    },
+    '?h265_annexb': {
+      codec: 'hvc1.1.6.L123.00',
+      hevc: {format: 'annexb'},
+      hasEmbeddedColorSpace: true,
+      hardwareAcceleration: 'prefer-hardware',
     }
   }[location.search];
-  config.hardwareAcceleration = 'prefer-software';
   config.width = 320;
   config.height = 200;
   config.bitrate = 1000000;

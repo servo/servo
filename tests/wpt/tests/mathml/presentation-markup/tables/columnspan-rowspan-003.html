@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>columnspan/rowspan</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#table-or-matrix-mtable">
+    <meta name="assert" content="combining columnspan/rowspan is supported on mtd">
+    <link rel="match" href="columnspan-rowspan-ref.html">
+    <style>
+      mtd { padding: 0; }
+    </style>
+  </head>
+  <body>
+    <p>This test passes if you see a green square.</p>
+    <math>
+      <mtable>
+        <mtr>
+          <mtd columnspan="4" rowspan="4">
+            <mspace width="160px" depth="160px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+        </mtr>
+      </mtable>
+    </math>
+  </body>
+</html>

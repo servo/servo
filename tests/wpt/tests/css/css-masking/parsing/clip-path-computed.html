@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>CSS Shapes Module Level 1: getComputedStyle().shapeOutside</title>
+<title>CSS Shapes Module Level 1: getComputedStyle().clipPath</title>
 <link rel="help" href="https://drafts.csswg.org/css-shapes/#clip-path-property">
 <meta name="assert" content="clip-path computed value is as specified.">
 <script src="/resources/testharness.js"></script>
@@ -21,6 +21,15 @@ test_computed_value("clip-path", "circle(calc(10px + 0.5em) at -50% 50%)", "circ
 test_computed_value("clip-path", "circle(calc(10px - 0.5em) at 50% -50%)", "circle(0px at 50% -50%)");
 test_computed_value("clip-path", "ellipse(at 50% 50%)");
 test_computed_value("clip-path", "ellipse(60% closest-side at 50% 50%)");
+
+// All <basic-shape-rect> functions compute to the equivalent inset() function.
+// https://drafts.csswg.org/css-shapes-1/#basic-shape-computed-values
+// https://github.com/w3c/csswg-drafts/issues/9053
+test_computed_value("clip-path", "xywh(0 1% 2px 0.5em)", "inset(1% calc(100% - 2px) calc(99% - 20px) 0px)");
+test_computed_value("clip-path", "xywh(0px 1% 2px 0.5em round 0)", "inset(1% calc(100% - 2px) calc(99% - 20px) 0px)");
+test_computed_value("clip-path", "xywh(0px 1% 2px 3% round 0 1px)", "inset(1% calc(100% - 2px) 96% 0px round 0px 1px)");
+test_computed_value("clip-path", "xywh(0px 1% 2px 3% round 0px 1px 2em)", "inset(1% calc(100% - 2px) 96% 0px round 0px 1px 80px)");
+test_computed_value("clip-path", "xywh(0px 1% 2px 3% round 0px 1px 2% 3px)", "inset(1% calc(100% - 2px) 96% 0px round 0px 1px 2% 3px)");
 </script>
 </body>
 </html>

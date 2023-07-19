@@ -21,12 +21,8 @@ promise_test(async (test) => {
     const iframe = await with_iframe(scope);
     test.add_cleanup(() => iframe.remove());
     const response = await iframe.contentWindow.fetch("fetch-error-test");
-    try {
-      await response.text();
-      assert_unreached();
-    } catch (error) {
-      assert_true(error.message.includes("Sorry"));
-    }
+    return promise_rejects_js(test, iframe.contentWindow.TypeError,
+                              response.text(), 'text() should reject');
 }, "Make sure a load that makes progress does not time out");
 </script>
 </body>

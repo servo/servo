@@ -7,11 +7,13 @@
 
     promise_test(async t => {
       try {
-        new Request('./resources/simple-module.js', {sharedStorageWritable: true});
+        new Request('./resources/simple-module.js',
+                    {sharedStorageWritable: true});
       } catch (e) {
         assert_equals(e.name, 'TypeError');
-        assert_equals(e.message, `Failed to construct 'Request': sharedStorageWritable: ` +
-                      `sharedStorage operations are only available in secure contexts.`);
+        assert_equals(e.message, `Failed to construct 'Request': `
+                      + `sharedStorageWritable: sharedStorage operations `
+                      + `are only available in secure contexts.`);
         return;
       }
       assert_unreached("did not reject");

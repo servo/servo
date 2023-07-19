@@ -7,6 +7,7 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
     <script src="/resources/testdriver-vendor.js"></script>
   </head>
 <body>
@@ -16,15 +17,18 @@
 var notEditable = document.querySelector('#not-editable');
 var editable = document.querySelector('#editable');
 
+function sendKey(key) {
+    return new test_driver.Actions()
+        .keyDown(key)
+        .keyUp(key)
+        .send();
+}
+
 promise_test(async function() {
     notEditable.focus();
     var oldValue = notEditable.textContent;
     assert_equals(oldValue, "I'm not editable.");
-    await promise_rejects_js(
-        this,
-        Error,
-        test_driver.send_keys(notEditable, 'a'),
-        "send_keys should reject for non-interactive elements");
+    await sendKey('a');
     assert_equals(notEditable.textContent, oldValue);
 }, "Can't edit inert contenteditable");
 
@@ -32,7 +36,7 @@ promise_test(async () => {
     editable.focus();
     var oldValue = editable.textContent;
     assert_equals(oldValue, "I'm editable.");
-    await test_driver.send_keys(editable, 'a');
+    await sendKey('a');
     assert_not_equals(editable.textContent, oldValue);
 }, "Can edit non-inert contenteditable");
 

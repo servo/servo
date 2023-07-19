@@ -2,8 +2,8 @@
 <head>
 <title>Test AudioContext constructor with sinkId options</title>
 </head>
-<script src=/resources/testharness.js></script>
-<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <script>
 "use strict";
 
@@ -94,7 +94,8 @@ const testAudioSinkOptions = (t) => {
 // Step 3. If document is not allowed to use the feature identified by
 // "speaker-selection", return a new DOMException whose name is
 // "NotAllowedError".
-// TODO: Due to the lack of implementation, this step is not tested.
+// TODO(https://crbug.com/1380872): Due to the lack of "speaker-selection"
+// implementation, a test for such step does not exist yet.
 
 const testExceptions = (t) => {
   t.step(() => {
@@ -111,6 +112,9 @@ const testExceptions = (t) => {
     // empty string or it does not match any audio output device identified by
     // the result that would be provided by enumerateDevices(), return a new
     // DOMException whose name is "NotFoundError".
+    // TODO(https://crbug.com/1439947): This does not throw in Chromium because
+    // the logic automatically fallbacks to the default device when a given ID
+    // is invalid.
     assert_throws_dom('NotFoundError', () => {
       const audioContext = new AudioContext({sinkId: 'some_random_device_id'});
       audioContext.close();

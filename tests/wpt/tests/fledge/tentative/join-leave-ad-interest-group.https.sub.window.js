@@ -1,6 +1,7 @@
 // META: script=/resources/testdriver.js
 // META: script=/common/utils.js
 // META: script=resources/fledge-util.js
+// META: timeout=long
 
 "use strict;"
 
@@ -568,3 +569,59 @@ promise_test(async test => {
   // This should not throw.
   await leaveInterestGroup({ name: 'Never join group' });
 }, 'Leave an interest group that was never joined.');
+
+///////////////////////////////////////////////////////////////////////////////
+// Expiration tests
+///////////////////////////////////////////////////////////////////////////////
+
+promise_test(async test => {
+  const uuid = generateUuid(test);
+
+  // Joins the default interest group, with a 0.2 second duration.
+  await joinInterestGroup(test, uuid, {}, 0.2);
+
+  // Keep on running auctions until interest group duration expires.
+  // Unfortunately, there's no duration that's guaranteed to be long enough to
+  // be be able to win an auction once, but short enough to prevent this test
+  // from running too long, so can't check the interest group won at least one
+  // auction.
+  while (await runBasicFledgeAuction(test, uuid) !== null);
+}, 'Interest group duration.');
+
+promise_test(async test => {
+  const uuid = generateUuid(test);
+
+  // Join interest group with a duration of -600. The interest group should
+  // immediately expire, and not be allowed to participate in auctions.
+  await joinInterestGroup(test, uuid, {}, -600);
+  assert_true(await runBasicFledgeAuction(test, uuid) === null);
+}, 'Interest group duration of -600.');
+
+promise_test(async test => {
+  const uuid = generateUuid(test);
+
+  // Join a long-lived interest group.
+  await joinInterestGroup(test, uuid, {}, 600);
+
+  // Make sure interest group with a non-default timeout was joined.
+  assert_true(await runBasicFledgeAuction(test, uuid) !== null);
+
+  // Re-join interest group with a duration value of 0.2 seconds.
+  await joinInterestGroup(test, uuid, {}, 0.2);
+
+  // Keep on running auctions until interest group expires.
+  while (await runBasicFledgeAuction(test, uuid) !== null);
+}, 'Interest group test with overwritten duration.');
+
+promise_test(async test => {
+  const uuid = generateUuid(test);
+
+  // Join a long-lived interest group.
+  await joinInterestGroup(test, uuid, {}, 600);
+
+  // Re-join interest group with a duration value of 0.2 seconds. The new
+  // duration should take precedence, and the interest group should immediately
+  // expire.
+  await joinInterestGroup(test, uuid, {}, -600);
+  assert_true(await runBasicFledgeAuction(test, uuid) === null);
+}, 'Interest group test with overwritten duration of -600.');

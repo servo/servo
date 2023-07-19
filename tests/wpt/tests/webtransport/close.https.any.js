@@ -29,6 +29,19 @@ promise_test(async t => {
 }, 'close');
 
 promise_test(async t => {
+  const wt = new WebTransport(webtransport_url('echo.py'));
+  wt.close();
+  try {
+    await wt.closed;
+  } catch(e) {
+    await promise_rejects_exactly(t, e, wt.ready, 'ready promise should be rejected');
+    assert_true(e instanceof WebTransportError);
+    assert_equals(e.source, 'session', 'source');
+    assert_equals(e.streamErrorCode, null, 'streamErrorCode');
+  }
+}, 'close without waiting for ready');
+
+promise_test(async t => {
   const id = token();
   const wt = new WebTransport(webtransport_url(`client-close.py?token=${id}`));
   add_completion_callback(() => wt.close());

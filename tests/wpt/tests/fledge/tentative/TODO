@@ -9,7 +9,8 @@ Need tests for (likely not a complete list):
 * Updates (both after auction and triggered).
 * All auctionConfig parameters (including invalid auctionConfigs, and ones
     with no buyers).
-* Interest group expiration.
+* Joining interest group with duration of 0 should just leave the IG (not
+    currently guaranteed to work, due to potential time skew between processes).
 * Multiple buyers.
 * Multiple interest group with same owner.
 * Multiple origin auctions (buyer != publisher != seller).

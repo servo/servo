@@ -1,8 +1,8 @@
 import pytest
 
 from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultException
-from ... import any_int, any_string, recursive_compare
-from .. import any_stack_trace, specific_error_response
+from ... import recursive_compare
+from .. import specific_error_response
 
 
 @pytest.mark.asyncio
@@ -25,7 +25,8 @@ async def test_strict_mode(bidi_session, top_context):
     )
     assert result == {
         "type": "number",
-        "value": 1}
+        "value": 1,
+    }
 
     # Access created by the previous command `SOME_VARIABLE`.
     result = await bidi_session.script.call_function(
@@ -35,4 +36,5 @@ async def test_strict_mode(bidi_session, top_context):
     )
     assert result == {
         "type": "number",
-        "value": 1}
+        "value": 1,
+    }

@@ -5,7 +5,7 @@ from ... import recursive_compare
 
 
 @pytest.mark.asyncio
-async def test_eval(bidi_session, top_context):
+async def test_evaluate(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="1 + 2",
         target=ContextTarget(top_context["context"]),

@@ -28,6 +28,9 @@
   <mmultiscripts style="display: list-item;">X</mmultiscripts>\
   <maction style="display: list-item;">X</maction>\
   <mpadded style="display: list-item;">X</mpadded>\
+  <msqrt style="display: list-item;">X</msqrt>\
+  <mroot style="display: list-item;">X</mroot>\
+  <mtext style="display: list-item;">X</mtext>\
 </math>`,
       "inline display": `<math style="display: inline;">XXX</math>`,
       "inline-block display": `<math style="display: inline-block">XXX</math>`,
@@ -112,7 +115,7 @@
           let mathtest = templates[key].
               replace(/X/g, `<mspace style="display: inline-block; width: ${Xsize}px; height: ${Xsize}px; background: black"></mspace>`);
           let reference = mathtest.
-              replace(/maction|math|mfrac|mmultiscripts|mover|mover|mpadded|mrow|mspace|msubsup|msub|msup|mtable|munderover|munder/g, "div");
+              replace(/maction|math|mfrac|mmultiscripts|mover|mover|mpadded|mrow|mspace|msubsup|msub|msup|mtable|munderover|munder|msqrt|mroot|mtext/g, "div");
           document.body.insertAdjacentHTML("beforeend", `<div style="font: 20px/1 Ahem; position: absolute;">\
 <div><span>${key}:</span>${mathtest}</div>\
 <div><span>${key}:</span>${reference}</div>\

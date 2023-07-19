@@ -13,7 +13,7 @@ any people can regenerate or update the file in the future.
 * When updating the sample offsets and descriptions for tests using mp4 files, it's easiest to use [mp4box.js](https://gpac.github.io/mp4box.js/test/filereader.html).
   * Sample offsets can be copied from the "Sample View" tab after unchecking all but offset and size. Use a multi-line edit mode and clang-format to quickly format entries.
   * Description entries can be found under moov.trak.mdia.minf.stbl.stsd in box view.
-    * avc1.avcC has an offset, size in the same view. Add 8 to offset and subtract 8 from the size to get the values the tests want.
+    * avc1.avcC or hvc1.hvcC has an offset, size in the same view. Add 8 to offset and subtract 8 from the size to get the values the tests want.
   * If you use ffprobe -show_packets to get sample offsets, you may need to add 4 to each `pos` value. You can tell if you need to by whether or not tests pass.
 
 ## List of Test Files
@@ -96,6 +96,16 @@ ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec h264 -tune 
 ### h264.annexb
 ```
 ffmpeg -i h264.mp4 -codec copy -bsf:v h264_mp4toannexb -f h264 h264.annexb
+```
+
+### h265.mp4
+```
+ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec hevc -tag:v hvc1 -tune zerolatency h265.mp4
+```
+
+### h265.annexb
+```
+ffmpeg -i h265.mp4 -codec copy -bsf:v hevc_mp4toannexb -f hevc h265.annexb
 ```
 
 ### sfx.adts

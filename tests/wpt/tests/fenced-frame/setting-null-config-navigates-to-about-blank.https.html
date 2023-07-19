@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test fenced frame null config installation triggers about:blank navigation.</title>
+
+<body>
+
+  <script>
+    promise_test(async (t) => {
+      var frame_context = attachFencedFrameContext();
+
+      // Ensure remote context responds.
+      let alive_indicator = await Promise.race([
+        frame_context.execute(() => 'alive'),
+        new Promise((resolve, reject) => t.step_timeout(
+          () => reject('timed_out'), 3000))
+      ]);
+      assert_equals(alive_indicator, 'alive');
+
+      assert_not_equals(frame_context.element.config, null);
+      // Navigates to about:blank. Because this navigates away from the page
+      // that the frame_context.element.config is currently pointing to, the
+      // FencedFrame's portion of the remote context handling code will be
+      // removed.
+      frame_context.element.config = null;
+
+      // This call should not succeed, because we should have navigated to
+      // about:blank. Note that because the code has been deleted as described
+      // above, we can't actually inspect the URL to determine it is
+      // about:blank; we have to use our timeout as a proxy.
+      let timeout_indicator = await Promise.any([
+        frame_context.execute(() => 'alive'),
+        new Promise(resolve => t.step_timeout(
+          () => resolve('timed_out'), 3000))
+      ]);
+      assert_equals(timeout_indicator, 'timed_out');
+    }, "Test that a fenced frame with a config explicitly set to null navigates to about:blank");
+  </script>
+
+</body>

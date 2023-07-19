@@ -2,8 +2,7 @@ import pytest
 
 from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultException
 
-from ... import any_int, any_string, recursive_compare
-from .. import any_stack_trace
+from ... import recursive_compare
 
 
 @pytest.mark.asyncio

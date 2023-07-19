@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
-<title>Tests anchor-scroll with nested scroll containers</title>
+<title>Tests anchor positioning with nested scroll containers</title>
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
 <link rel="match" href="reference/anchor-scroll-nested-ref.html">
@@ -41,7 +41,7 @@ body {
   width: 50px;
   height: 50px;
   left: anchor(--anchor left);
-  anchor-scroll: --anchor;
+  anchor-default: --anchor;
 }
 
 .above {

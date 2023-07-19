@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Tests that anchor-scroll adjusts location of fixed-positioned elements correctly</title>
+<title>Tests that scroll adjustments of fixed-positioned elements are applied correctly</title>
 <link rel="author" href="mailto:xiaochengh@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
 <link rel="match" href="reference/anchor-scroll-fixedpos-ref.html">
@@ -22,7 +22,7 @@ div {
 
 #anchored {
   position: fixed;
-  anchor-scroll: --a1;
+  anchor-default: --a1;
   left: anchor(--a1 right);
   top: anchor(--a1 top);
   background: green;

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: writing mode on a container</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="writing-mode-container-resize-ref.html">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#target {
+  view-transition-name: target;
+  background: lightblue;
+  width: 100px;
+  height: 100px;
+}
+.vertical {
+  writing-mode: vertical-lr;
+}
+::view-transition-group(root) {
+  visibility: hidden;
+  animation-duration: 500s;
+}
+::view-transition-old(target) {
+  animation: unset;
+  opacity: 1;
+}
+::view-transition-new(target) {
+  animation: unset;
+  opacity: 0;
+}
+::view-transition-group(target) {
+  height: 50px;
+  border: 1px solid black;
+  animation: unset;
+}
+::view-transition {
+  background: pink;
+}
+</style>
+
+<div id=target class=vertical></div>
+
+<script>
+function runTest() {
+  const transition = document.startViewTransition(() => target.remove());
+  transition.ready.then(takeScreenshot);
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

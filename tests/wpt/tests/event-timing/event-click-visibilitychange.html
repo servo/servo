@@ -17,7 +17,7 @@
   <script>
     let observedEntries = [];
     const map = new Map();
-    const events = ['pointerdown'];
+    const events = ['pointerup'];
 
     promise_test(async t => {
       assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
@@ -30,7 +30,7 @@
       const observerPromise = createPerformanceObserverPromise(['event'], callback, readyToResolve);
 
       const tapEventPromise = new Promise(resolve => {
-        button.addEventListener('pointerdown', async (event) => {
+        button.addEventListener('pointerup', async (event) => {
           document.body.innerText += "Adding content to force rendering";
 
           // await here will yield to event loop, and end event processing time,
@@ -66,7 +66,7 @@
       const { timeAfterVisibilityFalse, timeAfterVisibilityTrue } = await tapEventPromise;
       const timeOfVisibilityFalse = await visibilityEventPromise;
 
-      assert_equals(observedEntries.length, 1, "Pointerdown was measured");
+      assert_equals(observedEntries.length, 1, "Pointerup was measured");
       const entry = observedEntries[0];
 
       assert_not_equals(timeBeforeTap, undefined);

@@ -33,13 +33,9 @@ html::view-transition-image-pair(hidden) { opacity: 0; }
 
 html::view-transition-group(before) { animation-duration: 0s; }
 html::view-transition-image-pair(before) { filter: invert(1); }
-html::view-transition-new(before) { animation-duration: 0s; }
-html::view-transition-old(before) { animation-duration: 0s; }
 
 html::view-transition-group(after) { animation-duration: 0s; }
 html::view-transition-image-pair(after) { filter: invert(1); }
-html::view-transition-new(after) { animation-duration: 0s; }
-html::view-transition-old(after) { animation-duration: 0s; }
 
 html::view-transition-group(root) { animation: unset; opacity: 0; }
 html::view-transition { background: lightpink; }
@@ -59,7 +55,6 @@ async function runTest() {
   before.style.viewTransitionName = "before";
   let transition = document.startViewTransition(() => {
     before.remove();
-    hidden.style.viewTransitionName = "";
     after.style.viewTransitionName = "after";
   });
   transition.ready.then(() => requestAnimationFrame(() => requestAnimationFrame(takeScreenshot)));
