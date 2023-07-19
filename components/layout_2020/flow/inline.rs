@@ -39,6 +39,7 @@ pub(crate) struct InlineFormattingContext {
     // Whether this IFC contains the 1st formatted line of an element
     // https://www.w3.org/TR/css-pseudo-4/#first-formatted-line
     pub(super) has_first_formatted_line: bool,
+    pub(super) contains_floats: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -172,6 +173,7 @@ impl InlineFormattingContext {
             inline_level_boxes: Default::default(),
             text_decoration_line,
             has_first_formatted_line,
+            contains_floats: false,
         }
     }
 

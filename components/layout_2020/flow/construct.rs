@@ -13,7 +13,6 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
@@ -34,18 +33,19 @@ impl BlockFormattingContext {
     where
         Node: NodeExt<'dom>,
     {
-        let (contents, contains_floats) = BlockContainer::construct(
+        let contents = BlockContainer::construct(
             context,
             info,
             contents,
             propagated_text_decoration_line,
             is_list_item,
         );
-        let bfc = Self {
+        let contains_floats = contents.contains_floats();
+
+        Self {
             contents,
-            contains_floats: contains_floats == ContainsFloats::Yes,
-        };
-        bfc
+            contains_floats,
+        }
     }
 
     pub fn construct_for_text_runs<'dom>(
@@ -61,6 +61,7 @@ impl BlockFormattingContext {
             inline_level_boxes,
             text_decoration_line,
             has_first_formatted_line: true,
+            contains_floats: false,
         };
         let contents = BlockContainer::InlineFormattingContext(ifc);
         let bfc = Self {
@@ -163,9 +164,6 @@ struct BlockContainerBuilder<'dom, 'style, Node> {
     /// The style of the anonymous block boxes pushed to the list of block-level
     /// boxes, if any (see `end_ongoing_inline_formatting_context`).
     anonymous_style: Option<Arc<ComputedValues>>,
-
-    /// Whether the resulting block container contains any float box.
-    contains_floats: ContainsFloats,
 }
 
 impl BlockContainer {
@@ -175,7 +173,7 @@ impl BlockContainer {
         contents: NonReplacedContents,
         propagated_text_decoration_line: TextDecorationLine,
         is_list_item: bool,
-    ) -> (BlockContainer, ContainsFloats)
+    ) -> BlockContainer
     where
         Node: NodeExt<'dom>,
     {
@@ -191,7 +189,6 @@ impl BlockContainer {
             ),
             ongoing_inline_boxes_stack: Vec::new(),
             anonymous_style: None,
-            contains_floats: ContainsFloats::No,
         };
 
         if is_list_item {
@@ -222,43 +219,28 @@ impl BlockContainer {
             .is_empty()
         {
             if builder.block_level_boxes.is_empty() {
-                let container = BlockContainer::InlineFormattingContext(
+                return BlockContainer::InlineFormattingContext(
                     builder.ongoing_inline_formatting_context,
                 );
-                return (container, builder.contains_floats);
             }
             builder.end_ongoing_inline_formatting_context();
         }
 
-        let mut contains_floats = builder.contains_floats;
-        let mapfold = |contains_floats: &mut ContainsFloats, creator: BlockLevelJob<'dom, _>| {
-            let (block_level_box, box_contains_floats) = creator.finish(context);
-            *contains_floats |= box_contains_floats;
-            block_level_box
-        };
         let block_level_boxes = if context.use_rayon {
             builder
                 .block_level_boxes
                 .into_par_iter()
-                .mapfold_reduce_into(
-                    &mut contains_floats,
-                    mapfold,
-                    || ContainsFloats::No,
-                    |left, right| {
-                        *left |= right;
-                    },
-                )
+                .map(|block_level_job| block_level_job.finish(context))
                 .collect()
         } else {
             builder
                 .block_level_boxes
                 .into_iter()
-                .map(|x| mapfold(&mut contains_floats, x))
+                .map(|block_level_job| block_level_job.finish(context))
                 .collect()
         };
-        let container = BlockContainer::BlockLevelBoxes(block_level_boxes);
 
-        (container, contains_floats)
+        BlockContainer::BlockLevelBoxes(block_level_boxes)
     }
 }
 
@@ -662,8 +644,6 @@ where
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        self.contains_floats = ContainsFloats::Yes;
-
         if !self.has_ongoing_inline_formatting_context() {
             let kind = BlockLevelCreator::OutOfFlowFloatBox {
                 contents,
@@ -681,6 +661,7 @@ where
                 display_inside,
                 contents,
             )));
+            self.ongoing_inline_formatting_context.contains_floats = true;
             self.current_inline_level_boxes().push(box_.clone());
             box_slot.set(LayoutBox::InlineLevel(box_))
         }
@@ -748,17 +729,18 @@ impl<'dom, Node> BlockLevelJob<'dom, Node>
 where
     Node: NodeExt<'dom>,
 {
-    fn finish(self, context: &LayoutContext) -> (ArcRefCell<BlockLevelBox>, ContainsFloats) {
+    fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
         let info = &self.info;
-        let (block_level_box, contains_floats) = match self.kind {
-            BlockLevelCreator::SameFormattingContextBlock(contents) => {
-                let (contents, contains_floats) = contents.finish(context, info);
-                let block_level_box = ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
+        let block_level_box = match self.kind {
+            BlockLevelCreator::SameFormattingContextBlock(intermediate_block_container) => {
+                let contents = intermediate_block_container.finish(context, info);
+                let contains_floats = contents.contains_floats();
+                ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
                     base_fragment_info: info.into(),
                     contents,
                     style: Arc::clone(&info.style),
-                });
-                (block_level_box, contains_floats)
+                    contains_floats,
+                })
             },
             BlockLevelCreator::Independent {
                 display_inside,
@@ -772,35 +754,32 @@ where
                     contents,
                     propagated_text_decoration_line,
                 );
-                (
-                    ArcRefCell::new(BlockLevelBox::Independent(context)),
-                    ContainsFloats::No,
-                )
+                ArcRefCell::new(BlockLevelBox::Independent(context))
             },
             BlockLevelCreator::OutOfFlowAbsolutelyPositionedBox {
                 display_inside,
                 contents,
-            } => {
-                let block_level_box = ArcRefCell::new(
-                    BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
-                        AbsolutelyPositionedBox::construct(context, info, display_inside, contents),
-                    )),
-                );
-                (block_level_box, ContainsFloats::No)
-            },
+            } => ArcRefCell::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                ArcRefCell::new(AbsolutelyPositionedBox::construct(
+                    context,
+                    info,
+                    display_inside,
+                    contents,
+                )),
+            )),
             BlockLevelCreator::OutOfFlowFloatBox {
                 display_inside,
                 contents,
-            } => {
-                let block_level_box = ArcRefCell::new(BlockLevelBox::OutOfFlowFloatBox(
-                    FloatBox::construct(context, info, display_inside, contents),
-                ));
-                (block_level_box, ContainsFloats::Yes)
-            },
+            } => ArcRefCell::new(BlockLevelBox::OutOfFlowFloatBox(FloatBox::construct(
+                context,
+                info,
+                display_inside,
+                contents,
+            ))),
         };
         self.box_slot
             .set(LayoutBox::BlockLevel(block_level_box.clone()));
-        (block_level_box, contains_floats)
+        block_level_box
     }
 }
 
@@ -809,7 +788,7 @@ impl IntermediateBlockContainer {
         self,
         context: &LayoutContext,
         info: &NodeAndStyleInfo<Node>,
-    ) -> (BlockContainer, ContainsFloats)
+    ) -> BlockContainer
     where
         Node: NodeExt<'dom>,
     {
@@ -826,28 +805,8 @@ impl IntermediateBlockContainer {
                 is_list_item,
             ),
             IntermediateBlockContainer::InlineFormattingContext(ifc) => {
-                // If that inline formatting context contained any float, those
-                // were already taken into account during the first phase of
-                // box construction.
-                (
-                    BlockContainer::InlineFormattingContext(ifc),
-                    ContainsFloats::No,
-                )
+                BlockContainer::InlineFormattingContext(ifc)
             },
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum ContainsFloats {
-    No,
-    Yes,
-}
-
-impl std::ops::BitOrAssign for ContainsFloats {
-    fn bitor_assign(&mut self, other: Self) {
-        if other == ContainsFloats::Yes {
-            *self = ContainsFloats::Yes;
         }
     }
 }
