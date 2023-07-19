@@ -1,0 +1,24 @@
+on: issue_comment
+
+jobs:
+  pr_commented:
+    # This job only runs for pull request comments
+    name: PR comment
+    if: ${{ github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo The comment "${{ github.event.comment }}"
+          echo Made by "${{ github.event.sender }}"
+      - uses: actions/github-script@v6
+        id: permissions
+        with:
+          result-encoding: string
+          script: |
+            return github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.event.sender,
+            });
+      - run: |
+          echo Permissions level "${{ steps.permissions.outputs.result }}"
