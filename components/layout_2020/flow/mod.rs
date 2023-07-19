@@ -260,14 +260,14 @@ fn calculate_inline_content_size_for_block_level_boxes(
                 let size = sizing::outer_inline(&style, writing_mode, || {
                     contents.inline_content_sizes(layout_context, style.writing_mode)
                 });
-                // The element may in fact have clearance, but the logic below ignores it,
-                // so don't bother retrieving it from the style.
-                Some((size, Float::None, Clear::None))
+                // A block in the same BFC can overlap floats, it's not moved next to them,
+                // so we shouldn't add its size to the size of the floats.
+                // Instead, we treat it like an independent block with 'clear: both'.
+                Some((size, Float::None, Clear::Both))
             },
             BlockLevelBox::Independent(ref mut independent) => {
                 let size = independent.outer_inline_content_sizes(layout_context, writing_mode);
-                // TODO: do the right thing instead of copying SameFormattingContextBlock.
-                Some((size, Float::None, Clear::None))
+                Some((size, Float::None, independent.style().get_box().clear))
             },
         }
     };
@@ -308,18 +308,17 @@ fn calculate_inline_content_size_for_block_level_boxes(
     }
 
     let accumulate = |mut data: AccumulatedData, (size, float, clear)| {
-        if float == Float::None {
-            // TODO: The first BFC root after a sequence of floats should appear next to them
-            // (if it doesn't have clearance).
-            data.clear_floats(Clear::Both);
-            data.max_size = data.max_size.max(size);
-        } else {
-            data.clear_floats(clear);
-            match float {
-                Float::Left => data.left_floats = data.left_floats.add(&size),
-                Float::Right => data.right_floats = data.right_floats.add(&size),
-                Float::None => unreachable!(),
-            }
+        data.clear_floats(clear);
+        match float {
+            Float::Left => data.left_floats = data.left_floats.add(&size),
+            Float::Right => data.right_floats = data.right_floats.add(&size),
+            Float::None => {
+                data.max_size = data
+                    .max_size
+                    .max(data.left_floats.add(&data.right_floats).add(&size));
+                data.left_floats = ContentSizes::zero();
+                data.right_floats = ContentSizes::zero();
+            },
         }
         data
     };
