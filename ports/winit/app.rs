@@ -6,7 +6,7 @@
 
 use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
-use crate::events_loop::{EventsLoop, ServoEvent};
+use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
 use winit::window::WindowId;
@@ -76,8 +76,8 @@ impl App {
                     // it stops being valid.
                     let w = unsafe {
                         std::mem::transmute::<
-                            &EventLoopWindowTarget<ServoEvent>,
-                            &'static EventLoopWindowTarget<ServoEvent>
+                            &EventLoopWindowTarget<WakerEvent>,
+                            &'static EventLoopWindowTarget<WakerEvent>
                         >(w.unwrap())
                     };
                     let factory = Box::new(move || Ok(window.new_glwindow(w)));
@@ -143,7 +143,7 @@ impl App {
 
     /// Processes the given winit Event, possibly converting it to an EmbedderEvent and
     /// routing that to the App or relevant Window event queues.
-    fn winit_event_to_embedder_event(&self, event: winit::event::Event<'_, ServoEvent>) {
+    fn winit_event_to_embedder_event(&self, event: winit::event::Event<'_, WakerEvent>) {
         match event {
             // App level events
             winit::event::Event::Suspended => {

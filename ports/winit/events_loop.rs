@@ -11,15 +11,15 @@ use std::time;
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
+/// Another process or thread has kicked the OS event loop with EventLoopWaker.
 #[derive(Debug)]
-pub enum ServoEvent {
-    Awakened,
-}
+pub struct WakerEvent;
 
+/// The real or fake OS event loop.
 #[allow(dead_code)]
 enum EventLoop {
     /// A real Winit windowing event loop.
-    Winit(Option<winit::event_loop::EventLoop<ServoEvent>>),
+    Winit(Option<winit::event_loop::EventLoop<WakerEvent>>),
     /// A fake event loop which contains a signalling flag used to ensure
     /// that pending events get processed in a timely fashion, and a condition
     /// variable to allow waiting on that flag changing state.
@@ -71,7 +71,7 @@ impl EventsLoop {
             EventLoop::Headless(ref data) => Box::new(HeadlessEventLoopWaker(data.clone())),
         }
     }
-    pub fn as_winit(&self) -> &winit::event_loop::EventLoop<ServoEvent> {
+    pub fn as_winit(&self) -> &winit::event_loop::EventLoop<WakerEvent> {
         match self.0 {
             EventLoop::Winit(Some(ref event_loop)) => event_loop,
             EventLoop::Winit(None) | EventLoop::Headless(..) => {
@@ -82,8 +82,8 @@ impl EventsLoop {
 
     pub fn run_forever<F: 'static>(self, mut callback: F)
     where F: FnMut(
-        winit::event::Event<'_, ServoEvent>,
-        Option<&winit::event_loop::EventLoopWindowTarget<ServoEvent>>,
+        winit::event::Event<'_, WakerEvent>,
+        Option<&winit::event_loop::EventLoopWindowTarget<WakerEvent>>,
         &mut winit::event_loop::ControlFlow
     ) {
         match self.0 {
@@ -105,7 +105,7 @@ impl EventsLoop {
                         None,
                         &mut control_flow
                     );
-                    event = winit::event::Event::<ServoEvent>::UserEvent(ServoEvent::Awakened);
+                    event = winit::event::Event::<WakerEvent>::UserEvent(WakerEvent);
 
                     if control_flow != winit::event_loop::ControlFlow::Poll {
                         *flag.lock().unwrap() = false;
@@ -135,10 +135,10 @@ impl EventsLoop {
 }
 
 struct HeadedEventLoopWaker {
-    proxy: Arc<Mutex<winit::event_loop::EventLoopProxy<ServoEvent>>>,
+    proxy: Arc<Mutex<winit::event_loop::EventLoopProxy<WakerEvent>>>,
 }
 impl HeadedEventLoopWaker {
-    fn new(events_loop: &winit::event_loop::EventLoop<ServoEvent>) -> HeadedEventLoopWaker {
+    fn new(events_loop: &winit::event_loop::EventLoop<WakerEvent>) -> HeadedEventLoopWaker {
         let proxy = Arc::new(Mutex::new(events_loop.create_proxy()));
         HeadedEventLoopWaker { proxy }
     }
@@ -146,7 +146,7 @@ impl HeadedEventLoopWaker {
 impl EventLoopWaker for HeadedEventLoopWaker {
     fn wake(&self) {
         // Kick the OS event loop awake.
-        if let Err(err) = self.proxy.lock().unwrap().send_event(ServoEvent::Awakened) {
+        if let Err(err) = self.proxy.lock().unwrap().send_event(WakerEvent) {
             warn!("Failed to wake up event loop ({}).", err);
         }
     }

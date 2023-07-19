@@ -4,7 +4,7 @@
 
 //! A headless window implementation.
 
-use crate::events_loop::ServoEvent;
+use crate::events_loop::WakerEvent;
 use crate::window_trait::WindowPortsMethods;
 use euclid::{Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use servo::compositing::windowing::{AnimationState, EmbedderEvent};
@@ -104,7 +104,7 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        _events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+        _events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         unimplemented!()
     }

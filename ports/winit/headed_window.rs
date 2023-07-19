@@ -4,7 +4,7 @@
 
 //! A winit window implementation.
 
-use crate::events_loop::{EventsLoop, ServoEvent};
+use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use euclid::{
@@ -484,7 +484,7 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+        event_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 

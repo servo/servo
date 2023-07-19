@@ -5,7 +5,7 @@
 //! Definition of Window.
 //! Implemented by headless and headed windows.
 
-use crate::events_loop::ServoEvent;
+use crate::events_loop::WakerEvent;
 use servo::compositing::windowing::{EmbedderEvent, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
@@ -29,6 +29,6 @@ pub trait WindowPortsMethods: WindowMethods {
     fn set_cursor(&self, _cursor: Cursor) {}
     fn new_glwindow(
         &self,
-        events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+        events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>
     ) -> Box<dyn webxr::glwindow::GlWindow>;
 }
