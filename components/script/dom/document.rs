@@ -2127,7 +2127,7 @@ impl Document {
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
         let event_target = self.window.upcast::<EventTarget>();
-        let has_listeners = event.has_listeners_for(&event_target, &atom!("beforeunload"));
+        let has_listeners = event_target.has_listeners_for(&atom!("beforeunload"));
         self.window.dispatch_event_with_target_override(&event);
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
@@ -2197,7 +2197,7 @@ impl Document {
             );
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
-            let has_listeners = event.has_listeners_for(&event_target, &atom!("unload"));
+            let has_listeners = event_target.has_listeners_for(&atom!("unload"));
             let _ = self.window.dispatch_event_with_target_override(&event);
             self.fired_unload.set(true);
             // Step 9
