@@ -32,7 +32,7 @@ pub mod flow_relative {
         pub size: Vec2<T>,
     }
 
-    #[derive(Clone, Serialize)]
+    #[derive(Clone, Debug, Serialize)]
     pub struct Sides<T> {
         pub inline_start: T,
         pub inline_end: T,

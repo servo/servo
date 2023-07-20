@@ -155,6 +155,7 @@ impl BoxFragment {
                 \ncontent={:?}\
                 \npadding rect={:?}\
                 \nborder rect={:?}\
+                \nmargin={:?}\
                 \nclearance={:?}\
                 \nscrollable_overflow={:?}\
                 \noverflow={:?} / {:?}",
@@ -162,6 +163,7 @@ impl BoxFragment {
             self.content_rect,
             self.padding_rect(),
             self.border_rect(),
+            self.margin,
             self.clearance,
             self.scrollable_overflow(&PhysicalRect::zero()),
             self.style.get_box().overflow_x,
