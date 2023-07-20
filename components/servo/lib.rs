@@ -194,7 +194,7 @@ pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
-    embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
+    messages_for_embedder: Vec<(Option<BrowserId>, EmbedderMsg)>,
     profiler_enabled: bool,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
@@ -515,7 +515,7 @@ where
             compositor: compositor,
             constellation_chan: constellation_chan,
             embedder_receiver: embedder_receiver,
-            embedder_events: Vec::new(),
+            messages_for_embedder: Vec::new(),
             profiler_enabled: false,
             _js_engine_setup: js_engine_setup,
         };
@@ -736,18 +736,19 @@ where
 
                 (EmbedderMsg::Keyboard(key_event), ShutdownState::NotShuttingDown) => {
                     let event = (top_level_browsing_context, EmbedderMsg::Keyboard(key_event));
-                    self.embedder_events.push(event);
+                    self.messages_for_embedder.push(event);
                 },
 
                 (msg, ShutdownState::NotShuttingDown) => {
-                    self.embedder_events.push((top_level_browsing_context, msg));
+                    self.messages_for_embedder
+                        .push((top_level_browsing_context, msg));
                 },
             }
         }
     }
 
     pub fn get_events(&mut self) -> Vec<(Option<BrowserId>, EmbedderMsg)> {
-        ::std::mem::replace(&mut self.embedder_events, Vec::new())
+        ::std::mem::replace(&mut self.messages_for_embedder, Vec::new())
     }
 
     pub fn handle_events(&mut self, events: Vec<EmbedderEvent>) -> bool {
@@ -761,7 +762,8 @@ where
         if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
             self.compositor.perform_updates();
         } else {
-            self.embedder_events.push((None, EmbedderMsg::Shutdown));
+            self.messages_for_embedder
+                .push((None, EmbedderMsg::Shutdown));
         }
         need_resize
     }
