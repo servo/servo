@@ -83,6 +83,7 @@ class Windows(Base):
             print("Could not run chocolatey.  Follow manual build setup instructions.")
             raise e
 
+        installed_something |= self._platform_bootstrap_gstreamer(force)
         return installed_something
 
     def passive_bootstrap(self) -> bool:
@@ -127,7 +128,7 @@ class Windows(Base):
         # The installed version of GStreamer often sets an environment variable pointing to
         # the install location.
         root_from_env = os.environ.get(f"GSTREAMER_1_0_ROOT_{gst_arch_name}")
-        if root_from_env:
+        if root_from_env and os.path.exists(os.path.join(root_from_env, "bin", "ffi-7.dll")):
             return root_from_env
 
         # If all else fails, look for an installation in the default install directory.
