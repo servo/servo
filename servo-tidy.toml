@@ -25,6 +25,8 @@ packages = [
   "base64",
   "cfg-if",
   "cookie",
+  "crossbeam-channel",
+  "crossbeam-utils",
   "fixedbitset",
   "getrandom",
   "half",
@@ -71,7 +73,7 @@ packages = [
   # Duplicated by winit/surfman update.
   "raw-window-handle",
 
-  # Temporarily duplicated until gleam can be upgraded.
+  # Temporarily duplicated until ipc-channels and gleam can be upgrded.
   "uuid",
 ]
 # Files that are ignored for all tidy and lint checks.
