@@ -10,7 +10,10 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
-use crate::dom::node::Node;
+use crate::dom::htmlselectelement::HTMLSelectElement;
+use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
+use crate::dom::validation::Validatable;
+use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -52,6 +55,19 @@ impl HTMLOptGroupElement {
             document,
             proto,
         )
+    }
+
+    fn update_select_validity(&self) {
+        if let Some(select) = self
+            .upcast::<Node>()
+            .ancestors()
+            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
+            .next()
+        {
+            select
+                .validity_state()
+                .perform_validation_and_update(ValidationFlags::all());
+        }
     }
 }
 
@@ -102,6 +118,29 @@ impl VirtualMethods for HTMLOptGroupElement {
                 }
             },
             _ => {},
+        }
+    }
+
+    fn bind_to_tree(&self, context: &BindContext) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(context);
+        }
+
+        self.update_select_validity();
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+
+        if let Some(select) = context
+            .parent
+            .inclusive_ancestors(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
+            .next()
+        {
+            select
+                .validity_state()
+                .perform_validation_and_update(ValidationFlags::all());
         }
     }
 }

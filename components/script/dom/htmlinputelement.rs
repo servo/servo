@@ -1296,6 +1296,8 @@ impl HTMLInputElementMethods for HTMLInputElement {
             },
         }
 
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         Ok(())
     }
@@ -2340,7 +2342,6 @@ impl VirtualMethods for HTMLInputElement {
                         }
 
                         let new_value_mode = self.value_mode();
-
                         match (&old_value_mode, old_idl_value.is_empty(), new_value_mode) {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
@@ -2452,15 +2453,17 @@ impl VirtualMethods for HTMLInputElement {
                 }
                 self.update_placeholder_shown_state();
             },
-            &local_name!("readonly") if self.input_type().is_textual() => {
-                let el = self.upcast::<Element>();
-                match mutation {
-                    AttributeMutation::Set(_) => {
-                        el.set_read_write_state(false);
-                    },
-                    AttributeMutation::Removed => {
-                        el.set_read_write_state(!el.disabled_state());
-                    },
+            &local_name!("readonly") => {
+                if self.input_type().is_textual() {
+                    let el = self.upcast::<Element>();
+                    match mutation {
+                        AttributeMutation::Set(_) => {
+                            el.set_read_write_state(false);
+                        },
+                        AttributeMutation::Removed => {
+                            el.set_read_write_state(!el.disabled_state());
+                        },
+                    }
                 }
             },
             &local_name!("form") => {
@@ -2468,6 +2471,9 @@ impl VirtualMethods for HTMLInputElement {
             },
             _ => {},
         }
+
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -2494,6 +2500,9 @@ impl VirtualMethods for HTMLInputElement {
         }
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
+
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
@@ -2509,6 +2518,9 @@ impl VirtualMethods for HTMLInputElement {
         } else {
             el.check_disabled_attribute();
         }
+
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
     }
 
     // This represents behavior for which the UIEvents spec and the
@@ -2608,6 +2620,9 @@ impl VirtualMethods for HTMLInputElement {
                 event.mark_as_handled();
             }
         }
+
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext
@@ -2628,6 +2643,8 @@ impl VirtualMethods for HTMLInputElement {
         elem.textinput
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
+        elem.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
     }
 }
 

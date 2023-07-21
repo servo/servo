@@ -20,7 +20,7 @@ use crate::dom::htmlformelement::{FormSubmitter, ResetFrom, SubmittedFrom};
 use crate::dom::node::{window_from_node, BindContext, Node, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
-use crate::dom::validitystate::ValidityState;
+use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -242,6 +242,8 @@ impl VirtualMethods for HTMLButtonElement {
                     },
                 }
                 el.update_sequentially_focusable_status();
+                self.validity_state()
+                    .perform_validation_and_update(ValidationFlags::all());
             },
             &local_name!("type") => match mutation {
                 AttributeMutation::Set(_) => {
@@ -251,6 +253,8 @@ impl VirtualMethods for HTMLButtonElement {
                         _ => ButtonType::Submit,
                     };
                     self.button_type.set(value);
+                    self.validity_state()
+                        .perform_validation_and_update(ValidationFlags::all());
                 },
                 AttributeMutation::Removed => {
                     self.button_type.set(ButtonType::Submit);
@@ -258,6 +262,8 @@ impl VirtualMethods for HTMLButtonElement {
             },
             &local_name!("form") => {
                 self.form_attribute_mutated(mutation);
+                self.validity_state()
+                    .perform_validation_and_update(ValidationFlags::empty());
             },
             _ => {},
         }

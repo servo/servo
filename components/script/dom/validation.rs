@@ -28,23 +28,9 @@ pub trait Validatable {
         ValidationFlags::empty()
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-fv-valid
-    fn validate(&self, validate_flags: ValidationFlags) -> ValidationFlags {
-        let mut failed_flags = self.perform_validation(validate_flags);
-
-        // https://html.spec.whatwg.org/multipage/#suffering-from-a-custom-error
-        if validate_flags.contains(ValidationFlags::CUSTOM_ERROR) {
-            if !self.validity_state().custom_error_message().is_empty() {
-                failed_flags.insert(ValidationFlags::CUSTOM_ERROR);
-            }
-        }
-
-        failed_flags
-    }
-
     // https://html.spec.whatwg.org/multipage/#check-validity-steps
     fn check_validity(&self) -> bool {
-        if self.is_instance_validatable() && !self.validate(ValidationFlags::all()).is_empty() {
+        if self.is_instance_validatable() && !self.validity_state().invalid_flags().is_empty() {
             self.as_element()
                 .upcast::<EventTarget>()
                 .fire_cancelable_event(atom!("invalid"));
@@ -61,7 +47,7 @@ pub trait Validatable {
             return true;
         }
 
-        let flags = self.validate(ValidationFlags::all());
+        let flags = self.validity_state().invalid_flags();
         if flags.is_empty() {
             return true;
         }
@@ -90,7 +76,7 @@ pub trait Validatable {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
     fn validation_message(&self) -> DOMString {
         if self.is_instance_validatable() {
-            let flags = self.validate(ValidationFlags::all());
+            let flags = self.validity_state().invalid_flags();
             validation_message_for_flags(&self.validity_state(), flags)
         } else {
             DOMString::new()
