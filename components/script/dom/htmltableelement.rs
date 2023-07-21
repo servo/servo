@@ -212,7 +212,8 @@ impl HTMLTableElementMethods for HTMLTableElement {
                     &document_from_node(self),
                     None,
                 );
-                self.SetCaption(Some(&caption)).expect("Generated caption is invalid");
+                self.SetCaption(Some(&caption))
+                    .expect("Generated caption is invalid");
                 caption
             },
         }
