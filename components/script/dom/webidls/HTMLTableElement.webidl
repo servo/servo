@@ -7,7 +7,7 @@
 interface HTMLTableElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions]
+  [CEReactions, SetterThrows]
            attribute HTMLTableCaptionElement? caption;
   HTMLTableCaptionElement createCaption();
   [CEReactions]
