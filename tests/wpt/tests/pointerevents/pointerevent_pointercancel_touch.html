@@ -45,9 +45,17 @@
                     pointercancel_event = event;
                     test_pointerEvent.step(function () {
                         assert_not_equals(pointerdown_event, null, "pointerdown was received: ");
-                        assert_equals(event.pointerId, pointerdown_event.pointerId, "pointerId should be the same for pointerdown and pointercancel");
-                        assert_equals(event.pointerType, pointerdown_event.pointerType, "pointerType should be the same for pointerdown and pointercancel");
-                        assert_equals(event.isPrimary, pointerdown_event.isPrimary, "isPrimary should be the same for pointerdown and pointercancel");
+                        const properties = [
+                            "pointerId", "width", "height",
+                            "pressure", "tangentialPressure", "tiltX", "tiltY",
+                            "twist", "altitudeAngle", "azimuthAngle",
+                            "pointerType", "isPrimary"
+                        ];
+                        for (let property in properties) {
+                            assert_equals(event[property],
+                                    pointerdown_event[property],
+                                    property + " should be the same for pointerdown and pointercancel");
+                        }
                     });
                     test_pointerEvent.step(function () {
                         check_PointerEvent(event);

@@ -204,7 +204,7 @@ promise_test(async t => {
 }, 'Abort unidirectional stream with default error code');
 
 promise_test(async t => {
-  const WT_CODE = 240;
+  const WT_CODE = 0;
   const HTTP_CODE = webtransport_code_to_http_code(WT_CODE);
   const wt = new WebTransport(
     webtransport_url(`abort-stream-from-server.py?code=${HTTP_CODE}`));
@@ -229,7 +229,7 @@ promise_test(async t => {
 }, 'STOP_SENDING coming from server');
 
 promise_test(async t => {
-  const WT_CODE = 127;
+  const WT_CODE = 0xffffffff;
   const HTTP_CODE = webtransport_code_to_http_code(WT_CODE);
   const wt = new WebTransport(
     webtransport_url(`abort-stream-from-server.py?code=${HTTP_CODE}`));

@@ -40,6 +40,7 @@ tests = [
     ["rgba(0%)", "The rgba function requires 3 or 4 arguments"],
     ["rgba(0%, 0%)", "The rgba function requires 3 or 4 arguments"],
     ["rgba(0%, 0%, 0%, 0%, 0%)", "The rgba function requires 3 or 4 arguments"],
+    ["rgb(257, 0, 5 / 0)", "Cannot mix legacy and non-legacy formats"],
 ];
 
 for (const test of tests) {

@@ -14,6 +14,10 @@ def main(request, response):
       return (533, [], "Should not have Referer")
     if not request.headers.get(b"Origin"):
       return (534, [], "Missing Origin")
+    if request.headers.get(b"Sec-Fetch-Mode") != b"no-cors":
+      return (535, [], "Wrong Sec-Fetch-Mode header")
+    if request.headers.get(b"Sec-Fetch-Site") != b"cross-site":
+      return (536, [], "Wrong Sec-Fetch-Site header")
 
   counter = request.server.stash.take(keys.CLIENT_METADATA_COUNTER_KEY)
   try:

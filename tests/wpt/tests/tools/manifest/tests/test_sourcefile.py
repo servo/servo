@@ -526,6 +526,40 @@ def test_testharness_variant_invalid(variant):
         s.test_variants
 
 
+def test_reftest_variant():
+    content = (b"<meta name=variant content=\"?first\">" +
+               b"<meta name=variant content=\"?second\">" +
+               b"<link rel=\"match\" href=\"ref.html\">")
+
+    s = create("html/test.html", contents=content)
+    assert not s.name_is_non_test
+    assert not s.name_is_manual
+    assert not s.name_is_visual
+    assert not s.name_is_worker
+    assert not s.name_is_reference
+
+    item_type, items = s.manifest_items()
+    assert item_type == "reftest"
+
+    actual_tests = [
+        {"url": item.url, "refs": item.references}
+        for item in items
+    ]
+
+    expected_tests = [
+        {
+            "url": "/html/test.html?first",
+            "refs": [("/html/ref.html?first", "==")],
+        },
+        {
+            "url": "/html/test.html?second",
+            "refs": [("/html/ref.html?second", "==")],
+        },
+    ]
+
+    assert actual_tests == expected_tests
+
+
 @pytest.mark.parametrize("ext", ["htm", "html"])
 def test_relative_testharness(ext):
     content = b"<script src=../resources/testharness.js></script>"

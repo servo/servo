@@ -14,7 +14,9 @@
 </style>
 </head>
 <body>
-<div id=target></div>
+<div style="contain-intrinsic-size: 5px 5px">
+  <div id=target></div>
+</div>
 <div id=scratch></div>
 <script>
 
@@ -31,6 +33,7 @@ test_computed_value("contain-intrinsic-size", "1px auto 1px");
 test_computed_value("contain-intrinsic-size", "2vw 3px", length_ref("2vw") + " 3px");
 test_computed_value("contain-intrinsic-size", "2px 3vh", "2px " + length_ref("3vh"));
 test_computed_value("contain-intrinsic-size", "5px 5px", "5px");
+test_computed_value("contain-intrinsic-size", "inherit", "5px");
 
 test_computed_value("contain-intrinsic-width", "none");
 test_computed_value("contain-intrinsic-width", "1px");

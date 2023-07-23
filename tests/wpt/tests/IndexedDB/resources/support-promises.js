@@ -296,12 +296,17 @@ function checkTitleIndexContents(testCase, index, errorMessage) {
   });
 }
 
-// Returns an Uint8Array with pseudorandom data.
-//
+// Returns an Uint8Array.
+// When `seed` is non-zero, the data is pseudo-random, otherwise it is repetitive.
 // The PRNG should be sufficient to defeat compression schemes, but it is not
 // cryptographically strong.
 function largeValue(size, seed) {
   const buffer = new Uint8Array(size);
+  // Fill with a lot of the same byte.
+  if (seed == 0) {
+    buffer.fill(0x11, 0, size - 1);
+    return buffer;
+  }
 
   // 32-bit xorshift - the seed can't be zero
   let state = 1000 + seed;

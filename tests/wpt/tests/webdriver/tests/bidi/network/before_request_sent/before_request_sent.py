@@ -62,7 +62,7 @@ async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, 
 
 @pytest.mark.asyncio
 async def test_load_page_twice(
-    bidi_session, top_context, wait_for_event, url, fetch, setup_network_test
+    bidi_session, top_context, wait_for_event, url, setup_network_test
 ):
     html_url = url(PAGE_EMPTY_HTML)
 
@@ -84,6 +84,45 @@ async def test_load_page_twice(
         expected_request=expected_request,
         redirect_count=0,
     )
+
+
+@pytest.mark.asyncio
+async def test_navigation_id(
+    bidi_session, top_context, wait_for_event, url, fetch, setup_network_test
+):
+    html_url = url(PAGE_EMPTY_HTML)
+
+    network_events = await setup_network_test(events=["network.beforeRequestSent"])
+    events = network_events["network.beforeRequestSent"]
+
+    on_before_request_sent = wait_for_event("network.beforeRequestSent")
+    result = await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=html_url,
+        wait="complete",
+    )
+    await on_before_request_sent
+
+    assert len(events) == 1
+    expected_request = {"method": "GET", "url": html_url}
+    assert_before_request_sent_event(
+        events[0], expected_request=expected_request, navigation=result["navigation"]
+    )
+    assert events[0]["navigation"] is not None
+
+    text_url = url(PAGE_EMPTY_TEXT)
+    on_before_request_sent = wait_for_event("network.beforeRequestSent")
+    await fetch(text_url, method="GET")
+    await on_before_request_sent
+
+    assert len(events) == 2
+    expected_request = {"method": "GET", "url": text_url}
+    assert_before_request_sent_event(
+        events[1],
+        expected_request=expected_request,
+    )
+    # Check that requests not related to a navigation have no navigation id.
+    assert events[1]["navigation"] is None
 
 
 @pytest.mark.parametrize(
@@ -135,7 +174,7 @@ async def test_request_headers(
 
     assert len(events) == 1
     expected_request = {
-        "headers": ({"name": "foo", "value": "bar"},),
+        "headers": ({"name": "foo", "value": {"type": "string", "value": "bar"}},),
         "method": "GET",
         "url": text_url,
     }
@@ -167,7 +206,7 @@ async def test_request_cookies(
 
     assert len(events) == 1
     expected_request = {
-        "cookies": ({"name": "foo", "value": "bar"},),
+        "cookies": ({"name": "foo", "value": {"type": "string", "value": "bar"}},),
         "method": "GET",
         "url": text_url,
     }
@@ -191,8 +230,8 @@ async def test_request_cookies(
 
     expected_request = {
         "cookies": (
-            {"name": "foo", "value": "bar"},
-            {"name": "fuu", "value": "baz"},
+            {"name": "foo", "value": {"type": "string", "value": "bar"}},
+            {"name": "fuu", "value": {"type": "string", "value": "baz"}},
         ),
         "method": "GET",
         "url": text_url,
@@ -248,7 +287,7 @@ async def test_redirect_http_equiv(
     network_events = await setup_network_test(events=["network.beforeRequestSent"])
     events = network_events["network.beforeRequestSent"]
 
-    await bidi_session.browsing_context.navigate(
+    result = await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=http_equiv_url,
         wait="complete",
@@ -265,6 +304,7 @@ async def test_redirect_http_equiv(
         events[0],
         expected_request=expected_request,
         redirect_count=0,
+        navigation=result["navigation"],
     )
     # http-equiv redirect should not be considered as a redirect: redirect_count
     # should be 0.
@@ -277,3 +317,46 @@ async def test_redirect_http_equiv(
 
     # Check that the http-equiv redirect request has a different requestId
     assert events[0]["request"]["request"] != events[1]["request"]["request"]
+
+    # Check that the http-equiv redirect request also has a navigation id set,
+    # but different from the original request.
+    assert events[1]["navigation"] is not None
+    assert events[1]["navigation"] != events[0]["navigation"]
+
+
+@pytest.mark.asyncio
+async def test_redirect_navigation(
+    bidi_session, top_context, wait_for_event, url, setup_network_test
+):
+    html_url = url(PAGE_EMPTY_HTML)
+    redirect_url = url(
+        f"/webdriver/tests/support/http_handlers/redirect.py?location={html_url}"
+    )
+
+    network_events = await setup_network_test(events=["network.beforeRequestSent"])
+    events = network_events["network.beforeRequestSent"]
+
+    result = await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=redirect_url,
+        wait="complete",
+    )
+
+    assert len(events) == 2
+    expected_request = {"method": "GET", "url": redirect_url}
+    assert_before_request_sent_event(
+        events[0],
+        expected_request=expected_request,
+        navigation=result["navigation"],
+        redirect_count=0,
+    )
+    expected_request = {"method": "GET", "url": html_url}
+    assert_before_request_sent_event(
+        events[1],
+        expected_request=expected_request,
+        navigation=result["navigation"],
+        redirect_count=1,
+    )
+
+    # Check that both requests share the same requestId
+    assert events[0]["request"]["request"] == events[1]["request"]["request"]

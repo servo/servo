@@ -25,6 +25,10 @@ def main(request, response):
     return (533, [], "Should not have Referer")
   if request.headers.get(b"Origin"):
     return (534, [], "Should not have Origin")
+  if request.headers.get(b"Sec-Fetch-Mode") != b"no-cors":
+    return (535, [], "Wrong Sec-Fetch-Mode header")
+  if request.headers.get(b"Sec-Fetch-Site") != b"cross-site":
+    return (536, [], "Wrong Sec-Fetch-Site header")
 
   response.headers.set(b"Content-Type", b"application/json")
 

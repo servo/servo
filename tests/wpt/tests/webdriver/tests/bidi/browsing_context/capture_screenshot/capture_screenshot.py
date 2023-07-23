@@ -8,12 +8,18 @@ from ... import get_device_pixel_ratio, get_viewport_dimensions
 
 
 @pytest.mark.asyncio
-async def test_capture(bidi_session, top_context, inline, compare_png_bidi):
+@pytest.mark.parametrize("activate", [True, False],
+                         ids=["with activate", "without activate"])
+async def test_capture(bidi_session, top_context, inline, compare_png_bidi,
+                       activate):
     expected_size = await get_physical_viewport_dimensions(bidi_session, top_context)
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url="about:blank", wait="complete"
     )
+    if activate:
+        await bidi_session.browsing_context.activate(
+            context=top_context["context"])
     reference_data = await bidi_session.browsing_context.capture_screenshot(
         context=top_context["context"])
     assert png_dimensions(reference_data) == expected_size
@@ -21,6 +27,9 @@ async def test_capture(bidi_session, top_context, inline, compare_png_bidi):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=inline("<div>foo</div>"), wait="complete"
     )
+    if activate:
+        await bidi_session.browsing_context.activate(
+            context=top_context["context"])
     data = await bidi_session.browsing_context.capture_screenshot(
         context=top_context["context"])
 
@@ -32,6 +41,9 @@ async def test_capture(bidi_session, top_context, inline, compare_png_bidi):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=inline("<div>foo</div>"), wait="complete"
     )
+    if activate:
+        await bidi_session.browsing_context.activate(
+            context=top_context["context"])
     new_data = await bidi_session.browsing_context.capture_screenshot(
         context=top_context["context"])
 

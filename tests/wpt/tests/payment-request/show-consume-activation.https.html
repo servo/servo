@@ -37,22 +37,16 @@
       promise_test(async t => {
         const pr = new PaymentRequest(defaultMethods, defaultDetails);
 
-        // Not activated by user gesture, so not allowed!
-        await promise_rejects_dom(t, "SecurityError", pr.show());
-
         await test_driver.bless("Calls show() method");
-
-        // Activated by user gesture, so all good.
         const showPromise = pr.show();
 
-        // The activation has been consumed, so calling show() again would require
-        // a new gesture.
-        await promise_rejects_dom(t, "InvalidStateError", pr.show());
+        // The activation has been consumed.
+        assert_false(navigator.userActivation.isActive);
 
         // Abort the payment request
         pr.abort()
         await promise_rejects_dom(t, "AbortError", showPromise);
-      }, "Calling share consumes user activation");
+      }, "Calling show consumes user activation, if present");
     </script>
   </body>
 </html>

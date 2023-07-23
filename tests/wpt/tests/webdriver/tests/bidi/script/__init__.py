@@ -172,7 +172,16 @@ REMOTE_VALUES: list[tuple[str, dict]] = [
     ("new WeakMap()", {"type": "weakmap", },),
     ("new WeakSet()", {"type": "weakset", },),
     ("new Error('SOME_ERROR_TEXT')", {"type": "error"},),
-    ("([1, 2][Symbol.iterator]())", {
+    ("[1, 2][Symbol.iterator]()", {
+        "type": "iterator",
+    }),
+    ("'mystring'[Symbol.iterator]()", {
+        "type": "iterator",
+    }),
+    ("(new Set([1,2]))[Symbol.iterator]()", {
+        "type": "iterator",
+    }),
+    ("(new Map([[1,2]]))[Symbol.iterator]()", {
         "type": "iterator",
     }),
     ("new Proxy({}, {})", {

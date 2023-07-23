@@ -2,6 +2,8 @@ import pytest
 
 from webdriver.bidi.error import UnknownErrorException
 
+from ... import any_string
+
 
 async def navigate_and_assert(bidi_session, context, url, wait="complete", expected_error=False):
     if expected_error:
@@ -15,6 +17,7 @@ async def navigate_and_assert(bidi_session, context, url, wait="complete", expec
             context=context['context'], url=url, wait=wait
         )
         assert result["url"] == url
+        any_string(result["navigation"])
 
         contexts = await bidi_session.browsing_context.get_tree(
             root=context['context']

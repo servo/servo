@@ -324,6 +324,7 @@ window.onload = () => {
               // handler should run, set a new type, and that type should end up
               // as the final result.
               assert_false(popover.matches(':popover-open'));
+              assert_true(gotEvent);
               if (inEventType === undefined || (method ==="idl" && inEventType === null)) {
                 assert_throws_dom("NotSupportedError",() => popover.showPopover(),'We should have removed the popover attribute, so showPopover should throw');
               } else {
