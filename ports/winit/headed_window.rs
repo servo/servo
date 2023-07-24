@@ -393,7 +393,7 @@ impl WindowPortsMethods for Window {
         self.winit_window.id()
     }
 
-    fn winit_event_to_embedder_event(&self, event: winit::event::WindowEvent<'_>) {
+    fn queue_embedder_events_for_winit_event(&self, event: winit::event::WindowEvent<'_>) {
         match event {
             winit::event::WindowEvent::ReceivedCharacter(ch) => self.handle_received_character(ch),
             winit::event::WindowEvent::KeyboardInput { input, .. } => self.handle_keyboard_input(input),

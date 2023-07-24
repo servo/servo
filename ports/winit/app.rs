@@ -114,7 +114,7 @@ impl App {
             }
 
             // Handle the event
-            app.winit_event_to_embedder_event(e);
+            app.queue_embedder_events_for_winit_event(e);
 
             let animating = app.is_animating();
 
@@ -143,7 +143,7 @@ impl App {
 
     /// Processes the given winit Event, possibly converting it to an [EmbedderEvent] and
     /// routing that to the App or relevant Window event queues.
-    fn winit_event_to_embedder_event(&self, event: winit::event::Event<'_, WakerEvent>) {
+    fn queue_embedder_events_for_winit_event(&self, event: winit::event::Event<'_, WakerEvent>) {
         match event {
             // App level events
             winit::event::Event::Suspended => {
@@ -171,7 +171,7 @@ impl App {
                         warn!("Got an event from unknown window");
                     },
                     Some(window) => {
-                        window.winit_event_to_embedder_event(event);
+                        window.queue_embedder_events_for_winit_event(event);
                     },
                 }
             },
