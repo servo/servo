@@ -141,7 +141,7 @@ impl App {
         std::mem::take(&mut *self.event_queue.borrow_mut())
     }
 
-    /// Processes the given winit Event, possibly converting it to an EmbedderEvent and
+    /// Processes the given winit Event, possibly converting it to an [EmbedderEvent] and
     /// routing that to the App or relevant Window event queues.
     fn winit_event_to_embedder_event(&self, event: winit::event::Event<'_, WakerEvent>) {
         match event {
