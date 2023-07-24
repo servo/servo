@@ -69,8 +69,8 @@ use log::warn;
 
 use servo::compositing::windowing::AnimationState;
 use servo::compositing::windowing::EmbedderCoordinates;
+use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::windowing::EmbedderMethods;
-use servo::compositing::windowing::WindowEvent;
 use servo::compositing::windowing::WindowMethods;
 use servo::embedder_traits::EmbedderProxy;
 use servo::embedder_traits::EventLoopWaker;
@@ -221,14 +221,14 @@ impl ServoThread {
         let id = servo.top_level_browsing_context_id;
         let mut servo = servo.servo;
 
-        servo.handle_events(vec![WindowEvent::NewBrowser(url, id)]);
+        servo.handle_events(vec![EmbedderEvent::NewBrowser(url, id)]);
 
         let swap_chain = match webxr_mode {
             None => Some(webrender_swap_chain),
             Some(..) => {
                 set_pref!(dom.webxr.sessionavailable, true);
                 set_pref!(dom.webxr.unsafe_assume_user_intent, true);
-                servo.handle_events(vec![WindowEvent::ChangeBrowserVisibility(id, false)]);
+                servo.handle_events(vec![EmbedderEvent::ChangeBrowserVisibility(id, false)]);
                 None
             },
         };
@@ -256,7 +256,7 @@ impl ServoThread {
                 ServoWebSrcMsg::Stop => break,
             }
         }
-        self.servo.handle_events(vec![WindowEvent::Quit]);
+        self.servo.handle_events(vec![EmbedderEvent::Quit]);
     }
 
     fn send_swap_chain(&mut self, sender: Sender<SwapChain<Device>>) {
@@ -273,7 +273,7 @@ impl ServoThread {
             .window()
             .webrender_surfman
             .resize(size.to_untyped());
-        self.servo.handle_events(vec![WindowEvent::Resize]);
+        self.servo.handle_events(vec![EmbedderEvent::Resize]);
     }
 }
 

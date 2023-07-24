@@ -72,7 +72,7 @@ use compositing::compositor_thread::{
     CompositorProxy, CompositorReceiver, InitialCompositorState, Msg, WebrenderCanvasMsg,
     WebrenderFontMsg, WebrenderMsg,
 };
-use compositing::windowing::{EmbedderMethods, WindowEvent, WindowMethods};
+use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
 use compositing::{CompositingReason, ConstellationMsg, IOCompositor, ShutdownState};
 #[cfg(all(
     not(target_os = "windows"),
@@ -194,7 +194,7 @@ pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
-    embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
+    messages_for_embedder: Vec<(Option<BrowserId>, EmbedderMsg)>,
     profiler_enabled: bool,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
@@ -515,26 +515,26 @@ where
             compositor: compositor,
             constellation_chan: constellation_chan,
             embedder_receiver: embedder_receiver,
-            embedder_events: Vec::new(),
+            messages_for_embedder: Vec::new(),
             profiler_enabled: false,
             _js_engine_setup: js_engine_setup,
         };
         InitializedServo { servo, browser_id }
     }
 
-    fn handle_window_event(&mut self, event: WindowEvent) -> bool {
+    fn handle_window_event(&mut self, event: EmbedderEvent) -> bool {
         match event {
-            WindowEvent::Idle => {},
+            EmbedderEvent::Idle => {},
 
-            WindowEvent::Refresh => {
+            EmbedderEvent::Refresh => {
                 self.compositor.composite();
             },
 
-            WindowEvent::Resize => {
+            EmbedderEvent::Resize => {
                 return self.compositor.on_resize_window_event();
             },
 
-            WindowEvent::AllowNavigationResponse(pipeline_id, allowed) => {
+            EmbedderEvent::AllowNavigationResponse(pipeline_id, allowed) => {
                 let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allowed);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
@@ -544,55 +544,55 @@ where
                 }
             },
 
-            WindowEvent::LoadUrl(top_level_browsing_context_id, url) => {
+            EmbedderEvent::LoadUrl(top_level_browsing_context_id, url) => {
                 let msg = ConstellationMsg::LoadUrl(top_level_browsing_context_id, url);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending load url to constellation failed ({:?}).", e);
                 }
             },
 
-            WindowEvent::ClearCache => {
+            EmbedderEvent::ClearCache => {
                 let msg = ConstellationMsg::ClearCache;
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending clear cache to constellation failed ({:?}).", e);
                 }
             },
 
-            WindowEvent::MouseWindowEventClass(mouse_window_event) => {
+            EmbedderEvent::MouseWindowEventClass(mouse_window_event) => {
                 self.compositor
                     .on_mouse_window_event_class(mouse_window_event);
             },
 
-            WindowEvent::MouseWindowMoveEventClass(cursor) => {
+            EmbedderEvent::MouseWindowMoveEventClass(cursor) => {
                 self.compositor.on_mouse_window_move_event_class(cursor);
             },
 
-            WindowEvent::Touch(event_type, identifier, location) => {
+            EmbedderEvent::Touch(event_type, identifier, location) => {
                 self.compositor
                     .on_touch_event(event_type, identifier, location);
             },
 
-            WindowEvent::Wheel(delta, location) => {
+            EmbedderEvent::Wheel(delta, location) => {
                 self.compositor.on_wheel_event(delta, location);
             },
 
-            WindowEvent::Scroll(delta, cursor, phase) => {
+            EmbedderEvent::Scroll(delta, cursor, phase) => {
                 self.compositor.on_scroll_event(delta, cursor, phase);
             },
 
-            WindowEvent::Zoom(magnification) => {
+            EmbedderEvent::Zoom(magnification) => {
                 self.compositor.on_zoom_window_event(magnification);
             },
 
-            WindowEvent::ResetZoom => {
+            EmbedderEvent::ResetZoom => {
                 self.compositor.on_zoom_reset_window_event();
             },
 
-            WindowEvent::PinchZoom(magnification) => {
+            EmbedderEvent::PinchZoom(magnification) => {
                 self.compositor.on_pinch_zoom_window_event(magnification);
             },
 
-            WindowEvent::Navigation(top_level_browsing_context_id, direction) => {
+            EmbedderEvent::Navigation(top_level_browsing_context_id, direction) => {
                 let msg =
                     ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
                 if let Err(e) = self.constellation_chan.send(msg) {
@@ -600,14 +600,14 @@ where
                 }
             },
 
-            WindowEvent::Keyboard(key_event) => {
+            EmbedderEvent::Keyboard(key_event) => {
                 let msg = ConstellationMsg::Keyboard(key_event);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending keyboard event to constellation failed ({:?}).", e);
                 }
             },
 
-            WindowEvent::IMEDismissed => {
+            EmbedderEvent::IMEDismissed => {
                 let msg = ConstellationMsg::IMEDismissed;
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
@@ -617,25 +617,25 @@ where
                 }
             },
 
-            WindowEvent::Quit => {
+            EmbedderEvent::Quit => {
                 self.compositor.maybe_start_shutting_down();
             },
 
-            WindowEvent::ExitFullScreen(top_level_browsing_context_id) => {
+            EmbedderEvent::ExitFullScreen(top_level_browsing_context_id) => {
                 let msg = ConstellationMsg::ExitFullScreen(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending exit fullscreen to constellation failed ({:?}).", e);
                 }
             },
 
-            WindowEvent::Reload(top_level_browsing_context_id) => {
+            EmbedderEvent::Reload(top_level_browsing_context_id) => {
                 let msg = ConstellationMsg::Reload(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending reload to constellation failed ({:?}).", e);
                 }
             },
 
-            WindowEvent::ToggleSamplingProfiler(rate, max_duration) => {
+            EmbedderEvent::ToggleSamplingProfiler(rate, max_duration) => {
                 self.profiler_enabled = !self.profiler_enabled;
                 let msg = if self.profiler_enabled {
                     ConstellationMsg::EnableProfiler(rate, max_duration)
@@ -647,15 +647,15 @@ where
                 }
             },
 
-            WindowEvent::ToggleWebRenderDebug(option) => {
+            EmbedderEvent::ToggleWebRenderDebug(option) => {
                 self.compositor.toggle_webrender_debug(option);
             },
 
-            WindowEvent::CaptureWebRender => {
+            EmbedderEvent::CaptureWebRender => {
                 self.compositor.capture_webrender();
             },
 
-            WindowEvent::NewBrowser(url, browser_id) => {
+            EmbedderEvent::NewBrowser(url, browser_id) => {
                 let msg = ConstellationMsg::NewBrowser(url, browser_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
@@ -665,7 +665,7 @@ where
                 }
             },
 
-            WindowEvent::SelectBrowser(ctx) => {
+            EmbedderEvent::SelectBrowser(ctx) => {
                 let msg = ConstellationMsg::SelectBrowser(ctx);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
@@ -675,7 +675,7 @@ where
                 }
             },
 
-            WindowEvent::CloseBrowser(ctx) => {
+            EmbedderEvent::CloseBrowser(ctx) => {
                 let msg = ConstellationMsg::CloseBrowser(ctx);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
@@ -685,7 +685,7 @@ where
                 }
             },
 
-            WindowEvent::SendError(ctx, e) => {
+            EmbedderEvent::SendError(ctx, e) => {
                 let msg = ConstellationMsg::SendError(ctx, e);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
@@ -695,7 +695,7 @@ where
                 }
             },
 
-            WindowEvent::MediaSessionAction(a) => {
+            EmbedderEvent::MediaSessionAction(a) => {
                 let msg = ConstellationMsg::MediaSessionAction(a);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
@@ -705,7 +705,7 @@ where
                 }
             },
 
-            WindowEvent::ChangeBrowserVisibility(top_level_browsing_context_id, visible) => {
+            EmbedderEvent::ChangeBrowserVisibility(top_level_browsing_context_id, visible) => {
                 let msg = ConstellationMsg::ChangeBrowserVisibility(
                     top_level_browsing_context_id,
                     visible,
@@ -736,21 +736,22 @@ where
 
                 (EmbedderMsg::Keyboard(key_event), ShutdownState::NotShuttingDown) => {
                     let event = (top_level_browsing_context, EmbedderMsg::Keyboard(key_event));
-                    self.embedder_events.push(event);
+                    self.messages_for_embedder.push(event);
                 },
 
                 (msg, ShutdownState::NotShuttingDown) => {
-                    self.embedder_events.push((top_level_browsing_context, msg));
+                    self.messages_for_embedder
+                        .push((top_level_browsing_context, msg));
                 },
             }
         }
     }
 
     pub fn get_events(&mut self) -> Vec<(Option<BrowserId>, EmbedderMsg)> {
-        ::std::mem::replace(&mut self.embedder_events, Vec::new())
+        ::std::mem::replace(&mut self.messages_for_embedder, Vec::new())
     }
 
-    pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
+    pub fn handle_events(&mut self, events: Vec<EmbedderEvent>) -> bool {
         if self.compositor.receive_messages() {
             self.receive_messages();
         }
@@ -761,7 +762,8 @@ where
         if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
             self.compositor.perform_updates();
         } else {
-            self.embedder_events.push((None, EmbedderMsg::Shutdown));
+            self.messages_for_embedder
+                .push((None, EmbedderMsg::Shutdown));
         }
         need_resize
     }
