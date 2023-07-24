@@ -12,6 +12,7 @@ exclude = [".cargo"]
 [workspace.dependencies]
 accountable-refcell = "0.2.0"
 app_units = "0.7"
+async-tungstenite = { version = "0.22", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.6"
 arrayvec = "0.7"
 backtrace = "0.3"
@@ -35,6 +36,7 @@ headers = "0.3"
 html5ever = "0.26"
 http = "0.2"
 hyper = "0.14"
+hyper-rustls = { version = "0.24", default-features = false, features = ["webpki-tokio", "http1", "http2", "tls12", "logging", "acceptor"] }
 hyper_serde = "0.13"
 image = "0.24"
 indexmap = { version = "1.0.2", features = ["std"] }
@@ -57,6 +59,8 @@ quote = "1"
 rand = "0.7"
 rayon = "1"
 regex = "1.1"
+rustls = { version = "0.21.5", features = ["dangerous_configuration"] }
+rustls-pemfile = "1.0.3"
 serde = "1.0.60"
 serde_bytes = "0.11"
 serde_json = "1.0"
@@ -73,11 +77,15 @@ surfman-chains-api = "0.2"
 thin-slice = "0.1.0"
 time = "0.1.41"
 tokio = "1"
+tokio-rustls = "0.24"
+tungstenite = "0.19"
 unicode-bidi = "0.3.4"
 unicode-script = "0.5"
 url = "2.0"
 uuid = { version = "1.3.4", features = ["v4"] }
 webdriver = "0.48.0"
+webpki-roots = "0.23"
+webpki = "0.22"
 webrender = { git = "https://github.com/servo/webrender", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender" }
 winapi = "0.3"

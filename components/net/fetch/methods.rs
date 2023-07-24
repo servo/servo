@@ -9,7 +9,7 @@ use crate::filemanager_thread::{FileManager, FILE_CHUNK_SIZE};
 use crate::http_loader::{determine_requests_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
-use base64::Engine;
+use base64::{engine::general_purpose, Engine as _};
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
@@ -31,11 +31,12 @@ use net_traits::request::{
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use net_traits::{ResourceAttribute, ResourceTimeValue, ResourceTimingType};
+use rustls::Certificate;
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fs::File;
-use std::io::{BufReader, Seek, SeekFrom};
+use std::io::{self, BufReader, Seek, SeekFrom};
 use std::mem;
 use std::ops::Bound;
 use std::str;
@@ -627,6 +628,48 @@ fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Respons
     response
 }
 
+/// Handle a request from the user interface to ignore validation errors for a certificate.
+fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io::Result<()> {
+    let error = |string| Err(io::Error::new(io::ErrorKind::Other, string));
+
+    let body = match request.body.as_mut() {
+        Some(body) => body,
+        None => return error("No body found"),
+    };
+
+    let stream = body.take_stream();
+    let stream = stream.lock().unwrap();
+    let (body_chan, body_port) = ipc::channel().unwrap();
+    let _ = stream.send(BodyChunkRequest::Connect(body_chan));
+    let _ = stream.send(BodyChunkRequest::Chunk);
+    let body_bytes = match body_port.recv().ok() {
+        Some(BodyChunkResponse::Chunk(bytes)) => bytes,
+        _ => return error("Certificate not sent in a single chunk"),
+    };
+
+    let split_idx = match body_bytes.iter().position(|b| *b == b'&') {
+        Some(split_idx) => split_idx,
+        None => return error("Could not find ampersand in data"),
+    };
+    let (secret, cert_base64) = body_bytes.split_at(split_idx);
+
+    let secret = str::from_utf8(secret).ok().and_then(|s| s.parse().ok());
+    if secret != Some(*net_traits::PRIVILEGED_SECRET) {
+        return error("Invalid secret sent. Ignoring request");
+    }
+
+    let cert_bytes = match general_purpose::STANDARD_NO_PAD.decode(&cert_base64[1..]) {
+        Ok(bytes) => bytes,
+        Err(_) => return error("Could not decode certificate base64"),
+    };
+
+    context
+        .state
+        .override_manager
+        .add_override(&Certificate(cert_bytes));
+    Ok(())
+}
+
 /// [Scheme fetch](https://fetch.spec.whatwg.org#scheme-fetch)
 async fn scheme_fetch(
     request: &mut Request,
@@ -641,32 +684,9 @@ async fn scheme_fetch(
         "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
 
         "chrome" if url.path() == "allowcert" => {
-            let data = request.body.as_mut().and_then(|body| {
-                let stream = body.take_stream();
-                let stream = stream.lock().unwrap();
-                let (body_chan, body_port) = ipc::channel().unwrap();
-                let _ = stream.send(BodyChunkRequest::Connect(body_chan));
-                let _ = stream.send(BodyChunkRequest::Chunk);
-                match body_port.recv().ok() {
-                    Some(BodyChunkResponse::Chunk(bytes)) => Some(bytes),
-                    _ => panic!("cert should be sent in a single chunk."),
-                }
-            });
-            let data = data.as_ref().and_then(|b| {
-                let idx = b.iter().position(|b| *b == b'&')?;
-                Some(b.split_at(idx))
-            });
-
-            if let Some((secret, bytes)) = data {
-                let secret = str::from_utf8(secret).ok().and_then(|s| s.parse().ok());
-                if secret == Some(*net_traits::PRIVILEGED_SECRET) {
-                    if let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(&bytes[1..])
-                    {
-                        context.state.extra_certs.add(bytes);
-                    }
-                }
+            if let Err(error) = handle_allowcert_request(request, context) {
+                warn!("Could not handle allowcert request: {error}");
             }
-
             create_blank_reply(url, request.timing_type())
         },
 

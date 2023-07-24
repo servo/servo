@@ -188,15 +188,10 @@ class MachCommands(CommandBase):
                 )
                 assert os.path.exists(servo_exe_dir)
 
-                # on msvc, we need to copy in some DLLs in to the servo.exe dir and the directory for unit tests.
-                for ssl_lib in ["libssl.dll", "libcrypto.dll"]:
-                    ssl_path = path.join(env['OPENSSL_LIB_DIR'], "../bin", ssl_lib)
-                    shutil.copy(ssl_path, servo_exe_dir)
-                    shutil.copy(ssl_path, path.join(servo_exe_dir, "deps"))
-
                 build_path = path.join(servo_exe_dir, "build")
                 assert os.path.exists(build_path)
 
+                # on msvc, we need to copy in some DLLs in to the servo.exe dir and the directory for unit tests.
                 def package_generated_shared_libraries(libs, build_path, servo_exe_dir):
                     for root, dirs, files in os.walk(build_path):
                         remaining_libs = list(libs)
@@ -264,16 +259,6 @@ class MachCommands(CommandBase):
     def download_and_build_android_dependencies_if_needed(self, env: Dict[str, str]):
         if not self.is_android_build:
             return
-
-        openssl_dir = os.path.join(self.target_path, "native", "openssl")
-        if not os.path.exists(openssl_dir):
-            os.makedirs(openssl_dir)
-        shutil.copy(os.path.join(self.android_support_dir(), "openssl.makefile"), openssl_dir)
-        shutil.copy(os.path.join(self.android_support_dir(), "openssl.sh"), openssl_dir)
-
-        status = call(["make", "-f", "openssl.makefile"], env=env, cwd=openssl_dir)
-        if status:
-            return status
 
         # Build the name of the package containing all GStreamer dependencies
         # according to the build target.

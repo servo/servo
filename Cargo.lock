@@ -226,11 +226,11 @@ dependencies = [
  "futures-io",
  "futures-util",
  "log",
- "openssl",
  "pin-project-lite",
  "tokio",
- "tokio-openssl",
+ "tokio-rustls",
  "tungstenite",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -1639,7 +1639,7 @@ dependencies = [
  "futures-sink",
  "nanorand",
  "pin-project",
- "spin",
+ "spin 0.9.8",
 ]
 
 [[package]]
@@ -2715,21 +2715,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyper-openssl"
-version = "0.9.2"
+name = "hyper-rustls"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6ee5d7a8f718585d1c3c61dfde28ef5b0bb14734b4db13f5ada856cdc6c612b"
+checksum = "8d78e1e73ec14cf7375674f74d7dde185c8206fd9dea6fb6295e8a98098aaa97"
 dependencies = [
+ "futures-util",
  "http",
  "hyper",
- "linked_hash_set",
- "once_cell",
- "openssl",
- "openssl-sys",
- "parking_lot 0.12.0",
+ "log",
+ "rustls",
  "tokio",
- "tokio-openssl",
- "tower-layer",
+ "tokio-rustls",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -3343,21 +3341,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "linked-hash-map"
-version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
-
-[[package]]
-name = "linked_hash_set"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47186c6da4d81ca383c7c47c1bfc80f4b95f4720514d860a5407aaf4233f9588"
-dependencies = [
- "linked-hash-map",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3849,7 +3832,7 @@ dependencies = [
  "headers",
  "http",
  "hyper",
- "hyper-openssl",
+ "hyper-rustls",
  "hyper_serde",
  "immeta",
  "ipc-channel",
@@ -3862,12 +3845,12 @@ dependencies = [
  "mime_guess",
  "msg",
  "net_traits",
- "openssl",
- "openssl-sys",
  "percent-encoding",
  "pixels",
  "profile_traits",
  "rayon",
+ "rustls",
+ "rustls-pemfile",
  "serde",
  "serde_json",
  "servo_allocator",
@@ -3878,12 +3861,13 @@ dependencies = [
  "std_test_override",
  "time 0.1.45",
  "tokio",
- "tokio-openssl",
+ "tokio-rustls",
  "tokio-stream",
  "tokio-test",
  "tungstenite",
  "url",
  "uuid 1.3.4",
+ "webpki-roots",
  "webrender_api",
 ]
 
@@ -3920,6 +3904,7 @@ dependencies = [
  "num-traits",
  "percent-encoding",
  "pixels",
+ "rustls",
  "serde",
  "servo_arc",
  "servo_rand",
@@ -4201,44 +4186,6 @@ name = "opaque-debug"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2839e79665f131bdb5782e51f2c6c9599c133c6098982a54c794358bf432529c"
-
-[[package]]
-name = "openssl"
-version = "0.10.50"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e30d8bc91859781f0a943411186324d580f2bbeb71b452fe91ae344806af3f1"
-dependencies = [
- "bitflags 1.3.2",
- "cfg-if 1.0.0",
- "foreign-types",
- "libc",
- "once_cell",
- "openssl-macros",
- "openssl-sys",
-]
-
-[[package]]
-name = "openssl-macros"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b501e44f11665960c7e7fcf062c7d96a14ade4aa98116c004b2e37b5be7d736c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "openssl-sys"
-version = "0.9.85"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d3d193fb1488ad46ffe3aaabc912cc931d02ee8518fe2959aea8ef52718b0c0"
-dependencies = [
- "cc",
- "libc",
- "pkg-config",
- "vcpkg",
-]
 
 [[package]]
 name = "orbclient"
@@ -4882,6 +4829,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
+name = "ring"
+version = "0.16.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3053cf52e236a3ed746dfc745aa9cacf1b791d846bdaf412f60a8d7d6e17c8fc"
+dependencies = [
+ "cc",
+ "libc",
+ "once_cell",
+ "spin 0.5.2",
+ "untrusted",
+ "web-sys",
+ "winapi",
+]
+
+[[package]]
 name = "rle-decode-fast"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4945,12 +4907,44 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustls-pemfile"
-version = "1.0.2"
+name = "rustls"
+version = "0.21.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d194b56d58803a43635bdc398cd17e383d6f71f9182b9a192c127ca42494a59b"
+checksum = "1d1feddffcfcc0b33f5c6ce9a29e341e4cd59c3f78e7ee45f4a40c038b1d6cbb"
+dependencies = [
+ "log",
+ "ring",
+ "rustls-webpki 0.101.2",
+ "sct",
+]
+
+[[package]]
+name = "rustls-pemfile"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d3987094b1d07b653b7dfdc3f70ce9a1da9c51ac18c1b06b662e4f9a0e9f4b2"
 dependencies = [
  "base64 0.21.2",
+]
+
+[[package]]
+name = "rustls-webpki"
+version = "0.100.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6207cd5ed3d8dca7816f8f3725513a34609c0c765bf652b8c3cb4cfd87db46b"
+dependencies = [
+ "ring",
+ "untrusted",
+]
+
+[[package]]
+name = "rustls-webpki"
+version = "0.101.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "513722fd73ad80a71f72b61009ea1b584bcfa1483ca93949c8f290298837fa59"
+dependencies = [
+ "ring",
+ "untrusted",
 ]
 
 [[package]]
@@ -5178,6 +5172,16 @@ dependencies = [
  "webgpu",
  "webrender_api",
  "webxr-api",
+]
+
+[[package]]
+name = "sct"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
+dependencies = [
+ "ring",
+ "untrusted",
 ]
 
 [[package]]
@@ -5823,6 +5827,12 @@ checksum = "b72d540d5c565dbe1f891d7e21ceb21d2649508306782f1066989fccb0b363d3"
 
 [[package]]
 name = "spin"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
+
+[[package]]
+name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
@@ -6355,14 +6365,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-openssl"
-version = "0.6.3"
+name = "tokio-rustls"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c08f9ffb7809f1b20c1b398d92acf4cc719874b3b2b2d9ea2f09b4a80350878a"
+checksum = "c28327cf380ac148141087fbfb9de9d7bd4e84ab5d2c28fbc911d753de8a7081"
 dependencies = [
- "futures-util",
- "openssl",
- "openssl-sys",
+ "rustls",
  "tokio",
 ]
 
@@ -6412,12 +6420,6 @@ checksum = "8d82e1a7758622a465f8cee077614c73484dac5b836c02ff6a40d5d1010324d7"
 dependencies = [
  "serde",
 ]
-
-[[package]]
-name = "tower-layer"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "343bc9466d3fe6b0f960ef45960509f84480bf4fd96f92901afe7ff3df9d3a62"
 
 [[package]]
 name = "tower-service"
@@ -6486,10 +6488,12 @@ dependencies = [
  "httparse",
  "log",
  "rand 0.8.5",
+ "rustls",
  "sha1",
  "thiserror",
  "url",
  "utf-8",
+ "webpki",
 ]
 
 [[package]]
@@ -6588,6 +6592,12 @@ name = "unicode-xid"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
+
+[[package]]
+name = "untrusted"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
 
 [[package]]
 name = "unwind-sys"
@@ -6955,6 +6965,25 @@ dependencies = [
  "webrender_traits",
  "wgpu-core",
  "wgpu-types",
+]
+
+[[package]]
+name = "webpki"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f095d78192e208183081cc07bc5515ef55216397af48b873e5edcd72637fa1bd"
+dependencies = [
+ "ring",
+ "untrusted",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b03058f88386e5ff5310d9111d53f48b17d732b401aeb83a8d5190f2ac459338"
+dependencies = [
+ "rustls-webpki 0.100.1",
 ]
 
 [[package]]

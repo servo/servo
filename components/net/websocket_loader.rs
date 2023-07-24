@@ -11,7 +11,7 @@
 //! over events from the network and events from the DOM, using async/await to avoid
 //! the need for a dedicated thread per websocket.
 
-use crate::connector::{create_tls_config, ALPN_H1};
+use crate::connector::{create_tls_config, CACertificates, TlsConfig};
 use crate::cookie::Cookie;
 use crate::fetch::methods::should_be_blocked_due_to_bad_port;
 use crate::hosts::replace_host;
@@ -19,7 +19,6 @@ use crate::http_loader::HttpState;
 use async_tungstenite::tokio::{client_async_tls_with_connector_and_config, ConnectStream};
 use async_tungstenite::WebSocketStream;
 use base64::Engine;
-use embedder_traits::resources::{self, Resource};
 use futures::future::TryFutureExt;
 use futures::sink::SinkExt;
 use futures::stream::StreamExt;
@@ -29,15 +28,14 @@ use ipc_channel::router::ROUTER;
 use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
-use openssl::ssl::ConnectConfiguration;
 use servo_url::ServoUrl;
-use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
 use tokio::select;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
+use tokio_rustls::TlsConnector;
 use tungstenite::error::Result as WebSocketResult;
 use tungstenite::error::{Error, ProtocolError, UrlError};
 use tungstenite::handshake::client::{Request, Response};
@@ -302,7 +300,7 @@ async fn start_websocket(
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     protocols: Vec<String>,
     client: Request,
-    tls_config: ConnectConfiguration,
+    tls_config: TlsConfig,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
 ) -> Result<(), Error> {
     trace!("starting WS connection to {}", url);
@@ -330,8 +328,10 @@ async fn start_websocket(
 
     let try_socket = TcpStream::connect((&*domain.to_string(), port)).await;
     let socket = try_socket.map_err(Error::Io)?;
+    let connector = TlsConnector::from(Arc::new(tls_config));
+
     let (stream, response) =
-        client_async_tls_with_connector_and_config(client, socket, Some(tls_config), None).await?;
+        client_async_tls_with_connector_and_config(client, socket, Some(connector), None).await?;
 
     let protocol_in_use = process_ws_response(&http_state, &response, &url, &protocols)?;
 
@@ -357,7 +357,8 @@ fn connect(
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     http_state: Arc<HttpState>,
-    certificate_path: Option<String>,
+    ca_certificates: CACertificates,
+    ignore_certificate_errors: bool,
 ) -> Result<(), String> {
     let protocols = match req_builder.mode {
         RequestMode::WebSocket { protocols } => protocols,
@@ -382,11 +383,6 @@ fn connect(
         return Err("Port blocked".to_string());
     }
 
-    let certs = match certificate_path {
-        Some(ref path) => fs::read_to_string(path).map_err(|e| e.to_string())?,
-        None => resources::read_string(Resource::SSLCertificates),
-    };
-
     let client = match create_request(
         &req_url,
         &req_builder.origin.ascii_serialization(),
@@ -397,16 +393,12 @@ fn connect(
         Err(e) => return Err(e.to_string()),
     };
 
-    let tls_config = create_tls_config(
-        &certs,
-        ALPN_H1,
-        http_state.extra_certs.clone(),
-        http_state.connection_certs.clone(),
+    let mut tls_config = create_tls_config(
+        ca_certificates,
+        ignore_certificate_errors,
+        http_state.override_manager.clone(),
     );
-    let tls_config = match tls_config.build().configure() {
-        Ok(c) => c,
-        Err(e) => return Err(e.to_string()),
-    };
+    tls_config.alpn_protocols = vec!["h2".to_string().into(), "http/1.1".to_string().into()];
 
     let resource_event_sender2 = resource_event_sender.clone();
     match HANDLE.lock().unwrap().as_mut() {
@@ -436,7 +428,8 @@ pub fn init(
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     http_state: Arc<HttpState>,
-    certificate_path: Option<String>,
+    ca_certificates: CACertificates,
+    ignore_certificate_errors: bool,
 ) {
     let resource_event_sender2 = resource_event_sender.clone();
     if let Err(e) = connect(
@@ -444,7 +437,8 @@ pub fn init(
         resource_event_sender,
         dom_action_receiver,
         http_state,
-        certificate_path,
+        ca_certificates,
+        ignore_certificate_errors,
     ) {
         warn!("Error starting websocket: {}", e);
         let _ = resource_event_sender2.send(WebSocketNetworkEvent::Fail);

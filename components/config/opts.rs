@@ -113,8 +113,13 @@ pub struct Opts {
     /// Print the version and exit.
     pub is_printing_version: bool,
 
-    /// Path to SSL certificates.
+    /// Path to PEM encoded SSL CA certificate store.
     pub certificate_path: Option<String>,
+
+    /// Whether or not to completely ignore SSL certificate validation errors.
+    /// TODO: We should see if we can eliminate the need for this by fixing
+    /// https://github.com/servo/servo/issues/30080.
+    pub ignore_certificate_errors: bool,
 
     /// Unminify Javascript.
     pub unminify_js: bool,
@@ -408,6 +413,7 @@ pub fn default_opts() -> Opts {
         is_printing_version: false,
         shaders_dir: None,
         certificate_path: None,
+        ignore_certificate_errors: false,
         unminify_js: false,
         local_script_source: None,
         print_pwm: false,
@@ -523,6 +529,11 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "certificate-path",
         "Path to find SSL certificates",
         "/home/servo/resources/certs",
+    );
+    opts.optflag(
+        "",
+        "ignore-certificate-errors",
+        "Whether or not to completely ignore certificate errors",
     );
     opts.optopt(
         "",
@@ -767,6 +778,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         is_printing_version,
         shaders_dir: opt_match.opt_str("shaders").map(Into::into),
         certificate_path: opt_match.opt_str("certificate-path"),
+        ignore_certificate_errors: opt_match.opt_present("ignore-certificate-errors"),
         unminify_js: opt_match.opt_present("unminify-js"),
         local_script_source: opt_match.opt_str("local-script-source"),
         print_pwm: opt_match.opt_present("print-pwm"),

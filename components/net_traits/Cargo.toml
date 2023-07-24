@@ -31,6 +31,7 @@ msg = { path = "../msg" }
 num-traits = { workspace = true }
 percent-encoding = { workspace = true }
 pixels = { path = "../pixels" }
+rustls = { workspace = true }
 serde = { workspace = true }
 servo_arc = { path = "../servo_arc" }
 servo_rand = { path = "../rand" }
