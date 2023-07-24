@@ -156,28 +156,24 @@ def get_github_run_url() -> Optional[str]:
     return f"[#{run_id}](https://github.com/{repository}/actions/runs/{run_id})"
 
 
-def is_pr_open(pr_number: str) -> bool:
-    return b"open" == subprocess.check_output(
-        ["gh", "api", f"/repos/servo/servo/pulls/{pr_number}", "--template", "{{.state}}"])
-
-
 def get_pr_number() -> Optional[str]:
     github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
     if "event" not in github_context:
         return None
-    if "head_commit" not in github_context["event"]:
-        return None
-    commit_title = github_context["event"]["head_commit"]["message"]
-    match = re.match(r"^Auto merge of #(\d+)", commit_title)
 
-    if not match:
-        return None
+    # If we have a 'merge_group' in the context, this was triggered by
+    # the merge queue.
+    if "merge_group" in github_context["event"]:
+        commit_title = github_context["event"]["merge_group"]["head_commit"]["message"]
+        match = re.match(r"\(#(\d+)\)$", commit_title)
+        return match.group(1) if match else None
 
-    # Only return a PR number if the PR is open. bors will often push old merges
-    # onto the HEAD of try branches and we don't want to return results for these
-    # old PRs.
-    number = match.group(1)
-    return number if is_pr_open(number) else None
+    # If we have an 'issue' in the context, this was triggered by a try comment
+    # on a PR.
+    if "issue" in github_context["event"]:
+        return str(github_context["event"]["issue"]["number"])
+
+    return None
 
 
 def create_check_run(body: str, tag: str = ""):
@@ -246,7 +242,7 @@ def main():
     if pr_number:
         process = subprocess.Popen(
             ['gh', 'pr', 'comment', pr_number, '-F', '-'], stdin=subprocess.PIPE)
-        process.communicate(input=html_string.encode("utf-8"))[0]
+        print(process.communicate(input=html_string.encode("utf-8"))[0])
     else:
         print("Could not find PR number in environment. Not making GitHub comment.")
 
