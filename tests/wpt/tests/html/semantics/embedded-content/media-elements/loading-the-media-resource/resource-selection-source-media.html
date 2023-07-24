@@ -1,0 +1,14 @@
+<!doctype html>
+<title>the &lt;source> media attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<video><source src="resources/delayed-broken-video.py" media="not all"></video>
+<script>
+test(function() {
+  var v = document.querySelector('video');
+  var s = document.querySelector('source');
+  assert_equals(v.networkState, v.NETWORK_NO_SOURCE);
+  assert_equals(v.currentSrc, '');
+});
+</script>

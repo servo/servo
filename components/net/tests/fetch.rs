@@ -198,7 +198,7 @@ fn test_fetch_blob() {
         true,
         "http://www.example.org".into(),
     );
-    let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.to_simple())).unwrap();
+    let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
 
     let mut request = Request::new(
         url,

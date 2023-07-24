@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<head>
+<title>Largest Contentful Paint: initially out-of-viewport image gets an LCP entry once they are visible.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .flex-container {
+     display: flex;
+     flex-direction: row;
+     width: 1000px;
+     overflow-x: hidden;
+     scroll-behavior: auto;
+  }
+</style>
+</head>
+<body>
+<div>
+<div class='flex-container' id="container">
+  <img src='/images/lcp-100x50.png?pipe=trickle(d1)' width="1000" height="1000"/>
+  <img src='/images/lcp-1x1.png?1' width="1000" height="1000"/>
+  <img src='/images/lcp-1x1.png?2' width="1000" height="1000"/>
+  <img src='/images/lcp-1x1.png?3' width="1000" height="1000"/>
+</div>
+</div>
+<script>
+// Spin the carousel
+setup({"hide_test_state": true});
+const images = document.querySelectorAll('img');
+
+let selected = 0;
+const container = document.getElementById("container");
+const transition = () => {
+  container.scrollLeft = selected * 1000;
+  selected = (selected + 1) % images.length;
+}
+
+container.scrollLeft=1000;
+setInterval(transition, 1000);
+
+promise_test(async t => {
+
+  return new Promise(resolve => {
+    assert_implements(window.LargestContentfulPaint,
+                      "LargestContentfulPaint is not implemented");
+    const observer = new PerformanceObserver(entryList => {
+      entryList.getEntries().forEach(entry => {
+        // May receive a text entry. Ignore that entry.
+        if (!entry.url) {
+          return;
+        }
+        assert_true(entry.url.includes("lcp-100x50.png"), "Re-visible image has an entry");
+        resolve();
+      });
+    });
+    observer.observe({type: 'largest-contentful-paint', buffered: true});
+    t.step_timeout(() => {
+      assert_unreached("The image should have become visible by now, which should have triggered an LCP entry.");
+      t.done();
+    }, 2000);
+  });
+}, 'Image visibility: out-of-viewport images are observable by LargestContentfulPaint once they become visible.');
+</script>
+</body>

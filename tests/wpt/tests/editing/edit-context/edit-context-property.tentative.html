@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EditContext: The HTMLElement.editContext property</title>
+<meta name="author" title="Dan Clark" href="mailto:daniec@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='../../html/resources/common.js'></script>
+</head>
+<body>
+<script>
+
+test(function () {
+  assert_true('editContext' in HTMLElement.prototype, 'Element.prototype.editContext must exist');
+  assert_equals(typeof(document.createElement('div').editContext), 'object', 'An instance of div must have editContext which is an object');
+}, 'Check the existence of HTMLElement.editContext');
+
+test(function () {
+  assert_false('editContext' in Node.prototype, 'Node.prototype.editContext must not exist');
+  assert_false('editContext' in Element.prototype, 'Element.prototype.editContext must not exist');
+  assert_false('editContext' in CharacterData.prototype, 'CharacterData.prototype.editContext must not exist');
+  assert_false('editContext' in Comment.prototype, 'Comment.prototype.editContext must not exist');
+  assert_equals(typeof(document.createComment('').editContext), 'undefined', 'An instance of comment must not have editContext');
+  assert_false('editContext' in Document.prototype, 'Document.prototype.editContext must not exist');
+  assert_equals(typeof(document.editContext), 'undefined', 'An instance of document must not have editContext which is a function');
+  assert_false('editContext' in DocumentFragment.prototype, 'DocumentFragment.prototype.editContext must not exist');
+  assert_equals(typeof((new DOMParser()).parseFromString('', 'text/html').editContext), 'undefined', 'An instance of document must not have editContext which is a function');
+  assert_false('editContext' in Text.prototype, 'Text.prototype.editContext must not exist');
+  assert_equals(typeof(document.createTextNode('').editContext), 'undefined', 'An instance of text node must not have editContext');
+}, 'Nodes other than Element should not have editContext');
+
+test(function () {
+  assert_throws_js(TypeError, function () {
+    document.createElement('div').editContext = "hello";
+  }, 'editContext must throw a TypeError when set to a string');
+
+  assert_throws_js(TypeError, function () {
+    document.createElement('div').editContext = 42;
+  }, 'editContext must throw a TypeError when set to a number');
+
+  assert_throws_js(TypeError, function () {
+    document.createElement('div').editContext = document.createElement('span');
+  }, 'editContext must throw a TypeError when set to a node');
+}, 'HTMLElement.editContext must throw a TypeError if set to something other than an EditContext');
+
+test(function () {
+  const EDIT_CONTEXT_ALLOWED_ELEMENTS = HTML5_SHADOW_ALLOWED_ELEMENTS.concat(['canvas']);
+  for (const elementName of EDIT_CONTEXT_ALLOWED_ELEMENTS) {
+    const element = document.createElement(elementName);
+    const ec = new EditContext();
+    element.editContext = ec;
+    assert_equals(element.editContext, ec, 'Getting HTMLElement.editContext should yield the same EditContext instance');
+  }
+}, 'HTMLElement.editContext can be set on the shadow root elements plus canvas.');
+
+test(function () {
+  // EditContext shares all of the shadow root disallowed elements except for canvas.
+  const EDIT_CONTEXT_DISALLOWED_ELEMENTS = HTML5_SHADOW_DISALLOWED_ELEMENTS.toSpliced(HTML5_SHADOW_DISALLOWED_ELEMENTS.indexOf('canvas'), 1);
+  for (const elementName of EDIT_CONTEXT_DISALLOWED_ELEMENTS) {
+    const element = document.createElement(elementName);
+    const ec = new EditContext();
+    assert_throws_dom('NotSupportedError', () => {
+      element.editContext = ec;
+    }, `Setting editContext on <${elementName}> must throw.`);
+    assert_equals(element.editContext, null);
+  }
+}, 'Setting HTMLElement.editContext must throw a NotSupportedError for disallowed elements');
+
+test(function () {
+  const element1 = document.createElement('div');
+  const element2 = document.createElement('div');
+  const editContext1 = new EditContext();
+  const editContext2 = new EditContext();
+  element1.editContext = editContext1;
+  assert_throws_dom('NotSupportedError', () => {
+    element2.editContext = editContext1;
+  }, `TypeError should be thrown when author attempts to associate an EditContext with a second element`);
+  assert_equals(element1.editContext, editContext1, "element1 association should not have changed");
+  assert_equals(element2.editContext, null, "element2 association should not have changed");
+
+  element1.editContext = editContext2;
+  assert_equals(element1.editContext, editContext2, "Association can be switched directly to second EditConext");
+
+  element1.editContext = editContext2;
+  assert_equals(element1.editContext, editContext2, "Assigning to the same EditContext again is a no-op");
+}, 'An EditContext can only be associated with one element at a time');
+
+</script>
+</body>
+</html>

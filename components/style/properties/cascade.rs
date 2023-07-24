@@ -4,6 +4,7 @@
 
 //! The main cascading algorithm of the style system.
 
+use crate::applicable_declarations::CascadePriority;
 use crate::context::QuirksMode;
 use crate::custom_properties::CustomPropertiesBuilder;
 use crate::dom::TElement;
@@ -15,12 +16,13 @@ use crate::properties::{
     ShorthandsWithPropertyReferencesCache, StyleBuilder, CASCADE_PROPERTY,
 };
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
-use crate::rule_tree::StrongRuleNode;
+use crate::rule_tree::{StrongRuleNode, CascadeLevel};
 use crate::selector_parser::PseudoElement;
 use crate::shared_lock::StylesheetGuards;
 use crate::style_adjuster::StyleAdjuster;
-use crate::stylesheets::{Origin, PerOrigin};
+use crate::stylesheets::{Origin, layer_rule::LayerOrder};
 use crate::values::{computed, specified};
+use fxhash::FxHashMap;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
@@ -115,6 +117,7 @@ struct DeclarationIterator<'a> {
     declarations: DeclarationImportanceIterator<'a>,
     origin: Origin,
     importance: Importance,
+    priority: CascadePriority,
 }
 
 impl<'a> DeclarationIterator<'a> {
@@ -128,8 +131,9 @@ impl<'a> DeclarationIterator<'a> {
         let mut iter = Self {
             guards,
             current_rule_node: Some(rule_node),
-            origin: Origin::Author,
+            origin: Origin::UserAgent,
             importance: Importance::Normal,
+            priority: CascadePriority::new(CascadeLevel::UANormal, LayerOrder::root()),
             declarations: DeclarationImportanceIterator::default(),
             restriction,
         };
@@ -138,10 +142,11 @@ impl<'a> DeclarationIterator<'a> {
     }
 
     fn update_for_node(&mut self, node: &'a StrongRuleNode) {
-        let origin = node.cascade_level().origin();
-        self.origin = origin;
-        self.importance = node.importance();
-        let guard = match origin {
+        self.priority = node.cascade_priority();
+        let level = self.priority.cascade_level();
+        self.origin = level.origin();
+        self.importance = level.importance();
+        let guard = match self.origin {
             Origin::Author => self.guards.author,
             Origin::User | Origin::UserAgent => self.guards.ua_or_user,
         };
@@ -153,7 +158,7 @@ impl<'a> DeclarationIterator<'a> {
 }
 
 impl<'a> Iterator for DeclarationIterator<'a> {
-    type Item = (&'a PropertyDeclaration, Origin);
+    type Item = (&'a PropertyDeclaration, CascadePriority);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -163,20 +168,19 @@ impl<'a> Iterator for DeclarationIterator<'a> {
                     continue;
                 }
 
-                let origin = self.origin;
                 if let Some(restriction) = self.restriction {
                     // decl.id() is either a longhand or a custom
                     // property.  Custom properties are always allowed, but
                     // longhands are only allowed if they have our
                     // restriction flag set.
                     if let PropertyDeclarationId::Longhand(id) = decl.id() {
-                        if !id.flags().contains(restriction) && origin != Origin::UserAgent {
+                        if !id.flags().contains(restriction) && self.origin != Origin::UserAgent {
                             continue;
                         }
                     }
                 }
 
-                return Some((decl, origin));
+                return Some((decl, self.priority));
             }
 
             let next_node = self.current_rule_node.take()?.parent()?;
@@ -259,7 +263,7 @@ pub fn apply_declarations<'a, E, I>(
 ) -> Arc<ComputedValues>
 where
     E: TElement,
-    I: Iterator<Item = (&'a PropertyDeclaration, Origin)>,
+    I: Iterator<Item = (&'a PropertyDeclaration, CascadePriority)>,
 {
     debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
     debug_assert_eq!(
@@ -278,14 +282,14 @@ where
 
     let inherited_style = parent_style.unwrap_or(device.default_computed_values());
 
-    let mut declarations = SmallVec::<[(&_, Origin); 32]>::new();
+    let mut declarations = SmallVec::<[(&_, CascadePriority); 32]>::new();
     let custom_properties = {
         let mut builder = CustomPropertiesBuilder::new(inherited_style.custom_properties(), device);
 
-        for (declaration, origin) in iter {
-            declarations.push((declaration, origin));
+        for (declaration, priority) in iter {
+            declarations.push((declaration, priority));
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
-                builder.cascade(declaration, origin);
+                builder.cascade(declaration, priority);
             }
         }
 
@@ -379,13 +383,15 @@ where
 type DeclarationsToApplyUnlessOverriden = SmallVec<[PropertyDeclaration; 2]>;
 
 fn tweak_when_ignoring_colors(
-    builder: &StyleBuilder,
+    context: &computed::Context,
     longhand_id: LonghandId,
     origin: Origin,
     declaration: &mut Cow<PropertyDeclaration>,
     declarations_to_apply_unless_overriden: &mut DeclarationsToApplyUnlessOverriden,
 ) {
     use crate::values::specified::Color;
+    use crate::values::computed::ToComputedValue;
+    use cssparser::RGBA;
 
     if !longhand_id.ignored_when_document_colors_disabled() {
         return;
@@ -399,65 +405,55 @@ fn tweak_when_ignoring_colors(
     // Don't override background-color on ::-moz-color-swatch. It is set as an
     // author style (via the style attribute), but it's pretty important for it
     // to show up for obvious reasons :)
-    if builder.pseudo.map_or(false, |p| p.is_color_swatch()) &&
+    if context.builder.pseudo.map_or(false, |p| p.is_color_swatch()) &&
         longhand_id == LonghandId::BackgroundColor
     {
         return;
     }
 
-    fn alpha_channel(color: &Color) -> u8 {
-        match *color {
-            // Seems safe enough to assume that the default color and system
-            // colors are opaque in HCM, though maybe we shouldn't asume the
-            // later?
-            #[cfg(feature = "gecko")]
-            Color::InheritFromBodyQuirk | Color::System(..) => 255,
-            // We don't have the actual color here, but since except for color:
-            // transparent we force opaque text colors, it seems sane to do
-            // this. You can technically fool this bit of code with:
-            //
-            //   color: transparent; background-color: currentcolor;
-            //
-            // but this is best-effort, and that seems unlikely to happen in
-            // practice.
-            Color::CurrentColor => 255,
-            // Complex colors are results of interpolation only and probably
-            // shouldn't show up around here in HCM, but we've always treated
-            // them as opaque effectively so keep doing it.
-            Color::Complex { .. } => 255,
-            Color::Numeric { ref parsed, .. } => parsed.alpha,
-        }
+    fn alpha_channel(color: &Color, context: &computed::Context) -> u8 {
+        // We assume here currentColor is opaque.
+        let color = color.to_computed_value(context).to_rgba(RGBA::new(0, 0, 0, 255));
+        color.alpha
     }
 
     // A few special-cases ahead.
     match **declaration {
         PropertyDeclaration::BackgroundColor(ref color) => {
+            // We honor system colors.
+            if color.is_system() {
+                return;
+            }
             // For background-color, we revert or initial-with-preserved-alpha
             // otherwise, this is needed to preserve semi-transparent
             // backgrounds.
             //
-            // FIXME(emilio, bug 1666059): We revert for alpha == 0, but maybe
-            // should consider not doing that even if it causes some issues like
-            // bug 1625036, or finding a performant way to preserve the original
-            // widget background color's rgb channels but not alpha...
-            let alpha = alpha_channel(color);
-            if alpha != 0 {
-                let mut color = builder.device.default_background_color();
-                color.alpha = alpha;
-                declarations_to_apply_unless_overriden
-                    .push(PropertyDeclaration::BackgroundColor(color.into()))
-            }
+            // NOTE(emilio): We revert even for alpha == 0. Not doing so would
+            // be a bit special casey, even though it causes issues like
+            // bug 1625036. The reasoning is that the conditions that trigger
+            // that (having mismatched widget and default backgrounds) are both
+            // uncommon, and broken in other applications as well, and not
+            // honoring transparent makes stuff uglier or break unconditionally
+            // (bug 1666059, bug 1755713).
+            let alpha = alpha_channel(color, context);
+            let mut color = context.builder.device.default_background_color();
+            color.alpha = alpha;
+            declarations_to_apply_unless_overriden
+                .push(PropertyDeclaration::BackgroundColor(color.into()))
         },
         PropertyDeclaration::Color(ref color) => {
-            // We honor color: transparent, and "revert-or-initial" otherwise.
-            if alpha_channel(&color.0) == 0 {
+            // We honor color: transparent and system colors.
+            if color.0.is_system() {
+                return;
+            }
+            if alpha_channel(&color.0, context) == 0 {
                 return;
             }
             // If the inherited color would be transparent, but we would
             // override this with a non-transparent color, then override it with
             // the default color. Otherwise just let it inherit through.
-            if builder.get_parent_inherited_text().clone_color().alpha == 0 {
-                let color = builder.device.default_color();
+            if context.builder.get_parent_inherited_text().clone_color().alpha == 0 {
+                let color = context.builder.device.default_color();
                 declarations_to_apply_unless_overriden.push(PropertyDeclaration::Color(
                     specified::ColorPropertyValue(color.into()),
                 ))
@@ -473,7 +469,25 @@ fn tweak_when_ignoring_colors(
                 }
             }
         },
-        _ => {},
+        _ => {
+            // We honor system colors more generally for all colors.
+            //
+            // We used to honor transparent but that causes accessibility
+            // regressions like bug 1740924.
+            //
+            // NOTE(emilio): This doesn't handle caret-color and accent-color
+            // because those use a slightly different syntax (<color> | auto for
+            // example).
+            //
+            // That's probably fine though, as using a system color for
+            // caret-color doesn't make sense (using currentColor is fine), and
+            // we ignore accent-color in high-contrast-mode anyways.
+            if let Some(color) = declaration.color_value() {
+                if color.is_system() {
+                    return;
+                }
+            }
+        },
     }
 
     *declaration.to_mut() =
@@ -485,7 +499,8 @@ struct Cascade<'a, 'b: 'a> {
     cascade_mode: CascadeMode<'a>,
     seen: LonghandIdSet,
     author_specified: LonghandIdSet,
-    reverted: PerOrigin<LonghandIdSet>,
+    reverted_set: LonghandIdSet,
+    reverted: FxHashMap<LonghandId, (CascadePriority, bool)>,
 }
 
 impl<'a, 'b: 'a> Cascade<'a, 'b> {
@@ -495,6 +510,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             cascade_mode,
             seen: LonghandIdSet::default(),
             author_specified: LonghandIdSet::default(),
+            reverted_set: Default::default(),
             reverted: Default::default(),
         }
     }
@@ -566,7 +582,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         mut shorthand_cache: &mut ShorthandsWithPropertyReferencesCache,
     ) where
         Phase: CascadePhase,
-        I: Iterator<Item = (&'decls PropertyDeclaration, Origin)>,
+        I: Iterator<Item = (&'decls PropertyDeclaration, CascadePriority)>,
     {
         let apply_reset = apply_reset == ApplyResetProperties::Yes;
 
@@ -580,7 +596,9 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         let ignore_colors = !self.context.builder.device.use_document_colors();
         let mut declarations_to_apply_unless_overriden = DeclarationsToApplyUnlessOverriden::new();
 
-        for (declaration, origin) in declarations {
+        for (declaration, priority) in declarations {
+            let origin = priority.cascade_level().origin();
+
             let declaration_id = declaration.id();
             let longhand_id = match declaration_id {
                 PropertyDeclarationId::Longhand(id) => id,
@@ -607,12 +625,12 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 continue;
             }
 
-            if self
-                .reverted
-                .borrow_for_origin(&origin)
-                .contains(physical_longhand_id)
-            {
-                continue;
+            if self.reverted_set.contains(physical_longhand_id) {
+                if let Some(&(reverted_priority, is_origin_revert)) = self.reverted.get(&physical_longhand_id) {
+                    if !reverted_priority.allows_when_reverted(&priority, is_origin_revert) {
+                        continue;
+                    }
+                }
             }
 
             // Only a few properties are allowed to depend on the visited state
@@ -631,7 +649,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             // properties that are marked as ignored in that mode.
             if ignore_colors {
                 tweak_when_ignoring_colors(
-                    &self.context.builder,
+                    &self.context,
                     longhand_id,
                     origin,
                     &mut declaration,
@@ -644,32 +662,31 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 );
             }
 
-            let css_wide_keyword = declaration.get_css_wide_keyword();
-            if let Some(CSSWideKeyword::Revert) = css_wide_keyword {
-                // We intentionally don't want to insert it into `self.seen`,
-                // `reverted` takes care of rejecting other declarations as
-                // needed.
-                for origin in origin.following_including() {
-                    self.reverted
-                        .borrow_mut_for_origin(&origin)
-                        .insert(physical_longhand_id);
-                }
-                continue;
-            }
+            let is_unset = match declaration.get_css_wide_keyword() {
+                Some(keyword) => match keyword {
+                    CSSWideKeyword::RevertLayer |
+                    CSSWideKeyword::Revert => {
+                        let origin_revert = keyword == CSSWideKeyword::Revert;
+                        // We intentionally don't want to insert it into
+                        // `self.seen`, `reverted` takes care of rejecting other
+                        // declarations as needed.
+                        self.reverted_set.insert(physical_longhand_id);
+                        self.reverted.insert(physical_longhand_id, (priority, origin_revert));
+                        continue;
+                    },
+                    CSSWideKeyword::Unset => true,
+                    CSSWideKeyword::Inherit => inherited,
+                    CSSWideKeyword::Initial => !inherited,
+                },
+                None => false,
+            };
 
             self.seen.insert(physical_longhand_id);
             if origin == Origin::Author {
                 self.author_specified.insert(physical_longhand_id);
             }
 
-            let unset = css_wide_keyword.map_or(false, |css_wide_keyword| match css_wide_keyword {
-                CSSWideKeyword::Unset => true,
-                CSSWideKeyword::Inherit => inherited,
-                CSSWideKeyword::Initial => !inherited,
-                CSSWideKeyword::Revert => unreachable!(),
-            });
-
-            if unset {
+            if is_unset {
                 continue;
             }
 
@@ -788,11 +805,34 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND);
         }
+
         if self
             .author_specified
-            .contains_any(LonghandIdSet::padding_properties())
+            .contains(LonghandId::FontFamily)
         {
-            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_PADDING);
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY);
+        }
+
+        if self
+            .author_specified
+            .contains(LonghandId::LetterSpacing)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING);
+        }
+
+        if self
+            .author_specified
+            .contains(LonghandId::WordSpacing)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING);
+        }
+
+        #[cfg(feature = "gecko")]
+        if self
+            .author_specified
+            .contains(LonghandId::FontSynthesis)
+        {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS);
         }
 
         #[cfg(feature = "servo")]
@@ -824,81 +864,101 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         // We're using the same reset style as another element, and we'll skip
         // applying the relevant properties. So we need to do the relevant
-        // bookkeeping here to keep these two bits correct.
+        // bookkeeping here to keep these bits correct.
         //
-        // Note that all the properties involved are non-inherited, so we don't
-        // need to do anything else other than just copying the bits over.
-        let reset_props_bits = ComputedValueFlags::HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND |
-            ComputedValueFlags::HAS_AUTHOR_SPECIFIED_PADDING;
-        builder.add_flags(cached_style.flags & reset_props_bits);
+        // Note that the border/background properties are non-inherited, so we
+        // don't need to do anything else other than just copying the bits over.
+        //
+        // When using this optimization, we also need to copy whether the old
+        // style specified viewport units / used font-relative lengths, this one
+        // would as well.  It matches the same rules, so it is the right thing
+        // to do anyways, even if it's only used on inherited properties.
+        let bits_to_copy = ComputedValueFlags::HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND |
+            ComputedValueFlags::DEPENDS_ON_SELF_FONT_METRICS |
+            ComputedValueFlags::DEPENDS_ON_INHERITED_FONT_METRICS |
+            ComputedValueFlags::USES_VIEWPORT_UNITS;
+        builder.add_flags(cached_style.flags & bits_to_copy);
 
         true
     }
 
-    /// The default font type (which is stored in FontFamilyList's
-    /// `mDefaultFontType`) depends on the current lang group and generic font
-    /// family, so we may need to recompute it if or the family changed.
-    ///
-    /// Also, we prioritize non-document fonts here if we need to (see the pref
-    /// `browser.display.use_document_fonts`).
+    /// The initial font depends on the current lang group so we may need to
+    /// recompute it if the language changed.
     #[inline]
     #[cfg(feature = "gecko")]
-    fn recompute_default_font_family_type_if_needed(&mut self) {
+    fn recompute_initial_font_family_if_needed(&mut self) {
         use crate::gecko_bindings::bindings;
-        use crate::values::computed::font::GenericFontFamily;
+        use crate::values::computed::font::FontFamily;
 
-        if !self.seen.contains(LonghandId::XLang) && !self.seen.contains(LonghandId::FontFamily) {
+        if !self.seen.contains(LonghandId::XLang) {
             return;
         }
 
-        let use_document_fonts = static_prefs::pref!("browser.display.use_document_fonts") != 0;
         let builder = &mut self.context.builder;
-        let (default_font_type, prioritize_user_fonts) = {
+        let default_font_type = {
             let font = builder.get_font().gecko();
 
-            // System fonts are all right, and should have the default font type
-            // set to none already, so bail out early.
-            if font.mFont.systemFont {
-                debug_assert_eq!(
-                    font.mFont.fontlist.mDefaultFontType,
-                    GenericFontFamily::None
-                );
+            if !font.mFont.family.is_initial {
                 return;
             }
 
             let default_font_type = unsafe {
-                bindings::Gecko_nsStyleFont_ComputeDefaultFontType(
+                bindings::Gecko_nsStyleFont_ComputeFallbackFontTypeForLanguage(
                     builder.device.document(),
-                    font.mGenericID,
                     font.mLanguage.mRawPtr,
                 )
             };
 
-            // We prioritize user fonts over document fonts if the pref is set,
-            // and we don't have a generic family already (or we're using
-            // cursive or fantasy, since they're ignored, see bug 789788), and
-            // we have a generic family to actually replace it with.
-            let prioritize_user_fonts = !use_document_fonts &&
-                matches!(
-                    font.mGenericID,
-                    GenericFontFamily::None |
-                        GenericFontFamily::Fantasy |
-                        GenericFontFamily::Cursive
-                ) &&
-                default_font_type != GenericFontFamily::None;
-
-            if !prioritize_user_fonts && default_font_type == font.mFont.fontlist.mDefaultFontType {
-                // Nothing to do.
+            let initial_generic = font.mFont.family.families.single_generic();
+            debug_assert!(initial_generic.is_some(), "Initial font should be just one generic font");
+            if initial_generic == Some(default_font_type) {
                 return;
             }
-            (default_font_type, prioritize_user_fonts)
+
+            default_font_type
         };
 
         let font = builder.mutate_font().gecko_mut();
-        font.mFont.fontlist.mDefaultFontType = default_font_type;
-        if prioritize_user_fonts {
-            unsafe { bindings::Gecko_nsStyleFont_PrioritizeUserFonts(font, default_font_type) }
+        // NOTE: Leaves is_initial untouched.
+        font.mFont.family.families = FontFamily::generic(default_font_type).families.clone();
+    }
+
+    /// Prioritize user fonts if needed by pref.
+    #[inline]
+    #[cfg(feature = "gecko")]
+    fn prioritize_user_fonts_if_needed(&mut self) {
+        use crate::gecko_bindings::bindings;
+
+        if !self.seen.contains(LonghandId::FontFamily) {
+            return;
         }
+
+        if static_prefs::pref!("browser.display.use_document_fonts") != 0 {
+            return;
+        }
+
+        let builder = &mut self.context.builder;
+        let default_font_type = {
+            let font = builder.get_font().gecko();
+
+            if font.mFont.family.is_system_font {
+                return;
+            }
+
+            if !font.mFont.family.families.needs_user_font_prioritization() {
+                return;
+            }
+
+            unsafe {
+                bindings::Gecko_nsStyleFont_ComputeFallbackFontTypeForLanguage(
+                    builder.device.document(),
+                    font.mLanguage.mRawPtr,
+                )
+            }
+        };
+
+        let font = builder.mutate_font().gecko_mut();
+        font.mFont.family.families.prioritize_first_generic_or_prepend(default_font_type);
     }
 
     /// Some keyword sizes depend on the font family and language.
@@ -1072,7 +1132,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.unzoom_fonts_if_needed();
-            self.recompute_default_font_family_type_if_needed();
+            self.recompute_initial_font_family_if_needed();
+            self.prioritize_user_fonts_if_needed();
             self.recompute_keyword_font_size_if_needed();
             self.handle_mathml_scriptlevel_if_needed();
             self.constrain_font_size_if_needed()

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<title>Tests automatic anchor fallbacks created from an @try rule</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-automatic">
+<link rel="auto" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+.cb {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+}
+
+.anchor {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
+
+.target {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: lime;
+  position-fallback: --pf;
+}
+
+@position-fallback --pf {
+  @try {
+    top: anchor(auto);
+    left: anchor(auto);
+  }
+}
+
+#anchor1 {
+  top: 50px;
+  left: 50px;
+  anchor-name: --a1;
+}
+
+#anchor2 {
+  top: 50px;
+  right: 50px;
+  anchor-name: --a2;
+}
+
+#anchor3 {
+  bottom: 50px;
+  left: 50px;
+  anchor-name: --a3;
+}
+
+#anchor4 {
+  bottom: 50px;
+  right: 50px;
+  anchor-name: --a4;
+}
+
+#target1 { anchor-default: --a1; }
+#target2 { anchor-default: --a2; }
+#target3 { anchor-default: --a3; }
+#target4 { anchor-default: --a4; }
+
+#anchor5 {
+  top: 200px;
+  right: 50px;
+  anchor-name: --a5;
+}
+
+#anchor6 {
+  bottom: 50px;
+  left: 200px;
+  anchor-name: --a6;
+}
+
+#target5 {
+  top: anchor(top);
+  left: anchor(auto);
+  anchor-default: --a5;
+  position-fallback: --pf-empty;
+}
+
+#target6 {
+  top: anchor(auto);
+  left: anchor(left);
+  anchor-default: --a6;
+  position-fallback: --pf-empty;
+}
+
+#anchor7 {
+  bottom: 50px;
+  right: 50px;
+  anchor-name: --a7;
+}
+
+#target7 {
+  top: anchor(auto);
+  anchor-default: --a7;
+  position-fallback: --pf-flip-x;
+}
+
+#target8 {
+  left: anchor(auto);
+  anchor-default: --a7;
+  position-fallback: --pf-flip-y;
+}
+
+@position-fallback --pf-empty {
+  @try {}
+}
+
+@position-fallback --pf-flip-x {
+  @try { left: anchor(auto); }
+}
+
+@position-fallback --pf-flip-y {
+  @try { top: anchor(auto); }
+}
+</style>
+
+<body onload="checkLayoutForAnchorPos('.target')">
+  <!-- Test cases creating auto fallbacks from an @try rule -->
+  <div class="cb">
+    <div class="anchor" id="anchor1"></div>
+    <div class="anchor" id="anchor2"></div>
+    <div class="anchor" id="anchor3"></div>
+    <div class="anchor" id="anchor4"></div>
+
+    <div class="target" id="target1"
+         data-offset-x="150" data-offset-y="150"></div>
+    <div class="target" id="target2"
+         data-offset-x="250" data-offset-y="150"></div>
+    <div class="target" id="target3"
+         data-offset-x="150" data-offset-y="250"></div>
+    <div class="target" id="target4"
+         data-offset-x="250" data-offset-y="250"></div>
+  </div>
+
+  <div class="cb" style="top: 500px">
+    <div class="anchor" id="anchor5"></div>
+    <div class="anchor" id="anchor6"></div>
+    <div class="anchor" id="anchor7"></div>
+
+    <!-- Test cases where `anchor(auto)` is in base style, so no auto fallbacks
+         are created from @try rules, and targets end up overflowing the
+         containing block. -->
+    <div class="target" id="target5"
+         data-offset-x="450" data-offset-y="200"></div>
+    <div class="target" id="target6"
+         data-offset-x="200" data-offset-y="450"></div>
+
+    <!-- Test cases where `anchor(auto)` is used in both axes, but the `@try`
+         rule affects only one axis, so we only flip in one axis, and the
+         targets end up overflowing the containing block. -->
+    <div class="target" id="target7"
+         data-offset-x="250" data-offset-y="450"></div>
+    <div class="target" id="target8"
+         data-offset-x="450" data-offset-y="250"></div>
+  </div>
+</body>

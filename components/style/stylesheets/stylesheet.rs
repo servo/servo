@@ -4,7 +4,6 @@
 
 use crate::context::QuirksMode;
 use crate::error_reporting::{ContextualParseError, ParseErrorReporter};
-use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use crate::media_queries::{Device, MediaList};
 use crate::parser::ParserContext;
 use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
@@ -17,7 +16,6 @@ use crate::stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
 use crate::use_counters::UseCounters;
 use crate::{Namespace, Prefix};
 use cssparser::{Parser, ParserInput, RuleListParser};
-use fallible::FallibleVec;
 use fxhash::FxHashMap;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
@@ -66,6 +64,10 @@ pub struct StylesheetContents {
     pub source_map_url: RwLock<Option<String>>,
     /// This stylesheet's source URL.
     pub source_url: RwLock<Option<String>>,
+
+    /// We don't want to allow construction outside of this file, to guarantee
+    /// that all contents are created with Arc<>.
+    _forbid_construction: (),
 }
 
 impl StylesheetContents {
@@ -83,7 +85,7 @@ impl StylesheetContents {
         use_counters: Option<&UseCounters>,
         allow_import_rules: AllowImportRules,
         sanitization_data: Option<&mut SanitizationData>,
-    ) -> Self {
+    ) -> Arc<Self> {
         let namespaces = RwLock::new(Namespaces::default());
         let (rules, source_map_url, source_url) = Stylesheet::parse_rules(
             css,
@@ -100,15 +102,16 @@ impl StylesheetContents {
             sanitization_data,
         );
 
-        Self {
+        Arc::new(Self {
             rules: CssRules::new(rules, &shared_lock),
-            origin: origin,
+            origin,
             url_data: RwLock::new(url_data),
-            namespaces: namespaces,
-            quirks_mode: quirks_mode,
+            namespaces,
+            quirks_mode,
             source_map_url: RwLock::new(source_map_url),
             source_url: RwLock::new(source_url),
-        }
+            _forbid_construction: (),
+        })
     }
 
     /// Creates a new StylesheetContents with the specified pre-parsed rules,
@@ -122,14 +125,13 @@ impl StylesheetContents {
     /// An empty namespace map should be fine, as it is only used for parsing,
     /// not serialization of existing selectors.  Since UA sheets are read only,
     /// we should never need the namespace map.
-    pub fn from_shared_data(
+    pub fn from_data(
         rules: Arc<Locked<CssRules>>,
         origin: Origin,
         url_data: UrlExtraData,
         quirks_mode: QuirksMode,
-    ) -> Self {
-        debug_assert!(rules.is_static());
-        Self {
+    ) -> Arc<Self> {
+        Arc::new(Self {
             rules,
             origin,
             url_data: RwLock::new(url_data),
@@ -137,7 +139,19 @@ impl StylesheetContents {
             quirks_mode,
             source_map_url: RwLock::new(None),
             source_url: RwLock::new(None),
-        }
+            _forbid_construction: (),
+        })
+    }
+
+    /// Same as above, but ensuring that the rules are static.
+    pub fn from_shared_data(
+        rules: Arc<Locked<CssRules>>,
+        origin: Origin,
+        url_data: UrlExtraData,
+        quirks_mode: QuirksMode,
+    ) -> Arc<Self> {
+        debug_assert!(rules.is_static());
+        Self::from_data(rules, origin, url_data, quirks_mode)
     }
 
     /// Returns a reference to the list of rules.
@@ -179,6 +193,7 @@ impl DeepCloneWithLock for StylesheetContents {
             namespaces: RwLock::new((*self.namespaces.read()).clone()),
             source_map_url: RwLock::new((*self.source_map_url.read()).clone()),
             source_url: RwLock::new((*self.source_url.read()).clone()),
+            _forbid_construction: (),
         }
     }
 }
@@ -187,7 +202,7 @@ impl DeepCloneWithLock for StylesheetContents {
 #[derive(Debug)]
 pub struct Stylesheet {
     /// The contents of this stylesheet.
-    pub contents: StylesheetContents,
+    pub contents: Arc<StylesheetContents>,
     /// The lock used for objects inside this stylesheet
     pub shared_lock: SharedRwLock,
     /// List of media associated with the Stylesheet.
@@ -218,12 +233,6 @@ macro_rules! rule_filter {
 
 /// A trait to represent a given stylesheet in a document.
 pub trait StylesheetInDocument: ::std::fmt::Debug {
-    /// Get the stylesheet origin.
-    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin;
-
-    /// Get the stylesheet quirks mode.
-    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode;
-
     /// Get whether this stylesheet is enabled.
     fn enabled(&self) -> bool;
 
@@ -231,7 +240,12 @@ pub trait StylesheetInDocument: ::std::fmt::Debug {
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList>;
 
     /// Returns a reference to the list of rules in this stylesheet.
-    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule];
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.contents().rules(guard)
+    }
+
+    /// Returns a reference to the contents of the stylesheet.
+    fn contents(&self) -> &StylesheetContents;
 
     /// Return an iterator using the condition `C`.
     #[inline]
@@ -243,18 +257,19 @@ pub trait StylesheetInDocument: ::std::fmt::Debug {
     where
         C: NestedRuleIterationCondition,
     {
+        let contents = self.contents();
         RulesIterator::new(
             device,
-            self.quirks_mode(guard),
+            contents.quirks_mode,
             guard,
-            self.rules(guard).iter(),
+            contents.rules(guard).iter(),
         )
     }
 
     /// Returns whether the style-sheet applies for the current device.
     fn is_effective_for_device(&self, device: &Device, guard: &SharedRwLockReadGuard) -> bool {
         match self.media(guard) {
-            Some(medialist) => medialist.evaluate(device, self.quirks_mode(guard)),
+            Some(medialist) => medialist.evaluate(device, self.contents().quirks_mode),
             None => true,
         }
     }
@@ -272,27 +287,12 @@ pub trait StylesheetInDocument: ::std::fmt::Debug {
 
     rule_filter! {
         effective_style_rules(Style => StyleRule),
-        effective_media_rules(Media => MediaRule),
         effective_font_face_rules(FontFace => FontFaceRule),
-        effective_font_face_feature_values_rules(FontFeatureValues => FontFeatureValuesRule),
-        effective_counter_style_rules(CounterStyle => CounterStyleRule),
         effective_viewport_rules(Viewport => ViewportRule),
-        effective_keyframes_rules(Keyframes => KeyframesRule),
-        effective_supports_rules(Supports => SupportsRule),
-        effective_page_rules(Page => PageRule),
-        effective_document_rules(Document => DocumentRule),
     }
 }
 
 impl StylesheetInDocument for Stylesheet {
-    fn origin(&self, _guard: &SharedRwLockReadGuard) -> Origin {
-        self.contents.origin
-    }
-
-    fn quirks_mode(&self, _guard: &SharedRwLockReadGuard) -> QuirksMode {
-        self.contents.quirks_mode
-    }
-
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
         Some(self.media.read_with(guard))
     }
@@ -302,8 +302,8 @@ impl StylesheetInDocument for Stylesheet {
     }
 
     #[inline]
-    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
-        self.contents.rules(guard)
+    fn contents(&self) -> &StylesheetContents {
+        &self.contents
     }
 }
 
@@ -321,21 +321,7 @@ impl PartialEq for DocumentStyleSheet {
     }
 }
 
-impl ToMediaListKey for DocumentStyleSheet {
-    fn to_media_list_key(&self) -> MediaListKey {
-        self.0.to_media_list_key()
-    }
-}
-
 impl StylesheetInDocument for DocumentStyleSheet {
-    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
-        self.0.origin(guard)
-    }
-
-    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
-        self.0.quirks_mode(guard)
-    }
-
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
         self.0.media(guard)
     }
@@ -345,8 +331,8 @@ impl StylesheetInDocument for DocumentStyleSheet {
     }
 
     #[inline]
-    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
-        self.0.rules(guard)
+    fn contents(&self) -> &StylesheetContents {
+        self.0.contents()
     }
 }
 
@@ -383,7 +369,11 @@ impl SanitizationKind {
             CssRule::Document(..) |
             CssRule::Media(..) |
             CssRule::Supports(..) |
-            CssRule::Import(..) => false,
+            CssRule::Import(..) |
+            // TODO(emilio): Perhaps Layer should not be always sanitized? But
+            // we sanitize @media and co, so this seems safer for now.
+            CssRule::LayerStatement(..) |
+            CssRule::LayerBlock(..) => false,
 
             CssRule::FontFace(..) | CssRule::Namespace(..) | CssRule::Style(..) => true,
 
@@ -391,7 +381,8 @@ impl SanitizationKind {
             CssRule::Page(..) |
             CssRule::FontFeatureValues(..) |
             CssRule::Viewport(..) |
-            CssRule::CounterStyle(..) => !is_standard,
+            CssRule::CounterStyle(..) |
+            CssRule::ScrollTimeline(..) => !is_standard,
         }
     }
 }
@@ -524,9 +515,10 @@ impl Stylesheet {
                         // Use a fallible push here, and if it fails, just fall
                         // out of the loop.  This will cause the page to be
                         // shown incorrectly, but it's better than OOMing.
-                        if rules.try_push(rule).is_err() {
+                        if rules.try_reserve(1).is_err() {
                             break;
                         }
+                        rules.push(rule);
                     },
                     Err((error, slice)) => {
                         let location = error.location;
@@ -610,9 +602,11 @@ impl Clone for Stylesheet {
         // Make a deep clone of the media, using the new lock.
         let media = self.media.read_with(&guard).clone();
         let media = Arc::new(lock.wrap(media));
-        let contents = self
-            .contents
-            .deep_clone_with_lock(&lock, &guard, &DeepCloneParams);
+        let contents = Arc::new(self.contents.deep_clone_with_lock(
+            &lock,
+            &guard,
+            &DeepCloneParams,
+        ));
 
         Stylesheet {
             contents,

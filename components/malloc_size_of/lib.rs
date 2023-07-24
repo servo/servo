@@ -58,6 +58,12 @@ use std::os::raw::c_void;
 #[cfg(feature = "servo")]
 use uuid::Uuid;
 use void::Void;
+use webrender_api::{
+    BorderRadius, BorderStyle, BoxShadowClipMode, ColorF, ComplexClipRegion, ExtendMode,
+    ExternalScrollId, FilterOp, FontInstanceKey, GlyphInstance, GradientStop, ImageKey,
+    ImageRendering, LineStyle, MixBlendMode, NinePatchBorder, NormalBorder, RepeatMode,
+    ScrollSensitivity, StickyOffsetBounds, TransformStyle,
+};
 
 /// A C function that takes a pointer to a heap allocation and returns its size.
 type VoidPtrToSizeFn = unsafe extern "C" fn(ptr: *const c_void) -> usize;
@@ -208,24 +214,6 @@ impl<T: ?Sized> MallocShallowSizeOf for Box<T> {
 }
 
 impl<T: MallocSizeOf + ?Sized> MallocSizeOf for Box<T> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.shallow_size_of(ops) + (**self).size_of(ops)
-    }
-}
-
-impl<T> MallocShallowSizeOf for thin_slice::ThinBoxedSlice<T> {
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = 0;
-        unsafe {
-            n += thin_slice::ThinBoxedSlice::spilled_storage(self)
-                .map_or(0, |ptr| ops.malloc_size_of(ptr));
-            n += ops.malloc_size_of(&**self);
-        }
-        n
-    }
-}
-
-impl<T: MallocSizeOf> MallocSizeOf for thin_slice::ThinBoxedSlice<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.shallow_size_of(ops) + (**self).size_of(ops)
     }
@@ -448,8 +436,6 @@ macro_rules! malloc_size_of_hash_set {
 }
 
 malloc_size_of_hash_set!(std::collections::HashSet<T, S>);
-malloc_size_of_hash_set!(hashglobe::hash_set::HashSet<T, S>);
-malloc_size_of_hash_set!(hashglobe::fake::HashSet<T, S>);
 
 macro_rules! malloc_size_of_hash_map {
     ($ty:ty) => {
@@ -489,8 +475,6 @@ macro_rules! malloc_size_of_hash_map {
 }
 
 malloc_size_of_hash_map!(std::collections::HashMap<K, V, S>);
-malloc_size_of_hash_map!(hashglobe::hash_map::HashMap<K, V, S>);
-malloc_size_of_hash_map!(hashglobe::fake::HashMap<K, V, S>);
 
 impl<K, V> MallocShallowSizeOf for std::collections::BTreeMap<K, V>
 where
@@ -822,47 +806,47 @@ impl MallocSizeOf for url::Host {
     }
 }
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BorderRadius);
+malloc_size_of_is_0!(BorderRadius);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BorderStyle);
+malloc_size_of_is_0!(BorderStyle);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BoxShadowClipMode);
+malloc_size_of_is_0!(BoxShadowClipMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ColorF);
+malloc_size_of_is_0!(ColorF);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ComplexClipRegion);
+malloc_size_of_is_0!(ComplexClipRegion);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ExtendMode);
+malloc_size_of_is_0!(ExtendMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::FilterOp);
+malloc_size_of_is_0!(FilterOp);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ExternalScrollId);
+malloc_size_of_is_0!(ExternalScrollId);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::FontInstanceKey);
+malloc_size_of_is_0!(FontInstanceKey);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::GradientStop);
+malloc_size_of_is_0!(GradientStop);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::GlyphInstance);
+malloc_size_of_is_0!(GlyphInstance);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::NinePatchBorder);
+malloc_size_of_is_0!(NinePatchBorder);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ImageKey);
+malloc_size_of_is_0!(ImageKey);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ImageRendering);
+malloc_size_of_is_0!(ImageRendering);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::LineStyle);
+malloc_size_of_is_0!(LineStyle);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::MixBlendMode);
+malloc_size_of_is_0!(MixBlendMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::NormalBorder);
+malloc_size_of_is_0!(NormalBorder);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::RepeatMode);
+malloc_size_of_is_0!(RepeatMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ScrollSensitivity);
+malloc_size_of_is_0!(ScrollSensitivity);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::StickyOffsetBounds);
+malloc_size_of_is_0!(StickyOffsetBounds);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::TransformStyle);
+malloc_size_of_is_0!(TransformStyle);
 
 #[cfg(feature = "servo")]
 impl MallocSizeOf for keyboard_types::Key {

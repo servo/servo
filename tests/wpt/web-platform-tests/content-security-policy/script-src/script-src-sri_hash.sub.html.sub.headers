@@ -1,5 +1,0 @@
-Expires: Mon, 26 Jul 1997 05:00:00 GMT
-Cache-Control: no-store, no-cache, must-revalidate
-Cache-Control: post-check=0, pre-check=0, false
-Pragma: no-cache
-Content-Security-Policy: script-src {{domains[www]}}:* 'nonce-dummy' 'sha256-wIc3KtqOuTFEu6t17sIBuOswgkV406VJvhSk79Gw6U0=' 'sha256-L7/UQ9VWpyG7C9RDEC4ctS5hI3Zcw+ta+haPGlByG9c=' 'sha512-rYCVMxWV5nq8IsMo+UZNObWtEiWGok/vDN8BMoEQi41s0znSes6E1Q2aag3Lw3u2J1w2rqH7uF2ws6FpQhfSOA='

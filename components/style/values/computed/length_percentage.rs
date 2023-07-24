@@ -607,22 +607,11 @@ impl CalcLengthPercentageLeaf {
 impl PartialOrd for CalcLengthPercentageLeaf {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         use self::CalcLengthPercentageLeaf::*;
-
-        if std::mem::discriminant(self) != std::mem::discriminant(other) {
-            return None;
-        }
-
+        // NOTE: Percentages can't be compared reasonably here because the
+        // percentage basis might be negative, see bug 1709018.
         match (self, other) {
             (&Length(ref one), &Length(ref other)) => one.partial_cmp(other),
-            (&Percentage(ref one), &Percentage(ref other)) => one.partial_cmp(other),
-            _ => {
-                match *self {
-                    Length(..) | Percentage(..) => {},
-                }
-                unsafe {
-                    debug_unreachable!("Forgot a branch?");
-                }
-            },
+            _ => None,
         }
     }
 }

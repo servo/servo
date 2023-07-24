@@ -8,6 +8,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLPreElement {
@@ -30,10 +31,12 @@ impl HTMLPreElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLPreElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLPreElement::new_inherited(local_name, prefix, document)),
             document,
+            proto,
         )
     }
 }

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html id=html>
+  <head id=head>
+    <meta charset=utf-8 id=meta>
+    <title id=title>Selector: pseudo-classes (:dir(ltr), :dir(rtl))</title>
+    <link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org" id=link1>
+    <link rel=help href="https://html.spec.whatwg.org/multipage/#pseudo-classes" id=link2>
+    <script src="/resources/testharness.js" id=script1></script>
+    <script src="/resources/testharnessreport.js" id=script2></script>
+    <script src="utils.js" id=script3></script>
+    <style id=style>
+      #span1 {direction: rtl;}
+      #span5, #span6 {display: none;}
+    </style>
+  </head>
+  <body id=body>
+    <div id="log"></div>
+    <bdo dir="rtl" id=bdo1>WERBEH</bdo>
+    <bdo dir="ltr" id=bdo2>HEBREW</bdo>
+    <bdi id=bdi1>HEBREW</bdi>
+    <bdi dir="rtl" id=bdi2>WERBEH</bdi>
+    <bdi dir="ltr" id=bdi3>HEBREW</bdi>
+    <bdi id=bdi4>إيان</bdi>
+    <span id=span1>WERBEH</span>
+    <span dir="rtl" id=span2>WERBEH</span>
+    <span dir="ltr" id=span3>HEBREW</span>
+    &#x202E;<span id=span4>WERBEH</span>&#x202C;
+    <span dir="rtl" id=span5>WERBEH</span>
+    <span dir="ltr" id=span6>HEBREW</span>
+    <span dir="rtl" id=span7>
+     <input type=tel id=input-tel1>
+     <input type=tel id=input-tel2 dir="invalid">
+    </span>
+    <input type=tel id=input-tel3 dir="rtl">
+    <bdo dir="auto" id=bdo3>HEBREW</bdo>
+    <bdo dir="auto" id=bdo4>إيان</bdo>
+    <bdo dir="ltr" id=bdo5>עברית</bdo>
+    <textarea dir="auto" id="ta1">إيان</textarea>
+    <textarea dir="auto" id="ta2">HEBREWإيان</textarea>
+    <textarea dir="auto" id="ta3">إيان</textarea>
+    <pre dir="auto" id="pre1">إيان</pre>
+    <pre dir="auto" id="pre2">HEBREWإيان</pre>
+
+    <script id=script4>
+      ta3.value = "HEBREW";
+
+      const rtlElements = [
+        "bdo1",
+        "bdi2",
+        "bdi4",
+        "span2",
+        "span5",
+        "span7",
+        "input-tel3",
+        "bdo4",
+        "ta1",
+        "pre1",
+      ];
+
+      testSelectorIdsMatch(":dir(rtl)", rtlElements, "':dir(rtl)' matches all elements whose directionality is 'rtl'.");
+
+      const ltrElements = [
+        "html",
+        "head",
+        "meta",
+        "title",
+        "link1",
+        "link2",
+        "script1",
+        "script2",
+        "script3",
+        "style",
+        "body",
+        "log",
+        "bdo2",
+        "bdi1",
+        "bdi3",
+        "span1",
+        "span3",
+        "span4",
+        "span6",
+        "input-tel1",
+        "input-tel2",
+        "bdo3",
+        "bdo5",
+        "ta2",
+        "ta3",
+        "pre2",
+        "script4",
+      ];
+
+      testSelectorIdsMatch(":dir(ltr)", ltrElements, "':dir(ltr)' matches all elements whose directionality is 'ltr'.");
+
+      const bdo = document.createElement("bdo");
+      bdo.setAttribute("dir", "ltr");
+      testSelectorIdsMatch(":dir(ltr)", ltrElements, "':dir(ltr)' doesn't match elements not in the document.");
+    </script>
+  </body>
+</html>

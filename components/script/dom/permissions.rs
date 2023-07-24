@@ -87,8 +87,8 @@ impl Permissions {
         let p = match promise {
             Some(promise) => promise,
             None => {
-                let in_realm_proof = AlreadyInRealm::assert(&self.global());
-                Promise::new_in_current_realm(&self.global(), InRealm::Already(&in_realm_proof))
+                let in_realm_proof = AlreadyInRealm::assert();
+                Promise::new_in_current_realm(InRealm::Already(&in_realm_proof))
             },
         };
 

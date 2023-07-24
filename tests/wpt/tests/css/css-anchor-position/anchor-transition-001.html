@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>Tests CSS transition of anchor() and anchor-size() functions</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8180"></script>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+#anchor1 {
+  margin-left: 0px;
+  margin-top: 0px;
+  width: 200px;
+  height: 100px;
+  background: orange;
+  anchor-name: --a1;
+}
+
+#anchor2 {
+  margin-left: 400px;
+  margin-top: 200px;
+  width: 100px;
+  height: 200px;
+  background: orange;
+  anchor-name: --a2;
+}
+
+#target {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background-color: lime;
+  transition: all 10s -5s linear;
+}
+
+#target.before {
+  top: anchor(--a1 top);
+  left: anchor(--a1 right);
+  width: anchor-size(--a1 width);
+  height: anchor-size(--a1 height);
+}
+
+#target.after {
+  top: anchor(--a2 bottom);
+  left: anchor(--a2 left);
+  width: anchor-size(--a2 width);
+  height: anchor-size(--a2 height);
+}
+</style>
+
+<div id="anchor1"></div>
+<div id="anchor2"></div>
+<div id="target" class="before"></div>
+
+<script>
+setup(() => {
+  // Forces layout
+  target.offsetLeft;
+  // Triggers transition starting at 50% immediately
+  target.classList.remove('before');
+  target.classList.add('after');
+});
+
+test(() => {
+  assert_equals(target.offsetLeft, 300);
+  assert_equals(target.offsetTop, 250);
+}, 'Transition of anchor() when changing target anchor element name');
+
+test(() => {
+  assert_equals(target.offsetWidth, 150);
+  assert_equals(target.offsetHeight, 150);
+}, 'Transition of anchor-size() when changing target anchor element name');
+</script>
+

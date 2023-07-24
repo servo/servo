@@ -1,0 +1,18 @@
+---
+root:
+  items:
+    - type: rect
+      bounds: 0 0 800 450
+      color: red
+    - type: "scroll-frame"
+      bounds: 0 0 800 450
+      clip-rect: 0 0 800 450
+      id: 2
+    - type: gradient
+      bounds: 0 0 800 450
+      "clip-and-scroll": 2
+      start: 20 20
+      end: 80 50
+      stops: [ 0.0, [255, 255, 255, 1], 1.0, [0,0,0,1] ]
+      tile-size: 100 100
+      tile-spacing: 20 20

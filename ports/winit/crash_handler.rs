@@ -26,7 +26,7 @@ pub fn install() {
             if let Some(name) = thread::current().name() {
                 let _ = write!(&mut stderr, " in thread \"{}\"", name);
             }
-            let _ = write!(&mut stderr, "\n");
+            let _ = writeln!(&mut stderr);
 
             // This call always allocates, which in practice will segfault if
             // we’re handling a non-main-thread (e.g. layout) segfault. Strictly

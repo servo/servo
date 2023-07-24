@@ -396,13 +396,14 @@ macro_rules! font_feature_values_blocks {
             type AtRule = ();
             type Error = StyleParseErrorKind<'i>;
 
-            fn parse_prelude<'t>(&mut self,
-                                 name: CowRcStr<'i>,
-                                 input: &mut Parser<'i, 't>)
-                                 -> Result<Self::Prelude, ParseError<'i>> {
+            fn parse_prelude<'t>(
+                &mut self,
+                name: CowRcStr<'i>,
+                input: &mut Parser<'i, 't>,
+            ) -> Result<BlockType, ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(
-                        $name => Ok(Self::Prelude::$ident_camel),
+                        $name => Ok(BlockType::$ident_camel),
                     )*
                     _ => Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid)),
                 }

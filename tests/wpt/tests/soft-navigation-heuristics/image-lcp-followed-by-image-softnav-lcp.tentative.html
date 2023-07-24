@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Detect simple soft navigation.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+    <div>
+      <a id=link><img src="/images/lcp-256x256.png"></a>
+    </div>
+  </main>
+  <script>
+    const link = document.getElementById("link");
+    testSoftNavigation({
+      addContent: async () => {
+        const main = document.getElementById("main");
+        main.removeChild(document.getElementsByTagName("div")[0]);
+        await addImageToMain();
+      },
+      link: link,
+      test: "Test that an image LCP followup by a smaller soft navigation image LCP"
+        + " properly queues an LCP entry"});
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<title>Animation range and delay</title>
+</head>
+<style type="text/css">
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+  }
+  #target {
+    margin: 800px 10px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+  }
+</style>
+<body>
+  <div id=scroller>
+    <div id=target></div>
+  </div>
+</body>
+<script type="text/javascript">
+  async function runTest() {
+    function assert_progress_equals(anim, expected, errorMessage) {
+      assert_approx_equals(
+          anim.effect.getComputedTiming().progress,
+          expected, 1e-6, errorMessage);
+    }
+
+    function assert_opacity_equals(expected, errorMessage) {
+      assert_approx_equals(
+          parseFloat(getComputedStyle(target).opacity), expected, 1e-6,
+                     errorMessage);
+    }
+
+    async function runTimelineOffsetsInKeyframesTest(keyframes) {
+      const testcase = JSON.stringify(keyframes);
+      const anim = target.animate(keyframes, {
+        timeline: new ViewTimeline( { subject: target }),
+        rangeStart: { rangeName: 'contain', offset: CSS.percent(0) },
+        rangeEnd: { rangeName: 'contain', offset: CSS.percent(100) },
+        duration: 'auto', fill: 'both'
+      });
+      await anim.ready;
+      await waitForNextFrame();
+
+      // @ contain 0%
+      scroller.scrollTop = 700;
+      await waitForNextFrame();
+
+      assert_progress_equals(
+          anim, 0, `Testcase '${testcase}': progress at contain 0%`);
+      assert_opacity_equals(
+          1/3, `Testcase '${testcase}': opacity at contain 0%`);
+
+      // @ contain 50%
+      scroller.scrollTop = 750;
+      await waitForNextFrame();
+      assert_progress_equals(
+          anim, 0.5, `Testcase '${testcase}': progress at contain 50%`);
+      assert_opacity_equals(
+          0.5, `Testcase '${testcase}': opacity at contain 50%`);
+
+      // @ contain 100%
+      scroller.scrollTop = 800;
+      await waitForNextFrame();
+      assert_progress_equals(
+          anim, 1, `Testcase '${testcase}': progress at contain 100%`);
+      assert_opacity_equals(
+          2/3, `Testcase '${testcase}': opacity at contain 100%`);
+      anim.cancel();
+    }
+
+    async function runParseNumberOrPercentInKeyframesTest(keyframes) {
+      const anim = target.animate(keyframes, {
+        timeline: new ViewTimeline( { subject: target }),
+        rangeStart: { rangeName: 'contain', offset: CSS.percent(0) },
+        rangeEnd: { rangeName: 'contain', offset: CSS.percent(100) },
+        duration: 'auto', fill: 'both'
+      });
+      await anim.ready;
+      await waitForNextFrame();
+
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      scroller.scrollTop = maxScroll / 2;
+      await waitForNextFrame();
+
+      const testcase = JSON.stringify(keyframes);
+      assert_progress_equals(anim, 0.5, testcase);
+      assert_opacity_equals(0.5, testcase);
+      anim.cancel();
+    }
+
+    async function runInvalidKeyframesTest(keyframes) {
+      assert_throws_js(TypeError, () => {
+        target.animate(keyframes, {
+          timeline: new ViewTimeline( { subject: target }),
+        });
+      }, `Invalid keyframes test case "${JSON.stringify(keyframes)}"`);
+    }
+
+    promise_test(async t => {
+      // Test equivalent typed-OM and CSS representations of timeline offsets.
+      // Test array and object form for keyframes.
+      const keyframeTests = [
+        // BaseKeyframe form with offsets expressed as typed-OM.
+        [
+          {
+            offset: { rangeName: 'cover', offset: CSS.percent(0) },
+            opacity: 0
+          },
+          {
+            offset: { rangeName: 'cover', offset: CSS.percent(100) },
+            opacity: 1
+          }
+        ],
+        // BaseKeyframe form with offsets expressed as CSS text.
+        [
+          { offset: "cover 0%", opacity: 0 },
+          { offset: "cover 100%", opacity: 1 }
+        ],
+        // BasePropertyIndexedKeyframe form with offsets expressed as typed-OM.
+        {
+          opacity: [0, 1],
+          offset: [
+            { rangeName: 'cover', offset: CSS.percent(0) },
+            { rangeName: 'cover', offset: CSS.percent(100) }
+          ]
+        },
+        // BasePropertyIndexedKeyframe form with offsets expressed as CSS text.
+        { opacity: [0, 1], offset: [ "cover 0%", "cover 100%" ]}
+      ];
+
+      for (let i = 0; i < keyframeTests.length; i++) {
+        await runTimelineOffsetsInKeyframesTest(keyframeTests[i]);
+      }
+
+    }, 'Timeline offsets in programmatic keyframes');
+
+    promise_test(async t => {
+      const keyframeTests = [
+        [{offset: "0.5", opacity: 0.5 }],
+        [{offset: "50%", opacity: 0.5 }],
+        [{offset: "calc(20% + 30%)", opacity: 0.5 }]
+      ];
+
+      for (let i = 0; i < keyframeTests.length; i++) {
+        await runParseNumberOrPercentInKeyframesTest(keyframeTests[i]);
+      }
+
+    }, 'String offsets in programmatic keyframes');
+
+    promise_test(async t => {
+      const invalidKeyframeTests = [
+        // BasePropertyKefyrame:
+        [{ offset: { rangeName: 'somewhere', offset: CSS.percent(0) }}],
+        [{ offset: { rangeName: 'entry', offset: CSS.px(0) }}],
+        [{ offset: "here 0%" }],
+        [{ offset: "entry 3px" }],
+        // BasePropertyIndexedKeyframe with sequence:
+        { offset: [{ rangeName: 'somewhere', offset: CSS.percent(0) }]},
+        { offset: [{ rangeName: 'entry', offset: CSS.px(0) }]},
+        { offset: ["here 0%"] },
+        { offset: ["entry 3px" ]},
+        // BasePropertyIndexedKeyframe without sequence:
+        { offset: { rangeName: 'somewhere', offset: CSS.percent(0) }},
+        { offset: { rangeName: 'entry', offset: CSS.px(0) }},
+        { offset: "here 0%" },
+        { offset: "entry 3px" },
+        // <number> or <percent> as string:
+        [{ offset: "-1" }],
+        [{ offset: "2" }],
+        [{ offset: "-10%" }],
+        [{ offset: "110%" }],
+        { offset: ["-1"], opacity: [0.5] },
+        { offset: ["2"], opacity: [0.5] },
+        { offset: "-1", opacity: 0.5 },
+        { offset: "2", opacity: 0.5 },
+        // Extra stuff at the end.
+        [{ offset: "0.5 trailing nonsense" }],
+        [{ offset: "cover 50% eureka" }]
+      ];
+      for( let i = 0; i < invalidKeyframeTests.length; i++) {
+        await runInvalidKeyframesTest(invalidKeyframeTests[i]);
+      }
+    }, 'Invalid timeline offset in programmatic keyframe throws');
+
+
+    promise_test(async t => {
+      const anim = target.animate([
+          { offset: "cover 0%", opacity: 0 },
+          { offset: "cover 100%", opacity: 1 }
+        ], {
+        rangeStart: { rangeName: 'contain', offset: CSS.percent(0) },
+        rangeEnd: { rangeName: 'contain', offset: CSS.percent(100) },
+        duration: 10000, fill: 'both'
+      });
+
+      scroller.scrollTop = 750;
+
+      await anim.ready;
+      assert_opacity_equals(1, `Opacity with document timeline`);
+
+      anim.timeline = new ViewTimeline( { subject: target });
+      await anim.ready;
+
+      assert_progress_equals(anim, 0.5, `Progress at contain 50%`);
+      assert_opacity_equals(0.5, `Opacity at contain 50%`);
+
+      anim.timeline = document.timeline;
+      assert_false(anim.pending);
+      await waitForNextFrame();
+      assert_opacity_equals(1, `Opacity after resetting timeline`);
+
+      anim.cancel();
+    }, 'Timeline offsets in programmatic keyframes adjust for change in ' +
+       'timeline');
+
+    promise_test(async t => {
+      const anim = target.animate([], {
+          timeline: new ViewTimeline( { subject: target }),
+          rangeStart: { rangeName: 'contain', offset: CSS.percent(0) },
+          rangeEnd: { rangeName: 'contain', offset: CSS.percent(100) },
+          duration: 'auto', fill: 'both'
+        });
+
+      await anim.ready;
+      await waitForNextFrame();
+
+      scroller.scrollTop = 750;
+      await waitForNextFrame();
+      assert_progress_equals(
+          anim, 0.5, `Progress at contain 50% before effect change`);
+      assert_opacity_equals(1, `Opacity at contain 50% before effect change`);
+
+      anim.effect = new KeyframeEffect(target, [
+          { offset: "cover 0%", opacity: 0 },
+          { offset: "cover 100%", opacity: 1 }
+        ], { duration: 'auto', fill: 'both' });
+      await waitForNextFrame();
+      assert_progress_equals(
+          anim, 0.5, `Progress at contain 50% after effect change`);
+      assert_opacity_equals(0.5, `Opacity at contain 50% after effect change`);
+    }, 'Timeline offsets in programmatic keyframes resolved when updating ' +
+       'the animation effect');
+  }
+
+  // TODO(kevers): Add tests for getKeyframes once
+  // https://github.com/w3c/csswg-drafts/issues/8507 is resolved.
+
+  window.onload = runTest;
+</script>
+</html>

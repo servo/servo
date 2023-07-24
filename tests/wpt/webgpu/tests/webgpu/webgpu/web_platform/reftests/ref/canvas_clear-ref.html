@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <title>WebGPU canvas_clear (ref)</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <canvas id="cvs0" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs1" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs2" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <script>
+    function draw(canvas) {
+      var c = document.getElementById(canvas);
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = '#66FF00';
+      ctx.fillRect(0, 0, c.width, c.height);
+    }
+
+    draw('cvs0');
+    draw('cvs1');
+    draw('cvs2');
+
+ </script>
+</html>

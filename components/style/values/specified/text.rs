@@ -22,6 +22,7 @@ use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{KeywordsCollectFn, SpecifiedValueInfo};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A specified type for the `initial-letter` property.
@@ -35,6 +36,27 @@ pub type WordSpacing = Spacing<LengthPercentage>;
 
 /// A specified value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLengthPercentage>;
+
+/// A value for the `hyphenate-character` property.
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum HyphenateCharacter {
+    /// `auto`
+    Auto,
+    /// `<string>`
+    String(crate::OwnedStr),
+}
 
 impl Parse for InitialLetter {
     fn parse<'i, 't>(
@@ -563,7 +585,6 @@ pub enum TextAlignKeyword {
     Left,
     Right,
     Center,
-    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     Justify,
     #[css(skip)]
     #[cfg(feature = "gecko")]
@@ -575,11 +596,11 @@ pub enum TextAlignKeyword {
     MozLeft,
     #[cfg(feature = "gecko")]
     MozRight,
-    #[cfg(feature = "servo-layout-2013")]
+    #[cfg(feature = "servo")]
     ServoCenter,
-    #[cfg(feature = "servo-layout-2013")]
+    #[cfg(feature = "servo")]
     ServoLeft,
-    #[cfg(feature = "servo-layout-2013")]
+    #[cfg(feature = "servo")]
     ServoRight,
 }
 
@@ -1000,6 +1021,66 @@ pub enum WordBreak {
     BreakWord,
 }
 
+/// Values for the `text-justify` CSS property.
+#[repr(u8)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[allow(missing_docs)]
+pub enum TextJustify {
+    Auto,
+    None,
+    InterWord,
+    // See https://drafts.csswg.org/css-text-3/#valdef-text-justify-distribute
+    // and https://github.com/w3c/csswg-drafts/issues/6156 for the alias.
+    #[parse(aliases = "distribute")]
+    InterCharacter,
+}
+
+/// Values for the `-moz-control-character-visibility` CSS property.
+#[repr(u8)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[allow(missing_docs)]
+pub enum MozControlCharacterVisibility {
+    Hidden,
+    Visible,
+}
+
+#[cfg(feature = "gecko")]
+impl Default for MozControlCharacterVisibility {
+    fn default() -> Self {
+        if static_prefs::pref!("layout.css.control-characters.visible") {
+            Self::Visible
+        } else {
+            Self::Hidden
+        }
+    }
+}
+
 /// Values for the `line-break` property.
 #[repr(u8)]
 #[derive(
@@ -1191,5 +1272,70 @@ impl ToCss for TextUnderlinePosition {
         debug_assert!(any);
 
         Ok(())
+    }
+}
+
+/// Values for `ruby-position` property
+#[repr(u8)]
+#[derive(
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+)]
+#[allow(missing_docs)]
+pub enum RubyPosition {
+    AlternateOver,
+    AlternateUnder,
+    Over,
+    Under,
+}
+
+impl Parse for RubyPosition {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<RubyPosition, ParseError<'i>> {
+        // Parse alternate before
+        let alternate = input
+            .try_parse(|i| i.expect_ident_matching("alternate"))
+            .is_ok();
+        if alternate && input.is_exhausted() {
+            return Ok(RubyPosition::AlternateOver);
+        }
+        // Parse over / under
+        let over = try_match_ident_ignore_ascii_case! { input,
+            "over" => true,
+            "under" => false,
+        };
+        // Parse alternate after
+        let alternate = alternate ||
+            input
+                .try_parse(|i| i.expect_ident_matching("alternate"))
+                .is_ok();
+
+        Ok(match (over, alternate) {
+            (true, true) => RubyPosition::AlternateOver,
+            (false, true) => RubyPosition::AlternateUnder,
+            (true, false) => RubyPosition::Over,
+            (false, false) => RubyPosition::Under,
+        })
+    }
+}
+
+impl ToCss for RubyPosition {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str(match self {
+            RubyPosition::AlternateOver => "alternate",
+            RubyPosition::AlternateUnder => "alternate under",
+            RubyPosition::Over => "over",
+            RubyPosition::Under => "under",
+        })
+    }
+}
+
+impl SpecifiedValueInfo for RubyPosition {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        f(&["alternate", "over", "under"])
     }
 }

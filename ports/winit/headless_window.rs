@@ -4,10 +4,10 @@
 
 //! A headless window implementation.
 
-use crate::events_loop::ServoEvent;
+use crate::events_loop::WakerEvent;
 use crate::window_trait::WindowPortsMethods;
 use euclid::{Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
-use servo::compositing::windowing::{AnimationState, WindowEvent};
+use servo::compositing::windowing::{AnimationState, EmbedderEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
@@ -20,7 +20,7 @@ use surfman::Connection;
 use surfman::Context;
 use surfman::Device;
 use surfman::SurfaceType;
-use winit;
+
 
 pub struct Window {
     webrender_surfman: WebrenderSurfman,
@@ -63,7 +63,7 @@ impl Window {
 }
 
 impl WindowPortsMethods for Window {
-    fn get_events(&self) -> Vec<WindowEvent> {
+    fn get_events(&self) -> Vec<EmbedderEvent> {
         vec![]
     }
 
@@ -91,20 +91,20 @@ impl WindowPortsMethods for Window {
     }
 
     fn get_fullscreen(&self) -> bool {
-        return self.fullscreen.get();
+        self.fullscreen.get()
     }
 
     fn is_animating(&self) -> bool {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn winit_event_to_servo_event(&self, _event: winit::event::WindowEvent<'_>) {
+    fn queue_embedder_events_for_winit_event(&self, _event: winit::event::WindowEvent<'_>) {
         // Not expecting any winit events.
     }
 
     fn new_glwindow(
         &self,
-        _events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+        _events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         unimplemented!()
     }

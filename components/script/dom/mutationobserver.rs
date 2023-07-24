@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCa
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::mutationrecord::MutationRecord;
@@ -18,6 +18,7 @@ use crate::microtask::Microtask;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace};
+use js::rust::HandleObject;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -64,9 +65,13 @@ pub struct ObserverOptions {
 }
 
 impl MutationObserver {
-    fn new(global: &Window, callback: Rc<MutationCallback>) -> DomRoot<MutationObserver> {
+    fn new_with_proto(
+        global: &Window,
+        proto: Option<HandleObject>,
+        callback: Rc<MutationCallback>,
+    ) -> DomRoot<MutationObserver> {
         let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
-        reflect_dom_object(boxed_observer, global)
+        reflect_dom_object_with_proto(boxed_observer, global, proto)
     }
 
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {
@@ -81,10 +86,11 @@ impl MutationObserver {
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &Window,
+        proto: Option<HandleObject>,
         callback: Rc<MutationCallback>,
     ) -> Fallible<DomRoot<MutationObserver>> {
         global.set_exists_mut_observer();
-        let observer = MutationObserver::new(global, callback);
+        let observer = MutationObserver::new_with_proto(global, proto, callback);
         ScriptThread::add_mutation_observer(&*observer);
         Ok(observer)
     }

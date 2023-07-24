@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#trig-funcs">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="author" title="Apple Inc">
+<link rel="author" title="Seokho Song" href="seokho@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div id=target></div>
+<script>
+function test_serialization(specified, expected, {prop="transform"}={}) {
+    test_specified_serialization(prop, `scale(${specified})`, `scale(${expected})`)
+}
+//TEST CASE                                            | EXPECTED
+var test_map = {
+    "cos(0)"                                           :"calc(1)",
+    "sin(0)"                                           :"calc(0)",
+    "tan(0)"                                           :"calc(0)",
+    "calc(sin(0) + 0.5)"                               :"calc(0.5)",
+    "calc(sin(0) + cos(0) + tan(0))"                   :"calc(1)",
+    "calc(cos(0) + 0.5)"                               :"calc(1.5)",
+    "calc(tan(0) + 0.5)"                               :"calc(0.5)",
+    "cos(0deg)"                                        :"calc(1)",
+    "sin(0deg)"                                        :"calc(0)",
+    "tan(0deg)"                                        :"calc(0)",
+    "sin(30deg)"                                       :"calc(0.5)",
+    "sin(0.523599)"                                    :"calc(0.5)",
+    "sin(0.523599rad)"                                 :"calc(0.5)",
+    "sin(33.333333grad)"                               :"calc(0.5)",
+    "sin(0.08333333turn)"                              :"calc(0.5)",
+    "cos(60deg)"                                       :"calc(0.5)",
+    "cos(66.66666666grad)"                             :"calc(0.5)",
+    "cos(1.047197551)"                                 :"calc(0.5)",
+    "cos(1.047197551rad)"                              :"calc(0.5)",
+    "cos(0.16666666666turn)"                           :"calc(0.5)",
+    "tan(45deg)"                                       :"calc(1)",
+    "tan(50grad)"                                      :"calc(1)",
+    "tan(0.78539816)"                                  :"calc(1)",
+    "tan(0.78539816rad)"                               :"calc(1)",
+    "tan(0.125turn)"                                   :"calc(1)",
+    "tan(90deg)"                                       :"calc(infinity)",
+    "tan(-90deg)"                                      :"calc(-infinity)",
+    "sin(180deg)"                                      :"calc(0)",
+    "cos(180deg)"                                      :"calc(-1)",
+    "tan(180deg)"                                      :"calc(0)",
+    "sin(270deg)"                                      :"calc(-1)",
+    "cos(270deg)"                                      :"calc(0)",
+    "tan(270deg)"                                      :"calc(-infinity)",
+    "sin(-180deg)"                                     :"calc(0)",
+    "cos(-180deg)"                                     :"calc(-1)",
+    "tan(-180deg)"                                     :"calc(0)",
+    "sin(-270deg)"                                     :"calc(1)",
+    "cos(-270deg)"                                     :"calc(0)",
+    "tan(-270deg)"                                     :"calc(infinity)",
+    "calc(sin(30deg) + cos(60deg) + tan(45deg))"       :"calc(2)",
+    "calc(sin(infinity))"                              :"calc(NaN)",
+    "calc(cos(infinity))"                              :"calc(NaN)",
+    "calc(tan(infinity))"                              :"calc(NaN)",
+    "calc(sin(-infinity))"                             :"calc(NaN)",
+    "calc(cos(-infinity))"                             :"calc(NaN)",
+    "calc(tan(-infinity))"                             :"calc(NaN)",
+    "calc(sin(NaN))"                                   :"calc(NaN)",
+    "calc(cos(NaN))"                                   :"calc(NaN)",
+    "calc(tan(NaN))"                                   :"calc(NaN)",
+};
+
+for (var exp in test_map) {
+    test_serialization(exp, test_map[exp]);
+    test_serialization(`calc(${exp})`, test_map[exp]);
+}
+
+</script>

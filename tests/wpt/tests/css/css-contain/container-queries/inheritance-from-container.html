@@ -1,0 +1,43 @@
+<!doctype html>
+<title>Containers and inheritance</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+#outer {
+    visibility: hidden;
+}
+#outer.visible {
+    visibility: visible;
+}
+#container {
+    container-type: inline-size;
+}
+#container.visible {
+    visibility: visible;
+}
+</style>
+<div id=outer><div id=container><span id=inner>PASS</span></div></div>
+<script>
+setup(() => assert_implements_container_queries());
+
+test((t) => {
+    assert_equals(getComputedStyle(inner).visibility, "hidden");
+}, "Initial state");
+
+test((t) => {
+    outer.classList.add("visible");
+    assert_equals(getComputedStyle(inner).visibility, "visible");
+}, "Test that visibility inherits via container after mutation");
+
+test((t) => {
+    outer.classList.remove("visible");
+    assert_equals(getComputedStyle(inner).visibility, "hidden");
+}, "Return to initial state");
+
+test((t) => {
+    container.classList.add("visible");
+    assert_equals(getComputedStyle(inner).visibility, "visible");
+}, "Test that visibility inherits from container after mutation");
+</script>

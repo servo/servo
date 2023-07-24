@@ -1,1 +1,0 @@
-window.script_callback();

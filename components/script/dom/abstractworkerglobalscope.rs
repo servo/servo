@@ -9,6 +9,7 @@ use crate::dom::dedicatedworkerglobalscope::{AutoWorkerReset, DedicatedWorkerScr
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::realms::enter_realm;
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
 use crossbeam_channel::{Receiver, Sender};
@@ -140,6 +141,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
     }
     // Step 3
     for event in sequential {
+        let _realm = enter_realm(&*worker_scope);
         if !worker_scope.handle_event(event) {
             // Shutdown
             return;

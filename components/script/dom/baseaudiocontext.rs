@@ -284,7 +284,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
     fn Resume(&self, comp: InRealm) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
 
         // Step 2.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
@@ -440,14 +440,14 @@ impl BaseAudioContextMethods for BaseAudioContext {
         comp: InRealm,
     ) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
         let global = self.global();
         let window = global.as_window();
 
         if audio_data.len() > 0 {
             // Step 2.
             // XXX detach array buffer.
-            let uuid = Uuid::new_v4().to_simple().to_string();
+            let uuid = Uuid::new_v4().simple().to_string();
             let uuid_ = uuid.clone();
             self.decode_resolvers.borrow_mut().insert(
                 uuid.clone(),

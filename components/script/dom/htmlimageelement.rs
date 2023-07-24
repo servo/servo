@@ -46,6 +46,7 @@ use crate::fetch::create_a_potential_cors_request;
 use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListener};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::realms::enter_realm;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 use app_units::{Au, AU_PER_PX};
@@ -56,6 +57,8 @@ use html5ever::{LocalName, Prefix, QualName};
 use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
+use js::jsapi::JSAutoRealm;
+use js::rust::HandleObject;
 use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -1244,17 +1247,20 @@ impl HTMLImageElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLImageElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLImageElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 
     pub fn Image(
         window: &Window,
+        proto: Option<HandleObject>,
         width: Option<u32>,
         height: Option<u32>,
     ) -> Fallible<DomRoot<HTMLImageElement>> {
@@ -1264,6 +1270,7 @@ impl HTMLImageElement {
             &window.Document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
+            proto,
         );
 
         let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
@@ -1351,6 +1358,13 @@ impl MicrotaskRunnable for ImageElementMicrotask {
             } => {
                 elem.react_to_environment_changes_sync_steps(*generation);
             },
+        }
+    }
+
+    fn enter_realm(&self) -> JSAutoRealm {
+        match self {
+            &ImageElementMicrotask::StableStateUpdateImageDataTask { ref elem, .. } |
+            &ImageElementMicrotask::EnvironmentChangesTask { ref elem, .. } => enter_realm(&**elem),
         }
     }
 }

@@ -8,16 +8,6 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
-    let layout_2013 = std::env::var_os("CARGO_FEATURE_LAYOUT_2013").is_some();
-    let layout_2020 = std::env::var_os("CARGO_FEATURE_LAYOUT_2020").is_some();
-
-    if !(layout_2013 || layout_2020) {
-        error("Must enable one of the `layout-2013` or `layout-2020` features.")
-    }
-    if layout_2013 && layout_2020 {
-        error("Must not enable both of the `layout-2013` or `layout-2020` features.")
-    }
-
     println!("cargo:rerun-if-changed=../../python/servo/gstreamer.py");
 
     let output = Command::new(find_python())
@@ -32,11 +22,6 @@ fn main() {
     }
     let path = Path::new(&env::var_os("OUT_DIR").unwrap()).join("gstreamer_plugins.rs");
     fs::write(path, output.stdout).unwrap();
-}
-
-fn error(message: &str) {
-    print!("\n\n    Error: {}\n\n", message);
-    std::process::exit(1);
 }
 
 fn find_python() -> String {

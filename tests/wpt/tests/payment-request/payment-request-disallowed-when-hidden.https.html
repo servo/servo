@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for PaymentRequest.show() method - should fail when tab is not visible</title>
+<link rel="help" href="https://w3c.github.io/payment-request/#show-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<!-- For minimize() -->
+<script src="/page-visibility/resources/window_state_context.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const {minimize, restore} = window_state_context(t);
+
+  const request = new PaymentRequest([
+      {
+        supportedMethods: "https://apple.com/apple-pay",
+        data: {
+          version: 3,
+          merchantIdentifier: "merchant.com.example",
+          countryCode: "US",
+          merchantCapabilities: ["supports3DS"],
+          supportedNetworks: ["visa"],
+        },
+      },
+  ], {
+      total: {
+        label: "Total",
+        amount: {
+          currency: "USD",
+          value: "1.00",
+        },
+      }
+  });
+
+  // `bless` simulates a click so it must happen before minimizing the window.
+  await test_driver.bless('user activation');
+
+  // Before we trigger the Payment Request, minimize the window. This should
+  // cause the show() call to be rejected.
+  await minimize();
+  assert_equals(document.hidden, true);
+
+  return promise_rejects_dom(t, "AbortError", request.show());
+}, 'PaymentRequest.show() cannot be triggered from a hidden context');
+</script>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Tests RTCRtpReceiver-jitterBufferTarget verified with stats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<body>
+<script>
+'use strict'
+
+function async_promise_test(func, name, properties) {
+  async_test(t => {
+    Promise.resolve(func(t))
+      .catch(t.step_func(e => { throw e; }))
+      .then(() => t.done());
+  }, name, properties);
+}
+
+async_promise_test(t => applyJitterBufferTarget(t, "video", 4000),
+                    "measure raising and lowering video jitterBufferTarget");
+async_promise_test(t => applyJitterBufferTarget(t, "audio", 4000),
+                    "measure raising and lowering audio jitterBufferTarget");
+
+async function applyJitterBufferTarget(t, kind, target) {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+
+  const stream = await getNoiseStream({[kind]:true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  caller.addTransceiver(stream.getTracks()[0], {streams: [stream]});
+  caller.addTransceiver(stream.getTracks()[0], {streams: [stream]});
+
+  exchangeIceCandidates(caller, callee);
+  await exchangeOffer(caller, callee);
+  const [unconstrainedReceiver, constrainedReceiver] = callee.getReceivers();
+  const haveRtp = Promise.all([
+    new Promise(r => constrainedReceiver.track.onunmute = r),
+    new Promise(r => unconstrainedReceiver.track.onunmute = r)
+  ]);
+  await exchangeAnswer(caller, callee);
+  const chromeTimeout = new Promise(r => t.step_timeout(r, 1000)); // crbug.com/1295295
+  await Promise.race([haveRtp, chromeTimeout]);
+
+  // Allow some data to be processed to let the jitter buffer to stabilize a bit before measuring
+  await new Promise(r => t.step_timeout(r, 5000));
+
+  t.step(() => assert_equals(constrainedReceiver.jitterBufferTarget, null,
+   `jitterBufferTarget supported for ${kind}`));
+
+  constrainedReceiver.jitterBufferTarget = target;
+  t.step(() => assert_equals(constrainedReceiver.jitterBufferTarget, target,
+    `jitterBufferTarget increase target for ${kind}`));
+
+  const [increased, base] = await Promise.all([
+    measureDelayFromStats(t, constrainedReceiver, 20),
+    measureDelayFromStats(t, unconstrainedReceiver, 20)
+  ]);
+
+  t.step(() => assert_greater_than(increased , base,
+    `${kind} increased delay ${increased} ` +
+    ` greater than base delay ${base}`));
+
+  constrainedReceiver.jitterBufferTarget = 0;
+
+  // Allow the jitter buffer to stabilize a bit before measuring
+  await new Promise(r => t.step_timeout(r, 5000));
+  t.step(() => assert_equals(constrainedReceiver.jitterBufferTarget, 0,
+      `jitterBufferTarget decrease target for ${kind}`));
+
+  const decreased = await measureDelayFromStats(t, constrainedReceiver, 20);
+
+  t.step(() => assert_less_than(decreased, increased,
+    `${kind} decreasedDelay ${decreased} ` +
+    `less than increased delay ${increased}`));
+}
+
+async function measureDelayFromStats(t, receiver, cycles) {
+
+  let statsReport = await receiver.getStats();
+  const oldInboundStats = [...statsReport.values()].find(({type}) => type == "inbound-rtp");
+
+  await new Promise(r => t.step_timeout(r, 1000 * cycles));
+
+  statsReport = await receiver.getStats();
+  const inboundStats = [...statsReport.values()].find(({type}) => type == "inbound-rtp");
+
+  const delay = ((inboundStats.jitterBufferDelay - oldInboundStats.jitterBufferDelay) /
+            (inboundStats.jitterBufferEmittedCount - oldInboundStats.jitterBufferEmittedCount) * 1000);
+
+  return delay;
+}
+</script>
+</body>

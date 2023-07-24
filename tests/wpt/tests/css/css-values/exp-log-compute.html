@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#exponent-funcs">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Apple Inc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// Simple tests
+test_math_used('log(1)', '0', {type:'number'});
+test_math_used('log(10, 10)', '1', {type:'number'});
+test_math_used('exp(0)', '1', {type:'number'});
+
+// Test e
+test_math_used('calc(log(e) )', '1', {type:'number', approx:0.1});
+test_math_used('calc(e - exp(1))', '0', {type:'number', approx:0.1});
+
+//General calculations
+test_math_used('calc(log( 1 + 1 + 2 /2 - 2) )', '0', {type:'number', approx:0.1});
+test_math_used('calc(log(1) + exp(0))', '1', {type:'number', approx:0.1});
+test_math_used('calc(exp(log(1) + exp(0)*2))', '7.4', {type:'number', approx:0.1});
+test_math_used('calc(log(log(1) + exp(0)*10))', '2.3', {type:'number', approx:0.1});
+test_math_used('calc(log(log(1) + exp(0)*20, 10))', '1.3', {type:'number', approx:0.1});
+test_math_used('calc(log(e)  / log(e) + exp(0)*2 * log(e))', '3', {type:'number', approx:0.1});
+test_math_used('calc(log((1 + 1) /2)  / log(e) + exp(0*1)*2 * log(e))', '2', {type:'number', approx:0.1});
+test_math_used('calc(log((3 + 1) /2, 2)  / log(e) + exp(0*1)*2 * log(e))', '3', {type:'number', approx:0.1});
+test_math_used('calc(log((3 + 1) /2, 2)  / log(e, e) + exp(0*1)*2 * log(e, e))', '3', {type:'number', approx:0.1});
+test_math_used('calc(exp(0) + 1)', '2', {type:'number', approx:0.1});
+
+// Test nesting
+test_math_used('calc(log(exp(1)))', '1', {type:'number', approx:0.1});
+test_math_used('calc(log(exp(log(e))))', '1', {type:'number', approx:0.1});
+</script>

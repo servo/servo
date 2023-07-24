@@ -1,0 +1,106 @@
+<!DOCTYPE HTML>
+<title>click is a PointerEvent</title>
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?pen">
+<meta name="variant" content="?touch">
+<link rel="help" href="https://github.com/w3c/pointerevents/pull/317">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+
+<input id="target" style="margin: 20px">
+
+<iframe src="resources/minimal.html" height="20" width="20"></iframe>
+
+<script>
+'use strict';
+const pointer_type = location.search.substring(1);
+let subframe_loaded = getMessageData("subframe-loaded", frames[0]);
+
+function assert_click_construction(click_event, window_object) {
+  assert_equals(click_event.constructor, window_object.PointerEvent,
+      "click should use a PointerEvent constructor");
+  assert_true(click_event instanceof window_object.PointerEvent,
+      "click should be a PointerEvent instance");
+  assert_equals(click_event.composed, true, "click.composed should be true");
+}
+
+function assert_click_attributes(click_event, pointerdown_event, pointerup_event) {
+  assert_equals(click_event.pointerId, pointerdown_event.pointerId,
+      "click.pointerId should match the pointerId of the triggering pointerdown");
+  assert_equals(click_event.pointerType, pointerdown_event.pointerType,
+      "click.pointerType should match the pointerType of the triggering pointerdown");
+
+  assert_equals(click_event.pointerId, pointerup_event.pointerId,
+      "click.pointerId should match the pointerId of the triggering pointerup");
+  assert_equals(click_event.pointerType, pointerup_event.pointerType,
+      "click.pointerType should match the pointerType of the triggering pointerup");
+}
+
+promise_test(async () => {
+  const target = document.getElementById("target");
+
+  let pointerDownPrevented = preventDefaultPointerdownOnce(target);
+
+  let pointerdown_promise = getEvent("pointerdown", target);
+  let pointerup_promise = getEvent("pointerup", target);
+  let click_promise = getEvent("click", target);
+
+  await clickInTarget(pointer_type, target);
+
+  await pointerDownPrevented;
+  let pointerdown_event = await pointerdown_promise;
+  let pointerup_event = await pointerup_promise;
+  let click_event = await click_promise;
+
+  assert_click_construction(click_event, this);
+  assert_click_attributes(click_event, pointerdown_event, pointerup_event);
+  assert_not_equals(click_event.pointerId, -1,
+                    "Click event triggered by a pointing device should not have -1 as the pointerId");
+}, "click using " + pointer_type + " is a PointerEvent");
+
+promise_test(async () => {
+  await subframe_loaded;
+
+  const target = frames[0];
+  let pointerdown_promise = getEvent("pointerdown", target);
+  let pointerup_promise = getEvent("pointerup", target);
+  let click_promise = getEvent("click", target);
+
+  await clickInTarget(pointer_type, frames[0].document.body);
+
+  let pointerdown_event = await pointerdown_promise;
+  let pointerup_event = await pointerup_promise;
+  let click_event = await click_promise;
+
+  assert_click_construction(click_event, frames[0]);
+  assert_click_attributes(click_event, pointerdown_event, pointerup_event);
+}, "click in a subframe using " + pointer_type + " is a PointerEvent");
+
+// Run this part of the test only once, since it doesn't rely on the pointer_type.
+if (pointer_type == "mouse") {
+  promise_test(async () => {
+    const target = document.getElementById("target");
+    let click_promise = getEvent("click", target);
+    target.click();
+    let click_event = await click_promise;
+    assert_equals(click_event.pointerId, -1,
+                  "Click event triggered by a non-pointing device should have -1 as the pointerId");
+
+    target.type = "button";
+    target.focus();
+    click_promise = getEvent("click", target);
+    // Press enter
+    let actions = new test_driver.Actions()
+                                 .keyDown("\uE007")
+                                 .keyUp("\uE007");
+    await actions.send();
+    click_event = await click_promise;
+    assert_equals(click_event.pointerId, -1,
+                  "Click event triggered by a non-pointing device should have -1 as the pointerId");
+  }, "Click event triggered by a non-pointing device should have -1 as the pointerId");
+}
+</script>

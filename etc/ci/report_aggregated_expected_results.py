@@ -105,8 +105,11 @@ class Item:
 def get_results(filenames: list[str], tag: str = "") -> Optional[Item]:
     unexpected = []
     for filename in filenames:
-        with open(filename, encoding="utf-8") as file:
-            unexpected += json.load(file)
+        try:
+            with open(filename, encoding="utf-8") as file:
+                unexpected += json.load(file)
+        except FileNotFoundError as exception:
+            print(exception)
     unexpected.sort(key=lambda result: result["path"])
 
     def is_flaky(result):

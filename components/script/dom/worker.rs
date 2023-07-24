@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, Work
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone;
@@ -31,7 +31,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
 use script_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -63,18 +63,24 @@ impl Worker {
         }
     }
 
-    pub fn new(
+    fn new(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         sender: Sender<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
     ) -> DomRoot<Worker> {
-        reflect_dom_object(Box::new(Worker::new_inherited(sender, closing)), global)
+        reflect_dom_object_with_proto(
+            Box::new(Worker::new_inherited(sender, closing)),
+            global,
+            proto,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker
     #[allow(unsafe_code, non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         script_url: USVString,
         worker_options: &WorkerOptions,
     ) -> Fallible<DomRoot<Worker>> {
@@ -86,7 +92,7 @@ impl Worker {
 
         let (sender, receiver) = unbounded();
         let closing = Arc::new(AtomicBool::new(false));
-        let worker = Worker::new(global, sender.clone(), closing.clone());
+        let worker = Worker::new(global, proto, sender.clone(), closing.clone());
         let worker_ref = Trusted::new(&*worker);
 
         let worker_load_origin = WorkerScriptLoadOrigin {
@@ -169,7 +175,7 @@ impl Worker {
         let global = worker.global();
         let target = worker.upcast();
         let _ac = enter_realm(target);
-        rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
+        rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
         if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
             MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None, ports);
         } else {
@@ -247,7 +253,7 @@ impl WorkerMethods for Worker {
         self.terminated.set(true);
 
         // Step 3
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         unsafe { JS_RequestInterruptCallback(*cx) };
     }
 

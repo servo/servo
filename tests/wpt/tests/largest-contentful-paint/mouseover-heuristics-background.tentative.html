@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LCP mouseover heuristics ignore background-based zoom widgets</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="resources/mouseover-utils.js"></script>
+</head>
+<body>
+  <img src="/images/lcp-16x16.png" id=image>
+  <span id=span style="display: inline-block;width: 15px; height: 15px"></span>
+  <script>
+    run_mouseover_test(/*background=*/true);
+  </script>
+</body>
+

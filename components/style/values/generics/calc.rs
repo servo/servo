@@ -47,6 +47,7 @@ pub enum SortKey {
     Deg,
     Em,
     Ex,
+    Ic,
     Px,
     Rem,
     Sec,

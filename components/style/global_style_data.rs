@@ -10,10 +10,13 @@ use crate::gecko_bindings::bindings;
 use crate::parallel::STYLE_THREAD_STACK_SIZE_KB;
 use crate::shared_lock::SharedRwLock;
 use crate::thread_state;
+#[cfg(feature = "gecko")]
+use gecko_profiler;
 use parking_lot::{RwLock, RwLockReadGuard};
 use rayon;
 use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Mutex;
 
 /// Global style data
 pub struct GlobalStyleData {
@@ -49,20 +52,16 @@ fn thread_startup(_index: usize) {
     thread_state::initialize_layout_worker_thread();
     #[cfg(feature = "gecko")]
     unsafe {
-        use std::ffi::CString;
-
         bindings::Gecko_SetJemallocThreadLocalArena(true);
         let name = thread_name(_index);
-        let name = CString::new(name).unwrap();
-        // Gecko_RegisterProfilerThread copies the passed name here.
-        bindings::Gecko_RegisterProfilerThread(name.as_ptr());
+        gecko_profiler::register_thread(&name);
     }
 }
 
 fn thread_shutdown(_: usize) {
     #[cfg(feature = "gecko")]
     unsafe {
-        bindings::Gecko_UnregisterProfilerThread();
+        gecko_profiler::unregister_thread();
         bindings::Gecko_SetJemallocThreadLocalArena(false);
     }
     ALIVE_WORKER_THREADS.fetch_sub(1, Ordering::Relaxed);
@@ -76,7 +75,7 @@ impl StyleThreadPool {
         }
         {
             // Drop the pool.
-            let _ = STYLE_THREAD_POOL.style_thread_pool.write().take();
+            let _ = STYLE_THREAD_POOL.lock().unwrap().style_thread_pool.write().take();
         }
         // Spin until all our threads are done. This will usually be pretty
         // fast, as on shutdown there should be basically no threads left
@@ -106,7 +105,7 @@ impl StyleThreadPool {
 
 lazy_static! {
     /// Global thread pool
-    pub static ref STYLE_THREAD_POOL: StyleThreadPool = {
+    pub static ref STYLE_THREAD_POOL: Mutex<StyleThreadPool> = {
         let stylo_threads = env::var("STYLO_THREADS")
             .map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS value"));
         let mut num_threads = match stylo_threads {
@@ -159,14 +158,14 @@ lazy_static! {
             workers.ok()
         };
 
-        StyleThreadPool {
+        Mutex::new(StyleThreadPool {
             num_threads: if num_threads > 0 {
                 Some(num_threads)
             } else {
                 None
             },
             style_thread_pool: RwLock::new(pool),
-        }
+        })
     };
 
     /// Global style data

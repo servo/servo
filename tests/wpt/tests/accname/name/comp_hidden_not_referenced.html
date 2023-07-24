@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Hidden Not Referenced</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>Tests the <a href="https://w3c.github.io/accname/#comp_hidden_not_referenced">#comp_hidden_not_referenced</a> portions of the AccName <em>Name Computation</em> algorithm.</p>
+
+<h2 class="ex" data-expectedlabel="heading label" data-testname="heading with interior hidden node">
+  heading
+  <span hidden>bogus</span>
+  label
+</h2>
+
+<!-- Todo: test all remaining cases of https://w3c.github.io/accname/#comp_hidden_not_referenced -->
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

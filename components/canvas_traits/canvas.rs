@@ -9,6 +9,7 @@ use serde_bytes::ByteBuf;
 use std::default::Default;
 use std::str::FromStr;
 use style::properties::style_structs::Font as FontStyleStruct;
+use webrender_api::ImageKey;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FillRule {
@@ -30,7 +31,7 @@ pub enum CanvasMsg {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CanvasImageData {
-    pub image_key: webrender_api::ImageKey,
+    pub image_key: ImageKey,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

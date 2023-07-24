@@ -1,0 +1,21 @@
+---
+root:
+  items:
+    - type: gradient
+      bounds: 0 0 960 540
+      start: 0 0
+      end: 960 0
+      stops: [0.0, red,
+              0.125, yellow,
+              0.25, red,
+              0.25, green,
+              0.375, yellow,
+              0.5, green,
+              0.5, blue,
+              0.625, yellow,
+              0.75, blue,
+              0.75, white,
+              1.0, [100,200,50,1]]
+      complex-clip:
+        rect: [100, 100, 760, 340]
+        radius: [32, 32]

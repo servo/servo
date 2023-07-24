@@ -22,10 +22,13 @@ use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
 use crate::dom::text::Text;
+use crate::dom::validation::Validatable;
+use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName};
+use js::rust::HandleObject;
 use std::cell::Cell;
 use std::convert::TryInto;
 use style::element_state::ElementState;
@@ -65,12 +68,14 @@ impl HTMLOptionElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLOptionElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLOptionElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 
@@ -78,6 +83,7 @@ impl HTMLOptionElement {
     #[allow(non_snake_case)]
     pub fn Option(
         window: &Window,
+        proto: Option<HandleObject>,
         text: DOMString,
         value: Option<DOMString>,
         default_selected: bool,
@@ -89,6 +95,7 @@ impl HTMLOptionElement {
             &window.Document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
+            proto,
         );
 
         let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();
@@ -103,6 +110,7 @@ impl HTMLOptionElement {
 
         option.SetDefaultSelected(default_selected);
         option.set_selectedness(selected);
+        option.update_select_validity();
         Ok(option)
     }
 
@@ -160,6 +168,19 @@ impl HTMLOptionElement {
                 );
                 0
             },
+        }
+    }
+
+    fn update_select_validity(&self) {
+        if let Some(select) = self
+            .upcast::<Node>()
+            .ancestors()
+            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
+            .next()
+        {
+            select
+                .validity_state()
+                .perform_validation_and_update(ValidationFlags::all());
         }
     }
 }
@@ -259,6 +280,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
         self.pick_if_selected_and_reset();
+        self.update_select_validity();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-index
@@ -288,6 +310,7 @@ impl VirtualMethods for HTMLOptionElement {
                         el.check_parent_disabled_state_for_option();
                     },
                 }
+                self.update_select_validity();
             },
             &local_name!("selected") => {
                 match mutation {
@@ -304,6 +327,7 @@ impl VirtualMethods for HTMLOptionElement {
                         }
                     },
                 }
+                self.update_select_validity();
             },
             _ => {},
         }
@@ -318,6 +342,7 @@ impl VirtualMethods for HTMLOptionElement {
             .check_parent_disabled_state_for_option();
 
         self.pick_if_selected_and_reset();
+        self.update_select_validity();
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
@@ -329,6 +354,9 @@ impl VirtualMethods for HTMLOptionElement {
             .filter_map(DomRoot::downcast::<HTMLSelectElement>)
             .next()
         {
+            select
+                .validity_state()
+                .perform_validation_and_update(ValidationFlags::all());
             select.ask_for_reset();
         }
 

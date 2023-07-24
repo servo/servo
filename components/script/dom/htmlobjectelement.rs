@@ -18,6 +18,7 @@ use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use net_traits::image::base::Image;
 use servo_arc::Arc;
 use std::default::Default;
@@ -50,12 +51,14 @@ impl HTMLObjectElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLObjectElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLObjectElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 }

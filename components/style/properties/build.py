@@ -37,6 +37,7 @@ STYLE_STRUCT_LIST = [
     "list",
     "margin",
     "outline",
+    "page",
     "padding",
     "position",
     "svg",
@@ -49,7 +50,7 @@ STYLE_STRUCT_LIST = [
 
 def main():
     usage = (
-        "Usage: %s [ servo-2013 | servo-2020 | gecko ] [ style-crate | geckolib <template> | html ]"
+        "Usage: %s [ servo | gecko ] [ style-crate | geckolib <template> | html ]"
         % sys.argv[0]
     )
     if len(sys.argv) < 3:
@@ -57,7 +58,7 @@ def main():
     engine = sys.argv[1]
     output = sys.argv[2]
 
-    if engine not in ["servo-2013", "servo-2020", "gecko"] or output not in [
+    if engine not in ["servo", "gecko"] or output not in [
         "style-crate",
         "geckolib",
         "html",
@@ -101,14 +102,10 @@ def main():
             rust = render(template, data=properties)
             write(OUT_DIR, "gecko_properties.rs", rust)
 
-        if engine in ["servo-2013", "servo-2020"]:
-            if engine == "servo-2013":
-                pref_attr = "servo_2013_pref"
-            if engine == "servo-2020":
-                pref_attr = "servo_2020_pref"
+        if engine == "servo":
             properties_dict = {
                 kind: {
-                    p.name: {"pref": getattr(p, pref_attr)}
+                    p.name: {"pref": getattr(p, "servo_pref")}
                     for prop in properties_list
                     if prop.enabled_in_content()
                     for p in [prop] + prop.aliases

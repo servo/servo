@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::XRLayerEventBinding::XRLayerEventInit;
 use crate::dom::bindings::codegen::Bindings::XRLayerEventBinding::XRLayerEventMethods;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -13,6 +13,7 @@ use crate::dom::event::Event;
 use crate::dom::window::Window;
 use crate::dom::xrlayer::XRLayer;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 
 // https://w3c.github.io/uievents/#interface-uievent
@@ -30,17 +31,18 @@ impl XRLayerEvent {
         }
     }
 
-    pub fn new(window: &Window, layer: &XRLayer) -> DomRoot<XRLayerEvent> {
-        reflect_dom_object(Box::new(XRLayerEvent::new_inherited(layer)), window)
+    fn new(window: &Window, proto: Option<HandleObject>, layer: &XRLayer) -> DomRoot<XRLayerEvent> {
+        reflect_dom_object_with_proto(Box::new(XRLayerEvent::new_inherited(layer)), window, proto)
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &XRLayerEventInit,
     ) -> DomRoot<XRLayerEvent> {
-        let event = XRLayerEvent::new(window, &init.layer);
+        let event = XRLayerEvent::new(window, proto, &init.layer);
         let type_ = Atom::from(type_);
         let bubbles = init.parent.bubbles;
         let cancelable = init.parent.cancelable;

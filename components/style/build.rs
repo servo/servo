@@ -71,16 +71,12 @@ fn generate_properties(engine: &str) {
 fn main() {
     let gecko = cfg!(feature = "gecko");
     let servo = cfg!(feature = "servo");
-    let l2013 = cfg!(feature = "servo-layout-2013");
-    let l2020 = cfg!(feature = "servo-layout-2020");
-    let engine = match (gecko, servo, l2013, l2020) {
-        (true, false, false, false) => "gecko",
-        (false, true, true, false) => "servo-2013",
-        (false, true, false, true) => "servo-2020",
+    let engine = match (gecko, servo) {
+        (true, false) => "gecko",
+        (false, true) => "servo",
         _ => panic!(
             "\n\n\
-             The style crate requires enabling one of its 'servo' or 'gecko' feature flags \
-             and, in the 'servo' case, one of 'servo-layout-2013' or 'servo-layout-2020'.\
+             The style crate requires enabling one of its 'servo' or 'gecko' feature flags. \
              \n\n"
         ),
     };

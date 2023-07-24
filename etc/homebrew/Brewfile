@@ -1,3 +1,4 @@
 # Runtime dependencies
 
 brew "xz"
+brew "gnu-tar"

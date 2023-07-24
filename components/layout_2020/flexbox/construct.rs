@@ -150,6 +150,7 @@ where
                             base_fragment_info: (&run.info).into(),
                             text: run.text.into(),
                             parent_style: run.info.style,
+                            has_uncollapsible_content: false,
                         }),
                         self.text_decoration_line,
                     ),

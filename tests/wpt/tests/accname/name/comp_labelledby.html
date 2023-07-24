@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Labelledby</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>Tests the <a href="https://w3c.github.io/accname/#comp_labelledby">#comp_labelledby</a> portions of the AccName <em>Name Computation</em> algorithm.</p>
+
+<div role="group" aria-labelledby="h" class="ex" data-expectedlabel="div group label" data-testname="div group explicitly labelledby heading">
+  <h2 id="h">div group label</h2>
+  <p>text inside div group</p>
+</div>
+
+<!--
+
+Todo: test all remaining cases of https://w3c.github.io/accname/#comp_labelledby
+  - comp_labelledby_reset
+  - comp_labelledby_foreach
+  - comp_labelledby_set_current
+  - comp_labelledby_recursion
+  - comp_labelledby_append
+  - comp_labelledby_return
+
+-->
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

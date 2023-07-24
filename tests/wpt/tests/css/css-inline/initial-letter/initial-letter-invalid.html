@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Tests parsing of the initial-letter property</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#sizing-drop-initials">
+<meta name="assert" content="initial-letter supports the full grammar 'normal | <number [1,∞]> <integer [1,∞]> | <number [1,∞]> && [ drop | raise ]?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_invalid_value('initial-letter', 'foobar');
+test_invalid_value('initial-letter', 'drop');
+test_invalid_value('initial-letter', 'raise');
+test_invalid_value('initial-letter', 'drop 1 2');
+test_invalid_value('initial-letter', 'raise 1 2');
+test_invalid_value('initial-letter', '-1');
+test_invalid_value('initial-letter', '0');
+test_invalid_value('initial-letter', '0.5');
+test_invalid_value('initial-letter', '1 -1');
+test_invalid_value('initial-letter', '1 0');
+test_invalid_value('initial-letter', '1 0.5');
+test_invalid_value('initial-letter', '1 1.5');
+test_invalid_value('initial-letter', '1 2 3');
+test_invalid_value('initial-letter', '1 drop 3');
+test_invalid_value('initial-letter', '1 raise 3');
+test_invalid_value('initial-letter', '1 foobar 3');
+</script>

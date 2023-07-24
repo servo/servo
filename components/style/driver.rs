@@ -133,28 +133,27 @@ where
                 let tls = ScopedTLS::<ThreadLocalStyleContext<E>>::new(pool);
                 let root_opaque = root.as_node().opaque();
                 let drain = discovered.drain(..);
-                pool.install(|| {
+                pool.scope_fifo(|scope| {
                     // Enable a breadth-first rayon traversal. This causes the work
                     // queue to be always FIFO, rather than FIFO for stealers and
                     // FILO for the owner (which is what rayon does by default). This
                     // ensures that we process all the elements at a given depth before
                     // proceeding to the next depth, which is important for style sharing.
-                    rayon::scope_fifo(|scope| {
-                        profiler_label!(Style);
-                        parallel::traverse_nodes(
-                            drain,
-                            DispatchMode::TailCall,
-                            /* recursion_ok = */ true,
-                            root_opaque,
-                            PerLevelTraversalData {
-                                current_dom_depth: depth,
-                            },
-                            scope,
-                            pool,
-                            traversal,
-                            &tls,
-                        );
-                    });
+                    #[cfg(feature = "gecko")]
+                    gecko_profiler_label!(Layout, StyleComputation);
+                    parallel::traverse_nodes(
+                        drain,
+                        DispatchMode::TailCall,
+                        /* recursion_ok = */ true,
+                        root_opaque,
+                        PerLevelTraversalData {
+                            current_dom_depth: depth,
+                        },
+                        scope,
+                        pool,
+                        traversal,
+                        &tls,
+                    );
                 });
 
                 tls_slots = Some(tls.into_slots());

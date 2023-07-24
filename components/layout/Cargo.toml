@@ -7,50 +7,50 @@ edition = "2018"
 publish = false
 
 [lib]
-name = "layout"
+name = "layout_2013"
 path = "lib.rs"
 test = false
 doctest = false
 
 [dependencies]
-app_units = "0.7"
-atomic_refcell = "0.1"
-bitflags = "1.0"
+app_units = { workspace = true }
+atomic_refcell = { workspace = true }
+bitflags = { workspace = true }
 canvas_traits = { path = "../canvas_traits" }
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.22"
-fnv = "1.0"
+euclid = { workspace = true }
+fnv = { workspace = true }
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
-html5ever = "0.26"
-ipc-channel = "0.14"
-lazy_static = "1"
-libc = "0.2"
-log = "0.4"
+html5ever = { workspace = true }
+ipc-channel = { workspace = true }
+lazy_static = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
-num-traits = "0.2"
-parking_lot = "0.11"
+num-traits = { workspace = true }
+parking_lot = { workspace = true }
 profile_traits = { path = "../profile_traits" }
 range = { path = "../range" }
-rayon = "1"
+rayon = { workspace = true }
 script_layout_interface = { path = "../script_layout_interface" }
 script_traits = { path = "../script_traits" }
-serde = "1.0"
-serde_json = "1.0"
+serde = { workspace = true }
+serde_json = { workspace = true }
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms" }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
-smallvec = { version = "1.9", features = ["union"] }
-style = { path = "../style", features = ["servo", "servo-layout-2013"] }
+smallvec = { workspace = true, features = ["union"] }
+style = { path = "../style", features = ["servo"] }
 style_traits = { path = "../style_traits" }
-unicode-bidi = { version = "0.3", features = ["with_serde"] }
-unicode-script = "0.5"
-webrender_api = { git = "https://github.com/servo/webrender" }
-xi-unicode = "0.1.0"
+unicode-bidi = { workspace = true, features = ["with_serde"] }
+unicode-script = { workspace = true }
+webrender_api = { workspace = true }
+xi-unicode = { workspace = true }
 
 [dev-dependencies]
 size_of_test = { path = "../size_of_test" }

@@ -96,7 +96,7 @@ use std::time::Duration;
 use style::animation::{AnimationSetKey, DocumentAnimationSet, ElementAnimationSet};
 use style::context::SharedStyleContext;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
-use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
+use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
 use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
@@ -117,6 +117,7 @@ use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
+use webrender_api::{units, ColorF, HitTestFlags, ScrollClamping};
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -1015,11 +1016,7 @@ impl LayoutThread {
 
                         let root_size = {
                             let root_flow = layout_root.base();
-                            if self.stylist.viewport_constraints().is_some() {
-                                root_flow.position.size.to_physical(root_flow.writing_mode)
-                            } else {
-                                root_flow.overflow.scroll.size
-                            }
+                            root_flow.overflow.scroll.size
                         };
 
                         let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size).to_layout();
@@ -1064,11 +1061,7 @@ impl LayoutThread {
 
                 debug!("Layout done!");
 
-                // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let (builder, compositor_info, is_contentful) =
-                    display_list.convert_to_webrender(self.id);
-
-                let viewport_size = Size2D::new(
+                let viewport_size = units::LayoutSize::new(
                     self.viewport_size.width.to_f32_px(),
                     self.viewport_size.height.to_f32_px(),
                 );
@@ -1077,7 +1070,9 @@ impl LayoutThread {
                 epoch.next();
                 self.epoch.set(epoch);
 
-                let viewport_size = webrender_api::units::LayoutSize::from_untyped(viewport_size);
+                // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
+                let (builder, compositor_info, is_contentful) =
+                    display_list.convert_to_webrender(self.id, viewport_size, epoch.into());
 
                 // Observe notifications about rendered frames if needed right before
                 // sending the display list to WebRender in order to set time related
@@ -1085,12 +1080,8 @@ impl LayoutThread {
                 self.paint_time_metrics
                     .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
-                self.webrender_api.send_display_list(
-                    epoch,
-                    viewport_size,
-                    compositor_info,
-                    builder.finalize(),
-                );
+                self.webrender_api
+                    .send_display_list(compositor_info, builder.finalize());
             },
         );
     }
@@ -1213,64 +1204,39 @@ impl LayoutThread {
 
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
-        self.viewport_size =
-            self.stylist
-                .viewport_constraints()
-                .map_or(current_screen_size, |constraints| {
-                    debug!("Viewport constraints: {:?}", constraints);
-
-                    // other rules are evaluated against the actual viewport
-                    Size2D::new(
-                        Au::from_f32_px(constraints.size.width),
-                        Au::from_f32_px(constraints.size.height),
-                    )
-                });
+        self.viewport_size = current_screen_size;
 
         let viewport_size_changed = self.viewport_size != old_viewport_size;
-        if viewport_size_changed {
-            if let Some(constraints) = self.stylist.viewport_constraints() {
-                // let the constellation know about the viewport constraints
-                rw_data
-                    .constellation_chan
-                    .send(ConstellationMsg::ViewportConstrained(
-                        self.id,
-                        constraints.clone(),
-                    ))
-                    .unwrap();
-            }
-            if had_used_viewport_units {
-                if let Some(mut data) = root_element.mutate_data() {
-                    data.hint.insert(RestyleHint::recascade_subtree());
-                }
+        if viewport_size_changed && had_used_viewport_units {
+            if let Some(mut data) = root_element.mutate_data() {
+                data.hint.insert(RestyleHint::recascade_subtree());
             }
         }
 
-        {
-            if self.first_reflow.get() {
-                debug!("First reflow, rebuilding user and UA rules");
-                for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                    self.stylist
-                        .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
-                    self.handle_add_stylesheet(&stylesheet.0, &ua_or_user_guard);
-                }
-
-                if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
-                    self.stylist.append_stylesheet(
-                        ua_stylesheets.quirks_mode_stylesheet.clone(),
-                        &ua_or_user_guard,
-                    );
-                    self.handle_add_stylesheet(
-                        &ua_stylesheets.quirks_mode_stylesheet.0,
-                        &ua_or_user_guard,
-                    );
-                }
-            }
-
-            if data.stylesheets_changed {
-                debug!("Doc sheets changed, flushing author sheets too");
+        if self.first_reflow.get() {
+            debug!("First reflow, rebuilding user and UA rules");
+            for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
-                    .force_stylesheet_origins_dirty(Origin::Author.into());
+                    .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
+                self.handle_add_stylesheet(&stylesheet.0, &ua_or_user_guard);
             }
+
+            if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
+                self.stylist.append_stylesheet(
+                    ua_stylesheets.quirks_mode_stylesheet.clone(),
+                    &ua_or_user_guard,
+                );
+                self.handle_add_stylesheet(
+                    &ua_stylesheets.quirks_mode_stylesheet.0,
+                    &ua_or_user_guard,
+                );
+            }
+        }
+
+        if data.stylesheets_changed {
+            debug!("Doc sheets changed, flushing author sheets too");
+            self.stylist
+                .force_stylesheet_origins_dirty(Origin::Author.into());
         }
 
         if viewport_size_changed {
@@ -1285,11 +1251,7 @@ impl LayoutThread {
         );
 
         // Flush shadow roots stylesheets if dirty.
-        document.flush_shadow_roots_stylesheets(
-            &self.stylist.device(),
-            document.quirks_mode(),
-            guards.author.clone(),
-        );
+        document.flush_shadow_roots_stylesheets(&mut self.stylist, guards.author.clone());
 
         let restyles = std::mem::take(&mut data.pending_restyles);
         debug!("Draining restyles: {}", restyles.len());
@@ -1342,10 +1304,10 @@ impl LayoutThread {
             data.stylesheets_changed,
         );
 
-        let pool;
+        let pool = STYLE_THREAD_POOL.lock().unwrap();
+        let thread_pool = pool.pool();
         let (thread_pool, num_threads) = if self.parallel_flag {
-            pool = STYLE_THREAD_POOL.pool();
-            (pool.as_ref(), STYLE_THREAD_POOL.num_threads.unwrap_or(1))
+            (thread_pool.as_ref(), pool.num_threads.unwrap_or(1))
         } else {
             (None, 1)
         };
@@ -1429,6 +1391,7 @@ impl LayoutThread {
                 Some(&document),
                 &mut rw_data,
                 &mut layout_context,
+                thread_pool,
             );
         }
 
@@ -1509,15 +1472,15 @@ impl LayoutThread {
                 &QueryMsg::StyleQuery => {},
                 &QueryMsg::NodesFromPointQuery(client_point, ref reflow_goal) => {
                     let mut flags = match reflow_goal {
-                        &NodesFromPointQueryType::Topmost => webrender_api::HitTestFlags::empty(),
-                        &NodesFromPointQueryType::All => webrender_api::HitTestFlags::FIND_ALL,
+                        &NodesFromPointQueryType::Topmost => HitTestFlags::empty(),
+                        &NodesFromPointQueryType::All => HitTestFlags::FIND_ALL,
                     };
 
                     // The point we get is not relative to the entire WebRender scene, but to this
                     // particular pipeline, so we need to tell WebRender about that.
-                    flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
+                    flags.insert(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                    let client_point = webrender_api::units::WorldPoint::from_untyped(client_point);
+                    let client_point = units::WorldPoint::from_untyped(client_point);
                     let results = self.webrender_api.hit_test(
                         Some(self.id.to_webrender()),
                         client_point,
@@ -1554,9 +1517,9 @@ impl LayoutThread {
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.webrender_api.send_scroll_node(
-            webrender_api::units::LayoutPoint::from_untyped(point),
+            units::LayoutPoint::from_untyped(point),
             state.scroll_id,
-            webrender_api::ScrollClamping::ToContentBounds,
+            ScrollClamping::ToContentBounds,
         );
     }
 
@@ -1636,6 +1599,7 @@ impl LayoutThread {
         document: Option<&ServoLayoutDocument<LayoutData>>,
         rw_data: &mut LayoutThreadData,
         context: &mut LayoutContext,
+        thread_pool: Option<&rayon::ThreadPool>,
     ) {
         Self::cancel_animations_for_nodes_not_in_flow_tree(
             &mut *(context.style_context.animations.sets.write()),
@@ -1692,14 +1656,6 @@ impl LayoutThread {
                 self.time_profiler_chan.clone(),
                 || {
                     let profiler_metadata = self.profiler_metadata();
-
-                    let pool;
-                    let thread_pool = if self.parallel_flag {
-                        pool = STYLE_THREAD_POOL.pool();
-                        pool.as_ref()
-                    } else {
-                        None
-                    };
 
                     if let Some(pool) = thread_pool {
                         // Parallel mode.
@@ -1814,8 +1770,8 @@ impl ProfilerMetadataFactory for LayoutThread {
 // clearing the frame buffer to white. This ensures that setting a background
 // color on an iframe element, while the iframe content itself has a default
 // transparent background color is handled correctly.
-fn get_root_flow_background_color(flow: &mut dyn Flow) -> webrender_api::ColorF {
-    let transparent = webrender_api::ColorF {
+fn get_root_flow_background_color(flow: &mut dyn Flow) -> ColorF {
+    let transparent = ColorF {
         r: 0.0,
         g: 0.0,
         b: 0.0,
@@ -1842,7 +1798,7 @@ fn get_root_flow_background_color(flow: &mut dyn Flow) -> webrender_api::ColorF 
             .get_background()
             .background_color,
     );
-    webrender_api::ColorF::new(
+    ColorF::new(
         color.red_f32(),
         color.green_f32(),
         color.blue_f32(),

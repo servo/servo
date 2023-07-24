@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<body>
+<canvas id='canvas' width=10 height=10></canvas>
+</body>
+<script>
+
+// This test verifies that ImageCapture can takePhoto()s, with a mock Mojo
+// interface implementation.
+
+image_capture_test(async t => {
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+  let stream = canvas.captureStream();
+
+  let capturer = new ImageCapture(stream.getVideoTracks()[0]);
+  let blob = await capturer.takePhoto();
+
+  // JS Blob is almost-opaque, can only check |type| and |size|.
+  assert_equals(blob.type, 'image/cat');
+  assert_equals(blob.size, 2);
+
+}, 'exercises ImageCapture.takePhoto()');
+
+image_capture_test(async t => {
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+  let stream = canvas.captureStream();
+
+  let capturer = new ImageCapture(stream.getVideoTracks()[0]);
+  let blob = await capturer.takePhoto(null);
+
+  // JS Blob is almost-opaque, can only check |type| and |size|.
+  assert_equals(blob.type, 'image/cat');
+  assert_equals(blob.size, 2);
+
+}, 'exercises ImageCapture.takePhoto(null)');
+
+promise_test(t => {
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+  let stream = canvas.captureStream();
+  let videoTrack = stream.getVideoTracks()[0];
+  videoTrack.stop();
+
+  let capturer = new ImageCapture(videoTrack);
+  assert_equals(videoTrack.readyState, 'ended');
+
+  return promise_rejects_dom(t, 'InvalidStateError', capturer.takePhoto())
+
+}, 'takePhoto() of an ended Track should throw "InvalidStateError"');
+
+</script>

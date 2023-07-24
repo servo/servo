@@ -1,4 +1,4 @@
-name: Scheduled WPT import
+name: WPT Import
 
 on:
   schedule:
@@ -15,18 +15,8 @@ jobs:
     name: Linux
     uses: ./.github/workflows/linux.yml
     with:
-      layout: '2013'
       wpt: 'sync'
-      unit-tests: false
-
-  linux-layout-2020:
-    # This job is only useful when run on upstream servo.
-    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Linux (layout-2020)
-    uses: ./.github/workflows/linux.yml
-    with:
-      layout: '2020'
-      wpt: 'sync'
+      layout: 'all'
       unit-tests: false
 
   sync:
@@ -36,7 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - "linux"
-      - "linux-layout-2020"
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -57,16 +46,16 @@ jobs:
           git fetch --unshallow upstream
       - name: Fetch upstream changes before syncing
         run: |
-          ./etc/ci/update-wpt-checkout fetch-upstream-changes
-      - name: Run WPT Update
-        env:
-          MAX_CHUNK_ID: 20
-          WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
+          ./mach update-wpt --sync --patch
+      - name: Amend commit with test results
         run: |
           export CURRENT_DATE=$(date +"%d-%m-%Y")
           echo $CURRENT_DATE
           echo "CURRENT_DATE=$CURRENT_DATE" >> $GITHUB_ENV
-          ./etc/ci/wpt-scheduled-update.sh
+          ./mach update-wpt wpt-logs-linux-layout-2013/test-wpt.*.log
+          ./mach update-wpt --layout-2020 wpt-logs-linux-layout-2020/test-wpt.*.log
+          git add tests/wpt/meta tests/wpt/meta-legacy-layout
+          git commit -a --amend --no-edit
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
@@ -79,9 +68,8 @@ jobs:
           BODY=$(cat <<EOF
           Automated downstream sync of changes from upstream as of ${{ env.CURRENT_DATE }}
           [no-wpt-sync]
-          r? @servo-wpt-sync
           EOF
           )
           gh pr create \
             --title "Sync WPT with upstream (${{ env.CURRENT_DATE }})" \
-            --body "$BODY" --head ${{ env.UPDATE_BRANCH }} | xargs gh pr comment $1 --body "@bors-servo r+"
+            --body "$BODY" --head ${{ env.UPDATE_BRANCH }}

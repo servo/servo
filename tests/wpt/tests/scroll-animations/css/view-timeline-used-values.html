@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<title>Used values of view-timeline properties</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#view-timeline-axis">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#view-timeline-name">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  @keyframes anim {
+    from { z-index: 0; }
+    to { z-index: 100; }
+  }
+  .scroller {
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+  }
+  .scroller > div {
+    width: 300px;
+    height: 300px;
+    z-index: -1;
+  }
+</style>
+<main id=main></main>
+<script>
+  setup(assert_implements_animation_timeline);
+
+  function inflate(t, template) {
+    t.add_cleanup(() => main.replaceChildren());
+    main.append(template.content.cloneNode(true));
+  }
+  async function scrollTop(e, value) {
+    e.scrollTop = value;
+    await waitForNextFrame();
+  }
+  async function scrollLeft(e, value) {
+    e.scrollLeft = value;
+    await waitForNextFrame();
+  }
+</script>
+
+<template id=omitted_axis>
+  <style>
+    #target {
+      view-timeline-name: --t1, --t2; /* Two items */
+      view-timeline-axis: inline; /* One item */
+      animation: anim 1s linear;
+      animation-timeline: --t2;
+    }
+  </style>
+  <div id=scroller class=scroller>
+    <div id=target></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, omitted_axis);
+    assert_equals(getComputedStyle(target).zIndex, '-1');
+
+    // enter 0% is at scrollTop/Left = -100
+    // exit 100% is at scrollTop/Left = 300
+    // This means that at scrollTop/Left=0, the animation is at 25%.
+
+    await scrollTop(scroller, 0);
+    await scrollLeft(scroller, 0);
+    assert_equals(getComputedStyle(target).zIndex, '25');
+
+    // The timeline should be inline-axis:
+    await scrollTop(scroller, 100); // 50%
+    await scrollLeft(scroller, 40); // 35%
+    assert_equals(getComputedStyle(target).zIndex, '35');
+  }, 'Use the last value from view-timeline-axis if omitted');
+</script>
+
+<template id=omitted_inset>
+  <style>
+    #target {
+      view-timeline-name: --t1, --t2; /* Two items */
+      view-timeline-inset: 100px; /* One item */
+      animation: anim 1s linear;
+      animation-timeline: --t2;
+    }
+  </style>
+  <div id=scroller class=scroller>
+    <div id=target></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, omitted_inset);
+    assert_equals(getComputedStyle(target).zIndex, '-1');
+
+    // 0% is normally at at scrollTop = -100
+    // 100% is normally at scrollTop/Left = 300
+    // However, we have a 100px inset in both ends, which makes the
+    // range [0, 200].
+
+    await scrollTop(scroller, 0);
+    assert_equals(getComputedStyle(target).zIndex, '0');
+    await scrollTop(scroller, 100); // 50%
+    assert_equals(getComputedStyle(target).zIndex, '50');
+  }, 'Use the last value from view-timeline-inset if omitted');
+</script>

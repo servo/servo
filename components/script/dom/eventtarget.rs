@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::UnionTypes::EventListenerOptionsOrBoolean;
 use crate::dom::bindings::codegen::UnionTypes::EventOrString;
 use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
@@ -39,7 +39,7 @@ use fnv::FnvHasher;
 use js::jsapi::JS_GetFunctionObject;
 use js::rust::transform_u16_to_source_text;
 use js::rust::wrappers::CompileFunction;
-use js::rust::{CompileOptionsWrapper, RootedObjectVectorWrapper};
+use js::rust::{CompileOptionsWrapper, HandleObject, RootedObjectVectorWrapper};
 use libc::c_char;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -184,7 +184,7 @@ impl CompiledEventListener {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             if object.is::<Window>() || object.is::<WorkerGlobalScope>() {
-                                let cx = object.global().get_cx();
+                                let cx = GlobalScope::get_cx();
                                 rooted!(in(*cx) let error = event.Error(cx));
                                 let return_value = handler.Call_(
                                     object,
@@ -242,7 +242,7 @@ impl CompiledEventListener {
 
                     CommonEventHandler::EventHandler(ref handler) => {
                         if let Ok(value) = handler.Call_(object, event, exception_handle) {
-                            let cx = object.global().get_cx();
+                            let cx = GlobalScope::get_cx();
                             rooted!(in(*cx) let value = value);
                             let value = value.handle();
 
@@ -355,15 +355,20 @@ impl EventTarget {
         }
     }
 
-    fn new(global: &GlobalScope) -> DomRoot<EventTarget> {
-        reflect_dom_object(Box::new(EventTarget::new_inherited()), global)
+    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<EventTarget> {
+        reflect_dom_object_with_proto(Box::new(EventTarget::new_inherited()), global, proto)
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<EventTarget>> {
-        Ok(EventTarget::new(global))
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<EventTarget>> {
+        Ok(EventTarget::new(global, proto))
     }
 
+    /// Determine if there are any listeners for a given event type.
+    /// See <https://github.com/whatwg/dom/issues/453>.
     pub fn has_listeners_for(&self, type_: &Atom) -> bool {
         match self.handlers.borrow().get(type_) {
             Some(listeners) => listeners.has_listeners(),
@@ -525,7 +530,7 @@ impl EventTarget {
         let is_error = ty == &atom!("error") && self.is::<Window>();
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
 
-        let cx = window.get_cx();
+        let cx = GlobalScope::get_cx();
         let options = unsafe {
             CompileOptionsWrapper::new(*cx, &handler.url.to_string(), handler.line as u32)
         };
@@ -592,7 +597,7 @@ impl EventTarget {
     where
         T: CallbackContainer,
     {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::EventHandler(unsafe {
@@ -607,7 +612,7 @@ impl EventTarget {
     where
         T: CallbackContainer,
     {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(unsafe {
@@ -625,7 +630,7 @@ impl EventTarget {
     ) where
         T: CallbackContainer,
     {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
@@ -637,7 +642,7 @@ impl EventTarget {
 
     #[allow(unsafe_code)]
     pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         let listener = self.get_inline_event_listener(&Atom::from(ty));
         unsafe {
             listener.map(|listener| {

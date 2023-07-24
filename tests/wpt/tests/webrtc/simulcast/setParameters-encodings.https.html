@@ -1,0 +1,463 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Simulcast Tests - setParameters/encodings</title>
+<meta name="timeout" content="long">
+<script src="../third_party/sdp/sdp.js"></script>
+<script src="simulcast.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../mediacapture-streams/permission-helper.js"></script>
+<script>
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const {sender} = pc1.addTransceiver("video", {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+
+  await doOfferToSendSimulcast(pc1, pc2);
+
+  await pc2.setLocalDescription();
+  const simulcastAnswer = midToRid(pc2.localDescription, pc1.localDescription, ["foo"]);
+
+  const parameters = sender.getParameters();
+  parameters.encodings[1].scaleResolutionDownBy = 3.3;
+  const answerDone = pc1.setRemoteDescription({type: "answer", sdp: simulcastAnswer});
+  await sender.setParameters(parameters);
+  await answerDone;
+
+  assert_equals(pc1.getTransceivers().length, 1);
+  const {encodings} = sender.getParameters();
+  const rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo"]);
+}, 'sRD(simulcast answer) can narrow the simulcast envelope when interrupted by a setParameters');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const {sender} = pc1.addTransceiver("video", {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+
+  assert_equals(pc1.getTransceivers().length, 1);
+  let encodings = sender.getParameters().encodings;
+  let rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+
+  const reoffer = await pc2.createOffer();
+  const simulcastSdp = midToRid(reoffer, pc1.localDescription, ["foo"]);
+
+  const parameters = sender.getParameters();
+  parameters.encodings[1].scaleResolutionDownBy = 3.3;
+  const reofferDone = pc1.setRemoteDescription({type: "offer", sdp: simulcastSdp});
+  await sender.setParameters(parameters);
+  await reofferDone;
+  await pc1.setLocalDescription();
+
+  encodings = sender.getParameters().encodings;
+  rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo"]);
+}, 'sRD(simulcast offer) can narrow the simulcast envelope when interrupted by a setParameters');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const {sender} = pc1.addTransceiver("video", {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+
+  const parameters = sender.getParameters();
+  parameters.encodings[0].scaleResolutionDownBy = 2.3;
+  parameters.encodings[1].scaleResolutionDownBy = 3.3;
+  await sender.setParameters(parameters);
+
+  await doOfferToSendSimulcast(pc1, pc2);
+  await doAnswerToRecvSimulcast(pc1, pc2, []);
+
+  assert_equals(pc1.getTransceivers().length, 1);
+  const encodings = sender.getParameters().encodings;
+  const rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo"]);
+  assert_equals(encodings[0].scaleResolutionDownBy, 2.3);
+}, 'a simulcast setParameters followed by a sRD(unicast answer) results in keeping the first encoding');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const {sender} = pc1.addTransceiver("video", {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+  await doOfferToSendSimulcast(pc1, pc2);
+
+  await pc2.setLocalDescription();
+  const unicastAnswer = midToRid(pc2.localDescription, pc1.localDescription, []);
+
+  const parameters = sender.getParameters();
+  parameters.encodings[0].scaleResolutionDownBy = 2.3;
+  parameters.encodings[1].scaleResolutionDownBy = 3.3;
+  const answerDone = pc1.setRemoteDescription({type: "answer", sdp: unicastAnswer});
+  await sender.setParameters(parameters);
+  await answerDone;
+
+  assert_equals(pc1.getTransceivers().length, 1);
+  const encodings = sender.getParameters().encodings;
+  const rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo"]);
+  assert_equals(encodings[0].scaleResolutionDownBy, 2.3);
+}, 'sRD(unicast answer) interrupted by setParameters(simulcast) results in keeping the first encoding');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const {sender} = pc1.addTransceiver("video", {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+  assert_equals(pc1.getTransceivers().length, 1);
+  let encodings = sender.getParameters().encodings;
+  let rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+
+  const reoffer = await pc2.createOffer();
+  const unicastSdp = midToRid(reoffer, pc1.localDescription, []);
+  const parameters = sender.getParameters();
+  parameters.encodings[0].scaleResolutionDownBy = 2.3;
+  parameters.encodings[1].scaleResolutionDownBy = 3.3;
+  const reofferDone = pc1.setRemoteDescription({type: "offer", sdp: unicastSdp});
+  await sender.setParameters(parameters);
+  await reofferDone;
+  await pc1.setLocalDescription();
+
+  encodings = sender.getParameters().encodings;
+  rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo"]);
+  assert_equals(encodings[0].scaleResolutionDownBy, 2.3);
+}, 'sRD(unicast reoffer) interrupted by setParameters(simulcast) results in keeping the first encoding');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const {sender} = pc1.addTransceiver("video", {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+
+  await doOfferToSendSimulcast(pc1, pc2);
+  await pc2.setLocalDescription();
+  const simulcastAnswer = midToRid(pc2.localDescription, pc1.localDescription, ["foo"]);
+  const parameters = sender.getParameters();
+  parameters.encodings[0].scaleResolutionDownBy = 3.3;
+  const answerDone = pc1.setRemoteDescription({type: "answer", sdp: simulcastAnswer});
+  await sender.setParameters(parameters);
+  await answerDone;
+
+  const {encodings} = sender.getParameters();
+  assert_equals(encodings.length, 1);
+  assert_equals(encodings[0].scaleResolutionDownBy, 3.3);
+}, 'sRD(simulcast answer) interrupted by a setParameters does not result in losing modifications from the setParameters to the encodings that remain');
+
+const simulcastOffer = `v=0
+o=- 3840232462471583827 0 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:Li6+
+a=ice-pwd:3C05CTZBRQVmGCAq7hVasHlT
+a=ice-options:trickle
+a=fingerprint:sha-256 5B:D3:8E:66:0E:7D:D3:F3:8E:E6:80:28:19:FC:55:AD:58:5D:B9:3D:A8:DE:45:4A:E7:87:02:F8:3C:0B:3B:B3
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:sdes:mid
+a=extmap:2 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=recvonly
+a=rtcp-mux
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 goog-remb
+a=rtcp-fb:96 transport-cc
+a=rtcp-fb:96 ccm fir
+a=rid:foo recv
+a=rid:bar recv
+a=simulcast:recv foo;bar
+`;
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const sender = pc1.addTrack(stream.getTracks()[0]);
+  const parameters = sender.getParameters();
+  parameters.encodings[0].scaleResolutionDownBy = 3.0;
+  await sender.setParameters(parameters);
+
+  await pc1.setRemoteDescription({type: "offer", sdp: simulcastOffer});
+
+  const {encodings} = sender.getParameters();
+  const rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+  assert_equals(encodings[0].scaleResolutionDownBy, 2.0);
+  assert_equals(encodings[1].scaleResolutionDownBy, 1.0);
+}, 'addTrack, then a unicast setParameters, then sRD(simulcast offer) results in simulcast without the settings from setParameters');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const sender = pc1.addTrack(stream.getTracks()[0]);
+  const parameters = sender.getParameters();
+  parameters.encodings[0].scaleResolutionDownBy = 3.0;
+
+  const offerDone = pc1.setRemoteDescription({type: "offer", sdp: simulcastOffer});
+  await sender.setParameters(parameters);
+  await offerDone;
+
+  const {encodings} = sender.getParameters();
+  const rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+  assert_equals(encodings[0].scaleResolutionDownBy, 2.0);
+  assert_equals(encodings[1].scaleResolutionDownBy, 1.0);
+}, 'addTrack, then sRD(simulcast offer) interrupted by a unicast setParameters results in simulcast without the settings from setParameters');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const {sender} = pc1.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+  pc2.getTransceivers()[0].direction = "sendrecv";
+  pc2.getTransceivers()[1].direction = "sendrecv";
+
+  await doOfferToRecvSimulcast(pc2, pc1, []);
+  // Race simulcast setParameters against sLD(unicast reanswer)
+  const answer = await pc1.createAnswer();
+  const aTask = queueAWebrtcTask();
+  // This also queues a task to clear [[LastReturnedParameters]]
+  const parameters = sender.getParameters();
+  // This might or might not queue a task right away (it might do some
+  // microtask stuff first), but it doesn't really matter.
+  const sLDDone = pc1.setLocalDescription(answer);
+  await aTask;
+  // Task queue should now have the task that clears
+  // [[LastReturnedParameters]], _then_ the success task for sLD.
+  // setParameters should succeed because [[LastReturnedParameters]] has not
+  // yet been cleared, and the steps in the success task for sLD have not run
+  // either.
+  await sender.setParameters(parameters);
+  await sLDDone;
+
+  assert_equals(pc1.getTransceivers().length, 1);
+  const {encodings} = sender.getParameters();
+  const rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo"]);
+}, 'getParameters, then sLD(unicast answer) interrupted by a simulcast setParameters results in unicast');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const {sender} = pc1.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+  pc2.getTransceivers()[0].direction = "sendrecv";
+  pc2.getTransceivers()[1].direction = "sendrecv";
+
+  await doOfferToRecvSimulcast(pc2, pc1, []);
+  const answer = await pc1.createAnswer();
+
+  // The timing on this is very difficult. We want to ensure that our
+  // getParameters call happens after the initial steps in sLD, but
+  // before the queued task that sLD runs when it completes.
+  const aTask = queueAWebrtcTask();
+  const sLDDone = pc1.setLocalDescription(answer);
+  // We now have a queued task (aTask). We might also have the success task for
+  // sLD, but maybe not. Allowing aTask to finish gives us our best chance that
+  // the success task for sLD is queued, but not run yet.
+  await aTask;
+  const parameters = sender.getParameters();
+  // Hopefully we now have the success task for sLD, followed by the
+  // success task for getParameters.
+  await sLDDone;
+  // Success task for getParameters should not have run yet.
+  await promise_rejects_dom(t, 'InvalidStateError', sender.setParameters(parameters));
+},'Success task for setLocalDescription(answer) clears [[LastReturnedParameters]]');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const {sender} = pc1.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+  pc2.getTransceivers()[0].direction = "sendrecv";
+  pc2.getTransceivers()[1].direction = "sendrecv";
+
+  await pc2.setLocalDescription();
+  const simulcastOffer = midToRid(
+    pc2.localDescription,
+    pc1.localDescription,
+    []
+  );
+
+  // The timing on this is very difficult. We need to ensure that our
+  // getParameters call happens after the initial steps in sRD, but
+  // before the queued task that sRD runs when it completes.
+  const aTask = queueAWebrtcTask();
+  const sRDDone = pc1.setRemoteDescription({ type: "offer", sdp: simulcastOffer });
+
+  await aTask;
+  const parameters = sender.getParameters();
+  await sRDDone;
+  await promise_rejects_dom(t, 'InvalidStateError', sender.setParameters(parameters));
+},'Success task for setRemoteDescription(offer) clears [[LastReturnedParameters]]');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const {sender} = pc1.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+  pc2.getTransceivers()[0].direction = "sendrecv";
+  pc2.getTransceivers()[1].direction = "sendrecv";
+
+  await doOfferToSendSimulcast(pc1, pc2);
+  await pc2.setLocalDescription();
+  const simulcastAnswer = midToRid(
+    pc2.localDescription,
+    pc1.localDescription,
+    []
+  );
+
+  // The timing on this is very difficult. We need to ensure that our
+  // getParameters call happens after the initial steps in sRD, but
+  // before the queued task that sRD runs when it completes.
+  const aTask = queueAWebrtcTask();
+  const sRDDone = pc1.setRemoteDescription({ type: "answer", sdp: simulcastAnswer });
+  await aTask;
+
+  const parameters = sender.getParameters();
+  await sRDDone;
+  await promise_rejects_dom(t, 'InvalidStateError', sender.setParameters(parameters));
+},'Success task for setRemoteDescription(answer) clears [[LastReturnedParameters]]');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const sender = pc1.addTrack(stream.getTracks()[0]);
+  pc2.addTrack(stream.getTracks()[0]);
+
+  await doOfferToRecvSimulcast(pc2, pc1, ["foo", "bar"]);
+  let parameters = sender.getParameters();
+  let rids = parameters.encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+  parameters.encodings[0].scaleResolutionDownBy = 3;
+  parameters.encodings[1].scaleResolutionDownBy = 5;
+  await sender.setParameters(parameters);
+
+  await pc1.setRemoteDescription({sdp: "", type: "rollback"});
+
+  parameters = sender.getParameters();
+  rids = parameters.encodings.map(({rid}) => rid);
+  assert_array_equals(rids, [undefined]);
+  assert_equals(parameters.encodings[0].scaleResolutionDownBy, 1);
+}, 'addTrack, then rollback of sRD(simulcast offer), brings us back to having a single encoding without any previously set parameters');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const {sender} = pc1.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+  let parameters = sender.getParameters();
+  let rids = parameters.encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+  parameters.encodings[0].scaleResolutionDownBy = 3;
+  parameters.encodings[1].scaleResolutionDownBy = 5;
+  await sender.setParameters(parameters);
+
+  await doOfferToRecvSimulcast(pc2, pc1, []);
+  parameters = sender.getParameters();
+  rids = parameters.encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+
+  await pc1.setRemoteDescription({sdp: "", type: "rollback"});
+  parameters = sender.getParameters();
+  rids = parameters.encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+  assert_equals(parameters.encodings[0].scaleResolutionDownBy, 3);
+  assert_equals(parameters.encodings[1].scaleResolutionDownBy, 5);
+}, 'rollback of a remote offer that disabled a previously negotiated simulcast should restore simulcast along with any previously set parameters');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const sender = pc1.addTrack(stream.getTracks()[0]);
+  pc2.addTrack(stream.getTracks()[0]);
+
+  await doOfferToRecvSimulcast(pc2, pc1, ["foo", "bar"]);
+  const aTask = queueAWebrtcTask();
+  let parameters = sender.getParameters();
+  let rids = parameters.encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+  parameters.encodings[0].scaleResolutionDownBy = 3;
+  parameters.encodings[1].scaleResolutionDownBy = 5;
+
+  const rollbackDone = pc1.setRemoteDescription({sdp: "", type: "rollback"});
+  await aTask;
+  await sender.setParameters(parameters);
+  await rollbackDone;
+
+  parameters = sender.getParameters();
+  rids = parameters.encodings.map(({rid}) => rid);
+  assert_array_equals(rids, [undefined]);
+  assert_equals(parameters.encodings[0].scaleResolutionDownBy, 1);
+}, 'rollback of sRD(simulcast offer) interrupted by setParameters(simulcast) brings us back to having a single encoding without any previously set parameters');
+
+</script>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Test about: main frame navigation in a prerendered page</title>
+<meta name="timeout" content="long">
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid = token();
+  const bc = new PrerenderChannel('result', uid);
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+
+  const url = `resources/main-frame-navigation.html?uid=${uid}`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await gotMessage;
+
+  assert_equals(result.onprerenderingchangeCalled, true,
+      'prerenderingchange event should be called after activation.');
+  assert_equals(result.prerenderingValueBeforeActivation, true,
+      'document.prerendering should be true prior to activation.');
+  assert_equals(result.prerenderingValueAfterActivation, false,
+      'document.prerendering should be false after activation.');
+}, 'Test document.prerendering and prerenderingchange event in the navigated ' +
+   'page');
+</script>

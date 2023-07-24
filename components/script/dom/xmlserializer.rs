@@ -4,12 +4,13 @@
 
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use xml5ever::serialize::{serialize, SerializeOpts, TraversalScope};
 
 #[dom_struct]
@@ -26,13 +27,20 @@ impl XMLSerializer {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<XMLSerializer> {
-        reflect_dom_object(Box::new(XMLSerializer::new_inherited(window)), window)
+    pub fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<XMLSerializer> {
+        reflect_dom_object_with_proto(
+            Box::new(XMLSerializer::new_inherited(window)),
+            window,
+            proto,
+        )
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window) -> Fallible<DomRoot<XMLSerializer>> {
-        Ok(XMLSerializer::new(window))
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<XMLSerializer>> {
+        Ok(XMLSerializer::new(window, proto))
     }
 }
 

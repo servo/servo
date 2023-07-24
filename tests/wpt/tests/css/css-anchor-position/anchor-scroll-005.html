@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Tests scrolling with anchor in fixed-positioned scroller</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+  height: 200vh;
+}
+
+#scroller {
+  position: fixed;
+  width: 200px;
+  height: 200px;
+  overflow-y: scroll;
+}
+
+#anchor {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  top: 200px;
+  background: orange;
+  anchor-name: --a;
+}
+
+#target {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  bottom: anchor(--a top);
+  anchor-default: --a;
+  background: lime;
+}
+</style>
+
+<div id=scroller>
+  <div id=anchor></div>
+</div>
+<div id=target></div>
+
+<script>
+promise_test(async () => {
+  await waitUntilNextAnimationFrame();
+  assert_equals(target.getBoundingClientRect().top, 100);
+
+  document.documentElement.scrollTop = 100;
+  await waitUntilNextAnimationFrame();
+  assert_equals(target.getBoundingClientRect().top, 100);
+}, 'Target should not scroll with viewport when anchor is in fixed-positioned scroller');
+</script>

@@ -17,6 +17,7 @@ use crate::dom::node::{window_from_node, Node};
 use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 use std::collections::HashMap;
 
@@ -38,17 +39,28 @@ impl DocumentFragment {
     }
 
     pub fn new(document: &Document) -> DomRoot<DocumentFragment> {
-        Node::reflect_node(
+        Self::new_with_proto(document, None)
+    }
+
+    fn new_with_proto(
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<DocumentFragment> {
+        Node::reflect_node_with_proto(
             Box::new(DocumentFragment::new_inherited(document)),
             document,
+            proto,
         )
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window) -> Fallible<DomRoot<DocumentFragment>> {
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<DocumentFragment>> {
         let document = window.Document();
 
-        Ok(DocumentFragment::new(&document))
+        Ok(DocumentFragment::new_with_proto(&document, proto))
     }
 
     pub fn id_map(&self) -> &DomRefCell<HashMap<Atom, Vec<Dom<Element>>>> {

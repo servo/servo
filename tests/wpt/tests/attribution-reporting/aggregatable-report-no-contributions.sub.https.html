@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/attribution-reporting/resources/helpers.js"></script>
+<script>
+attribution_reporting_promise_test(async t => {
+  const host = 'https://{{host}}';
+
+  const expectedSourceEventId = generateSourceEventId();
+  const expectedSourceDebugKey = '456';
+  const expectedTriggerDebugKey = '654';
+
+  registerAttributionSrcByImg(createRedirectChain([
+    {
+      cookie: attributionDebugCookie,
+      source: {
+        aggregation_keys: {
+          campaignCounts: '0x159',
+        },
+        debug_key: expectedSourceDebugKey,
+        destination: host,
+        source_event_id: expectedSourceEventId,
+      },
+    },
+    {
+      trigger : {
+        aggregatable_values: {
+          geoValue: 32768,
+        },
+        debug_key: expectedTriggerDebugKey,
+        debug_reporting: true,
+      },
+    },
+  ]));
+
+  const debugPayload = await pollVerboseDebugReports();
+  assert_equals(debugPayload.reports.length, 1);
+  const debugReport = JSON.parse(debugPayload.reports[0].body);
+  assert_equals(debugReport.length, 1);
+  assert_equals(debugReport[0].type, 'trigger-aggregate-no-contributions');
+  assert_own_property(debugReport[0], 'body');
+  const debugReportBody = debugReport[0].body;
+  assert_equals(debugReportBody.attribution_destination, host);
+  assert_equals(debugReportBody.source_event_id, expectedSourceEventId);
+  assert_equals(debugReportBody.source_site, host);
+  assert_equals(debugReportBody.source_debug_key, expectedSourceDebugKey);
+  assert_equals(debugReportBody.trigger_debug_key, expectedTriggerDebugKey);
+}, 'Aggregatable report is not created due to no contributions.');
+</script>

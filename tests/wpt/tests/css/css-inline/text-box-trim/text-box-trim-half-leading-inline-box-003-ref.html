@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Reference for trimming inline boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#leading-trim">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+div {
+  border: 1px solid orange;
+  font-size: 20px;
+  line-height: 1;
+  writing-mode:vertical-lr;
+}
+
+span {
+  border: 1px solid blue;
+  border-top: 0;
+  border-bottom: 0;
+  font-family: Ahem;
+  font-size: 20px;
+  line-height: 1;
+}
+</style>
+
+<div>
+  <span>Test</span>
+</div>
+<div>
+  <span>Test<br><br></span>
+</div>
+<div>
+  <span><br>Test</span>
+</div>

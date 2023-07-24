@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>The deadline after an expired timer must not be negative</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+<script>
+  async_test(function(t) {
+    setTimeout(() => {
+
+      requestIdleCallback(
+        t.step_func((deadline) => {
+          assert_false(deadline.didTimeout);
+          assert_greater_than_equal(deadline.timeRemaining(), 0);
+          t.done();
+        }),
+        { timeout: 1000 }
+      );
+
+    }, 0);
+  });
+</script>

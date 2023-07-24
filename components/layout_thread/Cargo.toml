@@ -7,27 +7,27 @@ edition = "2018"
 publish = false
 
 [lib]
-name = "layout_thread"
+name = "layout_thread_2013"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.7"
-atomic_refcell = "0.1"
-crossbeam-channel = "0.4"
+app_units = { workspace = true }
+atomic_refcell = { workspace = true }
+crossbeam-channel = { workspace = true }
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.22"
-fnv = "1.0"
-fxhash = "0.2"
+euclid = { workspace = true }
+fnv = { workspace = true }
+fxhash = { workspace = true }
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
 histogram = "0.6.8"
-html5ever = "0.26"
-ipc-channel = "0.14"
+html5ever = { workspace = true }
+ipc-channel = { workspace = true }
 layout = { path = "../layout", package = "layout_2013" }
 layout_traits = { path = "../layout_traits" }
-lazy_static = "1"
-libc = "0.2"
-log = "0.4"
+lazy_static = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
 metrics = { path = "../metrics" }
 msg = { path = "../msg" }
@@ -35,12 +35,12 @@ net_traits = { path = "../net_traits" }
 parking_lot = { version = "0.11" }
 profile_traits = { path = "../profile_traits" }
 range = { path = "../range" }
-rayon = "1"
+rayon = { workspace = true }
 script = { path = "../script" }
 script_layout_interface = { path = "../script_layout_interface" }
 script_traits = { path = "../script_traits" }
 selectors = { path = "../selectors", features = ["shmem"] }
-serde_json = "1.0"
+serde_json = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms" }
@@ -48,5 +48,5 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 style = { path = "../style" }
 style_traits = { path = "../style_traits" }
-time = "0.1.41"
-webrender_api = { git = "https://github.com/servo/webrender" }
+time = { workspace = true }
+webrender_api = { workspace = true }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>script type="module"</title>
+  <metadata>
+      <h:link rel="help" href="https://svgwg.org/svg2-draft/interact.html#ScriptElement"/>
+  </metadata>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script type="module">
+    window.evaluated_module_script = true;
+  </script>
+  <script>
+    var test = async_test("module script in SVG documents should be evaluated.");
+    window.addEventListener("load", () => {
+      test.step(() => { assert_true(window.evaluated_module_script); });
+      test.done();
+    });
+  </script>
+</svg>

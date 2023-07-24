@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Embedded Control</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>Tests the <a href="https://w3c.github.io/accname/#comp_embedded_control">#comp_embedded_control</a> portions of the AccName <em>Name Computation</em> algorithm.</p>
+
+<label>
+  <input type="checkbox" data-expectedlabel="Flash the screen 3 times" data-testname="checkbox label with embedded textfield" class="ex">
+  Flash the screen
+  <input value="3" aria-label="number of times" data-expectedlabel="number of times" data-testname="label of embedded textfield inside checkbox label" class="ex"> times
+</label>
+
+
+<!--
+
+Todo: test all remaining cases of https://w3c.github.io/accname/#comp_embedded_control
+ - comp_embedded_control_textbox
+ - comp_embedded_control_combobox_or_listbox
+ - comp_embedded_control_range
+ - comp_embedded_control_range_valuetext
+ - comp_embedded_control_range_valuenow
+ - comp_embedded_control_range_host_language_value
+
+-->
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

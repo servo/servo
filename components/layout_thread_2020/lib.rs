@@ -29,7 +29,7 @@ use gfx_traits::{node_id_from_scroll_id, Epoch};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
-use layout::display_list::{DisplayListBuilder, WebRenderImageInfo};
+use layout::display_list::{DisplayList, WebRenderImageInfo};
 use layout::dom::DOMLayoutData;
 use layout::layout_debug;
 use layout::query::{
@@ -82,7 +82,7 @@ use style::animation::DocumentAnimationSet;
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
-use style::dom::{TDocument, TElement, TNode};
+use style::dom::{TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
 use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
@@ -100,6 +100,7 @@ use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
+use webrender_api::{units, HitTestFlags, ScrollClamping};
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -517,6 +518,7 @@ impl LayoutThread {
         animation_timeline_value: f64,
         animations: &DocumentAnimationSet,
         stylesheets_changed: bool,
+        use_rayon: bool,
     ) -> LayoutContext<'a> {
         let traversal_flags = match stylesheets_changed {
             true => TraversalFlags::ForCSSRuleChanges,
@@ -541,7 +543,7 @@ impl LayoutThread {
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: Mutex::new(vec![]),
-            use_rayon: STYLE_THREAD_POOL.pool().is_some(),
+            use_rayon,
         }
     }
 
@@ -865,7 +867,6 @@ impl LayoutThread {
 
         let initial_viewport = data.window_size.initial_viewport;
         let device_pixel_ratio = data.window_size.device_pixel_ratio;
-        let old_viewport_size = self.viewport_size;
         let current_screen_size = Size2D::new(
             Au::from_f32_px(initial_viewport.width),
             Au::from_f32_px(initial_viewport.height),
@@ -895,29 +896,7 @@ impl LayoutThread {
 
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
-        self.viewport_size =
-            self.stylist
-                .viewport_constraints()
-                .map_or(current_screen_size, |constraints| {
-                    Size2D::new(
-                        Au::from_f32_px(constraints.size.width),
-                        Au::from_f32_px(constraints.size.height),
-                    )
-                });
-
-        let viewport_size_changed = self.viewport_size != old_viewport_size;
-        if viewport_size_changed {
-            if let Some(constraints) = self.stylist.viewport_constraints() {
-                // let the constellation know about the viewport constraints
-                self.constellation_chan
-                    .send(ConstellationMsg::ViewportConstrained(
-                        self.id,
-                        constraints.clone(),
-                    ))
-                    .unwrap();
-            }
-        }
-
+        self.viewport_size = current_screen_size;
         if self.first_reflow.get() {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
@@ -943,11 +922,7 @@ impl LayoutThread {
         }
 
         // Flush shadow roots stylesheets if dirty.
-        document.flush_shadow_roots_stylesheets(
-            &self.stylist.device(),
-            document.quirks_mode(),
-            guards.author.clone(),
-        );
+        document.flush_shadow_roots_stylesheets(&mut self.stylist, guards.author.clone());
 
         let restyles = std::mem::take(&mut data.pending_restyles);
         debug!("Draining restyles: {}", restyles.len());
@@ -993,6 +968,10 @@ impl LayoutThread {
 
         self.stylist.flush(&guards, Some(root_element), Some(&map));
 
+        let rayon_pool = STYLE_THREAD_POOL.lock().unwrap();
+        let rayon_pool = rayon_pool.pool();
+        let rayon_pool = rayon_pool.as_ref();
+
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(
             guards.clone(),
@@ -1001,6 +980,7 @@ impl LayoutThread {
             data.animation_timeline_value,
             &data.animations,
             data.stylesheets_changed,
+            rayon_pool.is_some(),
         );
 
         let dirty_root = unsafe {
@@ -1015,9 +995,6 @@ impl LayoutThread {
                 DomTraversal::<ServoLayoutElement<DOMLayoutData>>::shared_context(&traversal);
             RecalcStyle::pre_traverse(dirty_root, shared)
         };
-
-        let rayon_pool = STYLE_THREAD_POOL.pool();
-        let rayon_pool = rayon_pool.as_ref();
 
         if token.should_traverse() {
             let dirty_root: ServoLayoutNode<DOMLayoutData> =
@@ -1160,15 +1137,15 @@ impl LayoutThread {
                 &QueryMsg::StyleQuery => {},
                 &QueryMsg::NodesFromPointQuery(client_point, ref reflow_goal) => {
                     let mut flags = match reflow_goal {
-                        &NodesFromPointQueryType::Topmost => webrender_api::HitTestFlags::empty(),
-                        &NodesFromPointQueryType::All => webrender_api::HitTestFlags::FIND_ALL,
+                        &NodesFromPointQueryType::Topmost => HitTestFlags::empty(),
+                        &NodesFromPointQueryType::All => HitTestFlags::FIND_ALL,
                     };
 
                     // The point we get is not relative to the entire WebRender scene, but to this
                     // particular pipeline, so we need to tell WebRender about that.
-                    flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
+                    flags.insert(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                    let client_point = webrender_api::units::WorldPoint::from_untyped(client_point);
+                    let client_point = units::WorldPoint::from_untyped(client_point);
                     let results = self.webrender_api.hit_test(
                         Some(self.id.to_webrender()),
                         client_point,
@@ -1202,9 +1179,9 @@ impl LayoutThread {
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.webrender_api.send_scroll_node(
-            webrender_api::units::LayoutPoint::from_untyped(point),
+            units::LayoutPoint::from_untyped(point),
             state.scroll_id,
-            webrender_api::ScrollClamping::ToContentBounds,
+            ScrollClamping::ToContentBounds,
         );
     }
 
@@ -1268,8 +1245,20 @@ impl LayoutThread {
             document.will_paint();
         }
 
-        let mut display_list =
-            DisplayListBuilder::new(self.id.to_webrender(), context, &fragment_tree);
+        let mut epoch = self.epoch.get();
+        epoch.next();
+        self.epoch.set(epoch);
+
+        let viewport_size = units::LayoutSize::from_untyped(Size2D::new(
+            self.viewport_size.width.to_f32_px(),
+            self.viewport_size.height.to_f32_px(),
+        ));
+        let mut display_list = DisplayList::new(
+            viewport_size,
+            fragment_tree.scrollable_overflow(),
+            self.id.to_webrender(),
+            epoch.into(),
+        );
 
         // `dump_serialized_display_list` doesn't actually print anything. It sets up
         // the display list for printing the serialized version when `finalize()` is called.
@@ -1279,35 +1268,30 @@ impl LayoutThread {
             display_list.wr.dump_serialized_display_list();
         }
 
-        fragment_tree.build_display_list(&mut display_list);
+        // Build the root stacking context. This turns the `FragmentTree` into a
+        // tree of fragments in CSS painting order and also creates all
+        // applicable spatial and clip nodes.
+        let root_stacking_context = display_list.build_stacking_context_tree(&fragment_tree);
+
+        // Build the rest of the display list which inclues all of the WebRender primitives.
+        let (iframe_sizes, is_contentful) =
+            display_list.build(context, &fragment_tree, &root_stacking_context);
 
         if self.debug.dump_flow_tree {
             fragment_tree.print();
         }
         debug!("Layout done!");
 
-        let mut epoch = self.epoch.get();
-        epoch.next();
-        self.epoch.set(epoch);
-
         // Observe notifications about rendered frames if needed right before
         // sending the display list to WebRender in order to set time related
         // Progressive Web Metrics.
         self.paint_time_metrics
-            .maybe_observe_paint_time(self, epoch, display_list.is_contentful);
+            .maybe_observe_paint_time(self, epoch, is_contentful);
 
-        let viewport_size = webrender_api::units::LayoutSize::from_untyped(Size2D::new(
-            self.viewport_size.width.to_f32_px(),
-            self.viewport_size.height.to_f32_px(),
-        ));
-        self.webrender_api.send_display_list(
-            epoch,
-            viewport_size,
-            display_list.compositor_info,
-            display_list.wr.finalize(),
-        );
+        self.webrender_api
+            .send_display_list(display_list.compositor_info, display_list.wr.finalize());
 
-        self.update_iframe_sizes(display_list.iframe_sizes);
+        self.update_iframe_sizes(iframe_sizes);
 
         if self.debug.trace_layout {
             layout_debug::end_trace(self.generation.get());

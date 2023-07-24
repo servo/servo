@@ -41,7 +41,7 @@ use image::codecs::png::PngEncoder;
 use image::{ColorType, ImageEncoder};
 use ipc_channel::ipc::{self as ipcchan, IpcSharedMemory};
 use js::error::throw_type_error;
-use js::rust::HandleValue;
+use js::rust::{HandleObject, HandleValue};
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use script_traits::ScriptMsg;
@@ -84,12 +84,14 @@ impl HTMLCanvasElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLCanvasElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLCanvasElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 

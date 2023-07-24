@@ -6,26 +6,23 @@ license = "MPL-2.0"
 edition = "2018"
 publish = false
 
-[features]
-uwp = []
-
 [lib]
 name = "servo_config"
 path = "lib.rs"
 
 [dependencies]
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.22"
-getopts = "0.2.11"
-lazy_static = "1"
-log = "0.4"
+euclid = { workspace = true }
+getopts = { workspace = true }
+lazy_static = { workspace = true }
+log = { workspace = true }
 num_cpus = "1.1.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 servo_config_plugins = { path = "../config_plugins" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
-url = "2.0"
+url = { workspace = true }
 
 [dev-dependencies]
 std_test_override = { path = "../std_test_override" }

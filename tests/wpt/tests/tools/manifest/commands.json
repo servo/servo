@@ -1,0 +1,30 @@
+{
+  "manifest": {
+    "path": "update.py",
+    "script": "run",
+    "parser": "create_parser",
+    "help": "Update the MANIFEST.json file",
+    "virtualenv": false
+  },
+  "manifest-download": {
+    "path": "download.py",
+    "script": "run",
+    "parser": "create_parser",
+    "help": "Download recent pregenerated MANIFEST.json file",
+    "virtualenv": false
+  },
+  "test-paths": {
+    "path": "testpaths.py",
+    "script": "run",
+    "parser": "create_parser",
+    "help": "Print test paths given a set of test ids",
+    "virtualenv": false
+  },
+  "spec": {
+    "path": "spec.py",
+    "script": "run",
+    "parser": "create_parser",
+    "help": "Update the SPEC_MANIFEST.json file",
+    "virtualenv": false
+  }
+}

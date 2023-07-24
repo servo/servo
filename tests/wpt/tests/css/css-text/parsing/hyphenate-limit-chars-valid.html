@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Text: parsing hyphenate-limit-chars with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-hyphenate-limit-chars">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_valid_value("hyphenate-limit-chars", "auto");
+test_valid_value("hyphenate-limit-chars", "auto auto");
+test_valid_value("hyphenate-limit-chars", "auto auto auto");
+test_valid_value("hyphenate-limit-chars", "5");
+test_valid_value("hyphenate-limit-chars", "5 2");
+test_valid_value("hyphenate-limit-chars", "5 2 3");
+test_valid_value("hyphenate-limit-chars", "auto 2");
+test_valid_value("hyphenate-limit-chars", "auto 2 auto");
+test_valid_value("hyphenate-limit-chars", "auto auto 2");
+</script>

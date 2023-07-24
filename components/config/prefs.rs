@@ -259,11 +259,6 @@ mod gen {
                     #[serde(default)]
                     enabled: bool,
                 },
-                webgl: {
-                    dom_to_texture: {
-                        enabled: bool,
-                    }
-                },
                 webgl2: {
                     enabled: bool,
                 },
@@ -445,11 +440,9 @@ mod gen {
                 flexbox: {
                     enabled: bool,
                 },
+                legacy_layout: bool,
                 #[serde(default = "default_layout_threads")]
                 threads: i64,
-                viewport: {
-                    enabled: bool,
-                },
                 writing_mode: {
                     #[serde(rename = "layout.writing-mode.enabled")]
                     enabled: bool,
@@ -462,6 +455,9 @@ mod gen {
                 testing: {
                     enabled: bool,
                 }
+            },
+            minibrowser: {
+                enabled: bool,
             },
             network: {
                 enforce_tls: {

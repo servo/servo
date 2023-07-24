@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Service Worker: Clients.matchAll with a prerender page</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid = token();
+  const workerUrl = 'resources/clients-matchall-service-worker.js';
+  const pageUrl = `resources/prerendered-page.html?uid=${uid}`;
+
+  // Start a service worker.
+  const registration =
+      await service_worker_unregister_and_register(t, workerUrl, workerUrl);
+  t.add_cleanup(_ => registration.unregister());
+
+  // Observe the message from a prerendered page.
+  const bc = new PrerenderChannel('prerender-channel', uid);
+  t.add_cleanup(_ => bc.close());
+  const messagePromise = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {once:true});
+  });
+
+  startPrerendering(pageUrl);
+
+  const result = await messagePromise;
+  assert_equals(result, 'prerender success');
+
+  // The service worker returns the list of client urls exposed by
+  // Clients#matchAll().
+  const message = await new Promise(resolve => {
+    navigator.serviceWorker.onmessage = resolve;
+    get_newest_worker(registration).postMessage('invoke clients.matchAll()');
+  });
+
+  assert_array_equals(
+    message.data,
+    [ window.location.href, new URL(pageUrl, location).toString() ]);
+}, 'The client urls (including a prerender page) are exposed by ' +
+   'Clients#matchAll()');
+
+</script>

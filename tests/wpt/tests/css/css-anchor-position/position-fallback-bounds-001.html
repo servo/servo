@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<title>Tests basic functionalities of 'position-fallback-bounds'</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-bounds">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+.container {
+  position: relative;
+  width: 400px;
+  height: 400px;
+  top: 100px;
+  anchor-name: --bounds;
+  outline: 1px dashed black;
+}
+
+.anchor {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  left: 150px;
+  background-color: orange;
+}
+
+.target {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background-color: lime;
+  left: anchor(left);
+  position-fallback-bounds: --bounds;
+}
+
+#anchor1 {
+  top: 0;
+  anchor-name: --a1;
+}
+#anchor2 {
+  bottom: 0;
+  anchor-name: --a2;
+}
+
+#target1 {
+  anchor-default: --a1;
+  position-fallback: --top-then-bottom;
+}
+#target2 {
+  anchor-default: --a2;
+  position-fallback: --bottom-then-top;
+}
+
+@position-fallback --top-then-bottom {
+  @try { bottom: anchor(top); }
+  @try { top: anchor(bottom); }
+}
+@position-fallback --bottom-then-top {
+  @try { top: anchor(bottom); }
+  @try { bottom: anchor(top); }
+}
+</style>
+
+<body onload="checkLayoutForAnchorPos('.target')">
+  <div class="container" id="bounds">
+    <div class="anchor" id="anchor1"></div>
+    <div class="anchor" id="anchor2"></div>
+  </div>
+
+  <!-- Enough space above the anchor in the viewport but not in the additional
+       bounds rect, which triggers fallback -->
+  <div class="target" id="target1" data-offset-y=200></div>
+
+  <!-- Enough space below the anchor in the viewport but not in the additional
+       bounds rect, which triggers fallback -->
+  <div class="target" id="target2" data-offset-y=300></div>
+</body>

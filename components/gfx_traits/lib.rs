@@ -17,6 +17,7 @@ pub mod print_tree;
 
 use range::RangeIndex;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use webrender_api::{Epoch as WebRenderEpoch, FontInstanceKey, FontKey, NativeFontHandle};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -25,6 +26,12 @@ pub struct Epoch(pub u32);
 impl Epoch {
     pub fn next(&mut self) {
         self.0 += 1;
+    }
+}
+
+impl Into<WebRenderEpoch> for Epoch {
+    fn into(self) -> WebRenderEpoch {
+        WebRenderEpoch(self.0)
     }
 }
 
@@ -106,14 +113,10 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
 
 pub enum FontData {
     Raw(Vec<u8>),
-    Native(webrender_api::NativeFontHandle),
+    Native(NativeFontHandle),
 }
 
 pub trait WebrenderApi {
-    fn add_font_instance(
-        &self,
-        font_key: webrender_api::FontKey,
-        size: f32,
-    ) -> webrender_api::FontInstanceKey;
-    fn add_font(&self, data: FontData) -> webrender_api::FontKey;
+    fn add_font_instance(&self, font_key: FontKey, size: f32) -> FontInstanceKey;
+    fn add_font(&self, data: FontData) -> FontKey;
 }

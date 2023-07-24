@@ -1,0 +1,34 @@
+platform(linux,mac) == border-clamp-corner-radius.yaml border-clamp-corner-radius.png
+fuzzy(1,840) == border-gradient-simple.yaml border-gradient-simple-ref.yaml
+platform(linux,mac) == border-gradient-nine-patch.yaml border-gradient-nine-patch.png
+== border-radial-gradient-simple.yaml border-radial-gradient-simple-ref.yaml
+platform(linux,mac) == border-radial-gradient-nine-patch.yaml border-radial-gradient-nine-patch.png
+== border-radii.yaml border-radii.png
+== border-none.yaml border-none-ref.yaml
+fuzzy(128,69) == border-overlapping-corner.yaml border-overlapping-corner-ref.yaml
+== border-overlapping-edge.yaml border-overlapping-edge-ref.yaml
+== border-invisible.yaml border-invisible-ref.yaml
+platform(linux,mac) == border-suite.yaml border-suite.png
+platform(linux,mac) fuzzy(8,80) == border-suite-2.yaml border-suite-2.png
+platform(linux,mac) == border-suite-3.yaml border-suite-3.png
+skip_on(android,device) == border-double-simple.yaml border-double-simple-ref.yaml  # Fails on Pixel2
+== border-double-simple-2.yaml border-double-simple-2-ref.yaml
+skip_on(android,device) fuzzy(64,24) == border-groove-simple.yaml border-groove-simple-ref.yaml  # Fails on Pixel2
+skip_on(android,device) fuzzy(64,24) == border-ridge-simple.yaml border-ridge-simple-ref.yaml  # Fails on Pixel2
+platform(linux,mac) fuzzy(1,3) == degenerate-curve.yaml degenerate-curve.png
+platform(linux,mac) == border-image.yaml border-image-ref.png
+platform(linux,mac) == border-image-empty-slice.yaml border-image-empty-slice-ref.png
+platform(linux,mac) == border-image-round.yaml border-image-round-ref.png
+== border-image-crash.yaml border-image-crash-ref.yaml
+fuzzy(1,5000) == border-image-fill.yaml border-image-fill-ref.png
+== border-no-bogus-line.yaml border-no-bogus-line-ref.png
+platform(linux,mac) == dotted-corner-small-radius.yaml dotted-corner-small-radius.png
+== overlapping.yaml overlapping.png
+== zero-width.yaml blank.yaml
+platform(linux,mac) == small-dotted-border.yaml small-dotted-border.png
+== discontinued-dash.yaml discontinued-dash.png
+platform(linux,mac) == border-dashed-dotted-caching.yaml border-dashed-dotted-caching.png
+!= small-inset-outset.yaml small-inset-outset-notref.yaml
+fuzzy(1,16) == no-aa.yaml green-square.yaml
+skip_on(android,device) == border-double-1px.yaml border-double-1px-ref.yaml  # Fails on Pixel2
+== max-scale.yaml max-scale-ref.yaml

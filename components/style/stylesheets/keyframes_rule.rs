@@ -495,8 +495,8 @@ pub fn parse_keyframe_list(
     RuleListParser::new_for_nested_rule(
         input,
         KeyframeListParser {
-            context: context,
-            shared_lock: shared_lock,
+            context,
+            shared_lock,
             declarations: &mut declarations,
         },
     )

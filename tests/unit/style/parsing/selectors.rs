@@ -4,6 +4,7 @@
 
 use cssparser::{Parser, ParserInput, ToCss};
 use selectors::parser::SelectorList;
+use servo_url::ServoUrl;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Namespaces, Origin};
 use style_traits::ParseError;
@@ -14,10 +15,11 @@ fn parse_selector<'i, 't>(
     let mut ns = Namespaces::default();
     ns.prefixes
         .insert("svg".into(), style::Namespace::new(ns!(svg)));
+    let dummy_url = ServoUrl::parse("about:blank").unwrap();
     let parser = SelectorParser {
         stylesheet_origin: Origin::UserAgent,
         namespaces: &ns,
-        url_data: None,
+        url_data: &dummy_url,
     };
     SelectorList::parse(&parser, input)
 }

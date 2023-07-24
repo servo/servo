@@ -7,8 +7,7 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
-use crate::fragment_tree::BaseFragmentInfo;
-use crate::fragments::Fragment;
+use crate::fragment_tree::{BaseFragmentInfo, Fragment};
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
@@ -138,7 +137,7 @@ impl IndependentFormattingContext {
         }
     }
 
-    pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
+    pub fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
         match self {
             Self::NonReplaced(inner) => inner
                 .contents
@@ -193,21 +192,14 @@ impl NonReplacedFormattingContext {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        tree_rank: usize,
     ) -> IndependentLayout {
         match &self.contents {
-            NonReplacedFormattingContextContents::Flow(bfc) => bfc.layout(
-                layout_context,
-                positioning_context,
-                containing_block,
-                tree_rank,
-            ),
-            NonReplacedFormattingContextContents::Flex(fc) => fc.layout(
-                layout_context,
-                positioning_context,
-                containing_block,
-                tree_rank,
-            ),
+            NonReplacedFormattingContextContents::Flow(bfc) => {
+                bfc.layout(layout_context, positioning_context, containing_block)
+            },
+            NonReplacedFormattingContextContents::Flex(fc) => {
+                fc.layout(layout_context, positioning_context, containing_block)
+            },
         }
     }
 

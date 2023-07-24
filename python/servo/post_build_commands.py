@@ -14,6 +14,9 @@ import os
 import os.path as path
 import subprocess
 from shutil import copytree, rmtree, copy2
+from typing import List
+
+import servo.util
 
 from mach.decorators import (
     CommandArgument,
@@ -79,9 +82,15 @@ class PostBuildCommands(CommandBase):
         help="Command-line arguments to be passed through to Servo")
     def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None,
             headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None):
-        self.set_run_env(android is not None)
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
+        if software:
+            if not is_linux():
+                print("Software rendering is only supported on Linux at the moment.")
+                return
+
+            env['LIBGL_ALWAYS_SOFTWARE'] = "1"
+        os.environ.update(env)
 
         # Make --debugger imply --debug
         if debugger:
@@ -128,13 +137,6 @@ class PostBuildCommands(CommandBase):
 
         if headless:
             args.append('-z')
-
-        if software:
-            if not is_linux():
-                print("Software rendering is only supported on Linux at the moment.")
-                return
-
-            env['LIBGL_ALWAYS_SOFTWARE'] = "1"
 
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
@@ -241,8 +243,7 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
     @CommandBase.build_like_command_arguments
-    def doc(self, params, features, target=None, android=False, magicleap=False,
-            media_stack=None, **kwargs):
+    def doc(self, params: List[str], **kwargs):
         self.ensure_bootstrapped(rustup_components=["rust-docs"])
         rustc_path = check_output(
             ["rustup" + BIN_SUFFIX, "which", "--toolchain", self.rust_toolchain(), "rustc"]
@@ -251,7 +252,7 @@ class PostBuildCommands(CommandBase):
         toolchain_path = path.dirname(path.dirname(rustc_path))
         rust_docs = path.join(toolchain_path, "share", "doc", "rust", "html")
 
-        docs = path.join(self.get_target_dir(), "doc")
+        docs = path.join(servo.util.get_target_dir(), "doc")
         if not path.exists(docs):
             os.makedirs(docs)
 
@@ -270,27 +271,11 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        features = features or []
-
-        target, android = self.pick_target_triple(target, android, magicleap)
-
-        features += self.pick_media_stack(media_stack, target)
-
-        env = self.build_env(target=target, is_build=True, features=features)
-
-        returncode = self.run_cargo_build_like_command("doc", params, features=features, env=env, **kwargs)
+        env = self.build_env(is_build=True)
+        returncode = self.run_cargo_build_like_command("doc", params, env=env, **kwargs)
         if returncode:
             return returncode
 
         static = path.join(self.context.topdir, "etc", "doc.servo.org")
         for name in os.listdir(static):
             copy2(path.join(static, name), path.join(docs, name))
-
-    @Command('browse-doc',
-             description='Generate documentation and open it in a web browser',
-             category='post-build')
-    def serve_docs(self):
-        self.doc([])
-        import webbrowser
-        webbrowser.open("file://" + path.abspath(path.join(
-            self.get_target_dir(), "doc", "servo", "index.html")))

@@ -14,6 +14,7 @@ use std::slice::Iter;
 use std::sync::Arc;
 use style::str::char_is_whitespace;
 use unicode_bidi as bidi;
+use webrender_api::FontInstanceKey;
 use xi_unicode::LineBreakLeafIter;
 
 thread_local! {
@@ -29,7 +30,7 @@ pub struct TextRun {
     pub font_template: Arc<FontTemplateData>,
     pub actual_pt_size: Au,
     pub font_metrics: FontMetrics,
-    pub font_key: webrender_api::FontInstanceKey,
+    pub font_key: FontInstanceKey,
     /// The glyph runs that make up this text run.
     pub glyphs: Arc<Vec<GlyphRun>>,
     pub bidi_level: bidi::Level,

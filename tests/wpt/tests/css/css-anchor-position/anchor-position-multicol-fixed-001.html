@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>Anchors on fixed positioned objects in multicol</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+.transform {
+  transform: translate(0);
+}
+.columns {
+  column-count: 2;
+  column-fill: auto;
+  column-gap: 10px;
+  column-width: 100px;
+  width: 210px;
+  height: 50px;
+}
+.colspan {
+  column-span: all;
+}
+.spacer {
+  height: 10px;
+  background: pink;
+}
+.anchor {
+  anchor-name: --a1;
+  background: orange;
+  margin-left: 10px;
+  width: 40px;
+  height: 10px;
+}
+.fixedpos {
+  position: fixed;
+  margin-left: 0;
+  left: 20px;
+  top: 20px;
+  width: 20px;
+  height: 30px;
+}
+.target {
+  position: absolute;
+  background: lime;
+  opacity: .3;
+  left: anchor(--a1 left);
+  top: anchor(--a1 top);
+  width: anchor-size(--a1 width);
+  height: anchor-size(--a1 height);
+}
+</style>
+<body onload="checkLayoutForAnchorPos('.target')">
+  <!-- All targets should find the fixed positioned anchor -->
+  <div class="transform">
+    <div class="spacer" style="height: 10px"></div>
+    <div class="columns">
+      <div class="transform">
+        <div class="spacer" style="height: 20px"></div>
+        <div class="transform">
+          <div class="spacer" style="height: 20px"></div>
+          <div class="anchor"></div>
+          <div class="anchor fixedpos"></div>
+          <div class="target"
+               data-offset-x="10" data-offset-y="20"
+               data-expected-width=130 data-expected-height=50></div>
+        </div>
+        <div class="target"
+             data-offset-x="20" data-offset-y="0"
+             data-expected-width=130 data-expected-height=50></div>
+      </div>
+      <div class="target"
+           data-offset-x="20" data-offset-y="10"
+           data-expected-width=130 data-expected-height=50></div>
+    </div>
+    <div class="target"
+         data-offset-x="20" data-offset-y="10"
+         data-expected-width=130 data-expected-height=50></div>
+  </div>
+</body>

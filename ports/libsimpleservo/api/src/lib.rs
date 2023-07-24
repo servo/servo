@@ -18,7 +18,7 @@ pub use servo::webrender_api::units::DeviceIntRect;
 use getopts::Options;
 use ipc_channel::ipc::IpcSender;
 use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowEvent,
+    AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
     WindowMethods,
 };
 use servo::config::prefs::pref_map;
@@ -179,7 +179,7 @@ pub struct ServoGlue {
     // EmbedderMsg::CloseBrowser will pop from it,
     // and exit if it is empty afterwards.
     browsers: Vec<BrowserId>,
-    events: Vec<WindowEvent>,
+    events: Vec<EmbedderEvent>,
 
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
 }
@@ -267,12 +267,9 @@ pub fn init(
 
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
-    let adapter = match create_adapter() {
-        Some(adapter) => adapter,
-        None => connection
-            .create_adapter()
-            .or(Err("Failed to create adapter"))?,
-    };
+    let adapter = connection
+        .create_adapter()
+        .or(Err("Failed to create adapter"))?;
     let surface_type = match init_opts.surfman_integration {
         SurfmanIntegration::Widget(native_widget) => {
             let native_widget = unsafe {
@@ -319,7 +316,7 @@ pub fn init(
             events: vec![],
             context_menu_sender: None,
         };
-        let _ = servo_glue.process_event(WindowEvent::NewBrowser(url, servo.browser_id));
+        let _ = servo_glue.process_event(EmbedderEvent::NewBrowser(url, servo.browser_id));
         *s.borrow_mut() = Some(servo_glue);
     });
 
@@ -341,7 +338,7 @@ impl ServoGlue {
 
     /// Request shutdown. Will call on_shutdown_complete.
     pub fn request_shutdown(&mut self) -> Result<(), &'static str> {
-        self.process_event(WindowEvent::Quit)
+        self.process_event(EmbedderEvent::Quit)
     }
 
     /// Call after on_shutdown_complete
@@ -385,7 +382,7 @@ impl ServoGlue {
             .map_err(|_| "Can't parse URL")
             .and_then(|url| {
                 let browser_id = self.get_browser_id()?;
-                let event = WindowEvent::LoadUrl(browser_id, url);
+                let event = EmbedderEvent::LoadUrl(browser_id, url);
                 self.process_event(event)
             })
     }
@@ -393,7 +390,7 @@ impl ServoGlue {
     /// Reload the page.
     pub fn clear_cache(&mut self) -> Result<(), &'static str> {
         info!("clear_cache");
-        let event = WindowEvent::ClearCache;
+        let event = EmbedderEvent::ClearCache;
         self.process_event(event)
     }
 
@@ -401,14 +398,14 @@ impl ServoGlue {
     pub fn reload(&mut self) -> Result<(), &'static str> {
         info!("reload");
         let browser_id = self.get_browser_id()?;
-        let event = WindowEvent::Reload(browser_id);
+        let event = EmbedderEvent::Reload(browser_id);
         self.process_event(event)
     }
 
     /// Redraw the page.
     pub fn refresh(&mut self) -> Result<(), &'static str> {
         info!("refresh");
-        self.process_event(WindowEvent::Refresh)
+        self.process_event(EmbedderEvent::Refresh)
     }
 
     /// Stop loading the page.
@@ -421,7 +418,7 @@ impl ServoGlue {
     pub fn go_back(&mut self) -> Result<(), &'static str> {
         info!("go_back");
         let browser_id = self.get_browser_id()?;
-        let event = WindowEvent::Navigation(browser_id, TraversalDirection::Back(1));
+        let event = EmbedderEvent::Navigation(browser_id, TraversalDirection::Back(1));
         self.process_event(event)
     }
 
@@ -429,7 +426,7 @@ impl ServoGlue {
     pub fn go_forward(&mut self) -> Result<(), &'static str> {
         info!("go_forward");
         let browser_id = self.get_browser_id()?;
-        let event = WindowEvent::Navigation(browser_id, TraversalDirection::Forward(1));
+        let event = EmbedderEvent::Navigation(browser_id, TraversalDirection::Forward(1));
         self.process_event(event)
     }
 
@@ -437,7 +434,7 @@ impl ServoGlue {
     pub fn resize(&mut self, coordinates: Coordinates) -> Result<(), &'static str> {
         info!("resize");
         *self.callbacks.coordinates.borrow_mut() = coordinates;
-        self.process_event(WindowEvent::Resize)
+        self.process_event(EmbedderEvent::Resize)
     }
 
     /// Start scrolling.
@@ -446,7 +443,8 @@ impl ServoGlue {
     pub fn scroll_start(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
         let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event = WindowEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Down);
+        let event =
+            EmbedderEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Down);
         self.process_event(event)
     }
 
@@ -456,7 +454,8 @@ impl ServoGlue {
     pub fn scroll(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
         let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event = WindowEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Move);
+        let event =
+            EmbedderEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Move);
         self.process_event(event)
     }
 
@@ -466,13 +465,13 @@ impl ServoGlue {
     pub fn scroll_end(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
         let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event = WindowEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Up);
+        let event = EmbedderEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Up);
         self.process_event(event)
     }
 
     /// Touch event: press down
     pub fn touch_down(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
-        let event = WindowEvent::Touch(
+        let event = EmbedderEvent::Touch(
             TouchEventType::Down,
             TouchId(pointer_id),
             Point2D::new(x as f32, y as f32),
@@ -482,7 +481,7 @@ impl ServoGlue {
 
     /// Touch event: move touching finger
     pub fn touch_move(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
-        let event = WindowEvent::Touch(
+        let event = EmbedderEvent::Touch(
             TouchEventType::Move,
             TouchId(pointer_id),
             Point2D::new(x as f32, y as f32),
@@ -492,7 +491,7 @@ impl ServoGlue {
 
     /// Touch event: Lift touching finger
     pub fn touch_up(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
-        let event = WindowEvent::Touch(
+        let event = EmbedderEvent::Touch(
             TouchEventType::Up,
             TouchId(pointer_id),
             Point2D::new(x as f32, y as f32),
@@ -502,7 +501,7 @@ impl ServoGlue {
 
     /// Cancel touch event
     pub fn touch_cancel(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
-        let event = WindowEvent::Touch(
+        let event = EmbedderEvent::Touch(
             TouchEventType::Cancel,
             TouchId(pointer_id),
             Point2D::new(x as f32, y as f32),
@@ -513,46 +512,47 @@ impl ServoGlue {
     /// Register a mouse movement.
     pub fn mouse_move(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
         let point = Point2D::new(x, y);
-        let event = WindowEvent::MouseWindowMoveEventClass(point);
+        let event = EmbedderEvent::MouseWindowMoveEventClass(point);
         self.process_event(event)
     }
 
     /// Register a mouse button press.
     pub fn mouse_down(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
         let point = Point2D::new(x, y);
-        let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(button, point));
+        let event =
+            EmbedderEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(button, point));
         self.process_event(event)
     }
 
     /// Register a mouse button release.
     pub fn mouse_up(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
         let point = Point2D::new(x, y);
-        let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(button, point));
+        let event = EmbedderEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(button, point));
         self.process_event(event)
     }
 
     /// Start pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_start(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
-        self.process_event(WindowEvent::PinchZoom(factor))
+        self.process_event(EmbedderEvent::PinchZoom(factor))
     }
 
     /// Pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
-        self.process_event(WindowEvent::PinchZoom(factor))
+        self.process_event(EmbedderEvent::PinchZoom(factor))
     }
 
     /// End pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_end(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
-        self.process_event(WindowEvent::PinchZoom(factor))
+        self.process_event(EmbedderEvent::PinchZoom(factor))
     }
 
     /// Perform a click.
     pub fn click(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
         let mouse_event = MouseWindowEvent::Click(MouseButton::Left, Point2D::new(x, y));
-        let event = WindowEvent::MouseWindowEventClass(mouse_event);
+        let event = EmbedderEvent::MouseWindowEventClass(mouse_event);
         self.process_event(event)
     }
 
@@ -562,7 +562,7 @@ impl ServoGlue {
             key,
             ..KeyboardEvent::default()
         };
-        self.process_event(WindowEvent::Keyboard(key_event))
+        self.process_event(EmbedderEvent::Keyboard(key_event))
     }
 
     pub fn key_up(&mut self, key: Key) -> Result<(), &'static str> {
@@ -571,7 +571,7 @@ impl ServoGlue {
             key,
             ..KeyboardEvent::default()
         };
-        self.process_event(WindowEvent::Keyboard(key_event))
+        self.process_event(EmbedderEvent::Keyboard(key_event))
     }
 
     pub fn media_session_action(
@@ -579,13 +579,13 @@ impl ServoGlue {
         action: MediaSessionActionType,
     ) -> Result<(), &'static str> {
         info!("Media session action {:?}", action);
-        self.process_event(WindowEvent::MediaSessionAction(action))
+        self.process_event(EmbedderEvent::MediaSessionAction(action))
     }
 
     pub fn change_visibility(&mut self, visible: bool) -> Result<(), &'static str> {
         info!("change_visibility");
         if let Ok(id) = self.get_browser_id() {
-            let event = WindowEvent::ChangeBrowserVisibility(id, visible);
+            let event = EmbedderEvent::ChangeBrowserVisibility(id, visible);
             self.process_event(event)
         } else {
             // Ignore visibility change if no browser has been created yet.
@@ -595,7 +595,7 @@ impl ServoGlue {
 
     pub fn ime_dismissed(&mut self) -> Result<(), &'static str> {
         info!("ime_dismissed");
-        self.process_event(WindowEvent::IMEDismissed)
+        self.process_event(EmbedderEvent::IMEDismissed)
     }
 
     pub fn on_context_menu_closed(
@@ -610,7 +610,7 @@ impl ServoGlue {
         Ok(())
     }
 
-    fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
+    fn process_event(&mut self, event: EmbedderEvent) -> Result<(), &'static str> {
         self.events.push(event);
         if !self.batch_mode {
             self.perform_updates()
@@ -631,7 +631,8 @@ impl ServoGlue {
                             .callbacks
                             .host_callbacks
                             .on_allow_navigation(url.to_string());
-                        let window_event = WindowEvent::AllowNavigationResponse(pipeline_id, data);
+                        let window_event =
+                            EmbedderEvent::AllowNavigationResponse(pipeline_id, data);
                         self.events.push(window_event);
                         let _ = self.perform_updates();
                     }
@@ -690,7 +691,8 @@ impl ServoGlue {
                     };
                     if let Err(e) = res {
                         let reason = format!("Failed to send Prompt response: {}", e);
-                        self.events.push(WindowEvent::SendError(browser_id, reason));
+                        self.events
+                            .push(EmbedderEvent::SendError(browser_id, reason));
                     }
                 },
                 EmbedderMsg::AllowOpeningBrowser(response_chan) => {
@@ -706,7 +708,8 @@ impl ServoGlue {
                     if self.browser_id.is_none() {
                         self.browser_id = Some(new_browser_id);
                     }
-                    self.events.push(WindowEvent::SelectBrowser(new_browser_id));
+                    self.events
+                        .push(EmbedderEvent::SelectBrowser(new_browser_id));
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
                     let contents = self.callbacks.host_callbacks.get_clipboard_contents();
@@ -721,9 +724,9 @@ impl ServoGlue {
                     if let Some(prev_browser_id) = self.browsers.last() {
                         self.browser_id = Some(*prev_browser_id);
                         self.events
-                            .push(WindowEvent::SelectBrowser(*prev_browser_id));
+                            .push(EmbedderEvent::SelectBrowser(*prev_browser_id));
                     } else {
-                        self.events.push(WindowEvent::Quit);
+                        self.events.push(EmbedderEvent::Quit);
                     }
                 },
                 EmbedderMsg::Shutdown => {
@@ -824,79 +827,6 @@ struct ServoWindowCallbacks {
 }
 
 impl EmbedderMethods for ServoEmbedderCallbacks {
-    #[cfg(feature = "uwp")]
-    fn register_webxr(
-        &mut self,
-        registry: &mut webxr::MainThreadRegistry,
-        embedder_proxy: EmbedderProxy,
-    ) {
-        use ipc_channel::ipc::{self, IpcReceiver};
-        use webxr::openxr;
-        debug!("EmbedderMethods::register_xr");
-        assert!(
-            self.xr_discovery.is_none(),
-            "UWP builds should not be initialized with a WebXR Discovery object"
-        );
-
-        #[derive(Clone)]
-        struct ContextMenuCallback(EmbedderProxy);
-
-        struct ContextMenuFuture(IpcReceiver<ContextMenuResult>);
-
-        impl openxr::ContextMenuProvider for ContextMenuCallback {
-            fn open_context_menu(&self) -> Box<dyn openxr::ContextMenuFuture> {
-                let (sender, receiver) = ipc::channel().unwrap();
-                self.0.send((
-                    None,
-                    EmbedderMsg::ShowContextMenu(
-                        sender,
-                        Some("Would you like to exit the XR session?".into()),
-                        vec!["Exit".into()],
-                    ),
-                ));
-
-                Box::new(ContextMenuFuture(receiver))
-            }
-            fn clone_object(&self) -> Box<dyn openxr::ContextMenuProvider> {
-                Box::new(self.clone())
-            }
-        }
-
-        impl openxr::ContextMenuFuture for ContextMenuFuture {
-            fn poll(&self) -> openxr::ContextMenuResult {
-                if let Ok(result) = self.0.try_recv() {
-                    if let ContextMenuResult::Selected(0) = result {
-                        openxr::ContextMenuResult::ExitSession
-                    } else {
-                        openxr::ContextMenuResult::Dismissed
-                    }
-                } else {
-                    openxr::ContextMenuResult::Pending
-                }
-            }
-        }
-
-        if openxr::create_instance(false, false).is_ok() {
-            let discovery =
-                openxr::OpenXrDiscovery::new(Box::new(ContextMenuCallback(embedder_proxy)));
-            registry.register(discovery);
-        } else {
-            let msg =
-                "Cannot initialize OpenXR - please ensure runtime is installed and enabled in \
-                       the OpenXR developer portal app.\n\nImmersive mode will not function until \
-                       this error is fixed.";
-            let (sender, _receiver) = ipc::channel().unwrap();
-            embedder_proxy.send((
-                None,
-                EmbedderMsg::Prompt(
-                    PromptDefinition::Alert(msg.to_owned(), sender),
-                    PromptOrigin::Trusted,
-                ),
-            ));
-        }
-    }
-
-    #[cfg(not(feature = "uwp"))]
     fn register_webxr(
         &mut self,
         registry: &mut webxr::MainThreadRegistry,
@@ -1001,14 +931,4 @@ impl ResourceReaderMethods for ResourceReaderInstance {
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
         vec![]
     }
-}
-
-#[cfg(feature = "uwp")]
-fn create_adapter() -> Option<Adapter> {
-    webxr::openxr::create_surfman_adapter()
-}
-
-#[cfg(not(feature = "uwp"))]
-fn create_adapter() -> Option<Adapter> {
-    None
 }

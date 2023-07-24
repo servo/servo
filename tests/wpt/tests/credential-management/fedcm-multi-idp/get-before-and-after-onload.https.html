@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API multi IDP get before and after onload test.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<script type="module">
+import {set_fedcm_cookie, set_alt_fedcm_cookie, request_options_with_mediation_required, alt_request_options_with_mediation_required} from '../support/fedcm-helper.sub.js';
+
+let cookies_promise = Promise.all([set_fedcm_cookie(), set_alt_fedcm_cookie()]);
+let has_window_loaded = false;
+const window_loaded = new Promise(resolve => {
+  window.addEventListener('load', () => {
+    has_window_loaded = true;
+    resolve();
+  });
+});
+
+promise_test(async t => {
+  let first_cred_resolved = false;
+  assert_false(has_window_loaded);
+  // First navigator.credentials.get() is called prior to window.onload
+  const first_cred = navigator.credentials.get(request_options_with_mediation_required()).finally(() => { first_cred_resolved = true; });
+  await Promise.all([cookies_promise, window_loaded]);
+  assert_true(has_window_loaded);
+  assert_false(first_cred_resolved);
+  // Second navigator.credentials.get() is called after window.onload but before first navigator.credentials.get() resolves
+  const second_cred = navigator.credentials.get(alt_request_options_with_mediation_required());
+  const rejection = promise_rejects_dom(t, 'NotAllowedError', second_cred);
+  const first = await first_cred;
+  assert_equals(first.token, "token");
+  return rejection;
+}, "When there's a `get` call before onload, a `get` call which occurs after onload but before the first `get` call resolves, should be rejected.");
+
+</script>

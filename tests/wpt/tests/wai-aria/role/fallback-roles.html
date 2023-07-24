@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Fallback Role Verification Tests</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/wai-aria/scripts/aria-utils.js"></script>
+  </head>
+  <body>
+
+  <p>Tests <a href="https://w3c.github.io/aria/#host_general_role">8.1 Role Attribute</a> role token list selection and <a href="https://w3c.github.io/aria/#document-handling_author-errors_roles">9.1 Roles - handling author errors</a>.</p>
+
+  <nav role="region group" data-testname="fallback role w/ region with no label" data-expectedrole="group" class="ex">x</nav>
+  <nav role="region group" data-testname="fallback role w/ region with label" aria-label="x" data-expectedrole="region" class="ex">x</nav>
+
+<!-- todo: additional fallback roles:
+
+- valid/valid "switch checkbox"
+- invalid/valid "foo group"
+- unicode char tests with fallback
+- whitespace tests with fallback
+- unicode char tests with fallback
+- "invalid, punctuation, tests, link, button"
+
+-->
+
+<script>
+AriaUtils.verifyRolesBySelector(".ex");
+</script>
+
+</body>
+</html>

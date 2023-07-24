@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/4441">
+<link rel=help href="https://drafts.csswg.org/css-transitions-2/#transition-property-property">
+<link rel=help href="https://drafts.csswg.org/css-grid/#auto-tracks">
+<link rel=help href="https://drafts.csswg.org/css-grid/#grid-auto-flow-property">
+<link rel=help href="https://drafts.csswg.org/css-grid/#line-placement">
+<link rel=help href="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<body>
+<script>
+test_no_interpolation({
+  property: 'grid-auto-columns',
+  from: 'initial',
+  to: '123px'
+});
+
+test_no_interpolation({
+  property: 'grid-auto-flow',
+  from: 'initial',
+  to: 'column'
+});
+
+test_no_interpolation({
+  property: 'grid-auto-rows',
+  from: 'initial',
+  to: '123px'
+});
+
+test_no_interpolation({
+  property: 'grid-column-end',
+  from: 'initial',
+  to: '123'
+});
+
+test_no_interpolation({
+  property: 'grid-column-start',
+  from: 'initial',
+  to: '123'
+});
+
+test_no_interpolation({
+  property: 'grid-row-end',
+  from: 'initial',
+  to: '123'
+});
+
+test_no_interpolation({
+  property: 'grid-row-start',
+  from: 'initial',
+  to: '123'
+});
+
+test_no_interpolation({
+  property: 'grid-template-areas',
+  from: 'initial',
+  to: '"."'
+});
+</script>

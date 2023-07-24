@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<script>
+
+// This test verifies that the |constraints| configured in the mock Mojo
+// service implementation, are returned by MediaStreamTrack.getSettings().
+
+image_capture_test(async t => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+        'granted');
+
+  const constraints = { advanced : [{ whiteBalanceMode : 'single-shot',
+                                      exposureMode     : 'manual',
+                                      focusMode        : 'single-shot',
+
+                                      pointsOfInterest : [{x : 0.1, y : 0.2},
+                                                          {x : 0.3, y : 0.4}],
+
+                                      exposureCompensation : 133.77,
+                                      // in nano-seconds.
+                                      exposureTime         : 10000,
+                                      colorTemperature     : 6000,
+                                      iso                  : 120.0,
+
+                                      brightness           : 3,
+                                      contrast             : 4,
+                                      saturation           : 5,
+                                      sharpness            : 6,
+                                      focusDistance        : 7,
+
+                                      pan                  : 8,
+                                      tilt                 : 9,
+                                      zoom                 : 3.141592,
+
+                                      torch                : true
+                                    }]};
+
+  let stream = await navigator.mediaDevices.getUserMedia({video: true});
+  let videoTrack = stream.getVideoTracks()[0];
+
+  try {
+    await videoTrack.applyConstraints(constraints);
+  } catch (error) {
+    assert_unreached('Error applying constraints: ' + error.message);
+  }
+
+  let settings = videoTrack.getSettings();
+  assert_equals(typeof settings, 'object');
+
+  assert_equals(constraints.advanced[0].whiteBalanceMode,
+                settings.whiteBalanceMode, 'whiteBalanceMode');
+  assert_equals(constraints.advanced[0].exposureMode, settings.exposureMode,
+                'exposureMode');
+  assert_equals(constraints.advanced[0].focusMode, settings.focusMode,
+                'focusMode');
+
+  assert_point2d_array_approx_equals(
+      constraints.advanced[0].pointsOfInterest, settings.pointsOfInterest,
+      0.01);
+
+  assert_equals(constraints.advanced[0].exposureCompensation,
+                settings.exposureCompensation, 'exposureCompensation');
+  assert_equals(constraints.advanced[0].exposureTime,
+                settings.exposureTime, 'exposureTime');
+  assert_equals(constraints.advanced[0].colorTemperature,
+                settings.colorTemperature, 'colorTemperature');
+  assert_equals(constraints.advanced[0].iso, settings.iso, 'iso');
+
+  assert_equals(constraints.advanced[0].brightness, settings.brightness,
+                'brightness');
+  assert_equals(constraints.advanced[0].contrast, settings.contrast,
+                'contrast');
+  assert_equals(constraints.advanced[0].saturation, settings.saturation,
+                'saturation');
+  assert_equals(constraints.advanced[0].sharpness, settings.sharpness,
+                'sharpness');
+
+  assert_equals(constraints.advanced[0].focusDistance, settings.focusDistance,
+                'focusDistance');
+
+  assert_equals(constraints.advanced[0].pan, settings.pan, 'pan');
+  assert_equals(constraints.advanced[0].tilt, settings.tilt, 'tilt');
+  assert_equals(constraints.advanced[0].zoom, settings.zoom, 'zoom');
+
+  assert_equals(constraints.advanced[0].torch, settings.torch, 'torch');
+
+}, 'exercises an applyConstraints() - getSettings() cycle with PTZ permission granted');
+
+
+// This test verifies that the PTZ |constraints| configured in the mock Mojo
+// service implementation can't be applied if PTZ permission is denied.
+
+image_capture_test(async t => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+      'denied');
+
+  let stream = await navigator.mediaDevices.getUserMedia({video: true});
+  let videoTrack = stream.getVideoTracks()[0];
+
+  const constraints = [{ pan: { exact: 8 } }, { tilt: { exact: 9 } }];
+  await Promise.all(constraints.map(async constraint => {
+    try {
+      await videoTrack.applyConstraints(constraint);
+    } catch (error) {
+      assert_equals(error.name, 'OverconstrainedError');
+      assert_equals(error.constraint, Object.keys(constraint)[0]);
+      return;
+    }
+    assert_unreached(
+        "applyConstraints should throw an OverconstrainedError for " +
+        JSON.stringify(constraint));
+  }));
+
+}, 'exercises an applyConstraints() with required constraints with PTZ permission denied');
+
+image_capture_test(async t => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+      'denied');
+
+  let stream = await navigator.mediaDevices.getUserMedia({video: true});
+  let videoTrack = stream.getVideoTracks()[0];
+
+  const constraints = [{ pan: { ideal: 8 } }, { tilt: { ideal: 9 } }];
+  await Promise.all(constraints.map(async constraint => {
+    try {
+      await videoTrack.applyConstraints(constraint);
+    } catch (error) {
+      assert_unreached(
+          `applyConstraints should not throw an ${error.name} for ` +
+          JSON.stringify(constraint));
+    }
+  }));
+
+}, 'exercises an applyConstraints() with ideal constraints with PTZ permission denied');
+
+image_capture_test(async t => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+      'denied');
+
+  let stream = await navigator.mediaDevices.getUserMedia({video: true});
+  let videoTrack = stream.getVideoTracks()[0];
+
+  const advanced_constraints = [{ pan: 8 }, { tilt: 9 }];
+  await Promise.all(advanced_constraints.map(async advanced_constraint => {
+    const constraint = { advanced: [advanced_constraint] };
+    try {
+      await videoTrack.applyConstraints(constraint);
+    } catch (error) {
+      assert_unreached(
+          `applyConstraints should not throw an ${error.name} for ` +
+          JSON.stringify(constraint));
+    }
+  }));
+
+}, 'exercises an applyConstraints() with advances constraints with PTZ permission denied');
+
+</script>

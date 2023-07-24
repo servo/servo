@@ -15,6 +15,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{read_numbers, HTML_SPACE_CHARACTERS};
@@ -40,10 +41,12 @@ impl HTMLFontElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLFontElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLFontElement::new_inherited(local_name, prefix, document)),
             document,
+            proto,
         )
     }
 }

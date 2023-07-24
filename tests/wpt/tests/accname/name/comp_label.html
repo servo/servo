@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Label</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>Tests the <a href="https://w3c.github.io/accname/#comp_label">#comp_label</a> portions of the AccName <em>Name Computation</em> algorithm.</p>
+
+<div aria-label="label" data-expectedlabel="label" data-testname="label valid on group" role="group" class="ex">x</div>
+
+<!-- Todo: test all remaining cases of https://w3c.github.io/accname/#comp_label -->
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

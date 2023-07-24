@@ -127,6 +127,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         initiator: request.initiator,
         csp_list: None,
         https_state: request.https_state,
+        response_tainting: request.response_tainting,
     }
 }
 
@@ -141,11 +142,11 @@ pub fn Fetch(
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
-    let promise = Promise::new_in_current_realm(global, comp);
+    let promise = Promise::new_in_current_realm(comp);
     let response = Response::new(global);
 
     // Step 2
-    let request = match Request::Constructor(global, input, init) {
+    let request = match Request::Constructor(global, None, input, init) {
         Err(e) => {
             response.error_stream(e.clone());
             promise.reject_error(e);

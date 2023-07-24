@@ -1,0 +1,18 @@
+# In this test, the leaf green rectangle has only its back visible
+# due to rotate-x(180) transformation, preserve-3d style,
+# and "backface-visible = false", so it's completely hidden.
+---
+root:
+  items:
+    - type: rect
+      color: red
+      bounds: 0 0 1024 768
+    - type: stacking-context
+      bounds: 0 0 1024 768
+      transform-style: preserve-3d
+      transform: rotate-x(180)
+      items:
+        - type: rect
+          bounds: 0 0 200 200
+          color: green
+          backface-visible: false

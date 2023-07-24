@@ -24,6 +24,7 @@ use crate::selector_parser::PseudoElement;
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::style_resolver::StyleResolverForElement;
 use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
+use crate::stylesheets::layer_rule::LayerOrder;
 use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::{Time, TimingFunction};
 use crate::values::generics::box_::AnimationIterationCount;
@@ -290,6 +291,7 @@ impl IntermediateComputedKeyframe {
         let rule_node = base_style.rules().clone();
         let new_node = context.stylist.rule_tree().update_rule_at_level(
             CascadeLevel::Animations,
+            LayerOrder::root(),
             Some(locked_block.borrow_arc()),
             &rule_node,
             &context.guards,

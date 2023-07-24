@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="help" href="https://crbug.com/1462398">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert"
+  content="Don't apply flex automatic minimum sizing to the css-sizing-3 intrinsic sizing calculations. This shows up with % max-width replaced elements. Their intrinsic min-width is 0 according to css-sizing-3 but automatic minimum sizing is usually positive." />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div style="display: flex; width:100px;">
+  <div style="display: flex; flex: 1 1 auto;">
+    <img style="max-width: 100%; background: green;"
+      src="data:image/svg+xml,%3Csvg viewBox='0 0 1 1' width='500' height='500' xmlns='http://www.w3.org/2000/svg' %3E%3C/svg%3E">
+  </div>
+</div>

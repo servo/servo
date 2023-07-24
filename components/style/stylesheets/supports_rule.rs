@@ -335,7 +335,7 @@ impl RawSelector {
                 let parser = SelectorParser {
                     namespaces,
                     stylesheet_origin: context.stylesheet_origin,
-                    url_data: Some(context.url_data),
+                    url_data: context.url_data,
                 };
 
                 #[allow(unused_variables)]

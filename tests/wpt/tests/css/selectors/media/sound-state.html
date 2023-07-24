@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Sound State: the :muted and :volume-locked pseudo-classes</title>
+<link
+  rel="help"
+  href="https://drafts.csswg.org/selectors/#sound-state"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <video width="300" height="300" loop></video>
+  <script type="module">
+    // Unfortunately, we can't test the volume-locked state because it's not
+    // possible to lock the volume of a video element with JS.
+
+    test((t) => {
+      for (const pseudo of [":muted", ":volume-locked"]) {
+        try {
+          document.querySelector(`.not-a-thing${pseudo}`);
+        } catch (e) {
+          assert_unreached(`${pseudo} is not supported`);
+        }
+      }
+    }, "Test :pseudo-class syntax is supported without throwing a SyntaxError");
+
+    promise_test(async (t) => {
+      assert_equals(
+        document.querySelector("video:muted"),
+        null,
+        "must know :muted"
+      );
+      const video = document.querySelector("video");
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = "/media/counting.mp4";
+      });
+      video.muted = false;
+      assert_false(video.muted, "video is unmuted");
+      assert_equals(document.querySelector("video:muted"), null);
+      assert_equals(document.querySelector("video:not(:muted)"), video);
+      video.muted = true;
+      assert_equals(document.querySelector("video:muted"), video);
+      assert_equals(document.querySelector("video:not(:muted)"), null);
+    }, "Test :muted pseudo-class");
+  </script>
+</body>

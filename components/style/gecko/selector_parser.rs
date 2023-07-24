@@ -8,13 +8,13 @@ use crate::element_state::{DocumentState, ElementState};
 use crate::gecko_bindings::structs::RawServoSelectorList;
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
-use crate::selector_parser::{Direction, SelectorParser};
+use crate::selector_parser::{Direction, HorizontalDirection, SelectorParser};
 use crate::str::starts_with_ignore_ascii_case;
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::values::{AtomIdent, AtomString};
 use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
 use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
-use selectors::parser::{ParseErrorRecovery, SelectorParseErrorKind};
+use selectors::parser::SelectorParseErrorKind;
 use selectors::SelectorList;
 use std::fmt;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
@@ -69,7 +69,7 @@ impl ToCss for NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
                     NonTSPseudoClass::Lang(ref s) => {
                         dest.write_str(":lang(")?;
-                        s.to_css(dest)?;
+                        cssparser::ToCss::to_css(s, dest)?;
                         return dest.write_char(')');
                     },
                     NonTSPseudoClass::MozLocaleDir(ref dir) => {
@@ -127,7 +127,7 @@ impl NonTSPseudoClass {
             ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
-                    NonTSPseudoClass::MozLocaleDir(_) |
+                    NonTSPseudoClass::MozLocaleDir(_) => check_flag!(PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                     NonTSPseudoClass::Lang(_) |
                     NonTSPseudoClass::Dir(_) => false,
                 }
@@ -139,11 +139,14 @@ impl NonTSPseudoClass {
     /// Returns whether the pseudo-class is enabled in content sheets.
     #[inline]
     fn is_enabled_in_content(&self) -> bool {
-        if let NonTSPseudoClass::Autofill = *self {
-            return static_prefs::pref!("layout.css.autofill.enabled");
+        if matches!(
+            *self,
+            Self::MozLWTheme | Self::MozLWThemeBrightText | Self::MozLWThemeDarkText
+        ) {
+            return static_prefs::pref!("layout.css.moz-lwtheme.content.enabled");
         }
-        if let NonTSPseudoClass::MozSubmitInvalid = *self {
-            return static_prefs::pref!("layout.css.moz-submit-invalid.enabled");
+        if let NonTSPseudoClass::MozLocaleDir(..) = *self {
+            return static_prefs::pref!("layout.css.moz-locale-dir.content.enabled");
         }
         !self.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME)
     }
@@ -162,7 +165,7 @@ impl NonTSPseudoClass {
             ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
-                    NonTSPseudoClass::Dir(..) |
+                    NonTSPseudoClass::Dir(ref dir) => dir.element_state(),
                     NonTSPseudoClass::MozLocaleDir(..) |
                     NonTSPseudoClass::Lang(..) => ElementState::empty(),
                 }
@@ -174,8 +177,15 @@ impl NonTSPseudoClass {
     /// Get the document state flag associated with a pseudo-class, if any.
     pub fn document_state_flag(&self) -> DocumentState {
         match *self {
-            NonTSPseudoClass::MozLocaleDir(..) => DocumentState::NS_DOCUMENT_STATE_RTL_LOCALE,
-            NonTSPseudoClass::MozWindowInactive => DocumentState::NS_DOCUMENT_STATE_WINDOW_INACTIVE,
+            NonTSPseudoClass::MozLocaleDir(ref dir) => match dir.as_horizontal_direction() {
+                Some(HorizontalDirection::Ltr) => DocumentState::LTR_LOCALE,
+                Some(HorizontalDirection::Rtl) => DocumentState::RTL_LOCALE,
+                None => DocumentState::empty(),
+            },
+            NonTSPseudoClass::MozWindowInactive => DocumentState::WINDOW_INACTIVE,
+            NonTSPseudoClass::MozLWTheme => DocumentState::LWTHEME,
+            NonTSPseudoClass::MozLWThemeBrightText => DocumentState::LWTHEME_BRIGHTTEXT,
+            NonTSPseudoClass::MozLWThemeDarkText => DocumentState::LWTHEME_DARKTEXT,
             _ => DocumentState::empty(),
         }
     }
@@ -186,10 +196,8 @@ impl NonTSPseudoClass {
         self.state_flag().is_empty() &&
             !matches!(
                 *self,
-                // :dir() depends on state only, but doesn't use state_flag
-                // because its semantics don't quite match.  Nevertheless, it
-                // doesn't need cache revalidation, because we already compare
-                // states for elements and candidates.
+                // :dir() depends on state only, but may have an empty
+                // state_flag for invalid arguments.
                 NonTSPseudoClass::Dir(_) |
                       // :-moz-is-html only depends on the state of the document and
                       // the namespace of the element; the former is invariant
@@ -247,6 +255,10 @@ impl ::selectors::SelectorImpl for SelectorImpl {
 
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
+
+    fn should_collect_attr_hash(name: &AtomIdent) -> bool {
+        !crate::bloom::is_attr_name_excluded_from_filter(name)
+    }
 }
 
 impl<'a> SelectorParser<'a> {
@@ -304,15 +316,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     #[inline]
     fn parse_is_and_where(&self) -> bool {
         true
-    }
-
-    #[inline]
-    fn is_and_where_error_recovery(&self) -> ParseErrorRecovery {
-        if static_prefs::pref!("layout.css.is-and-where-better-error-recovery.enabled") {
-            ParseErrorRecovery::IgnoreInvalidSelector
-        } else {
-            ParseErrorRecovery::DiscardList
-        }
     }
 
     #[inline]

@@ -85,28 +85,30 @@ use crate::dom::svgsvgelement::SVGSVGElement;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_thread::ScriptThread;
 use html5ever::{LocalName, Prefix, QualName};
+use js::rust::HandleObject;
 use servo_config::pref;
 
 fn create_svg_element(
     name: QualName,
     prefix: Option<Prefix>,
     document: &Document,
+    proto: Option<HandleObject>,
 ) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(svg));
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new(name.local, prefix, document);
+            let obj = $ctor::new(name.local, prefix, document, proto);
             DomRoot::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new(name.local, prefix, document, $($arg),+);
+            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+);
             DomRoot::upcast(obj)
         })
     );
 
     if !pref!(dom.svg.enabled) {
-        return Element::new(name.local, name.ns, prefix, document);
+        return Element::new(name.local, name.ns, prefix, document, proto);
     }
 
     match name.local {
@@ -124,6 +126,7 @@ fn create_html_element(
     document: &Document,
     creator: ElementCreator,
     mode: CustomElementCreationMode,
+    proto: Option<HandleObject>,
 ) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(html));
 
@@ -138,6 +141,7 @@ fn create_html_element(
                         name.local.clone(),
                         prefix.clone(),
                         document,
+                        proto,
                     ));
                     result.set_custom_element_state(CustomElementState::Undefined);
                     ScriptThread::enqueue_upgrade_reaction(&*result, definition);
@@ -145,6 +149,7 @@ fn create_html_element(
                 },
                 CustomElementCreationMode::Synchronous => {
                     let local_name = name.local.clone();
+                    //TODO(jdm) Pass proto to create_element?
                     return match definition.create_element(document, prefix.clone()) {
                         Ok(element) => {
                             element.set_custom_element_definition(definition.clone());
@@ -154,7 +159,7 @@ fn create_html_element(
                             // Step 6. Recovering from exception.
                             let global =
                                 GlobalScope::current().unwrap_or_else(|| document.global());
-                            let cx = global.get_cx();
+                            let cx = GlobalScope::get_cx();
 
                             // Step 6.1.1
                             unsafe {
@@ -165,7 +170,7 @@ fn create_html_element(
 
                             // Step 6.1.2
                             let element = DomRoot::upcast::<Element>(HTMLUnknownElement::new(
-                                local_name, prefix, document,
+                                local_name, prefix, document, proto,
                             ));
                             element.set_custom_element_state(CustomElementState::Failed);
                             element
@@ -175,7 +180,7 @@ fn create_html_element(
             }
         } else {
             // Steps 5.1-5.2
-            let element = create_native_html_element(name, prefix, document, creator);
+            let element = create_native_html_element(name, prefix, document, creator, proto);
             element.set_is(definition.name.clone());
             element.set_custom_element_state(CustomElementState::Undefined);
             match mode {
@@ -191,7 +196,7 @@ fn create_html_element(
     }
 
     // Steps 7.1-7.3
-    let result = create_native_html_element(name.clone(), prefix, document, creator);
+    let result = create_native_html_element(name.clone(), prefix, document, creator, proto);
     match is {
         Some(is) => {
             result.set_is(is);
@@ -215,16 +220,17 @@ pub fn create_native_html_element(
     prefix: Option<Prefix>,
     document: &Document,
     creator: ElementCreator,
+    proto: Option<HandleObject>,
 ) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(html));
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new(name.local, prefix, document);
+            let obj = $ctor::new(name.local, prefix, document, proto);
             DomRoot::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new(name.local, prefix, document, $($arg),+);
+            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+);
             DomRoot::upcast(obj)
         })
     );
@@ -386,11 +392,12 @@ pub fn create_element(
     document: &Document,
     creator: ElementCreator,
     mode: CustomElementCreationMode,
+    proto: Option<HandleObject>,
 ) -> DomRoot<Element> {
     let prefix = name.prefix.clone();
     match name.ns {
-        ns!(html) => create_html_element(name, prefix, is, document, creator, mode),
-        ns!(svg) => create_svg_element(name, prefix, document),
-        _ => Element::new(name.local, name.ns, prefix, document),
+        ns!(html) => create_html_element(name, prefix, is, document, creator, mode, proto),
+        ns!(svg) => create_svg_element(name, prefix, document, proto),
+        _ => Element::new(name.local, name.ns, prefix, document, proto),
     }
 }

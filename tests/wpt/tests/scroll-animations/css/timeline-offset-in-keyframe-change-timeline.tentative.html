@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<script src="/web-animations/resources/keyframe-utils.js"></script>
+<title>Animation range and delay</title>
+</head>
+<style type="text/css">
+  @keyframes anim {
+    cover 0% {
+      opacity: 0;
+      margin-left:  0px;
+    }
+    cover 100% {
+      opacity: 1;
+      margin-right: 0px;
+    }
+  }
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+    timeline-scope: --sibling;
+  }
+  #sibling {
+    margin-top: 800px;
+    margin-left:  10px;
+    margin-right:  10px;
+    width:  100px;
+    height:  50px;
+    background-color:  blue;
+    view-timeline: --sibling block;
+  }
+  #target {
+    margin-bottom: 800px;
+    margin-left:  10px;
+    margin-right:  10px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+    animation:  anim auto both linear;
+    /* using document timeline by default */
+    animation-range-start:  contain 0%;
+    animation-range-end:  contain 100%;
+    view-timeline:  --target block;
+  }
+
+  #target.with-view-timeline {
+    animation-timeline: --target;
+  }
+  #target.with-view-timeline.retarget {
+    animation-timeline: --sibling;
+  }
+</style>
+<body>
+  <div id="scroller">
+    <div id="sibling"></div>
+    <div id="target"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  async function runTest() {
+    promise_test(async t => {
+      await waitForNextFrame();
+      const anim = document.getAnimations()[0];
+      await anim.ready;
+      await waitForNextFrame();
+
+      // Initially using a document timeline, so the keyframes should be
+      // ignored.
+      let frames = anim.effect.getKeyframes();
+      let expected = [
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+      // Once a view-timeline is added, the kefyrames must update to reflect
+      // the new keyframe offsets.
+      target.classList.add('with-view-timeline');
+      assert_equals(getComputedStyle(target).animationTimeline, '--target',
+                    'Switch to view timeline');
+      await waitForNextFrame();
+
+      frames = anim.effect.getKeyframes();
+      expected = [
+        { offset:  0, computedOffset: 0, easing: "linear", composite: "replace",
+          marginRight: "10px" },
+        { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
+          marginLeft: "10px" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: -1, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: 2, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" },
+      ];
+      assert_frame_lists_equal(frames, expected);
+
+      target.classList.add('retarget');
+      assert_equals(getComputedStyle(target).animationTimeline, '--sibling',
+                    'Switch to another view timeline');
+      await waitForNextFrame();
+      frames = anim.effect.getKeyframes();
+      expected = [
+        { offset:  0, computedOffset: 0, easing: "linear", composite: "replace",
+          marginRight: "10px" },
+        { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
+          marginLeft: "10px" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: -1/3, easing: "linear",
+          composite: "auto", marginLeft: "0px", opacity: "0" },
+        { offset:  { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: 4/3, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" },
+      ];
+      assert_frame_lists_equal(frames, expected);
+
+      target.classList.toggle('with-view-timeline');
+      assert_equals(getComputedStyle(target).animationTimeline, 'auto',
+                    'Switch back to document timeline');
+      frames = anim.effect.getKeyframes();
+      expected = [
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+    }, 'getKeyframes with timeline-offsets');
+  }
+
+  window.onload = runTest;
+</script>

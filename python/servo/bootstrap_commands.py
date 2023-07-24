@@ -27,7 +27,8 @@ from mach.decorators import (
     Command,
 )
 
-import servo.bootstrap as bootstrap
+import servo.platform
+
 from servo.command_base import CommandBase, cd, check_call
 from servo.util import delete, download_bytes, download_file, extract, check_hash
 
@@ -41,10 +42,15 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Boostrap without confirmation')
     def bootstrap(self, force=False):
-        # This entry point isn't actually invoked, ./mach bootstrap is directly
-        # called by mach (see mach_bootstrap.bootstrap_command_only) so that
+        # Note: This entry point isn't actually invoked by ./mach bootstrap.
+        # ./mach bootstrap calls mach_bootstrap.bootstrap_command_only so that
         # it can install dependencies without needing mach's dependencies
-        return bootstrap.bootstrap(self.context, force=force)
+        try:
+            servo.platform.get().bootstrap(force)
+        except NotImplementedError as exception:
+            print(exception)
+            return 1
+        return 0
 
     @Command('bootstrap-gstreamer',
              description='Set up a local copy of the gstreamer libraries (linux only).',
@@ -53,7 +59,12 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Boostrap without confirmation')
     def bootstrap_gstreamer(self, force=False):
-        return bootstrap.bootstrap(self.context, force=force, specific="gstreamer")
+        try:
+            servo.platform.get().bootstrap_gstreamer(force)
+        except NotImplementedError as exception:
+            print(exception)
+            return 1
+        return 0
 
     @Command('bootstrap-android',
              description='Install the Android SDK and NDK.',

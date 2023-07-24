@@ -10,6 +10,7 @@
 from __future__ import print_function, unicode_literals
 
 import argparse
+import logging
 import re
 import sys
 import os
@@ -19,8 +20,6 @@ from collections import OrderedDict
 import time
 import shutil
 import subprocess
-from xml.etree.ElementTree import XML
-from six import iteritems
 
 import wpt
 import wpt.manifestupdate
@@ -34,26 +33,19 @@ from mach.decorators import (
     Command,
 )
 
-from servo_tidy import tidy
-from servo.command_base import (
-    CommandBase,
-    call, check_call, check_output,
-)
-from servo_tidy_tests import test_tidy
-from servo.util import host_triple
+import servo.util
+import tidy
+
+from servo.command_base import CommandBase, call, check_call
+from servo.util import delete
+from distutils.dir_util import copy_tree
 
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
-WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
+WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
 
-CLANGFMT_CPP_DIRS = ["support/hololens/"]
-CLANGFMT_VERSION = "15"
-
 TEST_SUITES = OrderedDict([
-    ("tidy", {"kwargs": {"all_files": False, "no_progress": False, "self_test": False,
-                         "stylo": False},
-              "include_arg": "include"}),
     ("wpt", {"kwargs": {"release": False},
              "paths": [path.abspath(WEB_PLATFORM_TESTS_PATH),
                        path.abspath(SERVO_TESTS_PATH)],
@@ -63,7 +55,7 @@ TEST_SUITES = OrderedDict([
               "include_arg": "test_name"}),
 ])
 
-TEST_SUITES_BY_PREFIX = {path: k for k, v in iteritems(TEST_SUITES) if "paths" in v for path in v["paths"]}
+TEST_SUITES_BY_PREFIX = {path: k for k, v in TEST_SUITES.items() if "paths" in v for path in v["paths"]}
 
 
 @CommandProvider
@@ -82,25 +74,12 @@ class MachCommands(CommandBase):
     @CommandArgument('params', default=None, nargs="...",
                      help="Optionally select test based on "
                           "test file directory")
-    @CommandArgument('--render-mode', '-rm', default=DEFAULT_RENDER_MODE,
-                     help="The render mode to be used on all tests. "
-                          + HELP_RENDER_MODE)
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
-    @CommandArgument('--tidy-all', default=False, action="store_true",
-                     help="Check all files, and run the WPT lint in tidy, "
-                          "even if unchanged")
-    @CommandArgument('--no-progress', default=False, action="store_true",
-                     help="Don't show progress for tidy")
-    @CommandArgument('--self-test', default=False, action="store_true",
-                     help="Run unit tests for tidy")
     @CommandArgument('--all', default=False, action="store_true", dest="all_suites",
                      help="Run all test suites")
-    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, tidy_all=False,
-             no_progress=False, self_test=False, all_suites=False):
+    def test(self, params, release=False, all_suites=False):
         suites = copy.deepcopy(TEST_SUITES)
-        suites["tidy"]["kwargs"] = {"all_files": tidy_all, "no_progress": no_progress, "self_test": self_test,
-                                    "stylo": False}
         suites["wpt"]["kwargs"] = {"release": release}
         suites["unit"]["kwargs"] = {}
 
@@ -134,7 +113,7 @@ class MachCommands(CommandBase):
                 return 1
 
         test_start = time.time()
-        for suite, tests in iteritems(selected_suites):
+        for suite, tests in selected_suites.items():
             props = suites[suite]
             kwargs = props.get("kwargs", {})
             if tests:
@@ -150,7 +129,7 @@ class MachCommands(CommandBase):
     def suite_for_path(self, path_arg):
         if os.path.exists(path.abspath(path_arg)):
             abs_path = path.abspath(path_arg)
-            for prefix, suite in iteritems(TEST_SUITES_BY_PREFIX):
+            for prefix, suite in TEST_SUITES_BY_PREFIX.items():
                 if abs_path.startswith(prefix):
                     return suite
         return None
@@ -225,6 +204,7 @@ class MachCommands(CommandBase):
             "net",
             "net_traits",
             "selectors",
+            "script_traits",
             "servo_config",
             "servo_remutex",
         ]
@@ -246,34 +226,37 @@ class MachCommands(CommandBase):
 
         packages.discard('stylo')
 
-        env = self.build_env(test_unit=True)
-        # FIXME: https://github.com/servo/servo/issues/26192
-        if "apple-darwin" not in host_triple():
-            env["RUST_BACKTRACE"] = "1"
+        # Return if there is nothing to do.
+        if len(packages) == 0 and len(in_crate_packages) == 0:
+            return 0
 
-        if "msvc" in host_triple():
-            # on MSVC, we need some DLLs in the path. They were copied
-            # in to the servo.exe build dir, so just point PATH to that.
-            env["PATH"] = "%s%s%s" % (path.dirname(self.get_binary_path(False, False)), os.pathsep, env["PATH"])
+        # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
+        args = ["--timings"]
+        for crate in packages:
+            args += ["-p", "%s_tests" % crate]
+        for crate in in_crate_packages:
+            args += ["-p", crate]
+        args += test_patterns
 
-        if len(packages) > 0 or len(in_crate_packages) > 0:
-            args = []
-            for crate in packages:
-                args += ["-p", "%s_tests" % crate]
-            for crate in in_crate_packages:
-                args += ["-p", crate]
-            args += test_patterns
+        if nocapture:
+            args += ["--", "--nocapture"]
 
-            if nocapture:
-                args += ["--", "--nocapture"]
+        # We are setting is_build here to true, because running `cargo test` can trigger builds.
+        env = self.build_env(is_build=True)
 
-            err = self.run_cargo_build_like_command("bench" if bench else "test",
-                                                    args,
-                                                    env=env,
-                                                    with_layout_2020=with_layout_2020,
-                                                    **kwargs)
-            if err:
-                return err
+        # on MSVC, we need some DLLs in the path. They were copied
+        # in to the servo.exe build dir, so just point PATH to that.
+        # TODO(mrobinson): This should be removed entirely.
+        if "msvc" in servo.platform.host_triple():
+            servo.util.prepend_paths_to_env(
+                env, "PATH", path.dirname(self.get_binary_path(False, False)))
+
+        return self.run_cargo_build_like_command(
+            "bench" if bench else "test",
+            args,
+            env=env,
+            with_layout_2020=with_layout_2020,
+            **kwargs)
 
     @Command('test-content',
              description='Run the content tests',
@@ -301,60 +284,61 @@ class MachCommands(CommandBase):
                      help="Skip checking that web-platform-tests manifests are up to date")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
-    @CommandArgument('--self-test', default=False, action="store_true",
-                     help="Run unit tests for tidy")
     @CommandArgument('--stylo', default=False, action="store_true",
                      help="Only handle files in the stylo tree")
-    @CommandArgument('--force-cpp', default=False, action="store_true", help="Force CPP check")
-    def test_tidy(self, all_files, no_progress, self_test, stylo, force_cpp=False, no_wpt=False):
-        if self_test:
-            return test_tidy.do_tests()
+    def test_tidy(self, all_files, no_progress, stylo, no_wpt=False):
+        if no_wpt:
+            manifest_dirty = False
         else:
-            if no_wpt:
-                manifest_dirty = False
-            else:
-                manifest_dirty = wpt.manifestupdate.update(check_clean=True)
-            tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo, no_wpt=no_wpt)
-            self.install_rustfmt()
-            rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
+            manifest_dirty = wpt.manifestupdate.update(check_clean=True)
+        tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo, no_wpt=no_wpt)
+        self.install_rustfmt()
+        rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
 
-            env = self.build_env()
-            clangfmt_failed = False
-            available, cmd, files = setup_clangfmt(env)
-            if available:
-                for file in files:
-                    stdout = check_output([cmd, "-output-replacements-xml", file], env=env)
-                    if len(XML(stdout)) > 0:
-                        print("%s is not formatted correctly." % file)
-                        clangfmt_failed = True
-            elif force_cpp:
-                print("Error: can't find suitable clang-format version. Required with --force-cpp.")
-                return True
+        if rustfmt_failed:
+            print("Run `./mach fmt` to fix the formatting")
 
-            if rustfmt_failed or clangfmt_failed:
-                print("Run `./mach fmt` to fix the formatting")
+        return tidy_failed or manifest_dirty or rustfmt_failed
 
-            return tidy_failed or manifest_dirty or rustfmt_failed or clangfmt_failed
-
-    @Command('test-webidl',
-             description='Run the WebIDL parser tests',
+    @Command('test-scripts',
+             description='Run tests for all build and support scripts.',
              category='testing')
-    @CommandArgument('--quiet', '-q', default=False, action="store_true",
-                     help="Don't print passing tests.")
+    @CommandArgument('--verbose', '-v', default=False, action="store_true",
+                     help="Enable verbose output")
+    @CommandArgument('--very-verbose', '-vv', default=False, action="store_true",
+                     help="Enable very verbose output")
+    @CommandArgument('--all', '-a', default=False, action="store_true",
+                     help="Run all script tests, even the slow ones.")
     @CommandArgument('tests', default=None, nargs="...",
-                     help="Specific tests to run, relative to the tests directory")
-    def test_webidl(self, quiet, tests):
-        test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "components", "script",
-                                               "dom", "bindings", "codegen", "parser"))
-        # For the `import WebIDL` in runtests.py
-        sys.path.insert(0, test_file_dir)
+                     help="Specific WebIDL tests to run, relative to the tests directory")
+    def test_scripts(self, verbose, very_verbose, all, tests):
+        if very_verbose:
+            logging.getLogger().level = logging.DEBUG
+        elif verbose:
+            logging.getLogger().level = logging.INFO
+        else:
+            logging.getLogger().level = logging.WARN
 
-        run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
-        run_globals = {"__file__": run_file}
-        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
+        passed = True
 
-        verbose = not quiet
-        return run_globals["run_tests"](tests, verbose)
+        print("Running tidy tests...")
+        passed = tidy.run_tests() and passed
+
+        print("Running WPT tests...")
+        passed = wpt.run_tests() and passed
+
+        if all or tests:
+            print("Running WebIDL tests...")
+
+            test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "third_party", "WebIDL"))
+            # For the `import WebIDL` in runtests.py
+            sys.path.insert(0, test_file_dir)
+            run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
+            run_globals = {"__file__": run_file}
+            exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
+            passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
+
+        return 0 if passed else 1
 
     @Command('test-wpt-failure',
              description='Run the tests harness that verifies that the test failures are reported correctly',
@@ -392,7 +376,8 @@ class MachCommands(CommandBase):
         return self._test_wpt(android=True, **kwargs)
 
     def _test_wpt(self, android=False, **kwargs):
-        self.set_run_env(android)
+        if not android:
+            os.environ.update(self.build_env())
         return wpt.run.run_tests(**kwargs)
 
     # Helper to ensure all specified paths are handled, otherwise dispatch to appropriate test suite.
@@ -419,15 +404,9 @@ class MachCommands(CommandBase):
         return wpt.manifestupdate.update(check_clean=False)
 
     @Command('fmt',
-             description='Format the Rust and CPP source files with rustfmt and clang-format',
+             description='Format the Rust and CPP source files with rustfmt',
              category='testing')
     def format_code(self):
-
-        env = self.build_env()
-        available, cmd, files = setup_clangfmt(env)
-        if available and len(files) > 0:
-            check_call([cmd, "-i"] + files, env=env)
-
         self.install_rustfmt()
         return self.call_rustup_run(["cargo", "fmt"])
 
@@ -479,10 +458,11 @@ class MachCommands(CommandBase):
         avd = "servo-x86"
         target = "i686-linux-android"
         print("Assuming --target " + target)
+        self.cross_compile_target = target
 
-        env = self.build_env(target=target)
+        env = self.build_env()
         os.environ["PATH"] = env["PATH"]
-        assert self.handle_android_target(target)
+        assert self.setup_configuration_for_android_target(target)
         apk = self.get_apk_path(release)
 
         py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
@@ -620,23 +600,6 @@ class MachCommands(CommandBase):
             [run_file, "|".join(tests), bin_path, base_dir])
 
 
-def setup_clangfmt(env):
-    cmd = "clang-format.exe" if sys.platform == "win32" else "clang-format"
-    try:
-        version = check_output([cmd, "--version"], env=env, universal_newlines=True).rstrip()
-        print(version)
-        if version.find("clang-format version {}.".format(CLANGFMT_VERSION)) == -1:
-            print("clang-format: wrong version (v{} required). Skipping CPP formatting.".format(CLANGFMT_VERSION))
-            return False, None, None
-    except OSError:
-        print("clang-format not installed. Skipping CPP formatting.")
-        return False, None, None
-    gitcmd = ['git', 'ls-files']
-    gitfiles = check_output(gitcmd + CLANGFMT_CPP_DIRS, universal_newlines=True).splitlines()
-    filtered = [line for line in gitfiles if line.endswith(".h") or line.endswith(".cpp")]
-    return True, cmd, filtered
-
-
 def create_parser_create():
     import argparse
     p = argparse.ArgumentParser()
@@ -733,14 +696,14 @@ class WebPlatformTestsCreator(CommandBase):
 
         if test_url is None:
             print("""Test path %s is not in wpt directories:
-tests/wpt/web-platform-tests for tests that may be shared
+tests/wpt/tests for tests that may be shared
 tests/wpt/mozilla/tests for Servo-only tests""" % test_path)
             return 1
 
         if reference_url is None:
             print("""Reference path %s is not in wpt directories:
-testing/web-platform/tests for tests that may be shared
-testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
+tests/wpt/tests for tests that may be shared
+tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
             return 1
 
         if os.path.exists(test_path) and not kwargs["overwrite"]:
@@ -829,12 +792,63 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
         exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
         return run_globals["update_conformance"](version, dest_folder, None, patches_dir)
 
+    @Command('update-webgpu',
+             description='Update the WebGPU conformance test suite',
+             category='testing')
+    @CommandArgument(
+        '--repo', '-r', default="https://github.com/gpuweb/cts",
+        help='Repo to vendor cts from')
+    @CommandArgument(
+        '--checkout', '-c', default="main",
+        help='Branch or commit of repo')
+    def cts(self, repo="https://github.com/gpuweb/cts", checkout="main"):
+        tdir = path.join(self.context.topdir, "tests/wpt/webgpu/tests")
+        clone_dir = path.join(tdir, "cts_clone")
+        # clone
+        res = call(["git", "clone", "-n", repo, "cts_clone"], cwd=tdir)
+        if res != 0:
+            return res
+        # checkout
+        res = call(["git", "checkout", checkout], cwd=clone_dir)
+        if res != 0:
+            return res
+        # build
+        res = call(["npm", "ci"], cwd=clone_dir)
+        if res != 0:
+            return res
+        res = call(["npm", "run", "wpt"], cwd=clone_dir)
+        if res != 0:
+            return res
+        cts_html = path.join(clone_dir, "out-wpt", "cts.https.html")
+        # patch
+        with open(cts_html, 'r') as file:
+            filedata = file.read()
+        # files are mounted differently
+        filedata = filedata.replace('src=/webgpu/common/runtime/wpt.js', 'src=../webgpu/common/runtime/wpt.js')
+        # Write the file out again
+        with open(cts_html, 'w') as file:
+            file.write(filedata)
+        # copy
+        delete(path.join(tdir, "webgpu"))
+        copy_tree(path.join(clone_dir, "out-wpt"), path.join(tdir, "webgpu"))
+        # update commit
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode()
+        with open(path.join(tdir, "checkout_commit.txt"), 'w') as file:
+            file.write(commit)
+        # clean up
+        delete(clone_dir)
+        print("Updating manifest.")
+        return self.context.commands.dispatch("update-manifest", self.context)
+
     @Command('smoketest',
              description='Load a simple page in Servo and ensure that it closes properly',
              category='testing')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Servo")
     def smoketest(self, params):
-        params = params + ['tests/html/close-on-load.html']
+        # We pass `-f` here so that any thread panic will cause Servo to exit,
+        # preventing a panic from hanging execution. This means that these kind
+        # of panics won't cause timeouts on CI.
+        params = params + ['-f', 'tests/html/close-on-load.html']
         return self.context.commands.dispatch(
             'run', self.context, params=params)

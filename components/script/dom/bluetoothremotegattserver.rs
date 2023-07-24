@@ -71,7 +71,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     #[allow(unsafe_code)]
     fn Connect(&self, comp: InRealm) -> Rc<Promise> {
         // Step 1.
-        let p = Promise::new_in_current_realm(&self.global(), comp);
+        let p = Promise::new_in_current_realm(comp);
         let sender = response_async(&p, self);
 
         // TODO: Step 3: Check if the UA is currently using the Bluetooth system.

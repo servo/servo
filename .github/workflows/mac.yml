@@ -1,11 +1,8 @@
-name: Mac workflow
+name: Mac
 
 on:
   workflow_call:
     inputs:
-      layout:
-        required: true
-        type: string
       unit-tests:
         required: false
         default: false
@@ -19,10 +16,6 @@ on:
         type: string
   workflow_dispatch:
     inputs:
-      layout:
-        required: true
-        type: choice
-        options: ["2013", "2020"]
       unit-tests:
         required: false
         default: false
@@ -37,15 +30,13 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  LAYOUT: "${{ contains(inputs.layout, '2020') && 'layout-2020' || 'layout-2013' }}"
-  PACKAGE: "${{ contains(inputs.layout, '2020') && 'mac-layout2020' || 'mac' }}"
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
   CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
 
 jobs:
-  build-mac:
+  build:
     name: Build
     runs-on: macos-12
     steps:
@@ -54,36 +45,36 @@ jobs:
           fetch-depth: 2
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
-      # TODO: Remove this step when the compatibility issue between mozjs and
-      #       Homebrew's Python 3.10 formula (servo/rust-mozjs#559) is fixed
-      - name: Select Python 3.9
-        run: |
-          brew install python@3.9
-          cd $(dirname $(which python3.9))
-          rm -f python3 pip3
-          ln -s python3.9 python3
-          ln -s pip3.9 pip3
       - name: Bootstrap
         run: |
           python3 -m pip install --upgrade pip virtualenv
-          bash etc/install_macos_gstreamer.sh
-          brew install gnu-tar
+          python3 ./mach bootstrap
       - name: Release build
         run: |
-          python3 ./mach build --release --with-${{ env.LAYOUT }}
+          python3 ./mach build --release
       - name: Smoketest
         run: python3 ./mach smoketest
+      - name: Script tests
+        run: ./mach test-scripts
       - name: Unit tests
-        if: ${{ inputs.unit-tests }}
-        run: python3 ./mach test-unit --release --with-${{ env.LAYOUT }}
+        if: ${{ inputs.unit-tests || github.ref_name == 'try-mac' }}
+        run: python3 ./mach test-unit --release
       - name: Package
         run: python3 ./mach package --release
       - name: Package smoketest
         run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
+      - name: Rename build timing
+        run: cp -r target/cargo-timings target/cargo-timings-macos
+      - name: Archive build timing
+        uses: actions/upload-artifact@v3
+        with:
+          name: cargo-timings
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*
       - name: Upload package
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.PACKAGE }}
+          name: mac
           path: target/release/servo-tech-demo.dmg
       - name: Upload
         if: ${{ inputs.upload }}
@@ -100,7 +91,7 @@ jobs:
       - name: Archive binary
         uses: actions/upload-artifact@v3
         with:
-          name: release-${{ env.LAYOUT }}-binary-macos
+          name: release-binary-macos
           path: target.tar.gz
 
   # mac-wpt:
@@ -152,13 +143,13 @@ jobs:
   #           test-wpt.${{ matrix.chunk_id }}.log
   #           filtered-wpt-summary.${{ matrix.chunk_id }}.log
 
-  build_result:
-    name: homu build finished
+  result:
+    name: Result
     runs-on: ubuntu-latest
     if: always()
     # needs all build to detect cancellation
     needs:
-      - "build-mac"
+      - "build"
 
     steps:
       - name: Mark the job as successful

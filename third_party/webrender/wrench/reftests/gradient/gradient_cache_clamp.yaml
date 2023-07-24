@@ -1,0 +1,20 @@
+---
+root:
+  items:
+    - type: gradient
+      bounds: 0 0 400 200
+      start: 0 100
+      end: 100 100
+      stops: [0.0, blue, 1.0, blue, 1.0, red]
+    - type: gradient
+      bounds: 0 300 400 200
+      start: 100 100
+      end: 200 100
+      stops: [0.0, blue, 1.0, blue, 1.0, red]
+    - type: gradient
+      bounds: 0 600 200 400
+      start: 0 100
+      end: 0 300
+      stops: [
+          0.0,  blue,
+          1.0,  red]

@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <title>Invalid Role Verification Tests</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>Verifies Invalid Roles from <a href="https://w3c.github.io/aria/#document-handling_author-errors_roles">9.1 Roles - handling author errors</a></p>
+
+<nav role="foo" data-testname="invalid role name foo" data-expectedrole="navigation" class="ex">x</nav>
+<nav role="foo bar" data-testname="multiple invalid role names" data-expectedrole="navigation" class="ex">x</nav>
+
+<!-- todo: additional invalid roles:
+
+- whitespace tests (including line breaks, tabs, zero-width space, braille space)
+- diacritics
+- zero-width joiners (e.g. ZWJ like emoji variants use)
+- non-western chars
+- RTL strings (Hebrew & Arabic)
+- escaped chars, URL-encoded chars
+- backslash closing quote and other obvious hack attempts
+- etc.
+
+-->
+
+<script>
+AriaUtils.verifyRolesBySelector(".ex");
+</script>
+
+</body>
+</html>

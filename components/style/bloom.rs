@@ -8,6 +8,7 @@
 #![deny(missing_docs)]
 
 use crate::dom::{SendElement, TElement};
+use crate::LocalName;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use owning_ref::OwningHandle;
 use selectors::bloom::BloomFilter;
@@ -102,6 +103,15 @@ impl<E: TElement> PushedElement<E> {
     }
 }
 
+/// Returns whether the attribute name is excluded from the bloom filter.
+///
+/// We do this for attributes that are very common but not commonly used in
+/// selectors.
+#[inline]
+pub fn is_attr_name_excluded_from_filter(name: &LocalName) -> bool {
+    return *name == local_name!("class") || *name == local_name!("id") || *name == local_name!("style")
+}
+
 fn each_relevant_element_hash<E, F>(element: E, mut f: F)
 where
     E: TElement,
@@ -115,6 +125,12 @@ where
     }
 
     element.each_class(|class| f(class.get_hash()));
+
+    element.each_attr_name(|name| {
+        if !is_attr_name_excluded_from_filter(name) {
+            f(name.get_hash())
+        }
+    });
 }
 
 impl<E: TElement> Drop for StyleBloom<E> {

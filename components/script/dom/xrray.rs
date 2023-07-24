@@ -5,7 +5,7 @@
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, XRRayMethods};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::create_typed_array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
@@ -16,6 +16,7 @@ use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use euclid::{Angle, RigidTransform3D, Rotation3D, Vector3D};
 use js::jsapi::{Heap, JSObject};
+use js::rust::HandleObject;
 use std::ptr::NonNull;
 use webxr_api::{ApiSpace, Ray};
 
@@ -37,14 +38,19 @@ impl XRRay {
         }
     }
 
-    pub fn new(global: &GlobalScope, ray: Ray<ApiSpace>) -> DomRoot<XRRay> {
-        reflect_dom_object(Box::new(XRRay::new_inherited(ray)), global)
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        ray: Ray<ApiSpace>,
+    ) -> DomRoot<XRRay> {
+        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), global, proto)
     }
 
     #[allow(non_snake_case)]
     /// https://immersive-web.github.io/hit-test/#dom-xrray-xrray
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         origin: &DOMPointInit,
         direction: &XRRayDirectionInit,
     ) -> Fallible<DomRoot<Self>> {
@@ -68,19 +74,31 @@ impl XRRay {
         )
         .normalize();
 
-        Ok(Self::new(&window.global(), Ray { origin, direction }))
+        Ok(Self::new(
+            &window.global(),
+            proto,
+            Ray { origin, direction },
+        ))
     }
 
     #[allow(non_snake_case)]
     /// https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform
-    pub fn Constructor_(window: &Window, transform: &XRRigidTransform) -> Fallible<DomRoot<Self>> {
+    pub fn Constructor_(
+        window: &Window,
+        proto: Option<HandleObject>,
+        transform: &XRRigidTransform,
+    ) -> Fallible<DomRoot<Self>> {
         let transform = transform.transform();
         let origin = transform.translation;
         let direction = transform
             .rotation
             .transform_vector3d(Vector3D::new(0., 0., -1.));
 
-        Ok(Self::new(&window.global(), Ray { origin, direction }))
+        Ok(Self::new(
+            &window.global(),
+            proto,
+            Ray { origin, direction },
+        ))
     }
 
     pub fn ray(&self) -> Ray<ApiSpace> {
@@ -116,7 +134,7 @@ impl XRRayMethods for XRRay {
         // https://immersive-web.github.io/hit-test/#xrray-obtain-the-matrix
         // Step 1
         if self.matrix.get().is_null() {
-            let cx = self.global().get_cx();
+            let cx = GlobalScope::get_cx();
             // Step 2
             let z = Vector3D::new(0., 0., -1.);
             // Step 3

@@ -2,12 +2,7 @@
 skip-check-length = false
 skip-check-licenses = false
 check-alphabetical-order = true
-check-ordered-json-keys = [
-  "./resources/prefs.json",
-]
-lint-scripts = [
-  "./python/servo/lints/wpt_lint.py",
-]
+check-ordered-json-keys = ["./resources/prefs.json"]
 
 # Packages which we avoid using in Servo.
 # For each blocked package, we can list the exceptions,
@@ -15,10 +10,9 @@ lint-scripts = [
 [blocked-packages]
 num = []
 rand = [
-  "hashglobe", # Only used in tests
   "ipc-channel",
   "phf_generator",
-  "quickcheck", # Only used in tests
+  "quickcheck",    # Only used in tests
   "servo_rand",
   "tungstenite",
   "ws",
@@ -30,11 +24,11 @@ packages = [
   "arrayvec",
   "base64",
   "cfg-if",
+  "cookie",
   "crossbeam-channel",
   "crossbeam-utils",
   "fixedbitset",
   "getrandom",
-  "h2",
   "half",
   "image",
   "itoa",
@@ -45,34 +39,20 @@ packages = [
   "parking_lot",
   "parking_lot_core",
   "petgraph",
-  "phf",
-  "phf_codegen",
-  "phf_generator",
-  "phf_shared",
   "png",
   "rand",
   "rand_chacha",
   "rand_core",
   "redox_syscall",
   "ron",
+  "time",
   "wasi",
   "wayland-sys",
 
   # https://github.com/servo/servo/issues/26933
+  "bytes",
   "futures",
   "mio",
-  "tokio-openssl",
-  "tokio",
-  "tokio-macros",
-  "tokio-util",
-  "http-body",
-  "httpdate",
-  "hyper",
-  "bytes",
-  "pin-project",
-  "pin-project-lite",
-  "pin-project-internal",
-  "socket2",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gl_generator",
@@ -86,19 +66,38 @@ packages = [
   "nix",
 
   # Duplicated by webrender debugger via ws
+  "block-buffer",
   "digest",
   "generic-array",
-  "opaque-debug",
-  "sha-1",
-  "block-buffer",
 
   # Duplicated by winit/surfman update.
   "raw-window-handle",
-  "windows-sys",
+
+  # Temporarily duplicated until ipc-channels and gleam can be upgrded.
+  "uuid",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
   "./components/net/tests/parsable_mime/text",
+  # These are ignored to avoid diverging from Gecko
+  "./components/style/counter_style/mod.rs",
+  "./components/style/properties/declaration_block.rs",
+  "./components/style/properties/helpers.mako.rs",
+  "./components/style/rule_collector.rs",
+  "./components/style/selector_map.rs",
+  "./components/style/stylesheets/import_rule.rs",
+  "./components/style/stylesheets/layer_rule.rs",
+  "./components/style/stylesheets/origin.rs",
+  "./components/style/stylesheets/page_rule.rs",
+  "./components/style/stylesheets/rule_parser.rs",
+  "./components/style/stylesheets/scroll_timeline_rule.rs",
+  "./components/style/stylist.rs",
+  "./components/style/values/animated/transform.rs",
+  "./components/style/values/computed/font.rs",
+  "./components/style/values/computed/image.rs",
+  "./components/style/values/specified/box.rs",
+  "./components/style/values/specified/color.rs",
+  "./components/style/values/specified/transform.rs",
   # Mako does not lend itself easily to splitting long lines
   "./components/style/properties/helpers/animated_properties.mako.rs",
   "./components/style/properties/shorthands/text.mako.rs",
@@ -107,14 +106,18 @@ files = [
   # Helper macro where actually a pseudo-element per line makes sense.
   "./components/style/gecko/non_ts_pseudo_class_list.rs",
   "./resources/hsts_preload.json",
-  "./tests/wpt/metadata/MANIFEST.json",
+  "./tests/wpt/meta/MANIFEST.json",
+  "./tests/wpt/meta-legacy-layout/MANIFEST.json",
   "./tests/wpt/mozilla/meta/MANIFEST.json",
+  "./tests/wpt/mozilla/meta-legacy-layout/MANIFEST.json",
   # Long encoded string
   "./tests/wpt/mozilla/tests/mozilla/resources/brotli.py",
   "./tests/wpt/webgl/meta/MANIFEST.json",
   "./support/android/openssl.sh",
   # Upstream code from Khronos/WebGL uses tabs for indentation
   "./tests/wpt/webgl/tests",
+  # Vendored from upstream
+  "./tests/wpt/webgpu/tests",
   # Our import script is not currently respecting the lint.
   "./tests/wpt/webgl/tools/import-conformance-tests.py",
   # Ignore those files since the issues reported are on purpose
@@ -124,29 +127,23 @@ files = [
   "./tests/wpt/mozilla/tests/mozilla/textarea_placeholder.html",
   # Python 3 syntax causes "E901 SyntaxError" when flake8 runs in Python 2
   "./components/style/properties/build.py",
+  # The tidy tests currently don't pass tidy.
+  "./python/tidy/test.py",
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [
   # Upstream
   "./support/android/apk",
-  "./support/hololens",
-  "./support/linux/gstreamer",
-  "./support/magicleap/Servo2D/.vscode",
-  "./support/magicleap/Servo2D/code/inc.gen",
-  "./support/magicleap/Servo2D/code/src.gen",
-  "./support/magicleap/Servo2D/pipeline",
   "./tests/wpt/harness",
-  "./tests/wpt/web-platform-tests",
+  "./tests/wpt/tests",
   "./tests/wpt/mozilla/tests/mozilla/referrer-policy",
   "./tests/wpt/mozilla/tests/webgl",
-  "./python/tidy/servo_tidy_tests",
-  "./components/script/dom/bindings/codegen/parser",
-  "./components/script/dom/bindings/codegen/ply",
+  "./python/tidy/tests",
   "./python/_virtualenv*",
   "./python/mach",
-  "./components/hashglobe/src",
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",
+  "./third_party",
 ]
 
 # Directories that are checked for correct file extension

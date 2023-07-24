@@ -8,6 +8,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLUListElement {
@@ -30,12 +31,14 @@ impl HTMLUListElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLUListElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLUListElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 }

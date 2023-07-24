@@ -5,7 +5,8 @@
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
-use crate::flow::{BoxTree, FragmentTree};
+use crate::flow::BoxTree;
+use crate::fragment_tree::FragmentTree;
 #[cfg(not(debug_assertions))]
 use serde::ser::{Serialize, Serializer};
 use serde_json::{to_string, to_value, Value};

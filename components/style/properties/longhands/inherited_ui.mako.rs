@@ -10,7 +10,7 @@ ${helpers.predefined_type(
     "cursor",
     "Cursor",
     "computed::Cursor::auto()",
-    engines="gecko servo-2013 servo-2020",
+    engines="gecko servo",
     initial_specified_value="specified::Cursor::auto()",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-ui/#cursor",
@@ -22,7 +22,7 @@ ${helpers.predefined_type(
 ${helpers.single_keyword(
     "pointer-events",
     "auto none",
-    engines="gecko servo-2013 servo-2020",
+    engines="gecko servo",
     animation_value_type="discrete",
     extra_gecko_values="visiblepainted visiblefill visiblestroke visible painted fill stroke all",
     spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty",
@@ -73,13 +73,39 @@ ${helpers.single_keyword(
 
 ${helpers.predefined_type(
     "caret-color",
+    "color::CaretColor",
+    "generics::color::CaretColor::auto()",
+    engines="gecko",
+    spec="https://drafts.csswg.org/css-ui/#caret-color",
+    animation_value_type="CaretColor",
+    boxed=True,
+    ignored_when_colors_disabled=True,
+)}
+
+${helpers.predefined_type(
+    "accent-color",
     "ColorOrAuto",
     "generics::color::ColorOrAuto::Auto",
     engines="gecko",
-    spec="https://drafts.csswg.org/css-ui/#caret-color",
-    animation_value_type="AnimatedCaretColor",
+    spec="https://drafts.csswg.org/css-ui-4/#widget-accent",
+    gecko_pref="layout.css.accent-color.enabled",
+    animation_value_type="ColorOrAuto",
     boxed=True,
     ignored_when_colors_disabled=True,
+    has_effect_on_gecko_scrollbars=False,
+)}
+
+${helpers.predefined_type(
+    "color-scheme",
+    "ColorScheme",
+    "specified::color::ColorScheme::normal()",
+    engines="gecko",
+    spec="https://drafts.csswg.org/css-color-adjust/#color-scheme-prop",
+    gecko_pref="layout.css.color-scheme.enabled",
+    animation_value_type="discrete",
+    has_effect_on_gecko_scrollbars=False,
+    ignored_when_colors_disabled=True,
+    enabled_in="chrome",
 )}
 
 ${helpers.predefined_type(

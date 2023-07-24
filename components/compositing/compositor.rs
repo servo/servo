@@ -17,6 +17,7 @@ use canvas::canvas_paint_thread::ImageUpdate;
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Vector2D};
+use fnv::{FnvHashMap, FnvHashSet};
 use gfx_traits::{Epoch, FontData};
 #[cfg(feature = "gl")]
 use image::{DynamicImage, ImageFormat};
@@ -31,7 +32,7 @@ use net_traits::image_cache::CorsStatus;
 #[cfg(feature = "gl")]
 use pixels::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_traits::compositor::HitTestInfo;
+use script_traits::compositor::{HitTestInfo, ScrollTree};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{
     AnimationState, AnimationTickType, CompositorHitTestResult, LayoutControlMsg, MouseButton,
@@ -45,13 +46,16 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D, WorldPoint,
+    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutVector2D, WorldPoint,
 };
-use webrender_api::{self, HitTestFlags, ScrollLocation};
+use webrender_api::{
+    self, BuiltDisplayList, CaptureBits, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
+    ExternalScrollId, HitTestFlags, PipelineId as WebRenderPipelineId, RenderApi, ScrollClamping,
+    ScrollLocation, Transaction, ZoomFactor,
+};
 use webrender_surfman::WebrenderSurfman;
 
 #[derive(Debug, PartialEq)]
@@ -74,7 +78,7 @@ trait ConvertPipelineIdFromWebRender {
     fn from_webrender(&self) -> PipelineId;
 }
 
-impl ConvertPipelineIdFromWebRender for webrender_api::PipelineId {
+impl ConvertPipelineIdFromWebRender for WebRenderPipelineId {
     fn from_webrender(&self) -> PipelineId {
         PipelineId {
             namespace_id: PipelineNamespaceId(self.0),
@@ -182,10 +186,10 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     webrender: webrender::Renderer,
 
     /// The active webrender document.
-    webrender_document: webrender_api::DocumentId,
+    webrender_document: DocumentId,
 
     /// The webrender interface, if enabled.
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: RenderApi,
 
     /// The surfman instance that webrender targets
     webrender_surfman: WebrenderSurfman,
@@ -269,6 +273,10 @@ struct PipelineDetails {
     /// Hit test items for this pipeline. This is used to map WebRender hit test
     /// information to the full information necessary for Servo.
     hit_test_items: Vec<HitTestInfo>,
+
+    /// The compositor-side [ScrollTree]. This is used to allow finding and scrolling
+    /// nodes in the compositor before forwarding new offsets to WebRender.
+    scroll_tree: ScrollTree,
 }
 
 impl PipelineDetails {
@@ -279,6 +287,30 @@ impl PipelineDetails {
             animation_callbacks_running: false,
             visible: true,
             hit_test_items: Vec::new(),
+            scroll_tree: ScrollTree::default(),
+        }
+    }
+
+    fn install_new_scroll_tree(&mut self, new_scroll_tree: ScrollTree) {
+        let old_scroll_offsets: FnvHashMap<ExternalScrollId, LayoutVector2D> = self
+            .scroll_tree
+            .nodes
+            .drain(..)
+            .filter_map(|node| match (node.external_id(), node.offset()) {
+                (Some(external_id), Some(offset)) => Some((external_id, offset)),
+                _ => None,
+            })
+            .collect();
+
+        self.scroll_tree = new_scroll_tree;
+        for node in self.scroll_tree.nodes.iter_mut() {
+            match node.external_id() {
+                Some(external_id) => match old_scroll_offsets.get(&external_id) {
+                    Some(new_offset) => node.set_offset(*new_offset),
+                    None => continue,
+                },
+                _ => continue,
+            };
         }
     }
 }
@@ -455,7 +487,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             (Msg::SetFrameTree(frame_tree), ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree);
-                self.send_viewport_rects();
+                self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
             },
 
             (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
@@ -476,13 +508,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 if let Err(e) = reply.send(img) {
                     warn!("Sending reply to create png failed ({:?}).", e);
                 }
-            },
-
-            (
-                Msg::ViewportConstrained(pipeline_id, constraints),
-                ShutdownState::NotShuttingDown,
-            ) => {
-                self.constrain_viewport(pipeline_id, constraints);
             },
 
             (Msg::IsReadyToSaveImageReply(is_ready), ShutdownState::NotShuttingDown) => {
@@ -607,9 +632,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         match msg {
             WebrenderMsg::Layout(script_traits::WebrenderMsg::SendInitialTransaction(pipeline)) => {
                 self.waiting_on_pending_frame = true;
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 txn.set_display_list(
-                    webrender_api::Epoch(0),
+                    WebRenderEpoch(0),
                     None,
                     Default::default(),
                     (pipeline, Default::default(), Default::default()),
@@ -626,37 +651,36 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             )) => {
                 self.waiting_for_results_of_scroll = true;
 
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 txn.scroll_node_with_id(point, scroll_id, clamping);
                 txn.generate_frame();
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList(
-                epoch,
-                size,
-                pipeline,
-                size2,
-                receiver,
-                descriptor,
-                compositor_display_list_info,
-            )) => match receiver.recv() {
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList {
+                display_list_info,
+                content_size,
+                display_list_descriptor,
+                display_list_receiver,
+            }) => match display_list_receiver.recv() {
                 Ok(data) => {
                     self.waiting_on_pending_frame = true;
 
-                    let details = self.pipeline_details(PipelineId::from_webrender(pipeline));
-                    details.hit_test_items = compositor_display_list_info.hit_test_info;
+                    let pipeline_id = display_list_info.pipeline_id;
+                    let details = self.pipeline_details(PipelineId::from_webrender(pipeline_id));
+                    details.hit_test_items = display_list_info.hit_test_info;
+                    details.install_new_scroll_tree(display_list_info.scroll_tree);
 
-                    let mut txn = webrender_api::Transaction::new();
+                    let mut txn = Transaction::new();
                     txn.set_display_list(
-                        epoch,
+                        display_list_info.epoch,
                         None,
-                        size,
+                        display_list_info.viewport_size,
                         (
-                            pipeline,
-                            size2,
-                            webrender_api::BuiltDisplayList::from_data(data, descriptor),
+                            pipeline_id,
+                            content_size,
+                            BuiltDisplayList::from_data(data, display_list_descriptor),
                         ),
                         true,
                     );
@@ -664,7 +688,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     self.webrender_api
                         .send_transaction(self.webrender_document, txn);
                 },
-                Err(e) => warn!("error receiving display data: {:?}", e),
+                Err(e) => warn!("error receiving display list data: {e:?}"),
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(
@@ -695,7 +719,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::UpdateImages(updates)) => {
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 for update in updates {
                     match update {
                         script_traits::SerializedImageUpdate::AddImage(key, desc, data) => {
@@ -709,12 +733,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         },
                         script_traits::SerializedImageUpdate::UpdateImage(key, desc, data) => {
                             match data.to_image_data() {
-                                Ok(data) => txn.update_image(
-                                    key,
-                                    desc,
-                                    data,
-                                    &webrender_api::DirtyRect::All,
-                                ),
+                                Ok(data) => txn.update_image(key, desc, data, &DirtyRect::All),
                                 Err(e) => warn!("error when sending image data: {:?}", e),
                             }
                         },
@@ -725,7 +744,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Net(net_traits::WebrenderImageMsg::AddImage(key, desc, data)) => {
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 txn.add_image(key, desc, data, None);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
@@ -733,7 +752,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             WebrenderMsg::Font(WebrenderFontMsg::AddFontInstance(font_key, size, sender)) => {
                 let key = self.webrender_api.generate_font_instance_key();
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 txn.add_font_instance(key, font_key, size, None, None, Vec::new());
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
@@ -742,7 +761,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             WebrenderMsg::Font(WebrenderFontMsg::AddFont(data, sender)) => {
                 let font_key = self.webrender_api.generate_font_key();
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 match data {
                     FontData::Raw(bytes) => txn.add_raw_font(font_key, bytes, 0),
                     FontData::Native(native_font) => txn.add_native_font(font_key, native_font),
@@ -757,14 +776,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Canvas(WebrenderCanvasMsg::UpdateImages(updates)) => {
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = Transaction::new();
                 for update in updates {
                     match update {
                         ImageUpdate::Add(key, descriptor, data) => {
                             txn.add_image(key, descriptor, data, None)
                         },
                         ImageUpdate::Update(key, descriptor, data) => {
-                            txn.update_image(key, descriptor, data, &webrender_api::DirtyRect::All)
+                            txn.update_image(key, descriptor, data, &DirtyRect::All)
                         },
                         ImageUpdate::Delete(key) => txn.delete_image(key),
                     }
@@ -843,15 +862,43 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
 
         let pipeline_id = frame_tree.pipeline.id.to_webrender();
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = Transaction::new();
         txn.set_root_pipeline(pipeline_id);
         txn.generate_frame();
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
 
         self.create_pipeline_details_for_frame_tree(&frame_tree);
+        self.reset_scroll_tree_for_unattached_pipelines(&frame_tree);
 
         self.frame_tree_id.next();
+    }
+
+    fn reset_scroll_tree_for_unattached_pipelines(&mut self, frame_tree: &SendableFrameTree) {
+        // TODO(mrobinson): Eventually this can selectively preserve the scroll trees
+        // state for some unattached pipelines in order to preserve scroll position when
+        // navigating backward and forward.
+        fn collect_pipelines(
+            pipelines: &mut FnvHashSet<PipelineId>,
+            frame_tree: &SendableFrameTree,
+        ) {
+            pipelines.insert(frame_tree.pipeline.id);
+            for kid in &frame_tree.children {
+                collect_pipelines(pipelines, kid);
+            }
+        }
+
+        let mut attached_pipelines: FnvHashSet<PipelineId> = FnvHashSet::default();
+        collect_pipelines(&mut attached_pipelines, frame_tree);
+
+        self.pipeline_details
+            .iter_mut()
+            .filter(|(id, _)| !attached_pipelines.contains(id))
+            .for_each(|(_, details)| {
+                details.scroll_tree.nodes.iter_mut().for_each(|node| {
+                    node.set_offset(LayoutVector2D::zero());
+                })
+            })
     }
 
     fn create_pipeline_details_for_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
@@ -975,7 +1022,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         &self,
         point: WorldPoint,
         flags: HitTestFlags,
-        pipeline_id: Option<webrender_api::PipelineId>,
+        pipeline_id: Option<WebRenderPipelineId>,
     ) -> Vec<CompositorHitTestResult> {
         let root_pipeline_id = match self.root_pipeline.id {
             Some(root_pipeline_id) => root_pipeline_id,
@@ -1005,6 +1052,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     point_relative_to_item: item.point_relative_to_item.to_untyped(),
                     node: UntrustedNodeAddress(info.node as *const c_void),
                     cursor: info.cursor,
+                    scroll_tree_node: info.scroll_tree_node,
                 })
             })
             .collect()
@@ -1160,8 +1208,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn process_pending_scroll_events(&mut self) {
-        let had_events = self.pending_scroll_zoom_events.len() > 0;
-
         // Batch up all scroll events into one, or else we'll do way too much painting.
         let mut last_combined_event: Option<ScrollZoomEvent> = None;
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
@@ -1219,21 +1265,40 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = WorldPoint::from_untyped(cursor);
-            let mut txn = webrender_api::Transaction::new();
-            txn.scroll(scroll_location, cursor);
+            let mut txn = Transaction::new();
+
+            let result = match self.hit_test_at_point(cursor) {
+                Some(result) => result,
+                None => return,
+            };
+
+            if let Some(details) = self.pipeline_details.get_mut(&result.pipeline_id) {
+                match details
+                    .scroll_tree
+                    .scroll_node_or_ancestor(&result.scroll_tree_node, scroll_location)
+                {
+                    Some((external_id, offset)) => {
+                        let scroll_origin = LayoutPoint::new(-offset.x, -offset.y);
+                        txn.scroll_node_with_id(
+                            scroll_origin,
+                            external_id,
+                            ScrollClamping::NoClamping,
+                        );
+                    },
+                    None => {},
+                }
+            }
+            self.send_scroll_positions_to_layout_for_pipeline(&result.pipeline_id);
+
             if combined_event.magnification != 1.0 {
                 let old_zoom = self.pinch_zoom_level();
                 self.set_pinch_zoom_level(old_zoom * combined_event.magnification);
-                txn.set_pinch_zoom(webrender_api::ZoomFactor::new(self.pinch_zoom_level()));
+                txn.set_pinch_zoom(ZoomFactor::new(self.pinch_zoom_level()));
             }
             txn.generate_frame();
             self.webrender_api
                 .send_transaction(self.webrender_document, txn);
             self.waiting_for_results_of_scroll = true
-        }
-
-        if had_events {
-            self.send_viewport_rects();
         }
     }
 
@@ -1281,17 +1346,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    fn constrain_viewport(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
-        let is_root = self.root_pipeline.id == Some(pipeline_id);
-
-        if is_root {
-            self.viewport_zoom = constraints.initial_zoom;
-            self.min_viewport_zoom = constraints.min_zoom;
-            self.max_viewport_zoom = constraints.max_zoom;
-            self.update_zoom_transform();
-        }
-    }
-
     fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         if self.output_file.is_some() {
             return Scale::new(1.0);
@@ -1327,9 +1381,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn update_page_zoom_for_webrender(&mut self) {
-        let page_zoom = webrender_api::ZoomFactor::new(self.page_zoom.get());
+        let page_zoom = ZoomFactor::new(self.page_zoom.get());
 
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = Transaction::new();
         txn.set_page_zoom(page_zoom);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
@@ -1345,28 +1399,29 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         });
     }
 
-    fn send_viewport_rects(&self) {
-        let mut scroll_states_per_pipeline = HashMap::new();
-        for scroll_layer_state in self
-            .webrender_api
-            .get_scroll_node_state(self.webrender_document)
-        {
-            let scroll_state = ScrollState {
-                scroll_id: scroll_layer_state.id,
-                scroll_offset: scroll_layer_state.scroll_offset,
-            };
+    fn send_scroll_positions_to_layout_for_pipeline(&self, pipeline_id: &PipelineId) {
+        let details = match self.pipeline_details.get(&pipeline_id) {
+            Some(details) => details,
+            None => return,
+        };
 
-            scroll_states_per_pipeline
-                .entry(scroll_layer_state.id.pipeline_id())
-                .or_insert(vec![])
-                .push(scroll_state);
-        }
-
-        for (pipeline_id, scroll_states) in scroll_states_per_pipeline {
-            if let Some(pipeline) = self.pipeline(pipeline_id.from_webrender()) {
-                let msg = LayoutControlMsg::SetScrollStates(scroll_states);
-                let _ = pipeline.layout_chan.send(msg);
+        let mut scroll_states = Vec::new();
+        details.scroll_tree.nodes.iter().for_each(|node| {
+            match (node.external_id(), node.offset()) {
+                (Some(scroll_id), Some(scroll_offset)) => {
+                    scroll_states.push(ScrollState {
+                        scroll_id,
+                        scroll_offset,
+                    });
+                },
+                _ => {},
             }
+        });
+
+        if let Some(pipeline) = details.pipeline.as_ref() {
+            let _ = pipeline
+                .layout_chan
+                .send(LayoutControlMsg::SetScrollStates(scroll_states));
         }
     }
 
@@ -1401,7 +1456,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let mut pipeline_epochs = HashMap::new();
                 for (id, _) in &self.pipeline_details {
                     let webrender_pipeline_id = id.to_webrender();
-                    if let Some(webrender_api::Epoch(epoch)) = self
+                    if let Some(WebRenderEpoch(epoch)) = self
                         .webrender
                         .current_epoch(self.webrender_document, webrender_pipeline_id)
                     {
@@ -1550,7 +1605,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             // For each pending paint metrics pipeline id
             for (id, pending_epoch) in &self.pending_paint_metrics {
                 // we get the last painted frame id from webrender
-                if let Some(webrender_api::Epoch(epoch)) = self
+                if let Some(WebRenderEpoch(epoch)) = self
                     .webrender
                     .current_epoch(self.webrender_document, id.to_webrender())
                 {
@@ -1809,7 +1864,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         flags.toggle(flag);
         self.webrender.set_debug_flags(flags);
 
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = Transaction::new();
         txn.generate_frame();
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
@@ -1841,7 +1896,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     &revision_file_path
                 );
                 self.webrender_api
-                    .save_capture(capture_path, webrender_api::CaptureBits::all());
+                    .save_capture(capture_path, CaptureBits::all());
 
                 match File::create(revision_file_path) {
                     Ok(mut file) => {

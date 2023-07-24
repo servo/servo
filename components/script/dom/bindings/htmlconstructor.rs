@@ -225,10 +225,18 @@ unsafe fn html_constructor(
         None => {
             // Step 8.1
             let name = QualName::new(None, ns!(html), definition.local_name.clone());
+            // Any prototype used to create these elements will be overwritten before returning
+            // from this function, so we don't bother overwriting the defaults here.
             let element = if definition.is_autonomous() {
-                DomRoot::upcast(HTMLElement::new(name.local, None, &*document))
+                DomRoot::upcast(HTMLElement::new(name.local, None, &*document, None))
             } else {
-                create_native_html_element(name, None, &*document, ElementCreator::ScriptCreated)
+                create_native_html_element(
+                    name,
+                    None,
+                    &*document,
+                    ElementCreator::ScriptCreated,
+                    None,
+                )
             };
 
             // Step 8.2 is performed in the generated caller code.

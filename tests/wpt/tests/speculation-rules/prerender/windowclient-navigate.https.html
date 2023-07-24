@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>WindowClient.navigate() for prerendered main page</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+const uid = token();
+
+const PAGE_URL = `resources/prerendered-page.html?uid=${uid}`;
+const WORKER_URL = `resources/windowclient-navigate-worker.js?uid=${uid}`;
+const SAME_ORIGIN_DESTINATION =
+    get_host_info()['HTTPS_ORIGIN'] + base_path() + 'resources/empty.html';
+
+promise_test(async t => {
+  const registration =
+    await service_worker_unregister_and_register(t, WORKER_URL, PAGE_URL);
+  t.add_cleanup(() => registration.unregister());
+  await wait_for_state(t, get_newest_worker(registration), 'activated');
+
+  const readyChannel = new PrerenderChannel('prerender-channel', uid);
+  t.add_cleanup(_ => readyChannel.close());
+
+  const readyPromise = new Promise(resolve => {
+    readyChannel.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+
+  startPrerendering(PAGE_URL);
+
+  const prerenderResult = await readyPromise;
+  assert_equals(prerenderResult, 'prerender success',
+                'should succeed to prerender a page');
+
+  const resultChannel = new PrerenderChannel('test-channel', uid);
+  t.add_cleanup(_ => resultChannel.close());
+
+  const navigationPromise = new Promise(resolve => {
+    resultChannel.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+
+  // Asks the service worker to navigate the prerendered page to `navigationUrl`
+  // via `WindowClient.navigate(url)`.
+  const bc = new PrerenderChannel('navigation-channel', uid);
+  bc.postMessage(JSON.stringify({
+    navigationUrl: SAME_ORIGIN_DESTINATION,
+    clientUrl: new URL(PAGE_URL, window.location).toString(),
+    respondTo: 'test-channel',
+  }));
+  bc.close();
+
+  const navigationResult = await navigationPromise;
+  assert_equals(navigationResult, 'navigate() failed with TypeError',
+      'should fail the navigation with TypeError');
+}, 'WindowClient.navigate() for a prerendered main page should throw a' +
+   'TypeError');
+</script>

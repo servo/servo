@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethod
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -18,6 +18,7 @@ use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
+use js::rust::HandleObject;
 use servo_config::pref;
 use std::cell::Cell;
 use std::default::Default;
@@ -71,7 +72,14 @@ impl MouseEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<MouseEvent> {
-        reflect_dom_object(Box::new(MouseEvent::new_inherited()), window)
+        Self::new_uninitialized_with_proto(window, None)
+    }
+
+    fn new_uninitialized_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<MouseEvent> {
+        reflect_dom_object_with_proto(Box::new(MouseEvent::new_inherited()), window, proto)
     }
 
     pub fn new(
@@ -94,7 +102,51 @@ impl MouseEvent {
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32>>,
     ) -> DomRoot<MouseEvent> {
-        let ev = MouseEvent::new_uninitialized(window);
+        Self::new_with_proto(
+            window,
+            None,
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            screen_x,
+            screen_y,
+            client_x,
+            client_y,
+            ctrl_key,
+            alt_key,
+            shift_key,
+            meta_key,
+            button,
+            buttons,
+            related_target,
+            point_in_target,
+        )
+    }
+
+    fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+        screen_x: i32,
+        screen_y: i32,
+        client_x: i32,
+        client_y: i32,
+        ctrl_key: bool,
+        alt_key: bool,
+        shift_key: bool,
+        meta_key: bool,
+        button: i16,
+        buttons: u16,
+        related_target: Option<&EventTarget>,
+        point_in_target: Option<Point2D<f32>>,
+    ) -> DomRoot<MouseEvent> {
+        let ev = MouseEvent::new_uninitialized_with_proto(window, proto);
         ev.InitMouseEvent(
             type_,
             bool::from(can_bubble),
@@ -123,13 +175,15 @@ impl MouseEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &MouseEventBinding::MouseEventInit,
     ) -> Fallible<DomRoot<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
-        let event = MouseEvent::new(
+        let event = MouseEvent::new_with_proto(
             window,
+            proto,
             type_,
             bubbles,
             cancelable,

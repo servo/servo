@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-grid">
+<meta name="assert" content="Trimmed block-end margins for grid items should be reflected in computed style">
+</head>
+<style>
+grid {
+    display: grid;
+    width: min-content;
+    border: 1px solid black;
+    grid-template-columns: repeat(4, auto);
+    margin-trim: block-end;
+}
+item {
+    display: block;
+    width: 50px;
+    height: 50px;
+    margin-bottom: 10px;
+}
+.locked-position {
+    grid-row: 2;
+    grid-column: 2;
+    margin-block-end: 50px;
+    background-color: magenta;
+}
+.span-three-columns {
+    grid-column: span 3;
+    background-color: purple;
+}
+.span-five-columns {
+    grid-column: span 5;
+}
+item:nth-child(1) {
+    background-color: green;
+}
+item:nth-child(4) {
+    background-color: blue;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('grid > item')">
+    <div id="target">
+    <grid>
+        <item class="span-five-columns" data-expected-margin-bottom="10"></item>
+        <item class="locked-position" data-expected-margin-bottom="50"></item>
+        <item class="span-three-columns" data-expected-margin-bottom="10"></item>
+        <item data-expected-margin-bottom="0"></item>
+    </grid>
+    </div>
+</body>
+</html>

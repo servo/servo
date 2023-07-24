@@ -36,4 +36,7 @@ six == 1.15
 # For sending build notifications.
 notify-py == 0.3.42
 
--e python/tidy
+# For wpt scripts and their tests.
+flask
+requests
+types-requests

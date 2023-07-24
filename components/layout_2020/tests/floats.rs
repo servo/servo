@@ -9,7 +9,7 @@ extern crate lazy_static;
 
 use euclid::num::Zero;
 use layout::flow::float::{ClearSide, FloatBand, FloatBandNode, FloatBandTree, FloatContext};
-use layout::flow::float::{FloatSide, PlacementInfo};
+use layout::flow::float::{ContainingBlockPositionInfo, FloatSide, PlacementInfo};
 use layout::geom::flow_relative::{Rect, Vec2};
 use quickcheck::{Arbitrary, Gen};
 use std::f32;
@@ -57,10 +57,7 @@ impl<'a> Drop for PanicMsgSuppressor<'a> {
 struct FloatBandWrapper(FloatBand);
 
 impl Arbitrary for FloatBandWrapper {
-    fn arbitrary<G>(generator: &mut G) -> FloatBandWrapper
-    where
-        G: Gen,
-    {
+    fn arbitrary(generator: &mut Gen) -> FloatBandWrapper {
         let top: u32 = Arbitrary::arbitrary(generator);
         let left: Option<u32> = Arbitrary::arbitrary(generator);
         let right: Option<u32> = Arbitrary::arbitrary(generator);
@@ -75,23 +72,17 @@ impl Arbitrary for FloatBandWrapper {
 #[derive(Clone, Debug)]
 struct FloatRangeInput {
     start_index: u32,
-    band_count: u32,
     side: FloatSide,
     length: u32,
 }
 
 impl Arbitrary for FloatRangeInput {
-    fn arbitrary<G>(generator: &mut G) -> FloatRangeInput
-    where
-        G: Gen,
-    {
+    fn arbitrary(generator: &mut Gen) -> FloatRangeInput {
         let start_index: u32 = Arbitrary::arbitrary(generator);
-        let band_count: u32 = Arbitrary::arbitrary(generator);
         let is_left: bool = Arbitrary::arbitrary(generator);
         let length: u32 = Arbitrary::arbitrary(generator);
         FloatRangeInput {
             start_index,
-            band_count,
             side: if is_left {
                 FloatSide::Left
             } else {
@@ -341,20 +332,25 @@ struct FloatInput {
     // The float may be placed no higher than this line. This simulates the effect of line boxes
     // per CSS 2.1 § 9.5.1 rule 6.
     ceiling: u32,
+    /// Containing block positioning information, which is used to track the current offsets
+    /// from the float containing block formatting context to the current containing block.
+    containing_block_info: ContainingBlockPositionInfo,
 }
 
 impl Arbitrary for FloatInput {
-    fn arbitrary<G>(generator: &mut G) -> FloatInput
-    where
-        G: Gen,
-    {
-        let width: u32 = Arbitrary::arbitrary(generator);
-        let height: u32 = Arbitrary::arbitrary(generator);
-        let is_left: bool = Arbitrary::arbitrary(generator);
-        let ceiling: u32 = Arbitrary::arbitrary(generator);
-        let left_wall: u32 = Arbitrary::arbitrary(generator);
-        let right_wall: u32 = Arbitrary::arbitrary(generator);
-        let clear: u8 = Arbitrary::arbitrary(generator);
+    fn arbitrary(generator: &mut Gen) -> FloatInput {
+        // See #29819: Limit the maximum size of all f32 values here because
+        // massive float values will start to introduce very bad floating point
+        // errors.
+        // TODO: This should be be addressed in a better way. Perhaps we should
+        // reintroduce the use of app_units in Layout 2020.
+        let width = u32::arbitrary(generator) % 12345;
+        let height = u32::arbitrary(generator) % 12345;
+        let is_left = bool::arbitrary(generator);
+        let ceiling = u32::arbitrary(generator) % 12345;
+        let left = u32::arbitrary(generator) % 12345;
+        let containing_block_width = u32::arbitrary(generator) % 12345;
+        let clear = u8::arbitrary(generator);
         FloatInput {
             info: PlacementInfo {
                 size: Vec2 {
@@ -367,10 +363,12 @@ impl Arbitrary for FloatInput {
                     FloatSide::Right
                 },
                 clear: new_clear_side(clear),
-                left_wall: Length::new(left_wall as f32),
-                right_wall: Length::new(right_wall as f32),
             },
             ceiling,
+            containing_block_info: ContainingBlockPositionInfo::new_with_inline_offsets(
+                Length::new(left as f32),
+                Length::new(left as f32 + containing_block_width as f32),
+            ),
         }
     }
 
@@ -389,12 +387,12 @@ impl Arbitrary for FloatInput {
             this.info.clear = new_clear_side(clear_side);
             shrunk = true;
         }
-        if let Some(left_wall) = self.info.left_wall.px().shrink().next() {
-            this.info.left_wall = Length::new(left_wall);
+        if let Some(left) = self.containing_block_info.inline_start.px().shrink().next() {
+            this.containing_block_info.inline_start = Length::new(left);
             shrunk = true;
         }
-        if let Some(right_wall) = self.info.right_wall.px().shrink().next() {
-            this.info.right_wall = Length::new(right_wall);
+        if let Some(right) = self.containing_block_info.inline_end.px().shrink().next() {
+            this.containing_block_info.inline_end = Length::new(right);
             shrunk = true;
         }
         if let Some(ceiling) = self.ceiling.shrink().next() {
@@ -430,6 +428,7 @@ struct PlacedFloat {
     origin: Vec2<Length>,
     info: PlacementInfo,
     ceiling: Length,
+    containing_block_info: ContainingBlockPositionInfo,
 }
 
 impl Drop for FloatPlacement {
@@ -442,8 +441,12 @@ impl Drop for FloatPlacement {
         eprintln!("Failing float placement:");
         for placed_float in &self.placed_floats {
             eprintln!(
-                "   * {:?} @ {:?}, {:?}",
-                placed_float.info, placed_float.origin, placed_float.ceiling
+                "   * {:?} @ {:?}, T {:?} L {:?} R {:?}",
+                placed_float.info,
+                placed_float.origin,
+                placed_float.ceiling,
+                placed_float.containing_block_info.inline_start,
+                placed_float.containing_block_info.inline_end,
             );
         }
         eprintln!("Bands:\n{:?}\n", self.float_context.bands);
@@ -461,15 +464,17 @@ impl PlacedFloat {
 
 impl FloatPlacement {
     fn place(floats: Vec<FloatInput>) -> FloatPlacement {
-        let mut float_context = FloatContext::new();
+        let mut float_context = FloatContext::new(Length::new(f32::INFINITY));
         let mut placed_floats = vec![];
         for float in floats {
             let ceiling = Length::new(float.ceiling as f32);
             float_context.lower_ceiling(ceiling);
+            float_context.containing_block_info = float.containing_block_info;
             placed_floats.push(PlacedFloat {
                 origin: float_context.add_float(&float.info),
                 info: float.info,
                 ceiling,
+                containing_block_info: float.containing_block_info,
             })
         }
         FloatPlacement {
@@ -488,9 +493,14 @@ impl FloatPlacement {
 fn check_floats_rule_1(placement: &FloatPlacement) {
     for placed_float in &placement.placed_floats {
         match placed_float.info.side {
-            FloatSide::Left => assert!(placed_float.origin.inline >= placed_float.info.left_wall),
+            FloatSide::Left => assert!(
+                placed_float.origin.inline >= placed_float.containing_block_info.inline_start
+            ),
             FloatSide::Right => {
-                assert!(placed_float.rect().max_inline_position() <= placed_float.info.right_wall)
+                assert!(
+                    placed_float.rect().max_inline_position() <=
+                        placed_float.containing_block_info.inline_end
+                )
             },
         }
     }
@@ -596,12 +606,14 @@ fn check_floats_rule_7(placement: &FloatPlacement) {
         // Only consider floats that stick out.
         match placed_float.info.side {
             FloatSide::Left => {
-                if placed_float.rect().max_inline_position() <= placed_float.info.right_wall {
+                if placed_float.rect().max_inline_position() <=
+                    placed_float.containing_block_info.inline_end
+                {
                     continue;
                 }
             },
             FloatSide::Right => {
-                if placed_float.origin.inline >= placed_float.info.left_wall {
+                if placed_float.origin.inline >= placed_float.containing_block_info.inline_start {
                     continue;
                 }
             },
@@ -661,7 +673,7 @@ fn check_floats_rule_9(floats_and_perturbations: Vec<(FloatInput, u32)>) {
 
         let mut placement = placement.clone();
         {
-            let mut placed_float = &mut placement.placed_floats[float_index];
+            let placed_float = &mut placement.placed_floats[float_index];
             let perturbation = Length::new(perturbation as f32);
             match placed_float.info.side {
                 FloatSide::Left => {
@@ -747,6 +759,7 @@ fn check_basic_float_rules(placement: &FloatPlacement) {
 fn test_floats_rule_1() {
     let f: fn(Vec<FloatInput>) = check;
     quickcheck::quickcheck(f);
+
     fn check(floats: Vec<FloatInput>) {
         check_floats_rule_1(&FloatPlacement::place(floats));
     }

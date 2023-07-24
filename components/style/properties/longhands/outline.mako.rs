@@ -14,7 +14,7 @@ ${helpers.predefined_type(
     "outline-color",
     "Color",
     "computed_value::T::currentcolor()",
-    engines="gecko servo-2013 servo-2020",
+    engines="gecko servo",
     initial_specified_value="specified::Color::currentcolor()",
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
@@ -25,7 +25,7 @@ ${helpers.predefined_type(
     "outline-style",
     "OutlineStyle",
     "computed::OutlineStyle::none()",
-    engines="gecko servo-2013 servo-2020",
+    engines="gecko servo",
     initial_specified_value="specified::OutlineStyle::none()",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-style",
@@ -35,31 +35,18 @@ ${helpers.predefined_type(
     "outline-width",
     "BorderSideWidth",
     "crate::values::computed::NonNegativeLength::new(3.)",
-    engines="gecko servo-2013 servo-2020",
+    engines="gecko servo",
     initial_specified_value="specified::BorderSideWidth::Medium",
     computed_type="crate::values::computed::NonNegativeLength",
     animation_value_type="NonNegativeLength",
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-width",
 )}
 
-// The -moz-outline-radius-* properties are non-standard and not on a standards track.
-% for corner in ["topleft", "topright", "bottomright", "bottomleft"]:
-    ${helpers.predefined_type(
-        "-moz-outline-radius-" + corner,
-        "BorderCornerRadius",
-        "computed::BorderCornerRadius::zero()",
-        engines="gecko",
-        boxed=True,
-        animation_value_type="BorderCornerRadius",
-        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)",
-    )}
-% endfor
-
 ${helpers.predefined_type(
     "outline-offset",
     "Length",
     "crate::values::computed::Length::new(0.)",
-    engines="gecko servo-2013 servo-2020",
+    engines="gecko servo",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-offset",
 )}

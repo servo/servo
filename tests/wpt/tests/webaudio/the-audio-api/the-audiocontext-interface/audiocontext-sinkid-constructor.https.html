@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<head>
+<title>Test AudioContext constructor with sinkId options</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+let outputDeviceList = null;
+let firstDeviceId = null;
+
+navigator.mediaDevices.getUserMedia({audio: true}).then(() => {
+  navigator.mediaDevices.enumerateDevices().then((deviceList) => {
+    outputDeviceList =
+        deviceList.filter(({kind}) => kind === 'audiooutput');
+    assert_greater_than(outputDeviceList.length, 1,
+                        'the system must have more than 1 device.');
+    firstDeviceId = outputDeviceList[1].deviceId;
+
+    // Run async tests concurrently.
+    async_test(t => testDefaultSinkId(t),
+               'Setting sinkId to the empty string at construction should ' +
+               'succeed.');
+    async_test(t => testValidSinkId(t),
+               'Setting sinkId with a valid device identifier at ' +
+               'construction should succeed.');
+    async_test(t => testAudioSinkOptions(t),
+               'Setting sinkId with an AudioSinkOptions at construction ' +
+               'should succeed.');
+    async_test(t => testExceptions(t),
+               'Invalid sinkId arguments should throw an appropriate ' +
+               'exception.')
+  });
+});
+
+// 1.2.1. AudioContext constructor
+// https://webaudio.github.io/web-audio-api/#AudioContext-constructors
+
+// Step 10.1.1. If sinkId is equal to [[sink ID]], abort these substeps.
+const testDefaultSinkId = (t) => {
+  // The initial `sinkId` is the empty string. This will cause the same value
+  // check.
+  const audioContext = new AudioContext({sinkId: ''});
+  audioContext.addEventListener('statechange', () => {
+    t.step(() => {
+      assert_equals(audioContext.sinkId, '');
+      assert_equals(audioContext.state, 'running');
+    });
+    audioContext.close();
+    t.done();
+  }, {once: true});
+};
+
+// Step 10.1.2~3: See "Validating sinkId" tests below.
+
+// Step 10.1.4. If sinkId is a type of DOMString, set [[sink ID]] to sinkId and
+// abort these substeps.
+const testValidSinkId = (t) => {
+  const audioContext = new AudioContext({sinkId: firstDeviceId});
+  audioContext.addEventListener('statechange', () => {
+    t.step(() => {
+      assert_true(audioContext.sinkId === firstDeviceId,
+                  'the context sinkId should match the given sinkId.');
+    });
+    audioContext.close();
+    t.done();
+  }, {once: true});
+  t.step_timeout(t.unreached_func('onstatechange not fired or assert failed'),
+                 100);
+};
+
+// Step 10.1.5. If sinkId is a type of AudioSinkOptions, set [[sink ID]] to a
+// new instance of AudioSinkInfo created with the value of type of sinkId.
+const testAudioSinkOptions = (t) => {
+  const audioContext = new AudioContext({sinkId: {type: 'none'}});
+  // The only signal we can use for the sinkId change after construction is
+  // `statechange` event.
+  audioContext.addEventListener('statechange', () => {
+    t.step(() => {
+      assert_equals(typeof audioContext.sinkId, 'object');
+      assert_equals(audioContext.sinkId.type, 'none');
+    });
+    audioContext.close();
+    t.done();
+  }, {once: true});
+  t.step_timeout(t.unreached_func('onstatechange not fired or assert failed'),
+                 100);
+};
+
+// 1.2.4. Validating sinkId
+// https://webaudio.github.io/web-audio-api/#validating-sink-identifier
+
+// Step 3. If document is not allowed to use the feature identified by
+// "speaker-selection", return a new DOMException whose name is
+// "NotAllowedError".
+// TODO(https://crbug.com/1380872): Due to the lack of "speaker-selection"
+// implementation, a test for such step does not exist yet.
+
+const testExceptions = (t) => {
+  t.step(() => {
+    // The wrong AudioSinkOption.type should cause a TypeError.
+    assert_throws_js(TypeError, () => {
+      const audioContext = new AudioContext({sinkId: {type: 'something_else'}});
+      audioContext.close();
+    }, 'An invalid AudioSinkOptions.type value should throw a TypeError ' +
+       'exception.');
+  });
+
+  t.step(() => {
+    // Step 4. If sinkIdArg is a type of DOMString but it is not equal to the
+    // empty string or it does not match any audio output device identified by
+    // the result that would be provided by enumerateDevices(), return a new
+    // DOMException whose name is "NotFoundError".
+    // TODO(https://crbug.com/1439947): This does not throw in Chromium because
+    // the logic automatically fallbacks to the default device when a given ID
+    // is invalid.
+    assert_throws_dom('NotFoundError', () => {
+      const audioContext = new AudioContext({sinkId: 'some_random_device_id'});
+      audioContext.close();
+    }, 'An invalid device identifier should throw a NotFoundError exception.');
+  });
+  t.done();
+};
+</script>
+</html>

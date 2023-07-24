@@ -12,6 +12,6 @@ path = "lib.rs"
 
 [dependencies]
 malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = "0.1"
-num-traits = "0.2"
-serde = "1.0"
+malloc_size_of_derive = { workspace = true }
+num-traits = { workspace = true }
+serde = { workspace = true }

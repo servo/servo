@@ -21,7 +21,7 @@ use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 /// The name of the mathematical function that we're parsing.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Parse)]
 pub enum MathFunction {
     /// `calc()`: https://drafts.csswg.org/css-values-4/#funcdef-calc
     Calc,
@@ -31,6 +31,18 @@ pub enum MathFunction {
     Max,
     /// `clamp()`: https://drafts.csswg.org/css-values-4/#funcdef-clamp
     Clamp,
+    /// `sin()`: https://drafts.csswg.org/css-values-4/#funcdef-sin
+    Sin,
+    /// `cos()`: https://drafts.csswg.org/css-values-4/#funcdef-cos
+    Cos,
+    /// `tan()`: https://drafts.csswg.org/css-values-4/#funcdef-tan
+    Tan,
+    /// `asin()`: https://drafts.csswg.org/css-values-4/#funcdef-asin
+    Asin,
+    /// `acos()`: https://drafts.csswg.org/css-values-4/#funcdef-acos
+    Acos,
+    /// `atan()`: https://drafts.csswg.org/css-values-4/#funcdef-atan
+    Atan,
 }
 
 /// A leaf node inside a `Calc` expression's AST.
@@ -107,8 +119,12 @@ impl PartialOrd for Leaf {
         }
 
         match (self, other) {
+            // NOTE: Percentages can't be compared reasonably here because the
+            // percentage basis might be negative, see bug 1709018.
+            // Conveniently, we only use this for <length-percentage> (for raw
+            // percentages, we go through resolve()).
+            (&Percentage(..), &Percentage(..)) => None,
             (&Length(ref one), &Length(ref other)) => one.partial_cmp(other),
-            (&Percentage(ref one), &Percentage(ref other)) => one.partial_cmp(other),
             (&Angle(ref one), &Angle(ref other)) => one.degrees().partial_cmp(&other.degrees()),
             (&Time(ref one), &Time(ref other)) => one.seconds().partial_cmp(&other.seconds()),
             (&Number(ref one), &Number(ref other)) => one.partial_cmp(other),
@@ -169,6 +185,7 @@ impl generic::CalcNodeLeaf for Leaf {
                     FontRelativeLength::Em(..) => SortKey::Em,
                     FontRelativeLength::Ex(..) => SortKey::Ex,
                     FontRelativeLength::Cap(..) => SortKey::Cap,
+                    FontRelativeLength::Ic(..) => SortKey::Ic,
                     FontRelativeLength::Rem(..) => SortKey::Rem,
                 },
                 NoCalcLength::ViewportPercentage(ref vp) => match *vp {
@@ -225,6 +242,13 @@ impl generic::CalcNodeLeaf for Leaf {
 
         Ok(())
     }
+}
+
+fn trig_enabled() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.trig.enabled");
+    #[cfg(feature = "servo")]
+    return false;
 }
 
 /// A calc node representation for specified values.
@@ -297,6 +321,17 @@ impl CalcNode {
                 let function = CalcNode::math_function(name, location)?;
                 CalcNode::parse(context, input, function, expected_unit)
             },
+            (&Token::Ident(ref ident), _) => {
+                if !trig_enabled() {
+                    return Err(location.new_unexpected_token_error(Token::Ident(ident.clone())));
+                }
+                let number = match_ignore_ascii_case! { &**ident,
+                    "e" => std::f32::consts::E,
+                    "pi" => std::f32::consts::PI,
+                    _ => return Err(location.new_unexpected_token_error(Token::Ident(ident.clone()))),
+                };
+                Ok(CalcNode::Leaf(Leaf::Number(number)))
+            },
             (t, _) => Err(location.new_unexpected_token_error(t.clone())),
         }
     }
@@ -346,6 +381,51 @@ impl CalcNode {
 
                     Ok(Self::MinMax(arguments.into(), op))
                 },
+                MathFunction::Sin | MathFunction::Cos | MathFunction::Tan => {
+                    let argument = Self::parse_argument(context, input, CalcUnit::Angle)?;
+                    let radians = match argument.to_number() {
+                        Ok(v) => v,
+                        Err(()) => match argument.to_angle() {
+                            Ok(angle) => angle.radians(),
+                            Err(()) => {
+                                return Err(
+                                    input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                                )
+                            },
+                        },
+                    };
+                    let number = match function {
+                        MathFunction::Sin => radians.sin(),
+                        MathFunction::Cos => radians.cos(),
+                        MathFunction::Tan => radians.tan(),
+                        _ => unsafe {
+                            debug_unreachable!("We just checked!");
+                        },
+                    };
+                    Ok(Self::Leaf(Leaf::Number(number)))
+                },
+                MathFunction::Asin | MathFunction::Acos | MathFunction::Atan => {
+                    let argument = Self::parse_argument(context, input, CalcUnit::Number)?;
+                    let number = match argument.to_number() {
+                        Ok(v) => v,
+                        Err(()) => {
+                            return Err(
+                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                            )
+                        },
+                    };
+
+                    let radians = match function {
+                        MathFunction::Asin => number.asin(),
+                        MathFunction::Acos => number.acos(),
+                        MathFunction::Atan => number.atan(),
+                        _ => unsafe {
+                            debug_unreachable!("We just checked!");
+                        },
+                    };
+
+                    Ok(Self::Leaf(Leaf::Angle(Angle::from_radians(radians))))
+                },
             }
         })
     }
@@ -374,9 +454,9 @@ impl CalcNode {
                             rhs.negate();
                             sum.push(rhs);
                         },
-                        ref t => {
-                            let t = t.clone();
-                            return Err(input.new_unexpected_token_error(t));
+                        _ => {
+                            input.reset(&start);
+                            break;
                         },
                     }
                 },
@@ -518,13 +598,20 @@ impl CalcNode {
         name: &CowRcStr<'i>,
         location: cssparser::SourceLocation,
     ) -> Result<MathFunction, ParseError<'i>> {
-        Ok(match_ignore_ascii_case! { &*name,
-            "calc" => MathFunction::Calc,
-            "min" => MathFunction::Min,
-            "max" => MathFunction::Max,
-            "clamp" => MathFunction::Clamp,
-            _ => return Err(location.new_unexpected_token_error(Token::Function(name.clone()))),
-        })
+        use self::MathFunction::*;
+
+        let function = match MathFunction::from_ident(&*name) {
+            Ok(f) => f,
+            Err(()) => {
+                return Err(location.new_unexpected_token_error(Token::Function(name.clone())))
+            },
+        };
+
+        if matches!(function, Sin | Cos | Tan | Asin | Acos | Atan) && !trig_enabled() {
+            return Err(location.new_unexpected_token_error(Token::Function(name.clone())));
+        }
+
+        Ok(function)
     }
 
     /// Convenience parsing function for integers.

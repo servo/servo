@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: rotated img element with border radius off the top edge (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+.target {
+  transform: rotate(330deg) translate3d(110px, 10px, 10px);
+  border-radius: 0.375rem;
+  width: 400px;
+  height: 400px;
+}
+</style>
+<body>
+<img class="target" src="support/cat.png">

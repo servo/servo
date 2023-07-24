@@ -81,7 +81,6 @@ ${helpers.predefined_type(
     "generics::basic_shape::ClipPath::None",
     engines="gecko",
     animation_value_type="basic_shape::ClipPath",
-    flags="CREATES_STACKING_CONTEXT",
     spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path",
 )}
 
@@ -183,7 +182,6 @@ ${helpers.predefined_type(
     vector=True,
     extra_prefixes="webkit",
     animation_value_type="discrete",
-    flags="CREATES_STACKING_CONTEXT",
 )}
 
 ${helpers.predefined_type(
@@ -247,4 +245,14 @@ ${helpers.predefined_type(
     engines="gecko",
     animation_value_type="LengthPercentage",
     spec="https://svgwg.org/svg2-draft/geometry.html#R",
+)}
+
+${helpers.predefined_type(
+    "d",
+    "DProperty",
+    "specified::DProperty::none()",
+    engines="gecko",
+    animation_value_type="ComputedValue",
+    gecko_pref="layout.css.d-property.enabled",
+    spec="https://svgwg.org/svg2-draft/paths.html#TheDProperty",
 )}

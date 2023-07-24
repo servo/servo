@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="text-decoration"
-                    engines="gecko servo-2013 servo-2020"
+                    engines="gecko servo"
                     flags="SHORTHAND_IN_GETCS"
                     sub_properties="text-decoration-line
                     ${' text-decoration-style text-decoration-color text-decoration-thickness' if engine == 'gecko' else ''}"
@@ -89,6 +89,14 @@
             }
 
             % if engine == "gecko":
+            if !is_auto_thickness {
+                if has_value {
+                    dest.write_str(" ")?;
+                }
+                self.text_decoration_thickness.to_css(dest)?;
+                has_value = true;
+            }
+
             if !is_solid_style {
                 if has_value {
                     dest.write_str(" ")?;
@@ -103,13 +111,6 @@
                 }
                 self.text_decoration_color.to_css(dest)?;
                 has_value = true;
-            }
-
-            if !is_auto_thickness {
-                if has_value {
-                    dest.write_str(" ")?;
-                }
-                self.text_decoration_thickness.to_css(dest)?;
             }
             % endif
 

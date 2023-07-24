@@ -11,6 +11,7 @@ use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::logical_geometry::WritingMode;
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
+use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::ComputedValues;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{Length, LengthPercentage};
@@ -112,6 +113,7 @@ pub(crate) trait ComputedValuesExt {
     ) -> flow_relative::Sides<LengthPercentageOrAuto<'_>>;
     fn has_transform_or_perspective(&self) -> bool;
     fn effective_z_index(&self) -> i32;
+    fn establishes_block_formatting_context(&self) -> bool;
     fn establishes_stacking_context(&self) -> bool;
     fn establishes_containing_block_for_absolute_descendants(&self) -> bool;
     fn establishes_containing_block_for_all_descendants(&self) -> bool;
@@ -365,6 +367,25 @@ impl ComputedValuesExt for ComputedValues {
         }
     }
 
+    /// Return true if this style is a normal block and establishes
+    /// a new block formatting context.
+    fn establishes_block_formatting_context(&self) -> bool {
+        if self.get_box().overflow_x.is_scrollable() {
+            return true;
+        }
+
+        if self.get_column().is_multicol() {
+            return true;
+        }
+
+        if self.get_column().column_span == ColumnSpan::All {
+            return true;
+        }
+
+        // TODO: We need to handle CSS Contain here.
+        false
+    }
+
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     fn establishes_stacking_context(&self) -> bool {
         let effects = self.get_effects();
@@ -476,6 +497,18 @@ impl From<stylo::Display> for Display {
             // These should not be values of DisplayInside, but oh well
             stylo::DisplayInside::None => return Display::None,
             stylo::DisplayInside::Contents => return Display::Contents,
+
+            // TODO: Implement support for tables.
+            stylo::DisplayInside::Table |
+            stylo::DisplayInside::TableRowGroup |
+            stylo::DisplayInside::TableColumn |
+            stylo::DisplayInside::TableColumnGroup |
+            stylo::DisplayInside::TableHeaderGroup |
+            stylo::DisplayInside::TableFooterGroup |
+            stylo::DisplayInside::TableRow |
+            stylo::DisplayInside::TableCell => DisplayInside::Flow {
+                is_list_item: packed.is_list_item(),
+            },
         };
         let outside = match packed.outside() {
             stylo::DisplayOutside::Block => DisplayOutside::Block,
@@ -483,6 +516,11 @@ impl From<stylo::Display> for Display {
 
             // This should not be a value of DisplayInside, but oh well
             stylo::DisplayOutside::None => return Display::None,
+
+            // TODO: Implement support for tables.
+            stylo::DisplayOutside::TableCaption | stylo::DisplayOutside::InternalTable => {
+                DisplayOutside::Block
+            },
         };
         Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { outside, inside })
     }

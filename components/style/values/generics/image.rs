@@ -43,7 +43,7 @@ pub enum GenericImage<G, MozImageRect, ImageUrl, Color, Percentage, Resolution> 
 
     /// A paint worklet image.
     /// <https://drafts.css-houdini.org/css-paint-api/>
-    #[cfg(feature = "servo-layout-2013")]
+    #[cfg(feature = "servo")]
     PaintWorklet(PaintWorklet),
 
     /// A `<cross-fade()>` image. Storing this directly inside of
@@ -131,9 +131,7 @@ pub struct GenericImageSet<Image, Resolution> {
 }
 
 /// An optional percent and a cross fade image.
-#[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
-)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(C)]
 pub struct GenericImageSetItem<Image, Resolution> {
     /// `<image>`. `<string>` is converted to `Image::Url` at parse time.
@@ -142,7 +140,32 @@ pub struct GenericImageSetItem<Image, Resolution> {
     ///
     /// TODO: Skip serialization if it is 1x.
     pub resolution: Resolution,
-    // TODO: type() function.
+
+    /// The `type(<string>)`
+    /// (Optional) Specify the image's MIME type
+    pub mime_type: crate::OwnedStr,
+
+    /// True if mime_type has been specified
+    pub has_mime_type: bool,
+}
+
+impl<I: style_traits::ToCss, R: style_traits::ToCss> ToCss for GenericImageSetItem<I, R> {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        self.image.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.resolution.to_css(dest)?;
+
+        if self.has_mime_type {
+            dest.write_str(" ")?;
+            dest.write_str("type(")?;
+            self.mime_type.to_css(dest)?;
+            dest.write_str(")")?;
+        }
+        Ok(())
+    }
 }
 
 pub use self::GenericImageSet as ImageSet;
@@ -417,7 +440,7 @@ where
             Image::Url(ref url) => url.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest),
             Image::Rect(ref rect) => rect.to_css(dest),
-            #[cfg(feature = "servo-layout-2013")]
+            #[cfg(feature = "servo")]
             Image::PaintWorklet(ref paint_worklet) => paint_worklet.to_css(dest),
             #[cfg(feature = "gecko")]
             Image::Element(ref selector) => {

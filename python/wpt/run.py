@@ -18,7 +18,7 @@ from typing import List, NamedTuple, Optional, Union
 import mozlog
 import mozlog.formatters
 
-from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH, update_args_for_layout_2020
+from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH, update_args_for_legacy_layout
 from .grouping_formatter import (
     ServoFormatter, ServoHandler,
     UnexpectedResult, UnexpectedSubtestResult
@@ -73,6 +73,9 @@ def run_tests(**kwargs):
     set_if_none(
         kwargs, "host_cert_path", os.path.join(CERTS_PATH, "web-platform.test.pem")
     )
+    # Set `id_hash` as the default chunk, as this better distributes testing across different
+    # chunks and leads to more consistent timing on GitHub Actions.
+    set_if_none(kwargs, "chunk_type", "id_hash")
 
     kwargs["user_stylesheets"].append(os.path.join(SERVO_ROOT, "resources", "ahem.css"))
 
@@ -97,8 +100,11 @@ def run_tests(**kwargs):
         # TODO: Delete rr traces from green test runs?
 
     prefs = kwargs.pop("prefs")
+    kwargs.setdefault("binary_args", [])
     if prefs:
-        kwargs["binary_args"] = ["--pref=" + pref for pref in prefs]
+        kwargs["binary_args"] += ["--pref=" + pref for pref in prefs]
+    if not kwargs.get("layout_2020", False):
+        kwargs["binary_args"] += ["--legacy-layout"]
 
     if not kwargs.get("no_default_test_types"):
         test_types = {
@@ -113,7 +119,8 @@ def run_tests(**kwargs):
     raw_log_outputs = kwargs.get("log_raw", [])
 
     wptcommandline.check_args(kwargs)
-    update_args_for_layout_2020(kwargs)
+
+    update_args_for_legacy_layout(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
         ServoFormatter,
@@ -216,9 +223,17 @@ class TrackerDashboardFilter():
         run_id = github_context['run_id']
         build_url = f"{repo_url}/actions/runs/{run_id}"
 
-        commit_title = github_context["event"]["head_commit"]["message"]
-        match = re.match(r"^Auto merge of #(\d+)", commit_title)
-        pr_url = f"{repo_url}/pull/{match.group(1)}" if match else None
+        commit_title = "<no title>"
+        if "merge_group" in github_context["event"]:
+            commit_title = github_context["event"]["merge_group"]["head_commit"]["message"]
+        if "head_commit" in github_context["event"]:
+            commit_title = github_context["event"]["head_commit"]["message"]
+
+        pr_url = None
+        match = re.match(r"^Auto merge of #(\d+)", commit_title) or \
+            re.match(r"\(#(\d+)\)", commit_title)
+        if match:
+            pr_url = f"{repo_url}/pull/{match.group(1)}" if match else None
 
         return GithubContextInformation(
             build_url,

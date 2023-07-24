@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="author" title="Karl Dubost" href="https://github.com/karlcow" />
+    <link
+      rel="help"
+      href="https://drafts.csswg.org/css-pseudo/#marker-pseudo"
+    />
+    <link
+      rel="help"
+      href="https://drafts.csswg.org/css-variables/#defining-variables"
+    />
+    <title>::marker with variables</title>
+    <style>
+      .firstTest::marker {
+        color: rgb(255 119 0 / 0.75);
+      }
+
+      .secondTest::marker {
+        color: rgb(255 119 0);
+      }
+    </style>
+  </head>
+  <body>
+    <ul>
+      <li class="firstTest">Item 1</li>
+      <li class="secondTest">Item 2</li>
+    </ul>
+  </body>
+</html>

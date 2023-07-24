@@ -10,7 +10,7 @@
 from __future__ import print_function
 
 import contextlib
-import distro
+from typing import Dict, List, Optional
 import functools
 import gzip
 import itertools
@@ -20,7 +20,6 @@ import os
 import platform
 import re
 import shutil
-import six
 import subprocess
 import sys
 import tarfile
@@ -31,17 +30,18 @@ from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 from os import path
 from subprocess import PIPE
+from xml.etree.ElementTree import XML
 
+import six
 import toml
 
-from xml.etree.ElementTree import XML
-from servo.util import download_file
-from .bootstrap import check_gstreamer_lib, check_macos_gstreamer_lib
-from mach.decorators import CommandArgument
+from mach_bootstrap import _get_exec_path
+from mach.decorators import CommandArgument, CommandArgumentGroup
 from mach.registrar import Registrar
-from servo.packages import WINDOWS_MSVC as msvc_deps
-from servo.util import host_triple
-from servo.gstreamer import macos_gst_root
+
+import servo.platform
+import servo.util as util
+from servo.util import download_file, get_default_cache_dir
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
@@ -132,31 +132,11 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
         os.rename(temp_file, dest_archive)
 
 
-def normalize_env(env):
-    # There is a bug in Py2 subprocess where it doesn't like unicode types in
-    # environment variables. Here, ensure all unicode are converted to
-    # native string type. utf-8 is our globally assumed default. If the caller
-    # doesn't want UTF-8, they shouldn't pass in a unicode instance.
-    normalized_env = {}
-    for k, v in env.items():
-        if isinstance(k, six.text_type):
-            k = six.ensure_str(k, 'utf-8', 'strict')
-
-        if isinstance(v, six.text_type):
-            v = six.ensure_str(v, 'utf-8', 'strict')
-
-        normalized_env[k] = v
-
-    return normalized_env
-
-
 def call(*args, **kwargs):
     """Wrap `subprocess.call`, printing the command if verbose=True."""
     verbose = kwargs.pop('verbose', False)
     if verbose:
         print(' '.join(args[0]))
-    if 'env' in kwargs:
-        kwargs['env'] = normalize_env(kwargs['env'])
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
     return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
@@ -167,8 +147,6 @@ def check_output(*args, **kwargs):
     verbose = kwargs.pop('verbose', False)
     if verbose:
         print(' '.join(args[0]))
-    if 'env' in kwargs:
-        kwargs['env'] = normalize_env(kwargs['env'])
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
     return subprocess.check_output(*args, shell=sys.platform == 'win32', **kwargs)
@@ -179,9 +157,6 @@ def check_call(*args, **kwargs):
 
     Also fix any unicode-containing `env`, for subprocess """
     verbose = kwargs.pop('verbose', False)
-
-    if 'env' in kwargs:
-        kwargs['env'] = normalize_env(kwargs['env'])
 
     if verbose:
         print(' '.join(args[0]))
@@ -215,37 +190,6 @@ def is_linux():
     return sys.platform.startswith('linux')
 
 
-def append_to_path_env(string, env, name):
-    variable = ""
-    if name in env:
-        variable = six.ensure_str(env[name])
-        if len(variable) > 0:
-            variable += os.pathsep
-    variable += string
-    env[name] = variable
-
-
-def gstreamer_root(target, env, topdir=None):
-    if is_windows():
-        arch = {
-            "x86_64": "X86_64",
-            "x86": "X86",
-            "aarch64": "ARM64",
-        }
-        gst_x64 = arch[target.split('-')[0]]
-        gst_default_path = path.join("C:\\gstreamer\\1.0", gst_x64)
-        gst_env = "GSTREAMER_1_0_ROOT_" + gst_x64
-        if env.get(gst_env) is not None:
-            return env.get(gst_env)
-        elif os.path.exists(path.join(gst_default_path, "bin", "ffi-7.dll")):
-            return gst_default_path
-    elif is_linux():
-        return path.join(topdir, "support", "linux", "gstreamer", "gst")
-    elif is_macosx():
-        return macos_gst_root()
-    return None
-
-
 class BuildNotFound(Exception):
     def __init__(self, message):
         self.message = message
@@ -261,6 +205,10 @@ class CommandBase(object):
 
     def __init__(self, context):
         self.context = context
+        self.features = []
+        self.cross_compile_target = None
+        self.is_android_build = False
+        self.target_path = util.get_target_dir()
 
         def get_env_bool(var, default):
             # Contents of env vars are strings by default. This returns the
@@ -287,9 +235,7 @@ class CommandBase(object):
 
         # Handle missing/default items
         self.config.setdefault("tools", {})
-        default_cache_dir = os.environ.get("SERVO_CACHE_DIR",
-                                           path.join(context.topdir, ".servo"))
-        self.config["tools"].setdefault("cache-dir", default_cache_dir)
+        self.config["tools"].setdefault("cache-dir", get_default_cache_dir(context.topdir))
         resolverelative("tools", "cache-dir")
 
         default_cargo_home = os.environ.get("CARGO_HOME",
@@ -307,7 +253,7 @@ class CommandBase(object):
         self.config["build"].setdefault("mode", "")
         self.config["build"].setdefault("debug-assertions", False)
         self.config["build"].setdefault("debug-mozjs", False)
-        self.config["build"].setdefault("layout-2020", False)
+        self.config["build"].setdefault("layout-2020", True)
         self.config["build"].setdefault("media-stack", "auto")
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
@@ -320,8 +266,9 @@ class CommandBase(object):
         self.config["android"].setdefault("sdk", "")
         self.config["android"].setdefault("ndk", "")
         self.config["android"].setdefault("toolchain", "")
+
         # Set default android target
-        self.handle_android_target("armv7-linux-androideabi")
+        self.setup_configuration_for_android_target("armv7-linux-androideabi")
 
     _rust_toolchain = None
 
@@ -347,30 +294,21 @@ class CommandBase(object):
     def get_top_dir(self):
         return self.context.topdir
 
-    def get_target_dir(self):
-        if "CARGO_TARGET_DIR" in os.environ:
-            return os.environ["CARGO_TARGET_DIR"]
-        else:
-            return path.join(self.context.topdir, "target")
-
     def get_apk_path(self, release):
-        base_path = self.get_target_dir()
+        base_path = util.get_target_dir()
         base_path = path.join(base_path, "android", self.config["android"]["target"])
         apk_name = "servoapp.apk"
         build_type = "release" if release else "debug"
         return path.join(base_path, build_type, apk_name)
 
-    def get_binary_path(self, release, dev, target=None, android=False, magicleap=False, simpleservo=False):
+    def get_binary_path(self, release, dev, target=None, android=False, simpleservo=False):
         # TODO(autrilla): this function could still use work - it shouldn't
         # handle quitting, or printing. It should return the path, or an error.
-        base_path = self.get_target_dir()
+        base_path = util.get_target_dir()
 
         binary_name = "servo" + BIN_SUFFIX
 
-        if magicleap:
-            base_path = path.join(base_path, "magicleap", "aarch64-linux-android")
-            binary_name = "libmlservo.a"
-        elif android:
+        if android:
             base_path = path.join(base_path, "android", self.config["android"]["target"])
             simpleservo = True
         elif target:
@@ -539,61 +477,11 @@ class CommandBase(object):
 
         return self.get_executable(destination_folder)
 
-    def needs_gstreamer_env(self, target, env, uwp=False, features=[]):
-        if uwp:
-            return False
-        if "media-dummy" in features:
-            return False
-
-        if is_macosx():
-            if check_macos_gstreamer_lib():
-                # We override homebrew gstreamer if installed and
-                # always use pkgconfig from official gstreamer framework
-                return True
-            else:
-                raise Exception("Official GStreamer framework not found (we need at least 1.21)."
-                                "Please see installation instructions in README.md")
-
-        try:
-            if check_gstreamer_lib():
-                return False
-        except Exception:
-            # Some systems don't have pkg-config; we can't probe in this case
-            # and must hope for the best
-            return False
-        effective_target = target or host_triple()
-        if "x86_64" not in effective_target or "android" in effective_target:
-            # We don't build gstreamer for non-x86_64 / android yet
-            return False
-        if is_linux() or is_windows():
-            if path.isdir(gstreamer_root(effective_target, env, self.get_top_dir())):
-                return True
-            else:
-                raise Exception("Your system's gstreamer libraries are out of date \
-(we need at least 1.16). Please run ./mach bootstrap-gstreamer")
-        else:
-            raise Exception("Your system's gstreamer libraries are out of date \
-(we need at least 1.16). If you're unable to \
-install them, let us know by filing a bug!")
-        return False
-
-    def set_run_env(self, android=False):
-        """Some commands, like test-wpt, don't use a full build env,
-           but may still need dynamic search paths. This command sets that up"""
-        if not android and self.needs_gstreamer_env(None, os.environ):
-            gstpath = gstreamer_root(host_triple(), os.environ, self.get_top_dir())
-            if gstpath is None:
-                return
-            os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib")
-            os.environ["GST_PLUGIN_SYSTEM_PATH"] = path.join(gstpath, "lib", "gstreamer-1.0")
-            os.environ["PKG_CONFIG_PATH"] = path.join(gstpath, "lib", "pkgconfig")
-            os.environ["GST_PLUGIN_SCANNER"] = path.join(gstpath, "libexec", "gstreamer-1.0", "gst-plugin-scanner")
-
     def msvc_package_dir(self, package):
-        return path.join(self.context.sharedir, "msvc-dependencies", package, msvc_deps[package])
+        return servo.platform.windows.get_dependency_dir(package)
 
     def vs_dirs(self):
-        assert 'windows' in host_triple()
+        assert 'windows' in servo.platform.host_triple()
         vsinstalldir = os.environ.get('VSINSTALLDIR')
         vs_version = os.environ.get('VisualStudioVersion')
         if vsinstalldir and vs_version:
@@ -609,42 +497,29 @@ install them, let us know by filing a bug!")
             'vcdir': vcinstalldir,
         }
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False, uwp=False, features=None):
+    def build_env(self, is_build=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
-        if sys.platform == "win32" and type(env['PATH']) == six.text_type:
-            # On win32, the virtualenv's activate_this.py script sometimes ends up
-            # turning os.environ['PATH'] into a unicode string.  This doesn't work
-            # for passing env vars in to a process, so we force it back to ascii.
-            # We don't use UTF8 since that won't be correct anyway; if you actually
-            # have unicode stuff in your path, all this PATH munging would have broken
-            # it in any case.
-            env['PATH'] = env['PATH'].encode('ascii', 'ignore')
-        extra_path = []
-        extra_lib = []
-        if "msvc" in (target or host_triple()):
-            extra_path += [path.join(self.msvc_package_dir("cmake"), "bin")]
-            extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
-            extra_path += [path.join(self.msvc_package_dir("ninja"), "bin")]
-            extra_path += [self.msvc_package_dir("nuget")]
 
+        if "media-dummy" not in self.features:
+            servo.platform.get().set_gstreamer_environment_variables_if_necessary(
+                env, cross_compilation_target=self.cross_compile_target,
+                check_installation=is_build)
+
+        extra_path = []
+        effective_target = self.cross_compile_target or servo.platform.host_triple()
+        if "msvc" in effective_target:
+            extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
             env.setdefault("CC", "clang-cl.exe")
             env.setdefault("CXX", "clang-cl.exe")
-            if uwp:
-                env.setdefault("TARGET_CFLAGS", "")
-                env.setdefault("TARGET_CXXFLAGS", "")
-                env["TARGET_CFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
-                env["TARGET_CXXFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
 
-            arch = (target or host_triple()).split('-')[0]
+            arch = effective_target.split('-')[0]
             vcpkg_arch = {
                 "x86_64": "x64-windows",
                 "i686": "x86-windows",
                 "aarch64": "arm64-windows",
             }
             target_arch = vcpkg_arch[arch]
-            if uwp:
-                target_arch += "-uwp"
             openssl_base_dir = path.join(self.msvc_package_dir("openssl"), target_arch)
 
             # Link openssl
@@ -672,95 +547,36 @@ install them, let us know by filing a bug!")
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if is_build and self.needs_gstreamer_env(target or host_triple(), env, uwp, features):
-            gst_root = gstreamer_root(target or host_triple(), env, self.get_top_dir())
-            bin_path = path.join(gst_root, "bin")
-            lib_path = path.join(gst_root, "lib")
-            pkg_config_path = path.join(lib_path, "pkgconfig")
-            # we append in the reverse order so that system gstreamer libraries
-            # do not get precedence
-            extra_path = [bin_path] + extra_path
-            extra_lib = [lib_path] + extra_lib
-            append_to_path_env(pkg_config_path, env, "PKG_CONFIG_PATH")
-            if is_macosx():
-                env["OPENSSL_INCLUDE_DIR"] = path.join(gst_root, "Headers")
-
-        if is_linux():
-            distrib, version, _ = distro.linux_distribution()
-            distrib = six.ensure_str(distrib)
-            version = six.ensure_str(version)
-            if distrib == "Ubuntu" and version == "16.04":
-                env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
+        if sys.platform != "win32":
+            env.setdefault("CC", "clang")
+            env.setdefault("CXX", "clang++")
 
         if extra_path:
-            append_to_path_env(os.pathsep.join(extra_path), env, "PATH")
+            util.append_paths_to_env(env, "PATH", extra_path)
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
         elif self.config["build"]["incremental"] is not None:
             env["CARGO_INCREMENTAL"] = "0"
 
-        if extra_lib:
-            path_var = "DYLD_LIBRARY_PATH" if sys.platform == "darwin" else "LD_LIBRARY_PATH"
-            append_to_path_env(os.pathsep.join(extra_lib), env, path_var)
-
-        # Paths to Android build tools:
-        if self.config["android"]["sdk"]:
-            env["ANDROID_SDK"] = self.config["android"]["sdk"]
-        if self.config["android"]["ndk"]:
-            env["ANDROID_NDK"] = self.config["android"]["ndk"]
-        if self.config["android"]["toolchain"]:
-            env["ANDROID_TOOLCHAIN"] = self.config["android"]["toolchain"]
-        if self.config["android"]["platform"]:
-            env["ANDROID_PLATFORM"] = self.config["android"]["platform"]
-
-        toolchains = path.join(self.context.topdir, "android-toolchains")
-        for kind in ["sdk", "ndk"]:
-            default = os.path.join(toolchains, kind)
-            if os.path.isdir(default):
-                env.setdefault("ANDROID_" + kind.upper(), default)
-
-        tools = os.path.join(toolchains, "sdk", "platform-tools")
-        if os.path.isdir(tools):
-            env["PATH"] = "%s%s%s" % (tools, os.pathsep, env["PATH"])
-
-        # These are set because they are the variable names that build-apk
-        # expects. However, other submodules have makefiles that reference
-        # the env var names above. Once winit is enabled and set as the
-        # default, we could modify the subproject makefiles to use the names
-        # below and remove the vars above, to avoid duplication.
-        if "ANDROID_SDK" in env:
-            env["ANDROID_HOME"] = env["ANDROID_SDK"]
-        if "ANDROID_NDK" in env:
-            env["NDK_HOME"] = env["ANDROID_NDK"]
-        if "ANDROID_TOOLCHAIN" in env:
-            env["NDK_STANDALONE"] = env["ANDROID_TOOLCHAIN"]
-
-        if hosts_file_path:
-            env['HOST_FILE'] = hosts_file_path
-
-        if not test_unit:
-            # This wrapper script is in bash and doesn't work on Windows
-            # where we want to run doctests as part of `./mach test-unit`
-            env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
-
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
 
-        # Don't run the gold linker if on Windows https://github.com/servo/servo/issues/9499
-        if self.config["tools"]["rustc-with-gold"] and sys.platform != "win32":
-            if subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) == 0:
+        if self.config["tools"]["rustc-with-gold"]:
+            if shutil.which('ld.gold'):
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C link-args=-fuse-ld=gold"
 
         if not (self.config["build"]["ccache"] == ""):
             env['CCACHE'] = self.config["build"]["ccache"]
 
         # Ensure Rust uses hard floats and SIMD on ARM devices
-        if target:
-            if target.startswith('arm') or target.startswith('aarch64'):
-                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
+        if self.cross_compile_target and (
+            self.cross_compile_target.startswith('arm')
+                or self.cross_compile_target.startswith('aarch64')):
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
 
         env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
+        env["CARGO_TARGET_DIR"] = servo.util.get_target_dir()
 
         git_info = []
         if os.path.isdir('.git') and is_build:
@@ -804,118 +620,322 @@ install them, let us know by filing a bug!")
         # Argument-less str.split normalizes leading, trailing, and double spaces
         env['RUSTFLAGS'] = " ".join(env['RUSTFLAGS'].split())
 
+        self.build_android_env_if_needed(env)
+
         return env
 
+    def build_android_env_if_needed(self, env: Dict[str, str]):
+        if not self.is_android_build:
+            return
+
+        # Paths to Android build tools:
+        if self.config["android"]["sdk"]:
+            env["ANDROID_SDK"] = self.config["android"]["sdk"]
+        if self.config["android"]["ndk"]:
+            env["ANDROID_NDK"] = self.config["android"]["ndk"]
+        if self.config["android"]["toolchain"]:
+            env["ANDROID_TOOLCHAIN"] = self.config["android"]["toolchain"]
+        if self.config["android"]["platform"]:
+            env["ANDROID_PLATFORM"] = self.config["android"]["platform"]
+
+        # These are set because they are the variable names that build-apk
+        # expects. However, other submodules have makefiles that reference
+        # the env var names above. Once winit is enabled and set as the
+        # default, we could modify the subproject makefiles to use the names
+        # below and remove the vars above, to avoid duplication.
+        if "ANDROID_SDK" in env:
+            env["ANDROID_HOME"] = env["ANDROID_SDK"]
+        if "ANDROID_NDK" in env:
+            env["NDK_HOME"] = env["ANDROID_NDK"]
+        if "ANDROID_TOOLCHAIN" in env:
+            env["NDK_STANDALONE"] = env["ANDROID_TOOLCHAIN"]
+
+        toolchains = path.join(self.context.topdir, "android-toolchains")
+        for kind in ["sdk", "ndk"]:
+            default = os.path.join(toolchains, kind)
+            if os.path.isdir(default):
+                env.setdefault("ANDROID_" + kind.upper(), default)
+
+        tools = os.path.join(toolchains, "sdk", "platform-tools")
+        if os.path.isdir(tools):
+            env["PATH"] = "%s%s%s" % (tools, os.pathsep, env["PATH"])
+
+        if "ANDROID_NDK" not in env:
+            print("Please set the ANDROID_NDK environment variable.")
+            sys.exit(1)
+        if "ANDROID_SDK" not in env:
+            print("Please set the ANDROID_SDK environment variable.")
+            sys.exit(1)
+
+        android_platform = self.config["android"]["platform"]
+        android_toolchain_name = self.config["android"]["toolchain_name"]
+        android_toolchain_prefix = self.config["android"]["toolchain_prefix"]
+        android_lib = self.config["android"]["lib"]
+        android_arch = self.config["android"]["arch"]
+
+        # Build OpenSSL for android
+        env["OPENSSL_VERSION"] = "1.1.1d"
+
+        # Check if the NDK version is 15
+        if not os.path.isfile(path.join(env["ANDROID_NDK"], 'source.properties')):
+            print("ANDROID_NDK should have file `source.properties`.")
+            print("The environment variable ANDROID_NDK may be set at a wrong path.")
+            sys.exit(1)
+        with open(path.join(env["ANDROID_NDK"], 'source.properties'), encoding="utf8") as ndk_properties:
+            lines = ndk_properties.readlines()
+            if lines[1].split(' = ')[1].split('.')[0] != '15':
+                print("Currently only support NDK 15. Please re-run `./mach bootstrap-android`.")
+                sys.exit(1)
+
+        openssl_dir = path.join(
+            self.target_path, "native", "openssl", "openssl-{}".format(env["OPENSSL_VERSION"]))
+        env['OPENSSL_LIB_DIR'] = openssl_dir
+        env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
+        env['OPENSSL_STATIC'] = 'TRUE'
+        # Android builds also require having the gcc bits on the PATH and various INCLUDE
+        # path munging if you do not want to install a standalone NDK. See:
+        # https://dxr.mozilla.org/mozilla-central/source/build/autoconf/android.m4#139-161
+        os_type = platform.system().lower()
+        if os_type not in ["linux", "darwin"]:
+            raise Exception("Android cross builds are only supported on Linux and macOS.")
+
+        cpu_type = platform.machine().lower()
+        host_suffix = "unknown"
+        if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
+            host_suffix = "x86"
+        elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
+            host_suffix = "x86_64"
+        host = os_type + "-" + host_suffix
+
+        host_cc = env.get('HOST_CC') or _get_exec_path(["clang"]) or _get_exec_path(["gcc"])
+        host_cxx = env.get('HOST_CXX') or _get_exec_path(["clang++"]) or _get_exec_path(["g++"])
+
+        llvm_toolchain = path.join(env['ANDROID_NDK'], "toolchains", "llvm", "prebuilt", host)
+        gcc_toolchain = path.join(env['ANDROID_NDK'], "toolchains",
+                                  android_toolchain_prefix + "-4.9", "prebuilt", host)
+        gcc_libs = path.join(gcc_toolchain, "lib", "gcc", android_toolchain_name, "4.9.x")
+
+        env['PATH'] = (path.join(llvm_toolchain, "bin") + ':' + env['PATH'])
+        env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "sysroot")
+        support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
+        cpufeatures_include = path.join(env['ANDROID_NDK'], "sources", "android", "cpufeatures")
+        cxx_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
+                                "llvm-libc++", "include")
+        clang_include = path.join(llvm_toolchain, "lib64", "clang", "3.8", "include")
+        cxxabi_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
+                                   "llvm-libc++abi", "include")
+        sysroot_include = path.join(env['ANDROID_SYSROOT'], "usr", "include")
+        arch_include = path.join(sysroot_include, android_toolchain_name)
+        android_platform_dir = path.join(env['ANDROID_NDK'], "platforms", android_platform, "arch-" + android_arch)
+        arch_libs = path.join(android_platform_dir, "usr", "lib")
+        clang_include = path.join(llvm_toolchain, "lib64", "clang", "5.0", "include")
+        android_api = android_platform.replace('android-', '')
+
+        env["RUST_TARGET"] = self.cross_compile_target
+        env['HOST_CC'] = host_cc
+        env['HOST_CXX'] = host_cxx
+        env['HOST_CFLAGS'] = ''
+        env['HOST_CXXFLAGS'] = ''
+        env['CC'] = path.join(llvm_toolchain, "bin", "clang")
+        env['CPP'] = path.join(llvm_toolchain, "bin", "clang") + " -E"
+        env['CXX'] = path.join(llvm_toolchain, "bin", "clang++")
+        env['ANDROID_TOOLCHAIN'] = gcc_toolchain
+        env['ANDROID_TOOLCHAIN_DIR'] = gcc_toolchain
+        env['ANDROID_VERSION'] = android_api
+        env['ANDROID_PLATFORM_DIR'] = android_platform_dir
+        env['GCC_TOOLCHAIN'] = gcc_toolchain
+        gcc_toolchain_bin = path.join(gcc_toolchain, android_toolchain_name, "bin")
+        env['AR'] = path.join(gcc_toolchain_bin, "ar")
+        env['RANLIB'] = path.join(gcc_toolchain_bin, "ranlib")
+        env['OBJCOPY'] = path.join(gcc_toolchain_bin, "objcopy")
+        env['YASM'] = path.join(env['ANDROID_NDK'], 'prebuilt', host, 'bin', 'yasm')
+        # A cheat-sheet for some of the build errors caused by getting the search path wrong...
+        #
+        # fatal error: 'limits' file not found
+        #   -- add -I cxx_include
+        # unknown type name '__locale_t' (when running bindgen in mozjs_sys)
+        #   -- add -isystem sysroot_include
+        # error: use of undeclared identifier 'UINTMAX_C'
+        #   -- add -D__STDC_CONSTANT_MACROS
+        #
+        # Also worth remembering: autoconf uses C for its configuration,
+        # even for C++ builds, so the C flags need to line up with the C++ flags.
+        env['CFLAGS'] = ' '.join([
+            "--target=" + self.cross_compile_target,
+            "--sysroot=" + env['ANDROID_SYSROOT'],
+            "--gcc-toolchain=" + gcc_toolchain,
+            "-isystem", sysroot_include,
+            "-I" + arch_include,
+            "-B" + arch_libs,
+            "-L" + arch_libs,
+            "-D__ANDROID_API__=" + android_api,
+        ])
+        env['CXXFLAGS'] = ' '.join([
+            "--target=" + self.cross_compile_target,
+            "--sysroot=" + env['ANDROID_SYSROOT'],
+            "--gcc-toolchain=" + gcc_toolchain,
+            "-I" + cpufeatures_include,
+            "-I" + cxx_include,
+            "-I" + clang_include,
+            "-isystem", sysroot_include,
+            "-I" + cxxabi_include,
+            "-I" + clang_include,
+            "-I" + arch_include,
+            "-I" + support_include,
+            "-L" + gcc_libs,
+            "-B" + arch_libs,
+            "-L" + arch_libs,
+            "-D__ANDROID_API__=" + android_api,
+            "-D__STDC_CONSTANT_MACROS",
+            "-D__NDK_FPABI__=",
+        ])
+        env['CPPFLAGS'] = ' '.join([
+            "--target=" + self.cross_compile_target,
+            "--sysroot=" + env['ANDROID_SYSROOT'],
+            "-I" + arch_include,
+        ])
+        env["NDK_ANDROID_VERSION"] = android_api
+        env["ANDROID_ABI"] = android_lib
+        env["ANDROID_PLATFORM"] = android_platform
+        env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(env['ANDROID_NDK'], "build", "cmake", "android.toolchain.cmake")
+        env["CMAKE_TOOLCHAIN_FILE"] = path.join(self.android_support_dir(), "toolchain.cmake")
+
+        # Set output dir for gradle aar files
+        env["AAR_OUT_DIR"] = self.android_aar_dir()
+        if not os.path.exists(env['AAR_OUT_DIR']):
+            os.makedirs(env['AAR_OUT_DIR'])
+
+        env['PKG_CONFIG_ALLOW_CROSS'] = "1"
+
     @staticmethod
-    def build_like_command_arguments(decorated_function):
+    def build_like_command_arguments(original_function):
         decorators = [
+            CommandArgumentGroup('Cross Compilation'),
             CommandArgument(
                 '--target', '-t',
+                group="Cross Compilation",
                 default=None,
                 help='Cross compile for given target platform',
             ),
             CommandArgument(
-                '--media-stack',
-                default=None,
-                choices=["gstreamer", "dummy"],
-                help='Which media stack to use',
+                '--android', default=None, action='store_true',
+                help='Build for Android. If --target is not specified, this '
+                     'will choose a default target architecture.',
+            ),
+            CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target"),
+            CommandArgumentGroup('Feature Selection'),
+            CommandArgument(
+                '--features', default=None, group="Feature Selection", nargs='+',
+                help='Space-separated list of features to also build',
             ),
             CommandArgument(
-                '--android',
-                default=None,
-                action='store_true',
-                help='Build for Android',
-            ),
-            CommandArgument(
-                '--magicleap',
-                default=None,
-                action='store_true',
-                help='Build for Magic Leap',
+                '--media-stack', default=None, group="Feature Selection",
+                choices=["gstreamer", "dummy"], help='Which media stack to use',
             ),
             CommandArgument(
                 '--libsimpleservo',
                 default=None,
+                group="Feature Selection",
                 action='store_true',
                 help='Build the libsimpleservo library instead of the servo executable',
             ),
             CommandArgument(
-                '--features',
-                default=None,
-                help='Space-separated list of features to also build',
-                nargs='+',
-            ),
-            CommandArgument(
                 '--debug-mozjs',
-                default=None,
+                default=False,
+                group="Feature Selection",
                 action='store_true',
                 help='Enable debug assertions in mozjs',
             ),
             CommandArgument(
                 '--with-debug-assertions',
-                default=None,
+                default=False,
+                group="Feature Selection",
                 action='store_true',
                 help='Enable debug assertions in release',
             ),
             CommandArgument(
                 '--with-frame-pointer',
-                default=None,
+                default=None, group="Feature Selection",
                 action='store_true',
                 help='Build with frame pointer enabled, used by the background hang monitor.',
             ),
-            CommandArgument('--with-layout-2020', '--layout-2020', default=None, action='store_true'),
-            CommandArgument('--with-layout-2013', '--layout-2013', default=None, action='store_true'),
-            CommandArgument('--without-wgl', default=None, action='store_true'),
+            CommandArgument('--without-wgl', group="Feature Selection", default=None, action='store_true'),
         ]
 
+        def configuration_decorator(self, *args, **kwargs):
+            self.configure_cross_compilation(kwargs['target'], kwargs['android'], kwargs['win_arm64'])
+
+            self.features = kwargs.get("features", None) or []
+            self.configure_media_stack(kwargs['media_stack'])
+            return original_function(self, *args, **kwargs)
+
+        decorators.reverse()
+        decorated_function = configuration_decorator
         for decorator in decorators:
             decorated_function = decorator(decorated_function)
         return decorated_function
 
-    def pick_target_triple(self, target, android, magicleap):
+    def configure_cross_compilation(
+            self,
+            cross_compile_target: Optional[str],
+            android: Optional[str],
+            win_arm64: Optional[str]):
+        # Force the UWP-enabled target if the convenience UWP flags are passed.
         if android is None:
             android = self.config["build"]["android"]
-        if target and android:
-            assert self.handle_android_target(target)
-        if android and not target:
-            target = self.config["android"]["target"]
-        if magicleap and not target:
-            target = "aarch64-linux-android"
-        if target and not android and not magicleap:
-            android = self.handle_android_target(target)
-        return target, android
+        if android:
+            if not cross_compile_target:
+                cross_compile_target = self.config["android"]["target"]
+            assert cross_compile_target
+            assert self.setup_configuration_for_android_target(cross_compile_target)
+        elif cross_compile_target:
+            # If a target was specified, it might also be an android target,
+            # so set up the configuration in that case.
+            self.setup_configuration_for_android_target(cross_compile_target)
 
-    # A guess about which platforms should use the gstreamer media stack
-    def pick_media_stack(self, media_stack, target):
+        self.cross_compile_target = cross_compile_target
+        self.is_android_build = (cross_compile_target and "android" in cross_compile_target)
+        self.target_path = servo.util.get_target_dir()
+        if self.is_android_build:
+            assert self.cross_compile_target
+            self.target_path = path.join(self.target_path, "android", self.cross_compile_target)
+
+        if self.cross_compile_target:
+            print(f"Targeting '{self.cross_compile_target}' for cross-compilation")
+
+    def configure_media_stack(self, media_stack: Optional[str]):
+        """Determine what media stack to use based on the value of the build target
+           platform and the value of the '--media-stack' command-line argument.
+           The chosen media stack is written into the `features` instance variable."""
         if not media_stack:
             if self.config["build"]["media-stack"] != "auto":
                 media_stack = self.config["build"]["media-stack"]
+                assert media_stack
             elif (
-                not target
-                or ("armv7" in target and "android" in target)
-                or "x86_64" in target
-                or "uwp" in target
+                not self.cross_compile_target
+                or ("armv7" in self.cross_compile_target and self.is_android_build)
+                or "x86_64" in self.cross_compile_target
             ):
                 media_stack = "gstreamer"
             else:
                 media_stack = "dummy"
-        return ["media-" + media_stack]
+        self.features += ["media-" + media_stack]
 
     def run_cargo_build_like_command(
-        self, command, cargo_args,
+        self, command: str, cargo_args: List[str],
         env=None, verbose=False,
-        target=None, android=False, magicleap=False, libsimpleservo=False,
-        features=None, debug_mozjs=False, with_debug_assertions=False,
+        libsimpleservo=False,
+        debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, without_wgl=False,
         with_layout_2020=False, with_layout_2013=False,
-        uwp=False, media_stack=None,
+        **_kwargs
     ):
         env = env or self.build_env()
-        target, android = self.pick_target_triple(target, android, magicleap)
 
         args = []
         if "--manifest-path" not in cargo_args:
-            if libsimpleservo or android:
-                if android:
+            if libsimpleservo or self.is_android_build:
+                if self.is_android_build:
                     api = "jniapi"
                 else:
                     api = "capi"
@@ -926,27 +946,16 @@ install them, let us know by filing a bug!")
                 "--manifest-path",
                 path.join(self.context.topdir, "ports", port, "Cargo.toml"),
             ]
-        if target:
-            args += ["--target", target]
-
-        if features is None:  # If we're passed a list, mutate it even if it's empty
-            features = []
+        if self.cross_compile_target:
+            args += ["--target", self.cross_compile_target]
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
+            features = list(self.features)
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
-            if not magicleap:
-                features.append("native-bluetooth")
-            if uwp:
-                features.append("no-wgl")
-                features.append("uwp")
-            else:
-                # Non-UWP builds provide their own libEGL via mozangle.
-                features.append("egl")
-            if with_layout_2020 or (self.config["build"]["layout-2020"] and not with_layout_2013):
-                features.append("layout-2020")
-            elif "layout-2020" not in features:
-                features.append("layout-2013")
+
+            features.append("native-bluetooth")
+
             if with_frame_pointer:
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
                 features.append("profilemozjs")
@@ -956,14 +965,11 @@ install them, let us know by filing a bug!")
                 features.append("webgl-backtrace")
             if self.config["build"]["dom-backtrace"]:
                 features.append("dom-backtrace")
+            args += ["--features", " ".join(features)]
+
         if with_debug_assertions or self.config["build"]["debug-assertions"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
-        assert "--features" not in cargo_args
-        args += ["--features", " ".join(features)]
-
-        if target and 'uwp' in target:
-            cargo_args += ["-Z", "build-std"]
         return self.call_rustup_run(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
     def android_support_dir(self):
@@ -986,7 +992,10 @@ install them, let us know by filing a bug!")
                 return sdk_adb
         return "emulator"
 
-    def handle_android_target(self, target):
+    def setup_configuration_for_android_target(self, target: str):
+        """If cross-compilation targets Android, configure the Android
+           build by writing the appropriate toolchain configuration values
+           into the stored configuration."""
         if target == "armv7-linux-androideabi":
             self.config["android"]["platform"] = "android-21"
             self.config["android"]["target"] = target
@@ -1014,15 +1023,11 @@ install them, let us know by filing a bug!")
             return True
         return False
 
-    def ensure_bootstrapped(self, target=None, rustup_components=None):
+    def ensure_bootstrapped(self, rustup_components=None):
         if self.context.bootstrapped:
             return
 
-        target_platform = target or host_triple()
-
-        # Always check if all needed MSVC dependencies are installed
-        if "msvc" in target_platform:
-            Registrar.dispatch("bootstrap", context=self.context)
+        servo.platform.get().passive_bootstrap()
 
         if self.config["tools"]["use-rustup"]:
             self.ensure_rustup_version()
@@ -1049,10 +1054,12 @@ install them, let us know by filing a bug!")
                 if component.encode("utf-8") not in installed:
                     check_call(["rustup", "component", "add", "--toolchain", toolchain, component])
 
-            if target and "uwp" not in target and target.encode("utf-8") not in check_output(
-                ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
-            ):
-                check_call(["rustup", "target", "add", "--toolchain", toolchain, target])
+            needs_toolchain_install = self.cross_compile_target \
+                and self.cross_compile_target.encode("utf-8") not in check_output(
+                    ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
+                )
+            if needs_toolchain_install:
+                check_call(["rustup", "target", "add", "--toolchain", toolchain, self.cross_compile_target])
 
         self.context.bootstrapped = True
 
@@ -1080,7 +1087,7 @@ install them, let us know by filing a bug!")
 
     def ensure_clobbered(self, target_dir=None):
         if target_dir is None:
-            target_dir = self.get_target_dir()
+            target_dir = util.get_target_dir()
         auto = True if os.environ.get('AUTOCLOBBER', False) else False
         src_clobber = os.path.join(self.context.topdir, 'CLOBBER')
         target_clobber = os.path.join(target_dir, 'CLOBBER')
@@ -1146,8 +1153,8 @@ def find_highest_msvc_version():
 
     versions = sorted(find_highest_msvc_version_ext(), key=lambda tup: float(tup[1]))
     if not versions:
-        print("Can't find MSBuild.exe installation under %s. Please set the VSINSTALLDIR and VisualStudioVersion"
-              + " environment variables" % base_vs_path)
+        print(f"Can't find MSBuild.exe installation under {base_vs_path}. "
+              "Please set the VSINSTALLDIR and VisualStudioVersion environment variables")
         sys.exit(1)
     return versions[0]
 

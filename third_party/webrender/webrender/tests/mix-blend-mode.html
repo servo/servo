@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            #container {
+                position: absolute;
+                left: 100px;
+                top: 100px;
+                width: 467px;
+                height: 462px;
+                background-color: rgb(128, 128, 128);
+            }
+            .rect {
+                position: absolute;
+                mix-blend-mode: difference;
+            }
+            #pink {
+                left: 80px;
+                top: 60px;
+                width: 250px;
+                height: 250px;
+                background-color: rgb(128, 128, 0);
+            }
+            #blue {
+                left: 140px;
+                top: 120px;
+                width: 250px;
+                height: 250px;
+                background-color: rgb(0, 128, 128);
+            }
+            #turquoise {
+                left: 180px;
+                top: 180px;
+                width: 250px;
+                height: 250px;
+                background-color: rgb(128, 0, 128);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container">
+            <div id="pink" class="rect"></div>
+            <div id="blue" class="rect"></div>
+            <div id="turquoise" class="rect"></div>
+        </div>
+    </body>
+</html>

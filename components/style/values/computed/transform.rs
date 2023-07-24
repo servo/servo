@@ -24,6 +24,9 @@ pub type Transform = generic::GenericTransform<TransformOperation>;
 pub type TransformOrigin =
     generic::GenericTransformOrigin<LengthPercentage, LengthPercentage, Length>;
 
+/// The computed value of the `perspective()` transform function.
+pub type PerspectiveFunction = generic::PerspectiveFunction<Length>;
+
 /// A vector to represent the direction vector (rotate axis) for Rotate3D.
 pub type DirectionVector = Vector3D<CSSFloat>;
 
@@ -516,8 +519,8 @@ impl ToAnimatedZero for TransformOperation {
             generic::TransformOperation::Rotate(_) => {
                 Ok(generic::TransformOperation::Rotate(Angle::zero()))
             },
-            generic::TransformOperation::Perspective(ref l) => Ok(
-                generic::TransformOperation::Perspective(l.to_animated_zero()?),
+            generic::TransformOperation::Perspective(_) => Ok(
+                generic::TransformOperation::Perspective(generic::PerspectiveFunction::None),
             ),
             generic::TransformOperation::AccumulateMatrix { .. } |
             generic::TransformOperation::InterpolateMatrix { .. } => {

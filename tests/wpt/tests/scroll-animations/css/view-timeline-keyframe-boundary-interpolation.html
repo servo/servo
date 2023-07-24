@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<title>Animation range and delay</title>
+</head>
+<style type="text/css">
+  @keyframes anim {
+    cover 0% { /* resolves to -100% */
+      opacity: 0;
+      transform: none;
+      margin-left:  0px;
+      /* missing margin-right -- requires neutral keyframe at 0% */
+    }
+    cover 100% { /* resolves to 200% */
+      opacity: 1;
+      transform: translateX(300px);
+      margin-right: 0px;
+      /* missing margin-left -- requires neutral keyframe at 100% */
+    }
+  }
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+  }
+  #target {
+    margin: 800px 10px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+    animation:  anim auto both linear;
+    animation-timeline: --t1;
+    animation-range-start:  contain 0%;
+    animation-range-end:  contain 100%;
+    view-timeline:  --t1 block;
+  }
+</style>
+<body>
+  <div id=scroller>
+    <div id=target></div>
+  </div>
+</body>
+<script type="text/javascript">
+  async function runTest() {
+    function assert_progress_equals(anim, expected, errorMessage) {
+      assert_approx_equals(
+          anim.effect.getComputedTiming().progress,
+          expected, 1e-6, errorMessage);
+    }
+
+    function assert_opacity_equals(expected, errorMessage) {
+      assert_approx_equals(
+          parseFloat(getComputedStyle(target).opacity), expected, 1e-6,
+                     errorMessage);
+    }
+
+    function assert_translate_x_equals(expected, errorMessage) {
+      const style = getComputedStyle(target).transform;
+      const regex = /matrix\(([^\)]*)\)/;
+      const captureGroupIndex = 1;
+      const translateIndex = 4;
+      const match = style.match(regex)[captureGroupIndex];
+      const translateX = parseFloat(match.split(',')[translateIndex].trim());
+      assert_approx_equals(translateX, expected, 1e-6, errorMessage);
+    }
+
+    function assert_property_equals(property, expected, errorMessage) {
+      const value = parseFloat(getComputedStyle(target)[property]);
+      assert_approx_equals(value, expected, 1e-6, errorMessage);
+    }
+
+    promise_test(async t => {
+      await waitForNextFrame();
+      const anims = document.getAnimations();
+      assert_equals(anims.length, 1,
+                    "Should have one animation attatched to the view-timeline");
+      const anim = anims[0];
+      await anim.ready;
+      await waitForNextFrame();
+
+      // @ contain 0%
+      scroller.scrollTop = 700;
+      await waitForNextFrame();
+      assert_progress_equals(anim, 0, 'progress at contain 0%');
+      assert_translate_x_equals(100, 'translation at contain 0%');
+      assert_opacity_equals(1/3, 'opacity at contain 0%');
+      assert_property_equals('margin-left', 5, 'margin-left at contain 0%');
+      assert_property_equals('margin-right', 10, 'margin-right at contain 0%');
+
+      // @ contain 50%
+      scroller.scrollTop = 750;
+      await waitForNextFrame();
+      assert_progress_equals(anim, 0.5, 'progress at contain 50%');
+      assert_translate_x_equals(150, 'translation at contain 50%');
+      assert_opacity_equals(0.5, 'opacity at contain 50%');
+      assert_property_equals('margin-left', 7.5, 'margin-left at contain 50%');
+      assert_property_equals('margin-right', 7.5, 'margin-right at contain 50%');
+
+      // @ contain 100%
+      scroller.scrollTop = 800;
+      await waitForNextFrame();
+      assert_progress_equals(anim, 1, 'progress at contain 100%');
+      assert_translate_x_equals(200, 'translation at contain 100%');
+      assert_opacity_equals(2/3, 'opacity at contain 100%');
+      assert_property_equals('margin-left', 10, 'margin-left at contain 100%');
+      assert_property_equals('margin-right', 5, 'margin-right at contain 100%');
+    }, 'ViewTimeline with timeline offset keyframes outside [0,1]');
+  }
+
+  window.onload = runTest;
+</script>
+</html>

@@ -29,7 +29,7 @@ use crate::stylesheets::Origin;
 /// [3]: https://html.spec.whatwg.org/multipage/#presentational-hints
 /// [4]: https://drafts.csswg.org/css-scoping/#shadow-cascading
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub enum CascadeLevel {
     /// Normal User-Agent rules.
     UANormal,
@@ -69,82 +69,44 @@ pub enum CascadeLevel {
 }
 
 impl CascadeLevel {
-    /// Pack this cascade level in a single byte.
-    ///
-    /// We have 10 levels, which we can represent with 4 bits, and then a
-    /// cascade order optionally, which we can clamp to three bits max, and
-    /// represent with a fourth bit for the sign.
-    ///
-    /// So this creates: SOOODDDD
-    ///
-    /// Where `S` is the sign of the order (one if negative, 0 otherwise), `O`
-    /// is the absolute value of the order, and `D`s are the discriminant.
-    #[inline]
-    pub fn to_byte_lossy(&self) -> u8 {
-        let (discriminant, order) = match *self {
-            Self::UANormal => (0, 0),
-            Self::UserNormal => (1, 0),
-            Self::PresHints => (2, 0),
+    /// Convert this level from "unimportant" to "important".
+    pub fn important(&self) -> Self {
+        match *self {
+            Self::UANormal => Self::UAImportant,
+            Self::UserNormal => Self::UserImportant,
             Self::AuthorNormal {
                 shadow_cascade_order,
-            } => (3, shadow_cascade_order.0),
-            Self::SMILOverride => (4, 0),
-            Self::Animations => (5, 0),
-            Self::AuthorImportant {
-                shadow_cascade_order,
-            } => (6, shadow_cascade_order.0),
-            Self::UserImportant => (7, 0),
-            Self::UAImportant => (8, 0),
-            Self::Transitions => (9, 0),
-        };
-
-        debug_assert_eq!(discriminant & 0xf, discriminant);
-        if order == 0 {
-            return discriminant;
+            } => Self::AuthorImportant {
+                shadow_cascade_order: -shadow_cascade_order,
+            },
+            Self::PresHints |
+            Self::SMILOverride |
+            Self::Animations |
+            Self::AuthorImportant { .. } |
+            Self::UserImportant |
+            Self::UAImportant |
+            Self::Transitions => *self,
         }
-
-        let negative = order < 0;
-        let value = std::cmp::min(order.abs() as u8, 0b111);
-        (negative as u8) << 7 | value << 4 | discriminant
     }
 
-    /// Convert back from the single-byte representation of the cascade level
-    /// explained above.
-    #[inline]
-    pub fn from_byte(b: u8) -> Self {
-        let order = {
-            let abs = ((b & 0b01110000) >> 4) as i8;
-            let negative = b & 0b10000000 != 0;
-            if negative {
-                -abs
-            } else {
-                abs
-            }
-        };
-        let discriminant = b & 0xf;
-        let level = match discriminant {
-            0 => Self::UANormal,
-            1 => Self::UserNormal,
-            2 => Self::PresHints,
-            3 => {
-                return Self::AuthorNormal {
-                    shadow_cascade_order: ShadowCascadeOrder(order),
-                }
+    /// Convert this level from "important" to "non-important".
+    pub fn unimportant(&self) -> Self {
+        match *self {
+            Self::UAImportant => Self::UANormal,
+            Self::UserImportant => Self::UserNormal,
+            Self::AuthorImportant {
+                shadow_cascade_order,
+            } => Self::AuthorNormal {
+                shadow_cascade_order: -shadow_cascade_order,
             },
-            4 => Self::SMILOverride,
-            5 => Self::Animations,
-            6 => {
-                return Self::AuthorImportant {
-                    shadow_cascade_order: ShadowCascadeOrder(order),
-                }
-            },
-            7 => Self::UserImportant,
-            8 => Self::UAImportant,
-            9 => Self::Transitions,
-            _ => unreachable!("Didn't expect {} as a discriminant", discriminant),
-        };
-        debug_assert_eq!(order, 0, "Didn't expect an order value for {:?}", level);
-        level
+            Self::PresHints |
+            Self::SMILOverride |
+            Self::Animations |
+            Self::AuthorNormal { .. } |
+            Self::UserNormal |
+            Self::UANormal |
+            Self::Transitions => *self,
+        }
     }
 
     /// Select a lock guard for this level
@@ -231,6 +193,12 @@ impl CascadeLevel {
 pub struct ShadowCascadeOrder(i8);
 
 impl ShadowCascadeOrder {
+    /// We keep a maximum of 3 bits of order as a limit so that we can pack
+    /// CascadeLevel in one byte by using half of it for the order, if that ends
+    /// up being necessary.
+    const MAX: i8 = 0b111;
+    const MIN: i8 = -Self::MAX;
+
     /// A level for the outermost shadow tree (the shadow tree we own, and the
     /// ones from the slots we're slotted in).
     #[inline]
@@ -256,7 +224,9 @@ impl ShadowCascadeOrder {
     #[inline]
     pub fn dec(&mut self) {
         debug_assert!(self.0 < 0);
-        self.0 = self.0.saturating_sub(1);
+        if self.0 != Self::MIN {
+            self.0 -= 1;
+        }
     }
 
     /// The level, moving inwards. We should only move inwards if we're
@@ -264,7 +234,9 @@ impl ShadowCascadeOrder {
     #[inline]
     pub fn inc(&mut self) {
         debug_assert_ne!(self.0, -1);
-        self.0 = self.0.saturating_add(1);
+        if self.0 != Self::MAX {
+            self.0 += 1;
+        }
     }
 }
 

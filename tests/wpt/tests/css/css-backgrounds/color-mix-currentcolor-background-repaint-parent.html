@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>currentColor in color-mix() used in background-color repaints properly when parent color changes</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-color/#currentcolor-color">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+    #container {
+        color: red;
+    }
+
+    #container.green {
+        color: green;
+    }
+
+    #target {
+        background-color: color-mix(in hsl, transparent 0%, currentColor 100%);
+        width: 100px;
+        height: 100px;
+    }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="container">
+    <div id="target"></div>
+</div>
+
+<script>
+    addEventListener("load", () => {
+        setTimeout(() => {
+            requestAnimationFrame(() => {
+                container.classList.add("green");
+                document.documentElement.classList.remove("reftest-wait");
+            });
+        }, 0);
+    });
+</script>
+</html>

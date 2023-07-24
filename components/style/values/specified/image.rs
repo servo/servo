@@ -83,7 +83,7 @@ fn cross_fade_enabled() -> bool {
 
 #[cfg(feature = "gecko")]
 fn image_set_enabled() -> bool {
-    static_prefs::pref!("layout.css.image-set.enabled")
+    true
 }
 
 #[cfg(feature = "servo")]
@@ -181,7 +181,13 @@ impl Parse for Image {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Image, ParseError<'i>> {
-        Image::parse_with_cors_mode(context, input, CorsMode::None, /* allow_none = */ true)
+        Image::parse_with_cors_mode(
+            context,
+            input,
+            CorsMode::None,
+            /* allow_none = */ true,
+            /* only_url = */ false,
+        )
     }
 }
 
@@ -191,29 +197,38 @@ impl Image {
         input: &mut Parser<'i, 't>,
         cors_mode: CorsMode,
         allow_none: bool,
+        only_url: bool,
     ) -> Result<Image, ParseError<'i>> {
         if allow_none && input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(generic::Image::None);
         }
+
         if let Ok(url) = input
             .try_parse(|input| SpecifiedImageUrl::parse_with_cors_mode(context, input, cors_mode))
         {
             return Ok(generic::Image::Url(url));
         }
-        if let Ok(gradient) = input.try_parse(|i| Gradient::parse(context, i)) {
-            return Ok(generic::Image::Gradient(Box::new(gradient)));
-        }
+
         if image_set_enabled() {
-            if let Ok(is) = input.try_parse(|input| ImageSet::parse(context, input, cors_mode)) {
+            if let Ok(is) = input.try_parse(|input| ImageSet::parse(context, input, cors_mode, only_url)) {
                 return Ok(generic::Image::ImageSet(Box::new(is)));
             }
         }
+
+        if only_url {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        if let Ok(gradient) = input.try_parse(|i| Gradient::parse(context, i)) {
+            return Ok(generic::Image::Gradient(Box::new(gradient)));
+        }
+
         if cross_fade_enabled() {
             if let Ok(cf) = input.try_parse(|input| CrossFade::parse(context, input, cors_mode)) {
                 return Ok(generic::Image::CrossFade(Box::new(cf)));
             }
         }
-        #[cfg(feature = "servo-layout-2013")]
+        #[cfg(feature = "servo")]
         {
             if let Ok(paint_worklet) = input.try_parse(|i| PaintWorklet::parse(context, i)) {
                 return Ok(generic::Image::PaintWorklet(paint_worklet));
@@ -264,6 +279,21 @@ impl Image {
             input,
             CorsMode::Anonymous,
             /* allow_none = */ true,
+            /* only_url = */ false,
+        )
+    }
+
+    /// Provides an alternate method for parsing, but only for urls.
+    pub fn parse_only_url<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Image, ParseError<'i>> {
+        Self::parse_with_cors_mode(
+            context,
+            input,
+            CorsMode::None,
+            /* allow_none = */ false,
+            /* only_url = */ true,
         )
     }
 }
@@ -310,7 +340,10 @@ impl CrossFadeImage {
         cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(image) = input.try_parse(|input| {
-            Image::parse_with_cors_mode(context, input, cors_mode, /* allow_none = */ false)
+            Image::parse_with_cors_mode(
+                context, input, cors_mode, /* allow_none = */ false,
+                /* only_url = */ false,
+            )
         }) {
             return Ok(Self::Image(image));
         }
@@ -339,10 +372,20 @@ impl ImageSet {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         cors_mode: CorsMode,
+        only_url: bool,
     ) -> Result<Self, ParseError<'i>> {
-        input.expect_function_matching("image-set")?;
+        let function = input.expect_function()?;
+        match_ignore_ascii_case! { &function,
+            "-webkit-image-set" | "image-set" => {},
+            _ => {
+                let func = function.clone();
+                return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(func)));
+            }
+        }
         let items = input.parse_nested_block(|input| {
-            input.parse_comma_separated(|input| ImageSetItem::parse(context, input, cors_mode))
+            input.parse_comma_separated(|input| {
+                ImageSetItem::parse(context, input, cors_mode, only_url)
+            })
         })?;
         Ok(Self {
             selected_index: 0,
@@ -352,10 +395,16 @@ impl ImageSet {
 }
 
 impl ImageSetItem {
+    fn parse_type<'i>(p: &mut Parser<'i, '_>) -> Result<crate::OwnedStr, ParseError<'i>> {
+        p.expect_function_matching("type")?;
+        p.parse_nested_block(|input| Ok(input.expect_string()?.as_ref().to_owned().into()))
+    }
+
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         cors_mode: CorsMode,
+        only_url: bool,
     ) -> Result<Self, ParseError<'i>> {
         let image = match input.try_parse(|i| i.expect_url_or_string()) {
             Ok(url) => Image::Url(SpecifiedImageUrl::parse_from_string(
@@ -365,12 +414,32 @@ impl ImageSetItem {
             )),
             Err(..) => Image::parse_with_cors_mode(
                 context, input, cors_mode, /* allow_none = */ false,
+                /* only_url = */ only_url,
             )?,
         };
-        let resolution = input
+
+        let mut resolution = input
             .try_parse(|input| Resolution::parse(context, input))
-            .unwrap_or(Resolution::X(1.0));
-        Ok(Self { image, resolution })
+            .ok();
+        let mime_type = input.try_parse(Self::parse_type).ok();
+
+        // Try to parse resolution after type().
+        if mime_type.is_some() && resolution.is_none() {
+            resolution = input
+                .try_parse(|input| Resolution::parse(context, input))
+                .ok();
+        }
+
+        let resolution = resolution.unwrap_or(Resolution::X(1.0));
+        let has_mime_type = mime_type.is_some();
+        let mime_type = mime_type.unwrap_or_default();
+
+        Ok(Self {
+            image,
+            resolution,
+            has_mime_type,
+            mime_type,
+        })
     }
 }
 
@@ -1175,4 +1244,43 @@ impl MozImageRect {
             })
         })
     }
+}
+
+/// https://drafts.csswg.org/css-images/#propdef-image-rendering
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum ImageRendering {
+    Auto,
+    #[cfg(feature = "gecko")]
+    Smooth,
+    #[parse(aliases = "-moz-crisp-edges")]
+    CrispEdges,
+    Pixelated,
+    // From the spec:
+    //
+    //     This property previously accepted the values optimizeSpeed and
+    //     optimizeQuality. These are now deprecated; a user agent must accept
+    //     them as valid values but must treat them as having the same behavior
+    //     as crisp-edges and smooth respectively, and authors must not use
+    //     them.
+    //
+    #[cfg(feature = "gecko")]
+    Optimizespeed,
+    #[cfg(feature = "gecko")]
+    Optimizequality,
 }

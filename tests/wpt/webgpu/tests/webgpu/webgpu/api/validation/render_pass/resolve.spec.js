@@ -1,48 +1,45 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `API Validation Tests for RenderPass Resolve.
-
-  Test Coverage:
-    - When resolveTarget is not null:
-      - Test that the colorAttachment is multisampled:
-        - A single sampled colorAttachment should generate an error.
-      - Test that the resolveTarget is single sampled:
-        - A multisampled resolveTarget should generate an error.
-      - Test that the resolveTarget has usage OUTPUT_ATTACHMENT:
-        - A resolveTarget without usage OUTPUT_ATTACHMENT should generate an error.
-      - Test that the resolveTarget's texture view describes a single subresource:
-        - A resolveTarget texture view with base mip {0, base mip > 0} and mip count of 1 should be
-          valid.
-          - An error should be generated when the resolve target view mip count is not 1 and base
-            mip is {0, base mip > 0}.
-        - A resolveTarget texture view with base array layer {0, base array layer > 0} and array
-          layer count of 1 should be valid.
-          - An error should be generated when the resolve target view array layer count is not 1 and
-            base array layer is {0, base array layer > 0}.
-      - Test that the resolveTarget's format is the same as the colorAttachment:
-        - An error should be generated when the resolveTarget's format does not match the
-          colorAttachment's format.
-      - Test that the resolveTarget's size is the same the colorAttachment:
-        - An error should be generated when the resolveTarget's height or width are not equal to
-          the colorAttachment's height or width.`;
+ **/ export const description = `
+Validation tests for render pass resolve.
+`;
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-
-import { ValidationTest } from './../validation_test.js';
+import { GPUConst } from '../../../constants.js';
+import { ValidationTest } from '../validation_test.js';
 
 const kNumColorAttachments = 4;
 
 export const g = makeTestGroup(ValidationTest);
 
 g.test('resolve_attachment')
-  .params([
+  .desc(
+    `
+Test various validation behaviors when a resolveTarget is provided.
+
+- base case (valid).
+- resolve source is not multisampled.
+- resolve target is not single sampled.
+- resolve target missing RENDER_ATTACHMENT usage.
+- resolve target must have exactly one subresource:
+    - base mip level {0, >0}, mip level count {1, >1}.
+    - base array layer {0, >0}, array layer count {1, >1}.
+- resolve target GPUTextureView is invalid
+- resolve source and target have different formats.
+    - rgba8unorm -> {bgra8unorm, rgba8unorm-srgb}
+    - {bgra8unorm, rgba8unorm-srgb} -> rgba8unorm
+    - test with other color attachments having a different format
+- resolve source and target have different sizes.
+`
+  )
+  .paramsSimple([
     // control case should be valid
     { _valid: true },
     // a single sampled resolve source should cause a validation error.
     { colorAttachmentSamples: 1, _valid: false },
     // a multisampled resolve target should cause a validation error.
     { resolveTargetSamples: 4, _valid: false },
-    // resolveTargetUsage without OUTPUT_ATTACHMENT usage should cause a validation error.
-    { resolveTargetUsage: GPUTextureUsage.COPY_SRC, _valid: false },
+    // resolveTargetUsage without RENDER_ATTACHMENT usage should cause a validation error.
+    { resolveTargetUsage: GPUConst.TextureUsage.COPY_SRC, _valid: false },
     // non-zero resolve target base mip level should be valid.
     {
       resolveTargetViewBaseMipLevel: 1,
@@ -50,7 +47,8 @@ g.test('resolve_attachment')
       resolveTargetWidth: 4,
       _valid: true,
     },
-
+    // a validation error should be created when resolveTarget is invalid.
+    { resolveTargetInvalid: true, _valid: false },
     // a validation error should be created when mip count > 1
     { resolveTargetViewMipCount: 2, _valid: false },
     {
@@ -60,7 +58,6 @@ g.test('resolve_attachment')
       resolveTargetWidth: 4,
       _valid: false,
     },
-
     // non-zero resolve target base array layer should be valid.
     { resolveTargetViewBaseArrayLayer: 1, _valid: true },
     // a validation error should be created when array layer count > 1
@@ -79,14 +76,15 @@ g.test('resolve_attachment')
     { resolveTargetHeight: 4, _valid: false },
     { resolveTargetWidth: 4, _valid: false },
   ])
-  .fn(async t => {
+  .fn(t => {
     const {
       colorAttachmentFormat = 'rgba8unorm',
       resolveTargetFormat = 'rgba8unorm',
       otherAttachmentFormat = 'rgba8unorm',
       colorAttachmentSamples = 4,
       resolveTargetSamples = 1,
-      resolveTargetUsage = GPUTextureUsage.COPY_SRC | GPUTextureUsage.OUTPUT_ATTACHMENT,
+      resolveTargetUsage = GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+      resolveTargetInvalid = false,
       resolveTargetViewMipCount = 1,
       resolveTargetViewBaseMipLevel = 0,
       resolveTargetViewArrayLayerCount = 1,
@@ -107,15 +105,19 @@ g.test('resolve_attachment')
         colorAttachmentSlot < kNumColorAttachments;
         colorAttachmentSlot++
       ) {
-        // resolveSlot === colorAttachmentSlot denotes the color attachment slot that contains the color attachment with resolve
-        // target.
+        // resolveSlot === colorAttachmentSlot denotes the color attachment slot that contains the
+        // color attachment with resolve target.
         if (resolveSlot === colorAttachmentSlot) {
           // Create the color attachment with resolve target with the configurable parameters.
           const resolveSourceColorAttachment = t.device.createTexture({
             format: colorAttachmentFormat,
-            size: { width: colorAttachmentWidth, height: colorAttachmentHeight, depth: 1 },
+            size: {
+              width: colorAttachmentWidth,
+              height: colorAttachmentHeight,
+              depthOrArrayLayers: 1,
+            },
             sampleCount: colorAttachmentSamples,
-            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.OUTPUT_ATTACHMENT,
+            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
           });
 
           const resolveTarget = t.device.createTexture({
@@ -123,33 +125,40 @@ g.test('resolve_attachment')
             size: {
               width: resolveTargetWidth,
               height: resolveTargetHeight,
-              depth: resolveTargetViewBaseArrayLayer + resolveTargetViewArrayLayerCount,
+              depthOrArrayLayers:
+                resolveTargetViewBaseArrayLayer + resolveTargetViewArrayLayerCount,
             },
-
             sampleCount: resolveTargetSamples,
             mipLevelCount: resolveTargetViewBaseMipLevel + resolveTargetViewMipCount,
             usage: resolveTargetUsage,
           });
 
           renderPassColorAttachmentDescriptors.push({
-            attachment: resolveSourceColorAttachment.createView(),
-            loadValue: 'load',
-            resolveTarget: resolveTarget.createView({
-              dimension: resolveTargetViewArrayLayerCount === 1 ? '2d' : '2d-array',
-              mipLevelCount: resolveTargetViewMipCount,
-              arrayLayerCount: resolveTargetViewArrayLayerCount,
-              baseMipLevel: resolveTargetViewBaseMipLevel,
-              baseArrayLayer: resolveTargetViewBaseArrayLayer,
-            }),
+            view: resolveSourceColorAttachment.createView(),
+            loadOp: 'load',
+            storeOp: 'discard',
+            resolveTarget: resolveTargetInvalid
+              ? t.getErrorTextureView()
+              : resolveTarget.createView({
+                  dimension: resolveTargetViewArrayLayerCount === 1 ? '2d' : '2d-array',
+                  mipLevelCount: resolveTargetViewMipCount,
+                  arrayLayerCount: resolveTargetViewArrayLayerCount,
+                  baseMipLevel: resolveTargetViewBaseMipLevel,
+                  baseArrayLayer: resolveTargetViewBaseArrayLayer,
+                }),
           });
         } else {
           // Create a basic texture to fill other color attachment slots. This texture's dimensions
           // and sample count must match the resolve source color attachment to be valid.
           const colorAttachment = t.device.createTexture({
             format: otherAttachmentFormat,
-            size: { width: colorAttachmentWidth, height: colorAttachmentHeight, depth: 1 },
+            size: {
+              width: colorAttachmentWidth,
+              height: colorAttachmentHeight,
+              depthOrArrayLayers: 1,
+            },
             sampleCount: colorAttachmentSamples,
-            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.OUTPUT_ATTACHMENT,
+            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
           });
 
           const resolveTarget = t.device.createTexture({
@@ -157,16 +166,16 @@ g.test('resolve_attachment')
             size: {
               width: colorAttachmentWidth,
               height: colorAttachmentHeight,
-              depth: 1,
+              depthOrArrayLayers: 1,
             },
-
             sampleCount: 1,
-            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.OUTPUT_ATTACHMENT,
+            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
           });
 
           renderPassColorAttachmentDescriptors.push({
-            attachment: colorAttachment.createView(),
-            loadValue: 'load',
+            view: colorAttachment.createView(),
+            loadOp: 'load',
+            storeOp: 'discard',
             resolveTarget: resolveTarget.createView(),
           });
         }
@@ -175,8 +184,7 @@ g.test('resolve_attachment')
       const pass = encoder.beginRenderPass({
         colorAttachments: renderPassColorAttachmentDescriptors,
       });
-
-      pass.endPass();
+      pass.end();
 
       t.expectValidationError(() => {
         encoder.finish();

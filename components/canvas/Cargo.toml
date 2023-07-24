@@ -16,36 +16,36 @@ webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 xr-profile = ["webxr-api/profile", "time"]
 
 [dependencies]
-bitflags = "1.0"
-byteorder = "1"
+bitflags = { workspace = true }
+byteorder = { workspace = true }
 canvas_traits = { path = "../canvas_traits" }
-crossbeam-channel = "0.4"
-cssparser = "0.29"
-euclid = "0.22"
+crossbeam-channel = { workspace = true }
+cssparser = { workspace = true }
+euclid = { workspace = true }
 font-kit = "0.11"
-fnv = "1.0"
+fnv = { workspace = true }
 gfx = { path = "../gfx" }
-gleam = "0.12"
+gleam = { workspace = true }
 half = "1"
-ipc-channel = "0.14"
-log = "0.4"
+ipc-channel = { workspace = true }
+log = { workspace = true }
 lyon_geom = "1.0.4"
-num-traits = "0.2"
+num-traits = { workspace = true }
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
 raqote = "0.8.2"
 servo_arc = { path = "../servo_arc" }
 servo_config = { path = "../config" }
-sparkle = "0.1.25"
+sparkle = { workspace = true }
 style = { path = "../style" }
 style_traits = { path = "../style_traits" }
 # NOTE: the sm-angle feature only enables angle on windows, not other platforms!
-surfman = { version = "0.6", features = ["sm-angle","sm-angle-default"] }
-surfman-chains = "0.7"
-surfman-chains-api = "0.2"
-time = { version = "0.1.41", optional = true }
-webrender = { git = "https://github.com/servo/webrender" }
-webrender_api = { git = "https://github.com/servo/webrender" }
+surfman = { workspace = true, features = ["sm-angle","sm-angle-default"] }
+surfman-chains = { workspace = true }
+surfman-chains-api = { workspace = true }
+time = { workspace = true, optional = true }
+webrender = { workspace = true }
+webrender_api = { workspace = true }
 webrender_surfman = { path = "../webrender_surfman" }
 webrender_traits = { path = "../webrender_traits" }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

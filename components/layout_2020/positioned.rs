@@ -7,16 +7,18 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::{BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragment_tree::{
+    AbsoluteBoxOffsets, BoxFragment, CollapsedBlockMargins, Fragment, HoistedSharedFragment,
+};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{LengthOrAuto, LengthPercentageOrAuto};
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
-use rayon::iter::{IntoParallelRefMutIterator, ParallelExtend};
-use rayon_croissant::ParallelIteratorExt;
+use rayon::iter::IntoParallelRefMutIterator;
+use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
-use style::values::computed::{CSSPixelLength, Length, LengthPercentage};
+use style::values::computed::{CSSPixelLength, Length};
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 
@@ -37,76 +39,10 @@ pub(crate) struct PositioningContext {
 pub(crate) struct HoistedAbsolutelyPositionedBox {
     absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
 
-    /// The rank of the child from which this absolutely positioned fragment
-    /// came from, when doing the layout of a block container. Used to compute
-    /// static positions when going up the tree.
-    pub(crate) tree_rank: usize,
-
     /// A reference to a Fragment which is shared between this `HoistedAbsolutelyPositionedBox`
     /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
     /// This will be used later in order to paint this hoisted box in tree order.
     pub fragment: ArcRefCell<HoistedSharedFragment>,
-}
-
-/// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`
-/// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
-/// This will be used later in order to paint this hoisted box in tree order.
-#[derive(Serialize)]
-pub(crate) struct HoistedSharedFragment {
-    pub(crate) fragment: Option<ArcRefCell<Fragment>>,
-    pub(crate) box_offsets: Vec2<AbsoluteBoxOffsets>,
-}
-
-impl HoistedSharedFragment {
-    pub(crate) fn new(box_offsets: Vec2<AbsoluteBoxOffsets>) -> Self {
-        HoistedSharedFragment {
-            fragment: None,
-            box_offsets,
-        }
-    }
-}
-
-impl HoistedSharedFragment {
-    /// In some cases `inset: auto`-positioned elements do not know their precise
-    /// position until after they're hoisted. This lets us adjust auto values
-    /// after the fact.
-    pub(crate) fn adjust_offsets(&mut self, offsets: Vec2<Length>) {
-        self.box_offsets.inline.adjust_offset(offsets.inline);
-        self.box_offsets.block.adjust_offset(offsets.block);
-    }
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub(crate) enum AbsoluteBoxOffsets {
-    StaticStart {
-        start: Length,
-    },
-    Start {
-        start: LengthPercentage,
-    },
-    End {
-        end: LengthPercentage,
-    },
-    Both {
-        start: LengthPercentage,
-        end: LengthPercentage,
-    },
-}
-
-impl AbsoluteBoxOffsets {
-    fn both_specified(&self) -> bool {
-        match self {
-            AbsoluteBoxOffsets::Both { .. } => return true,
-            _ => return false,
-        }
-    }
-
-    fn adjust_offset(&mut self, new_offset: Length) {
-        match *self {
-            AbsoluteBoxOffsets::StaticStart { ref mut start } => *start = new_offset,
-            _ => (),
-        }
-    }
 }
 
 impl AbsolutelyPositionedBox {
@@ -131,7 +67,6 @@ impl AbsolutelyPositionedBox {
     pub(crate) fn to_hoisted(
         self_: ArcRefCell<Self>,
         initial_start_corner: Vec2<Length>,
-        tree_rank: usize,
         containing_block: &ContainingBlock,
     ) -> HoistedAbsolutelyPositionedBox {
         fn absolute_box_offsets(
@@ -171,7 +106,6 @@ impl AbsolutelyPositionedBox {
             }
         };
         HoistedAbsolutelyPositionedBox {
-            tree_rank,
             fragment: ArcRefCell::new(HoistedSharedFragment::new(box_offsets)),
             absolutely_positioned_box: self_,
         }
@@ -186,7 +120,11 @@ impl PositioningContext {
         }
     }
 
-    pub(crate) fn new_for_rayon(collects_for_nearest_positioned_ancestor: bool) -> Self {
+    /// Create a [PositioninContext] to use for laying out a subtree. The idea is that
+    /// when subtree layout is finished, the newly hoisted boxes can be processed
+    /// (normally adjusting their static insets) and then appended to the parent
+    /// [PositioningContext].
+    pub(crate) fn new_for_subtree(collects_for_nearest_positioned_ancestor: bool) -> Self {
         Self {
             for_nearest_positioned_ancestor: if collects_for_nearest_positioned_ancestor {
                 Some(Vec::new())
@@ -212,6 +150,54 @@ impl PositioningContext {
         } else {
             None
         }
+    }
+
+    /// Absolute and fixed position fragments are hoisted up to their containing blocks
+    /// from their tree position. When these fragments have static inset start positions,
+    /// that position (relative to the ancestor containing block) needs to be included
+    /// with the hoisted fragment so that it can be laid out properly at the containing
+    /// block.
+    ///
+    /// This function is used to update that static position at every level of the
+    /// fragment tree as the hoisted fragments move back up to their containing blocks.
+    /// Once an ancestor fragment is laid out, this function can be used to aggregate its
+    /// offset on the way back up.
+    pub(crate) fn adjust_static_position_of_hoisted_fragments(
+        &mut self,
+        parent_fragment: &Fragment,
+    ) {
+        let start_offset = match &parent_fragment {
+            Fragment::Box(b) | Fragment::Float(b) => &b.content_rect.start_corner,
+            Fragment::AbsoluteOrFixedPositioned(_) => return,
+            Fragment::Anonymous(a) => &a.rect.start_corner,
+            _ => unreachable!(),
+        };
+        self.adjust_static_position_of_hoisted_fragments_with_offset(start_offset);
+    }
+
+    /// See documentation for [adjust_static_position_of_hoisted_fragments].
+    pub(crate) fn adjust_static_position_of_hoisted_fragments_with_offset(
+        &mut self,
+        start_offset: &Vec2<CSSPixelLength>,
+    ) {
+        let update_fragment_if_needed = |hoisted_fragment: &mut HoistedAbsolutelyPositionedBox| {
+            let mut fragment = hoisted_fragment.fragment.borrow_mut();
+            if let AbsoluteBoxOffsets::StaticStart { start } = &mut fragment.box_offsets.inline {
+                *start += start_offset.inline;
+            }
+            if let AbsoluteBoxOffsets::StaticStart { start } = &mut fragment.box_offsets.block {
+                *start += start_offset.block;
+            }
+        };
+
+        self.for_nearest_positioned_ancestor
+            .as_mut()
+            .map(|hoisted_boxes| {
+                hoisted_boxes.iter_mut().for_each(update_fragment_if_needed);
+            });
+        self.for_nearest_containing_block_for_all_descendants
+            .iter_mut()
+            .for_each(update_fragment_if_needed);
     }
 
     /// Given `fragment_layout_fn`, a closure which lays out a fragment in a provided
@@ -304,7 +290,7 @@ impl PositioningContext {
             match position {
                 Position::Fixed => {}, // fall through
                 Position::Absolute => return nearest.push(box_),
-                Position::Static | Position::Relative => unreachable!(),
+                Position::Static | Position::Relative | Position::Sticky => unreachable!(),
             }
         }
         self.for_nearest_containing_block_for_all_descendants
@@ -324,36 +310,6 @@ impl PositioningContext {
             (None, None) => {},
             _ => unreachable!(),
         }
-    }
-
-    pub(crate) fn adjust_static_positions(
-        &mut self,
-        tree_rank_in_parent: usize,
-        f: impl FnOnce(&mut Self) -> Vec<Fragment>,
-    ) -> Vec<Fragment> {
-        let for_containing_block_for_all_descendants =
-            self.for_nearest_containing_block_for_all_descendants.len();
-        let for_nearest_so_far = self
-            .for_nearest_positioned_ancestor
-            .as_ref()
-            .map(|v| v.len());
-
-        let fragments = f(self);
-
-        adjust_static_positions(
-            &mut self.for_nearest_containing_block_for_all_descendants
-                [for_containing_block_for_all_descendants..],
-            &fragments,
-            tree_rank_in_parent,
-        );
-        if let Some(nearest) = &mut self.for_nearest_positioned_ancestor {
-            adjust_static_positions(
-                &mut nearest[for_nearest_so_far.unwrap()..],
-                &fragments,
-                tree_rank_in_parent,
-            );
-        }
-        fragments
     }
 
     pub(crate) fn layout_initial_containing_block_children(
@@ -379,6 +335,14 @@ impl PositioningContext {
             )
         }
     }
+
+    pub(crate) fn clear(&mut self) {
+        self.for_nearest_containing_block_for_all_descendants
+            .clear();
+        self.for_nearest_positioned_ancestor
+            .as_mut()
+            .map(|v| v.clear());
+    }
 }
 
 impl HoistedAbsolutelyPositionedBox {
@@ -390,21 +354,27 @@ impl HoistedAbsolutelyPositionedBox {
         containing_block: &DefiniteContainingBlock,
     ) {
         if layout_context.use_rayon {
-            fragments.par_extend(boxes.par_iter_mut().mapfold_reduce_into(
-                for_nearest_containing_block_for_all_descendants,
-                |for_nearest_containing_block_for_all_descendants, box_| {
-                    let new_fragment = ArcRefCell::new(Fragment::Box(box_.layout(
+            let mut new_fragments = Vec::new();
+            let mut new_hoisted_boxes = Vec::new();
+
+            boxes
+                .par_iter_mut()
+                .map(|hoisted_box| {
+                    let mut new_hoisted_boxes: Vec<HoistedAbsolutelyPositionedBox> = Vec::new();
+                    let new_fragment = ArcRefCell::new(Fragment::Box(hoisted_box.layout(
                         layout_context,
-                        for_nearest_containing_block_for_all_descendants,
+                        &mut new_hoisted_boxes,
                         containing_block,
                     )));
 
-                    box_.fragment.borrow_mut().fragment = Some(new_fragment.clone());
-                    new_fragment
-                },
-                Vec::new,
-                vec_append_owned,
-            ))
+                    hoisted_box.fragment.borrow_mut().fragment = Some(new_fragment.clone());
+                    (new_fragment, new_hoisted_boxes)
+                })
+                .unzip_into_vecs(&mut new_fragments, &mut new_hoisted_boxes);
+
+            fragments.extend(new_fragments);
+            for_nearest_containing_block_for_all_descendants
+                .extend(new_hoisted_boxes.into_iter().flatten());
         } else {
             fragments.extend(boxes.iter_mut().map(|box_| {
                 let new_fragment = ArcRefCell::new(Fragment::Box(box_.layout(
@@ -439,6 +409,7 @@ impl HoistedAbsolutelyPositionedBox {
                 let used_size = replaced.contents.used_size_as_if_inline_element(
                     &containing_block.into(),
                     &replaced.style,
+                    None,
                     &pbm,
                 );
                 Vec2 {
@@ -562,12 +533,17 @@ impl HoistedAbsolutelyPositionedBox {
                             containing_block_for_children.style.writing_mode,
                             "Mixed writing modes are not supported yet"
                         );
-                        let dummy_tree_rank = 0;
+
+                        // Clear the context since we will lay out the same descendants
+                        // more than once. Otherwise, absolute descendants will create
+                        // multiple fragments which could later lead to double-borrow
+                        // errors.
+                        positioning_context.clear();
+
                         let independent_layout = non_replaced.layout(
                             layout_context,
                             &mut positioning_context,
                             &containing_block_for_children,
-                            dummy_tree_rank,
                         );
                         let block_size = size.auto_is(|| independent_layout.content_block_size);
                         Result {
@@ -650,13 +626,25 @@ impl HoistedAbsolutelyPositionedBox {
                 pbm.padding,
                 pbm.border,
                 margin,
+                None,
                 CollapsedBlockMargins::zero(),
                 physical_overconstrained,
             )
         };
         positioning_context.layout_collected_children(layout_context, &mut new_fragment);
+
+        // Any hoisted boxes that remain in this positioning context are going to be hoisted
+        // up above this absolutely positioned box. These will necessarily be fixed position
+        // elements, because absolutely positioned elements form containing blocks for all
+        // other elements. If any of them have a static start position though, we need to
+        // adjust it to account for the start corner of this absolute.
+        positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
+            &new_fragment.content_rect.start_corner,
+        );
+
         for_nearest_containing_block_for_all_descendants
             .extend(positioning_context.for_nearest_containing_block_for_all_descendants);
+
         new_fragment
     }
 }
@@ -778,34 +766,6 @@ impl<'a> AbsoluteAxisSolver<'a> {
             self.box_offsets.both_specified() &&
             !self.computed_margin_start.is_auto() &&
             !self.computed_margin_end.is_auto()
-    }
-}
-
-fn adjust_static_positions(
-    absolutely_positioned_fragments: &mut [HoistedAbsolutelyPositionedBox],
-    child_fragments: &[Fragment],
-    tree_rank_in_parent: usize,
-) {
-    for abspos_fragment in absolutely_positioned_fragments {
-        let original_tree_rank = abspos_fragment.tree_rank;
-        abspos_fragment.tree_rank = tree_rank_in_parent;
-
-        let child_fragment_rect = match &child_fragments[original_tree_rank] {
-            Fragment::Box(b) => &b.content_rect,
-            Fragment::AbsoluteOrFixedPositioned(_) => continue,
-            Fragment::Anonymous(a) => &a.rect,
-            _ => unreachable!(),
-        };
-
-        let mut shared_fragment = abspos_fragment.fragment.borrow_mut();
-
-        if let AbsoluteBoxOffsets::StaticStart { start } = &mut shared_fragment.box_offsets.inline {
-            *start += child_fragment_rect.start_corner.inline;
-        }
-
-        if let AbsoluteBoxOffsets::StaticStart { start } = &mut shared_fragment.box_offsets.block {
-            *start += child_fragment_rect.start_corner.block;
-        }
     }
 }
 

@@ -94,6 +94,15 @@ impl SharedRwLock {
         SharedRwLock { cell: None }
     }
 
+    #[cfg(feature = "gecko")]
+    #[inline]
+    fn ptr(&self) -> *const SomethingZeroSizedButTyped {
+        self.cell
+            .as_ref()
+            .map(|cell| cell.as_ptr() as *const _)
+            .unwrap_or(ptr::null())
+    }
+
     /// Wrap the given data to make its access protected by this lock.
     pub fn wrap<T>(&self, data: T) -> Locked<T> {
         Locked {
@@ -144,6 +153,17 @@ impl<'a> Drop for SharedRwLockReadGuard<'a> {
     }
 }
 
+impl<'a> SharedRwLockReadGuard<'a> {
+    #[inline]
+    #[cfg(feature = "gecko")]
+    fn ptr(&self) -> *const SomethingZeroSizedButTyped {
+        self.0
+            .as_ref()
+            .map(|r| &**r as *const _)
+            .unwrap_or(ptr::null())
+    }
+}
+
 /// Proof that a shared lock was obtained for writing (servo).
 #[cfg(feature = "servo")]
 pub struct SharedRwLockWriteGuard<'a>(&'a SharedRwLock);
@@ -190,25 +210,18 @@ impl<T> Locked<T> {
     }
 
     #[cfg(feature = "gecko")]
-    fn same_lock_as(&self, derefed_guard: Option<&SomethingZeroSizedButTyped>) -> bool {
-        ptr::eq(
-            self.shared_lock
-                .cell
-                .as_ref()
-                .map(|cell| cell.as_ptr())
-                .unwrap_or(ptr::null_mut()),
-            derefed_guard
-                .map(|guard| guard as *const _ as *mut _)
-                .unwrap_or(ptr::null_mut()),
-        )
+    fn same_lock_as(&self, ptr: *const SomethingZeroSizedButTyped) -> bool {
+        ptr::eq(self.shared_lock.ptr(), ptr)
     }
 
     /// Access the data for reading.
     pub fn read_with<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a T {
         #[cfg(feature = "gecko")]
         assert!(
-            self.is_read_only_lock() || self.same_lock_as(guard.0.as_ref().map(|r| &**r)),
-            "Locked::read_with called with a guard from an unrelated SharedRwLock"
+            self.is_read_only_lock() || self.same_lock_as(guard.ptr()),
+            "Locked::read_with called with a guard from an unrelated SharedRwLock: {:?} vs. {:?}",
+            self.shared_lock.ptr(),
+            guard.ptr(),
         );
         #[cfg(not(feature = "gecko"))]
         assert!(self.same_lock_as(&guard.0));
@@ -235,7 +248,7 @@ impl<T> Locked<T> {
     pub fn write_with<'a>(&'a self, guard: &'a mut SharedRwLockWriteGuard) -> &'a mut T {
         #[cfg(feature = "gecko")]
         assert!(
-            !self.is_read_only_lock() && self.same_lock_as(Some(&guard.0)),
+            !self.is_read_only_lock() && self.same_lock_as(&*guard.0),
             "Locked::write_with called with a guard from a read only or unrelated SharedRwLock"
         );
         #[cfg(not(feature = "gecko"))]

@@ -1,0 +1,144 @@
+<!doctype html>
+<meta charset="utf8">
+<meta name="timeout" content="long">
+<title>IndexedDB: origins have isolated namespaces</title>
+<link rel="author" href="pwnall@chromium.org" title="Victor Costan">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../common/get-host-info.sub.js"></script>
+<script src="resources/support-promises.js"></script>
+
+<body>
+<script>
+'use strict';
+
+// Returns a Promise that resolves with the helper's response.
+function waitForCrossOriginHelperResponse(origin, request) {
+  return new Promise((resolve, reject) => {
+    self.addEventListener('message', event => {
+      if (event.origin !== origin) {
+        reject(new Error(`Unexpected message from ${event.origin}`));
+        return;
+      }
+
+      if (event.data.action === request.action) {
+        resolve(event.data.response);
+      } else {
+        reject(new Error(`Unexpected message ${JSON.stringify(event.data)}`));
+      }
+    }, { once: true });
+  });
+}
+
+// Returns a Promise that resolves with the helper's response.
+async function crossOriginIframeHelper(testCase, origin, request) {
+  const iframe = document.createElement('iframe');
+  iframe.src = origin + '/IndexedDB/resources/cross-origin-helper-frame.html';
+  document.body.appendChild(iframe);
+  testCase.add_cleanup(() => {
+    try {
+      document.body.removeChild(iframe);
+    } catch (e) {
+      // removeChild() throws if the iframe was already removed, which happens
+      // if this method runs to completion.
+    }
+  });
+
+  await new Promise((resolve, reject) => {
+    iframe.onload = resolve;
+    iframe.onerror = reject;
+  });
+
+  iframe.contentWindow.postMessage(request, origin);
+  const response = await waitForCrossOriginHelperResponse(origin, request);
+  document.body.removeChild(iframe);
+  return response;
+};
+
+// Returns a Promise that resolves with the helper's response.
+async function crossOriginWindowHelper(testCase, origin, request) {
+  const helperWindow = window.open(
+      origin + '/IndexedDB/resources/cross-origin-helper-frame.html',
+      '_blank');
+  testCase.add_cleanup(() => { helperWindow.close(); });
+
+  await new Promise((resolve, reject) => {
+    self.addEventListener('message', event => {
+      if (event.origin !== origin) {
+        reject(new Error(`Unexpected message from ${event.origin}`));
+        return;
+      }
+
+      if (event.data.action === null && event.data.response === 'ready') {
+        resolve(event.data.response);
+      } else {
+        reject(new Error(`Unexpected message ${JSON.stringify(event.data)}`));
+      }
+    }, { once: true });
+  });
+
+  helperWindow.postMessage(request, origin);
+  const response = await waitForCrossOriginHelperResponse(origin, request);
+  helperWindow.close();
+  return response;
+};
+
+// Returns a Promise that resolves with the helper's response.
+function crossOriginHelper(testCase, mode, origin, request) {
+  switch (mode) {
+    case 'iframe':
+      return crossOriginIframeHelper(testCase, origin, request);
+    case 'window':
+      return crossOriginWindowHelper(testCase, origin, request);
+    default:
+      throw new Error(`Unsupported cross-origin helper mode ${mode}`);
+  }
+}
+
+const sameOrigin = get_host_info().ORIGIN;
+const otherOrigin = get_host_info().REMOTE_ORIGIN;
+
+// The disclosure that inspired this test demonstrated leaked open database
+// connections across windows.
+for (const databaseKind of ['open', 'closed']) {
+  for (const mode of ['iframe', 'window']) {
+    promise_test(async testCase => {
+      const dbName = databaseName(testCase);
+
+      assert_true(
+          await crossOriginHelper(
+              testCase, mode, sameOrigin,
+              {action: 'delete-database', name: dbName}),
+          'Same-origin setup error');
+      assert_true(
+          await crossOriginHelper(
+              testCase, mode, otherOrigin,
+              { action: 'delete-database', name: dbName }),
+          'Cross-origin setup error');
+
+      const db = await createNamedDatabase(testCase, dbName, database => {
+        database.createObjectStore('store');
+      });
+
+      if (databaseKind === 'closed')
+        await db.close();
+
+      const sameOriginDbNames = await crossOriginHelper(
+          testCase, mode, sameOrigin, { action: 'get-database-names' });
+      assert_in_array(
+          dbName, sameOriginDbNames,
+          `Database creation should reflect in same-origin ${mode}`);
+
+      const otherOriginDbNames = await crossOriginHelper(
+          testCase, mode, otherOrigin, { action: 'get-database-names' });
+      assert_true(
+          otherOriginDbNames.indexOf(dbName) === -1,
+          `Database creation should not impact cross-origin ${mode} list`);
+
+      if (databaseKind !== 'closed')
+        await db.close();
+    }, `${databaseKind} database names don't leak to cross-origin ${mode}`);
+  }
+}
+</script>
+</body>

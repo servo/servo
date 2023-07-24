@@ -154,7 +154,7 @@ impl XRViewerPose {
         let transform = XRRigidTransform::new(global, cast_transform(transform));
         let pose = reflect_dom_object(Box::new(XRViewerPose::new_inherited(&transform)), global);
 
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         unsafe {
             rooted!(in(*cx) let mut jsval = UndefinedValue());
             views.to_jsval(*cx, jsval.handle_mut());

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference Test</title>
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      color: transparent;
+      font-family: Ahem;
+      font-size: 50px;
+      line-height: 1;
+    }
+
+  div.purple
+    {
+      text-shadow: 1em 0em purple;
+    }
+
+  div.orange-blue
+    {
+      color: yellow;
+      margin-left: 1em;
+      text-shadow: -1em 0em orange, 1em 0em blue;
+    }
+
+  div.fuchsia
+    {
+      margin-bottom: 0.2em;
+      text-shadow: 1em 0em fuchsia;
+    }
+
+  div#third-top
+    {
+      text-shadow: 1em 0em #BF7F7F;
+    }
+
+  div#third-horiz-left-right
+    {
+      color: yellow;
+      margin-left: 1em;
+      text-shadow: -1em 0em #FFD23F , 1em 0em #7F7FBF;
+    }
+
+  div#third-bottom
+    {
+      text-shadow: 1em 0em #FF7FBF;
+    }
+  </style>
+
+  <div class="purple">U</div>
+
+  <div class="orange-blue">B</div>
+
+  <div class="fuchsia">F</div>
+
+
+  <div class="purple">U</div>
+
+  <div class="orange-blue">B</div>
+
+  <div class="fuchsia">F</div>
+
+
+  <div id="third-top">T</div>
+
+  <div id="third-horiz-left-right">H</div>
+
+  <div id="third-bottom">B</div>
+
+
+  <!--
+
+  The top first 2 are:
+
+                  .........
+                  .       .
+                  .       . <-purple
+                  .       .
+           .......................
+           .      .       .      .
+  orange-> .      .  yel  .      . <-blue
+           .      .  low  .      .
+           .......................
+                  .       .
+                  .       . <-fuchsia
+                  .       .
+                  .........
+
+  The bottom one is:
+
+                  .........
+                  .       .
+                  .       . <-#BF7F7F
+                  .       .
+           .......................
+           .      .       .      .
+ #FFD23F-> .      .  yel  .      . <-#7F7FBF
+           .      .  low  .      .
+           .......................
+                  .       .
+                  .       . <-#FF7FBF
+                  .       .
+                  .........
+
+  -->

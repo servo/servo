@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>animation-duration: auto</title>
+<link rel="help" src="https://github.com/w3c/csswg-drafts/issues/6530">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="./support/testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #scroller {
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+  }
+  #scroller > #content {
+    height: 200px;
+    width: 200px;
+  }
+
+  @keyframes anim {
+    from { z-index: 0; }
+    to { z-index: 100; }
+  }
+
+  #scroller {
+    scroll-timeline: --timeline;
+  }
+
+  #element {
+    z-index: -1;
+    animation-name: anim;
+    animation-duration: auto;
+    animation-timeline: --timeline;
+  }
+</style>
+<main>
+  <div id=scroller>
+    <div id=content></div>
+    <div id=element></div>
+  </div>
+</main>
+<script>
+  promise_test(async (t) => {
+    await waitForCSSScrollTimelineStyle();
+    assert_equals(getComputedStyle(element).zIndex, '0');
+  }, 'A value of auto can be specified for animation-duration');
+</script>
+
+<div id="target"></div>
+<script>
+  test_valid_value('animation-duration', 'auto');
+  test_computed_value('animation-duration', 'auto', '0s');
+  test_valid_value('animation', 'auto cubic-bezier(0, -2, 1, 3) -3s 4 reverse both paused anim');
+  test_computed_value('animation',
+    'auto cubic-bezier(0, -2, 1, 3) -3s 4 reverse both paused anim',
+    '0s cubic-bezier(0, -2, 1, 3) -3s 4 reverse both paused anim');
+</script>

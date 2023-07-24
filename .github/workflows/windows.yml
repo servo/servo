@@ -1,11 +1,8 @@
-name: Windows workflow
+name: Windows
 
 on:
   workflow_call:
     inputs:
-      layout:
-        required: true
-        type: string
       unit-tests:
         required: false
         default: false
@@ -19,10 +16,6 @@ on:
         type: string
   workflow_dispatch:
     inputs:
-      layout:
-        required: true
-        type: choice
-        options: ["2013", "2020"]
       unit-tests:
         required: false
         default: false
@@ -37,28 +30,17 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  LAYOUT: "${{ contains(inputs.layout, '2020') && 'layout-2020' || 'layout-2013' }}"
-  PACKAGE: "${{ contains(inputs.layout, '2020') && 'windows-msvc-layout2020' || 'windows-msvc' }}"
   CCACHE: "ccache"
-  CARGO_INCREMENTAL: 0
+  CARGO_TARGET_DIR: C:\\a\\servo\\servo\\target
 
 jobs:
-  build-win:
+  build:
     name: Build
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
-      - name: Copy to C drive
-        run: cp D:\a C:\ -Recurse
-      - name: Install GStreamer
-        shell: powershell
-        run: |
-          Start-BitsTransfer -Source https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi
-          Start-Process msiexec.exe -Wait -ArgumentList "/i gstreamer-1.0-msvc-x86_64-1.16.0.msi /quiet /qn /norestart ADDLOCAL=ALL"
-          Start-BitsTransfer -Source https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi
-          Start-Process msiexec.exe -Wait -ArgumentList "/i gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi /quiet /qn /norestart ADDLOCAL=ALL"
       - name: wix311-binaries
         shell: powershell
         run: |
@@ -68,35 +50,40 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
       - name: Bootstrap
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: |
           python -m pip install --upgrade pip virtualenv
           python mach fetch
+          python mach bootstrap-gstreamer
       - name: Release build
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach build --release --with-${{ env.LAYOUT }}
+        run: python mach build --release
+      - name: Copy resources
+        run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach smoketest --angle
       - name: Unit tests
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        if: ${{ inputs.unit-tests }}
-        run: python mach test-unit --release --with-${{ env.LAYOUT }}
-      - name: Package
-        working-directory: "C:\\a\\servo\\servo"
-        run: python mach package --release
-      - name: Upload Package
+        if: ${{ inputs.unit-tests || github.ref_name == 'try-windows' }}
+        run: python mach test-unit --release
+      - name: Rename build timing
+        run: cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
+      - name: Archive build timing
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.PACKAGE }}
+          name: cargo-timings
+          # Using a wildcard here ensures that the archive includes the path.
+          path: C:\\a\\servo\\servo\\target\\cargo-timings-*
+      - name: Package
+        run: python mach package --release
+      - name: Upload package
+        uses: actions/upload-artifact@v3
+        with:
+          name: win
           # These files are available
           # MSI Installer: C:\a\servo\servo\target\release\msi\Installer.msi
           # Bundle: C:\a\servo\servo\target\release\msi\Servo.exe
           # Zip: C:\a\servo\servo\target\release\msi\Servo.zip
           path: C:\\a\\servo\\servo\\target/release/msi/Servo.exe
-      - name: Upload
+      - name: Upload nightly
         if: ${{ inputs.upload }}
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: |
           python mach upload-nightly windows-msvc --secret-from-environment `
             --github-release-id ${{ inputs.github-release-id }}
@@ -105,13 +92,13 @@ jobs:
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
 
-  build_result:
-    name: homu build finished
+  result:
+    name: Result
     runs-on: ubuntu-latest
     if: always()
     # needs all build to detect cancellation
     needs:
-      - "build-win"
+      - "build"
 
     steps:
       - name: Mark the job as successful
@@ -120,3 +107,4 @@ jobs:
       - name: Mark the job as unsuccessful
         run: exit 1
         if: contains(join(needs.*.result, ','), 'failure') || contains(join(needs.*.result, ','), 'cancelled')
+

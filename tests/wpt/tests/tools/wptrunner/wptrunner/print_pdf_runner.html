@@ -1,0 +1,33 @@
+<!doctype html>
+<title></title>
+<script src="/_pdf_js/pdf.js"></script>
+<canvas></canvas>
+<script>
+function render(pdfData) {
+  return _render(pdfData);
+}
+
+async function _render(pdfData) {
+  let loadingTask = pdfjsLib.getDocument({data: atob(pdfData)});
+  let pdf = await loadingTask.promise;
+  let rendered = [];
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+    let page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 96. / 72. });
+    // Prepare canvas using PDF page dimensions
+    const canvas = document.getElementsByTagName('canvas')[0];
+    const context = canvas.getContext('2d');
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    // Render PDF page into canvas context
+    const renderContext = {
+      canvasContext: context,
+      viewport
+    };
+    await page.render(renderContext).promise;
+    rendered.push(canvas.toDataURL());
+  }
+  return rendered;
+}
+</script>

@@ -1,0 +1,82 @@
+version: 1
+reporting: checks-v1
+policy:
+  pullRequests: public
+tasks:
+  $let:
+    run_task:
+      $if: 'tasks_for == "github-push"'
+      then:
+        $if: 'event.ref in ["refs/heads/master", "refs/heads/epochs/daily", "refs/heads/epochs/weekly", "refs/heads/triggers/chrome_stable", "refs/heads/triggers/chrome_beta", "refs/heads/triggers/chrome_dev", "refs/heads/triggers/chrome_nightly", "refs/heads/triggers/firefox_stable", "refs/heads/triggers/firefox_beta", "refs/heads/triggers/firefox_nightly", "refs/heads/triggers/webkitgtk_minibrowser_stable", "refs/heads/triggers/webkitgtk_minibrowser_beta", "refs/heads/triggers/webkitgtk_minibrowser_nightly", "refs/heads/triggers/servo_nightly"]'
+        then: true
+        else: false
+      else:
+        $if: 'tasks_for == "github-pull-request"'
+        then:
+          $if: 'event.action in ["opened", "reopened", "synchronize"]'
+          then: true
+          else: false
+        else: false
+  in:
+    - $if: run_task
+      then:
+        $let:
+          event_str: {$json: {$eval: event}}
+          scopes:
+            $if: 'tasks_for == "github-push"'
+            then:
+              $let:
+                branch:
+                  $if: "event.ref[:11] == 'refs/heads/'"
+                  then: "${event.ref[11:]}"
+                  else: "${event.ref}"
+              in: "assume:repo:github.com/${event.repository.full_name}:branch:${branch}"
+            else: "assume:repo:github.com/${event.repository.full_name}:pull-request"
+          rev:
+            $if: 'tasks_for == "github-pull-request"'
+            then: "refs/pull/${event.number}/merge"
+            else: "${event.after}"
+          owner:
+            $if: 'tasks_for == "github-push"'
+            then:
+              $if: 'event.pusher.email'
+              then:
+                $if: '"@" in event.pusher.email'
+                then: ${event.pusher.email}
+                else: web-platform-tests@users.noreply.github.com
+              else: web-platform-tests@users.noreply.github.com
+            else: web-platform-tests@users.noreply.github.com
+        in:
+          created: {$fromNow: ''}
+          deadline: {$fromNow: '24 hours'}
+          provisionerId: proj-wpt
+          workerType: ci
+          metadata:
+            name: "wpt-decision-task"
+            description: "The task that creates all of the other tasks in the task graph"
+            owner: ${owner}
+            source: ${event.repository.clone_url}
+          payload:
+            image: webplatformtests/wpt:0.54
+            maxRunTime: 7200
+            artifacts:
+              public/results:
+                path: /home/test/artifacts
+                type: directory
+            command:
+              - /bin/bash
+              - --login
+              - -c
+              - set -ex;
+                ~/start.sh
+                  ${event.repository.clone_url}
+                  ${rev};
+                cd ~/web-platform-tests;
+                ./wpt tc-decision --tasks-path=/home/test/artifacts/tasks.json
+            features :
+              taskclusterProxy: true
+          scopes:
+            - ${scopes}
+          extra:
+            github_event: "${event_str}"
+

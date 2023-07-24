@@ -1,0 +1,17 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/browsing-topics/resources/header-util.sub.js></script>
+  <script>
+    promise_test(async t => {
+      let response = await fetch('./resources/check-topics-request-header.py', {browsingTopics: true});
+      let topics_header = await response.text();
+
+      // An empty result indicates that the request was eligible for topics.
+      // Currently, the web-platform-tests framework does not support actually
+      // handling the topics request.
+      assert_equals(topics_header, EMPTY_TOPICS_HEADER);
+    }, 'test fetch(<url>, {browsingTopics: true})');
+  </script>
+</body>

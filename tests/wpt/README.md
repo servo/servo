@@ -9,8 +9,8 @@ In particular, this folder contains:
 
 * `config.ini`: some configuration for the web-platform-tests.
 * `include.ini`: the subset of web-platform-tests we currently run.
-* `web-platform-tests`: copy of the web-platform-tests.
-* `metadata`: expected failures for the web-platform-tests we run.
+* `tests`: copy of the web-platform-tests.
+* `meta`: expected failures for the web-platform-tests we run.
 * `mozilla`: web-platform-tests that cannot be upstreamed.
 
 Running the tests
@@ -24,7 +24,7 @@ stdout.
 A subset of tests may be run by providing positional arguments to the
 mach command, either as filesystem paths or as test urls e.g.
 
-    ./mach test-wpt tests/wpt/web-platform-tests/dom/historical.html
+    ./mach test-wpt tests/wpt/tests/dom/historical.html
 
 to run the dom/historical.html test, or
 
@@ -59,8 +59,8 @@ can only run one WPT server at a time. To fix this:
 1. Follow the steps in [**Running the tests manually**](#running-the-tests-manually)
 2. Add a `break` to [start_servers in serve.py](https://github.com/servo/servo/blob/ce92b7bfbd5855aac18cb4f8a8ec59048041712e/tests/wpt/web-platform-tests/tools/serve/serve.py#L745-L783) as follows:
     ```
-    --- a/tests/wpt/web-platform-tests/tools/serve/serve.py
-    +++ b/tests/wpt/web-platform-tests/tools/serve/serve.py
+    --- a/tests/wpt/tests/tools/serve/serve.py
+    +++ b/tests/wpt/tests/tools/serve/serve.py
     @@ -746,6 +746,7 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
                        mp_context, log_handlers, **kwargs):
          servers = defaultdict(list)
@@ -156,7 +156,7 @@ Updating test expectations
 
 When fixing a bug that causes the result of a test to change, the expected
 results for that test need to be changed. This can be done manually, by editing
-the `.ini` file under the `metadata` folder that corresponds to the test. In
+the `.ini` file under the `meta` folder that corresponds to the test. In
 this case, remove the references to tests whose expectation is now `PASS`, and
 remove `.ini` files that no longer contain any expectations.
 

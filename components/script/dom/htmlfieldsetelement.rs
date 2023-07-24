@@ -19,6 +19,7 @@ use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use std::default::Default;
 use style::element_state::ElementState;
 
@@ -37,7 +38,7 @@ impl HTMLFieldSetElement {
     ) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::IN_ENABLED_STATE,
+                ElementState::IN_ENABLED_STATE | ElementState::IN_VALID_STATE,
                 local_name,
                 prefix,
                 document,
@@ -52,13 +53,35 @@ impl HTMLFieldSetElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLFieldSetElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLFieldSetElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
+    }
+
+    pub fn update_validity(&self) {
+        let has_invalid_child = self
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::No)
+            .flat_map(DomRoot::downcast::<Element>)
+            .any(|element| {
+                if let Some(validatable) = element.as_maybe_validatable() {
+                    validatable.is_instance_validatable() &&
+                        !validatable.validity_state().invalid_flags().is_empty()
+                } else {
+                    false
+                }
+            });
+
+        self.upcast::<Element>()
+            .set_state(ElementState::IN_VALID_STATE, !has_invalid_child);
+        self.upcast::<Element>()
+            .set_state(ElementState::IN_INVALID_STATE, has_invalid_child);
     }
 }
 

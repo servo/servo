@@ -1,0 +1,14 @@
+[package]
+name = "direct-composition"
+version = "0.1.0"
+authors = ["Simon Sapin <simon.sapin@exyr.org>"]
+license = "MPL-2.0"
+edition = "2018"
+
+[target.'cfg(windows)'.dependencies]
+euclid = "0.22"
+gleam = "0.12"
+mozangle = {version = "0.3.1", features = ["egl"]}
+webrender = {path = "../webrender"}
+winapi = {version = "0.3", features = ["winerror", "d3d11", "dcomp"]}
+winit = "0.19"

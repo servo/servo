@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>CSS Test: Variable fonts with slant axis</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#descdef-font-face-font-variation-settings" />
+<link rel="help" href="http://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle-90deg-90deg" />
+<link rel="match" href="slnt-backslant-variable-ref.html">
+<meta name="assert"
+  content="For variable fonts, setting font-style to oblique or italic should apply forward and backward slant to variable axis.">
+<!-- Fonts used in this test are authored by Stephen Nixon, more information in the link:
+https://arrowtype.github.io/vf-slnt-test/index.html -->
+<style>
+  @font-face {
+    font-family: "slnt test font";
+    src: url('resources/FontStyleTest-slnt_backslant-VF.woff2');
+    font-style: oblique -15deg 15deg;
+  }
+
+  .test {
+    font-family: "slnt test font";
+    font-size: 3em;
+  }
+
+  .backslant {
+    font-style: oblique -14deg;
+  }
+
+  .oblique {
+    font-style: oblique;
+  }
+
+  .italic {
+    font-style: italic;
+  }
+
+</style>
+
+<p class="test backslant">varfont</p>
+<p class="test oblique">varfont</p>
+<p class="test italic">varfont</p>
+<p class="test">varfont</p>

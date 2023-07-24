@@ -14,6 +14,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::Gamepad;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
@@ -158,7 +159,7 @@ impl XRSystemMethods for XRSystem {
     ) -> Rc<Promise> {
         let global = self.global();
         let window = global.as_window();
-        let promise = Promise::new_in_current_realm(&global, comp);
+        let promise = Promise::new_in_current_realm(comp);
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {
@@ -180,7 +181,7 @@ impl XRSystemMethods for XRSystem {
 
         let mut required_features = vec![];
         let mut optional_features = vec![];
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
 
         // We are supposed to include "viewer" and on immersive devices "local"
         // by default here, but this is handled directly in requestReferenceSpace()

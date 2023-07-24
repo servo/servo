@@ -95,6 +95,7 @@ use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{LocalName, Namespace, Prefix, QualName};
 use js::jsapi::Heap;
 use js::jsval::JSVal;
+use js::rust::HandleObject;
 use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
 use net_traits::ReferrerPolicy;
@@ -129,6 +130,7 @@ use style::selector_parser::{
     NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser,
 };
 use style::shared_lock::{Locked, SharedRwLock};
+use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::CssRuleType;
 use style::thread_state;
 use style::values::generics::NonNegative;
@@ -241,8 +243,9 @@ impl Element {
         document: &Document,
         creator: ElementCreator,
         mode: CustomElementCreationMode,
+        proto: Option<HandleObject>,
     ) -> DomRoot<Element> {
-        create_element(name, is, document, creator, mode)
+        create_element(name, is, document, creator, mode, proto)
     }
 
     pub fn new_inherited(
@@ -290,12 +293,14 @@ impl Element {
         namespace: Namespace,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<Element> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(Element::new_inherited(
                 local_name, namespace, prefix, document,
             )),
             document,
+            proto,
         )
     }
 
@@ -661,6 +666,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                     Importance::Normal,
                 ))),
                 CascadeLevel::PresHints,
+                LayerOrder::root(),
             )
         }
 
@@ -733,9 +739,9 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(
-                    computed::font::FontFamilyList::new(Box::new([
-                        computed::font::SingleFontFamily::from_atom(font_family),
-                    ])),
+                    computed::font::FontFamilyList {
+                        list: Box::new([computed::font::SingleFontFamily::from_atom(font_family)]),
+                    },
                 )),
             ));
         }
@@ -1817,7 +1823,12 @@ impl Element {
             {
                 DomRoot::from_ref(elem)
             },
-            _ => DomRoot::upcast(HTMLBodyElement::new(local_name!("body"), None, owner_doc)),
+            _ => DomRoot::upcast(HTMLBodyElement::new(
+                local_name!("body"),
+                None,
+                owner_doc,
+                None,
+            )),
         }
     }
 
@@ -2588,6 +2599,7 @@ impl ElementMethods for Element {
                     &context_document,
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Synchronous,
+                    None,
                 );
                 DomRoot::upcast(body_elem)
             },
@@ -2690,12 +2702,14 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        let selectors = match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+        let doc = document_from_node(self);
+        let url = doc.url();
+        let selectors = match SelectorParser::parse_author_origin_no_namespace(&selectors, &url) {
             Err(_) => return Err(Error::Syntax),
             Ok(selectors) => selectors,
         };
 
-        let quirks_mode = document_from_node(self).quirks_mode();
+        let quirks_mode = doc.quirks_mode();
         let element = DomRoot::from_ref(self);
 
         Ok(dom_apis::element_matches(&element, &selectors, quirks_mode))
@@ -2708,12 +2722,14 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        let selectors = match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+        let doc = document_from_node(self);
+        let url = doc.url();
+        let selectors = match SelectorParser::parse_author_origin_no_namespace(&selectors, &url) {
             Err(_) => return Err(Error::Syntax),
             Ok(selectors) => selectors,
         };
 
-        let quirks_mode = document_from_node(self).quirks_mode();
+        let quirks_mode = doc.quirks_mode();
         Ok(dom_apis::element_closest(
             DomRoot::from_ref(self),
             &selectors,
@@ -3232,6 +3248,8 @@ impl<'a> SelectorsElement for DomRoot<Element> {
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
+            NonTSPseudoClass::Valid |
+            NonTSPseudoClass::Invalid |
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::ReadWrite |
             NonTSPseudoClass::PlaceholderShown |
@@ -3525,11 +3543,11 @@ impl Element {
     }
 
     pub fn read_write_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_READ_WRITE_STATE)
+        self.state.get().contains(ElementState::IN_READWRITE_STATE)
     }
 
     pub fn set_read_write_state(&self, value: bool) {
-        self.set_state(ElementState::IN_READ_WRITE_STATE, value)
+        self.set_state(ElementState::IN_READWRITE_STATE, value)
     }
 
     pub fn placeholder_shown_state(&self) -> bool {

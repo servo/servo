@@ -1,4 +1,4 @@
-diff --git a/tests/wpt/web-platform-tests/test.html b/tests/wpt/test.html
+diff --git a/tests/wpt/tests/test.html b/tests/wpt/test.html
 similarity index 100%
-rename from tests/wpt/web-platform-tests/test.html
+rename from tests/wpt/tests/test.html
 rename to tests/wpt/test.html

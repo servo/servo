@@ -1,0 +1,62 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: MediaStream Recording (https://w3c.github.io/mediacapture-record/)
+
+[Exposed=Window]
+interface MediaRecorder : EventTarget {
+  constructor(MediaStream stream, optional MediaRecorderOptions options = {});
+  readonly attribute MediaStream stream;
+  readonly attribute DOMString mimeType;
+  readonly attribute RecordingState state;
+  attribute EventHandler onstart;
+  attribute EventHandler onstop;
+  attribute EventHandler ondataavailable;
+  attribute EventHandler onpause;
+  attribute EventHandler onresume;
+  attribute EventHandler onerror;
+  readonly attribute unsigned long videoBitsPerSecond;
+  readonly attribute unsigned long audioBitsPerSecond;
+  readonly attribute BitrateMode audioBitrateMode;
+
+  undefined start(optional unsigned long timeslice);
+  undefined stop();
+  undefined pause();
+  undefined resume();
+  undefined requestData();
+
+  static boolean isTypeSupported(DOMString type);
+};
+
+dictionary MediaRecorderOptions {
+  DOMString mimeType = "";
+  unsigned long audioBitsPerSecond;
+  unsigned long videoBitsPerSecond;
+  unsigned long bitsPerSecond;
+  BitrateMode audioBitrateMode = "variable";
+  DOMHighResTimeStamp videoKeyFrameIntervalDuration;
+  unsigned long videoKeyFrameIntervalCount;
+};
+
+enum BitrateMode {
+  "constant",
+  "variable"
+};
+
+enum RecordingState {
+  "inactive",
+  "recording",
+  "paused"
+};
+
+[Exposed=Window]
+interface BlobEvent : Event {
+  constructor(DOMString type, BlobEventInit eventInitDict);
+  [SameObject] readonly attribute Blob data;
+  readonly attribute DOMHighResTimeStamp timecode;
+};
+
+dictionary BlobEventInit {
+  required Blob data;
+  DOMHighResTimeStamp timecode;
+};

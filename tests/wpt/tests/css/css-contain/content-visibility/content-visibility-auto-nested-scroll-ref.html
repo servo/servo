@@ -1,0 +1,33 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: content in nested `content-visibility: auto` element can be scrolled to</title>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#outer {
+  width: 400px;
+  height: 400px;
+  contain: layout paint size;
+}
+
+#inner {
+  position: relative;
+  top: 100px;
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<div style="height:100vh"></div>
+<div id="outer" style="border:solid">
+    <div id="inner" >content with content-visibility: auto</div>
+</div>
+
+<script>
+function runTest() {
+  inner.scrollIntoView();
+  requestAnimationFrame(takeScreenshot);
+}
+window.onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

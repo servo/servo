@@ -46,7 +46,7 @@ pub struct DissimilarOriginWindow {
 impl DissimilarOriginWindow {
     #[allow(unsafe_code)]
     pub fn new(global_to_clone_from: &GlobalScope, window_proxy: &WindowProxy) -> DomRoot<Self> {
-        let cx = global_to_clone_from.get_cx();
+        let cx = GlobalScope::get_cx();
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
                 PipelineId::new(),

@@ -1,7 +1,0 @@
-*.tar.gz
-*.tgz
-_build
-_install
-gst-build
-libiconv-1.16
-mlsdk.txt

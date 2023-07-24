@@ -9,10 +9,11 @@ use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::ConstantSourceNodeMethods;
 use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::ConstantSourceOptions;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use servo_media::audio::constant_source_node::ConstantSourceNodeOptions as ServoMediaConstantSourceOptions;
 use servo_media::audio::node::AudioNodeInit;
 use servo_media::audio::param::ParamType;
@@ -57,23 +58,33 @@ impl ConstantSourceNode {
         })
     }
 
-    #[allow(unrooted_must_root)]
     pub fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &ConstantSourceOptions,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
+        Self::new_with_proto(window, None, context, options)
+    }
+
+    #[allow(unrooted_must_root)]
+    fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        context: &BaseAudioContext,
+        options: &ConstantSourceOptions,
+    ) -> Fallible<DomRoot<ConstantSourceNode>> {
         let node = ConstantSourceNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object(Box::new(node), window))
+        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &ConstantSourceOptions,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
-        ConstantSourceNode::new(window, context, options)
+        ConstantSourceNode::new_with_proto(window, proto, context, options)
     }
 }
 

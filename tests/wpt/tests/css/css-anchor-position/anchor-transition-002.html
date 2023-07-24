@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>Tests CSS transition of anchor() across tree scopes</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8180"></script>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+#anchor1 {
+  width: 100px;
+  height: 100px;
+  background: orange;
+  anchor-name: --a;
+}
+
+#anchor2 {
+  width: 100px;
+  height: 100px;
+  margin-top: 200px;
+  margin-left: 300px;
+  background: orange;
+}
+
+#anchor2.after::part(target) {
+  top: anchor(--a top);
+  left: anchor(--a right);
+}
+</style>
+
+<div id="anchor1"></div>
+<div id="anchor2"></div>
+
+<script>
+setup(() => {
+  let shadow = anchor2.attachShadow({mode: 'open'});
+  shadow.innerHTML = `
+    <style>
+      :host { anchor-name: --a; }
+      #target {
+        position: fixed;
+        width: 100px;
+        height: 100px;
+        background: lime;
+        top: anchor(--a top);
+        left: anchor(--a right);
+        transition: all 10s -5s linear;
+      }
+    </style>
+    <div id="target" part="target"></div>
+  `;
+});
+
+test(() => {
+  let target = anchor2.shadowRoot.getElementById('target');
+
+  // Forces layout
+  target.offsetLeft;
+
+  // Triggers a transition from using #anchor2 to using #anchor1,
+  // starting immediately at 50% progress.
+  anchor2.classList.add('after');
+  assert_equals(target.offsetLeft, 250);
+  assert_equals(target.offsetTop, 150);
+}, 'Transition with anchor names defined in different tree scopes');
+</script>

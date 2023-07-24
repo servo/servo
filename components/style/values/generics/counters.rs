@@ -4,14 +4,15 @@
 
 //! Generic types for counters-related CSS values.
 
-#[cfg(feature = "servo-layout-2013")]
+#[cfg(feature = "servo")]
 use crate::computed_values::list_style_type::T as ListStyleType;
 #[cfg(feature = "gecko")]
 use crate::values::generics::CounterStyle;
-#[cfg(any(feature = "gecko", feature = "servo-layout-2020"))]
 use crate::values::specified::Attr;
 use crate::values::CustomIdent;
+use std::fmt::{self, Write};
 use std::ops::Deref;
+use style_traits::{CssWriter, ToCss};
 
 /// A name / value pair for counters.
 #[derive(
@@ -21,7 +22,6 @@ use std::ops::Deref;
     PartialEq,
     SpecifiedValueInfo,
     ToComputedValue,
-    ToCss,
     ToResolvedValue,
     ToShmem,
 )]
@@ -31,8 +31,34 @@ pub struct GenericCounterPair<Integer> {
     pub name: CustomIdent,
     /// The value of the counter / increment / etc.
     pub value: Integer,
+    /// If true, then this represents `reversed(name)`.
+    /// NOTE: It can only be true on `counter-reset` values.
+    pub is_reversed: bool,
 }
 pub use self::GenericCounterPair as CounterPair;
+
+impl<Integer> ToCss for CounterPair<Integer>
+where
+    Integer: ToCss + PartialEq<i32>,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.is_reversed {
+            dest.write_str("reversed(")?;
+        }
+        self.name.to_css(dest)?;
+        if self.is_reversed {
+            dest.write_str(")")?;
+            if self.value == i32::min_value() {
+                return Ok(());
+            }
+        }
+        dest.write_str(" ")?;
+        self.value.to_css(dest)
+    }
+}
 
 /// A generic value for the `counter-increment` property.
 #[derive(
@@ -48,7 +74,7 @@ pub use self::GenericCounterPair as CounterPair;
     ToShmem,
 )]
 #[repr(transparent)]
-pub struct GenericCounterIncrement<I>(pub GenericCounters<I>);
+pub struct GenericCounterIncrement<I>(#[css(field_bound)] pub GenericCounters<I>);
 pub use self::GenericCounterIncrement as CounterIncrement;
 
 impl<I> CounterIncrement<I> {
@@ -68,7 +94,7 @@ impl<I> Deref for CounterIncrement<I> {
     }
 }
 
-/// A generic value for the `counter-set` and `counter-reset` properties.
+/// A generic value for the `counter-set` property.
 #[derive(
     Clone,
     Debug,
@@ -82,18 +108,52 @@ impl<I> Deref for CounterIncrement<I> {
     ToShmem,
 )]
 #[repr(transparent)]
-pub struct GenericCounterSetOrReset<I>(pub GenericCounters<I>);
-pub use self::GenericCounterSetOrReset as CounterSetOrReset;
+pub struct GenericCounterSet<I>(#[css(field_bound)] pub GenericCounters<I>);
+pub use self::GenericCounterSet as CounterSet;
 
-impl<I> CounterSetOrReset<I> {
-    /// Returns a new value for `counter-set` / `counter-reset`.
+impl<I> CounterSet<I> {
+    /// Returns a new value for `counter-set`.
     #[inline]
     pub fn new(counters: Vec<CounterPair<I>>) -> Self {
-        CounterSetOrReset(Counters(counters.into()))
+        CounterSet(Counters(counters.into()))
     }
 }
 
-impl<I> Deref for CounterSetOrReset<I> {
+impl<I> Deref for CounterSet<I> {
+    type Target = [CounterPair<I>];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &(self.0).0
+    }
+}
+
+/// A generic value for the `counter-reset` property.
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(transparent)]
+pub struct GenericCounterReset<I>(#[css(field_bound)] pub GenericCounters<I>);
+pub use self::GenericCounterReset as CounterReset;
+
+impl<I> CounterReset<I> {
+    /// Returns a new value for `counter-reset`.
+    #[inline]
+    pub fn new(counters: Vec<CounterPair<I>>) -> Self {
+        CounterReset(Counters(counters.into()))
+    }
+}
+
+impl<I> Deref for CounterReset<I> {
     type Target = [CounterPair<I>];
 
     #[inline]
@@ -119,17 +179,19 @@ impl<I> Deref for CounterSetOrReset<I> {
 )]
 #[repr(transparent)]
 pub struct GenericCounters<I>(
-    #[css(iterable, if_empty = "none")] crate::OwnedSlice<GenericCounterPair<I>>,
+    #[css(field_bound)]
+    #[css(iterable, if_empty = "none")]
+    crate::OwnedSlice<GenericCounterPair<I>>,
 );
 pub use self::GenericCounters as Counters;
 
-#[cfg(feature = "servo-layout-2013")]
+#[cfg(feature = "servo")]
 type CounterStyleType = ListStyleType;
 
 #[cfg(feature = "gecko")]
 type CounterStyleType = CounterStyle;
 
-#[cfg(feature = "servo-layout-2013")]
+#[cfg(feature = "servo")]
 #[inline]
 fn is_decimal(counter_type: &CounterStyleType) -> bool {
     *counter_type == ListStyleType::Decimal
@@ -148,18 +210,18 @@ fn is_decimal(counter_type: &CounterStyleType) -> bool {
     Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
 )]
 #[repr(u8)]
-pub enum GenericContent<ImageUrl> {
+pub enum GenericContent<Image> {
     /// `normal` reserved keyword.
     Normal,
     /// `none` reserved keyword.
     None,
     /// Content items.
-    Items(#[css(iterable)] crate::OwnedSlice<GenericContentItem<ImageUrl>>),
+    Items(#[css(iterable)] crate::OwnedSlice<GenericContentItem<Image>>),
 }
 
 pub use self::GenericContent as Content;
 
-impl<ImageUrl> Content<ImageUrl> {
+impl<Image> Content<Image> {
     /// Whether `self` represents list of items.
     #[inline]
     pub fn is_items(&self) -> bool {
@@ -175,27 +237,16 @@ impl<ImageUrl> Content<ImageUrl> {
 
 /// Items for the `content` property.
 #[derive(
-    Clone,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
 )]
 #[repr(u8)]
-pub enum GenericContentItem<ImageUrl> {
+pub enum GenericContentItem<I> {
     /// Literal string content.
     String(crate::OwnedStr),
     /// `counter(name, style)`.
-    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     #[css(comma, function)]
     Counter(CustomIdent, #[css(skip_if = "is_decimal")] CounterStyleType),
     /// `counters(name, separator, style)`.
-    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     #[css(comma, function)]
     Counters(
         CustomIdent,
@@ -203,25 +254,20 @@ pub enum GenericContentItem<ImageUrl> {
         #[css(skip_if = "is_decimal")] CounterStyleType,
     ),
     /// `open-quote`.
-    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     OpenQuote,
     /// `close-quote`.
-    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     CloseQuote,
     /// `no-open-quote`.
-    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     NoOpenQuote,
     /// `no-close-quote`.
-    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     NoCloseQuote,
     /// `-moz-alt-content`.
     #[cfg(feature = "gecko")]
     MozAltContent,
     /// `attr([namespace? `|`]? ident)`
-    #[cfg(any(feature = "gecko", feature = "servo-layout-2020"))]
     Attr(Attr),
-    /// `url(url)`
-    Url(ImageUrl),
+    /// image-set(url) | url(url)
+    Image(I),
 }
 
 pub use self::GenericContentItem as ContentItem;

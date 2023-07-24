@@ -6,14 +6,18 @@ import os
 import sys
 import json
 
+SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
+SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", "..", "..", "..", ".."))
+
 
 def main():
     os.chdir(os.path.join(os.path.dirname(__file__)))
-    sys.path[0:0] = ["./parser", "./ply"]
+    sys.path.insert(0, os.path.join(SERVO_ROOT, "third_party", "WebIDL"))
+    sys.path.insert(0, os.path.join(SERVO_ROOT, "third_party", "ply"))
 
     css_properties_json, out_dir = sys.argv[1:]
-    doc_servo = "../../../../../target/doc/servo"
-    webidls_dir = "../../webidls"
+    doc_servo = os.path.join(SERVO_ROOT, "target", "doc", "servo")
+    webidls_dir = os.path.join(SCRIPT_PATH, "..", "..", "webidls")
     config_file = "Bindings.conf"
 
     import WebIDL

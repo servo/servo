@@ -25,11 +25,17 @@ pub mod transferable;
 pub mod webdriver_msg;
 
 use crate::compositor::CompositorDisplayListInfo;
+pub use crate::script_msg::{
+    DOMMessage, EventResult, HistoryEntryReplacement, IFrameSizeMsg, Job, JobError, JobResult,
+    JobResultValue, JobType, LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings,
+    ScriptMsg, ServiceWorkerMsg,
+};
 use crate::serializable::{BlobData, BlobImpl};
 use crate::transferable::MessagePortImpl;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use compositor::ScrollTreeNodeId;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{Cursor, EventLoopWaker};
@@ -73,16 +79,10 @@ use webrender_api::units::{
     DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, LayoutSize, WorldPoint,
 };
 use webrender_api::{
-    BuiltDisplayList, DocumentId, ExternalImageData, ExternalScrollId, ImageData, ImageDescriptor,
-    ImageKey, ScrollClamping,
+    BuiltDisplayList, BuiltDisplayListDescriptor, DocumentId, ExternalImageData, ExternalScrollId,
+    HitTestFlags, ImageData, ImageDescriptor, ImageKey, PipelineId as WebRenderPipelineId,
+    ScrollClamping,
 };
-use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags};
-
-pub use crate::script_msg::{
-    DOMMessage, HistoryEntryReplacement, Job, JobError, JobResult, JobResultValue, JobType,
-    SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg,
-};
-pub use crate::script_msg::{EventResult, IFrameSizeMsg, LayoutMsg, LogEntry, ScriptMsg};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -1118,29 +1118,33 @@ pub struct CompositorHitTestResult {
 
     /// The cursor that should be used when hovering the item hit by the hit test.
     pub cursor: Option<Cursor>,
+
+    /// The scroll tree node associated with this hit test item.
+    pub scroll_tree_node: ScrollTreeNodeId,
 }
 
 /// The set of WebRender operations that can be initiated by the content process.
 #[derive(Deserialize, Serialize)]
 pub enum WebrenderMsg {
     /// Inform WebRender of the existence of this pipeline.
-    SendInitialTransaction(webrender_api::PipelineId),
+    SendInitialTransaction(WebRenderPipelineId),
     /// Perform a scroll operation.
     SendScrollNode(LayoutPoint, ExternalScrollId, ScrollClamping),
     /// Inform WebRender of a new display list for the given pipeline.
-    SendDisplayList(
-        webrender_api::Epoch,
-        LayoutSize,
-        webrender_api::PipelineId,
-        LayoutSize,
-        ipc::IpcBytesReceiver,
-        BuiltDisplayListDescriptor,
-        CompositorDisplayListInfo,
-    ),
+    SendDisplayList {
+        /// The [CompositorDisplayListInfo] that describes the display list being sent.
+        display_list_info: CompositorDisplayListInfo,
+        /// The content size of this display list as calculated by WebRender.
+        content_size: LayoutSize,
+        /// A descriptor of this display list used to construct this display list from raw data.
+        display_list_descriptor: BuiltDisplayListDescriptor,
+        /// An [ipc::IpcBytesReceiver] used to send the raw data of the display list.
+        display_list_receiver: ipc::IpcBytesReceiver,
+    },
     /// Perform a hit test operation. The result will be returned via
     /// the provided channel sender.
     HitTest(
-        Option<webrender_api::PipelineId>,
+        Option<WebRenderPipelineId>,
         WorldPoint,
         HitTestFlags,
         IpcSender<Vec<CompositorHitTestResult>>,
@@ -1163,7 +1167,7 @@ impl WebrenderIpcSender {
     }
 
     /// Inform WebRender of the existence of this pipeline.
-    pub fn send_initial_transaction(&self, pipeline: webrender_api::PipelineId) {
+    pub fn send_initial_transaction(&self, pipeline: WebRenderPipelineId) {
         if let Err(e) = self.0.send(WebrenderMsg::SendInitialTransaction(pipeline)) {
             warn!("Error sending initial transaction: {}", e);
         }
@@ -1187,26 +1191,21 @@ impl WebrenderIpcSender {
     /// Inform WebRender of a new display list for the given pipeline.
     pub fn send_display_list(
         &self,
-        epoch: Epoch,
-        size: LayoutSize,
         display_list_info: CompositorDisplayListInfo,
-        (pipeline, size2, list): (webrender_api::PipelineId, LayoutSize, BuiltDisplayList),
+        (_, content_size, list): (WebRenderPipelineId, LayoutSize, BuiltDisplayList),
     ) {
-        let (data, descriptor) = list.into_data();
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        if let Err(e) = self.0.send(WebrenderMsg::SendDisplayList(
-            webrender_api::Epoch(epoch.0),
-            size,
-            pipeline,
-            size2,
-            receiver,
-            descriptor,
+        let (display_list_data, display_list_descriptor) = list.into_data();
+        let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
+        if let Err(e) = self.0.send(WebrenderMsg::SendDisplayList {
             display_list_info,
-        )) {
+            content_size,
+            display_list_descriptor,
+            display_list_receiver,
+        }) {
             warn!("Error sending display list: {}", e);
         }
 
-        if let Err(e) = sender.send(&data) {
+        if let Err(e) = display_list_sender.send(&display_list_data) {
             warn!("Error sending display data: {}", e);
         }
     }
@@ -1215,7 +1214,7 @@ impl WebrenderIpcSender {
     /// and a result is available.
     pub fn hit_test(
         &self,
-        pipeline: Option<webrender_api::PipelineId>,
+        pipeline: Option<WebRenderPipelineId>,
         point: WorldPoint,
         flags: HitTestFlags,
     ) -> Vec<CompositorHitTestResult> {

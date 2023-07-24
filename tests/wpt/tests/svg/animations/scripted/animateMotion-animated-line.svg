@@ -1,0 +1,23 @@
+<svg class="reftest-wait" onload="load()" xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <html:script src="/common/reftest-wait.js"/>
+  <html:script src="/common/rendering-utils.js"/>
+  <html:link rel="match" href="../../embedded/reference/green-rect-100x100.svg"/>
+  <line id="line" x2="500" display="none">
+    <set attributeName="x2" to="0" begin="3s" fill="freeze"/>
+  </line>
+  <rect width="100" height="100" fill="yellow">
+    <animateMotion begin="0s" dur="4s" fill="freeze">
+      <mpath href="#line"/>
+    </animateMotion>
+    <set attributeName="fill" to="green" begin="4s" fill="freeze"/>
+  </rect>
+  <script>
+    function load() {
+      waitForAtLeastOneFrame().then(() => {
+        document.documentElement.setCurrentTime(4);
+        waitForAtLeastOneFrame().then(takeScreenshot);
+      });
+    }
+  </script>
+</svg>

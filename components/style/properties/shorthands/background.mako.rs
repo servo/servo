@@ -6,7 +6,7 @@
 
 // TODO: other background-* properties
 <%helpers:shorthand name="background"
-                    engines="gecko servo-2013 servo-2020"
+                    engines="gecko servo"
                     sub_properties="background-color background-position-x background-position-y background-repeat
                                     background-attachment background-image background-size background-origin
                                     background-clip"
@@ -194,7 +194,7 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="background-position"
-                    engines="gecko servo-2013 servo-2020"
+                    engines="gecko servo"
                     flags="SHORTHAND_IN_GETCS"
                     sub_properties="background-position-x background-position-y"
                     spec="https://drafts.csswg.org/css-backgrounds-4/#the-background-position">

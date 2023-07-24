@@ -4,8 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
-use crate::fragment_tree::BaseFragmentInfo;
-use crate::fragments::{Fragment, IFrameFragment, ImageFragment};
+use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::flow_relative::{Rect, Vec2};
 use crate::geom::PhysicalSize;
 use crate::sizing::ContentSizes;
@@ -21,6 +20,7 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
+use style::values::computed::image::Image as ComputedImage;
 use style::values::computed::{Length, LengthOrAuto};
 use style::values::CSSFloat;
 use style::Zero;
@@ -184,12 +184,23 @@ impl ReplacedContent {
         None
     }
 
+    pub fn from_image<'dom>(
+        element: impl NodeExt<'dom>,
+        context: &LayoutContext,
+        image: &ComputedImage,
+    ) -> Option<Self> {
+        match image {
+            ComputedImage::Url(image_url) => Self::from_image_url(element, context, image_url),
+            _ => None, // TODO
+        }
+    }
+
     fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> Vec2<Option<Length>> {
         let intrinsic_size = PhysicalSize::new(self.intrinsic.width, self.intrinsic.height);
         Vec2::from_physical_size(&intrinsic_size, style.writing_mode)
     }
 
-    fn inline_size_over_block_size_intrinsic_ratio(
+    pub fn inline_size_over_block_size_intrinsic_ratio(
         &self,
         style: &ComputedValues,
     ) -> Option<CSSFloat> {
@@ -297,13 +308,14 @@ impl ReplacedContent {
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
+        box_size: Option<Vec2<LengthOrAuto>>,
         pbm: &PaddingBorderMargin,
     ) -> Vec2<Length> {
         let mode = style.writing_mode;
         let intrinsic_size = self.flow_relative_intrinsic_size(style);
         let intrinsic_ratio = self.inline_size_over_block_size_intrinsic_ratio(style);
 
-        let box_size = style.content_box_size(containing_block, &pbm);
+        let box_size = box_size.unwrap_or(style.content_box_size(containing_block, &pbm));
         let max_box_size = style.content_max_box_size(containing_block, &pbm);
         let min_box_size = style
             .content_min_box_size(containing_block, &pbm)

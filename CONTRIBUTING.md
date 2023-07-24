@@ -51,8 +51,7 @@ For specific git instructions, see [GitHub workflow 101](https://github.com/serv
 
 ## Conduct
 
-In all Servo-related forums, we follow the [Rust Code of Conduct](https://www.rust-lang.org/policies/code-of-conduct). For escalation or moderation issues, please contact a member of the Servo Technical Steering Committee instead of the Rust moderation team.
-
+Servo Code of Conduct is published at <https://servo.org/coc/>.
 
 ## Communication
 

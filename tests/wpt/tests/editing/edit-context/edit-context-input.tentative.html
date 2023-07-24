@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EditContext: The HTMLElement.editContext property</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async function() {
+      const editContext = new EditContext();
+      const test = document.createElement("div");
+      document.body.appendChild(test);
+      editContext.addEventListener("textupdate", e => {
+        test.innerHTML = e.text;
+      });
+      test.editContext = editContext;
+      test.focus();
+      await test_driver.send_keys(test, 'a');
+      assert_equals(test.innerHTML, "a");
+      test.remove();
+    }, 'Testing EditContext English typing');
+
+    promise_test(async function() {
+      const editContext = new EditContext();
+      assert_not_equals(editContext, null);
+      const test = document.createElement("div");
+      document.body.appendChild(test);
+      test.editContext = editContext;
+      test.focus();
+      textInputController.setComposition("foo");
+      assert_equals(test.innerHTML, "");
+      await test_driver.send_keys(test, 'a');
+      assert_equals(test.innerHTML, "");
+      test.remove();
+    }, 'EditContext should disable DOM mutation');
+
+    promise_test(async function() {
+      const editContext = new EditContext();
+      assert_not_equals(editContext, null);
+      const test = document.createElement("div");
+      document.body.appendChild(test);
+      test.focus();
+      test.editContext = editContext;
+      test.addEventListener("beforeinput", e => {
+        if (e.inputType === "insertText") {
+          e.preventDefault();
+        }
+      });
+      await test_driver.send_keys(test, 'a');
+      assert_equals(editContext.text, "");
+      test.remove();
+    }, 'beforeInput(insertText) should be cancelable');
+
+  promise_test(async () => {
+    let div = document.createElement("div");
+    document.body.appendChild(div);
+    let divText = "Hello World";
+    div.innerText = divText;
+    div.editContext = new EditContext();
+    div.focus();
+
+    let got_textupdate_event = false;
+    div.editContext.addEventListener("textupdate", e => {
+      got_textupdate_event = true;
+    });
+
+    div.editContext = null;
+    await test_driver.send_keys(div, "a");
+
+    assert_false(got_textupdate_event, "Shouldn't have received textupdate event after editContext was detached");
+
+    div.remove();
+  }, "EditContext should not receive events after being detached from element");
+  </script>
+</body>
+</html>

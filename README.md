@@ -10,255 +10,47 @@ for help getting started.
 
 Visit the [Servo Project page](https://servo.org/) for news and guides.
 
-## Setting up your environment
+## Build Setup
 
-### Rustup.rs
-
-Building servo requires [rustup](https://rustup.rs/), version 1.8.0 or more recent.
-If you have an older version, run `rustup self update`.
-
-To install on Windows, download and run [`rustup-init.exe`](https://win.rustup.rs/)
-then follow the onscreen instructions.
-
-To install on other systems, run:
-
-```sh
-curl https://sh.rustup.rs -sSf | sh
-```
-
-This will also download the current stable version of Rust, which Servo won’t use.
-To skip that step, run instead:
-
-```
-curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none
-```
-
-See also [Other installation methods](
-https://rust-lang.github.io/rustup/installation/other.html)
-
-### Other dependencies
-
-Please select your operating system:
 * [macOS](#macos)
-* [Debian-based distros](#on-debian-based-distros)
-* [Fedora](#on-fedora)
-* [Arch Linux](#on-arch-linux)
-* [openSUSE](#on-opensuse-linux)
-* [Gentoo Linux](#on-gentoo-linux)
-* [Microsoft Windows](#on-windows-msvc)
-* [Android](#cross-compilation-for-android)
+* [Linux](#Linux)
+* [Windows](#windows)
+* [Android](https://github.com/servo/servo/wiki/Building-for-Android)
 
-#### macOS
+If these instructions fail or you would like to install dependencies
+manually, try the [manual build setup][manual-build].
 
-Xcode version 10.2 or above is recommended.
+### macOS
 
-##### On macOS(Intel based or ARM based) (Homebrew)
+- Install [Xcode](https://developer.apple.com/xcode/)
+- Install [Homebrew](https://brew.sh/)
+- Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+- Run `pip install virtualenv`
+- Run `./mach bootstrap`<br/>
+  *Note: This will install the recommended version of GStreamer globally on your system.*
 
-NOTE: run these steps after you've cloned the project locally.
+### Linux
 
-``` sh
-cd servo 
-bash etc/install_macos_gstreamer.sh
-brew bundle install --file=etc/homebrew/Brewfile
-pip install virtualenv
-```
+- Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+- Install Python and virtualenv
+    - **Debian-like:** Run `sudo apt install python3-virtualenv python3-pip`
+    - **Fedora:** Run `sudo dnf install python3 python3-virtualenv python3-pip python3-devel`
+    - **Arch:** Run `sudo pacman -S --needed python python-virtualenv python-pip`
+    - **Gentoo:** Run `sudo emerge dev-python/virtualenv dev-python/pip`
+- Run `./mach bootstrap`
 
-#### On Debian-based distros
+### Windows
 
-``` sh
-sudo apt install python3-virtualenv python3-pip
-./mach bootstrap
-```
+ - Download and run [`rustup-init.exe`](https://win.rustup.rs/) then follow the onscreen instructions.
+ - Install [chocolatey](https://chocolatey.org/)
+ - Run `mach bootstrap`
+  - *This will install CMake, Git, Ninja, Python and the Visual Studio 2019 Build Tools
+     via choco in an Administrator console. It can take quite a while.*
+  - *If you already have Visual Studio 2019 installed, this may not install all necessary components.
+     Please follow the Visual Studio 2019 installation instructions in the [manual setup][manual-build].*
+- Run `refreshenv`
 
-If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
-
-``` sh
-sudo apt install git curl autoconf libx11-dev libfreetype6-dev libgl1-mesa-dri \
-    libglib2.0-dev xorg-dev gperf g++ build-essential cmake libssl-dev \
-    liblzma-dev libxmu6 libxmu-dev \
-    libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
-    libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libharfbuzz-dev ccache \
-    clang libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-    libgstreamer-plugins-bad1.0-dev autoconf2.13 llvm-dev
-```
-
-Additionally, you'll need a local copy of GStreamer with a version later than 16.2. You can place it in `support/linux/gstreamer/gst`, or run `./mach bootstrap-gstreamer` to set it up. On **Ubuntu 20.04LTS**, you can use the system GStreamer if you install the necessary packages:
-``` sh
-sudo apt install gstreamer1.0-nice gstreamer1.0-plugins-bad
-```
-
-If you are using **Ubuntu 16.04** or **Linux Mint 18**, run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
-
-If you get an undefined symbol error on `gst_player_get_config` try removing `gir1.2-gst-plugins-bad-1.0` and all old versions of clang, see [#22016](https://github.com/servo/servo/issues/22016).
-
-#### On Fedora
-
-``` sh
-sudo dnf install python3 python3-virtualenv python3-pip python3-devel
-python3 ./mach bootstrap
-```
-
-If `python3 ./mach bootstrap` doesn't work, file a bug, and, run the commands below:
-
-``` sh
-sudo dnf install curl libtool gcc-c++ libXi-devel libunwind-devel \
-    freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel \
-    libXrandr-devel gperf fontconfig-devel cabextract ttmkfdir  expat-devel \
-    rpm-build openssl-devel cmake libX11-devel libXcursor-devel \
-    libXmu-devel dbus-devel ncurses-devel harfbuzz-devel \
-    ccache clang clang-libs python3-devel gstreamer1-devel \
-    gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213 \
-    libjpeg-turbo-devel zlib libjpeg
-```
-
-#### On CentOS
-
-``` sh
-sudo yum install python-virtualenv python-pip
-./mach bootstrap
-```
-
-If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
-
-``` sh
-sudo yum install curl libtool gcc-c++ libXi-devel freetype-devel \
-    mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel \
-    gperf fontconfig-devel cabextract ttmkfdir python expat-devel rpm-build \
-    openssl-devel cmake3 libXcursor-devel libXmu-devel \
-    dbus-devel ncurses-devel python34 harfbuzz-devel \
-    ccache clang clang-libs llvm-toolset-7
-```
-
-Build inside `llvm-toolset` and `devtoolset`:
-
-```sh
-scl enable devtoolset-7 llvm-toolset-7 bash
-```
-
-with the following environmental variables set:
-
-```sh
-export CMAKE=cmake3
-export LIBCLANG_PATH=/opt/rh/llvm-toolset-7/root/usr/lib64
-```
-
-#### On openSUSE
-
-``` sh
-sudo zypper install libX11-devel libexpat-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
-    dbus-1-devel fontconfig-devel freetype-devel gcc-c++ git glib2-devel gperf \
-    harfbuzz-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
-    python3-pip python3-virtualenv rpm-build ccache llvm-clang libclang autoconf213 gstreamer-devel \
-    gstreamer-plugins-base-devel gstreamer-plugins-bad-devel
-```
-
-#### On Arch Linux
-
-``` sh
-sudo pacman -S --needed base-devel git python python-virtualenv python-pip mesa cmake libxmu \
-    pkg-config ttf-fira-sans harfbuzz ccache llvm clang autoconf2.13 gstreamer gstreamer-vaapi \
-    gst-plugins-base gst-plugins-good gst-plugins-bad
-```
-
-#### On Gentoo Linux
-
-```sh
-sudo emerge net-misc/curl \
-    media-libs/freetype media-libs/mesa dev-util/gperf \
-    dev-python/virtualenv dev-python/pip dev-libs/openssl \
-    media-libs/harfbuzz dev-util/ccache sys-libs/libunwind \
-    x11-libs/libXmu x11-base/xorg-server sys-devel/clang \
-    media-libs/gstreamer media-libs/gst-plugins-bad media-libs/gst-plugins-base
-```
-
-With the following environment variable set:
-```sh
-export LIBCLANG_PATH=$(llvm-config --prefix)/lib64
-```
-
-#### On NixOS Linux
-
-```sh
-nix-shell etc/shell.nix
-```
-
-You will need to run this in every shell before running mach.
-
-#### On Windows (MSVC)
-
-1. Install Python 3.9 for Windows (https://www.python.org/downloads/release/python-392/). The Windows x86-64 MSI installer is fine. This is required in order to build the JavaScript engine, SpiderMonkey.
-
-You will also need to set the `PYTHON3` environment variable, e.g., to 'C:\Python39\python.exe' by doing:
-```
-setx PYTHON3 "C:\Python39\python.exe" /m
-```
-The `/m` will set it system-wide for all future command windows.
-
-2. Install virtualenv.
-
- In a normal Windows Shell (cmd), do:
- ```
-pip install virtualenv
-```
- If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
-
-3. Install the most recent [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) MSVC packages. You need to download the two `.msi` files for your platform from the [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) website and install them. The currently recommended version is 1.16.0. i.e.:
-
-- [gstreamer-1.0-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi)
-- [gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi)
-
-Note that the MinGW binaries will not work, so make sure that you install the MSVC ones.
-
-Note that you should ensure that _all_ components are installed from gstreamer, as we require many of the optional libraries that are not installed by default.
-
-4. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
-settings for the installer are fine).
-
-5. Install Visual Studio Build Tools 2019 (https://visualstudio.microsoft.com/de/downloads/#build-tools-for-visual-studio-2019). It is easiest to install via [Chocolatey](https://chocolatey.org/install#installing-chocolatey) with:
-```
-choco install -y visualstudio2019buildtools --package-parameters="--add Microsoft.VisualStudio.Component.Roslyn.Compiler --add Microsoft.Component.MSBuild --add Microsoft.VisualStudio.Component.CoreBuildTools --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.VisualStudio.Component.VC.CoreBuildTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC --add Microsoft.VisualStudio.Component.TextTemplating --add Microsoft.VisualStudio.Component.VC.CoreIde --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core --add Microsoft.VisualStudio.Workload.VCTools"
-```
-If you really need to use the Visual Studio Installer (UI), choose "Desktop development with C++" and add the optional "MSVC", "C++-ATL" and "C++-MFC" (latest).
-
-The Visual Studio 2019 Build Tools MUST be installed to the default location or mach.bat will not find them.
-
-##### [Optional] Install LLVM for faster link times
-
-You may experience much faster builds on Windows by following these steps. (Related Rust issue: https://github.com/rust-lang/rust/issues/37543)
-
-1. Download the latest version of LLVM (https://releases.llvm.org/).
-2. Run the installer and choose to add LLVM to the system PATH.
-3. Add the following to your Cargo config (Found at `%USERPROFILE%\.cargo\config`). You may need to change the triple to match your environment.
-
-```
-[target.x86_64-pc-windows-msvc]
-linker = "lld-link.exe"
-```
-
-##### Troubleshooting a Windows environment
-
->If you have troubles with `x64 type` prompt as `mach.bat` set by default:
-> 1. You may need to choose and launch the type manually, such as `x86_x64 Cross Tools Command Prompt for VS 2019` in the Windows menu.)
-> 2. `cd to/the/path/servo`
-> 3. `python mach build -d`
-
-> If you got the error `Cannot run mach in a path on a case-sensitive file system on Windows`:
-> 1. Open Command Prompt or PowerShell as administrator.
-> 2. Disable case-sensitive for servo path, `fsutil.exe file SetCaseSensitiveInfo X:\path\to\servo disable`
-
-> If you got the error `DLL file `api-ms-win-crt-runtime-l1-1-0.dll` not found!` then set
-> the `WindowsSdkDir` environment variable to an appropriate `Windows Kit` directory containing
-> `Redist\ucrt\DLLs\x64\api-ms-win-crt-runtime-l1-1-0.dll`, for example
-> `C:\Program Files (x86)\Windows Kits\10`.
-
-> If you get the error `thread 'main' panicked at 'Unable to find libclang: "couldn\'t find any valid shared libraries matching: [\'clang.dll\', \'libclang.dll\'], set the `LIBCLANG_PATH` environment variable to a path where one of these files can be found (invalid: ... invalid DLL (64-bit))])"'`
-> then `rustup` may have installed the 32-bit default target rather than the 64-bit one.
-> You can find the configuration with `rustup show`, and set the default with `rustup set default-host x86_64-pc-windows-msvc`.
-
-#### Cross-compilation for Android
-
-Run `./mach bootstrap-android --build` to get Android-specific tools. See wiki for
-[details](https://github.com/servo/servo/wiki/Building-for-Android).
+See also [Windows Troubleshooting Tips][windows-tips].
 
 ### Cloning the Repo
 Your CARGO_HOME needs to point to (or be in) the same drive as your Servo repository (See [#28530](https://github.com/servo/servo/issues/28530)).
@@ -307,8 +99,6 @@ Add the `--release` flag to create an optimized build:
 ./mach build --release
 ./mach run --release tests/html/about-mozilla.html
 ```
-
-**Note:** `mach build ` will build both `servo` and `libsimpleservo`. To make compilation a bit faster, it's possible to only compile the servo binary: `./mach build --dev -p servo`.
 
 ### Checking for build errors, without building
 
@@ -385,3 +175,6 @@ There are lots of mach commands you can use. You can list them with `./mach
 
 
 The generated documentation can be found on https://doc.servo.org/servo/index.html
+
+[manual-build]: https://github.com/servo/servo/wiki/Building#manual-build-setup
+[windows-tips]: https://github.com/servo/servo/wiki/Building#troubleshooting-the-windows-build

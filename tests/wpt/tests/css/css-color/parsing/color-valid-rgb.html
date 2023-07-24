@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using valid RGB notation</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#rgb-functions">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-sRGB-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-sRGB-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("color", "rgb(none none none)", "rgb(0, 0, 0)");
+test_valid_value("color", "rgb(none none none / none)", "rgba(0, 0, 0, 0)");
+test_valid_value("color", "rgb(128 none none)", "rgb(128, 0, 0)");
+test_valid_value("color", "rgb(128 none none / none)", "rgba(128, 0, 0, 0)");
+test_valid_value("color", "rgb(none none none / .5)", "rgba(0, 0, 0, 0.5)");
+test_valid_value("color", "rgb(20% none none)", "rgb(51, 0, 0)");
+test_valid_value("color", "rgb(20% none none / none)", "rgba(51, 0, 0, 0)");
+test_valid_value("color", "rgb(none none none / 50%)", "rgba(0, 0, 0, 0.5)");
+test_valid_value("color", "rgba(none none none)", "rgb(0, 0, 0)");
+test_valid_value("color", "rgba(none none none / none)", "rgba(0, 0, 0, 0)");
+test_valid_value("color", "rgba(128 none none)", "rgb(128, 0, 0)");
+test_valid_value("color", "rgba(128 none none / none)", "rgba(128, 0, 0, 0)");
+test_valid_value("color", "rgba(none none none / .5)", "rgba(0, 0, 0, 0.5)");
+test_valid_value("color", "rgba(20% none none)", "rgb(51, 0, 0)");
+test_valid_value("color", "rgba(20% none none / none)", "rgba(51, 0, 0, 0)");
+test_valid_value("color", "rgba(none none none / 50%)", "rgba(0, 0, 0, 0.5)");
+test_valid_value("color", "rgb(-2 3 4)", "rgb(0, 3, 4)");
+test_valid_value("color", "rgb(-20% 20% 40%)", "rgb(0, 51, 102)");
+test_valid_value("color", "rgb(257 30 40)", "rgb(255, 30, 40)");
+test_valid_value("color", "rgb(250% 20% 40%)", "rgb(255, 51, 102)");
+test_valid_value("color", "rgba(-2 3 4)", "rgb(0, 3, 4)");
+test_valid_value("color", "rgba(-20% 20% 40%)", "rgb(0, 51, 102)");
+test_valid_value("color", "rgba(257 30 40)", "rgb(255, 30, 40)");
+test_valid_value("color", "rgba(250% 20% 40%)", "rgb(255, 51, 102)");
+test_valid_value("color", "rgba(-2 3 4 / .5)", "rgba(0, 3, 4, 0.5)");
+test_valid_value("color", "rgba(-20% 20% 40% / 50%)", "rgba(0, 51, 102, 0.5)");
+test_valid_value("color", "rgba(257 30 40 / 50%)", "rgba(255, 30, 40, 0.5)");
+test_valid_value("color", "rgba(250% 20% 40% / .5)", "rgba(255, 51, 102, 0.5)");
+
+// Test non-finite values. See: https://github.com/w3c/csswg-drafts/issues/8629
+test_valid_value("color", "rgb(calc(infinity), 0, 0)", "rgb(calc(infinity), 0, 0)");
+test_valid_value("color", "rgb(0, calc(infinity), 0)", "rgb(0, calc(infinity), 0)");
+test_valid_value("color", "rgb(0, 0, calc(infinity))", "rgb(0, 0, calc(infinity))");
+test_valid_value("color", "rgba(0, 0, 0, calc(infinity))", "rgba(0, 0, 0, calc(infinity))");
+test_valid_value("color", "rgb(calc(-infinity), 0, 0)", "rgb(calc(-infinity), 0, 0)");
+test_valid_value("color", "rgb(0, calc(-infinity), 0)", "rgb(0, calc(-infinity), 0)");
+test_valid_value("color", "rgb(0, 0, calc(-infinity))", "rgb(0, 0, calc(-infinity))");
+test_valid_value("color", "rgba(0, 0, 0, calc(-infinity))", "rgba(0, 0, 0, calc(-infinity))");
+test_valid_value("color", "rgb(calc(NaN), 0, 0)", "rgb(calc(NaN), 0, 0)");
+test_valid_value("color", "rgb(0, calc(NaN), 0)", "rgb(0, calc(NaN), 0)");
+test_valid_value("color", "rgb(0, 0, calc(NaN))", "rgb(0, 0, calc(NaN))");
+test_valid_value("color", "rgba(0, 0, 0, calc(NaN))", "rgba(0, 0, 0, calc(NaN))");
+test_valid_value("color", "rgb(calc(0 / 0), 0, 0)", "rgb(calc(NaN), 0, 0)");
+test_valid_value("color", "rgb(0, calc(0 / 0), 0)", "rgb(0, calc(NaN), 0)");
+test_valid_value("color", "rgb(0, 0, calc(0 / 0))", "rgb(0, 0, calc(NaN))");
+test_valid_value("color", "rgba(0, 0, 0, calc(0 / 0))", "rgba(0, 0, 0, calc(NaN))");
+</script>
+</body>
+</html>

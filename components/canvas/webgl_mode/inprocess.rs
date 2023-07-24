@@ -7,12 +7,8 @@ use canvas_traits::webgl::webgl_channel;
 use canvas_traits::webgl::{WebGLContextId, WebGLMsg, WebGLThreads};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
-use gleam;
-use servo_config::pref;
-use sparkle::gl;
 use sparkle::gl::GlType;
 use std::default::Default;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use surfman::Device;
 use surfman::SurfaceInfo;
@@ -20,6 +16,7 @@ use surfman::SurfaceTexture;
 use surfman_chains::SwapChains;
 use surfman_chains_api::SwapChainAPI;
 use surfman_chains_api::SwapChainsAPI;
+use webrender_api::{DocumentId, RenderApiSender};
 use webrender_surfman::WebrenderSurfman;
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
@@ -30,7 +27,6 @@ use webxr_api::LayerGrandManager as WebXRLayerGrandManager;
 pub struct WebGLComm {
     pub webgl_threads: WebGLThreads,
     pub image_handler: Box<dyn WebrenderExternalImageApi>,
-    pub output_handler: Option<Box<dyn webrender_api::OutputImageHandler>>,
     pub webxr_layer_grand_manager: WebXRLayerGrandManager<WebXRSurfman>,
 }
 
@@ -38,9 +34,8 @@ impl WebGLComm {
     /// Creates a new `WebGLComm` object.
     pub fn new(
         surfman: WebrenderSurfman,
-        webrender_gl: Rc<dyn gleam::gl::Gl>,
-        webrender_api_sender: webrender_api::RenderApiSender,
-        webrender_doc: webrender_api::DocumentId,
+        webrender_api_sender: RenderApiSender,
+        webrender_doc: DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         api_type: GlType,
     ) -> WebGLComm {
@@ -64,12 +59,6 @@ impl WebGLComm {
             webxr_init,
         };
 
-        let output_handler = if pref!(dom.webgl.dom_to_texture.enabled) {
-            Some(Box::new(OutputHandler::new(webrender_gl.clone())))
-        } else {
-            None
-        };
-
         let external = WebGLExternalImages::new(surfman, webrender_swap_chains);
 
         WebGLThread::run_on_own_thread(init);
@@ -77,7 +66,6 @@ impl WebGLComm {
         WebGLComm {
             webgl_threads: WebGLThreads(sender),
             image_handler: Box::new(external),
-            output_handler: output_handler.map(|b| b as Box<_>),
             webxr_layer_grand_manager: webxr_layer_grand_manager,
         }
     }
@@ -142,45 +130,5 @@ impl WebrenderExternalImageApi for WebGLExternalImages {
     fn unlock(&mut self, id: u64) {
         let id = WebGLContextId(id);
         self.unlock_swap_chain(id);
-    }
-}
-
-/// struct used to implement DOMToTexture feature and webrender::OutputImageHandler trait.
-struct OutputHandler {
-    webrender_gl: Rc<dyn gleam::gl::Gl>,
-    sync_objects: FnvHashMap<webrender_api::PipelineId, gleam::gl::GLsync>,
-}
-
-impl OutputHandler {
-    fn new(webrender_gl: Rc<dyn gleam::gl::Gl>) -> Self {
-        OutputHandler {
-            webrender_gl,
-            sync_objects: Default::default(),
-        }
-    }
-}
-
-/// Bridge between the WR frame outputs and WebGL to implement DOMToTexture synchronization.
-impl webrender_api::OutputImageHandler for OutputHandler {
-    fn lock(
-        &mut self,
-        id: webrender_api::PipelineId,
-    ) -> Option<(u32, webrender_api::units::FramebufferIntSize)> {
-        // Insert a fence in the WR command queue
-        let gl_sync = self
-            .webrender_gl
-            .fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
-        self.sync_objects.insert(id, gl_sync);
-        // https://github.com/servo/servo/issues/24615
-        None
-    }
-
-    fn unlock(&mut self, id: webrender_api::PipelineId) {
-        if let Some(gl_sync) = self.sync_objects.remove(&id) {
-            // Flush the Sync object into the GPU's command queue to guarantee that it it's signaled.
-            self.webrender_gl.flush();
-            // Mark the sync object for deletion.
-            self.webrender_gl.delete_sync(gl_sync);
-        }
     }
 }

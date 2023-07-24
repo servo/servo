@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - "Basic" authenticated CORS request using setRequestHeader() (expects to succeed)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      async_test(test => {
+        var client = new XMLHttpRequest(),
+            urlstart = get_host_info().REMOTE_ORIGIN + location.pathname.replace(/\/[^\/]*$/, '/'),
+            user = token()
+        client.open("GET", urlstart + "resources/auth2/corsenabled.py", false)
+        client.withCredentials = true
+        client.setRequestHeader("x-user", user)
+        client.setRequestHeader("x-pass", 'pass')
+        client.setRequestHeader('Authorization', 'Basic ' + btoa(user + ":pass"))
+        client.onload = test.step_func_done(() => {
+            assert_equals(client.responseText, user + '\npass', 'responseText should contain the right user and password')
+            assert_equals(client.status, 200)
+            assert_equals(client.getResponseHeader('x-challenge'), 'DID-NOT')
+        })
+        client.send(null)
+      })
+    </script>
+  </body>
+</html>

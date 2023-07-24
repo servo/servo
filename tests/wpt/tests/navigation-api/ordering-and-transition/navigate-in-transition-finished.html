@@ -1,0 +1,69 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="variant" content="?no-currententrychange">
+<meta name="variant" content="?currententrychange">
+
+<script type="module">
+import { Recorder, hasVariant } from "./resources/helpers.mjs";
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  const fromStart = navigation.currentEntry;
+  let fromHash1;
+
+  const recorder = new Recorder({
+    skipCurrentChange: !hasVariant("currententrychange"),
+    finalExpectedEvent: "transition.finished fulfilled",
+    finalExpectedEventCount: 2
+  });
+
+  recorder.setUpNavigationAPIListeners();
+
+  navigation.addEventListener("navigatesuccess", t.step_func(() => {
+    if (location.hash === "#1") {
+      navigation.transition.finished.then(() => {
+        const result2 = navigation.navigate("/common/blank.html#2");
+        recorder.setUpResultListeners(result2, " 2");
+      });
+    }
+  }));
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ handler() { recorder.record("handler run"); } });
+
+    if (location.hash === "#1") {
+      fromHash1 = navigation.currentEntry;
+    }
+  });
+
+  const result1 = navigation.navigate("/common/blank.html#1");
+  recorder.setUpResultListeners(result1, " 1");
+
+  Promise.resolve().then(() => recorder.record("promise microtask"));
+
+  await recorder.readyToAssert;
+
+  recorder.assert([
+    /* event name, location.hash value, navigation.transition properties */
+    ["navigate", "", null],
+    ["currententrychange", "#1", { from: fromStart, navigationType: "push" }],
+    ["handler run", "#1", { from: fromStart, navigationType: "push" }],
+    ["committed fulfilled 1", "#1", { from: fromStart, navigationType: "push" }],
+    ["promise microtask", "#1", { from: fromStart, navigationType: "push" }],
+    ["navigatesuccess", "#1", { from: fromStart, navigationType: "push" }],
+    ["finished fulfilled 1", "#1", null],
+    ["transition.finished fulfilled", "#1", null],
+
+    ["navigate", "#1", null],
+    ["currententrychange", "#2", { from: fromHash1, navigationType: "push" }],
+    ["handler run", "#2", { from: fromHash1, navigationType: "push" }],
+    ["committed fulfilled 2", "#2", { from: fromHash1, navigationType: "push" }],
+    ["navigatesuccess", "#2", { from: fromHash1, navigationType: "push" }],
+    ["finished fulfilled 2", "#2", null],
+    ["transition.finished fulfilled", "#2", null]
+  ]);
+}, "event and promise ordering when navigate() is called inside the transition.finished promise handler");
+</script>

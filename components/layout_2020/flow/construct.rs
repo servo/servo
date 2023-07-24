@@ -11,9 +11,8 @@ use crate::flow::inline::{InlineBox, InlineFormattingContext, InlineLevelBox, Te
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
-use crate::style_ext::{DisplayGeneratingBox, DisplayInside, DisplayOutside};
+use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
@@ -34,18 +33,19 @@ impl BlockFormattingContext {
     where
         Node: NodeExt<'dom>,
     {
-        let (contents, contains_floats) = BlockContainer::construct(
+        let contents = BlockContainer::construct(
             context,
             info,
             contents,
             propagated_text_decoration_line,
             is_list_item,
         );
-        let bfc = Self {
+        let contains_floats = contents.contains_floats();
+
+        Self {
             contents,
-            contains_floats: contains_floats == ContainsFloats::Yes,
-        };
-        bfc
+            contains_floats,
+        }
     }
 
     pub fn construct_for_text_runs<'dom>(
@@ -61,6 +61,8 @@ impl BlockFormattingContext {
             inline_level_boxes,
             text_decoration_line,
             has_first_formatted_line: true,
+            contains_floats: false,
+            ends_with_whitespace: false,
         };
         let contents = BlockContainer::InlineFormattingContext(ifc);
         let bfc = Self {
@@ -163,9 +165,6 @@ struct BlockContainerBuilder<'dom, 'style, Node> {
     /// The style of the anonymous block boxes pushed to the list of block-level
     /// boxes, if any (see `end_ongoing_inline_formatting_context`).
     anonymous_style: Option<Arc<ComputedValues>>,
-
-    /// Whether the resulting block container contains any float box.
-    contains_floats: ContainsFloats,
 }
 
 impl BlockContainer {
@@ -175,7 +174,7 @@ impl BlockContainer {
         contents: NonReplacedContents,
         propagated_text_decoration_line: TextDecorationLine,
         is_list_item: bool,
-    ) -> (BlockContainer, ContainsFloats)
+    ) -> BlockContainer
     where
         Node: NodeExt<'dom>,
     {
@@ -188,10 +187,10 @@ impl BlockContainer {
             ongoing_inline_formatting_context: InlineFormattingContext::new(
                 text_decoration_line,
                 /* has_first_formatted_line = */ true,
+                /* ends_with_whitespace */ false,
             ),
             ongoing_inline_boxes_stack: Vec::new(),
             anonymous_style: None,
-            contains_floats: ContainsFloats::No,
         };
 
         if is_list_item {
@@ -216,49 +215,30 @@ impl BlockContainer {
 
         debug_assert!(builder.ongoing_inline_boxes_stack.is_empty());
 
-        if !builder
-            .ongoing_inline_formatting_context
-            .inline_level_boxes
-            .is_empty()
-        {
+        if !builder.ongoing_inline_formatting_context.is_empty() {
             if builder.block_level_boxes.is_empty() {
-                let container = BlockContainer::InlineFormattingContext(
+                return BlockContainer::InlineFormattingContext(
                     builder.ongoing_inline_formatting_context,
                 );
-                return (container, builder.contains_floats);
             }
             builder.end_ongoing_inline_formatting_context();
         }
 
-        let mut contains_floats = builder.contains_floats;
-        let mapfold = |contains_floats: &mut ContainsFloats, creator: BlockLevelJob<'dom, _>| {
-            let (block_level_box, box_contains_floats) = creator.finish(context);
-            *contains_floats |= box_contains_floats;
-            block_level_box
-        };
         let block_level_boxes = if context.use_rayon {
             builder
                 .block_level_boxes
                 .into_par_iter()
-                .mapfold_reduce_into(
-                    &mut contains_floats,
-                    mapfold,
-                    || ContainsFloats::No,
-                    |left, right| {
-                        *left |= right;
-                    },
-                )
+                .map(|block_level_job| block_level_job.finish(context))
                 .collect()
         } else {
             builder
                 .block_level_boxes
                 .into_iter()
-                .map(|x| mapfold(&mut contains_floats, x))
+                .map(|block_level_job| block_level_job.finish(context))
                 .collect()
         };
-        let container = BlockContainer::BlockLevelBoxes(block_level_boxes);
 
-        (container, contains_floats)
+        BlockContainer::BlockLevelBoxes(block_level_boxes)
     }
 }
 
@@ -295,167 +275,166 @@ where
     }
 
     fn handle_text(&mut self, info: &NodeAndStyleInfo<Node>, input: Cow<'dom, str>) {
-        // Skip any leading whitespace as dictated by the node's style.
-        let white_space = info.style.get_inherited_text().white_space;
-        let (preserved_leading_whitespace, mut input) =
-            self.handle_leading_whitespace(&input, white_space);
-
-        if !preserved_leading_whitespace && input.is_empty() {
+        if input.is_empty() {
             return;
         }
 
-        // This text node should be pushed either to the next ongoing
-        // inline level box with the parent style of that inline level box
-        // that will be ended, or directly to the ongoing inline formatting
-        // context with the parent style of that builder.
+        let (output, has_uncollapsible_content) = collapse_and_transform_whitespace(
+            &input,
+            info.style.get_inherited_text().white_space,
+            self.ongoing_inline_formatting_context.ends_with_whitespace,
+        );
+        if output.is_empty() {
+            return;
+        }
+
+        self.ongoing_inline_formatting_context.ends_with_whitespace =
+            output.chars().last().unwrap().is_ascii_whitespace();
+
         let inlines = self.current_inline_level_boxes();
-
-        let mut new_text_run_contents;
-        let output;
-
-        {
-            let mut last_box = inlines.last_mut().map(|last| last.borrow_mut());
-            let last_text = last_box.as_mut().and_then(|last| match &mut **last {
-                InlineLevelBox::TextRun(last) => Some(&mut last.text),
-                _ => None,
-            });
-
-            if let Some(text) = last_text {
-                // Append to the existing text run
-                new_text_run_contents = None;
-                output = text;
-            } else {
-                new_text_run_contents = Some(String::new());
-                output = new_text_run_contents.as_mut().unwrap();
-            }
-
-            if preserved_leading_whitespace {
-                output.push(' ')
-            }
-
-            match (
-                white_space.preserve_spaces(),
-                white_space.preserve_newlines(),
-            ) {
-                // All whitespace is significant, so we don't need to transform
-                // the input at all.
-                (true, true) => {
-                    output.push_str(input);
+        match inlines.last_mut().map(|last| last.borrow_mut()) {
+            Some(mut last_box) => match *last_box {
+                InlineLevelBox::TextRun(ref mut text_run) => {
+                    text_run.text.push_str(&output);
+                    text_run.has_uncollapsible_content |= has_uncollapsible_content;
+                    return;
                 },
-
-                // There are no cases in CSS where where need to preserve spaces
-                // but not newlines.
-                (true, false) => unreachable!(),
-
-                // Spaces are not significant, but newlines might be. We need
-                // to collapse non-significant whitespace as appropriate.
-                (false, preserve_newlines) => loop {
-                    // If there are any spaces that need preserving, split the string
-                    // that precedes them, collapse them into a single whitespace,
-                    // then process the remainder of the string independently.
-                    if let Some(i) = input
-                        .bytes()
-                        .position(|b| b.is_ascii_whitespace() && (!preserve_newlines || b != b'\n'))
-                    {
-                        let (non_whitespace, rest) = input.split_at(i);
-                        output.push_str(non_whitespace);
-                        output.push(' ');
-
-                        // Find the first byte that is either significant whitespace or
-                        // non-whitespace to continue processing it.
-                        if let Some(i) = rest.bytes().position(|b| {
-                            !b.is_ascii_whitespace() || (preserve_newlines && b == b'\n')
-                        }) {
-                            input = &rest[i..];
-                        } else {
-                            break;
-                        }
-                    } else {
-                        // No whitespace found, so no transformation is required.
-                        output.push_str(input);
-                        break;
-                    }
-                },
-            }
+                _ => {},
+            },
+            _ => {},
         }
 
-        if let Some(text) = new_text_run_contents {
-            inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun {
-                base_fragment_info: info.into(),
-                parent_style: Arc::clone(&info.style),
-                text,
-            })))
-        }
+        inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun {
+            base_fragment_info: info.into(),
+            parent_style: Arc::clone(&info.style),
+            text: output,
+            has_uncollapsible_content,
+        })));
     }
+}
+
+fn preserve_segment_break() -> bool {
+    true
+}
+
+/// Collapse and transform whitespace in the given input according to the rules in
+/// <https://drafts.csswg.org/css-text-3/#white-space-phase-1>. This method doesn't
+/// follow the steps exactly since they are defined in a multi-pass appraoach, but it
+/// tries to be effectively the same transformation.
+///
+/// Returns the transformed text as a [String] and also whether or not the input had
+/// any uncollapsible content.
+fn collapse_and_transform_whitespace<'text>(
+    input: &'text str,
+    white_space: WhiteSpace,
+    trim_beginning_white_space: bool,
+) -> (String, bool) {
+    // Point 4.1.1 first bullet:
+    // > If white-space is set to normal, nowrap, or pre-line, whitespace
+    // > characters are considered collapsible
+    // If whitespace is not considered collapsible, it is preserved entirely, which
+    // means that we can simply return the input string exactly.
+    if white_space.preserve_spaces() {
+        return (input.to_owned(), true);
+    }
+
+    let mut output = String::with_capacity(input.len());
+    let mut has_uncollapsible_content = false;
+    let mut had_whitespace = false;
+    let mut following_newline = false;
+    let mut in_whitespace_at_beginning = true;
+
+    let is_leading_trimmed_whitespace =
+        |in_whitespace_at_beginning: bool| in_whitespace_at_beginning && trim_beginning_white_space;
+
+    // Point 4.1.1:
+    // > 2. Any sequence of collapsible spaces and tabs immediately preceding or
+    // >    following a segment break is removed.
+    // > 3. Every collapsible tab is converted to a collapsible space (U+0020).
+    // > 4. Any collapsible space immediately following another collapsible space—even
+    // >    one outside the boundary of the inline containing that space, provided both
+    // >    spaces are within the same inline formatting context—is collapsed to have zero
+    // >    advance width.
+    let push_pending_whitespace_if_needed =
+        |output: &mut String,
+         had_whitespace: bool,
+         following_newline: bool,
+         in_whitespace_at_beginning: bool| {
+            if had_whitespace &&
+                !following_newline &&
+                !is_leading_trimmed_whitespace(in_whitespace_at_beginning)
+            {
+                output.push(' ');
+            }
+        };
+
+    for character in input.chars() {
+        // Don't push non-newline whitespace immediately. Instead wait to push it until we
+        // know that it isn't followed by a newline. See `push_pending_whitespace_if_needed`
+        //  above.
+        if character.is_ascii_whitespace() && character != '\n' {
+            had_whitespace = true;
+            continue;
+        }
+
+        // Point 4.1.1:
+        // > 2. Collapsible segment breaks are transformed for rendering according to the
+        // >    segment break transformation rules.
+        if character == '\n' {
+            // From <https://drafts.csswg.org/css-text-3/#line-break-transform>
+            // (4.1.3 -- the segment break transformation rules):
+            //
+            // > When white-space is pre, pre-wrap, or pre-line, segment breaks are not
+            // > collapsible and are instead transformed  into a preserved line feed"
+            if white_space == WhiteSpace::PreLine {
+                has_uncollapsible_content = true;
+                had_whitespace = false;
+                output.push('\n');
+
+            // Point 4.1.3:
+            // > 1. First, any collapsible segment break immediately following another
+            // >    collapsible segment break is removed.
+            // > 2. Then any remaining segment break is either transformed into a space (U+0020)
+            // >    or removed depending on the context before and after the break.
+            } else if !following_newline &&
+                preserve_segment_break() &&
+                !is_leading_trimmed_whitespace(in_whitespace_at_beginning)
+            {
+                had_whitespace = false;
+                output.push(' ');
+            }
+            following_newline = true;
+            continue;
+        }
+
+        push_pending_whitespace_if_needed(
+            &mut output,
+            had_whitespace,
+            following_newline,
+            in_whitespace_at_beginning,
+        );
+
+        has_uncollapsible_content = true;
+        had_whitespace = false;
+        in_whitespace_at_beginning = false;
+        following_newline = false;
+        output.push(character);
+    }
+
+    push_pending_whitespace_if_needed(
+        &mut output,
+        had_whitespace,
+        following_newline,
+        in_whitespace_at_beginning,
+    );
+
+    (output, has_uncollapsible_content)
 }
 
 impl<'dom, Node> BlockContainerBuilder<'dom, '_, Node>
 where
     Node: NodeExt<'dom>,
 {
-    /// Returns:
-    ///
-    /// * Whether this text run has preserved (non-collapsible) leading whitespace
-    /// * The contents starting at the first non-whitespace character (or the empty string)
-    fn handle_leading_whitespace<'text>(
-        &mut self,
-        text: &'text str,
-        white_space: WhiteSpace,
-    ) -> (bool, &'text str) {
-        // FIXME: this is only an approximation of
-        // https://drafts.csswg.org/css2/text.html#white-space-model
-        if !text.starts_with(|c: char| c.is_ascii_whitespace()) || white_space.preserve_spaces() {
-            return (false, text);
-        }
-
-        let preserved = match whitespace_is_preserved(self.current_inline_level_boxes()) {
-            WhitespacePreservedResult::Unknown => {
-                // Paragraph start.
-                false
-            },
-            WhitespacePreservedResult::NotPreserved => false,
-            WhitespacePreservedResult::Preserved => true,
-        };
-
-        let text = text.trim_start_matches(|c: char| c.is_ascii_whitespace());
-        return (preserved, text);
-
-        fn whitespace_is_preserved(
-            inline_level_boxes: &[ArcRefCell<InlineLevelBox>],
-        ) -> WhitespacePreservedResult {
-            for inline_level_box in inline_level_boxes.iter().rev() {
-                match *inline_level_box.borrow() {
-                    InlineLevelBox::TextRun(ref r) => {
-                        if r.text.ends_with(' ') {
-                            return WhitespacePreservedResult::NotPreserved;
-                        }
-                        return WhitespacePreservedResult::Preserved;
-                    },
-                    InlineLevelBox::Atomic { .. } => {
-                        return WhitespacePreservedResult::NotPreserved;
-                    },
-                    InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
-                    InlineLevelBox::OutOfFlowFloatBox(_) => {},
-                    InlineLevelBox::InlineBox(ref b) => {
-                        match whitespace_is_preserved(&b.children) {
-                            WhitespacePreservedResult::Unknown => {},
-                            result => return result,
-                        }
-                    },
-                }
-            }
-
-            WhitespacePreservedResult::Unknown
-        }
-
-        #[derive(Clone, Copy, PartialEq)]
-        enum WhitespacePreservedResult {
-            Preserved,
-            NotPreserved,
-            Unknown,
-        }
-    }
-
     fn handle_list_item_marker_inside(
         &mut self,
         info: &NodeAndStyleInfo<Node>,
@@ -520,6 +499,7 @@ where
             inline_box.last_fragment = true;
             ArcRefCell::new(InlineLevelBox::InlineBox(inline_box))
         } else {
+            self.ongoing_inline_formatting_context.ends_with_whitespace = false;
             ArcRefCell::new(InlineLevelBox::Atomic(
                 IndependentFormattingContext::construct(
                     self.context,
@@ -591,7 +571,9 @@ where
 
         let kind = match contents.try_into() {
             Ok(contents) => match display_inside {
-                DisplayInside::Flow { is_list_item } => {
+                DisplayInside::Flow { is_list_item }
+                    if !info.style.establishes_block_formatting_context() =>
+                {
                     BlockLevelCreator::SameFormattingContextBlock(
                         IntermediateBlockContainer::Deferred {
                             contents,
@@ -660,8 +642,6 @@ where
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        self.contains_floats = ContainsFloats::Yes;
-
         if !self.has_ongoing_inline_formatting_context() {
             let kind = BlockLevelCreator::OutOfFlowFloatBox {
                 contents,
@@ -679,20 +659,18 @@ where
                 display_inside,
                 contents,
             )));
+            self.ongoing_inline_formatting_context.contains_floats = true;
             self.current_inline_level_boxes().push(box_.clone());
             box_slot.set(LayoutBox::InlineLevel(box_))
         }
     }
 
     fn end_ongoing_inline_formatting_context(&mut self) {
-        if self
-            .ongoing_inline_formatting_context
-            .inline_level_boxes
-            .is_empty()
-        {
+        if self.ongoing_inline_formatting_context.is_empty() {
             // There should never be an empty inline formatting context.
             self.ongoing_inline_formatting_context
                 .has_first_formatted_line = false;
+            self.ongoing_inline_formatting_context.ends_with_whitespace = false;
             return;
         }
 
@@ -712,6 +690,7 @@ where
         let mut ifc = InlineFormattingContext::new(
             self.ongoing_inline_formatting_context.text_decoration_line,
             /* has_first_formatted_line = */ false,
+            /* ends_with_whitespace */ false,
         );
         std::mem::swap(&mut self.ongoing_inline_formatting_context, &mut ifc);
         let kind = BlockLevelCreator::SameFormattingContextBlock(
@@ -726,6 +705,8 @@ where
         });
     }
 
+    // Retrieves the mutable reference of inline boxes either from the last
+    // element of a stack or directly from the formatting context, depending on the situation.
     fn current_inline_level_boxes(&mut self) -> &mut Vec<ArcRefCell<InlineLevelBox>> {
         match self.ongoing_inline_boxes_stack.last_mut() {
             Some(last) => &mut last.children,
@@ -734,10 +715,7 @@ where
     }
 
     fn has_ongoing_inline_formatting_context(&self) -> bool {
-        !self
-            .ongoing_inline_formatting_context
-            .inline_level_boxes
-            .is_empty() ||
+        !self.ongoing_inline_formatting_context.is_empty() ||
             !self.ongoing_inline_boxes_stack.is_empty()
     }
 }
@@ -746,17 +724,18 @@ impl<'dom, Node> BlockLevelJob<'dom, Node>
 where
     Node: NodeExt<'dom>,
 {
-    fn finish(self, context: &LayoutContext) -> (ArcRefCell<BlockLevelBox>, ContainsFloats) {
+    fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
         let info = &self.info;
-        let (block_level_box, contains_floats) = match self.kind {
-            BlockLevelCreator::SameFormattingContextBlock(contents) => {
-                let (contents, contains_floats) = contents.finish(context, info);
-                let block_level_box = ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
+        let block_level_box = match self.kind {
+            BlockLevelCreator::SameFormattingContextBlock(intermediate_block_container) => {
+                let contents = intermediate_block_container.finish(context, info);
+                let contains_floats = contents.contains_floats();
+                ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
                     base_fragment_info: info.into(),
                     contents,
                     style: Arc::clone(&info.style),
-                });
-                (block_level_box, contains_floats)
+                    contains_floats,
+                })
             },
             BlockLevelCreator::Independent {
                 display_inside,
@@ -770,35 +749,32 @@ where
                     contents,
                     propagated_text_decoration_line,
                 );
-                (
-                    ArcRefCell::new(BlockLevelBox::Independent(context)),
-                    ContainsFloats::No,
-                )
+                ArcRefCell::new(BlockLevelBox::Independent(context))
             },
             BlockLevelCreator::OutOfFlowAbsolutelyPositionedBox {
                 display_inside,
                 contents,
-            } => {
-                let block_level_box = ArcRefCell::new(
-                    BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
-                        AbsolutelyPositionedBox::construct(context, info, display_inside, contents),
-                    )),
-                );
-                (block_level_box, ContainsFloats::No)
-            },
+            } => ArcRefCell::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                ArcRefCell::new(AbsolutelyPositionedBox::construct(
+                    context,
+                    info,
+                    display_inside,
+                    contents,
+                )),
+            )),
             BlockLevelCreator::OutOfFlowFloatBox {
                 display_inside,
                 contents,
-            } => {
-                let block_level_box = ArcRefCell::new(BlockLevelBox::OutOfFlowFloatBox(
-                    FloatBox::construct(context, info, display_inside, contents),
-                ));
-                (block_level_box, ContainsFloats::Yes)
-            },
+            } => ArcRefCell::new(BlockLevelBox::OutOfFlowFloatBox(FloatBox::construct(
+                context,
+                info,
+                display_inside,
+                contents,
+            ))),
         };
         self.box_slot
             .set(LayoutBox::BlockLevel(block_level_box.clone()));
-        (block_level_box, contains_floats)
+        block_level_box
     }
 }
 
@@ -807,7 +783,7 @@ impl IntermediateBlockContainer {
         self,
         context: &LayoutContext,
         info: &NodeAndStyleInfo<Node>,
-    ) -> (BlockContainer, ContainsFloats)
+    ) -> BlockContainer
     where
         Node: NodeExt<'dom>,
     {
@@ -824,28 +800,55 @@ impl IntermediateBlockContainer {
                 is_list_item,
             ),
             IntermediateBlockContainer::InlineFormattingContext(ifc) => {
-                // If that inline formatting context contained any float, those
-                // were already taken into account during the first phase of
-                // box construction.
-                (
-                    BlockContainer::InlineFormattingContext(ifc),
-                    ContainsFloats::No,
-                )
+                BlockContainer::InlineFormattingContext(ifc)
             },
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum ContainsFloats {
-    No,
-    Yes,
-}
+#[test]
+fn test_collapase_and_transform_whitespace() {
+    let output = collapse_and_transform_whitespace("H ", WhiteSpace::Normal, false);
+    assert_eq!(output.0, "H ");
+    assert!(output.1);
 
-impl std::ops::BitOrAssign for ContainsFloats {
-    fn bitor_assign(&mut self, other: Self) {
-        if other == ContainsFloats::Yes {
-            *self = ContainsFloats::Yes;
-        }
-    }
+    let output = collapse_and_transform_whitespace(" W", WhiteSpace::Normal, true);
+    assert_eq!(output.0, "W");
+    assert!(output.1);
+
+    let output = collapse_and_transform_whitespace(" W", WhiteSpace::Normal, false);
+    assert_eq!(output.0, " W");
+    assert!(output.1);
+
+    let output = collapse_and_transform_whitespace(" H  W", WhiteSpace::Normal, false);
+    assert_eq!(output.0, " H W");
+    assert!(output.1);
+
+    let output = collapse_and_transform_whitespace("\n   H  \n \t  W", WhiteSpace::Normal, false);
+    assert_eq!(output.0, " H W");
+
+    let output = collapse_and_transform_whitespace("\n   H  \n \t  W   \n", WhiteSpace::Pre, false);
+    assert_eq!(output.0, "\n   H  \n \t  W   \n");
+    assert!(output.1);
+
+    let output =
+        collapse_and_transform_whitespace("\n   H  \n \t  W   \n ", WhiteSpace::PreLine, false);
+    assert_eq!(output.0, "\nH\nW\n");
+    assert!(output.1);
+
+    let output = collapse_and_transform_whitespace(" ", WhiteSpace::Normal, true);
+    assert_eq!(output.0, "");
+    assert!(!output.1);
+
+    let output = collapse_and_transform_whitespace(" ", WhiteSpace::Normal, false);
+    assert_eq!(output.0, " ");
+    assert!(!output.1);
+
+    let output = collapse_and_transform_whitespace("\n        ", WhiteSpace::Normal, true);
+    assert_eq!(output.0, "");
+    assert!(!output.1);
+
+    let output = collapse_and_transform_whitespace("\n        ", WhiteSpace::Normal, false);
+    assert_eq!(output.0, " ");
+    assert!(!output.1);
 }

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<title>Sub Apps: Error cases for remove()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/subapps-helpers.js"></script>
+
+<body></body>
+
+<script>
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+
+  const iframeNavigator = iframe.contentWindow.navigator;
+  const iframeDOMException = iframe.contentWindow.DOMException;
+
+  // Detach the frame.
+  iframe.remove();
+
+  // At this point the iframe is detached and unloaded, and its execution
+  // context is gone.
+  await promise_rejects_dom(t, 'NotFoundError', iframeDOMException, iframeNavigator.subApps.remove(['/sub-app-id']));
+}, "The object is no longer associated to a document.");
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+
+  const iframeNavigator = iframe.contentWindow.navigator;
+  const iframeDOMException = iframe.contentWindow.DOMException;
+  t.add_cleanup(() => iframe.remove());
+
+  await promise_rejects_dom(t, 'InvalidStateError', iframeDOMException, iframeNavigator.subApps.remove(['/sub-app-id']));
+}, "API is only supported in top-level browsing contexts.");
+
+promise_test(async t => {
+  const full_url = document.location.origin + '/sub-app-id';
+
+  await promise_rejects_dom(t, 'NotSupportedError', navigator.subApps.remove([full_url]));
+}, 'API supports only root-relative paths.');
+
+promise_test(async t => {
+  const url_1 = '/sub-app-1';
+  const url_2 = '/sub-app-2';
+  const url_3 = '/sub-app-3';
+
+  let remove_call_params = [url_1, url_2, url_3];
+
+  let mocked_response = [
+    { "manifestIdPath": url_1, "resultCode": Status.FAILURE },
+    { "manifestIdPath": url_2, "resultCode": Status.FAILURE },
+    { "manifestIdPath": url_3, "resultCode": Status.FAILURE }
+  ];
+
+  let expected_results = {
+    [url_1]: "failure",
+    [url_2]: "failure",
+    [url_3]: "failure"
+  };
+
+  await subapps_remove_expect_reject_with_result(t, remove_call_params, mocked_response, expected_results);
+}, 'Remove call fails.');
+
+promise_test(async t => {
+  const url_1 = '/sub-app-1';
+  const url_2 = '/sub-app-2';
+  const url_3 = '/sub-app-3';
+
+  let remove_call_params = [url_1, url_2, url_3];
+
+  let mocked_response = [
+    { "manifestIdPath": url_1, "resultCode": Status.SUCCESS },
+    { "manifestIdPath": url_2, "resultCode": Status.SUCCESS },
+    { "manifestIdPath": url_3, "resultCode": Status.FAILURE }
+  ];
+
+  let expected_results = {
+    [url_1]: "success",
+    [url_2]: "success",
+    [url_3]: "failure"
+  };
+
+  await subapps_remove_expect_reject_with_result(t, remove_call_params, mocked_response, expected_results);
+}, 'Remove call fails with mixed results.');
+
+</script>

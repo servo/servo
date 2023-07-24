@@ -10,7 +10,7 @@ ${helpers.predefined_type(
     "content",
     "Content",
     "computed::Content::normal()",
-    engines="gecko servo-2013 servo-2020",
+    engines="gecko servo",
     initial_specified_value="specified::Content::normal()",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-content/#propdef-content",
@@ -20,7 +20,8 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "counter-increment",
     "CounterIncrement",
-    engines="gecko servo-2013",
+    engines="gecko servo",
+    servo_pref="layout.legacy_layout",
     initial_value="Default::default()",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment",
@@ -29,8 +30,9 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "counter-reset",
-    "CounterSetOrReset",
-    engines="gecko servo-2013",
+    "CounterReset",
+    engines="gecko servo",
+    servo_pref="layout.legacy_layout",
     initial_value="Default::default()",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset",
@@ -39,7 +41,7 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "counter-set",
-    "CounterSetOrReset",
+    "CounterSet",
     engines="gecko",
     initial_value="Default::default()",
     animation_value_type="discrete",

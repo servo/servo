@@ -238,8 +238,14 @@ impl Transform {
                             Ok(generic::TransformOperation::SkewY(theta))
                         },
                         "perspective" => {
-                            let d = specified::Length::parse_non_negative(context, input)?;
-                            Ok(generic::TransformOperation::Perspective(d))
+                            let p = match input.try_parse(|input| specified::Length::parse_non_negative(context, input)) {
+                                Ok(p) => generic::PerspectiveFunction::Length(p),
+                                Err(..) => {
+                                    input.expect_ident_matching("none")?;
+                                    generic::PerspectiveFunction::None
+                                }
+                            };
+                            Ok(generic::TransformOperation::Perspective(p))
                         },
                         _ => Err(()),
                     };

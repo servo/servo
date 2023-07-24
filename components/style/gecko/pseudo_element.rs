@@ -17,7 +17,6 @@ use crate::string_cache::Atom;
 use crate::values::serialize_atom_identifier;
 use cssparser::ToCss;
 use std::fmt;
-use thin_slice::ThinBoxedSlice;
 
 include!(concat!(
     env!("OUT_DIR"),
@@ -93,9 +92,10 @@ impl PseudoElement {
         EAGER_PSEUDOS[i].clone()
     }
 
-    /// Whether the current pseudo element is animatable.
+    /// Whether animations for the current pseudo element are stored in the
+    /// parent element.
     #[inline]
-    pub fn is_animatable(&self) -> bool {
+    pub fn animations_stored_in_parent(&self) -> bool {
         matches!(*self, Self::Before | Self::After | Self::Marker)
     }
 

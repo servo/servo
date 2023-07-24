@@ -6,7 +6,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum PrefValue {
@@ -184,7 +184,7 @@ impl<P, V> Accessor<P, V> {
 }
 
 pub struct Preferences<'m, P> {
-    user_prefs: Arc<RwLock<P>>,
+    user_prefs: RwLock<P>,
     default_prefs: P,
     accessors: &'m HashMap<String, Accessor<P, PrefValue>>,
 }
@@ -194,15 +194,15 @@ impl<'m, P: Clone> Preferences<'m, P> {
     /// can always be restored using `reset` or `reset_all`.
     pub fn new(default_prefs: P, accessors: &'m HashMap<String, Accessor<P, PrefValue>>) -> Self {
         Self {
-            user_prefs: Arc::new(RwLock::new(default_prefs.clone())),
+            user_prefs: RwLock::new(default_prefs.clone()),
             default_prefs,
             accessors,
         }
     }
 
     /// Access to the data structure holding the preference values.
-    pub fn values(&self) -> Arc<RwLock<P>> {
-        Arc::clone(&self.user_prefs)
+    pub fn values(&self) -> &RwLock<P> {
+        &self.user_prefs
     }
 
     /// Retrieve a preference using its key

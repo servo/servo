@@ -1,7 +1,0 @@
----
-# This is a buildbot_steps.yml file that should break linting becasue it is not a
-# mapping to a list of strings
-mapping_key:
-    - - list_of_list
-      - sublist_item1
-      - sublist_item2

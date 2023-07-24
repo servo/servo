@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name=variant content="?default">
+<meta name=variant content="?week,month">
+<title>text field selection</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#textFieldSelection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var nonApplicableTypes = ["hidden", "email", "datetime-local", "date", "time", "number", "range", "color", "checkbox", "radio", "file", "submit", "image", "reset", "button"];
+  var applicableTypes = ["text", "search", "tel", "url", "password", "aninvalidtype", null];
+
+  if (location.search !== "?default") {
+    // For non default case, use the parameters passed in through query string
+    // instead of nonApplicableTypes.
+    nonApplicableTypes = location.search.substr(1).split(',');
+  }
+
+  nonApplicableTypes.forEach(function(type){
+    var el = document.createElement("input");
+    el.type = type;
+
+    test(() => {
+      assert_equals(el.selectionStart, null);
+    }, `selectionStart on an input[type=${type}] returns null`);
+
+    test(() => {
+      assert_equals(el.selectionEnd, null);
+    }, `selectionEnd on an input[type=${type}] returns null`);
+
+    test(() => {
+      assert_equals(el.selectionDirection, null);
+    }, `selectionDirection on an input[type=${type}] returns null`);
+
+    test(() => {
+      assert_throws_dom("InvalidStateError", function(){
+        el.selectionStart = 0;
+      });
+    }, `assigning selectionStart on an input[type=${type}] throws InvalidStateError`);
+
+    test(() => {
+      assert_throws_dom("InvalidStateError", function(){
+        el.selectionEnd = 0;
+      });
+    }, `assigning selectionEnd on an input[type=${type}] throws InvalidStateError`);
+
+    test(() => {
+      assert_throws_dom("InvalidStateError", function(){
+        el.selectionDirection = 'none';
+      });
+    }, `assigning selectionDirection on an input[type=${type}] throws InvalidStateError`);
+
+    test(() => {
+      assert_throws_dom("InvalidStateError", function(){
+        el.setRangeText("foobar");
+      });
+    }, `setRangeText on an input[type=${type}] throws InvalidStateError`);
+
+    test(() => {
+      assert_throws_dom("InvalidStateError", function(){
+        el.setSelectionRange(0, 1);
+      });
+    }, `setSelectionRange on an input[type=${type}] throws InvalidStateError`);
+  });
+
+  applicableTypes.forEach(function(type) {
+    const el = document.createElement("input");
+    if (type) {
+      el.type = type;
+    }
+    const initialDirection = el.selectionDirection;
+
+    test(() => {
+      assert_equals(el.selectionStart, 0);
+    }, `selectionStart on an input[type=${type}] returns a value`);
+
+    test(() => {
+      assert_equals(el.selectionEnd, 0);
+    }, `selectionEnd on an input[type=${type}] returns a value`);
+
+    test(() => {
+      assert_in_array(el.selectionDirection, ["forward", "none"]);
+    }, `selectionDirection on an input[type=${type}] returns a value`);
+
+    test(() => {
+      el.selectionDirection = "none";
+      assert_equals(el.selectionDirection, initialDirection);
+    }, `assigning selectionDirection "none" on an input[type=${type}] should give the initial direction`);
+
+    test(() => {
+      el.selectionStart = 1;
+    }, `assigning selectionStart on an input[type=${type}] doesn't throw an exception`);
+
+    test(() => {
+      el.selectionEnd = 1;
+    }, `assigning selectionEnd on an input[type=${type}] doesn't throw an exception`);
+
+    test(() => {
+      el.selectionDirection = "forward";
+    }, `assigning selectionDirection on an input[type=${type}] doesn't throw an exception`);
+
+    test(() => {
+      el.setRangeText("foobar");
+    }, `setRangeText on an input[type=${type}] doesn't throw an exception`);
+
+    test(() => {
+      el.setSelectionRange(0, 1);
+    }, `setSelectionRange on an input[type=${type}] doesn't throw an exception`);
+  });
+</script>

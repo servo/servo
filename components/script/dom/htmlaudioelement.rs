@@ -15,6 +15,7 @@ use crate::dom::node::Node;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName};
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLAudioElement {
@@ -37,24 +38,31 @@ impl HTMLAudioElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLAudioElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLAudioElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-audio
     #[allow(non_snake_case)]
-    pub fn Audio(window: &Window, src: Option<DOMString>) -> Fallible<DomRoot<HTMLAudioElement>> {
+    pub fn Audio(
+        window: &Window,
+        proto: Option<HandleObject>,
+        src: Option<DOMString>,
+    ) -> Fallible<DomRoot<HTMLAudioElement>> {
         let element = Element::create(
             QualName::new(None, ns!(html), local_name!("audio")),
             None,
             &window.Document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
+            proto,
         );
 
         let audio = DomRoot::downcast::<HTMLAudioElement>(element).unwrap();

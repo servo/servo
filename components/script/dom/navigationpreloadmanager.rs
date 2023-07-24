@@ -43,7 +43,7 @@ impl NavigationPreloadManager {
 impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable
     fn Enable(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(&*self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
 
         // 2.
         if self.serviceworker_registration.is_active() {
@@ -65,7 +65,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-disable
     fn Disable(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(&*self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
 
         // 2.
         if self.serviceworker_registration.is_active() {
@@ -87,7 +87,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-setheadervalue
     fn SetHeaderValue(&self, value: ByteString, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(&*self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
 
         // 2.
         if self.serviceworker_registration.is_active() {
@@ -109,7 +109,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-getstate
     fn GetState(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(&*self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
         // 2.
         let mut state = NavigationPreloadState::empty();
 

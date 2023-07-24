@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<body>
+The quick brown fox jumps over the lazy dog
+
+<script>
+  document.addEventListener("pointermove", function(event){
+    opener.pointerMoveInInteractedWindow();
+  });
+
+  document.addEventListener("click", function(event){
+    opener.clickInInteractedWindow();
+  });
+
+  async function interact() {
+    test_driver.set_test_context(opener);
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {target:document.body})
+      .pointerDown()
+      .pointerUp()
+      .send();
+  }
+
+  onload = async function(){
+    interact();
+  }
+</script>
+</body>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Prerendering documents are not focused</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<input type="text" id = "prerenderTextField">
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  document.getElementById('prerenderTextField').focus();
+  assert_true(
+      document.hasFocus(),
+      'Initial document should have focus.');
+
+  const {exec} = await create_prerendered_page(t);
+  const result = await exec(() => {
+    const element = document.createElement('input');
+    element.setAttribute('type', 'text');
+    document.body.appendChild(element);
+    element.focus();
+
+    // Post the focus and active states to the initiator page.
+    return {
+      activeElementUpdated: document.activeElement === element,
+      documentHasFocus: document.hasFocus()
+    };
+  })
+
+  assert_true(result.activeElementUpdated, 'Active element has been updated');
+  assert_false(result.documentHasFocus, 'Document should not have focus');
+}, 'Prerendering document should update the active element but not have focus');
+</script>

@@ -11,9 +11,9 @@ name = "servo_rand"
 path = "lib.rs"
 
 [dependencies]
-lazy_static = "1"
-log = "0.4"
-rand = "0.7"
+lazy_static = { workspace = true }
+log = { workspace = true }
+rand = { workspace = true }
 rand_core = "0.5"
 rand_isaac = "0.2"
-uuid = "0.8"
+uuid = { workspace = true }

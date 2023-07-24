@@ -5,11 +5,12 @@
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct DOMRect {
@@ -24,21 +25,34 @@ impl DOMRect {
     }
 
     pub fn new(global: &GlobalScope, x: f64, y: f64, width: f64, height: f64) -> DomRoot<DOMRect> {
-        reflect_dom_object(
+        Self::new_with_proto(global, None, x, y, width, height)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+    ) -> DomRoot<DOMRect> {
+        reflect_dom_object_with_proto(
             Box::new(DOMRect::new_inherited(x, y, width, height)),
             global,
+            proto,
         )
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
     ) -> Fallible<DomRoot<DOMRect>> {
-        Ok(DOMRect::new(global, x, y, width, height))
+        Ok(DOMRect::new_with_proto(global, proto, x, y, width, height))
     }
 }
 

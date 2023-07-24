@@ -1,0 +1,20 @@
+# In this case, the inner rectangle of the clip is empty, because
+# the size is 200 and each corner radius is 100.
+# The blue rect should be fully invisible
+---
+root:
+  items:
+    -
+      type: "stacking-context"
+      bounds: [0, 0, 0, 0]
+      items:
+        -
+          type: clip
+          bounds: [0, 0, 200, 200]
+          complex:
+            - rect: [ 0, 0, 200, 200 ]
+              radius: 100
+          items:
+            - type: rect
+              bounds: [ 0, 0, 200, 200 ]
+              color: red

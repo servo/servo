@@ -5,8 +5,6 @@
 //! Generic types for CSS values related to length.
 
 use crate::parser::{Parse, ParserContext};
-#[cfg(feature = "gecko")]
-use crate::values::computed::ExtremumLength;
 use crate::Zero;
 use cssparser::Parser;
 use style_traits::ParseError;
@@ -153,7 +151,20 @@ pub enum GenericSize<LengthPercent> {
     Auto,
     #[cfg(feature = "gecko")]
     #[animation(error)]
-    ExtremumLength(ExtremumLength),
+    MaxContent,
+    #[cfg(feature = "gecko")]
+    #[animation(error)]
+    MinContent,
+    #[cfg(feature = "gecko")]
+    #[animation(error)]
+    FitContent,
+    #[cfg(feature = "gecko")]
+    #[animation(error)]
+    MozAvailable,
+    #[cfg(feature = "gecko")]
+    #[animation(error)]
+    #[css(function = "fit-content")]
+    FitContentFunction(LengthPercent)
 }
 
 pub use self::GenericSize as Size;
@@ -196,7 +207,20 @@ pub enum GenericMaxSize<LengthPercent> {
     None,
     #[cfg(feature = "gecko")]
     #[animation(error)]
-    ExtremumLength(ExtremumLength),
+    MaxContent,
+    #[cfg(feature = "gecko")]
+    #[animation(error)]
+    MinContent,
+    #[cfg(feature = "gecko")]
+    #[animation(error)]
+    FitContent,
+    #[cfg(feature = "gecko")]
+    #[animation(error)]
+    MozAvailable,
+    #[cfg(feature = "gecko")]
+    #[animation(error)]
+    #[css(function = "fit-content")]
+    FitContentFunction(LengthPercent),
 }
 
 pub use self::GenericMaxSize as MaxSize;
@@ -209,7 +233,7 @@ impl<LengthPercentage> MaxSize<LengthPercentage> {
     }
 }
 
-/// A generic `<length>` | `<number>` value for the `-moz-tab-size` property.
+/// A generic `<length>` | `<number>` value for the `tab-size` property.
 #[derive(
     Animate,
     Clone,

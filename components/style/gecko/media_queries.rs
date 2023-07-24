@@ -14,7 +14,8 @@ use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
 use crate::values::computed::font::GenericFontFamily;
-use crate::values::computed::Length;
+use crate::values::computed::{ColorScheme, Length};
+use crate::values::specified::color::SystemColor;
 use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::{CustomIdent, KeyframesName};
 use app_units::{Au, AU_PER_PX};
@@ -93,7 +94,9 @@ impl Device {
             document,
             default_values: ComputedValues::default_values(doc),
             root_font_size: AtomicU32::new(FONT_MEDIUM_PX.to_bits()),
-            body_text_color: AtomicUsize::new(prefs.mDefaultColor as usize),
+            // This gets updated when we see the <body>, so it doesn't really
+            // matter which color-scheme we look at here.
+            body_text_color: AtomicUsize::new(prefs.mLightColors.mDefault as usize),
             used_root_font_size: AtomicBool::new(false),
             used_font_metrics: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
@@ -385,14 +388,30 @@ impl Device {
         self.pref_sheet_prefs().mUseDocumentColors
     }
 
+    /// Computes a system color and returns it as an nscolor.
+    pub(crate) fn system_nscolor(
+        &self,
+        system_color: SystemColor,
+        color_scheme: &ColorScheme,
+    ) -> u32 {
+        unsafe { bindings::Gecko_ComputeSystemColor(system_color, self.document(), color_scheme) }
+    }
+
     /// Returns the default background color.
+    ///
+    /// This is only for forced-colors/high-contrast, so looking at light colors
+    /// is ok.
     pub fn default_background_color(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.pref_sheet_prefs().mDefaultBackgroundColor)
+        let normal = ColorScheme::normal();
+        convert_nscolor_to_rgba(self.system_nscolor(SystemColor::Canvas, &normal))
     }
 
     /// Returns the default foreground color.
+    ///
+    /// See above for looking at light colors only.
     pub fn default_color(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.pref_sheet_prefs().mDefaultColor)
+        let normal = ColorScheme::normal();
+        convert_nscolor_to_rgba(self.system_nscolor(SystemColor::Canvastext, &normal))
     }
 
     /// Returns the current effective text zoom.
@@ -431,5 +450,18 @@ impl Device {
             bindings::Gecko_GetSafeAreaInsets(pc, &mut top, &mut right, &mut bottom, &mut left)
         };
         SideOffsets2D::new(top, right, bottom, left)
+    }
+
+    /// Returns true if the given MIME type is supported
+    pub fn is_supported_mime_type(&self, mime_type: &str) -> bool {
+        unsafe {
+            bindings::Gecko_IsSupportedImageMimeType(mime_type.as_ptr(), mime_type.len() as u32)
+        }
+    }
+
+    /// Return whether the document is a chrome document.
+    #[inline]
+    pub fn is_chrome_document(&self) -> bool {
+        self.pref_sheet_prefs().mIsChrome
     }
 }

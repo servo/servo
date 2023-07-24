@@ -7,6 +7,7 @@ use image::ImageFormat;
 use ipc_channel::ipc::IpcSharedMemory;
 use pixels::PixelFormat;
 use std::fmt;
+use webrender_api::ImageKey;
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct Image {
@@ -16,7 +17,7 @@ pub struct Image {
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     pub bytes: IpcSharedMemory,
     #[ignore_malloc_size_of = "Defined in webrender_api"]
-    pub id: Option<webrender_api::ImageKey>,
+    pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
 }
 

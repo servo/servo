@@ -32,7 +32,13 @@ use rayon;
 use smallvec::SmallVec;
 
 /// The minimum stack size for a thread in the styling pool, in kilobytes.
+#[cfg(feature = "gecko")]
 pub const STYLE_THREAD_STACK_SIZE_KB: usize = 256;
+
+/// The minimum stack size for a thread in the styling pool, in kilobytes.
+/// Servo requires a bigger stack in debug builds.
+#[cfg(feature = "servo")]
+pub const STYLE_THREAD_STACK_SIZE_KB: usize = 512;
 
 /// The stack margin. If we get this deep in the stack, we will skip recursive
 /// optimizations to ensure that there is sufficient room for non-recursive work.
@@ -274,7 +280,8 @@ pub fn traverse_nodes<'a, 'scope, E, D, I>(
             top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
         } else {
             scope.spawn_fifo(move |scope| {
-                profiler_label!(Style);
+                #[cfg(feature = "gecko")]
+                gecko_profiler_label!(Layout, StyleComputation);
                 let work = work;
                 top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
             });
@@ -284,7 +291,8 @@ pub fn traverse_nodes<'a, 'scope, E, D, I>(
             let nodes: WorkUnit<E::ConcreteNode> = chunk.collect();
             let traversal_data_copy = traversal_data.clone();
             scope.spawn_fifo(move |scope| {
-                profiler_label!(Style);
+                #[cfg(feature = "gecko")]
+                gecko_profiler_label!(Layout, StyleComputation);
                 let n = nodes;
                 top_down_dom(&*n, root, traversal_data_copy, scope, pool, traversal, tls)
             });

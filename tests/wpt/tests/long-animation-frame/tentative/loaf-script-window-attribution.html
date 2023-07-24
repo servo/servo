@@ -1,0 +1,61 @@
+
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: window attribution</title>
+<meta name="timeout" content="long">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<div id="log"></div>
+<script>
+
+const host_info = get_host_info();
+const {ORIGIN, REMOTE_ORIGIN, HTTP_NOTSAMESITE_ORIGIN} = host_info;
+
+promise_test (async t => {
+  const [entry, script] = await expect_long_frame_with_script(() => {
+    requestAnimationFrame(() => busy_wait());
+  }, () => true, t);
+  assert_equals(script.windowAttribution, "self");
+  assert_equals(script.window, window);
+}, 'Scripts in this window should be self-attributed');
+
+promise_test (async t => {
+  let found = false;
+  for (let i = 0; i < 10 && !found; ++i) {
+    const [executor, iframe] = await prepare_exec_iframe(t, ORIGIN);
+    const [entry, script] = await expect_long_frame_with_script(() =>
+      executor.execute_script(async (duration) => {
+        await new Promise(resolve => window.requestAnimationFrame(resolve));
+        const deadline = performance.now() + duration;
+        while (performance.now() < deadline) {}
+      }, [very_long_frame_duration]), () => true, t);
+
+      if (script.windowAttribution === "descendant" && script.window === iframe.contentWindow) {
+          found = true;
+      }
+  }
+
+  assert_true(found);
+}, 'Scripts in subframes should be descendant-attributed');
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "/resource-timing/resources/green.html";
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+  const [entry, script] = await expect_long_frame_with_script(
+    () => requestAnimationFrame(busy_wait), () => true, t);
+  const in_iframe = iframe.contentWindow.performance.getEntriesByType("long-animation-frame").some(
+    e => e.scripts.some(script_in_iframe => script_in_iframe.name === script.name)
+  );
+
+  assert_false(in_iframe, "IFrame should not receive the LoAF entry");
+}, 'A long busy wait in a requestAnimationFrame should not be observable by same-origin iframes');
+
+</script>
+</body>

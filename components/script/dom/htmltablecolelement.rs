@@ -9,6 +9,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLTableColElement {
@@ -31,12 +32,14 @@ impl HTMLTableColElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTableColElement> {
-        let n = Node::reflect_node(
+        let n = Node::reflect_node_with_proto(
             Box::new(HTMLTableColElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();

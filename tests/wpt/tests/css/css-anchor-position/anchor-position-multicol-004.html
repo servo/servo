@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<title>Tests resolving anchor-name conflicts in multicol</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-name">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+.cb {
+  transform: translate(0);  /* Make it a containing block. */
+  border-width: 5px 6px 7px 8px;
+  border-style: solid;
+  padding: 5px 6px 7px 8px;
+}
+.columns {
+  column-count: 5;
+  column-fill: auto;
+  column-gap: 10px;
+  column-width: 100px;
+  width: 540px;
+  height: 100px;
+}
+.spacer {
+  height: 10px;
+  background: pink;
+}
+.anchor1 {
+  anchor-name: --a1;
+  margin-left: 10px;
+  width: 40px;
+  height: 90px;
+  background: blue;
+}
+.target {
+  position: absolute;
+}
+.target1 {
+  left: anchor(--a1 left);
+  top: anchor(--a1 top);
+  width: anchor-size(--a1 width);
+  height: anchor-size(--a1 height);
+  background: lime;
+  opacity: .3;
+}
+.target1-rb {
+  right: anchor(--a1 right);
+  bottom: anchor(--a1 bottom);
+  width: 10px;
+  height: 10px;
+  background: purple;
+}
+</style>
+<body onload="checkLayoutForAnchorPos('.target')">
+  <p>The green box should be a union of two blue boxes in the right,
+    and the purple box should be at the right-bottom of the green box.
+  </p>
+  <div class="spacer" style="height: 10px"></div>
+  <div class="columns">
+    <div class="spacer" style="height: 70px"></div>
+    <div class="cb">
+      <!-- This spacer fills up to the middle of the 2nd column. -->
+      <div class="spacer" style="height: 60px"></div>
+      <div class="anchor1"></div>
+      <div class="cb">
+        <div class="spacer" style="height: 120px"></div>
+        <div class="anchor1" style="width: 20px"></div>
+
+        <div class="target target1"
+             data-offset-x=18 data-offset-y=65
+             data-expected-width=130 data-expected-height=100></div>
+        <div class="target target1-rb"
+              data-offset-x=138 data-offset-y=155></div>
+      </div>
+
+      <div class="target target1"
+            data-offset-x=34 data-offset-y=225
+            data-expected-width=130 data-expected-height=100></div>
+      <div class="target target1-rb"
+            data-offset-x=154 data-offset-y=315></div>
+    </div>
+</body>

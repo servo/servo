@@ -1,0 +1,102 @@
+﻿<!doctype html>
+<meta charset=utf-8>
+<html>
+<head>
+    <title>Test Actions</title>
+    <style>
+      div { padding: 0; margin: 0; }
+      #trackPointer { position: fixed; }
+      #resultContainer { width: 600px; height: 60px; }
+      .area { width: 100px; height: 50px; background-color: #ccc; }
+    </style>
+    <script>
+        "use strict";
+        var els = {};
+        var allEvents = { events: [] };
+        function displayMessage(message) {
+            document.getElementById("events").innerHTML = "<p>" + message + "</p>";
+        }
+
+        function appendMessage(message) {
+            document.getElementById("events").innerHTML += "<p>" + message + "</p>";
+        }
+
+        function recordPointerEvent(event) {
+          if (event.type === "contextmenu") {
+            event.preventDefault();
+          }
+          allEvents.events.push({
+            "type": event.type,
+            "button": event.button,
+            "buttons": event.buttons,
+            "pageX": event.pageX,
+            "pageY": event.pageY,
+            "ctrlKey": event.ctrlKey,
+            "metaKey": event.metaKey,
+            "altKey": event.altKey,
+            "shiftKey": event.shiftKey,
+            "target": event.target.id,
+            "pointerType": event.pointerType,
+            "width": event.width,
+            "height": event.height,
+            "pressure": event.pressure,
+            "tangentialPressure": event.tangentialPressure,
+            "tiltX": event.tiltX,
+            "tiltY": event.tiltY,
+            "twist": event.twist,
+            "altitudeAngle": event.altitudeAngle,
+            "azimuthAngle": event.azimuthAngle
+          });
+          appendMessage(event.type + " " +
+              "button: " + event.button + ", " +
+              "pageX: " + event.pageX + ", " +
+              "pageY: " + event.pageY + ", " +
+              "button: " + event.button + ", " +
+              "buttons: " + event.buttons + ", " +
+              "ctrlKey: " + event.ctrlKey + ", " +
+              "altKey: " + event.altKey + ", " +
+              "metaKey: " + event.metaKey + ", " +
+              "shiftKey: " + event.shiftKey + ", " +
+              "target id: " + event.target.id + ", " +
+              "pointerType: " + event.pointerType + ", " +
+              "width: " + event.width + ", " +
+              "height: " + event.height + ", " +
+              "pressure: " + event.pressure + ", " +
+              "tangentialPressure: " + event.tangentialPressure + ", " +
+              "tiltX: " + event.tiltX + ", " +
+              "tiltY: " + event.tiltY + ", " +
+              "twist: " + event.twist + ", " +
+              "altitudeAngle: " + event.altitudeAngle + ", " +
+              "azimuthAngle: " + event.azimuthAngle);
+        }
+
+        function resetEvents() {
+          allEvents.events.length = 0;
+          displayMessage("");
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+          var pointerArea = document.getElementById("pointerArea");
+          pointerArea.addEventListener("pointerdown", recordPointerEvent);
+          pointerArea.addEventListener("pointermove", recordPointerEvent);
+          pointerArea.addEventListener("pointerup", recordPointerEvent);
+          pointerArea.addEventListener("pointerover", recordPointerEvent);
+          pointerArea.addEventListener("pointerenter", recordPointerEvent);
+          pointerArea.addEventListener("pointerout", recordPointerEvent);
+          pointerArea.addEventListener("pointerleave", recordPointerEvent);
+        });
+    </script>
+</head>
+<body>
+  <div id="trackPointer" class="block"></div>
+  <div>
+    <h2>PointerReporter</h2>
+    <div id="pointerArea" class="area">
+    </div>
+  </div>
+  <div id="resultContainer">
+    <h2>Events</h2>
+    <div id="events"></div>
+  </div>
+</body>
+</html>

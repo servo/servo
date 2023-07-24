@@ -1,0 +1,24 @@
+== multiply.yaml multiply-ref.yaml
+fuzzy(1,32) == multiply-2.yaml multiply-2-ref.yaml
+fuzzy(1,32) == color_targets(4) alpha_targets(0) multiply-3.yaml multiply-2-ref.yaml
+== difference.yaml difference-ref.yaml
+fuzzy(1,30000) == difference-transparent.yaml difference-transparent-ref.yaml
+== darken.yaml darken-ref.yaml
+== lighten.yaml lighten-ref.yaml
+
+fuzzy(1,32) == repeated-difference.yaml repeated-difference-ref.yaml
+
+== isolated.yaml isolated-ref.yaml
+fuzzy(3,397) == isolated-2.yaml isolated-2-ref.yaml
+== isolated-with-filter.yaml isolated-ref.yaml
+== isolated-premultiplied.yaml blank.yaml
+== isolated-premultiplied-2.yaml isolated-premultiplied-2-ref.yaml
+
+== large.yaml large-ref.yaml
+
+# fuzzy because dithering is different for gradients
+# drawn in different render targets
+fuzzy(1,2502) == transparent-composite-1.yaml transparent-composite-1-ref.yaml
+fuzzy(1,2502) == transparent-composite-2.yaml transparent-composite-2-ref.yaml
+
+fuzzy(2,324) == multi-mix-blend-mode.yaml multi-mix-blend-mode-ref.yaml

@@ -272,7 +272,8 @@ impl Tokenizer {
         tokenizer
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
+    #[must_use]
+    pub fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         let mut send_tendrils = VecDeque::new();
         while let Some(str) = input.pop_front() {
             send_tendrils.push_back(SendTendril::from(str));
@@ -296,7 +297,7 @@ impl Tokenizer {
                 ToTokenizerMsg::TokenizerResultDone { updated_input } => {
                     let buffer_queue = create_buffer_queue(updated_input);
                     *input = buffer_queue;
-                    return Ok(());
+                    return TokenizerResult::Done;
                 },
                 ToTokenizerMsg::TokenizerResultScript {
                     script,
@@ -305,7 +306,7 @@ impl Tokenizer {
                     let buffer_queue = create_buffer_queue(updated_input);
                     *input = buffer_queue;
                     let script = self.get_node(&script.id);
-                    return Err(DomRoot::from_ref(script.downcast().unwrap()));
+                    return TokenizerResult::Script(DomRoot::from_ref(script.downcast().unwrap()));
                 },
                 ToTokenizerMsg::End => unreachable!(),
             };
@@ -420,7 +421,7 @@ impl Tokenizer {
                 self.insert_node(node, Dom::from_ref(element.upcast()));
             },
             ParseOperation::CreateComment { text, node } => {
-                let comment = Comment::new(DOMString::from(text), document);
+                let comment = Comment::new(DOMString::from(text), document, None);
                 self.insert_node(node, Dom::from_ref(&comment.upcast()));
             },
             ParseOperation::AppendBeforeSibling { sibling, node } => {

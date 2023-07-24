@@ -5,22 +5,22 @@
 //! Definition of Window.
 //! Implemented by headless and headed windows.
 
-use crate::events_loop::ServoEvent;
-use servo::compositing::windowing::{WindowEvent, WindowMethods};
+use crate::events_loop::WakerEvent;
+use servo::compositing::windowing::{EmbedderEvent, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
-use winit;
+
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;
 
 pub trait WindowPortsMethods: WindowMethods {
-    fn get_events(&self) -> Vec<WindowEvent>;
+    fn get_events(&self) -> Vec<EmbedderEvent>;
     fn id(&self) -> winit::window::WindowId;
     fn has_events(&self) -> bool;
     fn page_height(&self) -> f32;
     fn get_fullscreen(&self) -> bool;
-    fn winit_event_to_servo_event(&self, event: winit::event::WindowEvent<'_>);
+    fn queue_embedder_events_for_winit_event(&self, event: winit::event::WindowEvent<'_>);
     fn is_animating(&self) -> bool;
     fn set_title(&self, _title: &str) {}
     fn set_inner_size(&self, _size: DeviceIntSize) {}
@@ -29,7 +29,7 @@ pub trait WindowPortsMethods: WindowMethods {
     fn set_cursor(&self, _cursor: Cursor) {}
     fn new_glwindow(
         &self,
-        events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+        events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>
     ) -> Box<dyn webxr::glwindow::GlWindow>;
     fn winit_window(&self) -> Option<&winit::window::Window>;
     fn set_toolbar_size(&self, height: f32);

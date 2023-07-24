@@ -28,11 +28,8 @@ ProductName = "Servo"
 [features]
 debugmozjs = ["libservo/debugmozjs"]
 default = ["webdriver", "max_log_level", "minibrowser"]
-egl = ["libservo/egl"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
-layout-2013 = ["libservo/layout-2013"]
-layout-2020 = ["libservo/layout-2020"]
 max_log_level = ["log/release_max_level_info"]
 media-dummy = ["libservo/media-dummy"]
 media-gstreamer = ["libservo/media-gstreamer"]
@@ -47,32 +44,32 @@ webrender_debugger = ["libservo/webrender_debugger"]
 xr-profile = ["libservo/xr-profile"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-backtrace = "0.3"
+backtrace = { workspace = true }
 clipboard = "0.5"
 egui = { version = "0.22.0", optional = true }
 egui_glow = { version = "0.22.0", optional = true, features = ["winit"] }
 egui-winit = { version = "0.22.0", optional = true }
-euclid = "0.22"
-getopts = "0.2.11"
+euclid = { workspace = true }
+getopts = { workspace = true }
 gleam = "0.12"
 glow = { version = "0.12.2", optional = true }
-keyboard-types = "0.6"
-lazy_static = "1"
-libc = "0.2"
+keyboard-types = { workspace = true }
+lazy_static = { workspace = true }
+libc = { workspace = true }
 libservo = { path = "../../components/servo" }
-log = "0.4"
+log = { workspace = true }
 servo-media = { git = "https://github.com/servo/media" }
 shellwords = "1.0.0"
-surfman = { version = "0.6", features = ["sm-winit", "sm-x11"] }
+surfman = { workspace = true, features = ["sm-winit", "sm-x11"] }
 tinyfiledialogs = "3.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
 winit = "0.28.3"
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
-image = "0.24"
+image = { workspace = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 sig = "1.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-winapi = { version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"] }
+winapi = { workspace = true, features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"] }

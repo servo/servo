@@ -1,0 +1,601 @@
+diff --git a/direct-composition/src/lib.rs b/direct-composition/src/lib.rs
+index fadb8f2b72..fa94b4b0e3 100644
+--- a/direct-composition/src/lib.rs
++++ b/direct-composition/src/lib.rs
+@@ -4,9 +4,9 @@
+ 
+ #![cfg(windows)]
+ 
+-extern crate gleam;
+-extern crate mozangle;
+-extern crate winapi;
++use gleam;
++use mozangle;
++use winapi;
+ 
+ use com::{ComPtr, CheckHResult, as_ptr};
+ use std::ptr;
+diff --git a/direct-composition/src/main_windows.rs b/direct-composition/src/main_windows.rs
+index 18f1300a51..ff6608b4f0 100644
+--- a/direct-composition/src/main_windows.rs
++++ b/direct-composition/src/main_windows.rs
+@@ -2,11 +2,11 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate direct_composition;
+-extern crate euclid;
+-extern crate gleam;
+-extern crate webrender;
+-extern crate winit;
++use direct_composition;
++use euclid;
++use gleam;
++use webrender;
++use winit;
+ 
+ use euclid::size2;
+ use direct_composition::DirectComposition;
+diff --git a/examples/alpha_perf.rs b/examples/alpha_perf.rs
+index 56dc5b1abe..9200e65c8d 100644
+--- a/examples/alpha_perf.rs
++++ b/examples/alpha_perf.rs
+@@ -2,11 +2,11 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate euclid;
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use euclid;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/examples/animation.rs b/examples/animation.rs
+index 612d891178..2e87e78b17 100644
+--- a/examples/animation.rs
++++ b/examples/animation.rs
+@@ -10,11 +10,11 @@
+ //! rounded cornered rectangle, which is done automatically during the
+ //! scene building for render optimization.
+ 
+-extern crate euclid;
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use euclid;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/examples/basic.rs b/examples/basic.rs
+index 79e0a87c46..0844994400 100644
+--- a/examples/basic.rs
++++ b/examples/basic.rs
+@@ -2,11 +2,11 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate euclid;
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use euclid;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/examples/blob.rs b/examples/blob.rs
+index dd58b17f38..ea6536cea8 100644
+--- a/examples/blob.rs
++++ b/examples/blob.rs
+@@ -2,11 +2,11 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate gleam;
+-extern crate glutin;
+-extern crate rayon;
+-extern crate webrender;
+-extern crate winit;
++use gleam;
++use glutin;
++use rayon;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/examples/document.rs b/examples/document.rs
+index 56f5eedc8f..e33eff4665 100644
+--- a/examples/document.rs
++++ b/examples/document.rs
+@@ -2,11 +2,11 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate euclid;
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use euclid;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/examples/frame_output.rs b/examples/frame_output.rs
+index dc1c1d83f0..2cd612c9b4 100644
+--- a/examples/frame_output.rs
++++ b/examples/frame_output.rs
+@@ -2,11 +2,11 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate euclid;
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use euclid;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/examples/iframe.rs b/examples/iframe.rs
+index 50e8b46f30..32c0b3a8fe 100644
+--- a/examples/iframe.rs
++++ b/examples/iframe.rs
+@@ -2,10 +2,10 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/examples/image_resize.rs b/examples/image_resize.rs
+index f45add1e7a..e28dd8e03d 100644
+--- a/examples/image_resize.rs
++++ b/examples/image_resize.rs
+@@ -2,10 +2,10 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/examples/multiwindow.rs b/examples/multiwindow.rs
+index 9b20960a94..2183b94144 100644
+--- a/examples/multiwindow.rs
++++ b/examples/multiwindow.rs
+@@ -2,11 +2,11 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate euclid;
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use euclid;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ use gleam::gl;
+ use glutin::NotCurrent;
+diff --git a/examples/scrolling.rs b/examples/scrolling.rs
+index 34cd14304f..745c4f9bd3 100644
+--- a/examples/scrolling.rs
++++ b/examples/scrolling.rs
+@@ -2,11 +2,11 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate euclid;
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use euclid;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/examples/texture_cache_stress.rs b/examples/texture_cache_stress.rs
+index d2e6818302..a065649b73 100644
+--- a/examples/texture_cache_stress.rs
++++ b/examples/texture_cache_stress.rs
+@@ -2,10 +2,10 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/examples/yuv.rs b/examples/yuv.rs
+index a8f36b33d7..3943bd23a6 100644
+--- a/examples/yuv.rs
++++ b/examples/yuv.rs
+@@ -2,10 +2,10 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate gleam;
+-extern crate glutin;
+-extern crate webrender;
+-extern crate winit;
++use gleam;
++use glutin;
++use webrender;
++use winit;
+ 
+ #[path = "common/boilerplate.rs"]
+ mod boilerplate;
+diff --git a/glsl-to-cxx/src/lib.rs b/glsl-to-cxx/src/lib.rs
+index e40418aaab..409af02d58 100644
+--- a/glsl-to-cxx/src/lib.rs
++++ b/glsl-to-cxx/src/lib.rs
+@@ -2,7 +2,7 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate glsl;
++use glsl;
+ 
+ mod hir;
+ 
+diff --git a/peek-poke/peek-poke-derive/src/lib.rs b/peek-poke/peek-poke-derive/src/lib.rs
+index 7000f28bf1..92d538e516 100644
+--- a/peek-poke/peek-poke-derive/src/lib.rs
++++ b/peek-poke/peek-poke-derive/src/lib.rs
+@@ -223,7 +223,7 @@ fn peek_poke_derive(mut s: Structure) -> TokenStream {
+     };
+ 
+     let poke_impl = s.gen_impl(quote! {
+-        extern crate peek_poke;
++        use peek_poke;
+ 
+         gen unsafe impl peek_poke::Poke for @Self {
+             #max_size_fn
+@@ -249,7 +249,7 @@ fn peek_poke_derive(mut s: Structure) -> TokenStream {
+     let peek_impl = quote! {
+         #[allow(non_upper_case_globals)]
+         const #dummy_const: () = {
+-            extern crate peek_poke;
++            use peek_poke;
+ 
+             impl #impl_generics peek_poke::Peek for #name #ty_generics #where_clause {
+                 #peek_from_fn
+diff --git a/swgl/build.rs b/swgl/build.rs
+index 1de3568aa0..5133e9f397 100644
+--- a/swgl/build.rs
++++ b/swgl/build.rs
+@@ -2,9 +2,9 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate cc;
+-extern crate glsl_to_cxx;
+-extern crate webrender_build;
++use cc;
++use glsl_to_cxx;
++use webrender_build;
+ 
+ use std::collections::HashSet;
+ use std::fmt::Write;
+diff --git a/swgl/src/lib.rs b/swgl/src/lib.rs
+index e8fc030e0c..e19e85fd51 100644
+--- a/swgl/src/lib.rs
++++ b/swgl/src/lib.rs
+@@ -5,7 +5,7 @@
+ #![crate_name = "swgl"]
+ #![crate_type = "lib"]
+ 
+-extern crate gleam;
++use gleam;
+ 
+ mod swgl_fns;
+ 
+diff --git a/webrender/build.rs b/webrender/build.rs
+index 36a7f17a8e..caea4dd5c2 100644
+--- a/webrender/build.rs
++++ b/webrender/build.rs
+@@ -2,7 +2,7 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate webrender_build;
++use webrender_build;
+ 
+ use std::borrow::Cow;
+ use std::env;
+diff --git a/webrender/src/device/gl.rs b/webrender/src/device/gl.rs
+index 6ad0e98eef..3eac572081 100644
+--- a/webrender/src/device/gl.rs
++++ b/webrender/src/device/gl.rs
+@@ -373,7 +373,7 @@ impl<T> Drop for VBO<T> {
+ pub struct ExternalTexture {
+     id: gl::GLuint,
+     target: gl::GLuint,
+-    swizzle: Swizzle,
++    _swizzle: Swizzle,
+     uv_rect: TexelRect,
+ }
+ 
+@@ -387,7 +387,7 @@ impl ExternalTexture {
+         ExternalTexture {
+             id,
+             target: get_gl_target(target),
+-            swizzle,
++            _swizzle: swizzle,
+             uv_rect,
+         }
+     }
+@@ -520,7 +520,7 @@ impl Texture {
+         let ext = ExternalTexture {
+             id: self.id,
+             target: self.target,
+-            swizzle: Swizzle::default(),
++            _swizzle: Swizzle::default(),
+             // TODO(gw): Support custom UV rect for external textures during captures
+             uv_rect: TexelRect::new(
+                 0.0,
+diff --git a/webrender/src/internal_types.rs b/webrender/src/internal_types.rs
+index bae74efcfa..321afd2221 100644
+--- a/webrender/src/internal_types.rs
++++ b/webrender/src/internal_types.rs
+@@ -568,13 +568,13 @@ pub enum ResultMsg {
+ 
+ #[derive(Clone, Debug)]
+ pub struct ResourceCacheError {
+-    description: String,
++    _description: String,
+ }
+ 
+ impl ResourceCacheError {
+     pub fn new(description: String) -> ResourceCacheError {
+         ResourceCacheError {
+-            description,
++            _description: description,
+         }
+     }
+ }
+diff --git a/webrender/src/lib.rs b/webrender/src/lib.rs
+index 965f7dbc89..0db5feae9e 100644
+--- a/webrender/src/lib.rs
++++ b/webrender/src/lib.rs
+@@ -72,8 +72,7 @@ extern crate serde;
+ #[macro_use]
+ extern crate tracy_rs;
+ 
+-extern crate malloc_size_of;
+-extern crate svg_fmt;
++use malloc_size_of;
+ 
+ #[macro_use]
+ mod profiler;
+@@ -155,49 +154,34 @@ mod platform {
+ }
+ 
+ #[cfg(target_os = "macos")]
+-extern crate core_foundation;
++use core_foundation;
+ #[cfg(target_os = "macos")]
+-extern crate core_graphics;
++use core_graphics;
+ #[cfg(target_os = "macos")]
+-extern crate core_text;
+-
+-#[cfg(all(unix, not(target_os = "macos")))]
+-extern crate freetype;
+-#[cfg(all(unix, not(target_os = "macos")))]
+-extern crate libc;
++use core_text;
+ 
+ #[cfg(target_os = "windows")]
+-extern crate dwrote;
+-
+-extern crate bincode;
+-extern crate byteorder;
+-pub extern crate euclid;
+-extern crate fxhash;
+-extern crate gleam;
+-extern crate num_traits;
+-extern crate plane_split;
+-extern crate rayon;
+-#[cfg(feature = "ron")]
+-extern crate ron;
++use dwrote;
++
++pub use euclid;
+ #[cfg(feature = "debugger")]
+-extern crate serde_json;
++use serde_json;
+ #[macro_use]
+ extern crate smallvec;
+-extern crate time;
+ #[cfg(feature = "debugger")]
+-extern crate ws;
++use ws;
+ #[cfg(feature = "debugger")]
+-extern crate image_loader;
++use image_loader;
+ #[cfg(feature = "debugger")]
+-extern crate base64;
++use base64;
+ #[cfg(all(feature = "capture", feature = "png"))]
+-extern crate png;
++use png;
+ #[cfg(test)]
+-extern crate rand;
++use rand;
+ 
+ #[macro_use]
+ pub extern crate api;
+-extern crate webrender_build;
++use webrender_build;
+ 
+ #[doc(hidden)]
+ pub use crate::composite::{CompositorConfig, Compositor, CompositorCapabilities};
+diff --git a/webrender/src/render_target.rs b/webrender/src/render_target.rs
+index 9a3c953f42..9c62297c92 100644
+--- a/webrender/src/render_target.rs
++++ b/webrender/src/render_target.rs
+@@ -1003,10 +1003,10 @@ fn add_svg_filter_instances(
+     let generic_int = match filter {
+         SvgFilterInfo::Blend(mode) => *mode as u16,
+         SvgFilterInfo::ComponentTransfer(data) =>
+-            ((data.r_func.to_int() << 12 |
++            (data.r_func.to_int() << 12 |
+               data.g_func.to_int() << 8 |
+               data.b_func.to_int() << 4 |
+-              data.a_func.to_int()) as u16),
++              data.a_func.to_int()) as u16,
+         SvgFilterInfo::Composite(operator) =>
+             operator.as_int() as u16,
+         SvgFilterInfo::LinearToSrgb |
+diff --git a/webrender/tests/angle_shader_validation.rs b/webrender/tests/angle_shader_validation.rs
+index 0a099d0b04..dda275dfda 100644
+--- a/webrender/tests/angle_shader_validation.rs
++++ b/webrender/tests/angle_shader_validation.rs
+@@ -2,9 +2,9 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate mozangle;
+-extern crate webrender;
+-extern crate webrender_build;
++use mozangle;
++use webrender;
++use webrender_build;
+ 
+ use mozangle::shaders::{BuiltInResources, Output, ShaderSpec, ShaderValidator};
+ use webrender_build::shader::{ShaderFeatureFlags, ShaderVersion, build_shader_strings, get_shader_features};
+diff --git a/webrender_api/src/api.rs b/webrender_api/src/api.rs
+index 3e8a99e921..94962ad712 100644
+--- a/webrender_api/src/api.rs
++++ b/webrender_api/src/api.rs
+@@ -4,8 +4,6 @@
+ 
+ #![deny(missing_docs)]
+ 
+-extern crate serde_bytes;
+-
+ use peek_poke::PeekPoke;
+ use std::cell::Cell;
+ use std::fmt;
+diff --git a/webrender_api/src/image.rs b/webrender_api/src/image.rs
+index deaeb92aeb..4a664bddcf 100644
+--- a/webrender_api/src/image.rs
++++ b/webrender_api/src/image.rs
+@@ -340,7 +340,7 @@ pub enum ImageData {
+ }
+ 
+ mod serde_image_data_raw {
+-    extern crate serde_bytes;
++    use serde_bytes;
+ 
+     use std::sync::Arc;
+     use serde::{Deserializer, Serializer};
+diff --git a/webrender_api/src/lib.rs b/webrender_api/src/lib.rs
+index 5f274753e8..848f4740c9 100644
+--- a/webrender_api/src/lib.rs
++++ b/webrender_api/src/lib.rs
+@@ -15,28 +15,23 @@
+ #![cfg_attr(feature = "cargo-clippy", allow(clippy::float_cmp, clippy::too_many_arguments))]
+ #![cfg_attr(feature = "cargo-clippy", allow(clippy::unreadable_literal, clippy::new_without_default))]
+ 
+-extern crate app_units;
+ #[macro_use]
+ extern crate bitflags;
+-extern crate byteorder;
+ #[cfg(feature = "nightly")]
+-extern crate core;
++use core;
+ #[cfg(target_os = "macos")]
+-extern crate core_foundation;
++use core_foundation;
+ #[cfg(target_os = "macos")]
+-extern crate core_graphics;
++use core_graphics;
+ #[macro_use]
+ extern crate derive_more;
+-pub extern crate euclid;
++pub use euclid;
+ #[macro_use]
+ extern crate malloc_size_of_derive;
+-extern crate serde;
+ #[macro_use]
+ extern crate serde_derive;
+-extern crate time;
+ 
+-extern crate malloc_size_of;
+-extern crate peek_poke;
++use malloc_size_of;
+ 
+ mod api;
+ pub mod channel;
+diff --git a/wr_malloc_size_of/lib.rs b/wr_malloc_size_of/lib.rs
+index 49a9666342..2a34508974 100644
+--- a/wr_malloc_size_of/lib.rs
++++ b/wr_malloc_size_of/lib.rs
+@@ -10,8 +10,8 @@
+ 
+ //! A reduced fork of Firefox's malloc_size_of crate, for bundling with WebRender.
+ 
+-extern crate app_units;
+-extern crate euclid;
++use app_units;
++use euclid;
+ 
+ use std::hash::{BuildHasher, Hash};
+ use std::mem::size_of;

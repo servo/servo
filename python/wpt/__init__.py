@@ -12,10 +12,12 @@ import sys
 
 import mozlog.commandline
 
+from . import test
+
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WPT_PATH = os.path.join(SERVO_ROOT, "tests", "wpt")
-WPT_TOOLS_PATH = os.path.join(WPT_PATH, "web-platform-tests", "tools")
+WPT_TOOLS_PATH = os.path.join(WPT_PATH, "tests", "tools")
 CERTS_PATH = os.path.join(WPT_TOOLS_PATH, "certs")
 
 sys.path.insert(0, WPT_TOOLS_PATH)
@@ -50,14 +52,19 @@ def create_parser():
     return parser
 
 
-def update_args_for_layout_2020(kwargs: dict):
+def update_args_for_legacy_layout(kwargs: dict):
     if kwargs.pop("layout_2020"):
-        kwargs["test_paths"]["/"]["metadata_path"] = os.path.join(
-            WPT_PATH, "metadata-layout-2020"
-        )
-        kwargs["test_paths"]["/_mozilla/"]["metadata_path"] = os.path.join(
-            WPT_PATH, "mozilla", "meta-layout-2020"
-        )
-        kwargs["include_manifest"] = os.path.join(
-            WPT_PATH, "include-layout-2020.ini"
-        )
+        return
+    kwargs["test_paths"]["/"]["metadata_path"] = os.path.join(
+        WPT_PATH, "meta-legacy-layout"
+    )
+    kwargs["test_paths"]["/_mozilla/"]["metadata_path"] = os.path.join(
+        WPT_PATH, "mozilla", "meta-legacy-layout"
+    )
+    kwargs["include_manifest"] = os.path.join(
+        WPT_PATH, "include-legacy-layout.ini"
+    )
+
+
+def run_tests():
+    return test.run_tests()

@@ -67,6 +67,15 @@ impl ListStyleType {
             _ => unreachable!("Unknown counter style keyword value"),
         })))
     }
+
+    /// Is this a bullet? (i.e. `list-style-type: disc|circle|square|disclosure-closed|disclosure-open`)
+    #[inline]
+    pub fn is_bullet(&self) -> bool {
+        match self {
+            ListStyleType::CounterStyle(ref style) => style.is_bullet(),
+            _ => false,
+        }
+    }
 }
 
 #[cfg(feature = "gecko")]
@@ -189,28 +198,4 @@ impl Parse for Quotes {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
-}
-
-/// Specified and computed `-moz-list-reversed` property (for UA sheets only).
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    Hash,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum MozListReversed {
-    /// the initial value
-    False,
-    /// exclusively used for <ol reversed> in our html.css UA sheet
-    True,
 }

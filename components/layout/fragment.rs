@@ -64,8 +64,8 @@ use style::values::computed::counters::ContentItem;
 use style::values::computed::{Length, Size, VerticalAlign};
 use style::values::generics::box_::{Perspective, VerticalAlignKeyword};
 use style::values::generics::transform;
-use webrender_api;
 use webrender_api::units::LayoutTransform;
+use webrender_api::{self, ImageKey};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -336,9 +336,9 @@ impl InlineAbsoluteFragmentInfo {
 
 #[derive(Clone)]
 pub enum CanvasFragmentSource {
-    WebGL(webrender_api::ImageKey),
+    WebGL(ImageKey),
     Image(Option<Arc<Mutex<IpcSender<CanvasMsg>>>>),
-    WebGPU(webrender_api::ImageKey),
+    WebGPU(ImageKey),
 }
 
 #[derive(Clone)]

@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -28,6 +28,7 @@ use crate::dom::window::Window;
 use crate::task::TaskOnce;
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use metrics::ToMs;
 use servo_atoms::Atom;
 use std::cell::Cell;
@@ -72,7 +73,14 @@ impl Event {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<Event> {
-        reflect_dom_object(Box::new(Event::new_inherited()), global)
+        Self::new_uninitialized_with_proto(global, None)
+    }
+
+    pub fn new_uninitialized_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<Event> {
+        reflect_dom_object_with_proto(Box::new(Event::new_inherited()), global, proto)
     }
 
     pub fn new(
@@ -81,7 +89,17 @@ impl Event {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
     ) -> DomRoot<Event> {
-        let event = Event::new_uninitialized(global);
+        Self::new_with_proto(global, None, type_, bubbles, cancelable)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+    ) -> DomRoot<Event> {
+        let event = Event::new_uninitialized_with_proto(global, proto);
         event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         event
     }
@@ -89,12 +107,19 @@ impl Event {
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &EventBinding::EventInit,
     ) -> Fallible<DomRoot<Event>> {
         let bubbles = EventBubbles::from(init.bubbles);
         let cancelable = EventCancelable::from(init.cancelable);
-        Ok(Event::new(global, Atom::from(type_), bubbles, cancelable))
+        Ok(Event::new_with_proto(
+            global,
+            proto,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+        ))
     }
 
     pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
@@ -111,18 +136,6 @@ impl Event {
         *self.type_.borrow_mut() = type_;
         self.bubbles.set(bubbles);
         self.cancelable.set(cancelable);
-    }
-
-    // Determine if there are any listeners for a given target and type.
-    // See https://github.com/whatwg/dom/issues/453
-    pub fn has_listeners_for(&self, target: &EventTarget, type_: &Atom) -> bool {
-        // TODO: take 'removed' into account? Not implemented in Servo yet.
-        // https://dom.spec.whatwg.org/#event-listener-removed
-        let mut event_path = self.construct_event_path(&target);
-        event_path.push(DomRoot::from_ref(target));
-        event_path
-            .iter()
-            .any(|target| target.has_listeners_for(type_))
     }
 
     // https://dom.spec.whatwg.org/#event-path

@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::PopStateEventBinding;
 use crate::dom::bindings::codegen::Bindings::PopStateEventBinding::PopStateEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -18,7 +18,7 @@ use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
-use js::rust::HandleValue;
+use js::rust::{HandleObject, HandleValue};
 use servo_atoms::Atom;
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
@@ -37,18 +37,19 @@ impl PopStateEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<PopStateEvent> {
-        reflect_dom_object(Box::new(PopStateEvent::new_inherited()), window)
+    fn new_uninitialized(window: &Window, proto: Option<HandleObject>) -> DomRoot<PopStateEvent> {
+        reflect_dom_object_with_proto(Box::new(PopStateEvent::new_inherited()), window, proto)
     }
 
-    pub fn new(
+    fn new(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         state: HandleValue,
     ) -> DomRoot<PopStateEvent> {
-        let ev = PopStateEvent::new_uninitialized(window);
+        let ev = PopStateEvent::new_uninitialized(window, proto);
         ev.state.set(state.get());
         {
             let event = ev.upcast::<Event>();
@@ -60,11 +61,13 @@ impl PopStateEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: RootedTraceableBox<PopStateEventBinding::PopStateEventInit>,
     ) -> Fallible<DomRoot<PopStateEvent>> {
         Ok(PopStateEvent::new(
             window,
+            proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
@@ -73,7 +76,7 @@ impl PopStateEvent {
     }
 
     pub fn dispatch_jsval(target: &EventTarget, window: &Window, state: HandleValue) {
-        let event = PopStateEvent::new(window, atom!("popstate"), false, false, state);
+        let event = PopStateEvent::new(window, None, atom!("popstate"), false, false, state);
         event.upcast::<Event>().fire(target);
     }
 }

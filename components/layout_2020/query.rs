@@ -4,9 +4,7 @@
 
 //! Utilities for querying the layout, as needed by the layout thread.
 use crate::context::LayoutContext;
-use crate::flow::FragmentTree;
-use crate::fragment_tree::{FragmentFlags, Tag};
-use crate::fragments::Fragment;
+use crate::fragment_tree::{Fragment, FragmentFlags, FragmentTree, Tag};
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
@@ -36,14 +34,14 @@ use style::values::generics::text::LineHeight;
 use style_traits::CSSPixel;
 use style_traits::ToCss;
 use webrender_api::units::LayoutPixel;
-use webrender_api::ExternalScrollId;
+use webrender_api::{DisplayListBuilder, ExternalScrollId};
 
 /// Mutable data belonging to the LayoutThread.
 ///
 /// This needs to be protected by a mutex so we can do fast RPCs.
 pub struct LayoutThreadData {
     /// The root stacking context.
-    pub display_list: Option<webrender_api::DisplayListBuilder>,
+    pub display_list: Option<DisplayListBuilder>,
 
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Option<Rect<Au>>,
@@ -425,7 +423,7 @@ fn process_offset_parent_query_inner(
             //
             // [1]: https://github.com/w3c/csswg-drafts/issues/4541
             let fragment_relative_rect = match fragment {
-                Fragment::Box(fragment) => fragment
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                     .border_rect()
                     .to_physical(fragment.style.writing_mode, &containing_block),
                 Fragment::Text(fragment) => fragment
@@ -483,7 +481,7 @@ fn process_offset_parent_query_inner(
         } else {
             // Record the paths of the nodes being traversed.
             let parent_node_address = match fragment {
-                Fragment::Box(fragment) => {
+                Fragment::Box(fragment) | Fragment::Float(fragment) => {
                     let is_eligible_parent =
                         match (is_body_element, fragment.style.get_box().position) {
                             // Spec says the element is eligible as `offsetParent` if any of
@@ -494,8 +492,9 @@ fn process_offset_parent_query_inner(
                             // TODO: Handle case 2
                             (true, _) |
                             (false, Position::Absolute) |
+                            (false, Position::Fixed) |
                             (false, Position::Relative) |
-                            (false, Position::Fixed) => true,
+                            (false, Position::Sticky) => true,
 
                             // Otherwise, it's not a valid parent
                             (false, Position::Static) => false,
@@ -540,24 +539,25 @@ fn process_offset_parent_query_inner(
             fragment_tree
                 .find(|fragment, _, containing_block| {
                     match fragment {
-                        Fragment::Box(fragment)
-                            if fragment.base.tag == Some(offset_parent_node_tag) =>
-                        {
-                            // Again, take the *first* associated CSS layout box.
-                            let padding_box_corner = fragment
-                                .padding_rect()
-                                .to_physical(fragment.style.writing_mode, &containing_block)
-                                .origin
-                                .to_vector() +
-                                containing_block.origin.to_vector();
-                            let padding_box_corner = Vector2D::new(
-                                Au::from_f32_px(padding_box_corner.x.px()),
-                                Au::from_f32_px(padding_box_corner.y.px()),
-                            );
-                            Some(padding_box_corner)
+                        Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                            if fragment.base.tag == Some(offset_parent_node_tag) {
+                                // Again, take the *first* associated CSS layout box.
+                                let padding_box_corner = fragment
+                                    .padding_rect()
+                                    .to_physical(fragment.style.writing_mode, &containing_block)
+                                    .origin
+                                    .to_vector() +
+                                    containing_block.origin.to_vector();
+                                let padding_box_corner = Vector2D::new(
+                                    Au::from_f32_px(padding_box_corner.x.px()),
+                                    Au::from_f32_px(padding_box_corner.y.px()),
+                                );
+                                Some(padding_box_corner)
+                            } else {
+                                None
+                            }
                         },
                         Fragment::AbsoluteOrFixedPositioned(_) |
-                        Fragment::Box(_) |
                         Fragment::Text(_) |
                         Fragment::Image(_) |
                         Fragment::IFrame(_) |

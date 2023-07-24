@@ -31,6 +31,7 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use std::default::Default;
 use std::iter;
 use style::attr::AttrValue;
@@ -75,7 +76,7 @@ impl HTMLSelectElement {
     ) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::IN_ENABLED_STATE,
+                ElementState::IN_ENABLED_STATE | ElementState::IN_VALID_STATE,
                 local_name,
                 prefix,
                 document,
@@ -92,12 +93,14 @@ impl HTMLSelectElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLSelectElement> {
-        let n = Node::reflect_node(
+        let n = Node::reflect_node_with_proto(
             Box::new(HTMLSelectElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
@@ -344,6 +347,9 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
         for opt in opt_iter {
             opt.set_selectedness(false);
         }
+
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::VALUE_MISSING);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-selectedindex
@@ -411,6 +417,10 @@ impl VirtualMethods for HTMLSelectElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
+            &local_name!("required") => {
+                self.validity_state()
+                    .perform_validation_and_update(ValidationFlags::VALUE_MISSING);
+            },
             &local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
@@ -424,6 +434,9 @@ impl VirtualMethods for HTMLSelectElement {
                         el.check_ancestors_disabled_state_for_form_control();
                     },
                 }
+
+                self.validity_state()
+                    .perform_validation_and_update(ValidationFlags::VALUE_MISSING);
             },
             &local_name!("form") => {
                 self.form_attribute_mutated(mutation);

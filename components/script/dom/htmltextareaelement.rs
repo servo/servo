@@ -37,6 +37,7 @@ use crate::textinput::{
 };
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 use script_traits::ScriptToConstellationChan;
 use std::cell::Cell;
 use std::default::Default;
@@ -148,7 +149,7 @@ impl HTMLTextAreaElement {
             .clone();
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::IN_ENABLED_STATE | ElementState::IN_READ_WRITE_STATE,
+                ElementState::IN_ENABLED_STATE | ElementState::IN_READWRITE_STATE,
                 local_name,
                 prefix,
                 document,
@@ -174,12 +175,14 @@ impl HTMLTextAreaElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTextAreaElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLTextAreaElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 
@@ -320,22 +323,26 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
     fn SetValue(&self, value: DOMString) {
-        let mut textinput = self.textinput.borrow_mut();
+        {
+            let mut textinput = self.textinput.borrow_mut();
 
-        // Step 1
-        let old_value = textinput.get_content();
+            // Step 1
+            let old_value = textinput.get_content();
 
-        // Step 2
-        textinput.set_content(value);
+            // Step 2
+            textinput.set_content(value);
 
-        // Step 3
-        self.value_dirty.set(true);
+            // Step 3
+            self.value_dirty.set(true);
 
-        if old_value != textinput.get_content() {
-            // Step 4
-            textinput.clear_selection_to_limit(Direction::Forward);
+            if old_value != textinput.get_content() {
+                // Step 4
+                textinput.clear_selection_to_limit(Direction::Forward);
+            }
         }
 
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
@@ -530,6 +537,9 @@ impl VirtualMethods for HTMLTextAreaElement {
             },
             _ => {},
         }
+
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
@@ -539,6 +549,9 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
+
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -571,6 +584,9 @@ impl VirtualMethods for HTMLTextAreaElement {
         } else {
             el.check_disabled_attribute();
         }
+
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
     }
 
     // The cloning steps for textarea elements must propagate the raw value
@@ -586,8 +602,12 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
         let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
         el.value_dirty.set(self.value_dirty.get());
-        let mut textinput = el.textinput.borrow_mut();
-        textinput.set_content(self.textinput.borrow().get_content());
+        {
+            let mut textinput = el.textinput.borrow_mut();
+            textinput.set_content(self.textinput.borrow().get_content());
+        }
+        el.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
@@ -658,6 +678,9 @@ impl VirtualMethods for HTMLTextAreaElement {
                 event.mark_as_handled();
             }
         }
+
+        self.validity_state()
+            .perform_validation_and_update(ValidationFlags::all());
     }
 
     fn pop(&self) {

@@ -4,7 +4,7 @@
 
 //! A winit window implementation.
 
-use crate::events_loop::{EventsLoop, ServoEvent};
+use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use euclid::{
@@ -14,10 +14,9 @@ use euclid::{
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
-#[cfg(any(target_os = "linux", target_os = "windows"))]
-use image;
-use keyboard_types::{Key, KeyState, KeyboardEvent};
-use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
+
+use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
+use servo::compositing::windowing::{AnimationState, MouseWindowEvent, EmbedderEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::script_traits::{TouchEventType, WheelDelta, WheelMode};
@@ -31,7 +30,7 @@ use servo::webrender_surfman::WebrenderSurfman;
 use servo_media::player::context::{GlApi, GlContext as PlayerGLContext, NativeDisplay};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::mem;
+
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
 use surfman::platform::generic::multi::connection::NativeConnection;
@@ -57,7 +56,7 @@ pub struct Window {
     mouse_down_button: Cell<Option<winit::event::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
     primary_monitor: winit::monitor::MonitorHandle,
-    event_queue: RefCell<Vec<WindowEvent>>,
+    event_queue: RefCell<Vec<EmbedderEvent>>,
     mouse_pos: Cell<Point2D<i32, DevicePixel>>,
     last_pressed: Cell<Option<(KeyboardEvent, Option<VirtualKeyCode>)>>,
     /// A map of winit's key codes to key values that are interpreted from
@@ -121,10 +120,10 @@ impl Window {
         let PhysicalSize {
             width: screen_width,
             height: screen_height,
-        } = primary_monitor.clone().size();
-        let screen_size = Size2D::new(screen_width as u32, screen_height as u32);
+        } = primary_monitor.size();
+        let screen_size = Size2D::new(screen_width, screen_height);
         let PhysicalSize { width, height } = winit_window.inner_size();
-        let inner_size = Size2D::new(width as u32, height as u32);
+        let inner_size = Size2D::new(width, height);
 
         // Initialize surfman
         let connection =
@@ -202,7 +201,7 @@ impl Window {
         }
         self.event_queue
             .borrow_mut()
-            .push(WindowEvent::Keyboard(event));
+            .push(EmbedderEvent::Keyboard(event));
     }
 
     fn handle_keyboard_input(&self, input: KeyboardInput) {
@@ -230,7 +229,7 @@ impl Window {
             }
             self.event_queue
                 .borrow_mut()
-                .push(WindowEvent::Keyboard(event));
+                .push(EmbedderEvent::Keyboard(event));
         }
     }
 
@@ -268,7 +267,7 @@ impl Window {
                         if pixel_dist < max_pixel_dist {
                             self.event_queue
                                 .borrow_mut()
-                                .push(WindowEvent::MouseWindowEventClass(mouse_up_event));
+                                .push(EmbedderEvent::MouseWindowEventClass(mouse_up_event));
                             MouseWindowEvent::Click(mouse_button, coords.to_f32())
                         } else {
                             mouse_up_event
@@ -280,7 +279,7 @@ impl Window {
         };
         self.event_queue
             .borrow_mut()
-            .push(WindowEvent::MouseWindowEventClass(event));
+            .push(EmbedderEvent::MouseWindowEventClass(event));
     }
 
     fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
@@ -299,8 +298,8 @@ impl Window {
 }
 
 impl WindowPortsMethods for Window {
-    fn get_events(&self) -> Vec<WindowEvent> {
-        mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
+    fn get_events(&self) -> Vec<EmbedderEvent> {
+        std::mem::take(&mut *self.event_queue.borrow_mut())
     }
 
     fn has_events(&self) -> bool {
@@ -321,12 +320,12 @@ impl WindowPortsMethods for Window {
 
     fn set_inner_size(&self, size: DeviceIntSize) {
         self.winit_window
-            .set_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(size.width.into(), size.height.into()))
+            .set_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(size.width, size.height))
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
         self.winit_window
-            .set_outer_position::<PhysicalPosition<i32>>(PhysicalPosition::new(point.x.into(), point.y.into()))
+            .set_outer_position::<PhysicalPosition<i32>>(PhysicalPosition::new(point.x, point.y))
     }
 
     fn set_fullscreen(&self, state: bool) {
@@ -342,7 +341,7 @@ impl WindowPortsMethods for Window {
     }
 
     fn get_fullscreen(&self) -> bool {
-        return self.fullscreen.get();
+        self.fullscreen.get()
     }
 
     fn set_cursor(&self, cursor: Cursor) {
@@ -396,7 +395,7 @@ impl WindowPortsMethods for Window {
         self.winit_window.id()
     }
 
-    fn winit_event_to_servo_event(&self, event: winit::event::WindowEvent<'_>) {
+    fn queue_embedder_events_for_winit_event(&self, event: winit::event::WindowEvent<'_>) {
         match event {
             winit::event::WindowEvent::ReceivedCharacter(ch) => self.handle_received_character(ch),
             winit::event::WindowEvent::KeyboardInput { input, .. } => self.handle_keyboard_input(input),
@@ -411,7 +410,7 @@ impl WindowPortsMethods for Window {
                 self.mouse_pos.set(Point2D::new(x, y));
                 self.event_queue
                     .borrow_mut()
-                    .push(WindowEvent::MouseWindowMoveEventClass(Point2D::new(
+                    .push(EmbedderEvent::MouseWindowMoveEventClass(Point2D::new(
                         x as f32, y as f32,
                     )));
             },
@@ -436,7 +435,7 @@ impl WindowPortsMethods for Window {
                 };
                 let pos = self.mouse_pos.get();
                 let position = Point2D::new(pos.x as f32, pos.y as f32);
-                let wheel_event = WindowEvent::Wheel(wheel_delta, position);
+                let wheel_event = EmbedderEvent::Wheel(wheel_delta, position);
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -449,7 +448,7 @@ impl WindowPortsMethods for Window {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
                 let phase = winit_phase_to_touch_event_type(phase);
                 let scroll_event =
-                    WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
+                    EmbedderEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
 
                 // Send events
                 self.event_queue.borrow_mut().push(wheel_event);
@@ -464,10 +463,10 @@ impl WindowPortsMethods for Window {
                 let point = Point2D::new(position.x as f32, position.y as f32);
                 self.event_queue
                     .borrow_mut()
-                    .push(WindowEvent::Touch(phase, id, point));
+                    .push(EmbedderEvent::Touch(phase, id, point));
             },
             winit::event::WindowEvent::CloseRequested => {
-                self.event_queue.borrow_mut().push(WindowEvent::Quit);
+                self.event_queue.borrow_mut().push(EmbedderEvent::Quit);
             },
             winit::event::WindowEvent::Resized(physical_size) => {
                 let (width, height) = physical_size.into();
@@ -478,7 +477,7 @@ impl WindowPortsMethods for Window {
                         .resize(physical_size.to_i32())
                         .expect("Failed to resize");
                     self.inner_size.set(new_size);
-                    self.event_queue.borrow_mut().push(WindowEvent::Resize);
+                    self.event_queue.borrow_mut().push(EmbedderEvent::Resize);
                 }
             },
             _ => {},
@@ -487,7 +486,7 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+        event_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
@@ -547,7 +546,7 @@ impl WindowMethods for Window {
             viewport,
             framebuffer,
             window: (win_size, win_origin),
-            screen: screen,
+            screen,
             // FIXME: Winit doesn't have API for available size. Fallback to screen size
             screen_avail: screen,
             hidpi_factor: self.servo_hidpi_factor(),
@@ -687,11 +686,11 @@ impl webxr::glwindow::GlWindow for XRWindow {
     }
 
     fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
-        self.pose.xr_rotation.get().clone()
+        self.pose.xr_rotation.get()
     }
 
     fn get_translation(&self) -> Vector3D<f32, UnknownUnit> {
-        self.pose.xr_translation.get().clone()
+        self.pose.xr_translation.get()
     }
 
     fn get_mode(&self) -> webxr::glwindow::GlWindowMode {
@@ -751,8 +750,8 @@ impl XRWindowPose {
             _ => return,
         };
         if modifiers.shift() {
-            x = 10.0 * x;
-            y = 10.0 * y;
+            x *= 10.0;
+            y *= 10.0;
         }
         let x: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_x(Angle::degrees(x));
         let y: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_y(Angle::degrees(y));

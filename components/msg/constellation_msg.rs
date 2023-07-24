@@ -13,6 +13,8 @@ use std::mem;
 use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Duration;
+use webrender_api::ExternalScrollId;
+use webrender_api::PipelineId as WebRenderPipelineId;
 
 macro_rules! namespace_id_method {
     ($func_name:ident, $func_return_data_type:ident, $self:ident, $index_name:ident) => {
@@ -206,15 +208,15 @@ impl PipelineId {
         })
     }
 
-    pub fn to_webrender(&self) -> webrender_api::PipelineId {
+    pub fn to_webrender(&self) -> WebRenderPipelineId {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let PipelineIndex(index) = self.index;
-        webrender_api::PipelineId(namespace_id, index.get())
+        WebRenderPipelineId(namespace_id, index.get())
     }
 
     #[allow(unsafe_code)]
-    pub fn from_webrender(pipeline: webrender_api::PipelineId) -> PipelineId {
-        let webrender_api::PipelineId(namespace_id, index) = pipeline;
+    pub fn from_webrender(pipeline: WebRenderPipelineId) -> PipelineId {
+        let WebRenderPipelineId(namespace_id, index) = pipeline;
         unsafe {
             PipelineId {
                 namespace_id: PipelineNamespaceId(namespace_id),
@@ -224,7 +226,7 @@ impl PipelineId {
     }
 
     pub fn root_scroll_id(&self) -> webrender_api::ExternalScrollId {
-        webrender_api::ExternalScrollId(0, self.to_webrender())
+        ExternalScrollId(0, self.to_webrender())
     }
 }
 

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: @starting-style inside size @container</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#defining-before-change-style-the-starting-style-rule">
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#animated-containers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<div id="container" style="width: 200px">
+  <div id="target" style="display: none"></div>
+</div>
+<style>
+  #container {
+    container-type: inline-size;
+  }
+  #target {
+    transition-property: background-color;
+    transition-duration: 100s;
+    transition-timing-function: steps(2, start);
+    background-color: lime;
+  }
+  @container (width > 300px) {
+    @starting-style {
+      #target { background-color: white; }
+    }
+  }
+  @container (width < 300px) {
+    @starting-style {
+      #target { background-color: red; }
+    }
+  }
+</style>
+<script>
+  promise_test(async t => {
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 255, 0)",
+                  "No transition while display:none");
+    container.style.width = "400px";
+    target.style.display = "block";
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(128, 255, 128)",
+                  "@starting-style based on the size query evaluation from the same frame");
+  }, "Triggered transition from first style update based on up-to-date container query");
+</script>

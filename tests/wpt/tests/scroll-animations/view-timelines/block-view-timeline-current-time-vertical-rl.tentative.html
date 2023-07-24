@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html id="top">
+<meta charset="utf-8">
+<title>View timeline current-time with vertical-rl writing mode</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+  #container {
+    writing-mode: vertical-rl;
+    overflow-x: scroll;
+    height:  200px;
+    width: 200px;
+  }
+  .spacer {
+    width:  800px;
+  }
+  #target {
+    background-color:  green;
+    height:  100px;
+    width:  200px;
+  }
+</style>
+<body>
+  <div id="container">
+    <div id="leading-space" class="spacer"></div>
+    <div id="target"></div>
+    <div id="trailing-space" class="spacer"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  promise_test(async t => {
+    container.scrollLeft = 0;
+    await waitForNextFrame();
+
+    const anim = CreateViewTimelineOpacityAnimation(t, target, {axis: 'block'});
+    const timeline = anim.timeline;
+    await anim.ready;
+
+    // Initially before start-offset and animation effect is in the before
+    // phase.
+    assert_percents_equal(timeline.currentTime, -150,
+                          "Timeline's currentTime at container start boundary");
+    assert_percents_equal(anim.currentTime, -150,
+                          "Animation's currentTime at container start boundary");
+    assert_equals(getComputedStyle(target).opacity, "1",
+                  'Effect is inactive in the before phase');
+
+    // Advance to the start offset, which triggers entry to the active phase.
+    container.scrollLeft = -600;
+    await waitForNextFrame();
+    assert_percents_equal(timeline.currentTime, 0,
+                          "Timeline's current time at start offset");
+    assert_percents_equal(anim.currentTime, 0,
+                          "Animation's current time at start offset");
+    assert_equals(getComputedStyle(target).opacity, '0.3',
+                  'Effect at the start of the active phase');
+
+    // Advance to the midpoint of the animation.
+    container.scrollLeft = -800;
+    await waitForNextFrame();
+    assert_percents_equal(timeline.currentTime, 50,
+                          "Timeline's currentTime at midpoint");
+    assert_percents_equal(anim.currentTime, 50,
+                          "Animation's currentTime at midpoint");
+    assert_equals(getComputedStyle(target).opacity,'0.5',
+                  'Effect at the midpoint of the active range');
+
+    // Advance to the end of the animation.
+    container.scrollLeft = -1000;
+    anim.effect.updateTiming({ fill: 'forwards' });
+    await waitForNextFrame();
+    assert_percents_equal(timeline.currentTime, 100,
+                          "Timeline's currentTime at end offset");
+    assert_percents_equal(anim.currentTime, 100,
+                          "Animation's currentTime at end offset");
+    assert_equals(getComputedStyle(target).opacity, '0.7',
+                  'Opacity with fill forwards at effect end time');
+    anim.effect.updateTiming({ fill: 'none' });
+    assert_equals(getComputedStyle(target).opacity, '1',
+                  'Opacity with fill none at effect end time');
+
+    // Advance to the scroll limit.
+    container.scrollLeft = -1600;
+    await waitForNextFrame();
+    assert_percents_equal(timeline.currentTime, 250,
+                          "Timeline's currentTime at scroll limit");
+    // Hold time set when the animation finishes, which clamps the value of
+    // the animation's currentTime.
+    assert_percents_equal(anim.currentTime, 100,
+                          "Animation's currentTime at scroll limit");
+    // In the after phase, so the effect should not be applied.
+    assert_equals(getComputedStyle(target).opacity, '1',
+                  'After phase at scroll limit');
+  }, 'View timeline with container having vertical-rl layout' );
+
+</script>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<!-- user agents are not required to support open features other than `noopener`
+     and on some platforms position and size features don't make sense -->
+<meta name="flags" content="may">
+<title>Window Management test: target-screen window.open()</title>
+<link rel="help" href="https://w3c.github.io/window-management/">
+Tests use of multi-screen details to open a popup window on each screen.<br>
+The host device must have 2+ screens to yield meaningful results.<br><br>
+<button id="closeButton" onclick="closePopups">Close popups</button><br>
+<input id="autoClose" type="checkbox" checked=true>Auto-close popups</input>
+<ul id="list"></ul>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+'use strict';
+
+let popups = [];
+function closePopups() {
+  popups.forEach(p => p.close());
+  popups = [];
+}
+
+promise_test(async setUpTest => {
+  await setUpWindowManagement(setUpTest);
+  for (const s of window.screenDetails.screens) {
+    const name = `Open a popup on '${s.label}'`;
+    await promise_test(async test => {
+      await buttonClick(test, name);
+      popups.push(await openPopupOnScreen(s));
+      if (autoClose.checked)
+        closePopups();
+    }, name);
+  }
+}, 'Use multi-screen details to open a popup window on each screen');
+</script>

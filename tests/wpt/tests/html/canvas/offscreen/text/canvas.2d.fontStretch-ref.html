@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Canvas test: 2d.text.fontStretch</title>
+<canvas id="c" class="output"><p class="fallback">FAIL (fallback content)</p></canvas>
+<script>
+
+var canvas = document.getElementById("c");
+var ctx = canvas.getContext('2d');
+
+function draw() {
+    ctx.font = '25px test';
+    ctx.fillText("P", 10, 40);
+}
+
+var f = new FontFace('test', 'url(/fonts/pass.woff)');
+document.fonts.add(f);
+
+f.load().then(draw);
+
+</script>

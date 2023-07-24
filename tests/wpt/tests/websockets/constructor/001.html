@@ -1,0 +1,14 @@
+<!doctype html>
+<title>WebSockets: new WebSocket() with no args</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+test(function() {
+  assert_throws_js(TypeError, function(){new WebSocket()});
+});
+</script>

@@ -93,7 +93,7 @@ pub enum RedirectMode {
 }
 
 /// [Response tainting](https://fetch.spec.whatwg.org/#concept-request-response-tainting)
-#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ResponseTainting {
     Basic,
     CorsTainting,
@@ -253,6 +253,7 @@ pub struct RequestBuilder {
     pub parser_metadata: ParserMetadata,
     pub initiator: Initiator,
     pub https_state: HttpsState,
+    pub response_tainting: ResponseTainting,
 }
 
 impl RequestBuilder {
@@ -269,7 +270,7 @@ impl RequestBuilder {
             mode: RequestMode::NoCors,
             cache_mode: CacheMode::Default,
             use_cors_preflight: false,
-            credentials_mode: CredentialsMode::Omit,
+            credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
             referrer: referrer,
@@ -282,6 +283,7 @@ impl RequestBuilder {
             initiator: Initiator::None,
             csp_list: None,
             https_state: HttpsState::None,
+            response_tainting: ResponseTainting::Basic,
         }
     }
 
@@ -375,6 +377,11 @@ impl RequestBuilder {
         self
     }
 
+    pub fn response_tainting(mut self, response_tainting: ResponseTainting) -> RequestBuilder {
+        self.response_tainting = response_tainting;
+        self
+    }
+
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.url.clone(),
@@ -407,6 +414,7 @@ impl RequestBuilder {
         request.integrity_metadata = self.integrity_metadata;
         request.parser_metadata = self.parser_metadata;
         request.csp_list = self.csp_list;
+        request.response_tainting = self.response_tainting;
         request
     }
 }
@@ -509,7 +517,7 @@ impl Request {
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,
-            credentials_mode: CredentialsMode::Omit,
+            credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
             cache_mode: CacheMode::Default,
             redirect_mode: RedirectMode::Follow,

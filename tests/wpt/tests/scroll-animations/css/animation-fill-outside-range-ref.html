@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/">
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  .scroller {
+    height: 200px;
+    width: 500px;
+    overflow: auto;
+    position: absolute;
+    top: 100px;
+  }
+
+  .anim {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: darkred;
+  }
+  .anim.contain {
+    background: green;
+  }
+  .spacer {
+    height: 1000px;
+  }
+
+  .before {
+    top: 450px;
+  }
+  .after {
+    top: 50px;
+  }
+  .contain {
+    top: 250px;
+  }
+  .indicator {
+    position: fixed;
+    top: 50px;
+  }
+  .contain .indicator {
+    top: 100px;
+  }
+  .contain .indicator:nth-child(2) {
+    left: 200px;
+  }
+
+  .after .indicator {
+    left: 200px;
+  }
+
+  .indicator > div {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    position: relative;
+    border-radius: 100%;
+    box-sizing: border-box;
+    border: 2px solid black;
+    padding: 3px;
+    background: lightgray;
+    background-clip: content-box;
+  }
+
+  .indicator > div > div {
+    width: 100%;
+    height: 100%;
+    border-radius: 100%;
+    background: green;
+    opacity: 1;
+    will-change: opacity;
+  }
+
+</style>
+</head>
+<body>
+  <p>All of the activity indicators should be active as the animations should be filling.</p>
+  <div class="scroller">
+    <div class="anim after"><div class="indicator">After cover phase: <div><div></div></div></div></div>
+    <div class="anim before"><div class="indicator">Before cover phase: <div><div></div></div></div></div>
+    <div class="anim contain">
+      <div class="indicator entry">After entry phase: <div><div></div></div></div>
+      <div class="indicator exit">Before exit phase: <div><div></div></div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</body>
+<script>
+  function run() {
+    let scroller = document.querySelector('.scroller');
+    scroller.scrollTo({top: 200});
+  }
+  run();
+</script>
+</html>

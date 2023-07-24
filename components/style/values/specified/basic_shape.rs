@@ -55,15 +55,6 @@ pub type ShapeRadius = generic::ShapeRadius<NonNegativeLengthPercentage>;
 /// The specified value of `Polygon`
 pub type Polygon = generic::GenericPolygon<LengthPercentage>;
 
-#[cfg(feature = "gecko")]
-fn is_clip_path_path_enabled(context: &ParserContext) -> bool {
-    context.chrome_rules_enabled() || static_prefs::pref!("layout.css.clip-path-path.enabled")
-}
-#[cfg(feature = "servo")]
-fn is_clip_path_path_enabled(_: &ParserContext) -> bool {
-    false
-}
-
 /// A helper for both clip-path and shape-outside parsing of shapes.
 fn parse_shape_or_box<'i, 't, R, ReferenceBox>(
     context: &ParserContext,
@@ -116,10 +107,8 @@ impl Parse for ClipPath {
             return Ok(ClipPath::None);
         }
 
-        if is_clip_path_path_enabled(context) {
-            if let Ok(p) = input.try_parse(|i| Path::parse(context, i)) {
-                return Ok(ClipPath::Path(p));
-            }
+        if let Ok(p) = input.try_parse(|i| Path::parse(context, i)) {
+            return Ok(ClipPath::Path(p));
         }
 
         if let Ok(url) = input.try_parse(|i| SpecifiedUrl::parse(context, i)) {

@@ -728,7 +728,7 @@ pub fn handle_get_page_source(
                     Some(element) => match element.GetOuterHTML() {
                         Ok(source) => Ok(source.to_string()),
                         Err(_) => {
-                            match XMLSerializer::new(document.window())
+                            match XMLSerializer::new(document.window(), None)
                                 .SerializeToString(element.upcast::<Node>())
                             {
                                 Ok(source) => Ok(source.to_string()),

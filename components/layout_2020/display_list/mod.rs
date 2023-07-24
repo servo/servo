@@ -5,8 +5,7 @@
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
-use crate::fragment_tree::Tag;
-use crate::fragments::{BoxFragment, Fragment, TextFragment};
+use crate::fragment_tree::{BoxFragment, Fragment, FragmentTree, Tag, TextFragment};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
 use crate::style_ext::ComputedValuesExt;
@@ -17,7 +16,7 @@ use gfx::text::glyph::GlyphStore;
 use mitochondria::OnceCell;
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::image_cache::UsePlaceholder;
-use script_traits::compositor::CompositorDisplayListInfo;
+use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId};
 use std::sync::Arc;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
@@ -32,7 +31,9 @@ use webrender_api::{self as wr, units};
 mod background;
 mod conversions;
 mod gradient;
-pub mod stacking_context;
+mod stacking_context;
+
+pub use stacking_context::*;
 
 #[derive(Clone, Copy)]
 pub struct WebRenderImageInfo {
@@ -41,42 +42,106 @@ pub struct WebRenderImageInfo {
     pub key: Option<wr::ImageKey>,
 }
 
-// `webrender_api::display_item::ItemTag` is private
+// webrender's `ItemTag` is private.
 type ItemTag = (u64, u16);
 type HitInfo = Option<ItemTag>;
 
-pub struct DisplayListBuilder<'a> {
-    /// The current SpatialId and ClipId information for this `DisplayListBuilder`.
-    current_space_and_clip: wr::SpaceAndClipInfo,
-
-    element_for_canvas_background: OpaqueNode,
-    pub context: &'a LayoutContext<'a>,
+/// Where the information that's used to build display lists is stored. This
+/// includes both a [wr::DisplayListBuilder] for building up WebRender-specific
+/// display list information and a [CompositorDisplayListInfo] used to store
+/// information used by the compositor, such as a compositor-side scroll tree.
+pub struct DisplayList {
+    /// The [wr::DisplayListBuilder] used to collect display list items.
     pub wr: wr::DisplayListBuilder,
-    pub compositor_info: CompositorDisplayListInfo,
-    pub iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,
 
-    /// Contentful paint, for the purpose of
-    /// https://w3c.github.io/paint-timing/#first-contentful-paint
-    /// (i.e. the display list contains items of type text,
-    /// image, non-white canvas or SVG). Used by metrics.
-    pub is_contentful: bool,
+    /// The information about the WebRender display list that the compositor
+    /// consumes. This curerntly contains the out-of-band hit testing information
+    /// data structure that the compositor uses to map hit tests to information
+    /// about the item hit.
+    pub compositor_info: CompositorDisplayListInfo,
 }
 
-impl<'a> DisplayListBuilder<'a> {
+impl DisplayList {
+    /// Create a new [DisplayList] given the dimensions of the layout and the WebRender
+    /// pipeline id.
     pub fn new(
+        viewport_size: units::LayoutSize,
+        content_size: units::LayoutSize,
         pipeline_id: wr::PipelineId,
-        context: &'a LayoutContext,
-        fragment_tree: &crate::FragmentTree,
+        epoch: wr::Epoch,
     ) -> Self {
         Self {
-            current_space_and_clip: wr::SpaceAndClipInfo::root_scroll(pipeline_id),
+            wr: wr::DisplayListBuilder::new(pipeline_id, content_size),
+            compositor_info: CompositorDisplayListInfo::new(
+                viewport_size,
+                content_size,
+                pipeline_id,
+                epoch,
+            ),
+        }
+    }
+}
+
+pub(crate) struct DisplayListBuilder<'a> {
+    /// The current [ScrollTreeNodeId] for this [DisplayListBuilder]. This
+    /// allows only passing the builder instead passing the containing
+    /// [stacking_context::StackingContextFragment] as an argument to display
+    /// list building functions.
+    current_scroll_node_id: ScrollTreeNodeId,
+
+    /// The current [wr::ClipId] for this [DisplayListBuilder]. This allows
+    /// only passing the builder instead passing the containing
+    /// [stacking_context::StackingContextFragment] as an argument to display
+    /// list building functions.
+    current_clip_id: wr::ClipId,
+
+    /// The [OpaqueNode] handle to the node used to paint the page background
+    /// if the background was a canvas.
+    element_for_canvas_background: OpaqueNode,
+
+    /// A [LayoutContext] used to get information about the device pixel ratio
+    /// and get handles to WebRender images.
+    pub context: &'a LayoutContext<'a>,
+
+    /// The [DisplayList] used to collect display list items and metadata.
+    pub display_list: &'a mut DisplayList,
+
+    /// A recording of the sizes of iframes encountered when building this
+    /// display list. This information is forwarded to the layout thread for the
+    /// iframe so that its layout knows how large the initial containing block /
+    /// viewport is.
+    iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,
+
+    /// Contentful paint i.e. whether the display list contains items of type
+    /// text, image, non-white canvas or SVG). Used by metrics.
+    /// See https://w3c.github.io/paint-timing/#first-contentful-paint.
+    is_contentful: bool,
+}
+
+impl DisplayList {
+    pub fn build<'a>(
+        &mut self,
+        context: &'a LayoutContext,
+        fragment_tree: &FragmentTree,
+        root_stacking_context: &StackingContext,
+    ) -> (FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>, bool) {
+        let mut builder = DisplayListBuilder {
+            current_scroll_node_id: self.compositor_info.root_scroll_node_id,
+            current_clip_id: wr::ClipId::root(self.wr.pipeline_id),
             element_for_canvas_background: fragment_tree.canvas_background.from_element,
             is_contentful: false,
             context,
-            wr: wr::DisplayListBuilder::new(pipeline_id, fragment_tree.scrollable_overflow()),
-            compositor_info: CompositorDisplayListInfo::default(),
+            display_list: self,
             iframe_sizes: FnvHashMap::default(),
-        }
+        };
+        fragment_tree.build_display_list(&mut builder, root_stacking_context);
+        (builder.iframe_sizes, builder.is_contentful)
+    }
+}
+
+impl<'a> DisplayListBuilder<'a> {
+    fn wr(&mut self) -> &mut wr::DisplayListBuilder {
+        &mut self.display_list.wr
     }
 
     fn common_properties(
@@ -89,8 +154,8 @@ impl<'a> DisplayListBuilder<'a> {
         // for fragments that paint their entire border rectangle.
         wr::CommonItemProperties {
             clip_rect,
-            spatial_id: self.current_space_and_clip.spatial_id,
-            clip_id: self.current_space_and_clip.clip_id,
+            spatial_id: self.current_scroll_node_id.spatial_id,
+            clip_id: self.current_clip_id,
             hit_info: None,
             flags: style.get_webrender_primitive_flags(),
         }
@@ -109,9 +174,10 @@ impl<'a> DisplayListBuilder<'a> {
             return None;
         }
 
-        let hit_test_index = self.compositor_info.add_hit_test_info(
+        let hit_test_index = self.display_list.compositor_info.add_hit_test_info(
             tag?.node.0 as u64,
             Some(cursor(inherited_ui.cursor.keyword, auto_cursor)),
+            self.current_scroll_node_id,
         );
         Some((hit_test_index as u64, 0u16))
     }
@@ -125,7 +191,7 @@ impl Fragment {
         section: StackingContextSection,
     ) {
         match self {
-            Fragment::Box(b) => match b.style.get_inherited_box().visibility {
+            Fragment::Box(b) | Fragment::Float(b) => match b.style.get_inherited_box().visibility {
                 Visibility::Visible => {
                     BuilderForBoxFragment::new(b, containing_block).build(builder, section)
                 },
@@ -143,7 +209,7 @@ impl Fragment {
                         .translate(containing_block.origin.to_vector());
 
                     let common = builder.common_properties(rect.to_webrender(), &i.style);
-                    builder.wr.push_image(
+                    builder.wr().push_image(
                         &common,
                         rect.to_webrender(),
                         image_rendering(i.style.get_inherited_box().image_rendering),
@@ -169,7 +235,7 @@ impl Fragment {
                     );
 
                     let common = builder.common_properties(rect.to_webrender(), &iframe.style);
-                    builder.wr.push_iframe(
+                    builder.wr().push_iframe(
                         rect.to_webrender(),
                         common.clip_rect,
                         &wr::SpaceAndClipInfo {
@@ -215,8 +281,12 @@ impl Fragment {
             return;
         }
 
-        let mut common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
-        common.hit_info = builder.hit_info(&fragment.parent_style, fragment.base.tag, Cursor::Text);
+        let common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
+
+        let hit_info = builder.hit_info(&fragment.parent_style, fragment.base.tag, Cursor::Text);
+        let mut hit_test_common = common.clone();
+        hit_test_common.hit_info = hit_info;
+        builder.wr().push_hit_test(&hit_test_common);
 
         let color = fragment.parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
@@ -248,7 +318,7 @@ impl Fragment {
         }
 
         // Text.
-        builder.wr.push_text(
+        builder.wr().push_text(
             &common,
             rect.to_webrender(),
             &glyphs,
@@ -287,7 +357,7 @@ impl Fragment {
         if text_decoration_style == ComputedTextDecorationStyle::MozNone {
             return;
         }
-        builder.wr.push_line(
+        builder.display_list.wr.push_line(
             &builder.common_properties(rect, &fragment.parent_style),
             &rect,
             wavy_line_thickness,
@@ -448,7 +518,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             if let Some(clip_id) = self.border_edge_clip(builder) {
                 common.clip_id = clip_id
             }
-            builder.wr.push_hit_test(&common)
+            builder.wr().push_hit_test(&common)
         }
     }
 
@@ -473,7 +543,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             let layer_index = b.background_image.0.len() - 1;
             let (bounds, common) = background::painting_area(self, &source, builder, layer_index);
             builder
-                .wr
+                .wr()
                 .push_rect(&common, *bounds, rgba(background_color))
         }
 
@@ -550,7 +620,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     {
                         let image_rendering = image_rendering(style.clone_image_rendering());
                         if layer.repeat {
-                            builder.wr.push_repeating_image(
+                            builder.wr().push_repeating_image(
                                 &layer.common,
                                 layer.bounds,
                                 layer.tile_size,
@@ -561,7 +631,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 wr::ColorF::WHITE,
                             )
                         } else {
-                            builder.wr.push_image(
+                            builder.wr().push_image(
                                 &layer.common,
                                 layer.bounds,
                                 image_rendering,
@@ -571,6 +641,9 @@ impl<'a> BuilderForBoxFragment<'a> {
                             )
                         }
                     }
+                },
+                Image::PaintWorklet(_) => {
+                    // TODO: Add support for PaintWorklet rendering.
                 },
                 // Gecko-only value, represented as a (boxed) empty enum on non-Gecko.
                 Image::Rect(ref rect) => match **rect {},
@@ -620,7 +693,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             do_aa: true,
         });
         builder
-            .wr
+            .wr()
             .push_border(&common, self.border_rect, widths, details)
     }
 
@@ -655,7 +728,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             do_aa: true,
         });
         builder
-            .wr
+            .wr()
             .push_border(&common, outline_rect, widths, details)
     }
 }
@@ -801,8 +874,12 @@ fn clip_for_radii(
     if radii.is_zero() {
         None
     } else {
-        Some(builder.wr.define_clip_rounded_rect(
-            &builder.current_space_and_clip,
+        let parent_space_and_clip = wr::SpaceAndClipInfo {
+            spatial_id: builder.current_scroll_node_id.spatial_id,
+            clip_id: builder.current_clip_id,
+        };
+        Some(builder.wr().define_clip_rounded_rect(
+            &parent_space_and_clip,
             wr::ComplexClipRegion {
                 rect,
                 radii,

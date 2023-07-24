@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
@@ -12,7 +12,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
-use js::rust::HandleValue;
+use js::rust::{HandleObject, HandleValue};
 use script_traits::BroadcastMsg;
 use std::cell::Cell;
 use uuid::Uuid;
@@ -28,12 +28,24 @@ pub struct BroadcastChannel {
 impl BroadcastChannel {
     /// <https://html.spec.whatwg.org/multipage/#broadcastchannel>
     #[allow(non_snake_case)]
-    pub fn Constructor(global: &GlobalScope, name: DOMString) -> DomRoot<BroadcastChannel> {
-        BroadcastChannel::new(global, name)
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        name: DOMString,
+    ) -> DomRoot<BroadcastChannel> {
+        BroadcastChannel::new(global, proto, name)
     }
 
-    pub fn new(global: &GlobalScope, name: DOMString) -> DomRoot<BroadcastChannel> {
-        let channel = reflect_dom_object(Box::new(BroadcastChannel::new_inherited(name)), global);
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        name: DOMString,
+    ) -> DomRoot<BroadcastChannel> {
+        let channel = reflect_dom_object_with_proto(
+            Box::new(BroadcastChannel::new_inherited(name)),
+            global,
+            proto,
+        );
         global.track_broadcast_channel(&*channel);
         channel
     }

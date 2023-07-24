@@ -1,0 +1,26 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Attribution Reporting (https://wicg.github.io/attribution-reporting-api/)
+
+interface mixin HTMLAttributionSrcElementUtils {
+    [CEReactions, SecureContext] attribute USVString attributionSrc;
+};
+
+HTMLAnchorElement includes HTMLAttributionSrcElementUtils;
+HTMLImageElement includes HTMLAttributionSrcElementUtils;
+HTMLScriptElement includes HTMLAttributionSrcElementUtils;
+
+dictionary AttributionReportingRequestOptions {
+  required boolean eventSourceEligible;
+  required boolean triggerEligible;
+};
+
+partial dictionary RequestInit {
+  AttributionReportingRequestOptions attributionReporting;
+};
+
+partial interface XMLHttpRequest {
+  [SecureContext]
+  undefined setAttributionReporting(AttributionReportingRequestOptions options);
+};

@@ -42,24 +42,20 @@ fn read_config(path: &PathBuf) -> Table {
 lazy_static! {
     static ref CONFIG: Table = {
         // Load Gecko's binding generator config from the source tree.
-        let path = PathBuf::from(env::var_os("MOZ_SRC").unwrap())
-            .join("layout/style/ServoBindings.toml");
+        let path = mozbuild::TOPSRCDIR.join("layout/style/ServoBindings.toml");
         read_config(&path)
     };
-    static ref BUILD_CONFIG: Table = {
+    static ref BINDGEN_FLAGS: Vec<String> = {
         // Load build-specific config overrides.
-        let path = PathBuf::from(env::var_os("MOZ_TOPOBJDIR").unwrap())
-            .join("layout/style/bindgen.toml");
-        read_config(&path)
+        let path = mozbuild::TOPOBJDIR.join("layout/style/extra-bindgen-flags");
+        println!("cargo:rerun-if-changed={}", path.to_str().unwrap());
+        fs::read_to_string(path).expect("Failed to read extra-bindgen-flags file")
+            .split_whitespace()
+            .map(std::borrow::ToOwned::to_owned)
+            .collect()
     };
     static ref INCLUDE_RE: Regex = Regex::new(r#"#include\s*"(.+?)""#).unwrap();
-    static ref DISTDIR_PATH: PathBuf = {
-        let path = PathBuf::from(env::var_os("MOZ_DIST").unwrap());
-        if !path.is_absolute() || !path.is_dir() {
-            panic!("MOZ_DIST must be an absolute directory, was: {}", path.display());
-        }
-        path
-    };
+    static ref DISTDIR_PATH: PathBuf = mozbuild::TOPOBJDIR.join("dist");
     static ref SEARCH_PATHS: Vec<PathBuf> = vec![
         DISTDIR_PATH.join("include"),
         DISTDIR_PATH.join("include/nspr"),
@@ -159,12 +155,8 @@ impl BuilderExt for Builder {
             builder = builder.clang_arg("-DDEBUG=1").clang_arg("-DJS_DEBUG=1");
         }
 
-        let build_config = BUILD_CONFIG["build"]
-            .as_table()
-            .expect("Malformed config file");
-        let extra_bindgen_flags = build_config["args"].as_array().unwrap().as_slice();
-        for item in extra_bindgen_flags.iter() {
-            builder = builder.clang_arg(item.as_str().expect("Expect string in list"));
+        for item in &*BINDGEN_FLAGS {
+            builder = builder.clang_arg(item);
         }
 
         builder

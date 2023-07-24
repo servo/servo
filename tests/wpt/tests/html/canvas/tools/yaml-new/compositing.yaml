@@ -1,0 +1,232 @@
+- name: 2d.composite.globalAlpha.range
+  code: |
+    ctx.globalAlpha = 0.5;
+    // This may not set it to exactly 0.5 if it is rounded/quantised, so
+    // remember for future comparisons.
+    var a = ctx.globalAlpha;
+    @assert ctx.globalAlpha === a;
+    ctx.globalAlpha = 1.1;
+    @assert ctx.globalAlpha === a;
+    ctx.globalAlpha = -0.1;
+    @assert ctx.globalAlpha === a;
+    ctx.globalAlpha = 0;
+    @assert ctx.globalAlpha === 0;
+    ctx.globalAlpha = 1;
+    @assert ctx.globalAlpha === 1;
+
+- name: 2d.composite.globalAlpha.invalid
+  code: |
+    ctx.globalAlpha = 0.5;
+    // This may not set it to exactly 0.5 if it is rounded/quantised, so
+    // remember for future comparisons.
+    var a = ctx.globalAlpha;
+    ctx.globalAlpha = Infinity;
+    @assert ctx.globalAlpha === a;
+    ctx.globalAlpha = -Infinity;
+    @assert ctx.globalAlpha === a;
+    ctx.globalAlpha = NaN;
+    @assert ctx.globalAlpha === a;
+
+- name: 2d.composite.globalAlpha.default
+  code: |
+    @assert ctx.globalAlpha === 1.0;
+
+- name: 2d.composite.globalAlpha.fill
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+  expected: green
+
+- name: 2d.composite.globalAlpha.canvas
+  canvasType: ['HTMLCanvas']
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.drawImage(canvas2, 0, 0);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+  expected: green
+
+- name: 2d.composite.globalAlpha.canvaspattern
+  canvasType: ['HTMLCanvas']
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = ctx.createPattern(canvas2, 'no-repeat');
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+  expected: green
+
+- name: 2d.composite.globalAlpha.canvascopy
+  canvasType: ['HTMLCanvas']
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.globalCompositeOperation = 'copy'
+    ctx.globalAlpha = 0.51;
+    ctx.drawImage(canvas2, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,130;
+  expected: green
+
+
+- name: 2d.composite.operation.get
+  code: |
+    var modes = ['source-atop', 'source-in', 'source-out', 'source-over',
+        'destination-atop', 'destination-in', 'destination-out', 'destination-over',
+        'lighter', 'copy', 'xor'];
+    for (var i = 0; i < modes.length; ++i)
+    {
+        ctx.globalCompositeOperation = modes[i];
+        @assert ctx.globalCompositeOperation === modes[i];
+    }
+
+- name: 2d.composite.operation.unrecognised
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'nonexistent';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.darker
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'darker';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.over
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'over';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.clear
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'clear';
+    @assert ctx.globalCompositeOperation === 'clear';
+
+- name: 2d.composite.operation.highlight
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'highlight';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.nullsuffix
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'source-over\0';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.casesensitive
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'Source-over';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.default
+  code: |
+    @assert ctx.globalCompositeOperation === 'source-over';
+
+
+- name: 2d.composite.globalAlpha.image
+  test_type: promise
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.drawImage(bitmap, 0, 0);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+  expected: green
+
+- name: 2d.composite.globalAlpha.canvas
+  canvasType: ['OffscreenCanvas', 'Worker']
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.drawImage(offscreenCanvas2, 0, 0);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+
+- name: 2d.composite.globalAlpha.imagepattern
+  test_type: promise
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+  expected: green
+
+- name: 2d.composite.globalAlpha.canvaspattern
+  canvasType: ['OffscreenCanvas', 'Worker']
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = ctx.createPattern(offscreenCanvas2, 'no-repeat');
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+
+- name: 2d.composite.globalAlpha.canvascopy
+  canvasType: ['OffscreenCanvas', 'Worker']
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = 'copy'
+    ctx.globalAlpha = 0.51;
+    ctx.drawImage(offscreenCanvas2, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,130;

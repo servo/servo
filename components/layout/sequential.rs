@@ -20,7 +20,7 @@ use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use servo_config::opts;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use webrender_api::units::LayoutPoint;
-use webrender_api::PropertyBinding;
+use webrender_api::{ColorF, PropertyBinding, RectangleDisplayItem};
 
 pub fn resolve_generated_content(root: &mut dyn Flow, layout_context: &LayoutContext) {
     ResolveGeneratedContent::new(&layout_context).traverse(root, 0);
@@ -75,7 +75,7 @@ pub fn reflow(root: &mut dyn Flow, layout_context: &LayoutContext, relayout_mode
 pub fn build_display_list_for_subtree<'a>(
     flow_root: &mut dyn Flow,
     layout_context: &'a LayoutContext,
-    background_color: webrender_api::ColorF,
+    background_color: ColorF,
     client_size: Size2D<Au>,
 ) -> DisplayListBuildState<'a> {
     let mut state = StackingContextCollectionState::new(layout_context.id);
@@ -94,7 +94,7 @@ pub fn build_display_list_for_subtree<'a>(
     );
     state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
         base,
-        webrender_api::RectangleDisplayItem {
+        RectangleDisplayItem {
             color: PropertyBinding::Value(background_color),
             common: items::empty_common_item_properties(),
             bounds: bounds.to_layout(),

@@ -106,19 +106,6 @@
       {}
      ]
     ],
-    "absolute_hypothetical_float.html": [
-     "33506180d15b5ff5e18b4f8adce4e2346e4ff811",
-     [
-      null,
-      [
-       [
-        "/_mozilla/css/absolute_hypothetical_float_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "absolute_hypothetical_with_intervening_inline_block_a.html": [
      "54d92051775d6fa2e5e3ac3ceb1848f58ae2c653",
      [
@@ -6923,21 +6910,6 @@
       {}
      ]
     ],
-    "viewport_meta.html": [
-     "69c57539ec5076335582a4c40fc19886b6d2620f",
-     [
-      null,
-      [
-       [
-        "/_mozilla/css/viewport_rule_ref.html",
-        "=="
-       ]
-      ],
-      {
-       "viewport_size": "800x600"
-      }
-     ]
-    ],
     "viewport_percentage_vmin_vmax_a.html": [
      "903e4ea87426e2909ee0e2b683d6f097683f5c81",
      [
@@ -6995,21 +6967,6 @@
       ],
       {
        "viewport_size": "500x700"
-      }
-     ]
-    ],
-    "viewport_rule.html": [
-     "09d9c72a1651adf01cb14651c0eae4c5a563e682",
-     [
-      null,
-      [
-       [
-        "/_mozilla/css/viewport_rule_ref.html",
-        "=="
-       ]
-      ],
-      {
-       "viewport_size": "800x600"
       }
      ]
     ],
@@ -8102,10 +8059,6 @@
     ],
     "absolute_div_with_padding_ref.html": [
      "62d0965f205e1d40ac752ee4324469a82ef3fae4",
-     []
-    ],
-    "absolute_hypothetical_float_ref.html": [
-     "008b2a65d29bddd21f7754af0422c3366d0c9d25",
      []
     ],
     "absolute_hypothetical_with_intervening_inline_block_ref.html": [
@@ -9390,10 +9343,6 @@
      "4fe2cd7165aa4832ac91493bc376b8cb3df84ab5",
      []
     ],
-    "meta_viewport_resize_iframe.html": [
-     "86de04da1bdc3b72e52e8f17964389a6779d7456",
-     []
-    ],
     "min_max_height_b.html": [
      "8723d65b2585b02664f01b84d1fda328321fc412",
      []
@@ -10248,10 +10197,6 @@
      "488c1aada28cc3ab41e7a6d63d3f4e5b950b1f35",
      []
     ],
-    "viewport_ignore_desktop.html.ini": [
-     "696f7ab3ac81362267fa882303d687cbffe454df",
-     []
-    ],
     "viewport_ignore_desktop_ref.html": [
      "149d364517b397c14628550e5af1c7fa37c84e90",
      []
@@ -10262,10 +10207,6 @@
     ],
     "viewport_percentage_vw_vh_ref.html": [
      "07146c46a08ffe5c5e1bfd0ac451242202e93397",
-     []
-    ],
-    "viewport_rule_ref.html": [
-     "4c7be62919ac9cd9dd65861637bf10c958595e0d",
      []
     ],
     "visibility_hidden_ref.html": [
@@ -12581,13 +12522,6 @@
       {}
      ]
     ],
-    "meta_viewport_resize.html": [
-     "7cde945198d744559f65b9a2cfb473cd02550e40",
-     [
-      null,
-      {}
-     ]
-    ],
     "offset_properties_inline.html": [
      "44eaa4490fc515f203c3062476121f94b4337d78",
      [
@@ -12624,7 +12558,7 @@
      ]
     ],
     "test_variable_serialization_computed.html": [
-     "a7f0b63d1c415f2fb49badcedc780f26f6bd3058",
+     "4b051b2462face35b8a7f982f1826248901ca867",
      [
       null,
       {}
@@ -13497,7 +13431,7 @@
      ]
     ],
     "interfaces.html": [
-     "b58b16ca333f9e00afade02c2ac60689ee7eef3a",
+     "995631527b5ab6ad2001a97574d4114576064299",
      [
       null,
       {}

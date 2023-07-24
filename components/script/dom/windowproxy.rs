@@ -165,7 +165,7 @@ impl WindowProxy {
             let WindowProxyHandler(handler) = window.windowproxy_handler();
             assert!(!handler.is_null());
 
-            let cx = window.get_cx();
+            let cx = GlobalScope::get_cx();
             let window_jsobject = window.reflector().get_jsobject();
             assert!(!window_jsobject.get().is_null());
             assert_ne!(
@@ -225,7 +225,7 @@ impl WindowProxy {
             let handler = CreateWrapperProxyHandler(&XORIGIN_PROXY_HANDLER);
             assert!(!handler.is_null());
 
-            let cx = global_to_clone_from.get_cx();
+            let cx = GlobalScope::get_cx();
 
             // Create a new browsing context.
             let window_proxy = Box::new(WindowProxy::new_inherited(
@@ -624,7 +624,7 @@ impl WindowProxy {
             let handler = CreateWrapperProxyHandler(traps);
             assert!(!handler.is_null());
 
-            let cx = window.get_cx();
+            let cx = GlobalScope::get_cx();
             let window_jsobject = window.reflector().get_jsobject();
             let old_js_proxy = self.reflector.get_jsobject();
             assert!(!window_jsobject.get().is_null());

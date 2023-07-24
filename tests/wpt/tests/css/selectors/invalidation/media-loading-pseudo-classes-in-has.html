@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long" />
+<title>:has() invalidation with :buffering & :stalled pseudo-classes</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://drafts.csswg.org/selectors/#media-loading-state">
+
+<style>
+#subject:has(video:buffering) {
+    background-color: blue;
+}
+#subject:has(video:stalled) {
+    border-color: green;
+}
+</style>
+
+<div id="subject">
+    <video width="300" height="300" muted loop controls></video>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const BLUE = "rgb(0, 0, 255)";
+const GREEN = "rgb(0, 128, 0)";
+
+function assert_buffering_state(buffering) {
+    if (buffering)
+        assert_equals(getComputedStyle(subject).backgroundColor, BLUE);
+    else
+        assert_not_equals(getComputedStyle(subject).backgroundColor, BLUE);
+}
+
+function assert_stalled_state(stalled) {
+    if (stalled)
+        assert_equals(getComputedStyle(subject).borderColor, GREEN);
+    else
+        assert_not_equals(getComputedStyle(subject).borderColor, GREEN);
+}
+
+promise_test(async (t) => {
+    const video = document.querySelector("video");
+    assert_stalled_state(false);
+    await new Promise((r) => {
+        video.addEventListener("stalled", r, { once: true });
+        video.src = `/media/counting.mp4?pipe=trickle(100:d1:r2)&random=${Math.random()}`;
+    });
+    assert_stalled_state(false);
+    const promise = video.play();
+    assert_stalled_state(true);
+    video.src = "";
+    // Wait for the video to abort trying to play
+    try {
+        await promise;
+    } catch (err) {}
+    await video.pause();
+    assert_stalled_state(false);
+}, "Test :has(:stalled) invalidation");
+
+promise_test(async (t) => {
+    const video = document.querySelector("video");
+    assert_buffering_state(false);
+    await new Promise((r) => {
+        video.addEventListener("stalled", r, { once: true });
+        video.src = `/media/counting.mp4?pipe=trickle(100:d1:r2)&random=${Math.random()}`;
+    });
+    video.currentTime = 10;
+    assert_buffering_state(false);
+    const promise = video.play();
+    assert_buffering_state(true);
+    video.src = "";
+    // Wait for the video to abort trying to play
+    try {
+        await promise;
+    } catch (err) {}
+    await video.pause();
+    assert_buffering_state(false);
+}, "Test :has(:buffering) invalidation");
+</script>

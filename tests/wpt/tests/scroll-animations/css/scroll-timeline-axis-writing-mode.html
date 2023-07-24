@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-axis">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  .scroller {
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+  }
+  .contents {
+    height: 200px;
+    width: 200px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  #timeline_initial_axis {
+    scroll-timeline: --timeline_initial_axis;
+  }
+  #timeline_y {
+    scroll-timeline: --timeline_y y;
+  }
+  #timeline_x {
+    scroll-timeline: --timeline_x x;
+  }
+  #timeline_block_in_horizontal {
+    scroll-timeline: --timeline_block_in_horizontal block;
+  }
+  #timeline_inline_in_horizontal {
+    scroll-timeline: --timeline_inline_in_horizontal inline;
+  }
+  #timeline_block_in_vertical {
+    scroll-timeline: --timeline_block_in_vertical block;
+    writing-mode: vertical-lr;
+  }
+  #timeline_inline_in_vertical {
+    scroll-timeline: --timeline_inline_in_vertical inline;
+    writing-mode: vertical-lr;
+  }
+  .target {
+    width: 0px;
+    animation-name: expand;
+    animation-duration: 10s;
+    animation-timing-function: linear;
+    position: absolute;
+  }
+  /* Ensure stable expectations if feature is not supported */
+  @supports not (animation-timeline:--foo) {
+    .target { animation-play-state: paused; }
+  }
+  #element_initial_axis { animation-timeline: --timeline_initial_axis; }
+  #element_y { animation-timeline: --timeline_y; }
+  #element_x { animation-timeline: --timeline_x; }
+  #element_block_in_horizontal { animation-timeline: --timeline_block_in_horizontal; }
+  #element_inline_in_horizontal { animation-timeline: --timeline_inline_in_horizontal; }
+  #element_block_in_vertical { animation-timeline: --timeline_block_in_vertical; }
+  #element_inline_in_vertical { animation-timeline: --timeline_inline_in_vertical; }
+</style>
+<div class=scroller id=timeline_initial_axis>
+  <div class=contents></div>
+  <div class=target id=element_initial_axis></div>
+</div>
+<div class=scroller id=timeline_y>
+  <div class=contents></div>
+  <div class=target id=element_y></div>
+</div>
+<div class=scroller id=timeline_x>
+  <div class=contents></div>
+  <div class=target id=element_x></div>
+</div>
+<div class=scroller id=timeline_block_in_horizontal>
+  <div class=contents></div>
+  <div class=target id=element_block_in_horizontal></div>
+</div>
+<div class=scroller id=timeline_inline_in_horizontal>
+  <div class=contents></div>
+  <div class=target id=element_inline_in_horizontal></div>
+</div>
+<div class=scroller id=timeline_block_in_vertical>
+  <div class=contents></div>
+  <div class=target id=element_block_in_vertical></div>
+</div>
+<div class=scroller id=timeline_inline_in_vertical>
+  <div class=contents></div>
+  <div class=target id=element_inline_in_vertical></div>
+</div>
+<script>
+  async function setScrollPositions() {
+    return runAndWaitForFrameUpdate(() => {
+      // Animations linked to vertical scroll-timelines are at 75% progress.
+      timeline_initial_axis.scrollTop = 75;
+      timeline_y.scrollTop = 75;
+      timeline_block_in_horizontal.scrollTop = 75;
+      timeline_inline_in_vertical.scrollTop = 75;
+      // Animations linked to horizontal scroll-timelines are at 25% progress.
+      timeline_x.scrollLeft = 25;
+      timeline_block_in_vertical.scrollLeft = 25;
+      timeline_inline_in_horizontal.scrollLeft = 25;
+    });
+  }
+
+  promise_test(async (t) => {
+    await setScrollPositions();
+    assert_equals(getComputedStyle(element_initial_axis).width, '175px');
+  }, 'Initial axis');
+
+  promise_test(async (t) => {
+    await setScrollPositions();
+    assert_equals(getComputedStyle(element_y).width, '175px');
+  }, 'Vertical axis');
+
+  promise_test(async (t) => {
+    await setScrollPositions();
+    assert_equals(getComputedStyle(element_x).width, '125px');
+  }, 'Horizontal axis');
+
+  promise_test(async (t) => {
+    await setScrollPositions();
+    assert_equals(getComputedStyle(element_block_in_horizontal).width, '175px');
+  }, 'Block axis in horizontal writing-mode');
+
+  promise_test(async (t) => {
+    await setScrollPositions();
+    assert_equals(getComputedStyle(element_inline_in_horizontal).width, '125px');
+  }, 'Inline axis in horizontal writing-mode');
+
+  promise_test(async (t) => {
+    await setScrollPositions();
+    assert_equals(getComputedStyle(timeline_block_in_vertical).writingMode, 'vertical-lr');
+    assert_equals(getComputedStyle(element_block_in_vertical).width, '125px');
+  }, 'Block axis in vertical writing-mode');
+
+  promise_test(async (t) => {
+    await setScrollPositions();
+    assert_equals(getComputedStyle(timeline_inline_in_vertical).writingMode, 'vertical-lr');
+    assert_equals(getComputedStyle(element_inline_in_vertical).width, '175px');
+  }, 'Inline axis in vertical writing-mode');
+
+</script>

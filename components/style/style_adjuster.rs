@@ -136,8 +136,14 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///    computed to 'absolute' if the element is in a top layer.
     ///
     fn adjust_for_top_layer(&mut self) {
-        if !self.style.is_absolutely_positioned() && self.style.in_top_layer() {
+        if !self.style.in_top_layer() {
+            return;
+        }
+        if !self.style.is_absolutely_positioned() {
             self.style.mutate_box().set_position(Position::Absolute);
+        }
+        if self.style.get_box().clone_display().is_contents() {
+            self.style.mutate_box().set_display(Display::Block);
         }
     }
 
@@ -149,63 +155,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_position(&mut self) {
         if self.style.is_absolutely_positioned() && self.style.is_floating() {
             self.style.mutate_box().set_float(Float::None);
-        }
-    }
-
-    /// https://html.spec.whatwg.org/multipage/#inert-subtrees
-    ///
-    ///    If -moz-inert is applied then add:
-    ///        -moz-user-focus: none;
-    ///        -moz-user-input: none;
-    ///        -moz-user-modify: read-only;
-    ///        user-select: none;
-    ///        pointer-events: none;
-    ///        cursor: default;
-    ///
-    /// NOTE: dialog:-moz-topmost-modal-dialog is used to override above
-    /// rules to remove the inertness for the topmost modal dialog.
-    ///
-    /// NOTE: If this or the pointer-events tweak is removed, then
-    /// minimal-xul.css and the scrollbar style caching need to be tweaked.
-    #[cfg(feature = "gecko")]
-    fn adjust_for_inert(&mut self) {
-        use crate::values::specified::ui::CursorKind;
-        use crate::values::specified::ui::UserSelect;
-        use properties::longhands::_moz_inert::computed_value::T as Inert;
-        use properties::longhands::_moz_user_focus::computed_value::T as UserFocus;
-        use properties::longhands::_moz_user_input::computed_value::T as UserInput;
-        use properties::longhands::_moz_user_modify::computed_value::T as UserModify;
-        use properties::longhands::cursor::computed_value::T as Cursor;
-        use properties::longhands::pointer_events::computed_value::T as PointerEvents;
-
-        let needs_update = {
-            let ui = self.style.get_inherited_ui();
-            if ui.clone__moz_inert() == Inert::None {
-                return;
-            }
-
-            ui.clone__moz_user_focus() != UserFocus::None ||
-                ui.clone__moz_user_input() != UserInput::None ||
-                ui.clone__moz_user_modify() != UserModify::ReadOnly ||
-                ui.clone_pointer_events() != PointerEvents::None ||
-                ui.clone_cursor().keyword != CursorKind::Default ||
-                ui.clone_cursor().images != Default::default()
-        };
-
-        if needs_update {
-            let ui = self.style.mutate_inherited_ui();
-            ui.set__moz_user_focus(UserFocus::None);
-            ui.set__moz_user_input(UserInput::None);
-            ui.set__moz_user_modify(UserModify::ReadOnly);
-            ui.set_pointer_events(PointerEvents::None);
-            ui.set_cursor(Cursor {
-                images: Default::default(),
-                keyword: CursorKind::Default,
-            });
-        }
-
-        if self.style.get_ui().clone_user_select() != UserSelect::None {
-            self.style.mutate_ui().set_user_select(UserSelect::None);
         }
     }
 
@@ -232,9 +181,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
-        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-        use crate::computed_values::list_style_position::T as ListStylePosition;
-
         let mut blockify = false;
         macro_rules! blockify_if {
             ($if_what:expr) => {
@@ -254,16 +200,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         blockify_if!(self.style.is_floating());
         blockify_if!(self.style.is_absolutely_positioned());
-        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-        blockify_if!(
-            self.style.pseudo.map_or(false, |p| p.is_marker()) &&
-                self.style.get_parent_list().clone_list_style_position() ==
-                    ListStylePosition::Outside &&
-                !layout_parent_style
-                    .get_box()
-                    .clone_display()
-                    .is_inline_flow()
-        );
 
         if !blockify {
             return;
@@ -309,11 +245,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .add_flags(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE);
         }
 
-        #[cfg(feature = "servo-layout-2013")]
-        {
-            if self.style.get_parent_column().is_multicol() {
-                self.style.add_flags(ComputedValueFlags::CAN_BE_FRAGMENTED);
-            }
+        if self.style.get_parent_column().is_multicol() {
+            self.style.add_flags(ComputedValueFlags::CAN_BE_FRAGMENTED);
         }
     }
 
@@ -818,6 +751,74 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// A legacy ::marker (i.e. no 'content') without an author-specified 'font-family'
+    /// and 'list-style-type:disc|circle|square|disclosure-closed|disclosure-open'
+    /// is assigned 'font-family:-moz-bullet-font'. (This is for <ul><li> etc.)
+    /// We don't want synthesized italic/bold for this font, so turn that off too.
+    /// Likewise for 'letter/word-spacing' -- unless the author specified it then reset
+    /// them to their initial value because traditionally we never added such spacing
+    /// between a legacy bullet and the list item's content, so we keep that behavior
+    /// for web-compat reasons.
+    /// We intentionally don't check 'list-style-image' below since we want it to use
+    /// the same font as its fallback ('list-style-type') in case it fails to load.
+    #[cfg(feature = "gecko")]
+    fn adjust_for_marker_pseudo(&mut self) {
+        use crate::values::computed::counters::Content;
+        use crate::values::computed::font::{FontFamily, FontSynthesis};
+        use crate::values::computed::text::{LetterSpacing, WordSpacing};
+
+        let is_legacy_marker = self.style.pseudo.map_or(false, |p| p.is_marker()) &&
+            self.style.get_list().clone_list_style_type().is_bullet() &&
+            self.style.get_counters().clone_content() == Content::Normal;
+        if !is_legacy_marker {
+            return;
+        }
+        if !self
+            .style
+            .flags
+            .get()
+            .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY)
+        {
+            self.style
+                .mutate_font()
+                .set_font_family(FontFamily::moz_bullet().clone());
+
+            // FIXME(mats): We can remove this if support for font-synthesis is added to @font-face rules.
+            // Then we can add it to the @font-face rule in html.css instead.
+            // https://github.com/w3c/csswg-drafts/issues/6081
+            if !self
+                .style
+                .flags
+                .get()
+                .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS)
+            {
+                self.style
+                    .mutate_font()
+                    .set_font_synthesis(FontSynthesis::none());
+            }
+        }
+        if !self
+            .style
+            .flags
+            .get()
+            .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING)
+        {
+            self.style
+                .mutate_inherited_text()
+                .set_letter_spacing(LetterSpacing::normal());
+        }
+        if !self
+            .style
+            .flags
+            .get()
+            .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING)
+        {
+            self.style
+                .mutate_inherited_text()
+                .set_word_spacing(WordSpacing::normal());
+        }
+    }
+
     /// Adjusts the style to account for various fixups that don't fit naturally
     /// into the cascade.
     ///
@@ -882,7 +883,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_appearance(element);
-            self.adjust_for_inert();
+            self.adjust_for_marker_pseudo();
         }
         self.set_bits();
     }

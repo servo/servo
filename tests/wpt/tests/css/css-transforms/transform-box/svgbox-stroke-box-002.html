@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>transform-box: stroke-box, stroke with dash array</title>
+<link rel="match" href="reference/svgbox-dasharray-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-box">
+<link rel="help" href="https://svgwg.org/svg2-draft/coords.html#TermStrokeBoundingBox">
+<meta name="assert" content="A dash array does not contribute to the stroke bounding box"/>
+<style>
+#target {
+  fill: green;
+  stroke: black;
+  stroke-width: 50;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transform-box: stroke-box;
+  transform-origin: 25px 0px;
+  transform: rotate(90deg);
+}
+</style>
+<svg width="400" height="300">
+  <path id="target" d="M200,100v100h100v-100"/>
+</svg>

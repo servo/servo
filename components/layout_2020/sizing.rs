@@ -33,10 +33,17 @@ impl ContentSizes {
         }
     }
 
-    pub fn max(self, other: Self) -> Self {
+    pub fn max(&self, other: Self) -> Self {
         Self {
             min_content: self.min_content.max(other.min_content),
             max_content: self.max_content.max(other.max_content),
+        }
+    }
+
+    pub fn add(&self, other: &Self) -> Self {
+        Self {
+            min_content: self.min_content.max(other.min_content),
+            max_content: self.max_content + other.max_content,
         }
     }
 

@@ -297,7 +297,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                 global.dom_manipulation_task_source().queue(
                 task!(rejection_handled_event: move || {
                     let target = target.root();
-                    let cx = target.global().get_cx();
+                    let cx = GlobalScope::get_cx();
                     let root_promise = trusted_promise.root();
 
                     rooted!(in(*cx) let mut reason = UndefinedValue());
@@ -324,7 +324,7 @@ unsafe extern "C" fn promise_rejection_tracker(
 #[allow(unsafe_code, unrooted_must_root)]
 /// https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises
 pub fn notify_about_rejected_promises(global: &GlobalScope) {
-    let cx = global.get_cx();
+    let cx = GlobalScope::get_cx();
     unsafe {
         // Step 2.
         if global.get_uncaught_rejections().borrow().len() > 0 {
@@ -350,7 +350,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
             global.dom_manipulation_task_source().queue(
                 task!(unhandled_rejection_event: move || {
                     let target = target.root();
-                    let cx = target.global().get_cx();
+                    let cx = GlobalScope::get_cx();
 
                     for promise in uncaught_rejections {
                         let promise = promise.root();

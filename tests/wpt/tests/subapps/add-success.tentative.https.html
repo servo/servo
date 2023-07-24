@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Sub Apps: Valid calls for add()</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/subapps-helpers.js"></script>
+
+<script>
+
+promise_test(async t => {
+  const install_url = '/sub-app';
+
+  let add_call_params = {
+    [install_url]: {installURL: install_url}
+  };
+
+  let mocked_response = [
+    { "manifestIdPath": install_url, "resultCode": Status.SUCCESS }
+  ];
+
+  let expected_results = {
+    [install_url]: "success"
+  };
+
+  await test_driver.bless("installing a subapp", async function () {
+    await subapps_add_expect_success_with_result(t, add_call_params, mocked_response, expected_results);
+  });
+}, 'Add API call works with single sub app.');
+
+promise_test(async t => {
+  const url_1 = '/sub-app-1';
+  const url_2 = '/sub-app-2';
+
+  let add_call_params = {
+    [url_1]: {installURL: url_1},
+    [url_2]: {installURL: url_2},
+  };
+
+  let mocked_response = [
+    { "manifestIdPath": url_1, "resultCode": Status.SUCCESS },
+    { "manifestIdPath": url_2, "resultCode": Status.SUCCESS }
+  ];
+
+  let expected_results = {
+    [url_1]: "success",
+    [url_2]: "success",
+  };
+
+
+  await test_driver.bless("installing a subapp", async function () {
+    await subapps_add_expect_success_with_result(t, add_call_params, mocked_response, expected_results);
+  });
+}, 'Add API call works with multiple sub apps.');
+
+</script>

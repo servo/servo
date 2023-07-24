@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long" />
+<title>Media Loading State: the :buffering and :stalled pseudo-classes</title>
+<link
+  rel="help"
+  href="https://drafts.csswg.org/selectors/#media-loading-state"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <video width="300" height="300" muted loop controls></video>
+  <script type="module">
+    test((t) => {
+      for (const pseudo of [":buffering", ":stalled"]) {
+        try {
+          document.querySelector(`.not-a-thing${pseudo}`);
+        } catch (e) {
+          assert_unreached(`${pseudo} is not supported`);
+        }
+      }
+    }, "Test :pseudo-class syntax is supported without throwing a SyntaxError");
+
+    promise_test(async (t) => {
+      const video = document.querySelector("video");
+      await new Promise((r) => {
+        video.addEventListener("stalled", r, { once: true });
+        video.src = `/media/counting.mp4?pipe=trickle(100:d1:r2)&random=${Math.random()}`;
+      });
+      const promise = video.play();
+      assert_equals(
+        document.querySelector("video:stalled"),
+        video,
+        "video is stalled"
+      );
+      video.src = "";
+      // Wait for the video to abort trying to play
+      try {
+        await promise;
+      } catch (err) {}
+    }, "Test :stalled pseudo-class");
+
+    promise_test(async (t) => {
+      const video = document.querySelector("video");
+      await new Promise((r) => {
+        video.addEventListener("stalled", r, { once: true });
+        video.src = `/media/counting.mp4?pipe=trickle(100:d1:r2)&random=${Math.random()}`;
+      });
+      video.currentTime = 10;
+      const promise = video.play();
+      assert_equals(
+        document.querySelector("video:buffering"),
+        video,
+        "video is buffering"
+      );
+      video.src = "";
+      // Wait for the video to abort trying to play
+      try {
+        await promise;
+      } catch (err) {}
+    }, "Test :buffering pseudo-class");
+  </script>
+</body>

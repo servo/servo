@@ -1,0 +1,14 @@
+<!doctype html>
+<title>WebSockets: close() return value</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+test(function() {
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+  assert_equals(ws.close(), undefined);
+});
+</script>

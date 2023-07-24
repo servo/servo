@@ -1,0 +1,1077 @@
+- name: 2d.text.draw.fill.basic
+  desc: fillText draws filled text
+  manual:
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('PASS', 5, 35);
+  expected: &passfill |
+    size 100 50
+    cr.set_source_rgb(0, 0, 0)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+    cr.set_source_rgb(0, 1, 0)
+    cr.select_font_face("Arial")
+    cr.set_font_size(35)
+    cr.translate(5, 35)
+    cr.text_path("PASS")
+    cr.fill()
+
+- name: 2d.text.draw.fill.unaffected
+  desc: fillText does not start a new path or subpath
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.moveTo(0, 0);
+    ctx.lineTo(100, 0);
+
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('FAIL', 5, 35);
+
+    ctx.lineTo(100, 50);
+    ctx.lineTo(0, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fill();
+
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 5,45 == 0,255,0,255;
+  expected: green
+
+- name: 2d.text.draw.fill.rtl
+  desc: fillText respects Right-To-Left Override characters
+  manual:
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('\u202eFAIL \xa0 \xa0 SSAP', 5, 35);
+  expected: *passfill
+- name: 2d.text.draw.fill.maxWidth.large
+  desc: fillText handles maxWidth correctly
+  manual:
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('PASS', 5, 35, 200);
+  expected: *passfill
+- name: 2d.text.draw.fill.maxWidth.small
+  desc: fillText handles maxWidth correctly
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', -100, 35, 90);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.zero
+  desc: fillText handles maxWidth correctly
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', 5, 35, 0);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.negative
+  desc: fillText handles maxWidth correctly
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', 5, 35, -1);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.NaN
+  desc: fillText handles maxWidth correctly
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', 5, 35, NaN);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.stroke.basic
+  desc: strokeText draws stroked text
+  manual:
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.strokeStyle = '#0f0';
+    ctx.fillStyle = '#f00';
+    ctx.lineWidth = 1;
+    ctx.font = '35px Arial, sans-serif';
+    ctx.strokeText('PASS', 5, 35);
+  expected: |
+    size 100 50
+    cr.set_source_rgb(0, 0, 0)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+    cr.set_source_rgb(0, 1, 0)
+    cr.select_font_face("Arial")
+    cr.set_font_size(35)
+    cr.set_line_width(1)
+    cr.translate(5, 35)
+    cr.text_path("PASS")
+    cr.stroke()
+
+- name: 2d.text.draw.stroke.unaffected
+  desc: strokeText does not start a new path or subpath
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.moveTo(0, 0);
+    ctx.lineTo(100, 0);
+
+    ctx.font = '35px Arial, sans-serif';
+    ctx.strokeStyle = '#f00';
+    ctx.strokeText('FAIL', 5, 35);
+
+    ctx.lineTo(100, 50);
+    ctx.lineTo(0, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fill();
+
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 5,45 == 0,255,0,255;
+  expected: green
+
+- name: 2d.text.draw.kern.consistent
+  desc: Stroked and filled text should have exactly the same kerning so it overlaps
+  manual:
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 3;
+    ctx.font = '20px Arial, sans-serif';
+    ctx.fillText('VAVAVAVAVAVAVA', -50, 25);
+    ctx.fillText('ToToToToToToTo', -50, 45);
+    ctx.strokeText('VAVAVAVAVAVAVA', -50, 25);
+    ctx.strokeText('ToToToToToToTo', -50, 45);
+  expected: green
+
+# CanvasTest is:
+#   A = (0, 0) to (1em, 0.75em)       (above baseline)
+#   B = (0, 0) to (1em, -0.25em)      (below baseline)
+#   C = (0, -0.25em) to (1em, 0.75em) (the em square) plus some Xs above and below
+#   D = (0, -0.25em) to (1em, 0.75em) (the em square) plus some Xs left and right
+#   E = (0, -0.25em) to (1em, 0.75em) (the em square)
+#   space = empty, 1em wide
+#
+# At 50px, "E" will fill the canvas vertically
+# At 67px, "A" will fill the canvas vertically
+#
+# Ideographic baseline  is 0.125em above alphabetic
+# Mathematical baseline is 0.375em above alphabetic
+# Hanging baseline      is 0.500em above alphabetic
+
+# WebKit doesn't block onload on font loads, so we try to make it a bit more reliable
+# by waiting with step_timeout after load before drawing
+
+- name: 2d.text.draw.fill.maxWidth.fontface
+  desc: fillText works on @font-face fonts
+  fonts:
+  - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#0f0';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#f00';
+        ctx.fillText('EEEE', -50, 37.5, 40);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.bound
+  desc: fillText handles maxWidth based on line size, not bounding box size
+  fonts:
+  - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('DD', 0, 37.5, 100);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.fontface
+  fonts:
+  - CanvasTest
+  code: |
+    ctx.font = '67px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('AA', 0, 50);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.fontface.repeat
+  desc: Draw with the font immediately, then wait a bit until and draw again. (This
+    crashes some version of WebKit.)
+  fonts:
+  - CanvasTest
+  fonthack: 0
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.font = '67px CanvasTest';
+    ctx.fillStyle = '#0f0';
+    ctx.fillText('AA', 0, 50);
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillText('AA', 0, 50);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.fontface.notinpage
+  desc: '@font-face fonts should work even if they are not used in the page'
+  fonts:
+  - CanvasTest
+  fonthack: 0
+  code: |
+    ctx.font = '67px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('AA', 0, 50);
+        @assert pixel 5,5 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 95,5 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 75,25 ==~ 0,255,0,255; @moz-todo
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.left
+  desc: textAlign left is the left of the first em square (not the bounding box)
+  fonts:
+  - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'left';
+        ctx.fillText('DD', 0, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.right
+  desc: textAlign right is the right of the last em square (not the bounding box)
+  fonts:
+  - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'right';
+        ctx.fillText('DD', 100, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.start.ltr
+  desc: textAlign start with ltr is the left edge
+  fonts:
+  - CanvasTest
+  canvas: dir="ltr"
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'start';
+        ctx.fillText('DD', 0, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.start.rtl
+  desc: textAlign start with rtl is the right edge
+  fonts:
+  - CanvasTest
+  canvas: dir="rtl"
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'start';
+        ctx.fillText('DD', 100, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.end.ltr
+  desc: textAlign end with ltr is the right edge
+  fonts:
+  - CanvasTest
+  canvas: dir="ltr"
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'end';
+        ctx.fillText('DD', 100, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.end.rtl
+  desc: textAlign end with rtl is the left edge
+  fonts:
+  - CanvasTest
+  canvas: dir="rtl"
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'end';
+        ctx.fillText('DD', 0, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.center
+  desc: textAlign center is the center of the em squares (not the bounding box)
+  fonts:
+  - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'center';
+        ctx.fillText('DD', 50, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+
+- name: 2d.text.draw.space.basic
+  desc: U+0020 is rendered the correct size (1em wide)
+  fonts:
+  - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('E EE', -100, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.space.collapse.nonspace
+  desc: Non-space characters are not converted to U+0020 and collapsed
+  fonts:
+  - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('E\x0b EE', -150, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.measure.width.basic
+  desc: The width of character is same as font used
+  fonts:
+  - CanvasTest
+  code: |
+    deferTest();
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            @assert ctx.measureText('A').width === 50;
+            @assert ctx.measureText('AA').width === 100;
+            @assert ctx.measureText('ABCD').width === 200;
+
+            ctx.font = '100px CanvasTest';
+            @assert ctx.measureText('A').width === 100;
+        }), 500);
+    });
+
+- name: 2d.text.measure.width.empty
+  desc: The empty string has zero width
+  fonts:
+  - CanvasTest
+  code: |
+    deferTest();
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            @assert ctx.measureText("").width === 0;
+        }), 500);
+    });
+
+- name: 2d.text.measure.advances
+  desc: Testing width advances
+  fonts:
+  - CanvasTest
+  code: |
+    deferTest();
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            // Some platforms may return '-0'.
+            @assert Math.abs(ctx.measureText('Hello').advances[0]) === 0;
+            // Different platforms may render text slightly different.
+            @assert ctx.measureText('Hello').advances[1] >= 36;
+            @assert ctx.measureText('Hello').advances[2] >= 58;
+            @assert ctx.measureText('Hello').advances[3] >= 70;
+            @assert ctx.measureText('Hello').advances[4] >= 80;
+
+            var tm = ctx.measureText('Hello');
+            @assert ctx.measureText('Hello').advances[0] === tm.advances[0];
+            @assert ctx.measureText('Hello').advances[1] === tm.advances[1];
+            @assert ctx.measureText('Hello').advances[2] === tm.advances[2];
+            @assert ctx.measureText('Hello').advances[3] === tm.advances[3];
+            @assert ctx.measureText('Hello').advances[4] === tm.advances[4];
+        }), 500);
+    });
+
+- name: 2d.text.measure.actualBoundingBox
+  desc: Testing actualBoundingBox
+  fonts:
+  - CanvasTest
+  code: |
+    deferTest();
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            ctx.baseline = 'alphabetic'
+            // Different platforms may render text slightly different.
+            // Values that are nominally expected to be zero might actually vary by a pixel or so
+            // if the UA accounts for antialiasing at glyph edges, so we allow a slight deviation.
+            @assert Math.abs(ctx.measureText('A').actualBoundingBoxLeft) <= 1;
+            @assert ctx.measureText('A').actualBoundingBoxRight >= 50;
+            @assert ctx.measureText('A').actualBoundingBoxAscent >= 35;
+            @assert Math.abs(ctx.measureText('A').actualBoundingBoxDescent) <= 1;
+
+            @assert ctx.measureText('D').actualBoundingBoxLeft >= 48;
+            @assert ctx.measureText('D').actualBoundingBoxLeft <= 52;
+            @assert ctx.measureText('D').actualBoundingBoxRight >= 75;
+            @assert ctx.measureText('D').actualBoundingBoxRight <= 80;
+            @assert ctx.measureText('D').actualBoundingBoxAscent >= 35;
+            @assert ctx.measureText('D').actualBoundingBoxAscent <= 40;
+            @assert ctx.measureText('D').actualBoundingBoxDescent >= 12;
+            @assert ctx.measureText('D').actualBoundingBoxDescent <= 15;
+
+            @assert Math.abs(ctx.measureText('ABCD').actualBoundingBoxLeft) <= 1;
+            @assert ctx.measureText('ABCD').actualBoundingBoxRight >= 200;
+            @assert ctx.measureText('ABCD').actualBoundingBoxAscent >= 85;
+            @assert ctx.measureText('ABCD').actualBoundingBoxDescent >= 37;
+        }), 500);
+    });
+
+- name: 2d.text.measure.fontBoundingBox
+  desc: Testing fontBoundingBox
+  fonts:
+  - CanvasTest
+  code: |
+    deferTest();
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            // approx_equals because font metrics may be rounded slightly differently by different platforms/browsers.
+            assert_approx_equals(ctx.measureText('A').fontBoundingBoxAscent, 50 * 1745 / 1024, 1, "unexpected fontBoundingBoxAscent");
+            assert_approx_equals(ctx.measureText('A').fontBoundingBoxDescent, 50 * 805 / 1024, 1, "unexpected fontBoundingBoxDescent");
+
+            assert_approx_equals(ctx.measureText('ABCD').fontBoundingBoxAscent, 50 * 1745 / 1024, 1, "unexpected fontBoundingBoxAscent");
+            assert_approx_equals(ctx.measureText('ABCD').fontBoundingBoxDescent, 50 * 805 / 1024, 1, "unexpected fontBoundingBoxDescent");
+        }), 500);
+    });
+
+- name: 2d.text.measure.fontBoundingBox.ahem
+  desc: Testing fontBoundingBox for font ahem
+  fonts:
+  - Ahem
+  code: |
+    deferTest();
+    var f = new FontFace("Ahem", "/fonts/Ahem.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px Ahem';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            @assert ctx.measureText('A').fontBoundingBoxAscent === 40;
+            @assert ctx.measureText('A').fontBoundingBoxDescent === 10;
+
+            @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 40;
+            @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
+        }), 500);
+    });
+
+- name: 2d.text.measure.emHeights
+  desc: Testing emHeights
+  fonts:
+  - CanvasTest
+  code: |
+    deferTest();
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+         step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            @assert ctx.measureText('A').emHeightAscent === 37.5;
+            @assert ctx.measureText('A').emHeightDescent === 12.5;
+            @assert ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent === 50;
+
+            @assert ctx.measureText('ABCD').emHeightAscent === 37.5;
+            @assert ctx.measureText('ABCD').emHeightDescent === 12.5;
+            @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 50;
+        }), 500);
+    });
+
+- name: 2d.text.measure.baselines
+  desc: Testing baselines
+  fonts:
+  - CanvasTest
+  code: |
+    deferTest();
+    var f = new FontFace("CanvasTest", "/fonts/CanvasTest.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px CanvasTest';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            @assert Math.abs(ctx.measureText('A').alphabeticBaseline) === 0;
+            @assert ctx.measureText('A').ideographicBaseline === 6.25;
+            @assert ctx.measureText('A').hangingBaseline === 25;
+
+            @assert Math.abs(ctx.measureText('ABCD').alphabeticBaseline) === 0;
+            @assert ctx.measureText('ABCD').ideographicBaseline === 6.25;
+            @assert ctx.measureText('ABCD').hangingBaseline === 25;
+        }), 500);
+    });
+
+- name: 2d.text.drawing.style.absolute.spacing
+  desc: Testing letter spacing and word spacing with absolute length
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+
+    ctx.letterSpacing = '3px';
+    @assert ctx.letterSpacing === '3px';
+    @assert ctx.wordSpacing === '0px';
+
+    ctx.wordSpacing = '5px';
+    @assert ctx.letterSpacing === '3px';
+    @assert ctx.wordSpacing === '5px';
+
+    ctx.letterSpacing = '-1px';
+    ctx.wordSpacing = '-1px';
+    @assert ctx.letterSpacing === '-1px';
+    @assert ctx.wordSpacing === '-1px';
+
+    ctx.letterSpacing = '1PX';
+    ctx.wordSpacing = '10PX';
+    @assert ctx.letterSpacing === '1px';
+    @assert ctx.wordSpacing === '10px';
+
+- name: 2d.text.drawing.style.font-relative.spacing
+  desc: Testing letter spacing and word spacing with font-relative length
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+
+    ctx.letterSpacing = '1EX';
+    ctx.wordSpacing = '1EM';
+    @assert ctx.letterSpacing === '1ex';
+    @assert ctx.wordSpacing === '1em';
+
+    ctx.letterSpacing = '1ch';
+    ctx.wordSpacing = '1ic';
+    @assert ctx.letterSpacing === '1ch';
+    @assert ctx.wordSpacing === '1ic';
+
+- name: 2d.text.drawing.style.nonfinite.spacing
+  desc: Testing letter spacing and word spacing with nonfinite inputs
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+
+    function test_word_spacing(value) {
+      ctx.wordSpacing = value;
+      ctx.letterSpacing = value;
+      @assert ctx.wordSpacing === '0px';
+      @assert ctx.letterSpacing === '0px';
+    }
+    @nonfinite test_word_spacing(<0 NaN Infinity -Infinity>);
+
+- name: 2d.text.drawing.style.invalid.spacing
+  desc: Testing letter spacing and word spacing with invalid units
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+
+    function test_word_spacing(value) {
+      ctx.wordSpacing = value;
+      ctx.letterSpacing = value;
+      @assert ctx.wordSpacing === '0px';
+      @assert ctx.letterSpacing === '0px';
+    }
+    @nonfinite test_word_spacing(< '0s' '1min' '1deg' '1pp' 'initial' 'inherit' 'normal' 'none'>);
+
+- name: 2d.text.drawing.style.letterSpacing.measure
+  desc: Testing letter spacing and word spacing
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+    var width_normal = ctx.measureText('Hello World').width;
+
+    function test_letter_spacing(value, difference_spacing, epsilon) {
+      ctx.letterSpacing = value;
+      @assert ctx.letterSpacing === value;
+      @assert ctx.wordSpacing === '0px';
+      width_with_letter_spacing = ctx.measureText('Hello World').width;
+      assert_approx_equals(width_with_letter_spacing, width_normal + difference_spacing, epsilon, "letter spacing doesn't work.");
+    }
+
+    // The first value is the letter Spacing to be set, the second value the
+    // change in length of string 'Hello World', note that there are 11 letters
+    // in 'hello world', so the length difference is always letterSpacing * 11.
+    // and the third value is the acceptable differencee for the length change,
+    // note that unit such as 1cm/1mm doesn't map to an exact pixel value.
+    test_cases = [['3px', 33, 0.1],
+                  ['5px', 55, 0.1],
+                  ['-2px', -22, 0.1],
+                  ['1em', 110, 0.1],
+                  ['1in', 1056, 0.1],
+                  ['-0.1cm', -41.65, 0.2],
+                  ['-0.6mm', -24,95, 0.2]]
+
+    for (const test_case of test_cases) {
+      test_letter_spacing(test_case[0], test_case[1], test_case[2]);
+    }
+
+- name: 2d.text.drawing.style.wordSpacing.measure
+  desc: Testing if word spacing is working properly
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+    var width_normal = ctx.measureText('Hello World, again').width;
+
+    function test_word_spacing(value, difference_spacing, epsilon) {
+      ctx.wordSpacing = value;
+      @assert ctx.letterSpacing === '0px';
+      @assert ctx.wordSpacing === value;
+      width_with_word_spacing = ctx.measureText('Hello World, again').width;
+      assert_approx_equals(width_with_word_spacing, width_normal + difference_spacing, epsilon, "word spacing doesn't work.");
+    }
+
+    // The first value is the word Spacing to be set, the second value the
+    // change in length of string 'Hello World', note that there are 2 words
+    // in 'Hello World, again', so the length difference is always wordSpacing * 2.
+    // and the third value is the acceptable differencee for the length change,
+    // note that unit such as 1cm/1mm doesn't map to an exact pixel value.
+    test_cases = [['3px', 6, 0.1],
+                  ['5px', 10, 0.1],
+                  ['-2px', -4, 0.1],
+                  ['1em', 20, 0.1],
+                  ['1in', 192, 0.1],
+                  ['-0.1cm', -7.57, 0.2],
+                  ['-0.6mm', -4.54, 0.2]]
+
+    for (const test_case of test_cases) {
+      test_word_spacing(test_case[0], test_case[1], test_case[2]);
+    }
+
+- name: 2d.text.drawing.style.letterSpacing.change.font
+  desc: Set letter spacing and word spacing to font dependent value and verify it works after font change.
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+    // Get the width for 'Hello World' at default size, 10px.
+    var width_normal = ctx.measureText('Hello World').width;
+
+    ctx.letterSpacing = '1em';
+    @assert ctx.letterSpacing === '1em';
+    // 1em = 10px. Add 10px after each letter in "Hello World",
+    // makes it 110px longer.
+    var width_with_spacing = ctx.measureText('Hello World').width;
+    assert_approx_equals(width_with_spacing, width_normal + 110, 0.1, "letterSpacing incorrect before font change");
+
+    // Changing font to 20px. Without resetting the spacing, 1em letterSpacing
+    // is now 20px, so it's suppose to be 220px longer without any letterSpacing set.
+    ctx.font = '20px serif';
+    width_with_spacing = ctx.measureText('Hello World').width;
+    // Now calculate the reference spacing for "Hello World" with no spacing.
+    ctx.letterSpacing = '0em';
+    width_normal = ctx.measureText('Hello World').width;
+    assert_approx_equals(width_with_spacing, width_normal + 220, 0.1, "letterSpacing incorrect after font change");
+
+
+- name: 2d.text.drawing.style.wordSpacing.change.font
+  desc: Set word spacing and word spacing to font dependent value and verify it works after font change.
+  code: |
+    @assert ctx.letterSpacing === '0px';
+    @assert ctx.wordSpacing === '0px';
+    // Get the width for 'Hello World, again' at default size, 10px.
+    var width_normal = ctx.measureText('Hello World, again').width;
+
+    ctx.wordSpacing = '1em';
+    @assert ctx.wordSpacing === '1em';
+    // 1em = 10px. Add 10px after each word in "Hello World, again",
+    // makes it 20px longer.
+    var width_with_spacing = ctx.measureText('Hello World, again').width;
+    @assert width_with_spacing === width_normal + 20;
+
+    // Changing font to 20px. Without resetting the spacing, 1em wordSpacing
+    // is now 20px, so it's suppose to be 40px longer without any wordSpacing set.
+    ctx.font = '20px serif';
+    width_with_spacing = ctx.measureText('Hello World, again').width;
+    // Now calculate the reference spacing for "Hello World, again" with no spacing.
+    ctx.wordSpacing = '0em';
+    width_normal = ctx.measureText('Hello World, again').width;
+    @assert width_with_spacing === width_normal + 40;
+
+- name: 2d.text.drawing.style.fontKerning
+  desc: Testing basic functionalities of fontKerning for canvas
+  code: |
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "normal";
+    @assert ctx.fontKerning === "normal";
+    width_normal = ctx.measureText("TAWATAVA").width;
+    ctx.fontKerning = "none";
+    @assert ctx.fontKerning === "none";
+    width_none = ctx.measureText("TAWATAVA").width;
+    @assert width_normal < width_none;
+
+- name: 2d.text.drawing.style.fontKerning.with.uppercase
+  desc: Testing basic functionalities of fontKerning for canvas
+  code: |
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "Normal";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "normal";
+    @assert ctx.fontKerning === "normal";
+    ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "normal";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "noRmal";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "NoRMal";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "NORMAL";
+    @assert ctx.fontKerning === "auto";
+
+    ctx.fontKerning = "None";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "none";
+    @assert ctx.fontKerning === "none";
+    ctx.fontKerning = "Auto";
+    @assert ctx.fontKerning === "none";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "nOne";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "nonE";
+    @assert ctx.fontKerning === "auto";
+    ctx.fontKerning = "auto";
+    ctx.fontKerning = "NONE";
+    @assert ctx.fontKerning === "auto";
+
+- name: 2d.text.drawing.style.fontVariant.settings
+  desc: Testing basic functionalities of fontVariant for canvas
+  code: |
+    // Setting fontVariantCaps with lower cases
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "normal";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "small-caps";
+    @assert ctx.fontVariantCaps === "small-caps";
+
+    ctx.fontVariantCaps = "all-small-caps";
+    @assert ctx.fontVariantCaps === "all-small-caps";
+
+    ctx.fontVariantCaps = "petite-caps";
+    @assert ctx.fontVariantCaps === "petite-caps";
+
+    ctx.fontVariantCaps = "all-petite-caps";
+    @assert ctx.fontVariantCaps === "all-petite-caps";
+
+    ctx.fontVariantCaps = "unicase";
+    @assert ctx.fontVariantCaps === "unicase";
+
+    ctx.fontVariantCaps = "titling-caps";
+    @assert ctx.fontVariantCaps === "titling-caps";
+
+    // Setting fontVariantCaps with mixed-case values is not valid
+    ctx.fontVariantCaps = "nORmal";
+    @assert ctx.fontVariantCaps === "titling-caps";
+
+    ctx.fontVariantCaps = "normal";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "smaLL-caps";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "all-small-CAPS";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "pEtitE-caps";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "All-Petite-Caps";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "uNIcase";
+    @assert ctx.fontVariantCaps === "normal";
+
+    ctx.fontVariantCaps = "titling-CAPS";
+    @assert ctx.fontVariantCaps === "normal";
+
+    // Setting fontVariantCaps with non-existing font variant.
+    ctx.fontVariantCaps = "titling-caps";
+    ctx.fontVariantCaps = "abcd";
+    @assert ctx.fontVariantCaps === "titling-caps";
+
+- name: 2d.text.drawing.style.textRendering.settings
+  desc: Testing basic functionalities of textRendering in Canvas
+  code: |
+    // Setting textRendering with correct case.
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizeSpeed";
+    @assert ctx.textRendering === "optimizeSpeed";
+
+    ctx.textRendering = "optimizeLegibility";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "geometricPrecision";
+    @assert ctx.textRendering === "geometricPrecision";
+
+    ctx.textRendering = "auto";
+    @assert ctx.textRendering === "auto";
+
+    // Setting textRendering with incorrect case is ignored.
+    ctx.textRendering = "OPtimizeSpeed";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "OPtimizELEgibility";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "GeometricPrecision";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizespeed";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizelegibility";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "geometricprecision";
+    @assert ctx.textRendering === "auto";
+
+    ctx.textRendering = "optimizeLegibility";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "AUTO";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "Auto";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    // Setting textRendering with non-existing font variant.
+    ctx.textRendering = "abcd";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "normal";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "";
+    @assert ctx.textRendering === "optimizeLegibility";
+
+    ctx.textRendering = "auto";
+    @assert ctx.textRendering === "auto";
+
+- name: 2d.text.drawing.style.fontStretch.settings
+  desc: Testing value setting of fontStretch in Canvas
+  code: |
+    // Setting textRendering with lower cases
+    ctx.fontStretch = "ultra-condensed";
+    @assert ctx.fontStretch === "ultra-condensed";
+
+    ctx.fontStretch = "extra-condensed";
+    @assert ctx.fontStretch === "extra-condensed";
+
+    ctx.fontStretch = "condensed";
+    @assert ctx.fontStretch === "condensed";
+
+    ctx.fontStretch = "semi-condensed";
+    @assert ctx.fontStretch === "semi-condensed";
+
+    ctx.fontStretch = "normal";
+    @assert ctx.fontStretch === "normal";
+
+    ctx.fontStretch = "semi-expanded";
+    @assert ctx.fontStretch === "semi-expanded";
+
+    ctx.fontStretch = "expanded";
+    @assert ctx.fontStretch === "expanded";
+
+    ctx.fontStretch = "extra-expanded";
+    @assert ctx.fontStretch === "extra-expanded";
+
+    ctx.fontStretch = "ultra-expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    // Setting fontStretch with lower cases and upper cases word,
+    // these values should be ignored.
+    ctx.fontStretch = "ulTra-condensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "Extra-condensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "cOndensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "Semi-Condensed";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "normaL";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "semi-Expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "Expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "eXtra-expanded";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+    ctx.fontStretch = "abcd";
+    @assert ctx.fontStretch === "ultra-expanded";
+
+# TODO: shadows, alpha, composite, clip

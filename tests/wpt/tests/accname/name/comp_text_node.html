@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Text Node</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>Tests the <a href="https://w3c.github.io/accname/#comp_text_node">#comp_text_node</a> portions of the AccName <em>Name Computation</em> algorithm.</p>
+
+<!-- I'm not certain whether #comp_text_node requires a lot of testing outside of the #comp_name_from_content contexts, -->
+<!-- but I did think of one example where text node versus comment node may make a difference when joining text nodes with a space vs innerText. -->
+
+<!-- Skipped (class="ex" removed) until https://github.com/w3c/accname/issues/193 is resolved -->
+<h2 class="ex-skipped" data-expectedlabel="heading label" data-testname="heading with text/comment/text nodes, no space">
+  heading<!-- with non-text node splitting concatenated text nodes -->label<!-- [sic] no extra spaces around first comment -->
+</h2>
+
+
+<h2 class="ex" data-expectedlabel="heading label" data-testname="heading with text/comment/text nodes, with space">
+  heading
+  <!-- comment node between text nodes with leading/trailing whitespace -->
+  label
+</h2>
+
+
+<!-- Todo: test all remaining cases of https://w3c.github.io/accname/#comp_text_node -->
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

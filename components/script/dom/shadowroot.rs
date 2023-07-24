@@ -19,15 +19,13 @@ use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
 use dom_struct::dom_struct;
-use selectors::context::QuirksMode;
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
-use style::media_queries::Device;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
-use style::stylist::CascadeData;
+use style::stylist::{CascadeData, Stylist};
 
 /// Whether a shadow root hosts an User Agent widget.
 #[derive(JSTraceable, MallocSizeOf, PartialEq)]
@@ -245,8 +243,7 @@ pub trait LayoutShadowRootHelpers<'dom> {
     fn get_style_data_for_layout(self) -> &'dom CascadeData;
     unsafe fn flush_stylesheets<E: TElement>(
         self,
-        device: &Device,
-        quirks_mode: QuirksMode,
+        stylist: &mut Stylist,
         guard: &SharedRwLockReadGuard,
     );
 }
@@ -277,13 +274,12 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
     #[allow(unsafe_code)]
     unsafe fn flush_stylesheets<E: TElement>(
         self,
-        device: &Device,
-        quirks_mode: QuirksMode,
+        stylist: &mut Stylist,
         guard: &SharedRwLockReadGuard,
     ) {
         let author_styles = self.unsafe_get().author_styles.borrow_mut_for_layout();
         if author_styles.stylesheets.dirty() {
-            author_styles.flush::<E>(device, quirks_mode, guard);
+            author_styles.flush::<E>(stylist, guard);
         }
     }
 }

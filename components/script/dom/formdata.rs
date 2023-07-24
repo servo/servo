@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -17,6 +17,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
 use dom_struct::dom_struct;
 use html5ever::LocalName;
+use js::rust::HandleObject;
 use script_traits::serializable::BlobImpl;
 
 #[dom_struct]
@@ -42,23 +43,36 @@ impl FormData {
     }
 
     pub fn new(form_datums: Option<Vec<FormDatum>>, global: &GlobalScope) -> DomRoot<FormData> {
-        reflect_dom_object(Box::new(FormData::new_inherited(form_datums)), global)
+        Self::new_with_proto(form_datums, global, None)
+    }
+
+    fn new_with_proto(
+        form_datums: Option<Vec<FormDatum>>,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<FormData> {
+        reflect_dom_object_with_proto(
+            Box::new(FormData::new_inherited(form_datums)),
+            global,
+            proto,
+        )
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         form: Option<&HTMLFormElement>,
     ) -> Fallible<DomRoot<FormData>> {
         if let Some(opt_form) = form {
             return match opt_form.get_form_dataset(None, None) {
-                Some(form_datums) => Ok(FormData::new(Some(form_datums), global)),
+                Some(form_datums) => Ok(FormData::new_with_proto(Some(form_datums), global, proto)),
                 None => Err(Error::InvalidState),
             };
         }
 
-        Ok(FormData::new(None, global))
+        Ok(FormData::new_with_proto(None, global, proto))
     }
 }
 

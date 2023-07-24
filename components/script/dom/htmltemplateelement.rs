@@ -14,6 +14,7 @@ use crate::dom::node::{document_from_node, CloneChildrenFlag, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLTemplateElement {
@@ -40,12 +41,14 @@ impl HTMLTemplateElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTemplateElement> {
-        let n = Node::reflect_node(
+        let n = Node::reflect_node_with_proto(
             Box::new(HTMLTemplateElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();

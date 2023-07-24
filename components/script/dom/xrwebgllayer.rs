@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLRenderi
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
@@ -28,6 +28,7 @@ use canvas_traits::webgl::WebGLContextId;
 use canvas_traits::webgl::WebGLTextureId;
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
+use js::rust::HandleObject;
 use std::convert::TryInto;
 use webxr_api::ContextId as WebXRContextId;
 use webxr_api::LayerId;
@@ -78,15 +79,16 @@ impl XRWebGLLayer {
         }
     }
 
-    pub fn new(
+    fn new(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         session: &XRSession,
         context: &WebGLRenderingContext,
         init: &XRWebGLLayerInit,
         framebuffer: Option<&WebGLFramebuffer>,
         layer_id: Option<LayerId>,
     ) -> DomRoot<XRWebGLLayer> {
-        reflect_dom_object(
+        reflect_dom_object_with_proto(
             Box::new(XRWebGLLayer::new_inherited(
                 session,
                 context,
@@ -95,6 +97,7 @@ impl XRWebGLLayer {
                 layer_id,
             )),
             global,
+            proto,
         )
     }
 
@@ -102,6 +105,7 @@ impl XRWebGLLayer {
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &Window,
+        proto: Option<HandleObject>,
         session: &XRSession,
         context: XRWebGLRenderingContext,
         init: &XRWebGLLayerInit,
@@ -147,6 +151,7 @@ impl XRWebGLLayer {
         // Step 10. "Return layer."
         Ok(XRWebGLLayer::new(
             &global.global(),
+            proto,
             session,
             &context,
             init,

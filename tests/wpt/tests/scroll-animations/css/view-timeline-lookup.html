@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<title>Named view-timeline lookup</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#view-timelines-named">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  @keyframes anim {
+    from { z-index: 0; }
+    to { z-index: 100; }
+  }
+  .scroller {
+    overflow: auto;
+    width: 100px;
+    height: 100px;
+  }
+  .scroller > div {
+    height: 25px;
+    z-index: -1;
+  }
+</style>
+<main id=main></main>
+<script>
+  async function inflate(t, template) {
+    t.add_cleanup(() => main.replaceChildren());
+    return runAndWaitForFrameUpdate(() => {
+      main.append(template.content.cloneNode(true));
+    });
+  }
+</script>
+
+<template id=timeline_self>
+  <style>
+    #target {
+      height: 0px;
+      view-timeline: --t1;
+      animation: anim 1s linear forwards;
+      animation-timeline: --t1;
+    }
+  </style>
+  <div id=scroller class=scroller>
+    <div id=target></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, timeline_self);
+    assert_equals(getComputedStyle(target).zIndex, '100');
+  }, 'view-timeline on self');
+</script>
+
+<template id=timeline_preceding_sibling>
+  <style>
+    #scroller {
+      timeline-scope: --t1;
+    }
+    #timeline {
+      height: 0px;
+      view-timeline: --t1;
+    }
+    #target {
+      animation: anim 1s linear;
+      animation-timeline: --t1;
+    }
+  </style>
+  <div id=scroller class=scroller>
+    <div></div>
+    <div id=timeline></div>
+    <div></div>
+    <div></div>
+    <div id=target></div>
+    <div></div>
+    <div></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, timeline_preceding_sibling);
+    assert_equals(getComputedStyle(target).zIndex, '75');
+  }, 'timeline-scope on preceding sibling');
+</script>
+
+<template id=timeline_ancestor>
+  <style>
+    #timeline {
+      height: 0px;
+      view-timeline: --t1;
+    }
+    #target {
+      animation: anim 1s linear;
+      animation-timeline: --t1;
+    }
+  </style>
+  <div id=scroller class=scroller>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div id=timeline>
+      <div>
+        <div id=target></div>
+      </div>
+    </div>
+    <div></div>
+    <div></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, timeline_ancestor);
+    assert_equals(getComputedStyle(target).zIndex, '25');
+  }, 'view-timeline on ancestor');
+</script>
+
+<template id=timeline_ancestor_sibling>
+  <style>
+    #scroller {
+      timeline-scope: --t1;
+    }
+    #timeline {
+      height: 0px;
+      view-timeline: --t1;
+    }
+    #target {
+      animation: anim 1s linear;
+      animation-timeline: --t1;
+    }
+  </style>
+  <div id=scroller class=scroller>
+    <div></div>
+    <div id=timeline></div>
+    <div></div>
+    <div>
+      <div>
+        <div id=target></div>
+      </div>
+    </div>
+    <div></div>
+    <div></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, timeline_ancestor_sibling);
+    assert_equals(getComputedStyle(target).zIndex, '75');
+  }, 'timeline-scope on ancestor sibling');
+</script>
+
+<template id=timeline_ancestor_sibling_conflict>
+  <style>
+    #scroller {
+      timeline-scope: --t1;
+    }
+    #timeline1, #timeline2 {
+      height: 0px;
+      view-timeline: --t1;
+    }
+    #target {
+      animation: anim 1s linear;
+      animation-timeline: --t1;
+    }
+  </style>
+  <div id=scroller class=scroller>
+    <div></div>
+    <div id=timeline1></div>
+    <div></div>
+    <div id=timeline2></div>
+    <div>
+      <div>
+        <div id=target></div>
+      </div>
+    </div>
+    <div></div>
+    <div></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, timeline_ancestor_sibling_conflict);
+    assert_equals(getComputedStyle(target).zIndex, 'auto');
+  }, 'timeline-scope on ancestor sibling, conflict remains unresolved');
+</script>
+
+<template id=timeline_ancestor_closer_timeline_wins>
+  <style>
+    #scroller {
+      timeline-scope: --t1;
+    }
+    #timeline {
+      height: 0px;
+      view-timeline: --t1;
+    }
+    #parent {
+      timeline-scope: --t1; /* Inactive */
+    }
+    #target {
+      animation: anim 1s linear;
+      animation-timeline: --t1;
+    }
+  </style>
+  <div id=scroller class=scroller>
+    <div></div>
+    <div id=timeline></div>
+    <div></div>
+    <div id=parent>
+      <div id=target></div>
+    </div>
+    <div></div>
+    <div></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, timeline_ancestor_closer_timeline_wins);
+    assert_equals(getComputedStyle(target).zIndex, 'auto');
+  }, 'timeline-scope on ancestor sibling, closer timeline wins');
+</script>
+
+<template id=timeline_ancestor_scroll_timeline_wins_on_same_element>
+  <style>
+    #scroller {
+      view-timeline: --t1;
+      view-timeline-inset: 50px;
+      scroll-timeline: --t1;
+    }
+    #target {
+      animation: anim 1s linear;
+      animation-timeline: --t1;
+    }
+  </style>
+  <div id=scroller class=scroller>
+    <div id=target></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, timeline_ancestor_scroll_timeline_wins_on_same_element);
+    // In case of a name conflict on the same element, scroll progress timelines
+    // take precedence over view progress timelines.
+    // https://drafts.csswg.org/scroll-animations-1/#timeline-scope
+    assert_equals(getComputedStyle(target).zIndex, '0');
+  }, 'view-timeline on ancestor sibling, scroll-timeline wins on same element');
+</script>

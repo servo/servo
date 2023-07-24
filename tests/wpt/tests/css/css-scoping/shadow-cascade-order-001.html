@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM: CSS Style Rule cascading</title>
+<meta name="assert" content="Cascading order test for style rules from various shadow trees.">
+<link rel="author" title="Takayoshi Kochi" href="mailto:kochi@google.com">
+<link rel="help" href="https://drafts.csswg.org/css-scoping-1/#shadow-cascading">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+// Taken from the example in
+// https://github.com/w3c/webcomponents/blob/gh-pages/proposals/Shadow-DOM-Cascade-Order.md
+// https://github.com/w3c/webcomponents/issues/316
+// https://github.com/w3c/webcomponents/blob/gh-pages/proposals/Shadow-DOM-Cascade-Order-in-v1.md
+// with element renamed and style rule location changed.
+//
+// <style>my-item { color: red; }</style>
+// <my-list>
+//   <:shadow>
+//     <style>::slotted(my-item) { color: blue; }</style>
+//     <slot></slot>
+//   </:shadow>
+//   <my-item style="color: green;">
+//     <:shadow>
+//       <style>:host { color: yellow; }</style>
+//       <slot></slot>
+//     </:shadow>
+//     ITEM
+//   </my-item>
+// </my-list>
+//
+// There are 4 possible style rules that applies to <my-item> above:
+// 1. document-wide style
+// 2. ::slotted style in the shadow in <my-list>
+// 3. :host style in the shadow in <my-item>
+// 4. inline style within <my-item> itself.
+//
+// It could be possible to nest many more shadow trees in <my-list>,
+// but to prevent the number of combination explosion, such case is covered
+// in another test file.
+//
+// So testing cases where 2 style rules are competing,
+// 4C2 = 6 combinations exist, multiplied by 4, which is the possible
+// combination of applying "!important" for the 2 style rules.
+
+function createMyList(mode, slottedStyle, hostStyle, inlineStyle) {
+    var myList = document.createElement('my-list');
+    var root = myList.attachShadow({'mode': mode});
+    root.innerHTML = '<style>' + slottedStyle + '</style><slot></slot>';
+    var myItem = document.createElement('my-item');
+    if (inlineStyle !== '')
+        myItem.setAttribute('style', inlineStyle);
+    myList.appendChild(myItem);
+    var root2 = myItem.attachShadow({'mode': mode});
+    root2.innerHTML = '<style>' + hostStyle + '</style><slot></slot>';
+    myItem.appendChild(document.createTextNode('ITEM'));
+    return myList;
+}
+
+function testCascadingOrder(mode) {
+    // In all test cases, the rule specified as "color: green" should win.
+    var testCases = [
+        // [A] Cases between document, ::slotteed, :host, and inline
+        {
+            title: 'A1. document vs ::slotted, document rule should win',
+            documentStyle: 'my-item { color: green; }',
+            slottedStyle: '::slotted(my-item) { color: red; }',
+            hostStyle: '',
+            inlineStyle: ''
+        },
+        {
+            title: 'A2. document vs :host, document rule should win',
+            documentStyle: 'my-item { color: green; }',
+            slottedStyle: '',
+            hostStyle: ':host { color: red; }',
+            inlineStyle: ''
+        },
+        {
+            title: 'A3. document vs inline, inline rule should win',
+            documentStyle: 'my-item { color: red; }',
+            slottedStyle: '',
+            hostStyle: '',
+            inlineStyle: 'color: green;'
+        },
+        {
+            title: 'A4. ::slotted vs :host, earlier in tree-of-trees rule should win',
+            documentStyle: '',
+            slottedStyle: '::slotted(my-item) { color: green; }',
+            hostStyle: ':host { color: red; }',
+            inlineStyle: ''
+        },
+        {
+            title: 'A5. ::slotted vs inline, inline rule should win',
+            documentStyle: '',
+            slottedStyle: '::slotted(my-item) { color: red; }',
+            hostStyle: '',
+            inlineStyle: 'color: green;'
+        },
+        {
+            title: 'A6. :host vs inline, inline rule should win',
+            documentStyle: '',
+            slottedStyle: '',
+            hostStyle: ':host { color: red; }',
+            inlineStyle: 'color: green;'
+        },
+
+        // [B] Stronger rule is still stronger with !important
+        {
+            title: 'B1. document with !important vs ::slotted, document rule should win',
+            documentStyle: 'my-item { color: green !important; }',
+            slottedStyle: '::slotted(my-item) { color: red; }',
+            hostStyle: '',
+            inlineStyle: ''
+        },
+        {
+            title: 'B2. document with !important vs :host, document rule should win',
+            documentStyle: 'my-item { color: green !important; }',
+            slottedStyle: '',
+            hostStyle: ':host { color: red; }',
+            inlineStyle: ''
+        },
+        {
+            title: 'B3. document vs inline with !important, inline rule should win',
+            documentStyle: 'my-item { color: red; }',
+            slottedStyle: '',
+            hostStyle: '',
+            inlineStyle: 'color: green !important;'
+        },
+        {
+            title: 'B4. ::slotted  with !important vs :host, earlier in tree-of-trees rule should win',
+            documentStyle: '',
+            slottedStyle: '::slotted(my-item) { color: green !important; }',
+            hostStyle: ':host { color: red; }',
+            inlineStyle: ''
+        },
+        {
+            title: 'B5. ::slotted vs inline with !important, inline rule should win',
+            documentStyle: '',
+            slottedStyle: '::slotted(my-item) { color: green !important; }',
+            hostStyle: '',
+            inlineStyle: 'color: red;'
+        },
+        {
+            title: 'B6. :host vs inline with !important, inline rule should win',
+            documentStyle: '',
+            slottedStyle: '',
+            hostStyle: ':host { color: red; }',
+            inlineStyle: 'color: green !important;'
+        },
+
+        // [C] Weaker rule gets stronger with !important
+        {
+            title: 'C1. document vs ::slotted with !important, ::slotted rule should win',
+            documentStyle: 'my-item { color: red; }',
+            slottedStyle: '::slotted(my-item) { color: green !important; }',
+            hostStyle: '',
+            inlineStyle: ''
+        },
+        {
+            title: 'C2. document vs :host with !important, :host rule should win',
+            documentStyle: 'my-item { color: red; }',
+            slottedStyle: '',
+            hostStyle: ':host { color: green !important; }',
+            inlineStyle: ''
+        },
+        {
+            title: 'C3. document with !important vs inline, document rule should win',
+            documentStyle: 'my-item { color: green !important; }',
+            slottedStyle: '',
+            hostStyle: '',
+            inlineStyle: 'color: red;'
+        },
+        {
+            title: 'C4. ::slotted vs :host with !important, later in tree-of-trees rule should win',
+            documentStyle: '',
+            slottedStyle: '::slotted(my-item) { color: green !important; }',
+            hostStyle: ':host { color: red; }',
+            inlineStyle: ''
+        },
+        {
+            title: 'C5. ::slotted with !important vs inline, ::slotted rule should win',
+            documentStyle: '',
+            slottedStyle: '::slotted(my-item) { color: green !important; }',
+            hostStyle: '',
+            inlineStyle: 'color: red;'
+        },
+        {
+            title: 'C6. :host with !important vs inline, :host rule should win',
+            documentStyle: '',
+            slottedStyle: '',
+            hostStyle: ':host { color: green !important; }',
+            inlineStyle: 'color: red;'
+        },
+
+        // [D] Cases between document, ::slotteed, :host, and inline, both with !important
+        {
+            title: 'D1. document vs ::slotted both with !important, ::slotted rule should win',
+            documentStyle: 'my-item { color: red !important; }',
+            slottedStyle: '::slotted(my-item) { color: green !important; }',
+            hostStyle: '',
+            inlineStyle: ''
+        },
+        {
+            title: 'D2. document vs :host both with !important, :host rule should win',
+            documentStyle: 'my-item { color: red !important; }',
+            slottedStyle: '',
+            hostStyle: ':host { color: green !important; }',
+            inlineStyle: ''
+        },
+        {
+            title: 'D3. document vs inline both with !important, inline rule should win',
+            documentStyle: 'my-item { color: red !important; }',
+            slottedStyle: '',
+            hostStyle: '',
+            inlineStyle: 'color: green !important;'
+        },
+        {
+            title: 'D4. ::slotted vs :host both with !important, later in tree-of-trees rule should win',
+            documentStyle: '',
+            slottedStyle: '::slotted(my-item) { color: red !important; }',
+            hostStyle: ':host { color: green !important; }',
+            inlineStyle: ''
+        },
+        {
+            title: 'D5. ::slotted vs inline both with !important, ::slotted rule should win',
+            documentStyle: '',
+            slottedStyle: '::slotted(my-item) { color: green !important; }',
+            hostStyle: '',
+            inlineStyle: 'color: red !important;'
+        },
+        {
+            title: 'D6. :host vs inline both with !important, :host rule should win',
+            documentStyle: '',
+            slottedStyle: '',
+            hostStyle: ':host { color: green !important; }',
+            inlineStyle: 'color: red !important;'
+        },
+        // [E] Putting all together
+        {
+            title: 'E1. all style applied, inline rule should win',
+            documentStyle: 'my-item { color: red; }',
+            slottedStyle: '::slotted(my-item) { color: blue; }',
+            hostStyle: ':host { color: yellow; }',
+            inlineStyle: 'color: green;'
+        },
+        {
+            title: 'E2. all styles with !important applied, rule in the last tree-of-trees should win',
+            documentStyle: 'my-item { color: red !important; }',
+            slottedStyle: '::slotted(my-item) { color: blue !important; }',
+            hostStyle: ':host { color: green !important; }',
+            inlineStyle: 'color: yellow !important;'
+        },
+    ];
+
+    for (var i = 0; i < testCases.length; ++i) {
+        var testCase = testCases[i];
+        var documentStyle = document.createElement('style');
+        documentStyle.appendChild(document.createTextNode(testCase['documentStyle']));
+        document.head.appendChild(documentStyle);
+
+        var myList = createMyList(mode,
+            testCase['slottedStyle'], testCase['hostStyle'], testCase['inlineStyle']);
+        document.body.appendChild(myList);
+
+        test(function () {
+            var myItem = myList.querySelector('my-item');
+            assert_equals(window.getComputedStyle(myItem).color, 'rgb(0, 128, 0)',
+                          testCase['title']);
+        }, testCase['title'] + ' for ' + mode + ' mode.');
+
+        myList.parentNode.removeChild(myList);
+        document.head.removeChild(documentStyle)
+    }
+}
+
+// Open or Closed should not make any difference in style application.
+testCascadingOrder('open');
+testCascadingOrder('closed');
+
+
+// Taken from the example in
+// https://github.com/w3c/webcomponents/blob/gh-pages/proposals/Shadow-DOM-Cascade-Order.md
+// https://github.com/w3c/webcomponents/issues/316
+// https://github.com/w3c/webcomponents/blob/gh-pages/proposals/Shadow-DOM-Cascade-Order-in-v1.md
+// with element renamed and style rule location changed.
+//
+// <style>my-item { color: red; }</style>
+// <my-list>
+//   <:shadow>
+//     <style>::slotted(my-item) { color: blue; }</style>
+//     <div>
+//       <:shadow>
+//         <slot/>
+//       </:shadow>
+//       <slot/>
+//     </div>
+//   </:shadow>
+//   <my-item style="color: green;">
+//     <:shadow>
+//       <style>:host { color: yellow; }</style>
+//       <slot/>
+//     </:shadow>
+//     ITEM
+//   </my-item>
+// </my-list>
+//
+// The difference from the example tree above is that <my-list> has 2 levels of
+// shadow trees, each with ::slotted(my-list) style rules.
+
+function createMyListWith2LevelShadow(mode, slottedStyle1, slottedStyle2, hostStyle) {
+    var myList = document.createElement('my-list');
+    var root = myList.attachShadow({'mode': mode});
+    root.innerHTML = '<style>' + slottedStyle1 + '</style><div><slot></slot></div>';
+    var div = root.querySelector('div');
+    var root2 = div.attachShadow({'mode': mode});
+    root2.innerHTML = '<style>' + slottedStyle2 + '</style><slot></slot>';
+    var myItem = document.createElement('my-item');
+    myList.appendChild(myItem);
+    var root3 = myItem.attachShadow({'mode': mode});
+    root3.innerHTML = '<style>' + hostStyle + '</style><slot></slot>';
+    myItem.appendChild(document.createTextNode('ITEM'));
+    return myList;
+}
+
+function testCascadingOrderWith2LevelShadow(mode) {
+    // In all test cases, the rule specified as "color: green" should win.
+    var testCases = [
+        {
+            title: 'F1. document vs others, document (the first rule in tree-of-trees order) rule should win',
+            documentStyle: 'my-item { color: green; }',
+            slottedStyle1: '::slotted(my-item) { color: red; }',
+            slottedStyle2: '::slotted(my-item) { color: red; }',
+            hostStyle: ':host { color: red; }',
+        },
+        {
+            title: 'F2. document with !important vs others, document rule should win',
+            documentStyle: 'my-item { color: green !important; }',
+            slottedStyle1: '::slotted(my-item) { color: red; }',
+            slottedStyle2: '::slotted(my-item) { color: red; }',
+            hostStyle: ':host { color: red; }',
+        },
+        {
+            title: 'F3. document vs ::slotted with !important, important rule should win',
+            documentStyle: 'my-item { color: red; }',
+            slottedStyle1: '::slotted(my-item) { color: green !important; }',
+            slottedStyle2: '::slotted(my-item) { color: red; }',
+            hostStyle: ':host { color: red; }',
+        },
+        {
+            title: 'F4. document vs ::slotted with !important, important rule should win',
+            documentStyle: 'my-item { color: red; }',
+            slottedStyle1: '::slotted(my-item) { color: red; }',
+            slottedStyle2: '::slotted(my-item) { color: green !important; }',
+            hostStyle: ':host { color: red; }',
+        },
+        {
+            title: 'F5. document vs :host with !important, important rule should win',
+            documentStyle: 'my-item { color: red; }',
+            slottedStyle1: '::slotted(my-item) { color: red; }',
+            slottedStyle2: '::slotted(my-item) { color: red; }',
+            hostStyle: ':host { color: green !important; }',
+        },
+        {
+            title: 'F6. all rules with !important, the last rule in tree-of-trees should win',
+            documentStyle: 'my-item { color: red !important; }',
+            slottedStyle1: '::slotted(my-item) { color: red !important; }',
+            slottedStyle2: '::slotted(my-item) { color: red !important; }',
+            hostStyle: ':host { color: green !important ; }',
+        }
+    ];
+
+    for (var i = 0; i < testCases.length; ++i) {
+        var testCase = testCases[i];
+        var documentStyle = document.createElement('style');
+        documentStyle.appendChild(document.createTextNode(testCase['documentStyle']));
+        document.head.appendChild(documentStyle);
+
+        var myList = createMyListWith2LevelShadow(mode,
+            testCase['slottedStyle1'], testCase['slottedStyle2'], testCase['hostStyle']);
+        document.body.appendChild(myList);
+
+        test(function () {
+            var myItem = myList.querySelector('my-item');
+            assert_equals(window.getComputedStyle(myItem).color, 'rgb(0, 128, 0)',
+                          testCase['title']);
+        }, testCase['title'] + ' for ' + mode + ' mode.');
+
+        myList.parentNode.removeChild(myList);
+        document.head.removeChild(documentStyle)
+    }
+}
+
+// Open or Closed should not make any difference in style application.
+testCascadingOrderWith2LevelShadow('open');
+testCascadingOrderWith2LevelShadow('closed');
+
+</script>
+</body>
+</html>

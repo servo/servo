@@ -1,0 +1,82 @@
+.flex {
+  display: flex;
+}
+
+.flex > div {
+  position: relative;
+  height: 160px;
+  margin: 0 10px;
+}
+
+.scroller {
+  width: 100px;
+  height: 100px;
+  overflow: auto;
+  border: 1px solid black;
+}
+
+.subject {
+  view-timeline-name: --view;
+  width: 20px;
+  height: 20px;
+  margin: 100px auto;
+  background: green;
+}
+
+.meters {
+  position: absolute;
+  left: 0;
+  top: 110px;
+  height: 50px;
+}
+
+.meters > div {
+  display: flex;
+  align-items: center;
+}
+
+@keyframes active-interval {
+  0% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+.meter {
+  width: 50px;
+  position: relative;
+  border: 2px solid black;
+  height: 5px;
+  overflow: clip;
+  opacity: 0.4;
+  animation: active-interval linear;
+  animation-timeline: --view;
+}
+
+@keyframes slide-in {
+  0% { transform: translateX(-100%)}
+  100% { transform: translateX(0%)}
+}
+
+.bar {
+  width: 100%;
+  height: 100%;
+  background: blue;
+  transform: translateX(-100%);
+  animation: slide-in linear;
+  animation-timeline: --view;
+}
+
+.spacer {
+  height: 400px;
+}
+
+.contain .bar, .contain .meter {
+  animation-range: contain;
+}
+
+.entry .bar, .entry .meter {
+  animation-range: entry;
+}
+
+.exit .bar, .exit .meter {
+  animation-range: exit;
+}

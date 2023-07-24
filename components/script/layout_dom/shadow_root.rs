@@ -7,13 +7,11 @@ use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
 use crate::layout_dom::ServoLayoutElement;
 use crate::layout_dom::ServoLayoutNode;
 use script_layout_interface::wrapper_traits::LayoutDataTrait;
-use selectors::matching::QuirksMode;
 use std::fmt;
 use std::marker::PhantomData;
 use style::dom::TShadowRoot;
-use style::media_queries::Device;
 use style::shared_lock::SharedRwLockReadGuard as StyleSharedRwLockReadGuard;
-use style::stylist::CascadeData;
+use style::stylist::{CascadeData, Stylist};
 
 pub struct ServoShadowRoot<'dom, LayoutDataType: LayoutDataTrait> {
     /// The wrapped private DOM ShadowRoot.
@@ -74,11 +72,10 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoShadowRoot<'dom, LayoutDataType
 
     pub unsafe fn flush_stylesheets(
         &self,
-        device: &Device,
-        quirks_mode: QuirksMode,
+        stylist: &mut Stylist,
         guard: &StyleSharedRwLockReadGuard,
     ) {
         self.shadow_root
-            .flush_stylesheets::<ServoLayoutElement<LayoutDataType>>(device, quirks_mode, guard)
+            .flush_stylesheets::<ServoLayoutElement<LayoutDataType>>(stylist, guard)
     }
 }

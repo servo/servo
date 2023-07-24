@@ -93,12 +93,6 @@ impl<T: Sized> OwnedSlice<T> {
         ret
     }
 
-    /// Iterate over all the elements in the slice taking ownership of them.
-    #[inline]
-    pub fn into_iter(self) -> impl Iterator<Item = T> + ExactSizeIterator {
-        self.into_vec().into_iter()
-    }
-
     /// Convert the regular slice into an owned slice.
     #[inline]
     pub fn from_slice(s: &[T]) -> Self
@@ -106,6 +100,16 @@ impl<T: Sized> OwnedSlice<T> {
         T: Clone,
     {
         Self::from(s.to_vec())
+    }
+}
+
+impl<T> IntoIterator for OwnedSlice<T> {
+    type Item = T;
+    type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.into_vec().into_iter()
     }
 }
 

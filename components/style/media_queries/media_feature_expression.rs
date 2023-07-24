@@ -196,23 +196,39 @@ fn consume_operation_or_colon(input: &mut Parser) -> Result<Option<Operator>, ()
             _ => return Err(()),
         }
     };
-    Ok(Some(match first_delim {
-        '=' => Operator::Equal,
-        '>' => {
-            if input.try_parse(|i| i.expect_delim('=')).is_ok() {
-                Operator::GreaterThanEqual
-            } else {
-                Operator::GreaterThan
-            }
-        },
-        '<' => {
-            if input.try_parse(|i| i.expect_delim('=')).is_ok() {
-                Operator::LessThanEqual
-            } else {
-                Operator::LessThan
-            }
-        },
+    let operator = match first_delim {
+        '=' => return Ok(Some(Operator::Equal)),
+        '>' => Operator::GreaterThan,
+        '<' => Operator::LessThan,
         _ => return Err(()),
+    };
+
+    // https://drafts.csswg.org/mediaqueries-4/#mq-syntax:
+    //
+    //     No whitespace is allowed between the “<” or “>”
+    //     <delim-token>s and the following “=” <delim-token>, if it’s
+    //     present.
+    //
+    // TODO(emilio): Maybe we should ignore comments as well?
+    // https://github.com/w3c/csswg-drafts/issues/6248
+    let parsed_equal = input
+        .try_parse(|i| {
+            let t = i.next_including_whitespace().map_err(|_| ())?;
+            if !matches!(t, Token::Delim('=')) {
+                return Err(());
+            }
+            Ok(())
+        })
+        .is_ok();
+
+    if !parsed_equal {
+        return Ok(Some(operator));
+    }
+
+    Ok(Some(match operator {
+        Operator::GreaterThan => Operator::GreaterThanEqual,
+        Operator::LessThan => Operator::LessThanEqual,
+        _ => unreachable!(),
     }))
 }
 
@@ -221,7 +237,11 @@ fn disabled_by_pref(feature: &Atom, context: &ParserContext) -> bool {
     #[cfg(feature = "gecko")]
     {
         if *feature == atom!("forced-colors") {
-            return !static_prefs::pref!("layout.css.forced-colors.enabled");
+            // forced-colors is always enabled in the ua and chrome. On
+            // the web it is hidden behind a preference, which is defaulted
+            // to 'true' as of bug 1659511.
+            return !context.in_ua_or_chrome_sheet() &&
+                !static_prefs::pref!("layout.css.forced-colors.enabled");
         }
         // prefers-contrast is always enabled in the ua and chrome. On
         // the web it is hidden behind a preference.

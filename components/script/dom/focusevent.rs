@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::FocusEventBinding::FocusEventMethod
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
@@ -15,6 +15,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 use std::default::Default;
 
 #[dom_struct]
@@ -32,7 +33,14 @@ impl FocusEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<FocusEvent> {
-        reflect_dom_object(Box::new(FocusEvent::new_inherited()), window)
+        Self::new_uninitialized_with_proto(window, None)
+    }
+
+    pub fn new_uninitialized_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<FocusEvent> {
+        reflect_dom_object_with_proto(Box::new(FocusEvent::new_inherited()), window, proto)
     }
 
     pub fn new(
@@ -44,7 +52,29 @@ impl FocusEvent {
         detail: i32,
         related_target: Option<&EventTarget>,
     ) -> DomRoot<FocusEvent> {
-        let ev = FocusEvent::new_uninitialized(window);
+        Self::new_with_proto(
+            window,
+            None,
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            related_target,
+        )
+    }
+
+    fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+        related_target: Option<&EventTarget>,
+    ) -> DomRoot<FocusEvent> {
+        let ev = FocusEvent::new_uninitialized_with_proto(window, proto);
         ev.upcast::<UIEvent>().InitUIEvent(
             type_,
             bool::from(can_bubble),
@@ -59,13 +89,15 @@ impl FocusEvent {
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
+        proto: Option<HandleObject>,
         type_: DOMString,
         init: &FocusEventBinding::FocusEventInit,
     ) -> Fallible<DomRoot<FocusEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.cancelable);
-        let event = FocusEvent::new(
+        let event = FocusEvent::new_with_proto(
             window,
+            proto,
             type_,
             bubbles,
             cancelable,

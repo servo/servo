@@ -10,7 +10,6 @@
 from __future__ import print_function, unicode_literals
 from os import path, listdir, getcwd
 
-import json
 import signal
 import subprocess
 import sys
@@ -36,22 +35,13 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo check")
     @CommandBase.build_like_command_arguments
-    def check(self, params, features=[], media_stack=None, target=None,
-              android=False, magicleap=False, **kwargs):
+    def check(self, params, **kwargs):
         if not params:
             params = []
 
-        features = features or []
-
-        target, android = self.pick_target_triple(target, android, magicleap)
-
-        features += self.pick_media_stack(media_stack, target)
-
-        self.ensure_bootstrapped(target=target)
+        self.ensure_bootstrapped()
         self.ensure_clobbered()
-        env = self.build_env()
-
-        status = self.run_cargo_build_like_command("check", params, env=env, features=features, **kwargs)
+        status = self.run_cargo_build_like_command("check", params, **kwargs)
         if status == 0:
             print('Finished checking, binary NOT updated. Consider ./mach build before ./mach run')
 
@@ -96,67 +86,19 @@ class MachCommands(CommandBase):
         if not params:
             params = []
 
-        if dry_run:
-            import toml
-            import httplib
-            import colorama
-
-            cargo_file = open(path.join(self.context.topdir, "Cargo.lock"))
-            content = toml.load(cargo_file)
-
-            packages = {}
-            outdated_packages = 0
-            conn = httplib.HTTPSConnection("crates.io")
-            for package in content.get("package", []):
-                if "replace" in package:
-                    continue
-                source = package.get("source", "")
-                if source == r"registry+https://github.com/rust-lang/crates.io-index":
-                    version = package["version"]
-                    name = package["name"]
-                    if not packages.get(name, "") or packages[name] > version:
-                        packages[name] = package["version"]
-                        conn.request('GET', '/api/v1/crates/{}/versions'.format(package["name"]))
-                        r = conn.getresponse()
-                        json_content = json.load(r)
-                        for v in json_content.get("versions"):
-                            if not v.get("yanked"):
-                                max_version = v.get("num")
-                                break
-
-                        if version != max_version:
-                            outdated_packages += 1
-                            version_major, version_minor = (version.split("."))[:2]
-                            max_major, max_minor = (max_version.split("."))[:2]
-
-                            if version_major == max_major and version_minor == max_minor and "alpha" not in version:
-                                msg = "minor update"
-                                msg_color = "\033[93m"
-                            else:
-                                msg = "update, which may contain breaking changes"
-                                msg_color = "\033[91m"
-
-                            colorama.init()
-                            print("{}Outdated package `{}`, available {}\033[0m".format(msg_color, name, msg),
-                                  "\n\tCurrent version: {}".format(version),
-                                  "\n\t Latest version: {}".format(max_version))
-            conn.close()
-
-            print("\nFound {} outdated packages from crates.io".format(outdated_packages))
-        elif package:
-            params += ["-p", package]
-        elif all_packages:
-            params = []
-        else:
+        if not package and not all_packages:
             print("Please choose package to update with the --package (-p) ")
             print("flag or update all packages with --all-packages (-a) flag")
             sys.exit(1)
 
-        if params or all_packages:
-            self.ensure_bootstrapped()
+        if package:
+            params += ["-p", package]
+        if dry_run:
+            params.append("--dry-run")
 
-            with cd(self.context.topdir):
-                self.call_rustup_run(["cargo", "update"] + params, env=self.build_env())
+        self.ensure_bootstrapped()
+        with cd(self.context.topdir):
+            self.call_rustup_run(["cargo", "update"] + params, env=self.build_env())
 
     @Command('rustc',
              description='Run the Rust compiler',
@@ -178,22 +120,13 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo-fix")
     @CommandBase.build_like_command_arguments
-    def cargo_fix(self, params, features=[], media_stack=None, target=None,
-                  android=False, magicleap=False, **kwargs):
+    def cargo_fix(self, params, **kwargs):
         if not params:
             params = []
 
-        features = features or []
-
-        target, android = self.pick_target_triple(target, android, magicleap)
-
-        features += self.pick_media_stack(media_stack, target)
-
-        self.ensure_bootstrapped(target=target)
+        self.ensure_bootstrapped()
         self.ensure_clobbered()
-        env = self.build_env()
-
-        return self.run_cargo_build_like_command("fix", params, env=env, features=features, **kwargs)
+        return self.run_cargo_build_like_command("fix", params, **kwargs)
 
     @Command('cargo-clippy',
              description='Run "cargo clippy"',
@@ -202,22 +135,13 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo-clippy")
     @CommandBase.build_like_command_arguments
-    def cargo_clippy(self, params, features=[], media_stack=None, target=None,
-                     android=False, magicleap=False, **kwargs):
+    def cargo_clippy(self, params, **kwargs):
         if not params:
             params = []
 
-        features = features or []
-
-        target, android = self.pick_target_triple(target, android, magicleap)
-
-        features += self.pick_media_stack(media_stack, target)
-
-        self.ensure_bootstrapped(target=target)
+        self.ensure_bootstrapped()
         self.ensure_clobbered()
-        env = self.build_env()
-
-        return self.run_cargo_build_like_command("clippy", params, env=env, features=features, **kwargs)
+        return self.run_cargo_build_like_command("clippy", params, **kwargs)
 
     @Command('grep',
              description='`git grep` for selected directories.',
@@ -276,9 +200,11 @@ class MachCommands(CommandBase):
         if not path.isfile(logfile):
             print(logfile + " doesn't exist")
             return -1
-        env = self.build_env(target=target)
+
+        self.cross_compile_target = target
+        env = self.build_env()
         ndk_stack = path.join(env["ANDROID_NDK"], "ndk-stack")
-        self.handle_android_target(target)
+        self.setup_configuration_for_android_target(target)
         sym_path = path.join(
             "target",
             target,
@@ -296,8 +222,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--target', action='store', default="armv7-linux-androideabi",
                      help="Build target")
     def ndk_gdb(self, release, target):
-        env = self.build_env(target)
-        self.handle_android_target(target)
+        self.cross_compile_target = target
+        self.setup_configuration_for_android_target(target)
+        env = self.build_env()
         ndk_gdb = path.join(env["ANDROID_NDK"], "ndk-gdb")
         adb_path = path.join(env["ANDROID_SDK"], "platform-tools", "adb")
         sym_paths = [

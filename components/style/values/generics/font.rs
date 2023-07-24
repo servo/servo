@@ -202,3 +202,60 @@ pub enum FontStyle<Angle> {
     #[value_info(starts_with_keyword)]
     Oblique(Angle),
 }
+
+/// A generic value for the `font-size-adjust` property.
+///
+/// https://www.w3.org/TR/css-fonts-4/#font-size-adjust-prop
+/// https://github.com/w3c/csswg-drafts/issues/6160
+/// https://github.com/w3c/csswg-drafts/issues/6288
+#[allow(missing_docs)]
+#[repr(u8)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub enum GenericFontSizeAdjust<Number> {
+    #[animation(error)]
+    None,
+    // 'ex-height' is the implied basis, so the keyword can be omitted
+    ExHeight(Number),
+    #[value_info(starts_with_keyword)]
+    CapHeight(Number),
+    #[value_info(starts_with_keyword)]
+    ChWidth(Number),
+    #[value_info(starts_with_keyword)]
+    IcWidth(Number),
+    #[value_info(starts_with_keyword)]
+    IcHeight(Number),
+}
+
+impl<Number: ToCss> ToCss for GenericFontSizeAdjust<Number> {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        let (prefix, value) = match self {
+            Self::None => return dest.write_str("none"),
+            Self::ExHeight(v) => ("", v),
+            Self::CapHeight(v) => ("cap-height ", v),
+            Self::ChWidth(v) => ("ch-width ", v),
+            Self::IcWidth(v) => ("ic-width ", v),
+            Self::IcHeight(v) => ("ic-height ", v),
+        };
+
+        dest.write_str(prefix)?;
+        value.to_css(dest)
+    }
+}

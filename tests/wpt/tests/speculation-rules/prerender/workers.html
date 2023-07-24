@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<title>Construction of Web Workers is deferred</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const {exec, activate} = await create_prerendered_page(t);
+  const workerURL = new URL('resources/worker-post-timeOrigin.js', location.href).toString();
+  await exec(workerURL => {
+    window.worker = new Worker(workerURL);
+    window.waitForWorker = new Promise(resolve => worker.addEventListener('message', e => {
+        resolve({
+          prerendering: document.prerendering,
+          activationStart: performance.getEntriesByType('navigation')[0].activationStart,
+          workerLoad: performance.getEntriesByName(workerURL)[0].startTime,
+          workerStart: e.data});
+    }), workerURL);
+  }, [workerURL]);
+
+  // We want to prevent false success by waiting for enough time to make sure the worker is not
+  // yet initialized
+  await new Promise(resolve => t.step_timeout(resolve, 500));
+  await activate();
+  const {workerStart, activationStart, workerLoad, prerendering} = await exec(() => window.waitForWorker);
+  assert_false(prerendering, "DedicatedWorker should be suspended until activated");
+  assert_greater_than(activationStart, workerLoad, "Loading the worker script should not be delayed");
+  assert_greater_than(workerStart, activationStart, "Starting the worker should be delayed");
+}, "Dedicated workers should be loaded in suspended state until activated");
+
+promise_test(async t => {
+  const {exec, activate} = await create_prerendered_page(t);
+  const workerURL = new URL(`resources/shared-worker.py?id=${token()}`, location.href).toString();
+  await exec(workerURL => {
+    window.worker = new SharedWorker(workerURL, 'dummy');
+    window.worker.port.start();
+    window.waitForSharedWorkerLoadingReport =
+      fetch(workerURL + "&check=true")
+        .then(r => t.text())
+        .then(text => text === 'ok' && document.prerendering);
+    window.waitForWorker = new Promise(resolve => worker.port.addEventListener('message', e => {
+        resolve({
+          prerendering: document.prerendering,
+          activationStart: performance.getEntriesByType('navigation')[0].activationStart,
+          workerLoad: performance.getEntriesByName(workerURL)[0]?.startTime,
+          workerStart: e.data});
+    }), workerURL);
+  }, [workerURL]);
+
+  await new Promise(resolve => t.step_timeout(resolve, 300));
+  await activate();
+  const {workerStart, activationStart, workerLoad, prerendering} = await exec(() => window.waitForWorker);
+  assert_false(prerendering, "SharedWorker should be suspended until activated");
+  assert_greater_than(activationStart, workerLoad, "Loading the worker script should not be delayed");
+  assert_greater_than(workerStart, activationStart, "Starting the worker should be delayed");
+}, "Shared workers should be loaded in suspended state until activated");
+
+promise_test(async t => {
+  const {exec, activate} = await create_prerendered_page(t);
+  const workerURL = new URL(`resources/shared-worker.py?id=${token()}`, location.href).toString();
+  const workerStartTime1 = await new Promise(resolve => {
+    const worker = new SharedWorker(workerURL, 'worker');
+    worker.port.start();
+    worker.port.addEventListener('message', e => resolve(e.data));
+  });
+
+  await exec(workerURL => {
+    window.worker = new SharedWorker(workerURL, 'worker');
+    window.worker.port.start();
+    window.waitForWorker = new Promise(resolve => worker.port.addEventListener('message', e => {
+        resolve({
+          prerendering: document.prerendering,
+          activationStart: performance.getEntriesByType('navigation')[0].activationStart,
+          workerLoad: performance.getEntriesByName(workerURL)[0]?.startTime,
+          workerStartTime2: e.data});
+    }), workerURL);
+  }, [workerURL]);
+
+  await new Promise(resolve => t.step_timeout(resolve, 300));
+  await activate();
+  const {workerStartTime2, activationStart, workerLoad, prerendering} = await exec(() => window.waitForWorker);
+  assert_true(prerendering, "An existing SharedWorker should be accessible while prerendering");
+  assert_greater_than(activationStart, workerLoad, "Loading the worker script should not be delayed");
+  assert_equals(workerStartTime1, workerStartTime2, "The prerendered page should connect to the existing worker");
+  assert_greater_than(activationStart, workerStartTime2, "Starting the worker should be done before activation");
+}, "Existing shared workers should be accessible before activation");
+</script>

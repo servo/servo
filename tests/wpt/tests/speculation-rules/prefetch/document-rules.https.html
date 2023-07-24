@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<script src="/common/subset-tests-by-key.js"></script>
+
+<meta name="variant" content="?include=defaultPredicate">
+<meta name="variant" content="?include=hrefMatches">
+<meta name="variant" content="?include=and">
+<meta name="variant" content="?include=or">
+<meta name="variant" content="?include=not">
+<meta name="variant" content="?include=invalidPredicate">
+<meta name="variant" content="?include=linkInShadowTree">
+<meta name="variant" content="?include=linkHrefChanged">
+<meta name="variant" content="?include=newRuleSetAdded">
+<meta name="variant" content="?include=selectorMatches">
+<meta name="variant" content="?include=selectorMatchesScopingRoot">
+<meta name="variant" content="?include=selectorMatchesInShadowTree">
+<meta name="variant" content="?include=selectorMatchesDisplayNone">
+<meta name="variant" content="?include=selectorMatchesDisplayLocked">
+<meta name="variant" content="?include=unslottedLink">
+<meta name="variant" content="?include=immediateMutation">
+
+<body>
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  subsetTestByKey('defaultPredicate', promise_test, async t => {
+    const url = getPrefetchUrl();
+    addLink(url);
+    insertDocumentRule();
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test document rule with no predicate');
+
+  subsetTestByKey('hrefMatches', promise_test, async t => {
+    insertDocumentRule({ href_matches: '*\\?uuid=*&foo=bar' });
+
+    const url_1 = getPrefetchUrl({foo: 'bar'});
+    addLink(url_1);
+    const url_2 = getPrefetchUrl({foo: 'buzz'});
+    addLink(url_2)
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url_1), 1);
+    assert_equals(await isUrlPrefetched(url_2), 0);
+  }, 'test href_matches document rule');
+
+  subsetTestByKey('and', promise_test, async t => {
+    insertDocumentRule({
+      'and': [
+        { href_matches: '*\\?*foo=bar*' },
+        { href_matches: '*\\?*fizz=buzz*' }]
+    });
+
+    const url_1 = getPrefetchUrl({foo: 'bar'});
+    const url_2 = getPrefetchUrl({fizz: 'buzz'});
+    const url_3 = getPrefetchUrl({foo: 'bar', fizz: 'buzz'});
+    [url_1, url_2, url_3].forEach(url => addLink(url));
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url_1), 0);
+    assert_equals(await isUrlPrefetched(url_2), 0);
+    assert_equals(await isUrlPrefetched(url_3), 1);
+  }, 'test document rule with conjunction predicate');
+
+  subsetTestByKey('or', promise_test, async t => {
+    insertDocumentRule({
+      'or': [
+        { href_matches: '*\\?*foo=bar*' },
+        { href_matches: '*\\?*fizz=buzz*' }]
+    });
+
+    const url_1 = getPrefetchUrl({ foo: 'buzz' });
+    const url_2 = getPrefetchUrl({ fizz: 'buzz' });
+    const url_3 = getPrefetchUrl({ foo: 'bar'});
+    [url_1, url_2, url_3].forEach(url => addLink(url));
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url_1), 0);
+    assert_equals(await isUrlPrefetched(url_2), 1);
+    assert_equals(await isUrlPrefetched(url_3), 1);
+  }, 'test document rule with disjunction predicate');
+
+  subsetTestByKey('not', promise_test, async t => {
+    insertDocumentRule({ not: { href_matches: '*\\?uuid=*&foo=bar' } });
+
+    const url_1 = getPrefetchUrl({foo: 'bar'});
+    addLink(url_1);
+    const url_2 = getPrefetchUrl({foo: 'buzz'});
+    addLink(url_2)
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url_1), 0);
+    assert_equals(await isUrlPrefetched(url_2), 1);
+  }, 'test document rule with negation predicate');
+
+  subsetTestByKey('invalidPredicate', promise_test, async t => {
+    const url = getPrefetchUrl();
+    addLink(url);
+    insertDocumentRule({invalid: 'predicate'});
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 0);
+  }, 'invalid predicate should not throw error or start prefetch');
+
+  subsetTestByKey('linkInShadowTree', promise_test, async t => {
+    insertDocumentRule();
+
+    // Create shadow root.
+    const shadowHost = document.createElement('div');
+    document.body.appendChild(shadowHost);
+    const shadowRoot = shadowHost.attachShadow({mode: 'open'});
+
+    const url = getPrefetchUrl();
+    addLink(url, shadowRoot);
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test that matching link in a shadow tree is prefetched');
+
+  subsetTestByKey('linkHrefChanged', promise_test, async t => {
+    insertDocumentRule({href_matches: "*\\?*foo=bar*"});
+
+    const url = getPrefetchUrl();
+    const link = addLink(url);
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+
+    const matching_url = getPrefetchUrl({foo: 'bar'});
+    link.href = matching_url;
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(matching_url), 1);
+  }, 'test that changing the href of an invalid link to a matching value triggers a prefetch');
+
+  subsetTestByKey('newRuleSetAdded', promise_test, async t => {
+    insertDocumentRule({href_matches: "*\\?*foo=bar*"});
+    const url = getPrefetchUrl({fizz: "buzz"});
+    addLink(url);
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+
+    insertDocumentRule({href_matches: "*\\?*fizz=buzz*"});
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test that adding a second rule set triggers prefetch');
+
+  subsetTestByKey('selectorMatches', promise_test, async t => {
+    insertDocumentRule({ selector_matches: 'a.important-link' });
+
+    const url_1 = getPrefetchUrl({foo: 'bar'});
+    const importantLink = addLink(url_1);
+    importantLink.className = 'important-link';
+    const url_2 = getPrefetchUrl({foo: 'buzz'});
+    addLink(url_2)
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url_1), 1);
+    assert_equals(await isUrlPrefetched(url_2), 0);
+  }, 'test selector_matches document rule');
+
+  subsetTestByKey('selectorMatchesScopingRoot', promise_test, async t => {
+    insertDocumentRule({ selector_matches: ':root > body > a' });
+
+    const url_1 = getPrefetchUrl({ foo: 'bar' });
+    addLink(url_1);
+
+    const url_2 = getPrefetchUrl({ foo: 'buzz' });
+    const extraContainer = document.createElement('div');
+    document.body.appendChild(extraContainer);
+    addLink(url_2, extraContainer);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url_1), 1);
+    assert_equals(await isUrlPrefetched(url_2), 0);
+  }, 'test selector_matches with :root');
+
+  // 'selector_matches' should never match with a link inside a shadow tree
+  // because the scoping root used when matching is always the document.
+  subsetTestByKey('selectorMatchesInShadowTree', promise_test, async t => {
+    insertDocumentRule({ selector_matches: 'a.important-link' });
+
+    // Create shadow root.
+    const shadowHost = document.createElement('div');
+    document.body.appendChild(shadowHost);
+    const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
+
+    const url = getPrefetchUrl();
+    const link = addLink(url, shadowRoot);
+    link.className = 'important-link';
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 0);
+  }, 'test selector_matches with link inside shadow tree');
+
+  subsetTestByKey('selectorMatchesDisplayNone', promise_test, async t => {
+    const style = document.createElement('style');
+    style.innerText = ".important-section { display: none; }";
+    document.head.appendChild(style);
+    insertDocumentRule();
+
+    const importantSection = document.createElement('div');
+    importantSection.className = 'important-section';
+    document.body.appendChild(importantSection);
+    const url = getPrefetchUrl();
+    addLink(url, importantSection);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+
+    style.remove();
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test selector_matches with link inside display:none container');
+
+  subsetTestByKey('selectorMatchesDisplayLocked', promise_test, async t => {
+    const style = document.createElement('style');
+    style.innerText = ".important-section { content-visibility: hidden; }";
+    document.head.appendChild(style);
+    insertDocumentRule({ selector_matches: '.important-section a' });
+
+    const importantSection = document.createElement('div');
+    importantSection.className = 'important-section';
+    document.body.appendChild(importantSection);
+    const url = getPrefetchUrl();
+    addLink(url, importantSection);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+
+    style.remove();
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test selector_matches with link inside display locked container');
+
+  subsetTestByKey('unslottedLink', promise_test, async t => {
+    insertDocumentRule();
+
+    // Create shadow root.
+    const shadowHost = document.createElement('div');
+    document.body.appendChild(shadowHost);
+    const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
+
+    // Add unslotted link.
+    const url = getPrefetchUrl();
+    addLink(url, shadowHost);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+  }, 'test that unslotted link never matches document rule');
+
+  subsetTestByKey('immediateMutation', promise_test, async t => {
+    // Add a link and allow it to get its style computed.
+    // (Double RAF lets this happen normally.)
+    const url = getPrefetchUrl();
+    const link = addLink(url, document.body);
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+    // Add a document rule and then immediately change the DOM to make it match.
+    insertDocumentRule({ selector_matches: '.late-class *' });
+    document.body.className = 'late-class';
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test that selector_matches predicates respect changes immediately');
+</script>
+</body>

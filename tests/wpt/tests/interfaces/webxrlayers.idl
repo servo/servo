@@ -1,0 +1,221 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebXR Layers API Level 1 (https://immersive-web.github.io/layers/)
+
+enum XRLayerLayout {
+  "default",
+  "mono",
+  "stereo",
+  "stereo-left-right",
+  "stereo-top-bottom"
+};
+
+enum XRLayerQuality {
+  "default",
+  "text-optimized",
+  "graphics-optimized"
+};
+
+[Exposed=Window] interface XRCompositionLayer : XRLayer {
+  readonly attribute XRLayerLayout layout;
+
+  attribute boolean blendTextureSourceAlpha;
+  attribute boolean forceMonoPresentation;
+  attribute float opacity;
+  readonly attribute unsigned long mipLevels;
+  attribute XRLayerQuality quality;
+
+  readonly attribute boolean needsRedraw;
+
+  undefined destroy();
+};
+
+[Exposed=Window] interface XRProjectionLayer : XRCompositionLayer {
+  readonly attribute unsigned long textureWidth;
+  readonly attribute unsigned long textureHeight;
+  readonly attribute unsigned long textureArrayLength;
+
+  readonly attribute boolean ignoreDepthValues;
+  attribute float? fixedFoveation;
+  attribute XRRigidTransform? deltaPose;
+};
+
+[Exposed=Window] interface XRQuadLayer : XRCompositionLayer {
+  attribute XRSpace space;
+  attribute XRRigidTransform transform;
+
+  attribute float width;
+  attribute float height;
+
+  // Events
+  attribute EventHandler onredraw;
+};
+
+[Exposed=Window] interface XRCylinderLayer : XRCompositionLayer {
+  attribute XRSpace space;
+  attribute XRRigidTransform transform;
+
+  attribute float radius;
+  attribute float centralAngle;
+  attribute float aspectRatio;
+
+  // Events
+  attribute EventHandler onredraw;
+};
+
+[Exposed=Window] interface XREquirectLayer : XRCompositionLayer {
+  attribute XRSpace space;
+  attribute XRRigidTransform transform;
+
+  attribute float radius;
+  attribute float centralHorizontalAngle;
+  attribute float upperVerticalAngle;
+  attribute float lowerVerticalAngle;
+
+  // Events
+  attribute EventHandler onredraw;
+};
+
+[Exposed=Window] interface XRCubeLayer : XRCompositionLayer {
+  attribute XRSpace space;
+  attribute DOMPointReadOnly orientation;
+
+  // Events
+  attribute EventHandler onredraw;
+};
+
+[Exposed=Window] interface XRSubImage {
+  [SameObject] readonly attribute XRViewport viewport;
+};
+
+[Exposed=Window] interface XRWebGLSubImage : XRSubImage {
+  [SameObject] readonly attribute WebGLTexture colorTexture;
+  [SameObject] readonly attribute WebGLTexture? depthStencilTexture;
+  [SameObject] readonly attribute WebGLTexture? motionVectorTexture;
+
+  readonly attribute unsigned long? imageIndex;
+  readonly attribute unsigned long colorTextureWidth;
+  readonly attribute unsigned long colorTextureHeight;
+  readonly attribute unsigned long? depthStencilTextureWidth;
+  readonly attribute unsigned long? depthStencilTextureHeight;
+  readonly attribute unsigned long? motionVectorTextureWidth;
+  readonly attribute unsigned long? motionVectorTextureHeight;
+};
+
+enum XRTextureType {
+  "texture",
+  "texture-array"
+};
+
+dictionary XRProjectionLayerInit {
+  XRTextureType textureType = "texture";
+  GLenum colorFormat = 0x1908; // RGBA
+  GLenum depthFormat = 0x1902; // DEPTH_COMPONENT
+  double scaleFactor = 1.0;
+  boolean clearOnAccess = true;
+};
+
+dictionary XRLayerInit {
+  required XRSpace space;
+  GLenum colorFormat = 0x1908; // RGBA
+  GLenum? depthFormat;
+  unsigned long mipLevels = 1;
+  required unsigned long viewPixelWidth;
+  required unsigned long viewPixelHeight;
+  XRLayerLayout layout = "mono";
+  boolean isStatic = false;
+  boolean clearOnAccess = true;
+};
+
+dictionary XRQuadLayerInit : XRLayerInit {
+  XRTextureType textureType = "texture";
+  XRRigidTransform? transform;
+  float width = 1.0;
+  float height = 1.0;
+};
+
+dictionary XRCylinderLayerInit : XRLayerInit {
+  XRTextureType textureType = "texture";
+  XRRigidTransform? transform;
+  float radius = 2.0;
+  float centralAngle = 0.78539;
+  float aspectRatio = 2.0;
+};
+
+dictionary XREquirectLayerInit : XRLayerInit {
+  XRTextureType textureType = "texture";
+  XRRigidTransform? transform;
+  float radius = 0;
+  float centralHorizontalAngle = 6.28318;
+  float upperVerticalAngle = 1.570795;
+  float lowerVerticalAngle = -1.570795;
+};
+
+dictionary XRCubeLayerInit : XRLayerInit {
+  DOMPointReadOnly? orientation;
+};
+
+[Exposed=Window] interface XRWebGLBinding {
+  constructor(XRSession session, XRWebGLRenderingContext context);
+
+  readonly attribute double nativeProjectionScaleFactor;
+  readonly attribute boolean usesDepthValues;
+
+  XRProjectionLayer createProjectionLayer(optional XRProjectionLayerInit init = {});
+  XRQuadLayer createQuadLayer(optional XRQuadLayerInit init = {});
+  XRCylinderLayer createCylinderLayer(optional XRCylinderLayerInit init = {});
+  XREquirectLayer createEquirectLayer(optional XREquirectLayerInit init = {});
+  XRCubeLayer createCubeLayer(optional XRCubeLayerInit init = {});
+
+  XRWebGLSubImage getSubImage(XRCompositionLayer layer, XRFrame frame, optional XREye eye = "none");
+  XRWebGLSubImage getViewSubImage(XRProjectionLayer layer, XRView view);
+};
+
+dictionary XRMediaLayerInit {
+  required XRSpace space;
+  XRLayerLayout layout = "mono";
+  boolean invertStereo = false;
+};
+
+dictionary XRMediaQuadLayerInit : XRMediaLayerInit {
+  XRRigidTransform? transform;
+  float? width;
+  float? height;
+};
+
+dictionary XRMediaCylinderLayerInit : XRMediaLayerInit {
+  XRRigidTransform? transform;
+  float radius = 2.0;
+  float centralAngle = 0.78539;
+  float? aspectRatio;
+};
+
+dictionary XRMediaEquirectLayerInit : XRMediaLayerInit {
+  XRRigidTransform? transform;
+  float radius = 0.0;
+  float centralHorizontalAngle = 6.28318;
+  float upperVerticalAngle = 1.570795;
+  float lowerVerticalAngle = -1.570795;
+};
+
+[Exposed=Window] interface XRMediaBinding {
+  constructor(XRSession session);
+
+  XRQuadLayer createQuadLayer(HTMLVideoElement video, optional XRMediaQuadLayerInit init = {});
+  XRCylinderLayer createCylinderLayer(HTMLVideoElement video, optional XRMediaCylinderLayerInit init = {});
+  XREquirectLayer createEquirectLayer(HTMLVideoElement video, optional XRMediaEquirectLayerInit init = {});
+};
+
+[SecureContext, Exposed=Window] interface XRLayerEvent : Event {
+  constructor(DOMString type, XRLayerEventInit eventInitDict);
+  [SameObject] readonly attribute XRLayer layer;
+};
+
+dictionary XRLayerEventInit : EventInit {
+  required XRLayer layer;
+};
+
+[SecureContext, Exposed=Window] partial interface XRRenderState {
+  readonly attribute FrozenArray<XRLayer> layers;
+};

@@ -178,28 +178,6 @@ where
         // Some pseudo-classes need special handling to evaluate them against
         // the snapshot.
         match *pseudo_class {
-            // :dir is implemented in terms of state flags, but which state flag
-            // it maps to depends on the argument to :dir.  That means we can't
-            // just add its state flags to the NonTSPseudoClass, because if we
-            // added all of them there, and tested via intersects() here, we'd
-            // get incorrect behavior for :not(:dir()) cases.
-            //
-            // FIXME(bz): How can I set this up so once Servo adds :dir()
-            // support we don't forget to update this code?
-            #[cfg(feature = "gecko")]
-            NonTSPseudoClass::Dir(ref dir) => {
-                let selector_flag = dir.element_state();
-                if selector_flag.is_empty() {
-                    // :dir() with some random argument; does not match.
-                    return false;
-                }
-                let state = match self.snapshot().and_then(|s| s.state()) {
-                    Some(snapshot_state) => snapshot_state,
-                    None => self.element.state(),
-                };
-                return state.contains(selector_flag);
-            },
-
             // For :link and :visited, we don't actually want to test the
             // element state directly.
             //

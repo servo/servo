@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver actions: pointerevent properties of pen type</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+div#test {
+  position: fixed;
+  touch-action: none;
+  top: 5px;
+  left: 5px;
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+}
+</style>
+
+<div id="test">
+</div>
+
+<script>
+let pointerDownEvent;
+let pointerMoveEvent;
+let receivedPointerDown = false;
+
+promise_test(async t => {
+  let test = document.getElementById("test");
+  var eventList = ['pointermove', 'pointerdown'];
+  for (eventType of eventList) {
+    test.addEventListener(eventType, e => {
+      if (e.type == 'pointerdown') {
+        receivedPointerDown = true;
+        pointerDownEvent = e;
+      }
+      if (e.type == 'pointermove' && receivedPointerDown)
+        pointerMoveEvent = e;
+    });
+  }
+
+  let div = document.getElementById("test");
+  await new test_driver.Actions()
+    .addPointer("penPointer1", "pen")
+    .pointerMove(0, 0, {origin: test})
+    .pointerDown({pressure:0.36, tiltX:-72, tiltY:9, twist:86})
+    .pointerMove(15, 0, {origin: test})
+    .pointerUp()
+    .send();
+
+    assert_equals(pointerDownEvent.type, "pointerdown");
+    assert_equals(pointerDownEvent.pointerType, "pen");
+    assert_equals(pointerDownEvent.width, 1);
+    assert_equals(pointerDownEvent.height, 1);
+    assert_equals(Math.round(pointerDownEvent.pressure * 100) / 100, 0.36);
+    assert_equals(pointerDownEvent.tiltX, -72);
+    assert_equals(pointerDownEvent.tiltY, 9);
+    assert_equals(pointerDownEvent.twist, 86);
+    assert_equals(pointerMoveEvent.type, "pointermove");
+    assert_equals(pointerMoveEvent.pointerType, "pen");
+    assert_equals(pointerMoveEvent.width, 1);
+    assert_equals(pointerMoveEvent.height, 1);
+    assert_equals(Math.round(pointerMoveEvent.pressure * 100) / 100, 0.5);
+    assert_equals(pointerMoveEvent.tiltX, 0);
+    assert_equals(pointerMoveEvent.tiltY, 0);
+    assert_equals(pointerMoveEvent.twist, 0);
+});
+</script>

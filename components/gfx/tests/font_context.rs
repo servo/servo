@@ -24,6 +24,7 @@ use style::values::computed::font::{
 };
 use style::values::computed::font::{FontStretch, FontWeight, SingleFontFamily};
 use style::values::generics::font::FontStyle;
+use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
 
 struct TestFontSource {
     handle: FontContextHandle,
@@ -68,12 +69,8 @@ impl TestFontSource {
 }
 
 impl FontSource for TestFontSource {
-    fn get_font_instance(
-        &mut self,
-        _key: webrender_api::FontKey,
-        _size: Au,
-    ) -> webrender_api::FontInstanceKey {
-        webrender_api::FontInstanceKey(webrender_api::IdNamespace(0), 0)
+    fn get_font_instance(&mut self, _key: FontKey, _size: Au) -> FontInstanceKey {
+        FontInstanceKey(IdNamespace(0), 0)
     }
 
     fn font_template(
@@ -89,7 +86,7 @@ impl FontSource for TestFontSource {
             .and_then(|family| family.find_font_for_style(&template_descriptor, handle))
             .map(|template| FontTemplateInfo {
                 font_template: template,
-                font_key: webrender_api::FontKey(webrender_api::IdNamespace(0), 0),
+                font_key: FontKey(IdNamespace(0), 0),
             })
     }
 }
@@ -120,8 +117,11 @@ fn font_family(names: Vec<&str>) -> FontFamily {
         .collect();
 
     FontFamily {
-        families: FontFamilyList::new(names.into_boxed_slice()),
+        families: FontFamilyList {
+            list: names.into_boxed_slice(),
+        },
         is_system_font: false,
+        is_initial: false,
     }
 }
 

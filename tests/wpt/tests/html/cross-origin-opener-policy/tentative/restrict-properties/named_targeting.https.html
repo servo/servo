@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/common.js"></script>
+
+<script>
+
+async function createCoopRestrictPropertiesPopup(popupToken, name) {
+  const url = SAME_ORIGIN.origin + '/common/dispatcher/executor.html' +
+    `?uuid=${popupToken}` +
+    '&pipe=|header(Cross-Origin-Opener-Policy, restrict-properties)';
+  const popup = window.open(url, name);
+  add_completion_callback(() => popup.close());
+
+  // Wait for the popup to be loaded.
+  const replyToken = token();
+  send(popupToken, `send('${replyToken}', 'Done loading')`);
+  assert_equals(await receive(replyToken), 'Done loading');
+
+  return popup;
+}
+
+promise_test(async t => {
+  // Start by opening a first COOP: restrict-properties popup. No name is set to
+  // begin with.
+  const popupToken1 = token();
+  const popup1 = await createCoopRestrictPropertiesPopup(popupToken1, '');
+
+  // Once the popup is live, explicitly set a name.
+  const name = token();
+  send(popupToken1, `window.name = '${name}'`);
+
+  // To make sure this name has been propagated to other processes, send a dummy
+  // message from the popup to the main page, and wait for it to be received.
+  // It should be delivered after the name change is replicated.
+  const message_waiter = new Promise(resolve => {
+    onmessage = (event) => {
+      if (event.data == 'Waited enough') { resolve(); }
+    }
+  });
+  send(popupToken1, `opener.postMessage('Waited enough', '*')`);
+  await message_waiter;
+
+  // Finally, call window.open with the same name. This should not resolve
+  // across browsing context groups, and create a brand new popup.
+  const popupToken2 = token();
+  const popup2 = await createCoopRestrictPropertiesPopup(popupToken2, name);
+  assert_not_equals(popup1, popup2,
+    'Named targeting resolved across isolation boundaries');
+
+}, 'Verify that named targeting does not work across isolation boundaries.');
+
+</script>

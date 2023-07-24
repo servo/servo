@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Here's the set-up for this test:
+// Step 1 (first window) Open new window to verify that hints were set.
+// Step 2 (second window) Alert first window of client hints present.
+// Step 3 (first window) Asserts client hints were present.
+// Step 4 (first window) Navigate other window to page that clears storage data.
+// Step 5 (second window) Navigate to a page that can check client hints still sent.
+// Step 6 (second window) Alert first window of client hints present.
+// Step 7 (first window) Asserts client hints were present.
+async_test(t => {
+    var new_window;
+
+    // Step 3
+    window.addEventListener("message", t.step_func(e => {
+        assert_equals(e.data, "HadDeviceMemory");
+
+        // Step 7
+        window.addEventListener("message", t.step_func(e => {
+            assert_equals(e.data, "HadDeviceMemory");
+            t.done();
+        }), {once: true});
+
+        // Step 4
+        new_window.location.href = "/client-hints/clear-site-data/resources/clear-site-data.py?target=storage";
+    }), {once: true});
+
+    // Step 1
+    new_window = window.open("/client-hints/clear-site-data/resources/check-client-hints.py");
+    t.add_cleanup(() => new_window.close());
+}, "Clear-Site-Data for storage should not remove all client hints.");
+</script>
+</body>
+</html>

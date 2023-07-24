@@ -16,6 +16,7 @@ use crate::dom::document::Document;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use js::rust::HandleObject;
 
 /// An HTML text node.
 #[dom_struct]
@@ -31,13 +32,29 @@ impl Text {
     }
 
     pub fn new(text: DOMString, document: &Document) -> DomRoot<Text> {
-        Node::reflect_node(Box::new(Text::new_inherited(text, document)), document)
+        Self::new_with_proto(text, document, None)
+    }
+
+    fn new_with_proto(
+        text: DOMString,
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<Text> {
+        Node::reflect_node_with_proto(
+            Box::new(Text::new_inherited(text, document)),
+            document,
+            proto,
+        )
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window, text: DOMString) -> Fallible<DomRoot<Text>> {
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        text: DOMString,
+    ) -> Fallible<DomRoot<Text>> {
         let document = window.Document();
-        Ok(Text::new(text, &document))
+        Ok(Text::new_with_proto(text, &document, proto))
     }
 }
 

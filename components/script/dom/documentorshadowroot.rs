@@ -9,7 +9,6 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -20,11 +19,10 @@ use servo_arc::Arc;
 use servo_atoms::Atom;
 use std::collections::HashMap;
 use std::fmt;
-use style::context::QuirksMode;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
-use style::stylesheets::{CssRule, Origin, Stylesheet};
+use style::stylesheets::{Stylesheet, StylesheetContents};
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]
@@ -48,19 +46,11 @@ impl PartialEq for StyleSheetInDocument {
 
 impl ToMediaListKey for StyleSheetInDocument {
     fn to_media_list_key(&self) -> MediaListKey {
-        self.sheet.to_media_list_key()
+        self.sheet.contents.to_media_list_key()
     }
 }
 
 impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
-    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
-        self.sheet.origin(guard)
-    }
-
-    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
-        self.sheet.quirks_mode(guard)
-    }
-
     fn enabled(&self) -> bool {
         self.sheet.enabled()
     }
@@ -69,8 +59,8 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
         self.sheet.media(guard)
     }
 
-    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
-        self.sheet.rules(guard)
+    fn contents(&self) -> &StylesheetContents {
+        self.sheet.contents()
     }
 }
 
@@ -235,13 +225,7 @@ impl DocumentOrShadowRoot {
         insertion_point: Option<StyleSheetInDocument>,
         style_shared_lock: &StyleSharedRwLock,
     ) {
-        // FIXME(emilio): It'd be nice to unify more code between the elements
-        // that own stylesheets, but StylesheetOwner is more about loading
-        // them...
-        debug_assert!(
-            owner.as_stylesheet_owner().is_some() || owner.is::<HTMLMetaElement>(),
-            "Wat"
-        );
+        debug_assert!(owner.as_stylesheet_owner().is_some(), "Wat");
 
         let sheet = StyleSheetInDocument {
             sheet,

@@ -1,0 +1,15 @@
+<!doctype html>
+<title>WebSockets: send() when readyState is CONNECTING</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+test(function(t) {
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+  assert_throws_dom("INVALID_STATE_ERR", function(){ws.send('a')});
+});
+</script>
+

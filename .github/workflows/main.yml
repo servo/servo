@@ -1,67 +1,93 @@
-name: Merge queue and try
+name: Main
 
 on:
   push:
-    branches: ["auto", "try"]
-
-  # Allows you to run this workflow manually from the Actions tab
+    # Run the entire pipeline for 'master' even though the merge queue already runs checks
+    # for every change. This just offers an extra layer of testing and covers the case of
+    # random force pushes.
+    branches: ["master", "try"]
+  pull_request:
+    types: ['opened', 'synchronize']
+    branches: ["**"]
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 jobs:
   decision:
-    name: Decision job
+    name: Decision
     runs-on: ubuntu-20.04
+    outputs:
+      skipped: ${{ steps.skipDecision.outputs.result }}
+      platforms: ${{ steps.platformDecision.outputs.result }}
     steps:
-      - name: Previous successful build check
+      - name: Skip Decision
+        id: skipDecision
         uses: actions/github-script@v6
         with:
+          result-encoding: string
           script: |
+            // Never skip workflow runs for pull requests or merge groups, which might
+            // need to actually run / retry WPT tests.
+            if (context.eventName == "pull_request" || context.eventName == "merge_group") {
+              return "run";
+            }
+            // Skip the run if an identical run already exists. This helps to avoid running
+            // the workflow over and over again for the same commit hash.
             if ((await github.rest.actions.listWorkflowRuns({
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: "main.yml",
               head_sha: context.sha,
               status: "success",
-            })).data.workflow_runs.length > 0)
-              await github.rest.actions.cancelWorkflowRun({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: context.runId,
-              });
+            })).data.workflow_runs.length > 0) {
+              return "skip"
+            } else {
+              return "run"
+            }
+      - name: Platform Decision
+        id: platformDecision
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            if ("${{ steps.skipDecision.outputs.result }}" == "skip") {
+              return "none";
+            }
+            if (context.eventName == "push" || context.eventName == "merge_group") {
+              return "all";
+            }
+            return "linux"
+
 
   build-win:
     name: Windows
     needs: ["decision"]
+    if: ${{ needs.decision.outputs.platforms == 'all' }}
     uses: ./.github/workflows/windows.yml
     with:
-      layout: '2013'
       unit-tests: true
 
   build-mac:
     name: Mac
     needs: ["decision"]
+    if: ${{ needs.decision.outputs.platforms == 'all' }}
     uses: ./.github/workflows/mac.yml
     with:
-      layout: '2013'
       unit-tests: true
 
   build-linux:
     name: Linux
     needs: ["decision"]
+    if: ${{ needs.decision.outputs.platforms == 'all' || needs.decision.outputs.platforms == 'linux' }}
     uses: ./.github/workflows/linux.yml
     with:
-      layout: '2013'
       wpt: 'test'
+      layout: ${{ (github.event_name == 'push' || github.event_name == 'merge_group') && 'all' || 'none' }}
+      unit-tests: ${{ github.event_name == 'push' || github.event_name == 'merge_group' }}
 
-  build-linux-layout-2020:
-    name: Linux (layout-2020)
-    needs: ["decision"]
-    uses: ./.github/workflows/linux.yml
-    with:
-      layout: '2020'
-
-  build_result:
-    name: homu build finished
+  build-result:
+    name: Result
     runs-on: ubuntu-latest
     if: always()
     # needs all build to detect cancellation
@@ -70,12 +96,14 @@ jobs:
       - "build-win"
       - "build-mac"
       - "build-linux"
-      - "build-linux-layout-2020"
 
     steps:
-      - name: Mark the job as successful
+      - name: Mark skipped jobs as successful
+        if: ${{ needs.decision.outputs.skipped == 'skip' }}
         run: exit 0
+      - name: Mark the job as successful
         if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+        run: exit 0
       - name: Mark the job as unsuccessful
-        run: exit 1
         if: contains(join(needs.*.result, ','), 'failure') || contains(join(needs.*.result, ','), 'cancelled')
+        run: exit 1

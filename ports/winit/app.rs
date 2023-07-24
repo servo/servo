@@ -6,7 +6,7 @@
 
 use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
-use crate::events_loop::{EventsLoop, ServoEvent};
+use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
 use egui::TopBottomPanel;
@@ -14,7 +14,7 @@ use egui_winit::EventResponse;
 use gleam::gl;
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
-use servo::compositing::windowing::WindowEvent;
+use servo::compositing::windowing::EmbedderEvent;
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
@@ -22,7 +22,7 @@ use servo::Servo;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::env;
-use std::mem;
+
 use std::rc::Rc;
 use std::sync::Arc;
 use surfman::GLApi;
@@ -31,7 +31,7 @@ use webxr::glwindow::GlWindowDiscovery;
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
     browser: RefCell<Browser<dyn WindowPortsMethods>>,
-    event_queue: RefCell<Vec<WindowEvent>>,
+    event_queue: RefCell<Vec<EmbedderEvent>>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
 }
@@ -143,8 +143,8 @@ impl App {
                     // it stops being valid.
                     let w = unsafe {
                         std::mem::transmute::<
-                            &EventLoopWindowTarget<ServoEvent>,
-                            &'static EventLoopWindowTarget<ServoEvent>
+                            &EventLoopWindowTarget<WakerEvent>,
+                            &'static EventLoopWindowTarget<WakerEvent>
                         >(w.unwrap())
                     };
                     let factory = Box::new(move || Ok(window.new_glwindow(w)));
@@ -167,7 +167,7 @@ impl App {
 
                 let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
                 let mut servo = servo_data.servo;
-                servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
+                servo.handle_events(vec![EmbedderEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
                 servo.setup_logging();
 
                 app.windows.insert(window.id(), window.clone());
@@ -194,7 +194,7 @@ impl App {
 
             // TODO how do we handle the tab key? (see doc for consumed)
             if !response.consumed {
-                app.winit_event_to_servo_event(e);
+                app.queue_embedder_events_for_winit_event(e);
             }
             if response.repaint {
                 minibrowser.as_mut().unwrap().update(window.winit_window().unwrap());
@@ -221,12 +221,13 @@ impl App {
         self.windows.iter().any(|(_, window)| window.is_animating())
     }
 
-    fn get_events(&self) -> Vec<WindowEvent> {
-        mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new())
+    fn get_events(&self) -> Vec<EmbedderEvent> {
+        std::mem::take(&mut *self.event_queue.borrow_mut())
     }
 
-    // This function decides whether the event should be handled during `run_forever`.
-    fn winit_event_to_servo_event(&self, event: winit::event::Event<'_, ServoEvent>) {
+    /// Processes the given winit Event, possibly converting it to an [EmbedderEvent] and
+    /// routing that to the App or relevant Window event queues.
+    fn queue_embedder_events_for_winit_event(&self, event: winit::event::Event<'_, WakerEvent>) {
         match event {
             // App level events
             winit::event::Event::Suspended => {
@@ -234,15 +235,15 @@ impl App {
             },
             winit::event::Event::Resumed => {
                 self.suspended.set(false);
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
             },
             winit::event::Event::UserEvent(_) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
             },
             winit::event::Event::DeviceEvent { .. } => {},
 
             winit::event::Event::RedrawRequested(_) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
             },
 
             // Window level events
@@ -254,7 +255,7 @@ impl App {
                         warn!("Got an event from unknown window");
                     },
                     Some(window) => {
-                        window.winit_event_to_servo_event(event);
+                        window.queue_embedder_events_for_winit_event(event);
                     },
                 }
             },
@@ -266,6 +267,13 @@ impl App {
         }
     }
 
+    /// Pumps events and messages between the embedder and Servo, where embedder events flow
+    /// towards Servo and embedder messages flow away from Servo, and also runs the compositor.
+    ///
+    /// As the embedder, we push embedder events through our event queues, from the App queue and
+    /// Window queues to the Browser queue, and from the Browser queue to Servo. We receive and
+    /// collect embedder messages from the various Servo components, then take them out of the
+    /// Servo interface so that the Browser can handle them.
     fn handle_events(&mut self) -> bool {
         let mut browser = self.browser.borrow_mut();
 
@@ -276,23 +284,33 @@ impl App {
         // browser instance. Pressing the "a" key on the glwindow
         // will send a key event to the servo window.
 
-        let mut app_events = self.get_events();
+        // Take any outstanding embedder events from the App and its Windows.
+        let mut embedder_events = self.get_events();
         for (_win_id, window) in &self.windows {
-            app_events.extend(window.get_events());
+            embedder_events.extend(window.get_events());
         }
 
-        browser.handle_window_events(app_events);
+        // Catch some keyboard events, and push the rest onto the Browser event queue.
+        browser.handle_window_events(embedder_events);
 
-        let mut servo_events = self.servo.as_mut().unwrap().get_events();
+        // Take any new embedder messages from Servo itself.
+        let mut embedder_messages = self.servo.as_mut().unwrap().get_events();
         let mut need_resize = false;
         loop {
-            browser.handle_servo_events(servo_events);
+            // Consume and handle those embedder messages.
+            browser.handle_servo_events(embedder_messages);
+
+            // Route embedder events from the Browser to the relevant Servo components,
+            // receives and collects embedder messages from various Servo components,
+            // and runs the compositor.
             need_resize |= self.servo.as_mut().unwrap().handle_events(browser.get_events());
             if browser.shutdown_requested() {
                 return true;
             }
-            servo_events = self.servo.as_mut().unwrap().get_events();
-            if servo_events.is_empty() {
+
+            // Take any new embedder messages from Servo itself.
+            embedder_messages = self.servo.as_mut().unwrap().get_events();
+            if embedder_messages.is_empty() {
                 break;
             }
         }

@@ -8,6 +8,7 @@ use euclid::Size2D;
 use selectors::parser::{AncestorHashes, Selector};
 use servo_arc::Arc;
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaType};
 use style::properties::{longhands, Importance};
@@ -15,6 +16,7 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
+use style::stylesheets::layer_rule::LayerId;
 use style::stylesheets::StyleRule;
 use style::stylist::needs_revalidation_for_testing;
 use style::stylist::{Rule, Stylist};
@@ -23,6 +25,7 @@ use style::thread_state::{self, ThreadState};
 /// Helper method to get some Rules from selector strings.
 /// Each sublist of the result contains the Rules for one StyleRule.
 fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
+    let dummy_url = &ServoUrl::parse("about:blank").unwrap();
     let shared_lock = SharedRwLock::new();
     (
         css_selectors
@@ -30,7 +33,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
             .enumerate()
             .map(|(i, selectors)| {
                 let selectors =
-                    SelectorParser::parse_author_origin_no_namespace(selectors).unwrap();
+                    SelectorParser::parse_author_origin_no_namespace(selectors, dummy_url).unwrap();
 
                 let locked = Arc::new(shared_lock.wrap(StyleRule {
                     selectors: selectors,
@@ -52,6 +55,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                             AncestorHashes::new(s, QuirksMode::NoQuirks),
                             locked.clone(),
                             i as u32,
+                            LayerId::root(),
                         )
                     })
                     .collect()
@@ -62,10 +66,11 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
 }
 
 fn parse_selectors(selectors: &[&str]) -> Vec<Selector<SelectorImpl>> {
+    let dummy_url = &ServoUrl::parse("about:blank").unwrap();
     selectors
         .iter()
         .map(|x| {
-            SelectorParser::parse_author_origin_no_namespace(x)
+            SelectorParser::parse_author_origin_no_namespace(x, dummy_url)
                 .unwrap()
                 .0
                 .into_iter()

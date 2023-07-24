@@ -7,7 +7,7 @@
 
 <%helpers:shorthand
     name="font"
-    engines="gecko servo-2013 servo-2020"
+    engines="gecko servo"
     sub_properties="
         font-style
         font-variant-caps
@@ -34,11 +34,11 @@
     use crate::parser::Parse;
     use crate::properties::longhands::{font_family, font_style, font_weight, font_stretch};
     use crate::properties::longhands::font_variant_caps;
-    #[cfg(feature = "gecko")]
-    use crate::properties::longhands::system_font::SystemFont;
     use crate::values::specified::text::LineHeight;
     use crate::values::specified::FontSize;
     use crate::values::specified::font::{FontStretch, FontStretchKeyword};
+    #[cfg(feature = "gecko")]
+    use crate::values::specified::font::SystemFont;
 
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
@@ -137,7 +137,7 @@
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
 
-        let family = FontFamily::parse_specified(input)?;
+        let family = FontFamily::parse(context, input)?;
         Ok(expanded! {
             % for name in "style weight stretch variant_caps".split():
                 font_${name}: unwrap_or_initial!(font_${name}, ${name}),
@@ -197,7 +197,7 @@
             let font_stretch = match *self.font_stretch {
                 FontStretch::Keyword(kw) => kw,
                 FontStretch::Stretch(percentage) => {
-                    match FontStretchKeyword::from_percentage(percentage.get()) {
+                    match FontStretchKeyword::from_percentage(percentage.0.get()) {
                         Some(kw) => kw,
                         None => return Ok(()),
                     }
@@ -289,13 +289,16 @@
             % for p in subprops_for_value_info:
             ${p}::collect_completion_keywords(f);
             % endfor
-            <longhands::system_font::SystemFont as SpecifiedValueInfo>::collect_completion_keywords(f);
+            % if engine == "gecko":
+            <SystemFont as SpecifiedValueInfo>::collect_completion_keywords(f);
+            % endif
         }
     }
 </%helpers:shorthand>
 
 <%helpers:shorthand name="font-variant"
-                    engines="gecko servo-2013"
+                    engines="gecko servo"
+                    servo_pref="layout.legacy_layout",
                     flags="SHORTHAND_IN_GETCS"
                     sub_properties="font-variant-caps
                                     ${'font-variant-alternates' if engine == 'gecko' else ''}

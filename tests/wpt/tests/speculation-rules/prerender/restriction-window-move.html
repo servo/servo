@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+// moveTo and moveBy operations should be ignored.
+// See https://github.com/jeremyroman/alternate-loading-modes/issues/73.
+['moveTo', 'moveBy'].forEach(moveFunc => {
+  promise_test(async t => {
+    const uid = token();
+    const bc = new PrerenderChannel('test-channel', uid);
+    t.add_cleanup(_ => bc.close());
+
+    const gotMessage = new Promise(resolve => {
+      bc.addEventListener('message', e => {
+        resolve(e.data);
+      }, {once: true});
+    });
+
+    const url = `resources/window-move.html?move=${moveFunc}&uid=${uid}`;
+
+    // We have to open a new window to run the test, since a window that was
+    // not created by window.open() cannot be moved.
+    window.open(url, '_blank',
+                `left=${window.screen.availLeft},
+                 top=${window.screen.availTop},
+                 width=${window.screen.availWidth / 2},
+                 height=${window.screen.availHeight / 2},
+                 noopener`);
+
+    const result = await gotMessage;
+    assert_equals(result.status, 'PASS');
+    assert_equals(
+        result.prevPosition.x, result.newPosition.x,
+        'x position for prerendering');
+    assert_equals(
+        result.prevPosition.y, result.newPosition.y,
+        'y position for prerendering');
+  }, `a prerendering page cannot move its window by executing ${moveFunc}.`);
+});
+</script>

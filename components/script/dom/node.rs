@@ -26,7 +26,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, DomObjectWrap};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, DomObjectWrap};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
@@ -48,7 +48,6 @@ use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpe
 use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlmediaelement::{HTMLMediaElement, LayoutHTMLMediaElementHelpers};
-use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::mouseevent::MouseEvent;
@@ -70,6 +69,7 @@ use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use html5ever::{Namespace, Prefix, QualName};
 use js::jsapi::JSObject;
+use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
@@ -948,18 +948,15 @@ impl Node {
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     pub fn query_selector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         // Step 1.
-        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+        let doc = self.owner_doc();
+        match SelectorParser::parse_author_origin_no_namespace(&selectors, &doc.url()) {
             // Step 2.
             Err(_) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
                 // FIXME(bholley): Consider an nth-index cache here.
-                let mut ctx = MatchingContext::new(
-                    MatchingMode::Normal,
-                    None,
-                    None,
-                    self.owner_doc().quirks_mode(),
-                );
+                let mut ctx =
+                    MatchingContext::new(MatchingMode::Normal, None, None, doc.quirks_mode());
                 Ok(self
                     .traverse_preorder(ShadowIncluding::No)
                     .filter_map(DomRoot::downcast)
@@ -974,7 +971,8 @@ impl Node {
     /// whilst iterating, otherwise the iterator may be invalidated.
     pub fn query_selector_iter(&self, selectors: DOMString) -> Fallible<QuerySelectorIterator> {
         // Step 1.
-        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+        let url = self.owner_doc().url();
+        match SelectorParser::parse_author_origin_no_namespace(&selectors, &url) {
             // Step 2.
             Err(_) => Err(Error::Syntax),
             // Step 3.
@@ -1079,7 +1077,7 @@ impl Node {
 
         if rare_data.unique_id.is_none() {
             let id = UniqueId::new();
-            ScriptThread::save_node_id(id.borrow().to_simple().to_string());
+            ScriptThread::save_node_id(id.borrow().simple().to_string());
             rare_data.unique_id = Some(id);
         }
         rare_data
@@ -1087,7 +1085,7 @@ impl Node {
             .as_ref()
             .unwrap()
             .borrow()
-            .to_simple()
+            .simple()
             .to_string()
     }
 
@@ -1201,8 +1199,6 @@ impl Node {
             node.get_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
             node.get_stylesheet()
-        } else if let Some(node) = self.downcast::<HTMLMetaElement>() {
-            node.get_stylesheet()
         } else {
             None
         }
@@ -1212,8 +1208,6 @@ impl Node {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
             node.get_cssom_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
-            node.get_cssom_stylesheet()
-        } else if let Some(node) = self.downcast::<HTMLMetaElement>() {
             node.get_cssom_stylesheet()
         } else {
             None
@@ -1756,8 +1750,19 @@ impl Node {
     where
         N: DerivedFrom<Node> + DomObject + DomObjectWrap,
     {
+        Self::reflect_node_with_proto(node, document, None)
+    }
+
+    pub fn reflect_node_with_proto<N>(
+        node: Box<N>,
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<N>
+    where
+        N: DerivedFrom<Node> + DomObject + DomObjectWrap,
+    {
         let window = document.window();
-        reflect_dom_object(node, window)
+        reflect_dom_object_with_proto(node, window, proto)
     }
 
     pub fn new_inherited(doc: &Document) -> Node {
@@ -2290,6 +2295,7 @@ impl Node {
                     &document,
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
+                    None,
                 );
                 DomRoot::upcast::<Node>(element)
             },

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>Tests 'position-fallback-bounds' should work without default anchor</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-bounds">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+#bounds {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100px;
+  height: calc(100vh + 200px);
+  background: lightgray;
+  anchor-name: --bounds;
+}
+
+#anchor {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  left: 0;
+  top: 100px;
+  background: orange;
+  anchor-name: --a;
+}
+
+#target {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background: lime;
+  position-fallback: --top-then-bottom;
+  position-fallback-bounds: --bounds;
+}
+
+@position-fallback --top-then-bottom {
+  @try { bottom: anchor(--a top); }
+  @try { top: anchor(--a bottom); }
+}
+</style>
+
+<div id=bounds></div>
+<div id=anchor></div>
+<div id=target></div>
+
+<script>
+promise_test(async () => {
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'bottom');
+}, "Target is below anchor at initial scroll position");
+
+promise_test(async () => {
+  document.documentElement.scrollTop = 100;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'top');
+}, "Target moves to above anchor after the additional fallback-bounds rect is scrolled upwards");
+</script>

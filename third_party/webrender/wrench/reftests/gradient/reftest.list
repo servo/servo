@@ -1,0 +1,106 @@
+platform(linux,mac) == premultiplied-aligned.yaml premultiplied-aligned.png
+platform(linux,mac) == premultiplied-angle.yaml premultiplied-angle.png
+platform(linux,mac) == premultiplied-radial.yaml premultiplied-radial.png
+platform(linux,mac) == premultiplied-conic.yaml premultiplied-conic.png
+
+platform(linux,mac) == premultiplied-aligned-2.yaml premultiplied-aligned-2.png
+platform(linux,mac) == premultiplied-angle-2.yaml premultiplied-angle-2.png
+platform(linux,mac) == premultiplied-radial-2.yaml premultiplied-radial-2.png
+platform(linux,mac) == premultiplied-conic-2.yaml premultiplied-conic-2.png
+
+== linear.yaml linear-ref.png
+== linear-reverse.yaml linear-ref.png
+platform(linux,mac) fuzzy(1,35000) == linear-stops.yaml linear-stops-ref.png
+
+== linear-clamp-1a.yaml linear-clamp-1-ref.yaml
+== linear-clamp-1b.yaml linear-clamp-1-ref.yaml
+== linear-clamp-2.yaml linear-clamp-2-ref.yaml
+
+fuzzy-range(<=1,*4800) == linear-hard-stop.yaml linear-hard-stop-ref.png
+
+# dithering requires us to fuzz here
+fuzzy(1,20000) == linear.yaml linear-ref.yaml
+fuzzy(1,20000) == linear-reverse.yaml linear-ref.yaml
+
+fuzzy(1,15200) == linear-aligned-clip.yaml linear-aligned-clip-ref.yaml
+
+platform(linux,mac) fuzzy(1,80000) == radial-circle.yaml radial-circle-ref.png
+platform(linux,mac) fuzzy(1,80000) == radial-ellipse.yaml radial-ellipse-ref.png
+
+!= radial-circle.yaml radial-ellipse.yaml
+
+== norm-linear-1.yaml norm-linear-1-ref.yaml
+== norm-linear-2.yaml norm-linear-2-ref.yaml
+== norm-linear-3.yaml norm-linear-3-ref.yaml
+== norm-linear-4.yaml norm-linear-4-ref.yaml
+== norm-linear-degenerate.yaml norm-radial-degenerate-ref.yaml
+
+== norm-radial-1.yaml norm-radial-1-ref.yaml
+== norm-radial-2.yaml norm-radial-2-ref.yaml
+== norm-radial-3.yaml norm-radial-3-ref.yaml
+== norm-radial-degenerate.yaml norm-radial-degenerate-ref.yaml
+
+== norm-conic-1.yaml norm-conic-1-ref.yaml
+== norm-conic-2.yaml norm-conic-2-ref.yaml
+== norm-conic-3.yaml norm-conic-3-ref.yaml
+== norm-conic-4.yaml norm-conic-4-ref.yaml
+== norm-conic-degenerate.yaml norm-conic-degenerate-ref.yaml
+
+# fuzzy because of differences from normalization
+# this might be able to be improved
+fuzzy(255,1200) == repeat-linear.yaml repeat-linear-ref.yaml
+fuzzy(255,1200) == repeat-linear-reverse.yaml repeat-linear-ref.yaml
+fuzzy(255,2664) == repeat-radial.yaml repeat-radial-ref.yaml
+fuzzy(255,2664) == repeat-radial-negative.yaml repeat-radial-ref.yaml
+fuzzy(255,1652) == repeat-conic.yaml repeat-conic-ref.yaml
+fuzzy(255,1652) == repeat-conic-negative.yaml repeat-conic-ref.yaml
+
+# fuzzy because of thin spaced out column of pixels that are 1 off
+fuzzy(1,83164) == tiling-linear-1.yaml tiling-linear-1-ref.yaml
+fuzzy(1,46293) == tiling-linear-2.yaml tiling-linear-2-ref.yaml
+fuzzy(1,62154) == tiling-linear-3.yaml tiling-linear-3-ref.yaml
+
+fuzzy(1,17) == tiling-radial-1.yaml tiling-radial-1-ref.yaml
+fuzzy(1,1) == tiling-radial-2.yaml tiling-radial-2-ref.yaml
+fuzzy(1,3) == tiling-radial-3.yaml tiling-radial-3-ref.yaml
+fuzzy(1,17) == tiling-radial-4.yaml tiling-radial-4-ref.yaml
+
+fuzzy(1,17) == tiling-conic-1.yaml tiling-conic-1-ref.yaml
+fuzzy(1,1) == tiling-conic-2.yaml tiling-conic-2-ref.yaml
+fuzzy(1,3) == tiling-conic-3.yaml tiling-conic-3-ref.yaml
+
+== radial-zero-size-1.yaml radial-zero-size-ref.yaml
+== radial-zero-size-2.yaml radial-zero-size-ref.yaml
+== radial-zero-size-3.yaml radial-zero-size-ref.yaml
+
+== linear-adjust-tile-size.yaml linear-adjust-tile-size-ref.yaml
+
+platform(linux,mac) == linear-aligned-border-radius.yaml linear-aligned-border-radius.png
+# interpolation fuzz from sampling texture-baked gradient ramps
+platform(linux,mac) fuzzy-range(<=1,*1404) == repeat-border-radius.yaml repeat-border-radius.png
+
+== conic.yaml conic-ref.yaml
+fuzzy(1,57) == conic-simple.yaml conic-simple.png
+fuzzy(255,166) == conic-angle.yaml conic-angle.png
+== conic-center.yaml conic-center.png
+fuzzy(1,2) == conic-angle-wraparound.yaml conic-angle.yaml
+fuzzy(1,1) == conic-angle-wraparound-negative.yaml conic-angle.yaml
+fuzzy(1,115) == conic-color-wheel.yaml conic-color-wheel.png
+
+# gradient caching tests
+# replaces a computed gradient by a sampled texture, so a lot of off-by-one
+# variation from interpolation, which is fine:
+fuzzy-range(<=1,*195000) == gradient_cache_5stops.yaml gradient_cache_5stops_ref.yaml
+fuzzy-range(<=1,*169000) == gradient_cache_5stops_vertical.yaml gradient_cache_5stops_vertical_ref.yaml
+== gradient_cache_hardstop.yaml gradient_cache_hardstop_ref.yaml
+== gradient_cache_hardstop_clip.yaml gradient_cache_hardstop_clip_ref.yaml
+== gradient_cache_clamp.yaml gradient_cache_clamp_ref.yaml
+== gradient_cache_repeat.yaml gradient_cache_repeat_ref.yaml
+
+# Recognize opaque tiles with gradient backgrounds
+== conic-backdrop-with-spacing.yaml conic-backdrop-with-spacing-ref.yaml
+== conic-backdrop.yaml conic-backdrop-ref.yaml
+== linear-backdrop-with-spacing.yaml linear-backdrop-with-spacing-ref.yaml
+== linear-backdrop.yaml linear-backdrop-ref.yaml
+== radial-backdrop-with-spacing.yaml radial-backdrop-with-spacing-ref.yaml
+== radial-backdrop.yaml radial-backdrop-ref.yaml

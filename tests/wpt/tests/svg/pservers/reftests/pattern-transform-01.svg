@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2" xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Pattern: with patternTransform</title>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/pservers.html#Patterns"/>
+    <html:link rel="match" href="reference/pattern-transform-01-ref.svg"/>
+  </g>
+    <defs>
+      <pattern id="pattern" patternTransform="translate(.5 .5)" patternUnits="userSpaceOnUse" width="2" height="2">
+        <path d="M0 0h1v1H0zM1 1h1v1H1z" />
+      </pattern>
+    </defs>
+    <rect width="2" height="2" fill="url(#pattern)" />
+</svg>
+

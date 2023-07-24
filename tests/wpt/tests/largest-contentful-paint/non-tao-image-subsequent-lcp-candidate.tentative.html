@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Non-Tao Image Subsequent LCP candidates.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+  <script>
+    promise_test(async t => {
+      let small_image_path = '/images/lcp-100x50.png';
+      let big_image_path = '/images/lcp-256x256.png';
+      let non_tao_scheme = get_host_info().OTHER_ORIGIN;
+
+      // Load non-tao image with 0 opacity so it won't trigger an LCP entry.
+      big_image = await loadImage(non_tao_scheme + big_image_path, true);
+
+      // Load a smaller non-tao image with 0 opacity.
+      small_image = await loadImage(non_tao_scheme + small_image_path, true);
+
+      // Add text so that FCP is set.
+      add_text('text');
+
+      // wait for 1 animation frame so that FCP is set.
+      await raf();
+
+      // The url of text LCP element is empty.
+      lcp = await getLCPStartTime('');
+
+      // Rendered loaded image after FCP.
+      small_image.style.opacity = 1;
+      lcp = await getLCPStartTime(small_image_path);
+
+      fcp = getFCPStartTime();
+
+      checkLCPEntryForNonTaoImages({ 'lcp': lcp, 'fcp': fcp });
+
+      // This is to verify subsequent LCP candidates also have the start time set correctly.
+      big_image.style.opacity = 1;
+
+      lcp = await getLCPStartTime(big_image_path);
+
+      checkLCPEntryForNonTaoImages({ 'lcp': lcp, 'fcp': fcp });
+
+    }, 'Non-Tao Image Subsequent LCP candidates.')
+  </script>
+</body>

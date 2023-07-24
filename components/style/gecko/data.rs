@@ -4,7 +4,6 @@
 
 //! Data needed to style a Gecko document.
 
-use crate::context::QuirksMode;
 use crate::dom::TElement;
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::{self, RawServoStyleSet, ServoStyleSetSizes};
@@ -15,7 +14,7 @@ use crate::media_queries::{Device, MediaList};
 use crate::properties::ComputedValues;
 use crate::selector_parser::SnapshotMap;
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
-use crate::stylesheets::{CssRule, Origin, StylesheetContents, StylesheetInDocument};
+use crate::stylesheets::{StylesheetContents, StylesheetInDocument};
 use crate::stylist::Stylist;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use malloc_size_of::MallocSizeOfOps;
@@ -57,8 +56,15 @@ impl GeckoStyleSheet {
     /// already holds a strong reference.
     #[inline]
     pub unsafe fn from_addrefed(s: *const DomStyleSheet) -> Self {
-        debug_assert!(!s.is_null());
+        assert!(!s.is_null());
         GeckoStyleSheet(s)
+    }
+
+    /// HACK(emilio): This is so that we can avoid crashing release due to
+    /// bug 1719963 and can hopefully get a useful report from fuzzers.
+    #[inline]
+    pub fn hack_is_null(&self) -> bool {
+        self.0.is_null()
     }
 
     /// Get the raw `StyleSheet` that we're wrapping.
@@ -68,16 +74,6 @@ impl GeckoStyleSheet {
 
     fn inner(&self) -> &StyleSheetInfo {
         unsafe { &*(self.raw().mInner as *const StyleSheetInfo) }
-    }
-
-    /// Gets the StylesheetContents for this stylesheet.
-    pub fn contents(&self) -> &StylesheetContents {
-        debug_assert!(!self.inner().mContents.mRawPtr.is_null());
-        unsafe {
-            let contents =
-                (&**StylesheetContents::as_arc(&&*self.inner().mContents.mRawPtr)) as *const _;
-            &*contents
-        }
     }
 }
 
@@ -95,14 +91,6 @@ impl Clone for GeckoStyleSheet {
 }
 
 impl StylesheetInDocument for GeckoStyleSheet {
-    fn origin(&self, _guard: &SharedRwLockReadGuard) -> Origin {
-        self.contents().origin
-    }
-
-    fn quirks_mode(&self, _guard: &SharedRwLockReadGuard) -> QuirksMode {
-        self.contents().quirks_mode
-    }
-
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
         use crate::gecko_bindings::structs::mozilla::dom::MediaList as DomMediaList;
         use std::mem;
@@ -120,13 +108,19 @@ impl StylesheetInDocument for GeckoStyleSheet {
 
     // All the stylesheets Servo knows about are enabled, because that state is
     // handled externally by Gecko.
+    #[inline]
     fn enabled(&self) -> bool {
         true
     }
 
     #[inline]
-    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
-        self.contents().rules(guard)
+    fn contents(&self) -> &StylesheetContents {
+        debug_assert!(!self.inner().mContents.mRawPtr.is_null());
+        unsafe {
+            let contents =
+                (&**StylesheetContents::as_arc(&&*self.inner().mContents.mRawPtr)) as *const _;
+            &*contents
+        }
     }
 }
 

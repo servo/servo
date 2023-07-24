@@ -43,7 +43,7 @@ impl CharacterData {
     pub fn clone_with_data(&self, data: DOMString, document: &Document) -> DomRoot<Node> {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
-                DomRoot::upcast(Comment::new(data, &document))
+                DomRoot::upcast(Comment::new(data, &document, None))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 let pi = self.downcast::<ProcessingInstruction>().unwrap();

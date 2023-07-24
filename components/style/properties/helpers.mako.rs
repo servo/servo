@@ -476,6 +476,7 @@
                                 context.builder.inherit_${property.ident}();
                             % endif
                         }
+                        CSSWideKeyword::RevertLayer |
                         CSSWideKeyword::Revert => unreachable!("Should never get here"),
                     }
                     return;
@@ -546,15 +547,14 @@
             'gecko_constant_prefix',
             'gecko_enum_prefix',
             'extra_gecko_values',
-            'extra_servo_2013_values',
-            'extra_servo_2020_values',
+            'extra_servo_values',
             'custom_consts',
             'gecko_inexhaustive',
         ]}
         keyword = keyword=Keyword(name, values, **keyword_kwargs)
     %>
     <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
-        use crate::properties::longhands::system_font::SystemFont;
+        use crate::values::specified::font::SystemFont;
 
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
@@ -707,29 +707,28 @@
 </%def>
 
 <%def name="single_keyword(name, values, vector=False,
-            extra_specified=None, needs_conversion=False,
-            gecko_pref_controlled_initial_value=None, **kwargs)">
+            needs_conversion=False, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix',
             'gecko_enum_prefix',
             'extra_gecko_values',
-            'extra_servo_2013_values',
-            'extra_servo_2020_values',
+            'extra_servo_values',
             'gecko_aliases',
-            'servo_2013_aliases',
-            'servo_2020_aliases',
+            'servo_aliases',
             'custom_consts',
             'gecko_inexhaustive',
             'gecko_strip_moz_prefix',
         ]}
     %>
 
-    <%def name="inner_body(keyword, extra_specified=None, needs_conversion=False,
-                           gecko_pref_controlled_initial_value=None)">
-        <%def name="variants(variants, include_aliases)">
-            % for variant in variants:
-            % if include_aliases:
+    <%def name="inner_body(keyword, needs_conversion=False)">
+        pub use self::computed_value::T as SpecifiedValue;
+        pub mod computed_value {
+            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+            pub enum T {
+            % for variant in keyword.values_for(engine):
             <%
                 aliases = []
                 for alias, v in keyword.aliases_for(engine).items():
@@ -739,56 +738,16 @@
             % if aliases:
             #[parse(aliases = "${','.join(sorted(aliases))}")]
             % endif
-            % endif
             ${to_camel_case(variant)},
             % endfor
-        </%def>
-        % if extra_specified:
-            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(
-                Clone,
-                Copy,
-                Debug,
-                Eq,
-                MallocSizeOf,
-                Parse,
-                PartialEq,
-                SpecifiedValueInfo,
-                ToCss,
-                ToShmem,
-            )]
-            pub enum SpecifiedValue {
-                ${variants(keyword.values_for(engine) + extra_specified.split(), bool(extra_specified))}
-            }
-        % else:
-            pub use self::computed_value::T as SpecifiedValue;
-        % endif
-        pub mod computed_value {
-            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
-            % if not extra_specified:
-            #[derive(Parse, SpecifiedValueInfo, ToComputedValue, ToShmem)]
-            % endif
-            pub enum T {
-                ${variants(data.longhands_by_name[name].keyword.values_for(engine), not extra_specified)}
             }
         }
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            % if engine == "gecko" and gecko_pref_controlled_initial_value:
-            if static_prefs::pref!("${gecko_pref_controlled_initial_value.split('=')[0]}") {
-                return computed_value::T::${to_camel_case(gecko_pref_controlled_initial_value.split('=')[1])};
-            }
-            % endif
             computed_value::T::${to_camel_case(values.split()[0])}
         }
         #[inline]
         pub fn get_initial_specified_value() -> SpecifiedValue {
-            % if engine == "gecko" and gecko_pref_controlled_initial_value:
-            if static_prefs::pref!("${gecko_pref_controlled_initial_value.split('=')[0]}") {
-                return SpecifiedValue::${to_camel_case(gecko_pref_controlled_initial_value.split('=')[1])};
-            }
-            % endif
             SpecifiedValue::${to_camel_case(values.split()[0])}
         }
         #[inline]
@@ -799,10 +758,7 @@
 
         % if needs_conversion:
             <%
-                conversion_values = keyword.values_for(engine)
-                if extra_specified:
-                    conversion_values += extra_specified.split()
-                conversion_values += keyword.aliases_for(engine).keys()
+                conversion_values = keyword.values_for(engine) + list(keyword.aliases_for(engine).keys())
             %>
             ${gecko_keyword_conversion(keyword, values=conversion_values)}
         % endif
@@ -817,8 +773,7 @@
     % else:
         <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
             ${inner_body(Keyword(name, values, **keyword_kwargs),
-                         extra_specified=extra_specified, needs_conversion=needs_conversion,
-                         gecko_pref_controlled_initial_value=gecko_pref_controlled_initial_value)}
+                         needs_conversion=needs_conversion)}
             % if caller:
             ${caller.body()}
             % endif
@@ -888,10 +843,7 @@
         impl<'a> LonghandsToSerialize<'a> {
             /// Tries to get a serializable set of longhands given a set of
             /// property declarations.
-            pub fn from_iter<I>(iter: I) -> Result<Self, ()>
-            where
-                I: Iterator<Item=&'a PropertyDeclaration>,
-            {
+            pub fn from_iter(iter: impl Iterator<Item = &'a PropertyDeclaration>) -> Result<Self, ()> {
                 // Define all of the expected variables that correspond to the shorthand
                 % for sub_property in shorthand.sub_properties:
                     let mut ${sub_property.ident} =
@@ -899,8 +851,8 @@
                 % endfor
 
                 // Attempt to assign the incoming declarations to the expected variables
-                for longhand in iter {
-                    match *longhand {
+                for declaration in iter {
+                    match *declaration {
                         % for sub_property in shorthand.sub_properties:
                             PropertyDeclaration::${sub_property.camel_case}(ref value) => {
                                 ${sub_property.ident} = Some(value)
@@ -959,6 +911,14 @@
                 % endif
                 % endfor
             })
+        }
+
+        /// Try to serialize a given shorthand to a string.
+        pub fn to_css(declarations: &[&PropertyDeclaration], dest: &mut crate::str::CssStringWriter) -> fmt::Result {
+            match LonghandsToSerialize::from_iter(declarations.iter().cloned()) {
+                Ok(longhands) => longhands.to_css(&mut CssWriter::new(dest)),
+                Err(_) => Ok(())
+            }
         }
 
         ${caller.body()}

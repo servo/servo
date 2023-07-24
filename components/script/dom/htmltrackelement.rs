@@ -15,6 +15,7 @@ use crate::dom::node::Node;
 use crate::dom::texttrack::TextTrack;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u16)]
@@ -51,6 +52,7 @@ impl HTMLTrackElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTrackElement> {
         let track = TextTrack::new(
             &document.window(),
@@ -61,11 +63,12 @@ impl HTMLTrackElement {
             Default::default(),
             None,
         );
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLTrackElement::new_inherited(
                 local_name, prefix, document, &track,
             )),
             document,
+            proto,
         )
     }
 }

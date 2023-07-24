@@ -11,6 +11,6 @@ path = "lib.rs"
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1"
-syn = { version = "1", default-features = false, features = ["clone-impls", "derive", "parsing"] }
-synstructure = "0.12"
+proc-macro2 = { workspace = true }
+syn = { workspace = true }
+synstructure = { workspace = true }

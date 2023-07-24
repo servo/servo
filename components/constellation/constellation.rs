@@ -176,9 +176,9 @@ use std::process;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webgpu::{self, WebGPU, WebGPURequest};
+use webrender_api::{DocumentId, RenderApi, RenderApiSender};
 use webrender_traits::WebrenderExternalImageRegistry;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
@@ -222,7 +222,7 @@ struct MessagePortInfo {
 /// Webrender related objects required by WebGPU threads
 struct WebrenderWGPU {
     /// Webrender API.
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: RenderApi,
 
     /// List of Webrender external images
     webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -395,7 +395,7 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     timer_scheduler: TimerScheduler,
 
     /// A single WebRender document the constellation operates on.
-    webrender_document: webrender_api::DocumentId,
+    webrender_document: DocumentId,
 
     /// Webrender related objects required by WebGPU threads
     webrender_wgpu: WebrenderWGPU,
@@ -544,10 +544,10 @@ pub struct InitialConstellationState {
     pub mem_profiler_chan: mem::ProfilerChan,
 
     /// Webrender document ID.
-    pub webrender_document: webrender_api::DocumentId,
+    pub webrender_document: DocumentId,
 
     /// Webrender API.
-    pub webrender_api_sender: webrender_api::RenderApiSender,
+    pub webrender_api_sender: RenderApiSender,
 
     /// Webrender external images
     pub webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -2109,9 +2109,6 @@ where
             },
             FromLayoutMsg::PendingPaintMetric(pipeline_id, epoch) => {
                 self.handle_pending_paint_metric(pipeline_id, epoch);
-            },
-            FromLayoutMsg::ViewportConstrained(pipeline_id, constraints) => {
-                self.handle_viewport_constrained_msg(pipeline_id, constraints);
             },
         }
     }
@@ -4932,19 +4929,6 @@ where
     ) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         self.switch_fullscreen_mode(browsing_context_id);
-    }
-
-    /// Handle updating actual viewport / zoom due to @viewport rules
-    fn handle_viewport_constrained_msg(
-        &mut self,
-        pipeline_id: PipelineId,
-        constraints: ViewportConstraints,
-    ) {
-        self.compositor_proxy
-            .send(ToCompositorMsg::ViewportConstrained(
-                pipeline_id,
-                constraints,
-            ));
     }
 
     /// Checks the state of all script and layout pipelines to see if they are idle

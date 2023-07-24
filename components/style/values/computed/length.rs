@@ -5,6 +5,7 @@
 //! `<length>` computed values, and related ones.
 
 use super::{Context, Number, ToComputedValue};
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::values::animated::ToAnimatedValue;
 use crate::values::computed::NonNegativeNumber;
 use crate::values::generics::length as generics;
@@ -17,7 +18,7 @@ use crate::values::{specified, CSSFloat};
 use crate::Zero;
 use app_units::Au;
 use std::fmt::{self, Write};
-use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
 use style_traits::{CSSPixel, CssWriter, ToCss};
 
 pub use super::image::Image;
@@ -36,6 +37,9 @@ impl ToComputedValue for specified::NoCalcLength {
                 length.to_computed_value(context, FontBaseSize::CurrentStyle)
             },
             specified::NoCalcLength::ViewportPercentage(length) => {
+                context
+                    .builder
+                    .add_flags(ComputedValueFlags::USES_VIEWPORT_UNITS);
                 length.to_computed_value(context.viewport_size_for_viewport_unit_resolution())
             },
             specified::NoCalcLength::ServoCharacterWidth(length) => {
@@ -185,7 +189,11 @@ impl Size {
             GenericSize::Auto => false,
             GenericSize::LengthPercentage(ref lp) => lp.is_definitely_zero(),
             #[cfg(feature = "gecko")]
-            GenericSize::ExtremumLength(..) => false,
+            GenericSize::MinContent |
+            GenericSize::MaxContent |
+            GenericSize::FitContent |
+            GenericSize::MozAvailable |
+            GenericSize::FitContentFunction(_) => false,
         }
     }
 }
@@ -393,6 +401,13 @@ impl Sub for CSSPixelLength {
     }
 }
 
+impl SubAssign for CSSPixelLength {
+    #[inline]
+    fn sub_assign(&mut self, other: Self) {
+        self.0 -= other.0;
+    }
+}
+
 impl From<CSSPixelLength> for Au {
     #[inline]
     fn from(len: CSSPixelLength) -> Self {
@@ -494,37 +509,6 @@ pub type NonNegativeLengthPercentageOrNormal =
 
 /// Either a non-negative `<length>` or a `<number>`.
 pub type NonNegativeLengthOrNumber = GenericLengthOrNumber<NonNegativeLength, NonNegativeNumber>;
-
-/// A type for possible values for min- and max- flavors of width, height,
-/// block-size, and inline-size.
-#[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    FromPrimitive,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToAnimatedValue,
-    ToAnimatedZero,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum ExtremumLength {
-    #[parse(aliases = "-moz-max-content")]
-    MaxContent,
-    #[parse(aliases = "-moz-min-content")]
-    MinContent,
-    MozFitContent,
-    MozAvailable,
-}
 
 /// A computed value for `min-width`, `min-height`, `width` or `height` property.
 pub type Size = GenericSize<NonNegativeLengthPercentage>;

@@ -77,10 +77,13 @@ impl Tokenizer {
         Tokenizer { inner: inner }
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
+    #[must_use]
+    pub fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         match self.inner.feed(input) {
-            TokenizerResult::Done => Ok(()),
-            TokenizerResult::Script(script) => Err(DomRoot::from_ref(script.downcast().unwrap())),
+            TokenizerResult::Done => TokenizerResult::Done,
+            TokenizerResult::Script(script) => {
+                TokenizerResult::Script(DomRoot::from_ref(script.downcast().unwrap()))
+            },
         }
     }
 

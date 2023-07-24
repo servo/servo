@@ -21,6 +21,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
+use webrender_api::{FontInstanceKey, FontKey};
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
@@ -29,11 +30,7 @@ static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 static FONT_CACHE_EPOCH: AtomicUsize = AtomicUsize::new(0);
 
 pub trait FontSource {
-    fn get_font_instance(
-        &mut self,
-        key: webrender_api::FontKey,
-        size: Au,
-    ) -> webrender_api::FontInstanceKey;
+    fn get_font_instance(&mut self, key: FontKey, size: Au) -> FontInstanceKey;
 
     fn font_template(
         &mut self,

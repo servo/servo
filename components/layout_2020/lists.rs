@@ -33,6 +33,7 @@ where
         Image::Rect(..) |
         Image::Gradient(..) |
         Image::CrossFade(..) |
+        Image::PaintWorklet(..) |
         Image::None => None,
     };
     marker_image().or_else(|| {
@@ -44,7 +45,6 @@ where
 
 /// https://drafts.csswg.org/css-lists/#marker-string
 fn marker_string(style: &style_structs::List) -> Option<&'static str> {
-    // FIXME: add support for counters and other style types
     match style.list_style_type {
         ListStyleType::None => None,
         ListStyleType::Disc => Some("• "),
@@ -52,5 +52,36 @@ fn marker_string(style: &style_structs::List) -> Option<&'static str> {
         ListStyleType::Square => Some("▪ "),
         ListStyleType::DisclosureOpen => Some("▾ "),
         ListStyleType::DisclosureClosed => Some("‣ "),
+        ListStyleType::Decimal |
+        ListStyleType::LowerAlpha |
+        ListStyleType::UpperAlpha |
+        ListStyleType::ArabicIndic |
+        ListStyleType::Bengali |
+        ListStyleType::Cambodian |
+        ListStyleType::CjkDecimal |
+        ListStyleType::Devanagari |
+        ListStyleType::Gujarati |
+        ListStyleType::Gurmukhi |
+        ListStyleType::Kannada |
+        ListStyleType::Khmer |
+        ListStyleType::Lao |
+        ListStyleType::Malayalam |
+        ListStyleType::Mongolian |
+        ListStyleType::Myanmar |
+        ListStyleType::Oriya |
+        ListStyleType::Persian |
+        ListStyleType::Telugu |
+        ListStyleType::Thai |
+        ListStyleType::Tibetan |
+        ListStyleType::CjkEarthlyBranch |
+        ListStyleType::CjkHeavenlyStem |
+        ListStyleType::LowerGreek |
+        ListStyleType::Hiragana |
+        ListStyleType::HiraganaIroha |
+        ListStyleType::Katakana |
+        ListStyleType::KatakanaIroha => {
+            // TODO: Implement support for counters.
+            None
+        },
     }
 }

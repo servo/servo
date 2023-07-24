@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -30,6 +30,7 @@ use http::header::{HeaderName, HeaderValue};
 use http::method::InvalidMethod;
 use http::Method as HttpMethod;
 use js::jsapi::JSObject;
+use js::rust::HandleObject;
 use net_traits::request::CacheMode as NetTraitsRequestCache;
 use net_traits::request::CredentialsMode as NetTraitsRequestCredentials;
 use net_traits::request::Destination as NetTraitsRequestDestination;
@@ -62,14 +63,15 @@ impl Request {
         }
     }
 
-    pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<Request> {
-        reflect_dom_object(Box::new(Request::new_inherited(global, url)), global)
+    fn new(global: &GlobalScope, proto: Option<HandleObject>, url: ServoUrl) -> DomRoot<Request> {
+        reflect_dom_object_with_proto(Box::new(Request::new_inherited(global, url)), global, proto)
     }
 
     // https://fetch.spec.whatwg.org/#dom-request
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
+        proto: Option<HandleObject>,
         mut input: RequestInfo,
         init: RootedTraceableBox<RequestInit>,
     ) -> Fallible<DomRoot<Request>> {
@@ -78,11 +80,6 @@ impl Request {
 
         // Step 2
         let mut fallback_mode: Option<NetTraitsRequestMode> = None;
-
-        // FIXME(cybai): As the spec changed in https://github.com/whatwg/fetch/pull/1153,
-        //               we will need to change the default value of credentials for
-        //               NetTraitsRequest and then remove fallback here.
-        let mut fallback_credentials: Option<NetTraitsRequestCredentials> = None;
 
         // Step 3
         let base_url = global.api_base_url();
@@ -107,8 +104,6 @@ impl Request {
                 temporary_request = net_request_from_global(global, url);
                 // Step 5.5
                 fallback_mode = Some(NetTraitsRequestMode::CorsMode);
-                // FIXME(cybai): remove this line when we can remove the fallback of credentials
-                fallback_credentials = Some(NetTraitsRequestCredentials::CredentialsSameOrigin);
             },
             // Step 6
             RequestInfo::Request(ref input_request) => {
@@ -239,14 +234,9 @@ impl Request {
         }
 
         // Step 19
-        let credentials = init
-            .credentials
-            .as_ref()
-            .map(|m| m.clone().into())
-            .or(fallback_credentials);
-
-        if let Some(c) = credentials {
-            request.credentials_mode = c;
+        if let Some(init_credentials) = init.credentials.as_ref() {
+            let credentials = init_credentials.clone().into();
+            request.credentials_mode = credentials;
         }
 
         // Step 20
@@ -301,7 +291,7 @@ impl Request {
         // Step 27 TODO: "If init["priority"] exists..."
 
         // Step 28
-        let r = Request::from_net_request(global, request);
+        let r = Request::from_net_request(global, proto, request);
 
         // Step 29 TODO: "Set this's signal to new AbortSignal object..."
         // Step 30 TODO: "If signal is not null..."
@@ -450,8 +440,12 @@ impl Request {
 }
 
 impl Request {
-    fn from_net_request(global: &GlobalScope, net_request: NetTraitsRequest) -> DomRoot<Request> {
-        let r = Request::new(global, net_request.current_url());
+    fn from_net_request(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        net_request: NetTraitsRequest,
+    ) -> DomRoot<Request> {
+        let r = Request::new(global, proto, net_request.current_url());
         *r.request.borrow_mut() = net_request;
         r
     }
@@ -460,7 +454,7 @@ impl Request {
         let req = r.request.borrow();
         let url = req.url();
         let headers_guard = r.Headers().get_guard();
-        let r_clone = Request::new(&r.global(), url);
+        let r_clone = Request::new(&r.global(), None, url);
         r_clone.request.borrow_mut().pipeline_id = req.pipeline_id;
         {
             let mut borrowed_r_request = r_clone.request.borrow_mut();

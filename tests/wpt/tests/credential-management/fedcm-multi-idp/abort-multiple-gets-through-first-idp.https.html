@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API multi IDP abort first IDP test.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+  import {
+    set_fedcm_cookie,
+    set_alt_fedcm_cookie,
+    request_options_with_mediation_required,
+    alt_request_options_with_mediation_required
+  } from '../support/fedcm-helper.sub.js';
+
+  let cookies_promise = Promise.all([set_fedcm_cookie(), set_alt_fedcm_cookie()]);
+
+  promise_test(async t => {
+    let first_controller = new AbortController();
+    let first_test_options = request_options_with_mediation_required();
+    first_test_options.signal = first_controller.signal;
+    const first_cred = navigator.credentials.get(first_test_options);
+
+    let second_controller = new AbortController();
+    let second_test_options = alt_request_options_with_mediation_required();
+    second_test_options.signal = second_controller.signal;
+    const second_cred = navigator.credentials.get(second_test_options);
+
+    await cookies_promise;
+    first_controller.abort();
+    return Promise.all([
+      promise_rejects_dom(t, 'AbortError', first_cred),
+      promise_rejects_dom(t, 'AbortError', second_cred)
+    ]);
+  }, "Test abort signal for a multi IDP request by aborting the first IDP");
+</script>

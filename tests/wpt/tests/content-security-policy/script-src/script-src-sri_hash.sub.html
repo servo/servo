@@ -1,0 +1,109 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>External scripts with matching SRI hash should be allowed.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src {{domains[www]}}:* 'nonce-dummy' 'sha256-wIc3KtqOuTFEu6t17sIBuOswgkV406VJvhSk79Gw6U0=' 'ShA256-L7/UQ9VWpyG7C9RDEC4ctS5hI3Zcw+ta+haPGlByG9c=' 'sha512-rYCVMxWV5nq8IsMo+UZNObWtEiWGok/vDN8BMoEQi41s0znSes6E1Q2aag3Lw3u2J1w2rqH7uF2ws6FpQhfSOA==' -->
+    <!-- ShA256 is intentionally mixed case -->
+</head>
+
+<body>
+    <h1>External scripts with matching SRI hash should be allowed.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        var port = "{{ports[http][0]}}";
+        if (location.protocol === "https:")
+          port = "{{ports[https][0]}}";
+        var crossorigin_base = location.protocol + "//{{domains[www]}}:" + port;
+
+        // Test name, src, integrity, expected to run.
+        var test_cases = [
+          [ 'matching integrity',
+            './simpleSourcedScript.js',
+            'sha256-L7/UQ9VWpyG7C9RDEC4ctS5hI3Zcw+ta+haPGlByG9c=',
+            true ],
+          [ 'matching integrity (case-insensitive algorithm)',
+            './simpleSourcedScript.js',
+            'sha256-L7/UQ9VWpyG7C9RDEC4ctS5hI3Zcw+ta+haPGlByG9c=',
+            true ],
+          [ 'multiple matching integrity',
+            './simpleSourcedScript.js',
+            'sha256-L7/UQ9VWpyG7C9RDEC4ctS5hI3Zcw+ta+haPGlByG9c= sha512-rYCVMxWV5nq8IsMo+UZNObWtEiWGok/vDN8BMoEQi41s0znSes6E1Q2aag3Lw3u2J1w2rqH7uF2ws6FpQhfSOA==',
+            true ],
+          [ 'no integrity',
+            './simpleSourcedScript.js',
+            '',
+            false ],
+          [ 'matching plus unsupported integrity',
+            './simpleSourcedScript.js',
+            'sha256-L7/UQ9VWpyG7C9RDEC4ctS5hI3Zcw+ta+haPGlByG9c= sha999-xyz',
+            true ],
+          [ 'mismatched integrity',
+            './simpleSourcedScript.js',
+            'sha256-xyz',
+            false ],
+          [ 'multiple mismatched integrity',
+            './simpleSourcedScript.js',
+            'sha256-xyz sha256-zyx',
+            false ],
+          [ 'partially matching integrity',
+            './simpleSourcedScript.js',
+            'sha256-L7/UQ9VWpyG7C9RDEC4ctS5hI3Zcw+ta+haPGlByG9c= sha256-xyz',
+            false ],
+          [ 'crossorigin no integrity but allowed host',
+            crossorigin_base + '/content-security-policy/script-src/crossoriginScript.js',
+            '',
+            true ],
+          [ 'crossorigin mismatched integrity but allowed host',
+            crossorigin_base + '/content-security-policy/script-src/crossoriginScript.js',
+            'sha256-kKJ5c48yxzaaSBupJSCmY50hkD8xbVgZgLHLtmnkeAo=',
+            true ],
+        ];
+
+        test(_ => {
+          for (item of test_cases) {
+            async_test(t => {
+              var s = document.createElement('script');
+              s.id = item[0].replace(' ', '-');
+              s.src = item[1];
+              s.integrity = item[2];
+              s.setAttribute('crossorigin', 'anonymous');
+
+              if (item[3]) {
+                s.onerror = t.unreached_func("Script should load! " + s.src);
+                window.addEventListener('message', t.step_func(e => {
+                  if (e.data == s.id)
+                    t.done();
+                }));
+              } else {
+                s.onerror = t.step_func_done();
+                window.addEventListener('message', t.step_func(e => {
+                  if (e.data == s.id)
+                    assert_unreached("Script should not execute!");
+                }));
+              }
+
+              document.body.appendChild(s);
+            }, item[0]);
+          }
+        }, "Load all the tests.");
+    </script>
+
+    <script nonce='dummy'>
+        var externalRan = false;
+    </script>
+    <script src='./externalScript.js'
+        integrity="sha256-wIc3KtqOuTFEu6t17sIBuOswgkV406VJvhSk79Gw6U0="></script>
+    <script nonce='dummy'>
+        test(function() {
+            assert_true(externalRan, 'External script ran.');
+        }, 'External script in a script tag with matching SRI hash should run.');
+    </script>
+
+</body>
+
+</html>

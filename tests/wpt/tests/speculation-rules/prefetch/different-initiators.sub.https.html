@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+
+<meta name="variant" content="?cross-site-1">
+<meta name="variant" content="?cross-site-2">
+<meta name="variant" content="?same-site">
+
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+// Regression test for https://crbug.com/1423234.
+promise_test(async t => {
+  // Open 2 windows.
+  const hostname1 =
+      location.search === '?cross-site-1' ? '{{hosts[alt][www]}}' : undefined;
+  const hostname2 =
+      location.search === '?cross-site-2' ? '{{hosts[alt][www]}}' : undefined;
+  const initiator1 = await spawnWindow(
+      t, { protocol: 'https', hostname: hostname1 });
+  const initiator2 = await spawnWindow(
+      t, { protocol: 'https', hostname: hostname2 });
+
+  // Start speculation rules prefetch from `initiator1`.
+  const nextUrl = initiator1.getExecutorURL({ protocol: 'https', page: 2 });
+  await initiator1.forceSinglePrefetch(nextUrl);
+
+  // Register a SW for `nextUrl` -- this is a trick to make the prefetched
+  // result to put in `PrefetchService::prefetches_ready_to_serve_` in
+  // Chromium implementation but actually not used by this navigation.
+  const r = await service_worker_unregister_and_register(
+      t, 'resources/sw.js', nextUrl);
+  await wait_for_state(t, r.installing, 'activated');
+
+  // Navigate `initiator1`.
+  // This doesn't use the prefetched result due to the ServiceWorker.
+  await initiator1.navigate(nextUrl);
+
+  // Navigate `initiator1` away from `nextUrl`.
+  const headers1 = await initiator1.execute_script(() => {
+    window.executor.suspend(() => {
+      location.href = 'about:blank';
+    });
+    return requestHeaders;
+  }, []);
+
+  // Unregister the SW.
+  await service_worker_unregister(t, nextUrl);
+
+  // Navigate `initiator2`.
+  // This shouldn't use the prefetched result because the initiator Documents
+  // (even sites) are different.
+  await initiator2.execute_script((url) => {
+    window.executor.suspend(() => {
+      location.href = url;
+    });
+  }, [nextUrl]);
+
+  // Note: while the Window for `initiator2` remains open, the executor ID of
+  // the page is the ID of `nextUrl`, which is `initiator1.context_id`.
+  // So `initiator1` is used below for manipulating the Window for `initiator2`.
+  assert_equals(
+      await initiator1.execute_script(() => location.href),
+      nextUrl.toString(),
+      "expected navigation to reach destination URL");
+
+  const headers2 = await initiator1.execute_script(() => {
+    return requestHeaders;
+  }, []);
+
+  assert_not_prefetched(headers1,
+      "Prefetch should not work due to ServiceWorker.");
+
+  assert_not_prefetched(headers2,
+      "Prefetch should not work for different initiators.");
+}, "Cross-initiator prefetches using ServiceWorker tricks");
+</script>

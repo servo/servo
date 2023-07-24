@@ -34,6 +34,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::PreInvoke;
+use crate::realms::enter_realm;
 use crate::script_thread::ScriptThread;
 use content_security_policy::{self as csp, CspList};
 use dom_struct::dom_struct;
@@ -42,6 +43,7 @@ use encoding_rs::Encoding;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
+use html5ever::tokenizer::TokenizerResult;
 use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use hyper_serde::Serde;
@@ -588,7 +590,7 @@ impl ServoParser {
 
     fn tokenize<F>(&self, mut feed: F)
     where
-        F: FnMut(&mut Tokenizer) -> Result<(), DomRoot<HTMLScriptElement>>,
+        F: FnMut(&mut Tokenizer) -> TokenizerResult<DomRoot<HTMLScriptElement>>,
     {
         loop {
             assert!(!self.suspended.get());
@@ -596,8 +598,8 @@ impl ServoParser {
 
             self.document.reflow_if_reflow_timer_expired();
             let script = match feed(&mut *self.tokenizer.borrow_mut()) {
-                Ok(()) => return,
-                Err(script) => script,
+                TokenizerResult::Done => return,
+                TokenizerResult::Script(script) => script,
             };
 
             // https://html.spec.whatwg.org/multipage/#parsing-main-incdata
@@ -690,7 +692,8 @@ enum Tokenizer {
 }
 
 impl Tokenizer {
-    fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
+    #[must_use]
+    fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.feed(input),
             Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.feed(input),
@@ -828,6 +831,8 @@ impl FetchResponseListener for ParserContext {
             return;
         }
 
+        let _realm = enter_realm(&*parser.document);
+
         parser.document.set_csp_list(csp_list);
         self.parser = Some(Trusted::new(&*parser));
         self.submit_resource_timing();
@@ -854,7 +859,7 @@ impl FetchResponseListener for ParserContext {
 
                 let doc = &parser.document;
                 let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
-                let img = HTMLImageElement::new(local_name!("img"), None, doc);
+                let img = HTMLImageElement::new(local_name!("img"), None, doc, None);
                 img.SetSrc(USVString(self.url.to_string()));
                 doc_body
                     .AppendChild(&DomRoot::upcast::<Node>(img))
@@ -916,6 +921,7 @@ impl FetchResponseListener for ParserContext {
         if parser.aborted.get() {
             return;
         }
+        let _realm = enter_realm(&*parser);
         parser.parse_bytes_chunk(payload);
     }
 
@@ -930,6 +936,8 @@ impl FetchResponseListener for ParserContext {
         if parser.aborted.get() {
             return;
         }
+
+        let _realm = enter_realm(&*parser);
 
         match status {
             // are we throwing this away or can we use it?
@@ -1113,7 +1121,7 @@ impl TreeSink for Sink {
     }
 
     fn create_comment(&mut self, text: StrTendril) -> Dom<Node> {
-        let comment = Comment::new(DOMString::from(String::from(text)), &*self.document);
+        let comment = Comment::new(DOMString::from(String::from(text)), &*self.document, None);
         Dom::from_ref(comment.upcast())
     }
 
@@ -1323,7 +1331,7 @@ fn create_element_for_token(
         CustomElementCreationMode::Asynchronous
     };
 
-    let element = Element::create(name, is, document, creator, creation_mode);
+    let element = Element::create(name, is, document, creator, creation_mode, None);
 
     // https://html.spec.whatwg.org/multipage#the-input-element:value-sanitization-algorithm-3
     // says to invoke sanitization "when an input element is first created";

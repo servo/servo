@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Name From Content</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>Tests the <a href="https://w3c.github.io/accname/#comp_name_from_content">#comp_name_from_content</a> portions of the AccName <em>Name Computation</em> algorithm.</p>
+
+<h1 data-expectedlabel="label" data-testname="heading name from content" class="ex">label</h1>
+
+<!--
+
+Todo: test all remaining cases of https://w3c.github.io/accname/#comp_name_from_content
+  - comp_name_from_content_reset
+  - comp_name_from_content_pseudo_element
+  - comp_name_from_content_pseudo_element_before
+  - comp_name_from_content_pseudo_element_after
+  - comp_name_from_content_for_each_child
+  - comp_name_from_content_for_each_child_set_current
+  - comp_name_from_content_for_each_child_recursion
+  - comp_for_each_child_append
+  - comp_name_from_content_return
+
+Todo: test all remaining *recursive* cases in https://w3c.github.io/accname/#comp_recursive_name_from_content
+
+-->
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

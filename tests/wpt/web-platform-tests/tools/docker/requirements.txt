@@ -1,2 +1,0 @@
-pyyaml==6.0
-requests==2.30.0

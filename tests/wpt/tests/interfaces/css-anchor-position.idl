@@ -1,0 +1,11 @@
+// Source: CSS Anchor Positioning (https://drafts.csswg.org/css-anchor-position-1/)
+
+[Exposed=Window]
+interface CSSPositionFallbackRule : CSSGroupingRule {
+  readonly attribute CSSOMString name;
+};
+
+[Exposed=Window]
+interface CSSTryRule : CSSRule {
+  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
+};

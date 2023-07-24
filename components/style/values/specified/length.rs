@@ -59,6 +59,9 @@ pub enum FontRelativeLength {
     /// A "cap" value: https://drafts.csswg.org/css-values/#cap
     #[css(dimension)]
     Cap(CSSFloat),
+    /// An "ic" value: https://drafts.csswg.org/css-values/#ic
+    #[css(dimension)]
+    Ic(CSSFloat),
     /// A "rem" value: https://drafts.csswg.org/css-values/#rem
     #[css(dimension)]
     Rem(CSSFloat),
@@ -93,6 +96,7 @@ impl FontRelativeLength {
             FontRelativeLength::Ex(v) |
             FontRelativeLength::Ch(v) |
             FontRelativeLength::Cap(v) |
+            FontRelativeLength::Ic(v) |
             FontRelativeLength::Rem(v) => v == 0.,
         }
     }
@@ -103,6 +107,7 @@ impl FontRelativeLength {
             FontRelativeLength::Ex(v) |
             FontRelativeLength::Ch(v) |
             FontRelativeLength::Cap(v) |
+            FontRelativeLength::Ic(v) |
             FontRelativeLength::Rem(v) => v < 0.,
         }
     }
@@ -119,12 +124,13 @@ impl FontRelativeLength {
             (&Ex(one), &Ex(other)) => Ex(one + other),
             (&Ch(one), &Ch(other)) => Ch(one + other),
             (&Cap(one), &Cap(other)) => Cap(one + other),
+            (&Ic(one), &Ic(other)) => Ic(one + other),
             (&Rem(one), &Rem(other)) => Rem(one + other),
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
                 match *self {
-                    Em(..) | Ex(..) | Ch(..) | Cap(..) | Rem(..) => {},
+                    Em(..) | Ex(..) | Ch(..) | Cap(..) | Ic(..) | Rem(..) => {},
                 }
                 debug_unreachable!("Forgot to handle unit in try_sum()")
             },
@@ -234,6 +240,23 @@ impl FontRelativeLength {
                     //     determine the cap-height, the font’s ascent must be used.
                     //
                     metrics.ascent
+                });
+                (reference_size, length)
+            },
+            FontRelativeLength::Ic(length) => {
+                let metrics = query_font_metrics(
+                    context,
+                    base_size,
+                    FontMetricsOrientation::MatchContextPreferVertical,
+                );
+                let reference_size = metrics.ic_width.unwrap_or_else(|| {
+                    // https://drafts.csswg.org/css-values/#ic
+                    //
+                    //     In the cases where it is impossible or impractical to
+                    //     determine the ideographic advance measure, it must be
+                    //     assumed to be 1em.
+                    //
+                    reference_font_size
                 });
                 (reference_size, length)
             },
@@ -549,6 +572,7 @@ impl NoCalcLength {
             "ex" => NoCalcLength::FontRelative(FontRelativeLength::Ex(value)),
             "ch" => NoCalcLength::FontRelative(FontRelativeLength::Ch(value)),
             "cap" => NoCalcLength::FontRelative(FontRelativeLength::Cap(value)),
+            "ic" => NoCalcLength::FontRelative(FontRelativeLength::Ic(value)),
             "rem" => NoCalcLength::FontRelative(FontRelativeLength::Rem(value)),
             // viewport percentages
             "vw" if !context.in_page_rule() => {
@@ -709,12 +733,13 @@ impl PartialOrd for FontRelativeLength {
             (&Ex(ref one), &Ex(ref other)) => one.partial_cmp(other),
             (&Ch(ref one), &Ch(ref other)) => one.partial_cmp(other),
             (&Cap(ref one), &Cap(ref other)) => one.partial_cmp(other),
+            (&Ic(ref one), &Ic(ref other)) => one.partial_cmp(other),
             (&Rem(ref one), &Rem(ref other)) => one.partial_cmp(other),
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
                 match *self {
-                    Em(..) | Ex(..) | Ch(..) | Cap(..) | Rem(..) => {},
+                    Em(..) | Ex(..) | Ch(..) | Cap(..) | Ic(..) | Rem(..) => {},
                 }
                 debug_unreachable!("Forgot an arm in partial_cmp?")
             },
@@ -732,6 +757,7 @@ impl Mul<CSSFloat> for FontRelativeLength {
             FontRelativeLength::Ex(v) => FontRelativeLength::Ex(v * scalar),
             FontRelativeLength::Ch(v) => FontRelativeLength::Ch(v * scalar),
             FontRelativeLength::Cap(v) => FontRelativeLength::Cap(v * scalar),
+            FontRelativeLength::Ic(v) => FontRelativeLength::Ic(v * scalar),
             FontRelativeLength::Rem(v) => FontRelativeLength::Rem(v * scalar),
         }
     }
@@ -1226,6 +1252,48 @@ impl Parse for Size {
     }
 }
 
+macro_rules! parse_size_non_length {
+    ($size:ident, $input:expr, $auto_or_none:expr => $auto_or_none_ident:ident) => {{
+        let size = $input.try_parse(|input| {
+            Ok(try_match_ident_ignore_ascii_case! { input,
+                #[cfg(feature = "gecko")]
+                "min-content" | "-moz-min-content" => $size::MinContent,
+                #[cfg(feature = "gecko")]
+                "max-content" | "-moz-max-content" => $size::MaxContent,
+                #[cfg(feature = "gecko")]
+                "fit-content" | "-moz-fit-content" => $size::FitContent,
+                #[cfg(feature = "gecko")]
+                "-moz-available" => $size::MozAvailable,
+                $auto_or_none => $size::$auto_or_none_ident,
+            })
+        });
+        if size.is_ok() {
+            return size;
+        }
+    }};
+}
+
+#[cfg(feature = "gecko")]
+fn is_fit_content_function_enabled() -> bool {
+    static_prefs::pref!("layout.css.fit-content-function.enabled")
+}
+
+#[cfg(feature = "gecko")]
+macro_rules! parse_fit_content_function {
+    ($size:ident, $input:expr, $context:expr, $allow_quirks:expr) => {
+        if is_fit_content_function_enabled() {
+            if let Ok(length) = $input.try_parse(|input| {
+                input.expect_function_matching("fit-content")?;
+                input.parse_nested_block(|i| {
+                    NonNegativeLengthPercentage::parse_quirky($context, i, $allow_quirks)
+                })
+            }) {
+                return Ok($size::FitContentFunction(length));
+            }
+        }
+    };
+}
+
 impl Size {
     /// Parses, with quirks.
     pub fn parse_quirky<'i, 't>(
@@ -1233,16 +1301,9 @@ impl Size {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
+        parse_size_non_length!(Size, input, "auto" => Auto);
         #[cfg(feature = "gecko")]
-        {
-            if let Ok(l) = input.try_parse(computed::ExtremumLength::parse) {
-                return Ok(GenericSize::ExtremumLength(l));
-            }
-        }
-
-        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(GenericSize::Auto);
-        }
+        parse_fit_content_function!(Size, input, context, allow_quirks);
 
         let length = NonNegativeLengthPercentage::parse_quirky(context, input, allow_quirks)?;
         Ok(GenericSize::LengthPercentage(length))
@@ -1274,16 +1335,9 @@ impl MaxSize {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
+        parse_size_non_length!(MaxSize, input, "none" => None);
         #[cfg(feature = "gecko")]
-        {
-            if let Ok(l) = input.try_parse(computed::ExtremumLength::parse) {
-                return Ok(GenericMaxSize::ExtremumLength(l));
-            }
-        }
-
-        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(GenericMaxSize::None);
-        }
+        parse_fit_content_function!(MaxSize, input, context, allow_quirks);
 
         let length = NonNegativeLengthPercentage::parse_quirky(context, input, allow_quirks)?;
         Ok(GenericMaxSize::LengthPercentage(length))

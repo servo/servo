@@ -13,6 +13,7 @@ use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::node::{window_from_node, Node};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLDataListElement {
@@ -35,12 +36,14 @@ impl HTMLDataListElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        proto: Option<HandleObject>,
     ) -> DomRoot<HTMLDataListElement> {
-        Node::reflect_node(
+        Node::reflect_node_with_proto(
             Box::new(HTMLDataListElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
+            proto,
         )
     }
 }

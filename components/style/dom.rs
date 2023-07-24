@@ -151,7 +151,7 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// Get this node's first child.
     fn first_child(&self) -> Option<Self>;
 
-    /// Get this node's first child.
+    /// Get this node's last child.
     fn last_child(&self) -> Option<Self>;
 
     /// Get this node's previous sibling.
@@ -519,6 +519,11 @@ pub trait TElement:
     {
     }
 
+    /// Internal iterator for the attribute names of this element.
+    fn each_attr_name<F>(&self, callback: F)
+    where
+        F: FnMut(&LocalName);
+
     /// Internal iterator for the part names that this element exports for a
     /// given part name.
     fn each_exported_part<F>(&self, _name: &AtomIdent, _callback: F)
@@ -875,7 +880,7 @@ pub trait TElement:
                                 }
                             }
                             // TODO: Could be more granular.
-                            if !shadow.host().exports_any_part() {
+                            if !inner_shadow_host.exports_any_part() {
                                 break;
                             }
                             inner_shadow = shadow;

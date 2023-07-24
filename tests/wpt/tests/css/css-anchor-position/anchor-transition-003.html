@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<title>Tests CSS transition of anchor() across three tree scopes</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8180"></script>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+#anchor1 {
+  width: 100px;
+  height: 100px;
+  background: orange;
+  anchor-name: --a;
+}
+
+#host.after::part(target) {
+  left: anchor(--a left);
+}
+</style>
+
+<div id="anchor1"></div>
+<div id="host"></div>
+
+<script>
+setup(() => {
+let shadow = host.attachShadow({mode: 'open'});
+shadow.innerHTML = `
+  <style>
+    div {
+      width: 100px;
+      height: 100px;
+      background: orange;
+    }
+    #anchor2 {
+      margin-left: 200px;
+      anchor-name: --a;
+    }
+    #anchor3 {
+      margin-left: 400px;
+    }
+    #target {
+      position: fixed;
+      background: lime;
+      top: 300px;
+      transition: left 10s -5s linear;
+    }
+    #target.after {
+      left: anchor(--a left);
+    }
+  </style>
+  <div id="anchor2"></div>
+  <div id="anchor3">
+    <div id="target" part="target"></div>
+  </div>
+`;
+
+let anchor3 = shadow.getElementById('anchor3');
+let innerShadow = anchor3.attachShadow({mode: 'open'});
+innerShadow.innerHTML = `
+  <style>
+    :host { anchor-name: --a; }
+    ::slotted(*) { left: anchor(--a left); }
+  </style>
+  <slot></slot>
+`;
+});
+
+test(() => {
+  let target = host.shadowRoot.getElementById('target');
+
+  // Forces layout
+  target.offsetLeft;
+
+  // Triggers a transition from using #anchor3 to using #anchor2,
+  // starting immediately at 50% progress
+  target.classList.add('after');
+  assert_equals(target.offsetLeft, 300);
+
+  // Triggers another transition to using #anchor1 while the previous
+  // transition is still in progress.
+  host.classList.add('after');
+  assert_equals(target.offsetLeft, 150);
+}, 'Transition with anchor names defined in three different tree scopes');
+</script>

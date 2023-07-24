@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG gradientTransform presentation attribute and translation-value argument with translateX applied in both directions</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="match" href="reference/svg-gradientTransform-combination-ref.html">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-gradient-transform-pattern-transform">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The gradientTransform attribute must support multiple transform functions in both directions. The gradient in the test should be moved 100 pixels in the X direction resulting in a solid green rect.">
+    <meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-18000">
+    <style type="text/css">
+    svg {
+        width: 200px;
+        height: 200px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <defs>
+            <linearGradient id="grad" gradientTransform="translate(150 0) translate(-50 0)">
+                <stop offset="50%" stop-color="green"/>
+                <stop offset="50%" stop-color="red"/>
+            </linearGradient>
+        </defs>
+        <rect fill="url(#grad)" x="0" y="0" width="200" height="200"/>
+    </svg>
+</body>
+</html>

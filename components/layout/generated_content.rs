@@ -198,10 +198,6 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                         RenderingMode::Suffix(".\u{00a0}"),
                     )
                 },
-                GeneratedContentInfo::Empty |
-                GeneratedContentInfo::ContentItem(ContentItem::String(_)) => {
-                    // Nothing to do here.
-                },
                 GeneratedContentInfo::ContentItem(ContentItem::Counter(
                     ref counter_name,
                     counter_style,
@@ -272,8 +268,11 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                         self.traversal.quote -= 1
                     }
                 },
-                GeneratedContentInfo::ContentItem(ContentItem::Url(..)) => {
-                    unreachable!("Servo doesn't parse content: url(..) yet")
+                GeneratedContentInfo::Empty |
+                GeneratedContentInfo::ContentItem(ContentItem::String(_)) |
+                GeneratedContentInfo::ContentItem(ContentItem::Attr(_)) |
+                GeneratedContentInfo::ContentItem(ContentItem::Image(..)) => {
+                    // Nothing to do here.
                 },
             }
         };
