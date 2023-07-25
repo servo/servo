@@ -23,7 +23,7 @@ jobs:
                 })
             }
 
-            let tokens = "${{ github.event.comment.body }}".split(" ");
+            let tokens = context.payload.comment.body.split(/\s+/);
             let tagIndex = tokens.indexOf("@bors-servo");
             if (tagIndex == -1 || tagIndex + 1 >= tokens.length) {
               return { try: false };
@@ -50,13 +50,14 @@ jobs:
             }
 
             if (returnValue.try) {
+              let username = context.payload.event.sender.login;
               let result = await github.rest.repos.getCollaboratorPermissionLevel({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                username: "${{ github.event.sender.login }}"
+                username
               });
               if (!result.data.user.permissions.push) {
-                makeComment('🔒 User @${{ github.event.sender.login }} does not have permission to trigger try jobs.');
+                makeComment('🔒 User @' + username + ' does not have permission to trigger try jobs.');
                 return { try: false };
               }
             }
