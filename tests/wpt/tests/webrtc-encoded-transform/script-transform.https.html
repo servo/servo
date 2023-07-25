@@ -13,140 +13,47 @@
         <video id="video2" autoplay></video>
         <script src ="routines.js"></script>
         <script>
-async function waitForMessage(worker, data)
-{
-    while (true) {
-        const received = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
-        if (data === received)
-            return;
-    }
-}
 
 promise_test(async (test) => {
-    worker = new Worker('script-transform-worker.js');
-    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
-    assert_equals(data, "registered");
-
-    const channel = new MessageChannel;
-    const transform = new RTCRtpScriptTransform(worker, {name:'MockRTCRtpTransform', port: channel.port2}, [channel.port2]);
-    transform.port = channel.port1;
-    const promise = new Promise(resolve => transform.port.onmessage = (event) => resolve(event.data));
-    transform.port.postMessage("test");
-    assert_equals(await promise, "test");
+  const worker = await createWorker('script-transform-worker.js');
+  const transform = await createTransform(worker);
+  transform.port.postMessage("ping");
+  assert_equals(await getNextMessage(transform.port), "pong");
 }, "transform messaging");
 
 promise_test(async (test) => {
-    worker = new Worker('script-transform-worker.js');
-    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
-    assert_equals(data, "registered");
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-worker.js', {audio: true});
 
-    const pc = new RTCPeerConnection();
+  const sender2 = senderPc.addTransceiver('video').sender;
+  const receiver2 = senderPc.getReceivers()[1];
 
-    const senderChannel = new MessageChannel;
-    const receiverChannel = new MessageChannel;
-    const senderTransform = new RTCRtpScriptTransform(worker, {name:'MockRTCRtpTransform', port: senderChannel.port2}, [senderChannel.port2]);
-    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'MockRTCRtpTransform', port: receiverChannel.port2}, [receiverChannel.port2]);
-    senderTransform.port = senderChannel.port1;
-    receiverTransform.port = receiverChannel.port1;
+  assert_throws_dom("InvalidStateError", () => sender2.transform = sender.transform);
+  assert_throws_dom("InvalidStateError", () => receiver2.transform = receiver.transform);
 
-    const sender1 = pc.addTransceiver('audio').sender;
-    const sender2 = pc.addTransceiver('video').sender;
-    const receiver1 = pc.getReceivers()[0];
-    const receiver2 = pc.getReceivers()[1];
+  sender.transform = sender.transform;
+  receiver.transform = receiver.transform;
 
-    sender1.transform = senderTransform;
-    receiver1.transform = receiverTransform;
-    assert_throws_dom("InvalidStateError", () => sender2.transform = senderTransform);
-    assert_throws_dom("InvalidStateError", () => receiver2.transform = receiverTransform);
-
-    sender1.transform = senderTransform;
-    receiver1.transform = receiverTransform;
-
-    sender1.transform = null;
-    receiver1.transform = null;
+  sender.transform = null;
+  receiver.transform = null;
 }, "Cannot reuse attached transforms");
 
 promise_test(async (test) => {
-    worker = new Worker('script-transform-worker.js');
-    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
-    assert_equals(data, "registered");
-    // Video is needed in a later test, so we ask for both permissions
-    await setMediaPermission();
-    const localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-worker.js', {audio: true});
+  assert_equals(await getNextMessage(sender.transform.port), "audio chunk");
 
-    const senderChannel = new MessageChannel;
-    const receiverChannel = new MessageChannel;
-    let sender, receiver;
-    const senderTransform = new RTCRtpScriptTransform(worker, {name:'MockRTCRtpTransform', port: senderChannel.port2}, [senderChannel.port2]);
-    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'MockRTCRtpTransform', port: receiverChannel.port2}, [receiverChannel.port2]);
-    senderTransform.port = senderChannel.port1;
-    receiverTransform.port = receiverChannel.port1;
-
-    const startedPromise = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
-
-    const stream = await new Promise((resolve, reject) => {
-        createConnections(test, (firstConnection) => {
-            pc1 = firstConnection;
-            sender = firstConnection.addTrack(localStream.getAudioTracks()[0], localStream);
-            sender.transform = senderTransform;
-        }, (secondConnection) => {
-            pc2 = secondConnection;
-            secondConnection.ontrack = (trackEvent) => {
-                receiver = trackEvent.receiver;
-                receiver.transform = receiverTransform;
-                resolve(trackEvent.streams[0]);
-            };
-        });
-        test.step_timeout(() => reject("Test timed out"), 5000);
-    });
-
-    assert_equals(await startedPromise, "started");
-
-    await waitForMessage(worker, "audio chunk");
-
-    video1.srcObject = stream;
-    await video1.play();
+  video1.srcObject = new MediaStream([receiver.track]);
+  await video1.play();
 }, "audio exchange with transform");
 
 promise_test(async (test) => {
-    worker = new Worker('script-transform-worker.js');
-    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
-    assert_equals(data, "registered");
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-worker.js', {video: true});
 
-    const localStream = await navigator.mediaDevices.getUserMedia({video: true});
+  assert_equals(await getNextMessage(sender.transform.port), "video chunk");
+  // First frame should be a keyframe
+  assert_equals(await getNextMessage(sender.transform.port), "video keyframe");
 
-    const senderChannel = new MessageChannel;
-    const receiverChannel = new MessageChannel;
-    let sender, receiver;
-    const senderTransform = new RTCRtpScriptTransform(worker, {name:'MockRTCRtpTransform', port: senderChannel.port2}, [senderChannel.port2]);
-    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'MockRTCRtpTransform', port: receiverChannel.port2}, [receiverChannel.port2]);
-    senderTransform.port = senderChannel.port1;
-    receiverTransform.port = receiverChannel.port1;
-
-    const startedPromise = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
-
-    const stream = await new Promise((resolve, reject) => {
-        createConnections(test, (firstConnection) => {
-            pc1 = firstConnection;
-            sender = firstConnection.addTrack(localStream.getVideoTracks()[0], localStream);
-            sender.transform = senderTransform;
-        }, (secondConnection) => {
-            pc2 = secondConnection;
-            secondConnection.ontrack = (trackEvent) => {
-                receiver = trackEvent.receiver;
-                receiver.transform = receiverTransform;
-                resolve(trackEvent.streams[0]);
-            };
-        });
-        test.step_timeout(() => reject("Test timed out"), 5000);
-    });
-
-    assert_equals(await startedPromise, "started");
-
-    await waitForMessage(worker, "video chunk");
-
-    video1.srcObject = stream;
-    await video1.play();
+  video1.srcObject = new MediaStream([receiver.track]);
+  await video1.play();
 }, "video exchange with transform");
         </script>
     </body>

@@ -1,16 +1,17 @@
 <!doctype html>
 <html>
     <head>
-        <meta charset="utf-8">
-<script src="/resources/testharness.js"></script>
-        <script src="/resources/testharnessreport.js"></script>
+        <meta charset='utf-8'>
+        <meta name='timeout' content='long'>
+<script src='/resources/testharness.js'></script>
+        <script src='/resources/testharnessreport.js'></script>
         <script src=/resources/testdriver.js></script>
 <script src=/resources/testdriver-vendor.js></script>
 <script src='../mediacapture-streams/permission-helper.js'></script>
     </head>
     <body>
-        <video id="video1" autoplay></video>
-        <script src ="routines.js"></script>
+        <video id='video1' autoplay></video>
+        <script src ='routines.js'></script>
         <script>
 async function waitForMessage(worker, data)
 {
@@ -21,16 +22,16 @@ async function waitForMessage(worker, data)
     }
 }
 
-async function gatherMetadata(test, audio)
+async function gatherMetadata(test, kind)
 {
     worker = new Worker('script-metadata-transform-worker.js');
     const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
-    assert_equals(data, "registered");
+    assert_equals(data, 'registered');
 
     // Both audio and vido are needed at one time or another
     // so asking for both permissions
     await setMediaPermission();
-    const localStream = await navigator.mediaDevices.getUserMedia({audio: audio, video: !audio});
+    const localStream = await navigator.mediaDevices.getUserMedia({[kind]: true});
 
     let sender, receiver;
     const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender'});
@@ -49,43 +50,251 @@ async function gatherMetadata(test, audio)
                 resolve(trackEvent.streams[0]);
             };
         });
-        test.step_timeout(() => reject("Test timed out"), 5000);
+        test.step_timeout(() => reject('Test timed out'), 5000);
     });
 
-    return new Promise((resolve, reject) => {
-        let senderMetadata, senderTimestamp;
-        worker.onmessage = (event) => {
-            if (event.data.name === 'sender') {
-                senderMetadata = event.data.metadata;
-                senderTimestamp = event.data.timestamp;
-            } else if (event.data.name === 'receiver')
-               resolve([senderMetadata, senderTimestamp, event.data.metadata, event.data.timestamp]);
-        };
-        test.step_timeout(() => reject("Metadata test timed out"), 5000);
-    });
+    let senderBeforeWrite, senderAfterWrite, receiverBeforeWrite, receiverAfterWrite;
+    while (true) {
+        const {data} = await new Promise(r => worker.onmessage = r);
+        if (data.name == 'sender') {
+            senderBeforeWrite = data;
+        } else if (data.name == 'receiver') {
+            receiverBeforeWrite = data;
+        } else if (data.name == 'sender after write') {
+            senderAfterWrite = data;
+        } else if (data.name == 'receiver after write') {
+            receiverAfterWrite = data;
+        }
+        if (senderBeforeWrite &&
+            senderAfterWrite &&
+            receiverBeforeWrite &&
+            receiverAfterWrite) {
+            return {
+              senderBeforeWrite,
+              senderAfterWrite,
+              receiverBeforeWrite,
+              receiverAfterWrite
+            };
+        }
+    }
 }
 
 promise_test(async (test) => {
-    const [senderMetadata, senderTimestamp, receiverMetadata, receiverTimestamp] = await gatherMetadata(test, true);
+    const data = await gatherMetadata(test, 'audio');
 
-    assert_equals(senderTimestamp, receiverTimestamp, "timestamp");
-    assert_true(!!senderMetadata.synchronizationSource, "ssrc");
-    assert_equals(senderMetadata.synchronizationSource, receiverMetadata.synchronizationSource, "ssrc");
-    assert_array_equals(senderMetadata.contributingSources, receiverMetadata.contributingSources, "csrc");
-}, "audio exchange with transform");
+    assert_equals(typeof data.senderBeforeWrite.timestamp, 'number');
+    assert_not_equals(data.senderBeforeWrite.timestamp, 0);
+    assert_equals(data.senderBeforeWrite.timestamp,
+      data.senderAfterWrite.timestamp,
+      'timestamp matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.timestamp,
+      data.receiverBeforeWrite.timestamp,
+      'timestamp matches (for sender and receiver)');
+    assert_equals(data.receiverBeforeWrite.timestamp,
+      data.receiverAfterWrite.timestamp,
+      'timestamp matches (for receiver before and after write)');
+}, 'audio metadata: timestamp');
 
 promise_test(async (test) => {
-    const [senderMetadata, senderTimestamp, receiverMetadata, receiverTimestamp] = await gatherMetadata(test, false);
+    const data = await gatherMetadata(test, 'audio');
 
-    assert_equals(senderTimestamp, receiverTimestamp, "timestamp");
-    assert_true(!!senderMetadata.synchronizationSource, "ssrc");
-    assert_equals(senderMetadata.synchronizationSource, receiverMetadata.synchronizationSource, "ssrc");
-    assert_array_equals(senderMetadata.contributingSources, receiverMetadata.contributingSources, "csrc");
-    assert_equals(senderMetadata.height, receiverMetadata.height, "height");
-    assert_equals(senderMetadata.width, receiverMetadata.width, "width");
-    assert_equals(senderMetadata.spatialIndex, receiverMetadata.spatialIndex, "spatialIndex");
-    assert_equals(senderMetadata.temporalIndex, receiverMetadata.temporalIndex, "temporalIndex");
-}, "video exchange with transform");
+    assert_equals(typeof data.senderBeforeWrite.metadata.synchronizationSource, 'number');
+    assert_not_equals(data.senderBeforeWrite.metadata.synchronizationSource, 0);
+    assert_equals(data.senderBeforeWrite.metadata.synchronizationSource,
+      data.senderAfterWrite.metadata.synchronizationSource,
+      'ssrc matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.metadata.synchronizationSource,
+      data.receiverBeforeWrite.metadata.synchronizationSource,
+      'ssrc matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.metadata.synchronizationSource,
+      data.receiverAfterWrite.metadata.synchronizationSource,
+      'ssrc matches (for receiver before and after write)');
+}, 'audio metadata: synchronizationSource');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'audio');
+
+    assert_equals(typeof data.senderBeforeWrite.metadata.payloadType, 'number');
+    assert_equals(data.senderBeforeWrite.metadata.payloadType,
+      data.senderAfterWrite.metadata.payloadType,
+      'payload type matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.metadata.payloadType,
+      data.receiverBeforeWrite.metadata.payloadType,
+      'payload type matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.metadata.payloadType,
+      data.receiverAfterWrite.metadata.payloadType,
+      'payload type matches (for receiver before and after write)');
+}, 'audio metadata: payloadType');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'audio');
+
+    assert_array_equals(data.senderBeforeWrite.metadata.contributingSources,
+      data.senderAfterWrite.metadata.contributingSources,
+      'csrcs are arrays, and match (for sender before and after write)');
+    assert_array_equals(data.senderBeforeWrite.metadata.contributingSources,
+      data.receiverBeforeWrite.metadata.contributingSources,
+      'csrcs are arrays, and match');
+    assert_array_equals(data.senderBeforeWrite.metadata.contributingSources,
+      data.receiverAfterWrite.metadata.contributingSources,
+      'csrcs are arrays, and match (for receiver before and after write)');
+}, 'audio metadata: contributingSources');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'audio');
+
+    assert_equals(typeof data.receiverBeforeWrite.metadata.sequenceNumber,
+      'number');
+    assert_equals(data.receiverBeforeWrite.metadata.sequenceNumber,
+      data.receiverAfterWrite.metadata.sequenceNumber,
+      'sequenceNumber matches (for receiver before and after write)');
+    // spec says sequenceNumber exists only for incoming audio frames
+    assert_equals(data.senderBeforeWrite.metadata.sequenceNumber, undefined);
+    assert_equals(data.senderAfterWrite.metadata.sequenceNumber, undefined);
+}, 'audio metadata: sequenceNumber');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+
+    assert_equals(typeof data.senderBeforeWrite.timestamp, 'number');
+    assert_equals(data.senderBeforeWrite.timestamp,
+      data.senderAfterWrite.timestamp,
+      'timestamp matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.timestamp,
+      data.receiverBeforeWrite.timestamp,
+      'timestamp matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.timestamp,
+      data.receiverAfterWrite.timestamp,
+      'timestamp matches (for receiver before and after write)');
+}, 'video metadata: timestamp');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+
+    assert_equals(typeof data.senderBeforeWrite.metadata.synchronizationSource,
+      'number');
+    assert_equals(data.senderBeforeWrite.metadata.synchronizationSource,
+      data.senderAfterWrite.metadata.synchronizationSource,
+      'ssrc matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.metadata.synchronizationSource,
+      data.receiverBeforeWrite.metadata.synchronizationSource,
+      'ssrc matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.metadata.synchronizationSource,
+      data.receiverAfterWrite.metadata.synchronizationSource,
+      'ssrc matches (for receiver before and after write)');
+}, 'video metadata: ssrc');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+
+    assert_array_equals(data.senderBeforeWrite.metadata.contributingSources,
+      data.senderAfterWrite.metadata.contributingSources,
+      'csrcs are arrays, and match (for sender before and after write)');
+    assert_array_equals(data.senderBeforeWrite.metadata.contributingSources,
+      data.receiverBeforeWrite.metadata.contributingSources,
+      'csrcs are arrays, and match');
+    assert_array_equals(data.senderBeforeWrite.metadata.contributingSources,
+      data.receiverAfterWrite.metadata.contributingSources,
+      'csrcs are arrays, and match (for receiver before and after write)');
+}, 'video metadata: csrcs');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+
+    assert_equals(typeof data.senderBeforeWrite.metadata.height, 'number');
+    assert_equals(data.senderBeforeWrite.metadata.height,
+      data.senderAfterWrite.metadata.height,
+      'height matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.metadata.height,
+      data.receiverBeforeWrite.metadata.height,
+      'height matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.metadata.height,
+      data.receiverAfterWrite.metadata.height,
+      'height matches (for receiver before and after write)');
+    assert_equals(typeof data.senderBeforeWrite.metadata.width, 'number');
+    assert_equals(data.senderBeforeWrite.metadata.width,
+      data.senderAfterWrite.metadata.width,
+      'width matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.metadata.width,
+      data.receiverBeforeWrite.metadata.width,
+      'width matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.metadata.width,
+      data.receiverAfterWrite.metadata.width,
+      'width matches (for receiver before and after write)');
+}, 'video metadata: width and height');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+
+    assert_equals(typeof data.senderBeforeWrite.metadata.spatialIndex,
+      'number');
+    assert_equals(data.senderBeforeWrite.metadata.spatialIndex,
+      data.senderAfterWrite.metadata.spatialIndex,
+      'spatialIndex matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.metadata.spatialIndex,
+      data.receiverBeforeWrite.metadata.spatialIndex,
+      'spatialIndex matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.metadata.spatialIndex,
+      data.receiverAfterWrite.metadata.spatialIndex,
+      'spatialIndex matches (for receiver before and after write)');
+    assert_equals(typeof data.senderBeforeWrite.metadata.temporalIndex,
+      'number');
+    assert_equals(data.senderBeforeWrite.metadata.temporalIndex,
+      data.senderAfterWrite.metadata.temporalIndex,
+      'temporalIndex matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.metadata.temporalIndex,
+      data.receiverBeforeWrite.metadata.temporalIndex,
+      'temporalIndex matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.metadata.temporalIndex,
+      data.receiverAfterWrite.metadata.temporalIndex,
+      'temporalIndex matches (for receiver before and after write)');
+}, 'video metadata: spatial and temporal index');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+
+    assert_array_equals(data.senderBeforeWrite.metadata.dependencies,
+      data.senderAfterWrite.metadata.dependencies,
+      'dependencies are arrays, and match (for sender before and after write)');
+    assert_array_equals(data.senderBeforeWrite.metadata.dependencies,
+      data.receiverBeforeWrite.metadata.dependencies,
+      'dependencies are arrays, and match (for sender and receiver)');
+    assert_array_equals(data.senderBeforeWrite.metadata.dependencies,
+      data.receiverAfterWrite.metadata.dependencies,
+      'dependencies are arrays, and match (for receiver before and after write)');
+}, 'video metadata: dependencies');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+
+    assert_equals(typeof data.senderBeforeWrite.metadata.frameId, 'number');
+    assert_equals(data.senderBeforeWrite.metadata.frameId,
+      data.senderAfterWrite.metadata.frameId,
+      'frameId matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.metadata.frameId,
+      data.receiverBeforeWrite.metadata.frameId,
+      'frameId matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.metadata.frameId,
+      data.receiverAfterWrite.metadata.frameId,
+      'frameId matches (for receiver before and after write)');
+}, 'video metadata: frameId');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+
+    assert_equals(typeof data.senderBeforeWrite.type, 'string');
+    assert_true(data.senderBeforeWrite.type == 'key' || data.senderBeforeWrite.type == 'delta');
+    assert_equals(data.senderBeforeWrite.type,
+      data.senderAfterWrite.type,
+      'type matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.type,
+      data.receiverBeforeWrite.type,
+      'type matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.type,
+      data.receiverAfterWrite.type,
+      'type matches (for receiver before and after write)');
+}, 'video metadata: type');
+
         </script>
     </body>
 </html>

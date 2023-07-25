@@ -12,14 +12,16 @@
 <script src="../../mediacapture-streams/permission-helper.js"></script>
 <script>
 async function queryReceiverStats(pc) {
-  const inboundStats = [];
-  await Promise.all(pc.getReceivers().map(async receiver => {
+  const inboundStats =
+    await Promise.all(pc.getReceivers().map(async receiver => {
     const receiverStats = await receiver.getStats();
+    let inboundStat;
     receiverStats.forEach(stat => {
       if (stat.type === 'inbound-rtp') {
-        inboundStats.push(stat);
+        inboundStat = stat;
       }
     });
+    return inboundStat;
   }));
   return inboundStats.map(s => s.framesDecoded);
 }

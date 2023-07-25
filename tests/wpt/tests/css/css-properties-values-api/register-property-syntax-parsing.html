@@ -89,6 +89,7 @@ assert_valid("<image>", "linear-gradient(yellow, blue)");
 assert_valid("<url>", "url(a)");
 
 assert_valid("<color>+", "yellow blue");
+assert_valid("<color>+", "yellow blue ");
 assert_valid("<color>+ | <color>", "yellow blue");
 assert_valid("<color> | <color>+", "yellow blue");
 assert_valid("<color># | <color>", "yellow, blue");
@@ -108,6 +109,7 @@ assert_valid("<transform-list> | <transform-function># ", "scale(2) rotate(90deg
 assert_valid("<transform-function># | <transform-list>", "scale(2) rotate(90deg)");
 assert_valid("<transform-list> | <transform-function># ", "scale(2), rotate(90deg)");
 assert_valid("<transform-function># | <transform-list>", "scale(2), rotate(90deg)");
+assert_valid("<transform-list>", "scale(2) rotate(90deg) ");
 assert_valid("<integer>+ | <percentage>+ | <length>+ ", "1");
 assert_valid("<integer>+ | <percentage>+ | <length>+ ", "1 1");
 assert_valid("<integer>+ | <percentage>+ | <length>+ ", "1%");
@@ -139,6 +141,7 @@ assert_valid("\\1F914 hmm", "🤔hmm");
 assert_valid("\\1F914\\1F914", "🤔🤔");
 
 // Invalid syntax
+assert_invalid("<color>#", "yellow blue");
 assert_invalid("banana,nya", "banana");
 assert_invalid("<\\6c ength>", "10px");
 assert_invalid("<banana>", "banana");
@@ -156,6 +159,8 @@ assert_invalid("<length>##", "10px");
 assert_invalid("<length>+#", "10px");
 assert_invalid("<length>#+", "10px");
 assert_invalid("<length> | *", "10px");
+assert_invalid("<length>+", "2px,7px,calc(8px)");
+assert_invalid("<length>#", "2px 7px calc(8px)");
 assert_invalid("*|banana", "banana");
 assert_invalid("|banana", "banana");
 assert_invalid("*+", "banana");

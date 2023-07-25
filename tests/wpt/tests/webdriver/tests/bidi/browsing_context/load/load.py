@@ -35,7 +35,9 @@ async def test_not_unsubscribed(bidi_session, inline, top_context):
     remove_listener()
 
 
-async def test_subscribe(bidi_session, subscribe_events, inline, new_tab, wait_for_event):
+async def test_subscribe(
+    bidi_session, subscribe_events, inline, new_tab, wait_for_event
+):
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
     on_entry = wait_for_event(CONTEXT_LOAD_EVENT)
@@ -46,25 +48,35 @@ async def test_subscribe(bidi_session, subscribe_events, inline, new_tab, wait_f
     assert_navigation_info(event, {"context": new_tab["context"], "url": url})
 
 
-async def test_timestamp(bidi_session, current_time, subscribe_events, inline, new_tab, wait_for_event):
+async def test_timestamp(
+    bidi_session, current_time, subscribe_events, inline, new_tab, wait_for_event
+):
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
     time_start = await current_time()
 
     on_entry = wait_for_event(CONTEXT_LOAD_EVENT)
     url = inline("<div>foo</div>")
-    await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url)
+    result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url
+    )
     event = await on_entry
 
     time_end = await current_time()
 
     assert_navigation_info(
         event,
-        {"context": new_tab["context"], "timestamp": int_interval(time_start, time_end)}
+        {
+            "context": new_tab["context"],
+            "navigation": result["navigation"],
+            "timestamp": int_interval(time_start, time_end),
+        },
     )
 
 
-async def test_iframe(bidi_session, subscribe_events, new_tab, test_page, test_page_same_origin_frame):
+async def test_iframe(
+    bidi_session, subscribe_events, new_tab, test_page, test_page_same_origin_frame
+):
     events = []
 
     async def on_event(method, data):
@@ -73,7 +85,7 @@ async def test_iframe(bidi_session, subscribe_events, new_tab, test_page, test_p
     remove_listener = bidi_session.add_event_listener(CONTEXT_LOAD_EVENT, on_event)
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
-    await bidi_session.browsing_context.navigate(
+    result = await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=test_page_same_origin_frame
     )
 
@@ -91,11 +103,20 @@ async def test_iframe(bidi_session, subscribe_events, new_tab, test_page, test_p
     child_info = root_info["children"][0]
 
     # First load event comes from iframe
-    assert_navigation_info(events[0], {"context": child_info["context"], "url": test_page})
+    assert_navigation_info(
+        events[0], {"context": child_info["context"], "url": test_page}
+    )
     assert_navigation_info(
         events[1],
-        {"context": root_info["context"], "url": test_page_same_origin_frame}
+        {
+            "context": root_info["context"],
+            "navigation": result["navigation"],
+            "url": test_page_same_origin_frame,
+        },
     )
+
+    assert events[0]["navigation"] is not None
+    assert events[0]["navigation"] != events[1]["navigation"]
 
     remove_listener()
 
@@ -108,10 +129,15 @@ async def test_new_context(bidi_session, subscribe_events, wait_for_event, type_
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
     event = await on_entry
 
-    assert_navigation_info(event, {"context": new_context["context"], "url": "about:blank"})
+    assert_navigation_info(
+        event, {"context": new_context["context"], "url": "about:blank"}
+    )
+    assert event["navigation"] is not None
 
 
-async def test_document_write(bidi_session, subscribe_events, top_context, wait_for_event):
+async def test_document_write(
+    bidi_session, subscribe_events, top_context, wait_for_event
+):
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
     on_entry = wait_for_event(CONTEXT_LOAD_EVENT)
@@ -119,19 +145,31 @@ async def test_document_write(bidi_session, subscribe_events, top_context, wait_
     await bidi_session.script.evaluate(
         expression="""document.open(); document.write("<h1>Replaced</h1>"); document.close();""",
         target=ContextTarget(top_context["context"]),
-        await_promise=False
+        await_promise=False,
     )
 
     event = await on_entry
-    assert_navigation_info(event, {"context": top_context["context"]})
+
+    assert_navigation_info(
+        event,
+        {"context": top_context["context"]},
+    )
+    assert event["navigation"] is not None
 
 
-async def test_page_with_base_tag(bidi_session, subscribe_events, inline, new_tab, wait_for_event):
+async def test_page_with_base_tag(
+    bidi_session, subscribe_events, inline, new_tab, wait_for_event
+):
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
     on_entry = wait_for_event(CONTEXT_LOAD_EVENT)
     url = inline("""<base href="/relative-path">""")
-    await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url)
+    result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url
+    )
     event = await on_entry
 
-    assert_navigation_info(event, {"context": new_tab["context"], "url": url})
+    assert_navigation_info(
+        event,
+        {"context": new_tab["context"], "navigation": result["navigation"], "url": url},
+    )

@@ -12,6 +12,9 @@
 
 cloningTest('large typed array', [
   { type: 'buffer', size: wrapThreshold, seed: 1 },
+  // This test uses non-random data to test that compression doesn't
+  // break functionality.
+  { type: 'buffer', size: wrapThreshold, seed: 0 },
 ])
 
 cloningTestWithKeyGenerator('blob with large typed array', [

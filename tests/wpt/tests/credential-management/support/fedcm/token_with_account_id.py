@@ -13,6 +13,10 @@ def main(request, response):
     return (534, [], "Should not have Referer")
   if not request.headers.get(b"Origin"):
     return (535, [], "Missing Origin")
+  if request.headers.get(b"Sec-Fetch-Mode") != b"no-cors":
+    return (539, [], "Wrong Sec-Fetch-Mode header")
+  if request.headers.get(b"Sec-Fetch-Site") != b"none":
+    return (540, [], "Wrong Sec-Fetch-Site header")
 
   if not request.POST.get(b"client_id"):
     return (536, [], "Missing 'client_id' POST parameter")

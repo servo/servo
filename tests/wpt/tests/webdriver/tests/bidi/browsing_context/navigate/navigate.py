@@ -3,6 +3,7 @@ import asyncio
 import pytest
 
 from . import navigate_and_assert
+from ... import any_string
 
 pytestmark = pytest.mark.asyncio
 
@@ -13,7 +14,7 @@ async def test_payload(bidi_session, inline, new_tab):
         context=new_tab["context"], url=url
     )
 
-    assert "navigation" in result
+    any_string(result["navigation"])
     assert result["url"] == url
 
 
@@ -68,6 +69,10 @@ async def test_interactive_simultaneous_navigation(bidi_session, inline, new_tab
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
     assert contexts[0]["children"][0]["url"] == frame1_url
     assert contexts[0]["children"][1]["url"] == frame2_url
+
+    any_string(frame1_result["navigation"])
+    any_string(frame2_result["navigation"])
+    assert frame1_result["navigation"] != frame2_result["navigation"]
 
 
 async def test_relative_url(bidi_session, new_tab, url):

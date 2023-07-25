@@ -87,6 +87,7 @@ _ujson_dump_dist_kwargs: Dict[str, Any] = {
     'sort_keys': True,
     'indent': 1,
     'reject_bytes': True,
+    'escape_forward_slashes': False,
 }
 
 

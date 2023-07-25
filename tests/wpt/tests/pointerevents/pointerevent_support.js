@@ -93,6 +93,12 @@ function check_PointerEvent(event, testNamePrefix) {
     let expected = (event.type != 'pointerenter' && event.type != 'pointerleave');
     assert_equals(event.bubbles, expected);
   }, pointerTestName + ".bubbles value is valid");
+  test(function () {
+    let cancelable_events = [
+      'pointerdown', 'pointermove', 'pointerup', 'pointerover', 'pointerout'
+    ];
+    assert_equals(event.cancelable, cancelable_events.includes(event.type));
+  }, pointerTestName + ".cancelable value is valid");
 
   // Check the pressure value.
   // https://w3c.github.io/pointerevents/#dom-pointerevent-pressure

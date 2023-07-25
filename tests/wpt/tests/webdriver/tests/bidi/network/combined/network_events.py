@@ -12,6 +12,53 @@ PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
 
 
 @pytest.mark.asyncio
+async def test_same_navigation_id(
+    bidi_session, top_context, wait_for_event, url, setup_network_test
+):
+    network_events = await setup_network_test(
+        events=[
+            "network.beforeRequestSent",
+            "network.responseStarted",
+            "network.responseCompleted",
+        ],
+        contexts=[top_context["context"]],
+    )
+
+    html_url = url(PAGE_EMPTY_HTML)
+    on_response_completed = wait_for_event("network.responseCompleted")
+    result = await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=html_url,
+        wait="complete",
+    )
+    await on_response_completed
+
+    assert len(network_events["network.beforeRequestSent"]) == 1
+    assert len(network_events["network.responseStarted"]) == 1
+    assert len(network_events["network.responseCompleted"]) == 1
+    expected_request = {"method": "GET", "url": html_url}
+    expected_response = {"url": html_url}
+    assert_before_request_sent_event(
+        network_events["network.beforeRequestSent"][0],
+        expected_request=expected_request,
+        context=top_context["context"],
+        navigation=result["navigation"],
+    )
+    assert_response_event(
+        network_events["network.responseStarted"][0],
+        expected_response=expected_response,
+        context=top_context["context"],
+        navigation=result["navigation"],
+    )
+    assert_response_event(
+        network_events["network.responseCompleted"][0],
+        expected_response=expected_response,
+        context=top_context["context"],
+        navigation=result["navigation"],
+    )
+
+
+@pytest.mark.asyncio
 async def test_same_request_id(wait_for_event, url, setup_network_test, fetch):
     network_events = await setup_network_test(
         events=[

@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>RTCRtpScriptTransformer.sendKeyFrameRequest tests</title>
+    <meta name='timeout' content='long'>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src=/resources/testdriver.js></script>
+    <script src=/resources/testdriver-vendor.js></script>
+    <script src='../mediacapture-streams/permission-helper.js'></script>
+  </head>
+  <body>
+    <video id='video1' autoplay></video>
+    <video id='video2' autoplay></video>
+    <script src ='routines.js'></script>
+    <script>
+
+const sendKeyFrameRequest = (port, opts) => postMethod(port, 'sendKeyFrameRequest', opts);
+const waitForFrame = port => postMethod(port, 'waitForFrame');
+
+promise_test(async (test) => {
+  const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-sendKeyFrameRequest.js', {video: true});
+  assert_equals(await waitForFrame(receiver.transform.port), 'got frame');
+
+  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'success');
+
+  assert_equals(await sendKeyFrameRequest(sender.transform.port), 'failure: InvalidStateError');
+
+  video1.srcObject = new MediaStream([receiver.track]);
+  await video1.play();
+}, 'sendKeyFrameRequest resolves for video receiver, and throws for video sender');
+
+promise_test(async (test) => {
+  const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-sendKeyFrameRequest.js', {audio: true});
+  assert_equals(await waitForFrame(receiver.transform.port), 'got frame');
+
+  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'failure: InvalidStateError');
+
+  assert_equals(await waitForFrame(sender.transform.port), 'got frame');
+
+  assert_equals(await sendKeyFrameRequest(sender.transform.port), 'failure: InvalidStateError');
+
+  video1.srcObject = new MediaStream([receiver.track]);
+  await video1.play();
+}, 'sendKeyFrameRequest throws for audio sender/receiver');
+
+promise_test(async (test) => {
+  const [senderTransform] = await createTransforms('script-transform-sendKeyFrameRequest.js');
+  assert_equals(await sendKeyFrameRequest(senderTransform.port), 'failure: InvalidStateError');
+}, 'sendKeyFrameRequest throws for unused transforms');
+
+promise_test(async (test) => {
+  const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-sendKeyFrameRequest.js', {video: true});
+  assert_equals(await waitForFrame(receiver.transform.port), 'got frame');
+
+  const receiverTransform = receiver.transform;
+  assert_equals(await sendKeyFrameRequest(receiverTransform.port), 'success');
+
+  // TODO: Spec currently says that this will immediately cause the transformer
+  // to stop working. This may change.
+  receiver.transform = null;
+
+  assert_equals(await sendKeyFrameRequest(receiverTransform.port), 'failure: InvalidStateError');
+}, 'sendKeyFrameRequest throws for unset transforms');
+
+promise_test(async (test) => {
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-sendKeyFrameRequest.js', {video: true});
+  assert_equals(await waitForFrame(receiver.transform.port), 'got frame');
+
+  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'success');
+
+  senderPc.getTransceivers()[0].direction = 'inactive';
+  await senderPc.setLocalDescription();
+  await receiverPc.setRemoteDescription(senderPc.localDescription);
+  await receiverPc.setLocalDescription();
+  await senderPc.setRemoteDescription(receiverPc.localDescription);
+
+  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'failure: InvalidStateError');
+
+  senderPc.getTransceivers()[0].direction = 'sendonly';
+  await senderPc.setLocalDescription();
+  await receiverPc.setRemoteDescription(senderPc.localDescription);
+  await receiverPc.setLocalDescription();
+  await senderPc.setRemoteDescription(receiverPc.localDescription);
+
+  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'success');
+}, 'sendKeyFrameRequest rejects when the receiver is negotiated inactive, and resumes succeeding when negotiated back to active');
+
+promise_test(async (test) => {
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-sendKeyFrameRequest.js', {video: true});
+  assert_equals(await waitForFrame(receiver.transform.port), 'got frame');
+
+  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'success');
+
+  receiverPc.getTransceivers()[0].stop();
+
+  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'failure: InvalidStateError');
+}, 'sendKeyFrameRequest rejects when the receiver is stopped');
+
+// Testing that sendKeyFrameRequest actually results in the sending of keyframe
+// requests is effectively impossible, because there is no API to expose the
+// reception of a keyframe request, keyframes are sent regularly anyway, and
+// the spec allows the receiver to ignore these calls if sending a keyframe
+// request is 'not deemed appropriate'! sendKeyFrameRequest is at most a
+// suggestion.
+
+    </script>
+  </body>
+</html>

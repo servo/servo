@@ -46,5 +46,28 @@ test_self_script_block(t => {
     document.body.appendChild(script);
 }, new URL("resources/busy.js?import", location.href).href, "execute-script");
 
+const busy_wait_str = `  (function() {
+    const deadline = performance.now() + 365;
+    while (performance.now() < deadline) {}
+  })()
+`;
+
+const data_url = `data:text/javascript;charset=utf-8,${encodeURIComponent(busy_wait_str)}`;
+
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.src = data_url;
+    document.body.appendChild(script);
+}, "data:", "classic-script");
+
+const blob_url = URL.createObjectURL(new Blob([busy_wait_str], {type: "text/javascript"}));
+
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.src = blob_url;
+    document.body.appendChild(script);
+}, blob_url, "classic-script");
+
+
 </script>
 </body>

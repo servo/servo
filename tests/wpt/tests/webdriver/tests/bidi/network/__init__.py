@@ -10,8 +10,13 @@ from .. import (
 )
 
 
-def assert_cookies(request_cookies, expected_cookies):
-    assert len(request_cookies) == len(expected_cookies)
+def assert_bytes_value(bytes_value):
+    assert bytes_value["type"] in ["string", "base64"]
+    any_string(bytes_value["value"])
+
+
+def assert_cookies(event_cookies, expected_cookies):
+    assert len(event_cookies) == len(expected_cookies)
 
     # Simple helper to find a cookie by key and value only.
     def match_cookie(cookie, expected):
@@ -22,15 +27,15 @@ def assert_cookies(request_cookies, expected_cookies):
         return True
 
     for cookie in expected_cookies:
-        assert next(c for c in request_cookies if match_cookie(c, cookie)) is not None
+        assert next(c for c in event_cookies if match_cookie(c, cookie)) is not None
 
 
-def assert_headers(request_headers, expected_headers):
+def assert_headers(event_headers, expected_headers):
     # The browser sets request headers, only assert that the expected headers
     # are included in the request's headers.
-    assert len(request_headers) >= len(expected_headers)
+    assert len(event_headers) >= len(expected_headers)
     for header in expected_headers:
-        assert next(h for h in request_headers if header == h) is not None
+        assert next(h for h in event_headers if header == h) is not None
 
 
 def assert_timing_info(timing_info):
@@ -71,6 +76,9 @@ def assert_request_data(request_data, expected_request):
 
     assert_timing_info(request_data["timings"])
 
+    for cookie in request_data["cookies"]:
+        assert_bytes_value(cookie["value"])
+
     if "cookies" in expected_request:
         assert_cookies(request_data["cookies"], expected_request["cookies"])
         # While recursive_compare tolerates missing entries in dict, arrays
@@ -78,6 +86,9 @@ def assert_request_data(request_data, expected_request):
         # We don't want to assert all headers and cookies, so we do a custom
         # assert for each and then delete it before using recursive_compare.
         del expected_request["cookies"]
+
+    for header in request_data["headers"]:
+        assert_bytes_value(header["value"])
 
     if "headers" in expected_request:
         assert_headers(request_data["headers"], expected_request["headers"])
@@ -90,6 +101,7 @@ def assert_request_data(request_data, expected_request):
 def assert_base_parameters(
     event,
     context=None,
+    navigation=None,
     redirect_count=None,
     expected_request=None,
 ):
@@ -107,6 +119,9 @@ def assert_base_parameters(
     if context is not None:
         assert event["context"] == context
 
+    if navigation is not None:
+        assert event["navigation"] == navigation
+
     if redirect_count is not None:
         assert event["redirectCount"] == redirect_count
 
@@ -118,6 +133,7 @@ def assert_base_parameters(
 def assert_before_request_sent_event(
     event,
     context=None,
+    navigation=None,
     redirect_count=None,
     expected_request=None,
 ):
@@ -129,6 +145,7 @@ def assert_before_request_sent_event(
     assert_base_parameters(
         event,
         context=context,
+        navigation=navigation,
         redirect_count=redirect_count,
         expected_request=expected_request,
     )
@@ -152,6 +169,12 @@ def assert_response_data(response_data, expected_response):
         response_data,
     )
 
+    for header in response_data["headers"]:
+        assert_bytes_value(header["value"])
+
+    for header in response_data["headers"]:
+        assert_bytes_value(header["value"])
+
     if "headers" in expected_response:
         assert_headers(response_data["headers"], expected_response["headers"])
         # Remove headers before using recursive_compare, see comment for cookies
@@ -164,6 +187,7 @@ def assert_response_data(response_data, expected_response):
 def assert_response_event(
     event,
     context=None,
+    navigation=None,
     redirect_count=None,
     expected_request=None,
     expected_response=None,
@@ -177,6 +201,7 @@ def assert_response_event(
     assert_base_parameters(
         event,
         context=context,
+        navigation=navigation,
         redirect_count=redirect_count,
         expected_request=expected_request,
     )
