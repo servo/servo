@@ -50,7 +50,7 @@ jobs:
           script: |
             // Never skip workflow runs for pull requests, merge groups, or manually triggered
             // workfows / try jobs, which might need to actually run / retry WPT tests.
-            if (!['pull_request', 'merge_group', 'workflow_run', 'workflow_call'].includes(context.eventName)) {
+            if (!['issue_comment', 'merge_group', 'pull_request', 'workflow_run', 'workflow_call'].includes(context.eventName)) {
               // Skip the run if an identical run already exists. This helps to avoid running
               // the workflow over and over again for the same commit hash.
               if ((await github.rest.actions.listWorkflowRuns({
