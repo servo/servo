@@ -927,7 +927,6 @@ class CommandBase(object):
         libsimpleservo=False,
         debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, without_wgl=False,
-        with_layout_2020=False, with_layout_2013=False,
         **_kwargs
     ):
         env = env or self.build_env()
