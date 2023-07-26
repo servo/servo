@@ -39,12 +39,12 @@ pub struct App {
 struct Minibrowser {
     context: egui_glow::EguiGlow,
     location: RefCell<String>,
+    toolbar_height: Cell<f32>,
 }
 
 impl Minibrowser {
-    fn update(&mut self, window: &winit::window::Window) -> f32 {
-        let Self { context, location } = self;
-        let mut toolbar_height= 0.0;
+    fn update(&mut self, window: &winit::window::Window) {
+        let Self { context, location, toolbar_height } = self;
         let _duration = context.run(window, |ctx| {
             TopBottomPanel::top("toolbar").show(ctx, |ui| {
                 ui.allocate_ui_with_layout(
@@ -63,11 +63,9 @@ impl Minibrowser {
                 );
             });
 
-            toolbar_height = ctx.used_rect().height();
+            toolbar_height.set(ctx.used_rect().height());
         });
         context.paint(window);
-
-        toolbar_height
     }
 }
 
@@ -122,11 +120,13 @@ impl App {
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         let mut minibrowser = window.winit_window().map(|_| Minibrowser {
             context: egui_glow::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
-            location: RefCell::new(ServoUrl::into_string(get_default_url()))
+            location: RefCell::new(ServoUrl::into_string(get_default_url())),
+            toolbar_height: 0f32.into(),
         });
 
         if let Some(minibrowser) = minibrowser.as_mut() {
-            window.set_toolbar_size(minibrowser.update(window.winit_window().unwrap()));
+            minibrowser.update(window.winit_window().unwrap());
+            window.set_toolbar_size(minibrowser.toolbar_height.get());
         }
 
         let ev_waker = events_loop.create_event_loop_waker();
