@@ -19,7 +19,7 @@ use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::Servo;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, RefMut};
 use std::collections::HashMap;
 use std::env;
 
@@ -34,6 +34,7 @@ pub struct App {
     event_queue: RefCell<Vec<EmbedderEvent>>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
+    minibrowser: Option<RefCell<Minibrowser>>,
 }
 
 struct Minibrowser {
@@ -98,33 +99,36 @@ impl App {
             servo: None,
             suspended: Cell::new(false),
             windows: HashMap::new(),
+            minibrowser: None,
         };
 
-        // Make sure the gl context is made current.
-        let webrender_surfman = window.webrender_surfman();
-        let webrender_gl = match webrender_surfman.connection().gl_api() {
-            GLApi::GL => unsafe { gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s)) },
-            GLApi::GLES => unsafe {
-                gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
-            },
-        };
-        let gl = unsafe {
-            glow::Context::from_loader_function(|s| {
-                webrender_surfman.get_proc_address(s)
-            })
-        };
-        webrender_surfman.make_gl_context_current().unwrap();
-        debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
+        if window.winit_window().is_some() {
+            // Make sure the gl context is made current.
+            let webrender_surfman = window.webrender_surfman();
+            let webrender_gl = match webrender_surfman.connection().gl_api() {
+                GLApi::GL => unsafe { gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s)) },
+                GLApi::GLES => unsafe {
+                    gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
+                },
+            };
+            let gl = unsafe {
+                glow::Context::from_loader_function(|s| {
+                    webrender_surfman.get_proc_address(s)
+                })
+            };
+            webrender_surfman.make_gl_context_current().unwrap();
+            debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
-        // Set up egui context for minibrowser ui
-        // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
-        let mut minibrowser = window.winit_window().map(|_| Minibrowser {
-            context: egui_glow::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
-            location: RefCell::new(ServoUrl::into_string(get_default_url())),
-            toolbar_height: 0f32.into(),
-        });
+            // Set up egui context for minibrowser ui
+            // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
+            app.minibrowser = Some(Minibrowser {
+                context: egui_glow::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
+                location: RefCell::new(ServoUrl::into_string(get_default_url())),
+                toolbar_height: 0f32.into(),
+            }.into());
+        }
 
-        if let Some(minibrowser) = minibrowser.as_mut() {
+        if let Some(mut minibrowser) = app.minibrowser() {
             minibrowser.update(window.winit_window().unwrap());
             window.set_toolbar_size(minibrowser.toolbar_height.get());
         }
@@ -183,7 +187,7 @@ impl App {
             // Handle the event
             let response = match e {
                 winit::event::Event::WindowEvent { ref event, .. } => {
-                    if let Some(minibrowser) = minibrowser.as_mut() {
+                    if let Some(mut minibrowser) = app.minibrowser() {
                         minibrowser.context.on_event(&event)
                     } else {
                         EventResponse { consumed: false, repaint: false }
@@ -197,7 +201,7 @@ impl App {
                 app.queue_embedder_events_for_winit_event(e);
             }
             if response.repaint {
-                minibrowser.as_mut().unwrap().update(window.winit_window().unwrap());
+                app.minibrowser().unwrap().update(window.winit_window().unwrap());
             }
 
             let animating = app.is_animating();
@@ -319,6 +323,10 @@ impl App {
             self.servo.as_mut().unwrap().repaint_synchronously();
         }
         false
+    }
+
+    fn minibrowser(&self) -> Option<RefMut<Minibrowser>> {
+        self.minibrowser.as_ref().map(|x| x.borrow_mut())
     }
 }
 
