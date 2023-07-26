@@ -654,7 +654,11 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
 
             // Introduce clearance if necessary.
             clearance = sequential_layout_state
-                .calculate_clearance_and_adjoin_margin(style, &block_start_margin);
+                .calculate_clearance(ClearSide::from_style(style), &block_start_margin);
+            if clearance.is_some() {
+                sequential_layout_state.collapse_margins();
+            }
+            sequential_layout_state.adjoin_assign(&block_start_margin);
             if !start_margin_can_collapse_with_children {
                 sequential_layout_state.collapse_margins();
             }
