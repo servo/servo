@@ -981,22 +981,6 @@ impl SequentialLayoutState {
         Some(clear_position - position_with_zero_clearance)
     }
 
-    /// Helper function that computes the clearance and adds `block_start_margin` accordingly.
-    /// If there is no clearance, `block_start_margin` can just be adjoined to `current_margin`.
-    /// But clearance prevents them from collapsing, so `collapse_margins()` is called.
-    pub(crate) fn calculate_clearance_and_adjoin_margin(
-        &mut self,
-        style: &Arc<ComputedValues>,
-        block_start_margin: &CollapsedMargin,
-    ) -> Option<Length> {
-        let clearance = self.calculate_clearance(ClearSide::from_style(style), &block_start_margin);
-        if clearance.is_some() {
-            self.collapse_margins();
-        }
-        self.adjoin_assign(&block_start_margin);
-        clearance
-    }
-
     /// Adds a new adjoining margin.
     pub(crate) fn adjoin_assign(&mut self, margin: &CollapsedMargin) {
         self.current_margin.adjoin_assign(margin)
