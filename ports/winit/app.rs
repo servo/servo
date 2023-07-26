@@ -36,6 +36,41 @@ pub struct App {
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
 }
 
+struct Minibrowser {
+    context: egui_glow::EguiGlow,
+    location: RefCell<String>,
+}
+
+impl Minibrowser {
+    fn update(&mut self, window: &winit::window::Window) -> f32 {
+        let Self { context, location } = self;
+        let mut toolbar_height= 0.0;
+        let _duration = context.run(window, |ctx| {
+            TopBottomPanel::top("toolbar").show(ctx, |ui| {
+                ui.allocate_ui_with_layout(
+                    ui.available_size(),
+                    egui::Layout::right_to_left(egui::Align::Center),
+                    |ui| {
+                        if ui.button("go").clicked() {
+                            // TODO go
+                            dbg!("go clicked");
+                        }
+                        ui.add_sized(
+                            ui.available_size(),
+                            egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                        );
+                    },
+                );
+            });
+
+            toolbar_height = ctx.used_rect().height();
+        });
+        context.paint(window);
+
+        toolbar_height
+    }
+}
+
 impl App {
     pub fn run(
         no_native_titlebar: bool,
@@ -66,41 +101,6 @@ impl App {
             suspended: Cell::new(false),
             windows: HashMap::new(),
         };
-
-        struct Minibrowser {
-            context: egui_glow::EguiGlow,
-            location: RefCell<String>,
-        }
-
-        impl Minibrowser {
-            fn update(&mut self, window: &winit::window::Window) -> f32 {
-                let Self { context, location } = self;
-                let mut toolbar_height= 0.0;
-                let _duration = context.run(window, |ctx| {
-                    TopBottomPanel::top("toolbar").show(ctx, |ui| {
-                        ui.allocate_ui_with_layout(
-                            ui.available_size(),
-                            egui::Layout::right_to_left(egui::Align::Center),
-                            |ui| {
-                                if ui.button("go").clicked() {
-                                    // TODO go
-                                    dbg!("go clicked");
-                                }
-                                ui.add_sized(
-                                    ui.available_size(),
-                                    egui::TextEdit::singleline(&mut *location.borrow_mut()),
-                                );
-                            },
-                        );
-                    });
-
-                    toolbar_height = ctx.used_rect().height();
-                });
-                context.paint(window);
-
-                toolbar_height
-            }
-        }
 
         // Make sure the gl context is made current.
         let webrender_surfman = window.webrender_surfman();
