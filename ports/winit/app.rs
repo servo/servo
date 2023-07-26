@@ -39,13 +39,14 @@ pub struct App {
 
 struct Minibrowser {
     context: egui_glow::EguiGlow,
+    event_queue: RefCell<Vec<MinibrowserEvent>>,
     location: RefCell<String>,
     toolbar_height: Cell<f32>,
 }
 
 impl Minibrowser {
     fn update(&mut self, window: &winit::window::Window) {
-        let Self { context, location, toolbar_height } = self;
+        let Self { context, event_queue, location, toolbar_height } = self;
         let _duration = context.run(window, |ctx| {
             TopBottomPanel::top("toolbar").show(ctx, |ui| {
                 ui.allocate_ui_with_layout(
@@ -53,8 +54,7 @@ impl Minibrowser {
                     egui::Layout::right_to_left(egui::Align::Center),
                     |ui| {
                         if ui.button("go").clicked() {
-                            // TODO go
-                            dbg!("go clicked");
+                            event_queue.borrow_mut().push(MinibrowserEvent::Go);
                         }
                         ui.add_sized(
                             ui.available_size(),
@@ -68,6 +68,10 @@ impl Minibrowser {
         });
         context.paint(window);
     }
+}
+
+enum MinibrowserEvent {
+    Go,
 }
 
 impl App {
@@ -123,6 +127,7 @@ impl App {
             // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
             app.minibrowser = Some(Minibrowser {
                 context: egui_glow::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
+                event_queue: RefCell::new(vec![]),
                 location: RefCell::new(ServoUrl::into_string(get_default_url())),
                 toolbar_height: 0f32.into(),
             }.into());
@@ -271,6 +276,26 @@ impl App {
         }
     }
 
+    /// Takes any outstanding events from the [Minibrowser], converting them to [EmbedderEvent] and
+    /// routing those to the App event queue.
+    fn queue_embedder_events_for_minibrowser_events(&self) {
+        if let Some(minibrowser) = self.minibrowser() {
+            for event in minibrowser.event_queue.borrow_mut().drain(..) {
+                match event {
+                    MinibrowserEvent::Go => {
+                        let browser_id = self.browser.borrow().browser_id().unwrap();
+                        let location = minibrowser.location.borrow();
+                        let Ok(url) = ServoUrl::parse(&location) else {
+                            warn!("failed to parse location");
+                            break;
+                        };
+                        self.event_queue.borrow_mut().push(EmbedderEvent::LoadUrl(browser_id, url));
+                    },
+                }
+            }
+        }
+    }
+
     /// Pumps events and messages between the embedder and Servo, where embedder events flow
     /// towards Servo and embedder messages flow away from Servo, and also runs the compositor.
     ///
@@ -279,14 +304,17 @@ impl App {
     /// collect embedder messages from the various Servo components, then take them out of the
     /// Servo interface so that the Browser can handle them.
     fn handle_events(&mut self) -> bool {
-        let mut browser = self.browser.borrow_mut();
-
         // FIXME:
         // As of now, we support only one browser (self.browser)
         // but have multiple windows (dom.webxr.glwindow). We forward
         // the events of all the windows combined to that single
         // browser instance. Pressing the "a" key on the glwindow
         // will send a key event to the servo window.
+
+        // Consume and handle any events from the Minibrowser.
+        self.queue_embedder_events_for_minibrowser_events();
+
+        let mut browser = self.browser.borrow_mut();
 
         // Take any outstanding embedder events from the App and its Windows.
         let mut embedder_events = self.get_events();

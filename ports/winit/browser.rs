@@ -72,6 +72,10 @@ where
         }
     }
 
+    pub fn browser_id(&self) -> Option<BrowserId> {
+        self.browser_id
+    }
+
     pub fn get_events(&mut self) -> Vec<EmbedderEvent> {
         std::mem::take(&mut self.event_queue)
     }
