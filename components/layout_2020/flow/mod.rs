@@ -7,7 +7,7 @@
 use self::float::PlacementAmongFloats;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::flow::float::{ClearSide, ContainingBlockPositionInfo, FloatBox, SequentialLayoutState};
+use crate::flow::float::{ContainingBlockPositionInfo, FloatBox, SequentialLayoutState};
 use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
@@ -222,7 +222,7 @@ impl BlockFormattingContext {
         // (https://drafts.csswg.org/css2/#root-height), we implement this by imagining there is
         // an element with `clear: both` after the actual contents.
         let clearance = sequential_layout_state.and_then(|sequential_layout_state| {
-            sequential_layout_state.calculate_clearance(ClearSide::Both, &CollapsedMargin::zero())
+            sequential_layout_state.calculate_clearance(Clear::Both, &CollapsedMargin::zero())
         });
 
         IndependentLayout {
@@ -654,7 +654,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
 
             // Introduce clearance if necessary.
             clearance = sequential_layout_state
-                .calculate_clearance(ClearSide::from_style(style), &block_start_margin);
+                .calculate_clearance(style.get_box().clear, &block_start_margin);
             if clearance.is_some() {
                 sequential_layout_state.collapse_margins();
             }
@@ -877,7 +877,7 @@ impl NonReplacedFormattingContext {
 
         let block_start_margin = CollapsedMargin::new(margin.block_start);
         let clearance = sequential_layout_state
-            .calculate_clearance(ClearSide::from_style(&self.style), &block_start_margin);
+            .calculate_clearance(self.style.get_box().clear, &block_start_margin);
 
         let layout = self.layout(
             layout_context,
@@ -1037,8 +1037,8 @@ fn layout_in_flow_replaced_block_level<'a>(
     let mut adjustment_from_floats = Vec2::zero();
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
         let block_start_margin = CollapsedMargin::new(margin.block_start);
-        let clearance = sequential_layout_state
-            .calculate_clearance(ClearSide::from_style(style), &block_start_margin);
+        let clearance =
+            sequential_layout_state.calculate_clearance(style.get_box().clear, &block_start_margin);
 
         // We calculate a hypothetical value for `bfc_relative_block_position`,
         // assuming that there was no adjustment from floats. The real value will

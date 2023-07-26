@@ -8,8 +8,8 @@
 extern crate lazy_static;
 
 use euclid::num::Zero;
-use layout_2020::flow::float::{ClearSide, FloatBand, FloatBandNode, FloatBandTree, FloatContext};
 use layout_2020::flow::float::{ContainingBlockPositionInfo, FloatSide, PlacementInfo};
+use layout_2020::flow::float::{FloatBand, FloatBandNode, FloatBandTree, FloatContext};
 use layout_2020::geom::flow_relative::{Rect, Vec2};
 use quickcheck::{Arbitrary, Gen};
 use std::f32;
@@ -18,7 +18,7 @@ use std::panic::{self, PanicInfo};
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
 use std::u32;
-use style::values::computed::Length;
+use style::values::computed::{Clear, Length};
 
 lazy_static! {
     static ref PANIC_HOOK_MUTEX: Mutex<()> = Mutex::new(());
@@ -362,7 +362,7 @@ impl Arbitrary for FloatInput {
                 } else {
                     FloatSide::Right
                 },
-                clear: new_clear_side(clear),
+                clear: new_clear(clear),
             },
             ceiling,
             containing_block_info: ContainingBlockPositionInfo::new_with_inline_offsets(
@@ -383,8 +383,8 @@ impl Arbitrary for FloatInput {
             this.info.size.block = Length::new(block_size);
             shrunk = true;
         }
-        if let Some(clear_side) = (self.info.clear as u8).shrink().next() {
-            this.info.clear = new_clear_side(clear_side);
+        if let Some(clear) = (self.info.clear as u8).shrink().next() {
+            this.info.clear = new_clear(clear);
             shrunk = true;
         }
         if let Some(left) = self.containing_block_info.inline_start.px().shrink().next() {
@@ -407,12 +407,12 @@ impl Arbitrary for FloatInput {
     }
 }
 
-fn new_clear_side(value: u8) -> ClearSide {
+fn new_clear(value: u8) -> Clear {
     match value & 3 {
-        0 => ClearSide::None,
-        1 => ClearSide::Left,
-        2 => ClearSide::Right,
-        _ => ClearSide::Both,
+        0 => Clear::None,
+        1 => Clear::Left,
+        2 => Clear::Right,
+        _ => Clear::Both,
     }
 }
 
@@ -707,7 +707,7 @@ fn check_floats_rule_10(placement: &FloatPlacement) {
     }
 
     for (this_float_index, this_float) in placement.placed_floats.iter().enumerate() {
-        if this_float.info.clear == ClearSide::None {
+        if this_float.info.clear == Clear::None {
             continue;
         }
 
@@ -731,10 +731,10 @@ fn check_floats_rule_10(placement: &FloatPlacement) {
             }
 
             match this_float.info.clear {
-                ClearSide::Left => assert_ne!(other_float.info.side, FloatSide::Left),
-                ClearSide::Right => assert_ne!(other_float.info.side, FloatSide::Right),
-                ClearSide::Both => assert!(false),
-                ClearSide::None => unreachable!(),
+                Clear::Left => assert_ne!(other_float.info.side, FloatSide::Left),
+                Clear::Right => assert_ne!(other_float.info.side, FloatSide::Right),
+                Clear::Both => assert!(false),
+                Clear::None => unreachable!(),
             }
         }
     }
