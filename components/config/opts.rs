@@ -415,8 +415,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     let (app_name, args) = args.split_first().unwrap();
 
     opts.optflag("", "legacy-layout", "Use the legacy layout engine");
-    opts.optflag("c", "cpu", "CPU painting");
-    opts.optflag("g", "gpu", "GPU painting");
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optflagopt(
@@ -528,9 +526,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "Run as a content process and connect to the given pipe",
         "servo-ipc-channel.abcdefg",
     );
-    opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
-    opts.optflag("w", "webrender", "Use webrender backend");
-    opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
     opts.optopt(
         "",
         "config-dir",
@@ -539,11 +534,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     );
     opts.optflag("v", "version", "Display servo version information");
     opts.optflag("", "unminify-js", "Unminify Javascript");
-    opts.optopt("", "profiler-db-user", "Profiler database user", "");
-    opts.optopt("", "profiler-db-pass", "Profiler database password", "");
-    opts.optopt("", "profiler-db-name", "Profiler database name", "");
     opts.optflag("", "print-pwm", "Print Progressive Web Metrics");
-    opts.optopt("", "vslogger-level", "Visual Studio logger level", "Warn");
     opts.optopt(
         "",
         "local-script-source",
