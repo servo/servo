@@ -32,7 +32,6 @@ from os import path
 from subprocess import PIPE
 from xml.etree.ElementTree import XML
 
-import six
 import toml
 
 from mach_bootstrap import _get_exec_path
@@ -577,41 +576,6 @@ class CommandBase(object):
 
         env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
         env["CARGO_TARGET_DIR"] = servo.util.get_target_dir()
-
-        git_info = []
-        if os.path.isdir('.git') and is_build:
-            # Get the subject of the commit
-            git_commit_subject = subprocess.check_output([
-                'git', 'show', '-s', '--format=%s', 'HEAD'
-            ]).strip()
-
-            git_sha = None
-            # Check if it's a bundle commit
-            if git_commit_subject.startswith(b"Shallow version of commit "):
-                # This is a bundle commit
-                # Get the SHA-1 from the bundle subject: "Shallow version of commit {sha1}"
-                git_sha = git_commit_subject.split(b' ')[-1].strip()
-                # Shorten hash
-                # NOTE: Partially verifies the hash, but it will still pass if it's, e.g., a tree
-                git_sha = subprocess.check_output([
-                    'git', 'rev-parse', '--short', git_sha.decode('ascii')
-                ])
-            else:
-                # This is a regular commit
-                git_sha = subprocess.check_output([
-                    'git', 'rev-parse', '--short', 'HEAD'
-                ]).strip()
-
-            git_is_dirty = bool(subprocess.check_output([
-                'git', 'status', '--porcelain'
-            ]).strip())
-
-            git_info.append('')
-            git_info.append(six.ensure_str(git_sha))
-            if git_is_dirty:
-                git_info.append('dirty')
-
-        env['GIT_INFO'] = '-'.join(git_info)
 
         if self.config["build"]["thinlto"]:
             env['RUSTFLAGS'] += " -Z thinlto"

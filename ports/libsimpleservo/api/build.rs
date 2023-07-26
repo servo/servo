@@ -7,10 +7,23 @@ use serde_json::{self, Value};
 use std::env;
 use std::fs::File;
 use std::path::PathBuf;
+use vergen::EmitBuilder;
 
 fn main() {
     let target = env::var("TARGET").unwrap();
     let dest = PathBuf::from(&env::var("OUT_DIR").unwrap());
+
+    if let Err(error) = EmitBuilder::builder()
+        .fail_on_error()
+        .git_sha(true /* short */)
+        .emit()
+    {
+        println!(
+            "cargo:warning=Could not generate git version information: {:?}",
+            error
+        );
+        println!("cargo:rustc-env=VERGEN_GIT_SHA=nogit");
+    }
 
     // Generate GL bindings
     // For now, we only support EGL, and only on Windows and Android.
