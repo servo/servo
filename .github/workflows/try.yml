@@ -1,5 +1,8 @@
-on: issue_comment
 name: Try
+
+on:
+  issue_comment:
+    types: [created]
 
 jobs:
   parse-comment:
@@ -87,7 +90,7 @@ jobs:
     if: ${{ always() && fromJson(needs.parse-comment.outputs.configuration).try}}
     steps:
       - name: Success
-        if: ${{ !contains(join(needs.*.result, ','), 'failure') }}
+        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
         uses: actions/github-script@v6
         with:
           script: |
