@@ -44,6 +44,10 @@ struct Minibrowser {
     toolbar_height: Cell<f32>,
 }
 
+enum MinibrowserEvent {
+    Go,
+}
+
 impl Minibrowser {
     fn update(&mut self, window: &winit::window::Window) {
         let Self { context, event_queue, location, toolbar_height } = self;
@@ -68,10 +72,6 @@ impl Minibrowser {
         });
         context.paint(window);
     }
-}
-
-enum MinibrowserEvent {
-    Go,
 }
 
 impl App {
@@ -296,6 +296,15 @@ impl App {
         }
     }
 
+    /// Updated the location in toolbar if browser history state has changed.
+    fn update_location_in_toolbar(&self) {
+        if let Some(mut minibrowser) = self.minibrowser() {
+            if let Some(current_url) = self.browser.borrow().current_top_level_url() {
+                minibrowser.location = RefCell::new(ServoUrl::into_string(current_url));
+            }
+        }
+    }
+
     /// Pumps events and messages between the embedder and Servo, where embedder events flow
     /// towards Servo and embedder messages flow away from Servo, and also runs the compositor.
     ///
@@ -313,6 +322,8 @@ impl App {
 
         // Consume and handle any events from the Minibrowser.
         self.queue_embedder_events_for_minibrowser_events();
+
+        self.update_location_in_toolbar();
 
         let mut browser = self.browser.borrow_mut();
 

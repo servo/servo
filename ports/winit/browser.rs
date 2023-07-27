@@ -76,6 +76,10 @@ where
         self.browser_id
     }
 
+    pub fn current_top_level_url(&self) -> Option<ServoUrl> {
+        self.current_url.clone()
+    }
+
     pub fn get_events(&mut self) -> Vec<EmbedderEvent> {
         std::mem::take(&mut self.event_queue)
     }
