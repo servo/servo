@@ -128,8 +128,8 @@ jobs:
         if: ${{ fromJson(needs.decision.outputs.configuration).platform == 'none' }}
         run: exit 0
       - name: Mark the job as successful
-        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         run: exit 0
       - name: Mark the job as unsuccessful
-        if: contains(join(needs.*.result, ','), 'failure') || contains(join(needs.*.result, ','), 'cancelled')
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: exit 1

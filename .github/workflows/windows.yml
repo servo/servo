@@ -103,8 +103,8 @@ jobs:
     steps:
       - name: Mark the job as successful
         run: exit 0
-        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
       - name: Mark the job as unsuccessful
         run: exit 1
-        if: contains(join(needs.*.result, ','), 'failure') || contains(join(needs.*.result, ','), 'cancelled')
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
 
