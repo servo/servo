@@ -7,7 +7,6 @@ on:
 jobs:
   parse-comment:
     name: Process Comment
-    if: ${{ github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
@@ -24,6 +23,11 @@ jobs:
                   repo: context.repo.repo,
                   body
                 })
+            }
+
+            // Don't run try for non-PR comments.
+            if (!context.payload.issue.pull_request) {
+              return { try: false };
             }
 
             let tokens = context.payload.comment.body.split(/\s+/);
