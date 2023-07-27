@@ -21,10 +21,9 @@ use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::ops::Range;
 use std::{f32, mem};
-use style::computed_values::clear::T as ClearProperty;
 use style::computed_values::float::T as FloatProperty;
 use style::properties::ComputedValues;
-use style::values::computed::{CSSPixelLength, Length};
+use style::values::computed::{CSSPixelLength, Clear, Length};
 use style::values::specified::text::TextDecorationLine;
 
 /// A floating box.
@@ -243,10 +242,10 @@ impl FloatContext {
     /// don't collide with floats.
     pub(crate) fn place_object(&self, object: &PlacementInfo, ceiling: Length) -> Vec2<Length> {
         let ceiling = match object.clear {
-            ClearSide::None => ceiling,
-            ClearSide::Left => ceiling.max(self.clear_left_position),
-            ClearSide::Right => ceiling.max(self.clear_right_position),
-            ClearSide::Both => ceiling
+            Clear::None => ceiling,
+            Clear::Left => ceiling.max(self.clear_left_position),
+            Clear::Right => ceiling.max(self.clear_right_position),
+            Clear::Both => ceiling
                 .max(self.clear_left_position)
                 .max(self.clear_right_position),
         };
@@ -355,7 +354,7 @@ pub struct PlacementInfo {
     /// Whether the object is (logically) aligned to the left or right.
     pub side: FloatSide,
     /// Which side or sides to clear floats on.
-    pub clear: ClearSide,
+    pub clear: Clear,
 }
 
 /// Whether the float is left or right.
@@ -365,17 +364,6 @@ pub struct PlacementInfo {
 pub enum FloatSide {
     Left,
     Right,
-}
-
-/// Which side or sides to clear floats on.
-///
-/// See CSS 2.1 § 9.5.2: https://www.w3.org/TR/CSS2/visuren.html#flow-control
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ClearSide {
-    None = 0,
-    Left = 1,
-    Right = 2,
-    Both = 3,
 }
 
 /// Internal data structure that describes a nonoverlapping vertical region in which floats may be
@@ -402,17 +390,6 @@ impl FloatSide {
             FloatProperty::None => None,
             FloatProperty::Left => Some(FloatSide::Left),
             FloatProperty::Right => Some(FloatSide::Right),
-        }
-    }
-}
-
-impl ClearSide {
-    pub(crate) fn from_style(style: &ComputedValues) -> ClearSide {
-        match style.get_box().clear {
-            ClearProperty::None => ClearSide::None,
-            ClearProperty::Left => ClearSide::Left,
-            ClearProperty::Right => ClearSide::Right,
-            ClearProperty::Both => ClearSide::Both,
         }
     }
 }
@@ -938,10 +915,10 @@ impl SequentialLayoutState {
     /// https://www.w3.org/TR/2011/REC-CSS2-20110607/visuren.html#flow-control
     pub(crate) fn calculate_clearance(
         &self,
-        clear_side: ClearSide,
+        clear: Clear,
         block_start_margin: &CollapsedMargin,
     ) -> Option<Length> {
-        if clear_side == ClearSide::None {
+        if clear == Clear::None {
             return None;
         }
 
@@ -952,11 +929,11 @@ impl SequentialLayoutState {
 
         // Check if the hypothetical position is past the relevant floats,
         // in that case we don't need to add clearance.
-        let clear_position = match clear_side {
-            ClearSide::None => unreachable!(),
-            ClearSide::Left => self.floats.clear_left_position,
-            ClearSide::Right => self.floats.clear_right_position,
-            ClearSide::Both => self
+        let clear_position = match clear {
+            Clear::None => unreachable!(),
+            Clear::Left => self.floats.clear_left_position,
+            Clear::Right => self.floats.clear_right_position,
+            Clear::Both => self
                 .floats
                 .clear_left_position
                 .max(self.floats.clear_right_position),
@@ -1017,7 +994,7 @@ impl SequentialLayoutState {
         let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
             size: &box_fragment.content_rect.size + &pbm_sums.sum(),
             side: FloatSide::from_style(&box_fragment.style).expect("Float box wasn't floated!"),
-            clear: ClearSide::from_style(&box_fragment.style),
+            clear: box_fragment.style.get_box().clear,
         });
 
         // This is the position of the float in the float-containing block formatting context. We add the
