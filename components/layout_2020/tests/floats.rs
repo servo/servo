@@ -8,9 +8,9 @@
 extern crate lazy_static;
 
 use euclid::num::Zero;
-use layout::flow::float::{ClearSide, FloatBand, FloatBandNode, FloatBandTree, FloatContext};
-use layout::flow::float::{ContainingBlockPositionInfo, FloatSide, PlacementInfo};
-use layout::geom::flow_relative::{Rect, Vec2};
+use layout_2020::flow::float::{ClearSide, FloatBand, FloatBandNode, FloatBandTree, FloatContext};
+use layout_2020::flow::float::{ContainingBlockPositionInfo, FloatSide, PlacementInfo};
+use layout_2020::geom::flow_relative::{Rect, Vec2};
 use quickcheck::{Arbitrary, Gen};
 use std::f32;
 use std::ops::Range;

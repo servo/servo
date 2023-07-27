@@ -287,7 +287,7 @@ impl FloatContext {
     }
 
     /// Places a new float and adds it to the list. Returns the start corner of its margin box.
-    pub(crate) fn add_float(&mut self, new_float: &PlacementInfo) -> Vec2<Length> {
+    pub fn add_float(&mut self, new_float: &PlacementInfo) -> Vec2<Length> {
         // Place the float.
         let new_float_origin = self.place_object(&new_float, self.ceiling);
         let new_float_extent = match new_float.side {
@@ -349,7 +349,7 @@ impl FloatContext {
 
 /// Information needed to place an object so that it doesn't collide with existing floats.
 #[derive(Clone, Debug)]
-pub(crate) struct PlacementInfo {
+pub struct PlacementInfo {
     /// The *margin* box size of the object.
     pub size: Vec2<Length>,
     /// Whether the object is (logically) aligned to the left or right.
