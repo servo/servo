@@ -905,15 +905,24 @@ impl SequentialLayoutState {
         self.current_margin = CollapsedMargin::zero();
     }
 
-    /// Returns the amount of clearance (if any) that a block with the given `clear` value
-    /// needs to have at `current_block_position_including_margins()`.
-    /// `block_start_margin` is the top margin of the block, after collapsing (if possible)
-    /// with the margin of its contents. This must not be included in `current_margin`,
-    /// since adding clearance will prevent `current_margin` and `block_start_margin`
-    /// from collapsing together.
-    ///
-    /// https://www.w3.org/TR/2011/REC-CSS2-20110607/visuren.html#flow-control
-    pub(crate) fn calculate_clearance(
+    /// Computes the position of the block-start border edge of an element
+    /// with the provided `block_start_margin`, assuming no clearance.
+    fn position_without_clearance(&self, block_start_margin: &CollapsedMargin) -> Length {
+        // Adjoin `current_margin` and `block_start_margin` since there is no clearance.
+        self.bfc_relative_block_position + self.current_margin.adjoin(&block_start_margin).solve()
+    }
+
+    /// Computes the position of the block-start border edge of an element
+    /// with the provided `block_start_margin`, assuming a clearance of 0px.
+    fn position_with_zero_clearance(&self, block_start_margin: &CollapsedMargin) -> Length {
+        // Clearance prevents `current_margin` and `block_start_margin` from being
+        // adjoining, so we need to solve them separately and then sum.
+        self.bfc_relative_block_position + self.current_margin.solve() + block_start_margin.solve()
+    }
+
+    /// Returns the block-end outer edge of the lowest float that is to be cleared (if any)
+    /// by an element with the provided `clear` and `block_start_margin`.
+    fn calculate_clear_position(
         &self,
         clear: Clear,
         block_start_margin: &CollapsedMargin,
@@ -924,8 +933,7 @@ impl SequentialLayoutState {
 
         // Calculate the hypothetical position where the element's top border edge
         // would have been if the element's `clear` property had been `none`.
-        let hypothetical_block_position = self.bfc_relative_block_position +
-            self.current_margin.adjoin(&block_start_margin).solve();
+        let hypothetical_block_position = self.position_without_clearance(&block_start_margin);
 
         // Check if the hypothetical position is past the relevant floats,
         // in that case we don't need to add clearance.
@@ -939,23 +947,60 @@ impl SequentialLayoutState {
                 .max(self.floats.clear_right_position),
         };
         if hypothetical_block_position >= clear_position {
-            return None;
+            None
+        } else {
+            Some(clear_position)
         }
+    }
 
-        // We need to add clearance between `current_margin` and `block_start_margin`,
-        // this prevents them from collapsing.
-        // Compute the position of the element's top border edge if we added
-        // a clearance of 0px.
-        let position_with_zero_clearance = self.bfc_relative_block_position +
-            self.current_margin.solve() +
-            block_start_margin.solve();
+    /// Returns the amount of clearance (if any) that a block with the given `clear` value
+    /// needs to have at `current_block_position_including_margins()`.
+    /// `block_start_margin` is the top margin of the block, after collapsing (if possible)
+    /// with the margin of its contents. This must not be included in `current_margin`,
+    /// since adding clearance will prevent `current_margin` and `block_start_margin`
+    /// from collapsing together.
+    ///
+    /// <https://www.w3.org/TR/2011/REC-CSS2-20110607/visuren.html#flow-control>
+    pub(crate) fn calculate_clearance(
+        &self,
+        clear: Clear,
+        block_start_margin: &CollapsedMargin,
+    ) -> Option<Length> {
+        return self
+            .calculate_clear_position(clear, &block_start_margin)
+            .map(|offset| offset - self.position_with_zero_clearance(&block_start_margin));
+    }
 
-        // Set clearance to the amount necessary to place the border edge of the block
-        // even with the bottom outer edge of the lowest float that is to be cleared.
-        // Note that CSS2 also allows the alternative option of flooring this amount by
-        // `hypothetical_block_position - position_with_zero_clearance`,
-        // but other browser don't seem to do that.
-        Some(clear_position - position_with_zero_clearance)
+    /// A block that is replaced or establishes an independent formatting context can't overlap floats,
+    /// it has to be placed next to them, and may get some clearance if there isn't enough space.
+    /// Given such a block with the provided 'clear', 'block_start_margin' and 'object_size',
+    /// this method finds an area that is big enough and doesn't overlap floats.
+    /// It returns a tuple with:
+    /// - The clearance amount (if any), which includes both the effect of 'clear'
+    ///   and the extra space to avoid floats.
+    /// - The inline offset from the containing block that we need to avoid floats.
+    pub(crate) fn calculate_clearance_and_inline_adjustment(
+        &self,
+        clear: Clear,
+        block_start_margin: &CollapsedMargin,
+        object_size: Vec2<Length>,
+    ) -> (Option<Length>, Length) {
+        // First compute the clear position required by the 'clear' property.
+        // The code below may then add extra clearance when the element can't fit
+        // next to floats not covered by 'clear'.
+        let clear_position = self.calculate_clear_position(clear, &block_start_margin);
+        let ceiling =
+            clear_position.unwrap_or_else(|| self.position_without_clearance(&block_start_margin));
+        let mut placement = PlacementAmongFloats::new(&self.floats, ceiling, object_size);
+        let position = placement.place();
+        let has_clearance = clear_position.is_some() || position.block > ceiling;
+        let clearance = if has_clearance {
+            Some(position.block - self.position_with_zero_clearance(&block_start_margin))
+        } else {
+            None
+        };
+        let inline_adjustment = position.inline - self.floats.containing_block_info.inline_start;
+        (clearance, inline_adjustment)
     }
 
     /// Adds a new adjoining margin.
