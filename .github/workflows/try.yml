@@ -90,7 +90,7 @@ jobs:
     if: ${{ always() && fromJson(needs.parse-comment.outputs.configuration).try}}
     steps:
       - name: Success
-        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         uses: actions/github-script@v6
         with:
           script: |
@@ -106,7 +106,7 @@ jobs:
                 body: "✨ Try run (" + formattedURL + ") " + "succeeded.",
               });
       - name: Failure
-        if: ${{ contains(join(needs.*.result, ','), 'failure') }}
+        if: ${{ contains(needs.*.result, 'failure') }}
         uses: actions/github-script@v6
         with:
           script: |
