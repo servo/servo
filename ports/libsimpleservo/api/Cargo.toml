@@ -31,6 +31,7 @@ libloading = "0.5"
 [build-dependencies]
 gl_generator = "0.14"
 serde_json = { workspace = true }
+vergen = { version = "8.0.0", features = [ "git", "gitcl" ]}
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]

@@ -13,6 +13,9 @@ name = "servo"
 path = "main.rs"
 bench = false
 
+[build-dependencies]
+vergen = { version = "8.0.0", features = [ "git", "gitcl" ]}
+
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
 

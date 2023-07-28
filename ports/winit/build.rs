@@ -8,6 +8,8 @@ extern crate cc;
 #[cfg(windows)]
 extern crate winres;
 
+use vergen::EmitBuilder;
+
 fn main() {
     #[cfg(windows)]
     {
@@ -21,5 +23,17 @@ fn main() {
         cc::Build::new()
             .file("platform/macos/count_threads.c")
             .compile("count_threads");
+    }
+
+    if let Err(error) = EmitBuilder::builder()
+        .fail_on_error()
+        .git_sha(true /* short */)
+        .emit()
+    {
+        println!(
+            "cargo:warning=Could not generate git version information: {:?}",
+            error
+        );
+        println!("cargo:rustc-env=VERGEN_GIT_SHA=nogit");
     }
 }
