@@ -4,11 +4,11 @@ toml==0.10.2
 tomli==2.0.1
 typed-ast==1.5.4
 types-atomicwrites==1.4.5.1
-types-python-dateutil==2.8.19.13
-types-PyYAML==6.0.12.10
-types-requests==2.31.0.1
-types-setuptools==68.0.0.2
+types-python-dateutil==2.8.19.14
+types-PyYAML==6.0.12.11
+types-requests==2.31.0.2
+types-setuptools==68.0.0.3
 types-six==1.16.21.9
-types-ujson==5.7.0.5
+types-ujson==5.8.0.1
 types-urllib3==1.26.25.14
-typing_extensions==4.6.3
+typing_extensions==4.7.1

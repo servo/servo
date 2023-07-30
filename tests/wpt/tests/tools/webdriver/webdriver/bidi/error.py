@@ -63,6 +63,10 @@ class NoSuchScriptException(BidiException):
     error_code = "no such script"
 
 
+class UnableToCaptureScreenException(BidiException):
+    error_code = "unable to capture screen"
+
+
 class UnknownCommandException(BidiException):
     error_code = "unknown command"
 

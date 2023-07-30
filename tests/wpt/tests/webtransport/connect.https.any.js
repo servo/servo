@@ -1,7 +1,6 @@
 // META: global=window,worker
 // META: script=/common/get-host-info.sub.js
 // META: script=resources/webtransport-test-helpers.sub.js
-// META: timeout=long
 
 promise_test(async t => {
   const wt = new WebTransport(webtransport_url('custom-response.py?:status=200'));

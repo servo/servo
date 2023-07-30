@@ -9,6 +9,5 @@
   const newSelectedValue = document.createElement('div');
   newSelectedValue.textContent = 'new selected value';
 
-  const button = selectmenu.querySelector('.fake-selectmenu-internal-selectmenu-button');
-  button.replaceChild(newSelectedValue, oldSelectedValue);
+  replaceChildElement(newSelectedValue, oldSelectedValue);
 </script>

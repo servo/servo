@@ -97,12 +97,12 @@
       // Even though we request 300 extra pixels of scroll, the API above doesn't
       // guarantee how much scroll delta will be generated - different browsers
       // can consume different amounts for "touch slop" (for example). Ensure the
-      // overscroll reaches at least 50 pixels which is a fairly conservative
+      // overscroll reaches at least 250 pixels which is a fairly conservative
       // value.
       assert_greater_than(overscrolled_y_deltas.length, 0, "There should be at least one overscroll events when overscrolling.");
       assert_equals(overscrolled_x_deltas.filter(function (x) { return x != 0; }).length, 0, "The deltaX attribute must be 0 when there is no scrolling in x direction.");
-      assert_greater_than_equal(Math.min(...overscrolled_y_deltas), 50, "The deltaY attribute must be the number of pixels overscrolled.");
       assert_less_than_equal(Math.max(...overscrolled_y_deltas), 300, "The deltaY attribute must be <= the number of pixels overscrolled (300)");
+      assert_greater_than_equal(Math.max(...overscrolled_y_deltas), 250, "The deltaY attribute should be reasonably close to number of pixels overscrolled (300)");
       assert_greater_than(document.scrollingElement.scrollTop, target_div.clientHeight - 1,
         "document is scrolled by the height of target_div");
     }, "testing, vertical");
@@ -141,7 +141,7 @@
       assert_greater_than(overscrolled_x_deltas.length, 0, "There should be at least one overscroll events when overscrolling.");
       assert_equals(overscrolled_y_deltas.filter(function(x){ return x!=0; }).length, 0, "The deltaY attribute must be 0 when there is no scrolling in y direction.");
       assert_less_than_equal(Math.max(...overscrolled_x_deltas), 300, "The deltaX attribute must be <= number of pixels overscrolled (300)");
-      assert_greater_than_equal(Math.min(...overscrolled_x_deltas),50, "The deltaX attribute must be the number of pixels overscrolled.");
+      assert_greater_than_equal(Math.max(...overscrolled_x_deltas), 250, "The deltaX attribute should be reasonably close to the number of pixels overscrolled (300)");
     }, "testing, horizontal");
   }
 </script>

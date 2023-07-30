@@ -6,7 +6,7 @@
 
 promise_test(async () => {
   const wss = new WebSocketStream(ECHOURL);
-  await wss.connection;
+  await wss.opened;
   wss.close({code: 3456, reason: 'pizza'});
   const { code, reason } = await wss.closed;
   assert_equals(code, 3456, 'code should match');
@@ -15,7 +15,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   const wss = new WebSocketStream(ECHOURL);
-  await wss.connection;
+  await wss.opened;
   wss.close();
   const { code, reason } = await wss.closed;
   assert_equals(code, 1005, 'code should be unset');
@@ -24,7 +24,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   const wss = new WebSocketStream(ECHOURL);
-  await wss.connection;
+  await wss.opened;
   wss.close({});
   const { code, reason } = await wss.closed;
   assert_equals(code, 1005, 'code should be unset');
@@ -33,7 +33,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   const wss = new WebSocketStream(ECHOURL);
-  await wss.connection;
+  await wss.opened;
   wss.close({reason: ''});
   const { code, reason } = await wss.closed;
   assert_equals(code, 1005, 'code should be unset');
@@ -42,7 +42,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   const wss = new WebSocketStream(ECHOURL);
-  await wss.connection;
+  await wss.opened;
   wss.close({reason: 'non-empty'});
   const { code, reason } = await wss.closed;
   assert_equals(code, 1000, 'code should be set');
@@ -51,14 +51,14 @@ promise_test(async () => {
 
 promise_test(async () => {
   const wss = new WebSocketStream(ECHOURL);
-  await wss.connection;
+  await wss.opened;
   assert_throws_js(TypeError, () => wss.close(true),
                    'close should throw a TypeError');
 }, 'close(true) should throw a TypeError');
 
 promise_test(async () => {
   const wss = new WebSocketStream(ECHOURL);
-  await wss.connection;
+  await wss.opened;
   const reason = '.'.repeat(124);
   assert_throws_dom('SyntaxError', () => wss.close({ reason }),
                     'close should throw a TypeError');
@@ -68,16 +68,17 @@ promise_test(t => {
   const wss = new WebSocketStream(ECHOURL);
   wss.close();
   return Promise.all([
-    promise_rejects_dom(t, 'NetworkError', wss.connection,
-                    'connection promise should reject'),
-    promise_rejects_dom(t, 'NetworkError', wss.closed,
-                    'closed promise should reject')]);
+    promise_rejects_dom(
+        t, 'NetworkError', wss.opened, 'opened promise should reject'),
+    promise_rejects_dom(
+        t, 'NetworkError', wss.closed, 'closed promise should reject'),
+  ]);
 }, 'close during handshake should work');
 
 for (const invalidCode of [999, 1001, 2999, 5000]) {
   promise_test(async () => {
     const wss = new WebSocketStream(ECHOURL);
-    await wss.connection;
+    await wss.opened;
     assert_throws_dom('InvalidAccessError', () => wss.close({ code: invalidCode }),
                       'close should throw a TypeError');
   }, `close() with invalid code ${invalidCode} should throw`);
@@ -85,7 +86,7 @@ for (const invalidCode of [999, 1001, 2999, 5000]) {
 
 promise_test(async () => {
   const wss = new WebSocketStream(ECHOURL);
-  const { writable } = await wss.connection;
+  const { writable } = await wss.opened;
   writable.getWriter().close();
   const { code, reason } = await wss.closed;
   assert_equals(code, 1005, 'code should be unset');
@@ -94,7 +95,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   const wss = new WebSocketStream(`${BASEURL}/delayed-passive-close`);
-  const { writable } = await wss.connection;
+  const { writable } = await wss.opened;
   const startTime = performance.now();
   await writable.getWriter().close();
   const elapsed = performance.now() - startTime;
@@ -120,7 +121,7 @@ for (const { method, voweling, stream } of abortOrCancel) {
 
   promise_test(async () => {
     const wss = new WebSocketStream(ECHOURL);
-    const info = await wss.connection;
+    const info = await wss.opened;
     info[stream][method]();
     const { code, reason } = await wss.closed;
     assert_equals(code, 1005, 'code should be unset');
@@ -129,7 +130,7 @@ for (const { method, voweling, stream } of abortOrCancel) {
 
   promise_test(async () => {
     const wss = new WebSocketStream(ECHOURL);
-    const info = await wss.connection;
+    const info = await wss.opened;
     info[stream][method]({ code: 3333 });
     const { code, reason } = await wss.closed;
     assert_equals(code, 3333, 'code should be used');
@@ -138,7 +139,7 @@ for (const { method, voweling, stream } of abortOrCancel) {
 
   promise_test(async () => {
     const wss = new WebSocketStream(ECHOURL);
-    const info = await wss.connection;
+    const info = await wss.opened;
     info[stream][method]({ code: 3456, reason: 'set' });
     const { code, reason } = await wss.closed;
     assert_equals(code, 3456, 'code should be used');
@@ -147,7 +148,7 @@ for (const { method, voweling, stream } of abortOrCancel) {
 
   promise_test(async () => {
     const wss = new WebSocketStream(ECHOURL);
-    const info = await wss.connection;
+    const info = await wss.opened;
     info[stream][method]({ reason: 'specified' });
     const { code, reason } = await wss.closed;
     assert_equals(code, 1005, 'code should be unset');
@@ -156,7 +157,7 @@ for (const { method, voweling, stream } of abortOrCancel) {
 
   promise_test(async () => {
     const wss = new WebSocketStream(ECHOURL);
-    const info = await wss.connection;
+    const info = await wss.opened;
     info[stream][method]({ code: 999 });
     const { code, reason } = await wss.closed;
     assert_equals(code, 1005, 'code should be unset');
@@ -165,7 +166,7 @@ for (const { method, voweling, stream } of abortOrCancel) {
 
   promise_test(async () => {
     const wss = new WebSocketStream(ECHOURL);
-    const info = await wss.connection;
+    const info = await wss.opened;
     info[stream][method]({ code: 1000, reason: 'x'.repeat(128) });
     const { code, reason } = await wss.closed;
     assert_equals(code, 1005, 'code should be unset');
@@ -176,7 +177,7 @@ for (const { method, voweling, stream } of abortOrCancel) {
   // be a valid WebSocket close code.
   promise_test(async () => {
     const wss = new WebSocketStream(ECHOURL);
-    const info = await wss.connection;
+    const info = await wss.opened;
     info[stream][method](new DOMException('yes', 'DataCloneError'));
     const { code, reason } = await wss.closed;
     assert_equals(code, 1005, 'code should be unset');

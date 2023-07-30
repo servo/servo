@@ -14,12 +14,12 @@
 <link rel="stylesheet" href="/fonts/ahem.css">
 <meta name="assert" content="Verify dynamically setting attributes mapped to style.">
 <style>
-  @font-face {
-    font-family: DoubleStruck;
-    src: url("/fonts/math/mathvariant-double-struck.woff");
-  }
   math {
       font: 25px/1 Ahem;
+  }
+  @font-face {
+    font-family: Italic;
+    src: url("/fonts/math/mathvariant-italic.woff");
   }
 </style>
 <script>
@@ -31,7 +31,7 @@
     document.getElementById("mathcolor").setAttribute("mathcolor", "green");
     document.getElementById("mathbackground").setAttribute("mathbackground", "green");
     document.getElementById("mathsize").setAttribute("mathsize", "300%");
-    document.getElementById("mathvariant").setAttribute("mathvariant", "double-struck");
+    document.getElementById("mathvariant").setAttribute("mathvariant", "normal");
     document.getElementById("displaystyle").setAttribute("displaystyle", "true");
     document.getElementById("scriptlevel").setAttribute("scriptlevel", "-1");
 
@@ -63,8 +63,8 @@
     </math>
   </p>
   <p>mathvariant:
-    <math style="font-family: DoubleStruck;">
-      <mtext id="mathvariant">&#x628;</mtext>
+    <math style="font-family: Italic">
+      <mi id="mathvariant">X</mi>
     </math>
   </p>
   <p>displaystyle:

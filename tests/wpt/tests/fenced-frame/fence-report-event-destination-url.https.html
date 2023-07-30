@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Test window.fence.reportEvent destination URL.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({generator_api: 'fledge'});
+  await fencedframe.execute(() => {
+    // The destinationURL must be a valid URL.
+    let event = {destinationURL: "foobarbaz"};
+    assert_throws_js(TypeError, () => {window.fence.reportEvent(event);});
+
+    // The destinationURL must be an https URL.
+    event.destinationURL = "http://3pat.com";
+    assert_throws_js(TypeError, () => {window.fence.reportEvent(event);});
+
+    event.destinationURL = "https://3pat.com";
+    window.fence.reportEvent(event);
+
+    // `eventType` isn't allowed.
+    event.eventType = 'click';
+    assert_throws_js(TypeError, () => {window.fence.reportEvent(event);});
+    event.eventType = undefined;
+
+    // `eventData` isn't allowed.
+    event.eventData = 'payload';
+    assert_throws_js(TypeError, () => {window.fence.reportEvent(event);});
+    event.eventData = undefined;
+
+    // `destination` isn't allowed.
+    event.destination = ['buyer'];
+    assert_throws_js(TypeError, () => {window.fence.reportEvent(event);});
+    event.destination = undefined;
+  });
+}, 'window.fence.reportEvent destinationURL');
+</script>
+</body>

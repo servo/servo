@@ -330,7 +330,7 @@ class TestRunnerManager(threading.Thread):
 
         self.test_runner_proc = None
 
-        threading.Thread.__init__(self, name="TestRunnerManager-%s-%i" % (test_type, index))
+        super().__init__(name=f"TestRunnerManager-{index}")
         # This is started in the actual new thread
         self.logger = None
 

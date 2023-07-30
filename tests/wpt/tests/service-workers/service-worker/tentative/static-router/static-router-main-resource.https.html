@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Static Router: simply skip fetch handler for main resource if pattern matches</title>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+const SCRIPT = 'resources/static-router-sw.js';
+const SCOPE = 'resources/';
+const REGISTERED_ROUTE_HTML =
+  'resources/simple-test-for-condition-main-resource.html';
+const NON_REGISTERED_ROUTE_HTML = 'resources/simple.html';
+const host_info = get_host_info();
+const path = new URL(".", window.location).pathname;
+
+// Register a service worker, then create an iframe at url.
+function iframeTest(url, callback, name) {
+  return promise_test(async t => {
+    const reg = await service_worker_unregister_and_register(t, SCRIPT, SCOPE);
+    add_completion_callback(() => reg.unregister());
+    const worker = reg.installing;
+    await wait_for_state(t, worker, 'activated');
+    const iframe = await with_iframe(url);
+    const iwin = iframe.contentWindow;
+    t.add_cleanup(() => iframe.remove());
+    await callback(t, iwin, worker);
+  }, name);
+}
+
+function get_fetched_urls(worker) {
+  return new Promise(function(resolve) {
+      var channel = new MessageChannel();
+      channel.port1.onmessage = function(msg) { resolve(msg); };
+      worker.postMessage({port: channel.port2}, [channel.port2]);
+    });
+}
+
+iframeTest(REGISTERED_ROUTE_HTML, async (t, iwin, worker) => {
+  const fetched_urls = await get_fetched_urls(worker);
+  const {requests} = fetched_urls.data;
+  assert_equals(requests.length, 0);
+  assert_equals(iwin.document.body.innerText, "Here's a simple html file.");
+}, 'Main resource load matched with the condition');
+
+iframeTest(NON_REGISTERED_ROUTE_HTML, async (t, iwin, worker) => {
+  const fetched_urls = await get_fetched_urls(worker);
+  const {requests} = fetched_urls.data;
+  assert_equals(requests.length, 1);
+  assert_equals(
+    requests[0].url,
+    `${host_info['HTTPS_ORIGIN']}${path}${NON_REGISTERED_ROUTE_HTML}`);
+  assert_equals(requests[0].mode, 'navigate');
+}, 'Main resource load not matched with the condition');
+
+</script>
+</body>

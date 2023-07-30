@@ -6,28 +6,22 @@
 importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
-var t = async_test("Non-space characters are not converted to U+0020 and collapsed");
-var t_pass = t.done.bind(t);
-var t_fail = t.step_func(function(reason) {
-    throw reason;
-});
-t.step(function() {
+promise_test(async t => {
 
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
   var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
-  let fonts = (self.fonts ? self.fonts : document.fonts);
   f.load();
-  fonts.add(f);
-  fonts.ready.then(function() {
-      ctx.font = '50px CanvasTest';
-      ctx.fillStyle = '#f00';
-      ctx.fillRect(0, 0, 100, 50);
-      ctx.fillStyle = '#0f0';
-      ctx.fillText('E\x0b EE', -150, 37.5);
-      _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
-      _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
-    }).then(t_pass, t_fail);
-});
+  self.fonts.add(f);
+  await self.fonts.ready;
+  ctx.font = '50px CanvasTest';
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.fillStyle = '#0f0';
+  ctx.fillText('E\x0b EE', -150, 37.5);
+  _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
+  _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
+  t.done();
+}, "Non-space characters are not converted to U+0020 and collapsed");
 done();

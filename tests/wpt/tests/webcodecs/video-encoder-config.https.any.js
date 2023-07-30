@@ -3,17 +3,16 @@
 
 const invalidConfigs = [
   {
-    comment: 'Emtpy codec',
+    comment: 'Missing codec',
     config: {
-      codec: '',
       width: 640,
       height: 480,
     },
   },
   {
-    comment: 'Unrecognized codec',
+    comment: 'Empty codec',
     config: {
-      codec: 'bogus',
+      codec: '',
       width: 640,
       height: 480,
     },
@@ -51,20 +50,44 @@ const invalidConfigs = [
       displayHeight: 0,
       height: 480,
     },
-  }
+  },
 ];
 
 invalidConfigs.forEach(entry => {
-  promise_test(t => {
-    return promise_rejects_js(t, TypeError, VideoEncoder.isConfigSupported(entry.config));
-  }, 'Test that VideoEncoder.isConfigSupported() rejects invalid config:' + entry.comment);
+  promise_test(
+      t => {
+        return promise_rejects_js(
+            t, TypeError, VideoEncoder.isConfigSupported(entry.config));
+      },
+      'Test that VideoEncoder.isConfigSupported() rejects invalid config: ' +
+          entry.comment);
 });
 
+invalidConfigs.forEach(entry => {
+  async_test(
+      t => {
+        let codec = new VideoEncoder(getDefaultCodecInit(t));
+        assert_throws_js(TypeError, () => {
+          codec.configure(entry.config);
+        });
+        t.done();
+      },
+      'Test that VideoEncoder.configure() rejects invalid config: ' +
+          entry.comment);
+});
 
 const validButUnsupportedConfigs = [
   {
     comment: 'Invalid scalability mode',
     config: {codec: 'vp8', width: 640, height: 480, scalabilityMode: 'ABC'}
+  },
+  {
+    comment: 'Unrecognized codec',
+    config: {
+      codec: 'bogus',
+      width: 640,
+      height: 480,
+    },
   },
   {
     comment: 'Width is too large',
@@ -85,10 +108,10 @@ const validButUnsupportedConfigs = [
   {
     comment: 'Too strenuous accelerated encoding parameters',
     config: {
-      codec: "vp8",
-      hardwareAcceleration: "prefer-hardware",
-      width: 7000,
-      height: 7000,
+      codec: 'vp8',
+      hardwareAcceleration: 'prefer-hardware',
+      width: 20000,
+      height: 20000,
       bitrate: 1,
       framerate: 240,
     }
@@ -96,30 +119,78 @@ const validButUnsupportedConfigs = [
   {
     comment: 'Odd sized frames for H264',
     config: {
-      codec: "avc1.42001E",
+      codec: 'avc1.42001E',
       width: 641,
       height: 480,
       bitrate: 1000000,
       framerate: 24,
     }
   },
+  {
+    comment: 'Possible future H264 codec string',
+    config: {
+      codec: 'avc1.FF000b',
+      width: 640,
+      height: 480,
+    },
+  },
+  {
+    comment: 'Possible future HEVC codec string',
+    config: {
+      codec: 'hvc1.C99.6FFFFFF.L93',
+      width: 640,
+      height: 480,
+    },
+  },
+  {
+    comment: 'Possible future VP9 codec string',
+    config: {
+      codec: 'vp09.99.99.08',
+      width: 640,
+      height: 480,
+    },
+  },
+  {
+    comment: 'Possible future AV1 codec string',
+    config: {
+      codec: 'av01.9.99M.08',
+      width: 640,
+      height: 480,
+    },
+  },
 ];
 
 validButUnsupportedConfigs.forEach(entry => {
   let config = entry.config;
-  promise_test(async t => {
-    let support = await VideoEncoder.isConfigSupported(config);
-    assert_false(support.supported);
+  promise_test(
+      async t => {
+        let support = await VideoEncoder.isConfigSupported(config);
+        assert_false(support.supported);
 
-    let new_config = support.config;
-    assert_equals(new_config.codec, config.codec);
-    assert_equals(new_config.width, config.width);
-    assert_equals(new_config.height, config.height);
-    if (config.bitrate)
-      assert_equals(new_config.bitrate, config.bitrate);
-    if (config.framerate)
-      assert_equals(new_config.framerate, config.framerate);
-  }, "VideoEncoder.isConfigSupported() doesn't support config:" + entry.comment);
+        let new_config = support.config;
+        assert_equals(new_config.codec, config.codec);
+        assert_equals(new_config.width, config.width);
+        assert_equals(new_config.height, config.height);
+        if (config.bitrate)
+          assert_equals(new_config.bitrate, config.bitrate);
+        if (config.framerate)
+          assert_equals(new_config.framerate, config.framerate);
+      },
+      'Test that VideoEncoder.isConfigSupported() doesn\'t support config: ' +
+          entry.comment);
+});
+
+validButUnsupportedConfigs.forEach(entry => {
+  async_test(
+      t => {
+        let codec = new VideoEncoder(getDefaultCodecInit(t));
+        assert_throws_dom('NotSupportedError', () => {
+          codec.configure(entry.config);
+        });
+        t.done();
+      },
+      'Test that VideoEncoder.configure() doesn\'t support config: ' +
+          entry.comment);
 });
 
 const validConfigs = [
@@ -189,5 +260,3 @@ validConfigs.forEach(config => {
     }
   }, "VideoEncoder.isConfigSupported() supports:" + JSON.stringify(config));
 });
-
-

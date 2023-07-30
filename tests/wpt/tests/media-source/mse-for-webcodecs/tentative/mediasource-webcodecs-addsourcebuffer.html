@@ -46,18 +46,6 @@ function testInvalidArguments() {
       },
       name: '{ valid audioConfig and videoConfig }',
     },
-    {
-      arg: {
-        audioConfig: {
-          codec: 'bogus',
-          sampleRate: 48000,
-          numberOfChannels: 2
-        }
-      },
-      name: 'bad audio config codec',
-    },
-    { arg: { videoConfig: { codec: 'bogus' } },
-      name: 'bad video config codec' },
     { arg: { audioConfig: { sampleRate: 48000, numberOfChannels: 2 } },
       name: 'audio config missing required member "codec"' },
     { arg: { videoConfig: { } },

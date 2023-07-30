@@ -71,7 +71,6 @@ t.step(function() {
 
   ctx.textRendering = "auto";
   _assertSame(ctx.textRendering, "auto", "ctx.textRendering", "\"auto\"");
-
   t.done();
 });
 done();

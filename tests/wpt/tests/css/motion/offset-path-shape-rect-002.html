@@ -1,6 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>CSS Motion Path test: &lt;basic-shape&gt; rect() path with explicit arguments and radius</title>
+<meta name=fuzzy content="0-96;0-440">
 <link rel="author" title="Daniil Sakhapov" href="sakhapov@google.com">
 <link rel="match" href="offset-path-shape-rect-002-ref.html">
 <link rel="help" href="https://drafts.fxtf.org/motion/#valdef-offset-path-basic-shape">
@@ -19,6 +20,7 @@
   offset-path: rect(5px 95% 95% 5px round 30%);
   offset-distance: 45%;
   offset-anchor: 10% 10%;
+  border-radius: 50% 50% 0 0;
   width: 100px;
   height: 100px;
 }

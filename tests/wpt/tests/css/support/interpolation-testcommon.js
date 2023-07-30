@@ -61,15 +61,15 @@
     notAnimatableExpectations: function(from, to, underlying) {
       return expectFlip(from, to, -Infinity);
     },
-    interpolate: function(property, from, to, at, target, animationType) {
+    interpolate: function(property, from, to, at, target, behavior) {
       // Force a style recalc on target to set the 'from' value.
       getComputedStyle(target).getPropertyValue(property);
       target.style.transitionDuration = '100s';
       target.style.transitionDelay = '-50s';
       target.style.transitionTimingFunction = createEasing(at);
       target.style.transitionProperty = property;
-      if (animationType) {
-        target.style.transitionAnimationType = animationType;
+      if (behavior) {
+        target.style.transitionBehavior = behavior;
       }
       target.style.setProperty(property, isNeutralKeyframe(to) ? '' : to);
     },
@@ -90,15 +90,15 @@
     notAnimatableExpectations: function(from, to, underlying) {
       return expectFlip(from, to, -Infinity);
     },
-    interpolate: function(property, from, to, at, target, animationType) {
+    interpolate: function(property, from, to, at, target, behavior) {
       // Force a style recalc on target to set the 'from' value.
       getComputedStyle(target).getPropertyValue(property);
       target.style.transitionDuration = '100s';
       target.style.transitionDelay = '-50s';
       target.style.transitionTimingFunction = createEasing(at);
       target.style.transitionProperty = 'all';
-      if (animationType) {
-        target.style.transitionAnimationType = animationType;
+      if (behavior) {
+        target.style.transitionBehavior = behavior;
       }
       target.style.setProperty(property, isNeutralKeyframe(to) ? '' : to);
     },
@@ -262,7 +262,7 @@
     var from = interpolationTest.options.from;
     var to = interpolationTest.options.to;
     var comparisonFunction = interpolationTest.options.comparisonFunction;
-    var animationType = interpolationTest.options.animationType;
+    var behavior = interpolationTest.options.behavior;
 
     if ((interpolationTest.options.method && interpolationTest.options.method != interpolationMethod.name)
       || !interpolationMethod.supportsProperty(property)
@@ -308,7 +308,7 @@
       }
       interpolationMethod.setup(property, from, target);
       target.interpolate = function() {
-        interpolationMethod.interpolate(property, from, to, expectation.at, target, animationType);
+        interpolationMethod.interpolate(property, from, to, expectation.at, target, behavior);
       };
       target.measure = function() {
         for (var [expectedProp, expectedStr] of Object.entries(expectedProperties)) {

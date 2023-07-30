@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <title>CSS Text Module Test: parsing text-transform with valid values</title>
 <link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-text-transform">
-<meta name="assert" content="text-transform supports the full grammar 'none | [capitalize | uppercase | lowercase ] || full-width || full-size-kana'.">
+<link rel="help" href="https://w3c.github.io/mathml-core/#new-text-transform-values">
+<meta name="assert" content="text-transform supports the full grammar 'none | [capitalize | uppercase | lowercase ] || full-width || full-size-kana | math-auto'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -18,6 +19,7 @@ test_valid_value("text-transform", "uppercase");
 test_valid_value("text-transform", "lowercase");
 test_valid_value("text-transform", "full-width");
 test_valid_value("text-transform", "full-size-kana");
+test_valid_value("text-transform", "math-auto");
 
 test_valid_value("text-transform", "capitalize full-width");
 test_valid_value("text-transform", "uppercase full-size-kana");

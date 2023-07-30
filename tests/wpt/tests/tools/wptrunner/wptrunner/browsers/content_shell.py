@@ -53,6 +53,9 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
         args.append(
             f"--origin-to-force-quic-on=web-platform.test:{webtranport_h3_port[0]}")
 
+    if not kwargs["headless"]:
+        args.append("--disable-headless-mode")
+
     # These flags are specific to content_shell - they activate web test protocol mode.
     args.append("--run-web-tests")
     args.append("-")

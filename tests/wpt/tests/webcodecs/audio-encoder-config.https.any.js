@@ -3,31 +3,44 @@
 
 const invalidConfigs = [
   {
-    comment: 'Emtpy codec',
-    config: {codec: ''},
-  },
-  {
-    comment: 'Unrecognized codec',
-    config: {codec: 'bogus'},
-  },
-  {
-    comment: 'Sample rate is too small',
+    comment: 'Missing codec',
     config: {
-      codec: 'opus',
-      sampleRate: 100,
+      sampleRate: 48000,
       numberOfChannels: 2,
     },
   },
   {
-    comment: 'Sample rate is too large',
+    comment: 'Empty codec',
     config: {
-      codec: 'opus',
-      sampleRate: 1e6,
+      codec: '',
+      sampleRate: 48000,
       numberOfChannels: 2,
     },
   },
   {
-    comment: 'Too few channels',
+    comment: 'Missing sampleRate',
+    config: {
+      codec: 'opus',
+      sampleRate: 48000,
+    },
+  },
+  {
+    comment: 'Missing numberOfChannels',
+    config: {
+      codec: 'opus',
+      sampleRate: 48000,
+    },
+  },
+  {
+    comment: 'Zero sampleRate',
+    config: {
+      codec: 'opus',
+      sampleRate: 0,
+      numberOfChannels: 2,
+    },
+  },
+  {
+    comment: 'Zero channels',
     config: {
       codec: 'opus',
       sampleRate: 8000,
@@ -35,18 +48,13 @@ const invalidConfigs = [
     },
   },
   {
-    comment: 'Way too many channels',
+    comment: 'Bit rate too big',
     config: {
       codec: 'opus',
       sampleRate: 8000,
-      numberOfChannels: 100,
-      bitrate: 128000
+      numberOfChannels: 2,
+      bitrate: 6e9,
     },
-  },
-  {
-    comment: 'Bit rate too big',
-    config:
-        {codec: 'opus', sampleRate: 8000, numberOfChannels: 2, bitrate: 6e9},
   },
   {
     comment: 'Opus complexity too big',
@@ -88,7 +96,7 @@ const invalidConfigs = [
       sampleRate: 8000,
       numberOfChannels: 2,
       opus: {
-        frameDuration: 122500,
+        frameDuration: 120 * 1000 + 1,
       },
     },
   },
@@ -106,42 +114,115 @@ const invalidConfigs = [
 ];
 
 invalidConfigs.forEach(entry => {
-  promise_test(t => {
-    return promise_rejects_js(t, TypeError, AudioEncoder.isConfigSupported(entry.config));
-  }, 'Test that AudioEncoder.isConfigSupported() rejects invalid config:' + entry.comment);
+  promise_test(
+      t => {
+        return promise_rejects_js(
+            t, TypeError, AudioEncoder.isConfigSupported(entry.config));
+      },
+      'Test that AudioEncoder.isConfigSupported() rejects invalid config: ' +
+          entry.comment);
+});
+
+invalidConfigs.forEach(entry => {
+  async_test(
+      t => {
+        let codec = new AudioEncoder(getDefaultCodecInit(t));
+        assert_throws_js(TypeError, () => {
+          codec.configure(entry.config);
+        });
+        t.done();
+      },
+      'Test that AudioEncoder.configure() rejects invalid config: ' +
+          entry.comment);
 });
 
 const validButUnsupportedConfigs = [
-  {
-    comment: 'Too many channels',
-    config: {
-      codec: 'opus',
-      sampleRate: 48000,
-      numberOfChannels: 30,
-    },
-  },
   {
     comment: 'Bitrate is too low',
     config: {
       codec: 'opus',
       sampleRate: 48000,
       numberOfChannels: 2,
-      bitrate: 1
+      bitrate: 1,
     },
-  }
+  },
+  {
+    comment: 'Unrecognized codec',
+    config: {
+      codec: 'bogus',
+      sampleRate: 48000,
+      numberOfChannels: 2,
+    },
+  },
+  {
+    comment: 'Sample rate is too small',
+    config: {
+      codec: 'opus',
+      sampleRate: 1,
+      numberOfChannels: 2,
+    },
+  },
+  {
+    comment: 'Sample rate is too large',
+    config: {
+      codec: 'opus',
+      sampleRate: 10000000,
+      numberOfChannels: 2,
+    },
+  },
+  {
+    comment: 'Way too many channels',
+    config: {
+      codec: 'opus',
+      sampleRate: 8000,
+      numberOfChannels: 1024,
+      bitrate: 128000,
+    },
+  },
+  {
+    comment: 'Possible future opus codec string',
+    config: {
+      codec: 'opus.123',
+      sampleRate: 48000,
+      numberOfChannels: 2,
+    }
+  },
+  {
+    comment: 'Possible future aac codec string',
+    config: {
+      codec: 'mp4a.FF.9',
+      sampleRate: 48000,
+      numberOfChannels: 2,
+    }
+  },
 ];
 
 validButUnsupportedConfigs.forEach(entry => {
-  promise_test(async t => {
-    let support = await AudioEncoder.isConfigSupported(entry.config);
-    assert_false(support.supported);
+  promise_test(
+      async t => {
+        let support = await AudioEncoder.isConfigSupported(entry.config);
+        assert_false(support.supported);
 
-    let config = support.config;
-    assert_equals(config.codec, entry.config.codec);
-    assert_equals(config.sampleRate, entry.config.sampleRate);
-    assert_equals(config.numberOfChannels, entry.config.numberOfChannels);
+        let config = support.config;
+        assert_equals(config.codec, entry.config.codec);
+        assert_equals(config.sampleRate, entry.config.sampleRate);
+        assert_equals(config.numberOfChannels, entry.config.numberOfChannels);
+      },
+      'Test that AudioEncoder.isConfigSupported() doesn\'t support config: ' +
+          entry.comment);
+});
 
-  }, "Test that AudioEncoder.isConfigSupported() doesn't support config:" + entry.comment);
+validButUnsupportedConfigs.forEach(entry => {
+  async_test(
+      t => {
+        let codec = new AudioEncoder(getDefaultCodecInit(t));
+        assert_throws_dom('NotSupportedError', () => {
+          codec.configure(entry.config);
+        });
+        t.done();
+      },
+      'Test that AudioEncoder.configure() doesn\'t support config: ' +
+          entry.comment);
 });
 
 const validConfigs = [
@@ -233,5 +314,5 @@ validConfigs.forEach(config => {
     }
 
     assert_false(new_config.hasOwnProperty('bogus'));
-  }, "AudioEncoder.isConfigSupported() supports:" + JSON.stringify(config));
+  }, 'AudioEncoder.isConfigSupported() supports: ' + JSON.stringify(config));
 });

@@ -87,6 +87,20 @@ async def get_device_pixel_ratio(bidi_session, context: str) -> float:
     return result["value"]
 
 
+async def get_element_dimensions(bidi_session, context, element):
+    result = await bidi_session.script.call_function(
+        arguments=[element],
+        function_declaration="""(element) => {
+            const rect = element.getBoundingClientRect();
+            return { height: rect.height, width: rect.width }
+        }""",
+        target=ContextTarget(context["context"]),
+        await_promise=False,
+    )
+
+    return remote_mapping_to_dict(result["value"])
+
+
 async def get_viewport_dimensions(bidi_session, context: str):
     expression = """
         ({

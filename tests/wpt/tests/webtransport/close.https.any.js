@@ -2,7 +2,6 @@
 // META: script=/common/get-host-info.sub.js
 // META: script=resources/webtransport-test-helpers.sub.js
 // META: script=/common/utils.js
-// META: timeout=long
 
 promise_test(async t => {
   const id = token();

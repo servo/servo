@@ -14,14 +14,6 @@
 <link rel="stylesheet" href="/fonts/ahem.css">
 <meta name="assert" content="Verify that local author style wins over presentation hints attributes">
 <style>
-  @font-face {
-    font-family: DoubleStruck;
-    src: url("/fonts/math/mathvariant-double-struck.woff");
-  }
-  @font-face {
-    font-family: Italic;
-    src: url("/fonts/math/mathvariant-italic.woff");
-  }
   math {
       font: 25px/1 Ahem;
   }
@@ -50,9 +42,8 @@
     </math>
   </p>
   <p>mathvariant:
-    <math style="font-family: DoubleStruck, Italic;">
-      <mtext mathvariant="double-struck"
-             style="text-transform: math-italic">&#x628;</mtext>
+    <math>
+      <mi mathvariant="normal" style="text-transform: uppercase">sin</mi>
     </math>
   </p>
   <p>displaystyle:

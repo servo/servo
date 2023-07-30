@@ -12,8 +12,8 @@
   float: left;
   width: 100px;
   height: 100px;
-  transition-animation-type: discrete;
   transition: all 1s;
+  transition-behavior: allow-discrete;
 }
 #target.animated {
   float: right;
@@ -30,5 +30,5 @@ promise_test(async () => {
   target.classList.add('animated');
   await waitForAnimationFrames(1);
   assert_true(transitionstartFired);
-}, 'transition:all with transition-animation-type:discrete should animate discrete properties.');
+}, 'transition:all with transition-behavior:allow-discrete should animate discrete properties.');
 </script>

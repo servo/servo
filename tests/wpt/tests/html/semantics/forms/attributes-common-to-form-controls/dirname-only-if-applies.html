@@ -18,11 +18,10 @@
     <iframe name="iframe"></iframe>
 
     <script>
-      const types_applies = ["text", "search"];
+      const types_applies = ["text", "search", "hidden", "tel", "url", "email"];
       const types_not = [
-        "hidden", "tel", "url", "email", "password", "date", "month", "week", "time",
+        "password", "date", "month", "week", "time", "image", "reset", "button",
         "datetime-local", "number", "range", "color", "checkbox", "radio", "file", "submit",
-        "image", "reset", "button"
       ];
       const types = [...types_applies, ...types_not];
       let form = document.querySelector("form");
