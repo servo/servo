@@ -4,7 +4,6 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
-use self::float::PlacementAmongFloats;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{ContainingBlockPositionInfo, FloatBox, SequentialLayoutState};
@@ -94,7 +93,11 @@ impl BlockLevelBox {
             BlockLevelBox::SameFormattingContextBlock { ref style, .. } => &style,
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
             BlockLevelBox::OutOfFlowFloatBox(_) => return true,
-            BlockLevelBox::Independent(ref context) => context.style(),
+            BlockLevelBox::Independent(ref context) => {
+                // FIXME: If the element doesn't fit next to floats, it will get clearance.
+                // In that case this should be returning false.
+                context.style()
+            },
         };
 
         // FIXME: This should only return false when 'clear' causes clearance.
@@ -879,10 +882,6 @@ impl NonReplacedFormattingContext {
             &self.style,
         );
 
-        let block_start_margin = CollapsedMargin::new(margin.block_start);
-        let clearance = sequential_layout_state
-            .calculate_clearance(self.style.get_box().clear, &block_start_margin);
-
         let layout = self.layout(
             layout_context,
             positioning_context,
@@ -904,70 +903,35 @@ impl NonReplacedFormattingContext {
         //  sufficient space. They may even make the border box of said element narrower
         //  than defined by section 10.3.3. CSS 2 does not define when a UA may put said
         //  element next to the float or by how much said element may become narrower."
-        let mut adjustment_from_floats = Vec2::zero();
-        adjustment_from_floats.block = clearance.unwrap_or_else(Length::zero);
-
+        let clearance;
+        let inline_adjustment_from_floats;
         let inline_size_is_auto = self
             .style
             .box_size(containing_block.style.writing_mode)
             .inline
             .is_auto();
-        if !inline_size_is_auto {
-            // We calculate a hypothetical value for `bfc_relative_block_position`,
-            // assuming that there was no adjustment from floats. The real value will
-            // depend on whether or not there was adjustment.
-            let hypothetical_bfc_relative_block_position = if clearance.is_some() {
-                sequential_layout_state.bfc_relative_block_position +
-                    sequential_layout_state.current_margin.solve() +
-                    block_start_margin.solve()
-            } else {
-                sequential_layout_state.bfc_relative_block_position +
-                    sequential_layout_state
-                        .current_margin
-                        .adjoin(&block_start_margin)
-                        .solve()
-            };
-
+        let block_start_margin = CollapsedMargin::new(margin.block_start);
+        if inline_size_is_auto {
+            // TODO: Use PlacementAmongFloats to avoid overlapping floats.
+            clearance = sequential_layout_state
+                .calculate_clearance(self.style.get_box().clear, &block_start_margin);
+            inline_adjustment_from_floats = Length::zero();
+        } else {
             let size = &Vec2 {
                 inline: containing_block_for_children.inline_size,
                 block: block_size,
             } + &pbm.padding_border_sums;
-            let placement = PlacementAmongFloats::new(
-                &sequential_layout_state.floats,
-                hypothetical_bfc_relative_block_position + clearance.unwrap_or_else(Length::zero),
-                size.clone(),
-            )
-            .place();
-
-            // This placement is in the coordinates of the float-containing block formatting
-            // context, but we need to calculate an offset to use for placing this replaced
-            // element.
-            adjustment_from_floats = &placement -
-                &Vec2 {
-                    inline: sequential_layout_state
-                        .floats
-                        .containing_block_info
-                        .inline_start,
-                    block: hypothetical_bfc_relative_block_position,
-                };
+            (clearance, inline_adjustment_from_floats) = sequential_layout_state
+                .calculate_clearance_and_inline_adjustment(
+                    self.style.get_box().clear,
+                    &block_start_margin,
+                    size.clone(),
+                );
         }
 
-        // Clearance and any adjustment from float should prevent margin collapse, so it's
-        // important to make sure that it is non-None even when it is zero. Yet, when we
-        // didn't have clearance or any adjustment from placing next to floats, we want the
-        // value of clearance on the Fragment to be None, so margin collapse still works
-        // properly.
-        let effective_clearance = if clearance.is_some() || !adjustment_from_floats.block.is_zero()
-        {
-            Some(adjustment_from_floats.block)
-        } else {
-            None
-        };
-
-        // If there was effective clearance, it prevent margins collapse between this
-        // block and previous ones, so in that case collapse margins before adjoining
-        // them below.
-        if effective_clearance.is_some() {
+        // Clearance prevents margin collapse between this block and previous ones,
+        // so in that case collapse margins before adjoining them below.
+        if clearance.is_some() {
             sequential_layout_state.collapse_margins();
         }
         sequential_layout_state.adjoin_assign(&block_start_margin);
@@ -975,7 +939,7 @@ impl NonReplacedFormattingContext {
         // Margins can never collapse into independent formatting contexts.
         sequential_layout_state.collapse_margins();
         sequential_layout_state.advance_block_position(
-            pbm.padding_border_sums.block + adjustment_from_floats.block + block_size,
+            pbm.padding_border_sums.block + block_size + clearance.unwrap_or_else(Length::zero),
         );
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
 
@@ -988,11 +952,11 @@ impl NonReplacedFormattingContext {
             start_corner: Vec2 {
                 block: pbm.padding.block_start +
                     pbm.border.block_start +
-                    adjustment_from_floats.block,
+                    clearance.unwrap_or_else(Length::zero),
                 inline: pbm.padding.inline_start +
                     pbm.border.inline_start +
                     margin.inline_start +
-                    adjustment_from_floats.inline,
+                    inline_adjustment_from_floats,
             },
             size: Vec2 {
                 block: block_size,
@@ -1008,7 +972,7 @@ impl NonReplacedFormattingContext {
             pbm.padding,
             pbm.border,
             margin,
-            effective_clearance,
+            clearance,
             block_margins_collapsed_with_children,
         )
     }
@@ -1037,27 +1001,10 @@ fn layout_in_flow_replaced_block_level<'a>(
     };
     let fragments = replaced.make_fragments(style, size.clone());
 
-    let mut effective_clearance = None;
-    let mut adjustment_from_floats = Vec2::zero();
+    let clearance;
+    let inline_adjustment_from_floats;
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
         let block_start_margin = CollapsedMargin::new(margin.block_start);
-        let clearance =
-            sequential_layout_state.calculate_clearance(style.get_box().clear, &block_start_margin);
-
-        // We calculate a hypothetical value for `bfc_relative_block_position`,
-        // assuming that there was no adjustment from floats. The real value will
-        // depend on whether or not there was adjustment.
-        let hypothetical_bfc_relative_block_position = if clearance.is_some() {
-            sequential_layout_state.bfc_relative_block_position +
-                sequential_layout_state.current_margin.solve() +
-                block_start_margin.solve()
-        } else {
-            sequential_layout_state.bfc_relative_block_position +
-                sequential_layout_state
-                    .current_margin
-                    .adjoin(&block_start_margin)
-                    .solve()
-        };
 
         // From https://drafts.csswg.org/css2/#floats:
         // "The border box of a table, a block-level replaced element, or an element in
@@ -1069,40 +1016,16 @@ fn layout_in_flow_replaced_block_level<'a>(
         //  sufficient space. They may even make the border box of said element narrower
         //  than defined by section 10.3.3. CSS 2 does not define when a UA may put said
         //  element next to the float or by how much said element may become narrower."
-        let placement_among_floats = PlacementAmongFloats::new(
-            &sequential_layout_state.floats,
-            hypothetical_bfc_relative_block_position + clearance.unwrap_or_else(Length::zero),
-            &size + &pbm.padding_border_sums,
-        )
-        .place();
+        (clearance, inline_adjustment_from_floats) = sequential_layout_state
+            .calculate_clearance_and_inline_adjustment(
+                style.get_box().clear,
+                &block_start_margin,
+                &size + &pbm.padding_border_sums,
+            );
 
-        // This placement is in the coordinates of the float-containing block formatting
-        // context, but we need to calculate an offset to use for placing this replaced
-        // element.
-        adjustment_from_floats = &placement_among_floats -
-            &Vec2 {
-                inline: sequential_layout_state
-                    .floats
-                    .containing_block_info
-                    .inline_start,
-                block: hypothetical_bfc_relative_block_position,
-            };
-
-        // Clearance and any adjustment from float should prevent margin collapse, so it's
-        // important to make sure that it is non-None even when it is zero. Yet, when we
-        // didn't have clearance or any adjustment from placing next to floats, we want the
-        // value of clearance on the Fragment to be None, so margin collapse still works
-        // properly.
-        effective_clearance = if clearance.is_some() || !adjustment_from_floats.block.is_zero() {
-            Some(adjustment_from_floats.block)
-        } else {
-            None
-        };
-
-        // If there was effective clearance, it prevent margins collapse between this
-        // block and previous ones, so in that case collapse margins before adjoining
-        // them below.
-        if effective_clearance.is_some() {
+        // Clearance prevents margin collapse between this block and previous ones,
+        // so in that case collapse margins before adjoining them below.
+        if clearance.is_some() {
             sequential_layout_state.collapse_margins();
         }
         sequential_layout_state.adjoin_assign(&block_start_margin);
@@ -1110,17 +1033,22 @@ fn layout_in_flow_replaced_block_level<'a>(
         // Margins can never collapse into replaced elements.
         sequential_layout_state.collapse_margins();
         sequential_layout_state.advance_block_position(
-            pbm.padding_border_sums.block + size.block + adjustment_from_floats.block,
+            pbm.padding_border_sums.block + size.block + clearance.unwrap_or_else(Length::zero),
         );
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
+    } else {
+        clearance = None;
+        inline_adjustment_from_floats = Length::zero();
     };
 
     let start_corner = Vec2 {
-        block: pbm.padding.block_start + pbm.border.block_start + adjustment_from_floats.block,
+        block: pbm.padding.block_start +
+            pbm.border.block_start +
+            clearance.unwrap_or_else(Length::zero),
         inline: pbm.padding.inline_start +
             pbm.border.inline_start +
             margin.inline_start +
-            adjustment_from_floats.inline,
+            inline_adjustment_from_floats,
     };
 
     let content_rect = Rect { start_corner, size };
@@ -1133,7 +1061,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         pbm.padding,
         pbm.border,
         margin,
-        effective_clearance,
+        clearance,
         block_margins_collapsed_with_children,
     )
 }
