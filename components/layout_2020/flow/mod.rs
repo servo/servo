@@ -6,7 +6,9 @@
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::flow::float::{ContainingBlockPositionInfo, FloatBox, SequentialLayoutState};
+use crate::flow::float::{
+    ContainingBlockPositionInfo, FloatBox, PlacementAmongFloats, SequentialLayoutState,
+};
 use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
@@ -899,8 +901,8 @@ impl NonReplacedFormattingContext {
         //  element next to the float or by how much said element may become narrower."
         let clearance;
         let inline_adjustment_from_floats;
-        let content_size;
-        let layout;
+        let mut content_size;
+        let mut layout;
         if let LengthOrAuto::LengthPercentage(ref inline_size) = box_size.inline {
             let inline_size =
                 inline_size.clamp_between_extremums(min_box_size.inline, max_box_size.inline);
@@ -929,33 +931,93 @@ impl NonReplacedFormattingContext {
                     &content_size + &pbm.padding_border_sums,
                 );
         } else {
-            // TODO: Use PlacementAmongFloats to avoid overlapping floats.
-            let inline_size = (containing_block.inline_size -
-                pbm.padding_border_sums.inline -
-                pbm.margin.inline_start.auto_is(Length::zero) -
-                pbm.margin.inline_end.auto_is(Length::zero))
-            .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
-            layout = self.layout(
-                layout_context,
-                positioning_context,
-                &ContainingBlock {
-                    inline_size,
-                    block_size,
-                    style: &self.style,
-                },
+            // First compute the clear position required by the 'clear' property.
+            // The code below may then add extra clearance when the element can't fit
+            // next to floats not covered by 'clear'.
+            let clear_position = sequential_layout_state.calculate_clear_position(
+                self.style.get_box().clear,
+                &collapsed_margin_block_start,
             );
-            content_size = Vec2 {
-                inline: inline_size,
-                block: block_size.auto_is(|| {
-                    layout
-                        .content_block_size
-                        .clamp_between_extremums(min_box_size.block, max_box_size.block)
-                }),
+            let ceiling = clear_position.unwrap_or_else(|| {
+                sequential_layout_state.position_without_clearance(&collapsed_margin_block_start)
+            });
+
+            // Create a PlacementAmongFloats using the minimum size in all dimensions as the object size.
+            let minimum_size_of_block = &Vec2 {
+                inline: min_box_size.inline,
+                block: block_size.auto_is(|| min_box_size.block),
+            } + &pbm.padding_border_sums;
+            let mut placement = PlacementAmongFloats::new(
+                &sequential_layout_state.floats,
+                ceiling,
+                minimum_size_of_block,
+            );
+            let mut placement_rect;
+
+            loop {
+                // First try to place the block using the minimum size as the object size.
+                placement_rect = placement.place();
+                let proposed_inline_size = (placement_rect.size.inline -
+                    pbm.padding_border_sums.inline)
+                    .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+
+                // Now lay out the block using the inline size we calculated from the placement.
+                // Later we'll check to see if the resulting block size is compatible with the
+                // placement.
+                let positioning_context_length = positioning_context.len();
+                layout = self.layout(
+                    layout_context,
+                    positioning_context,
+                    &ContainingBlock {
+                        inline_size: proposed_inline_size,
+                        block_size,
+                        style: &self.style,
+                    },
+                );
+
+                content_size = Vec2 {
+                    inline: proposed_inline_size,
+                    block: block_size.auto_is(|| {
+                        layout
+                            .content_block_size
+                            .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                    }),
+                };
+
+                // Now we know the block size of this attempted layout of a box with block
+                // size of auto. Try to fit it into our precalculated placement among the
+                // floats. If it fits, then we can stop trying layout candidates.
+                if placement.try_to_expand_for_auto_block_size(
+                    content_size.block + pbm.padding_border_sums.block,
+                    &placement_rect.size,
+                ) {
+                    break;
+                }
+
+                // The previous attempt to lay out this independent formatting context
+                // among the floats did not work, so we must unhoist any boxes from that
+                // attempt.
+                positioning_context.truncate(&positioning_context_length);
+            }
+
+            // Only set clearance if we would have cleared or the placement among floats moves
+            // the block further in the block direction. These two situations are the ones that
+            // prevent margin collapse.
+            clearance = if clear_position.is_some() || placement_rect.start_corner.block > ceiling {
+                Some(
+                    placement_rect.start_corner.block -
+                        sequential_layout_state
+                            .position_with_zero_clearance(&collapsed_margin_block_start),
+                )
+            } else {
+                None
             };
 
-            clearance = sequential_layout_state
-                .calculate_clearance(self.style.get_box().clear, &collapsed_margin_block_start);
-            inline_adjustment_from_floats = Length::zero();
+            inline_adjustment_from_floats = placement_rect.start_corner.inline -
+                sequential_layout_state
+                    .floats
+                    .containing_block_info
+                    .inline_start;
         }
 
         // TODO: solve_inline_margins_for_in_flow_block_level() doesn't take floats into account.
