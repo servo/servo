@@ -20,7 +20,6 @@ import os.path as path
 import shutil
 import subprocess
 import sys
-import tempfile
 
 from mach.decorators import (
     CommandArgument,
@@ -37,7 +36,7 @@ from servo.command_base import (
     is_macosx,
     is_windows,
 )
-from servo.build_commands import copy_dependencies, change_rpath_in_binary
+from servo.build_commands import copy_dependencies
 from servo.gstreamer import macos_gst_root
 from servo.util import delete, get_target_dir
 
@@ -55,9 +54,6 @@ PACKAGES = {
     ],
     'mac': [
         'release/servo-tech-demo.dmg',
-    ],
-    'macbrew': [
-        'release/brew/servo.tar.gz',
     ],
     'maven': [
         'android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
@@ -261,34 +257,6 @@ class PackageCommands(CommandBase):
             delete(dir_to_dmg)
             print("Packaged Servo into " + dmg_path)
 
-            print("Creating brew package")
-            dir_to_brew = path.join(target_dir, 'brew_tmp')
-            dir_to_tar = path.join(target_dir, 'brew')
-            if not path.exists(dir_to_tar):
-                os.makedirs(dir_to_tar)
-            tar_path = path.join(dir_to_tar, "servo.tar.gz")
-            if path.exists(dir_to_brew):
-                print("Cleaning up from previous packaging")
-                delete(dir_to_brew)
-            if path.exists(tar_path):
-                print("Deleting existing package")
-                os.remove(tar_path)
-            shutil.copytree(path.join(dir_to_root, 'resources'), path.join(dir_to_brew, 'resources'))
-            os.makedirs(path.join(dir_to_brew, 'bin'))
-            # Note that in the context of Homebrew, libexec is reserved for private use by the formula
-            # and therefore is not symlinked into HOMEBREW_PREFIX.
-            # The 'lib' sub-directory within 'libexec' is necessary to satisfy
-            # rpath relative install_names in the gstreamer packages
-            brew_servo_bin = path.join(dir_to_brew, 'bin', 'servo')
-            shutil.copy2(binary_path, brew_servo_bin)
-            change_rpath_in_binary(
-                brew_servo_bin, '@executable_path/lib/', '@executable_path/../libexec/lib/')
-            dir_to_lib = path.join(dir_to_brew, 'libexec', 'lib')
-            os.makedirs(dir_to_lib)
-            copy_dependencies(brew_servo_bin, dir_to_lib, dir_to_gst_lib)
-            archive_deterministically(dir_to_brew, tar_path, prepend_path='servo/')
-            delete(dir_to_brew)
-            print("Packaged Servo into " + tar_path)
         elif is_windows():
             dir_to_msi = path.join(target_dir, 'msi')
             if path.exists(dir_to_msi):
@@ -577,59 +545,6 @@ class PackageCommands(CommandBase):
                     print("Uploading %s to %s" % (os.path.join(base_dir, f), file_upload_key))
                     s3.upload_file(os.path.join(base_dir, f), BUCKET, file_upload_key)
 
-        def update_brew(package, timestamp):
-            print("Updating brew formula")
-
-            package_url = 'https://download.servo.org/nightly/macbrew/{}'.format(
-                nightly_filename(package, timestamp)
-            )
-            with open(package) as p:
-                digest = hashlib.sha256(p.read()).hexdigest()
-
-            brew_version = timestamp.strftime('%Y.%m.%d')
-
-            with tempfile.TemporaryDirectory(prefix='homebrew-servo') as tmp_dir:
-                def call_git(cmd, **kwargs):
-                    subprocess.check_call(
-                        ['git', '-C', tmp_dir] + cmd,
-                        **kwargs
-                    )
-
-                call_git([
-                    'clone',
-                    'https://github.com/servo/homebrew-servo.git',
-                    '.',
-                ])
-
-                script_dir = path.dirname(path.realpath(__file__))
-                with open(path.join(script_dir, 'servo-binary-formula.rb.in')) as f:
-                    formula = f.read()
-                formula = formula.replace('PACKAGEURL', package_url)
-                formula = formula.replace('SHA', digest)
-                formula = formula.replace('VERSION', brew_version)
-                with open(path.join(tmp_dir, 'Formula', 'servo-bin.rb'), 'w') as f:
-                    f.write(formula)
-
-                call_git(['add', path.join('.', 'Formula', 'servo-bin.rb')])
-                call_git([
-                    '-c', 'user.name=Tom Servo',
-                    '-c', 'user.email=servo@servo.org',
-                    'commit',
-                    '--message=Version Bump: {}'.format(brew_version),
-                ])
-
-                token = os.environ['GITHUB_HOMEBREW_TOKEN']
-
-                push_url = 'https://{}@github.com/servo/homebrew-servo.git'
-                # TODO(aneeshusa): Use subprocess.DEVNULL with Python 3.3+
-                with open(os.devnull, 'wb') as DEVNULL:
-                    call_git([
-                        'push',
-                        '-qf',
-                        push_url.format(token),
-                        'master',
-                    ], stdout=DEVNULL, stderr=DEVNULL)
-
         timestamp = datetime.utcnow().replace(microsecond=0)
         for package in packages_for_platform(platform):
             if path.isdir(package):
@@ -658,10 +573,5 @@ class PackageCommands(CommandBase):
         if platform == 'maven':
             for package in packages_for_platform(platform):
                 update_maven(package)
-
-        if platform == 'macbrew':
-            packages = list(packages_for_platform(platform))
-            assert(len(packages) == 1)
-            update_brew(packages[0], timestamp)
 
         return 0
