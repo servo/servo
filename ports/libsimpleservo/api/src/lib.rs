@@ -185,12 +185,11 @@ pub struct ServoGlue {
 }
 
 pub fn servo_version() -> String {
-    let cargo_version = env!("CARGO_PKG_VERSION");
-    let git_info = option_env!("GIT_INFO");
-    match git_info {
-        Some(info) => format!("Servo {}{}", cargo_version, info),
-        None => format!("Servo {}", cargo_version),
-    }
+    format!(
+        "Servo {}-{}",
+        env!("CARGO_PKG_VERSION"),
+        env!("VERGEN_GIT_SHA")
+    )
 }
 
 /// Test if a url is valid.

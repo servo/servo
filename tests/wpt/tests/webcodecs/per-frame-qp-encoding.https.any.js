@@ -28,6 +28,8 @@ function get_qp_range() {
       return {min: 1, max: 63};
     case '?vp9_p2':
       return {min: 1, max: 63};
+    case '?h264':
+      return {min: 1, max: 51};
   }
   return null;
 }
@@ -42,6 +44,9 @@ function set_qp(options, value) {
       return;
     case '?vp9_p2':
       options.vp9 = {quantizer: value};
+      return;
+    case '?h264':
+      options.avc = {quantizer: value};
       return;
   }
 }

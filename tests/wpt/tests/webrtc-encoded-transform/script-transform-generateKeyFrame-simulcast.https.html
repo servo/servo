@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>RTCRtpScriptTransformer.generateKeyFrame simulcast tests</title>
+    <meta name='timeout' content='long'>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src=/resources/testdriver.js></script>
+    <script src=/resources/testdriver-vendor.js></script>
+    <script src='../mediacapture-streams/permission-helper.js'></script>
+  </head>
+  <body>
+    <video id='video1' autoplay></video>
+    <video id='video2' autoplay></video>
+    <script src ='routines.js'></script>
+    <script src ='../webrtc/simulcast/simulcast.js'></script>
+    <script src ='../webrtc/RTCPeerConnection-helper.js'></script>
+    <script src='../webrtc/third_party/sdp/sdp.js'></script>
+    <script>
+
+const generateKeyFrame = (port, opts) => postMethod(port, 'generateKeyFrame', opts);
+const waitForFrame = port => postMethod(port, 'waitForFrame');
+
+promise_test(async (test) => {
+  const worker = await createWorker('script-transform-generateKeyFrame.js');
+  const transform = await createTransform(worker);
+  const senderPc = new RTCPeerConnection();
+  const receiverPc = new RTCPeerConnection();
+  // This will only work if first rid is 0
+  exchangeIceCandidates(senderPc, receiverPc);
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const {sender} = senderPc.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}]});
+  sender.transform = transform;
+  await doOfferToSendSimulcastAndAnswer(senderPc, receiverPc, ['0', '1', '2']);
+
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  // Spec says ridless generateKeyFrame selects the first stream, so should work
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+
+  message = await generateKeyFrame(sender.transform.port, {rid: '0'});
+  assert_equals(message.result, 'success');
+
+  message = await generateKeyFrame(sender.transform.port, {rid: '1'});
+  assert_equals(message.result, 'success');
+
+  message = await generateKeyFrame(sender.transform.port, {rid: '2'});
+  assert_equals(message.result, 'success');
+}, 'generateKeyFrame works with simulcast rids');
+
+promise_test(async (test) => {
+  const worker = await createWorker('script-transform-generateKeyFrame.js');
+  const transform = await createTransform(worker);
+  const senderPc = new RTCPeerConnection();
+  const receiverPc = new RTCPeerConnection();
+  // This will only work if first rid is 0
+  exchangeIceCandidates(senderPc, receiverPc);
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const {sender} = senderPc.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}]});
+  sender.transform = transform;
+  await doOfferToSendSimulcastAndAnswer(senderPc, receiverPc, ['0', '1', '2']);
+
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  // Remove the '1' encoding
+  await doOfferToSendSimulcastAndAnswer(senderPc, receiverPc, ['0', '2']);
+
+  // Spec says ridless generateKeyFrame selects the first stream, so should work
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+
+  message = await generateKeyFrame(sender.transform.port, {rid: '0'});
+  assert_equals(message.result, 'success');
+
+  message = await generateKeyFrame(sender.transform.port, {rid: '1'});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotFoundError', `Message: ${message.message}`);
+
+  message = await generateKeyFrame(sender.transform.port, {rid: '2'});
+  assert_equals(message.result, 'success');
+}, 'generateKeyFrame for rid that was negotiated away fails');
+
+promise_test(async (test) => {
+  const worker = await createWorker('script-transform-generateKeyFrame.js');
+  const transform = await createTransform(worker);
+  const senderPc = new RTCPeerConnection();
+  const receiverPc = new RTCPeerConnection();
+  // This will only work if first rid is 0
+  exchangeIceCandidates(senderPc, receiverPc);
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const {sender} = senderPc.addTransceiver(stream.getTracks()[0], {sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}]});
+  sender.transform = transform;
+  await doOfferToSendSimulcastAndAnswer(senderPc, receiverPc, ['0', '1', '2']);
+
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  // Drop to unicast
+  await doOfferToSendSimulcastAndAnswer(senderPc, receiverPc, []);
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+
+  // This is really lame, but there could be frames with rids in flight, and
+  // there's not really any good way to know when they've been flushed out.
+  // If RTCEncodedVideoFrame had a rid field, we might be able to watch for a
+  // frame without a rid. We can't just use generateKeyFrame(null) either,
+  // because a keyframe in flight with the first rid can resolve it. However,
+  // it's reasonable to expect that if we wait for a _second_
+  // generateKeyFrame(null), that should not be resolved with a keyframe for
+  // '0'
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+
+  message = await generateKeyFrame(sender.transform.port, {rid: '0'});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotFoundError', `Message: ${message.message}`);
+
+  message = await generateKeyFrame(sender.transform.port, {rid: '1'});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotFoundError', `Message: ${message.message}`);
+
+  message = await generateKeyFrame(sender.transform.port, {rid: '2'});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotFoundError', `Message: ${message.message}`);
+}, 'generateKeyFrame with rid after simulcast->unicast negotiation fails');
+
+    </script>
+  </body>
+</html>
+
+

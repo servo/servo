@@ -11,80 +11,106 @@ on:
     branches: ["**"]
   merge_group:
     types: [checks_requested]
+  workflow_call:
+    inputs:
+      platform:
+        required: true
+        type: string
+      layout:
+        required: true
+        type: string
+      unit-tests:
+        required: true
+        type: boolean
   workflow_dispatch:
+    inputs:
+      platform:
+        required: false
+        type: choice
+        options: ["none", "linux", "windows", "macos", "all", "sync"]
+      layout:
+        required: false
+        type: choice
+        options: ["none", "2013", "2020", "all"]
+      unit-tests:
+        required: false
+        type: boolean
 
 jobs:
   decision:
     name: Decision
     runs-on: ubuntu-20.04
     outputs:
-      skipped: ${{ steps.skipDecision.outputs.result }}
-      platforms: ${{ steps.platformDecision.outputs.result }}
+      configuration: ${{ steps.configuration.outputs.result }}
     steps:
-      - name: Skip Decision
-        id: skipDecision
+      - name: Configuration
+        id: configuration
         uses: actions/github-script@v6
         with:
-          result-encoding: string
           script: |
-            // Never skip workflow runs for pull requests or merge groups, which might
-            // need to actually run / retry WPT tests.
-            if (context.eventName == "pull_request" || context.eventName == "merge_group") {
-              return "run";
+            // Never skip workflow runs for pull requests, merge groups, or manually triggered
+            // workfows / try jobs, which might need to actually run / retry WPT tests.
+            if (!['issue_comment', 'merge_group', 'pull_request', 'workflow_run', 'workflow_call'].includes(context.eventName)) {
+              // Skip the run if an identical run already exists. This helps to avoid running
+              // the workflow over and over again for the same commit hash.
+              if ((await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: "main.yml",
+                head_sha: context.sha,
+                status: "success",
+              })).data.workflow_runs.length > 0) {
+                console.log("Skipping workflow, because of duplicate job.");
+                return { platform: "none" };
+              }
             }
-            // Skip the run if an identical run already exists. This helps to avoid running
-            // the workflow over and over again for the same commit hash.
-            if ((await github.rest.actions.listWorkflowRuns({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: "main.yml",
-              head_sha: context.sha,
-              status: "success",
-            })).data.workflow_runs.length > 0) {
-              return "skip"
-            } else {
-              return "run"
-            }
-      - name: Platform Decision
-        id: platformDecision
-        uses: actions/github-script@v6
-        with:
-          result-encoding: string
-          script: |
-            if ("${{ steps.skipDecision.outputs.result }}" == "skip") {
-              return "none";
-            }
-            if (context.eventName == "push" || context.eventName == "merge_group") {
-              return "all";
-            }
-            return "linux"
 
+            // We need to pick defaults if the inputs are not provided. Unprovided inputs
+            // are empty strings in this template.
+            let platform = "${{ inputs.platform }}" || "linux";
+            let layout = "${{ inputs.layout }}" || "none";
+            let unit_tests = Boolean(${{ inputs.unit-tests }})
+
+            // Merge queue runs and pushes to master should always trigger a full build and test.
+            if (["push", "merge_group"].includes(context.eventName)) {
+              platform = "all";
+              layout = "all";
+              unit_tests = true;
+            }
+
+            let returnValue =  {
+              platform,
+              layout,
+              unit_tests,
+            };
+            console.log("Using configuration: " + JSON.stringify(returnValue));
+            return returnValue;
 
   build-win:
     name: Windows
     needs: ["decision"]
-    if: ${{ needs.decision.outputs.platforms == 'all' }}
+    if: ${{ contains(fromJson('["windows", "all"]'), fromJson(needs.decision.outputs.configuration).platform) }}
     uses: ./.github/workflows/windows.yml
     with:
-      unit-tests: true
+      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
 
   build-mac:
     name: Mac
     needs: ["decision"]
-    if: ${{ needs.decision.outputs.platforms == 'all' }}
+    if: ${{ contains(fromJson('["macos", "all"]'), fromJson(needs.decision.outputs.configuration).platform) }}
     uses: ./.github/workflows/mac.yml
     with:
-      unit-tests: true
+      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
 
   build-linux:
     name: Linux
     needs: ["decision"]
-    if: ${{ needs.decision.outputs.platforms == 'all' || needs.decision.outputs.platforms == 'linux' }}
+    if: ${{ contains(fromJson('["linux", "all"]'), fromJson(needs.decision.outputs.configuration).platform) }}
     uses: ./.github/workflows/linux.yml
     with:
       wpt: 'test'
-      layout: ${{ (github.event_name == 'push' || github.event_name == 'merge_group') && 'all' || 'none' }}
-      unit-tests: ${{ github.event_name == 'push' || github.event_name == 'merge_group' }}
+      layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
+      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
 
   build-result:
     name: Result
@@ -99,11 +125,11 @@ jobs:
 
     steps:
       - name: Mark skipped jobs as successful
-        if: ${{ needs.decision.outputs.skipped == 'skip' }}
+        if: ${{ fromJson(needs.decision.outputs.configuration).platform == 'none' }}
         run: exit 0
       - name: Mark the job as successful
-        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         run: exit 0
       - name: Mark the job as unsuccessful
-        if: contains(join(needs.*.result, ','), 'failure') || contains(join(needs.*.result, ','), 'cancelled')
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: exit 1

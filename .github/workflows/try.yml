@@ -1,0 +1,125 @@
+name: Try
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  parse-comment:
+    name: Process Comment
+    if: ${{ github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    outputs:
+      configuration: ${{ steps.configuration.outputs.result }}
+    steps:
+      - uses: actions/github-script@v6
+        id: configuration
+        with:
+          script: |
+            function makeComment(body) {
+                console.log(body);
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body
+                })
+            }
+
+            let tokens = context.payload.comment.body.split(/\s+/);
+            let tagIndex = tokens.indexOf("@bors-servo");
+            if (tagIndex == -1 || tagIndex + 1 >= tokens.length) {
+              return { try: false };
+            }
+
+            let tryString = tokens[tagIndex + 1];
+            console.log("Found try string: '" + tryString + "'");
+            let returnValue = { try: false };
+            if (tryString == "try") {
+              returnValue = { try: true, platform: 'all', layout: 'all', unit_tests: true, };
+            } else if (tryString == "try=wpt") {
+              returnValue = { try: true, platform: 'linux', layout: '2013', unit_tests: false };
+            } else if (tryString == "try=wpt-2020") {
+              returnValue = { try: true, platform: 'linux', layout: '2020', unit_tests: false };
+            } else if (tryString == "try=linux") {
+              returnValue = { try: true, platform: 'linux', layout: 'none', unit_tests: true };
+            } else if (tryString == "try=mac") {
+              returnValue = { try: true, platform: 'macos', layout: 'none', unit_tests: true };
+            } else if (tryString == "try=windows") {
+              returnValue = { try: true, platform: 'windows', layout: 'none', unit_tests: true };
+            } else {
+              makeComment("🤔 Unknown try string '" + tryString + "'");
+              return returnValue;
+            }
+
+            if (returnValue.try) {
+              let username = context.payload.comment.user.login;
+              let result = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username
+              });
+              if (!result.data.user.permissions.push) {
+                makeComment('🔒 User @' + username + ' does not have permission to trigger try jobs.');
+                return { try: false };
+              }
+            }
+
+            const url = context.serverUrl +
+              "/" + context.repo.owner +
+              "/" + context.repo.repo +
+              "/actions/runs/" + context.runId;
+            const formattedURL = "[#" + context.runId + "](" + url + ")";
+            makeComment("🔨 Triggering try run (" + formattedURL + ") with platform=" + returnValue.platform + " and layout=" + returnValue.layout);
+            return returnValue;
+
+  run-try:
+    name: Run Try
+    needs: ["parse-comment"]
+    if: ${{ fromJson(needs.parse-comment.outputs.configuration).try}}
+    uses: ./.github/workflows/main.yml
+    with:
+      platform: ${{ fromJson(needs.parse-comment.outputs.configuration).platform }}
+      layout: ${{ fromJson(needs.parse-comment.outputs.configuration).layout }}
+      unit-tests: ${{ fromJson(needs.parse-comment.outputs.configuration).unit_tests }}
+
+  results:
+    name: Results
+    needs: ["parse-comment", "run-try"]
+    runs-on: ubuntu-latest
+    if: ${{ always() && fromJson(needs.parse-comment.outputs.configuration).try}}
+    steps:
+      - name: Success
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+              const url = context.serverUrl +
+                "/" + context.repo.owner +
+                "/" + context.repo.repo +
+                "/actions/runs/" + context.runId;
+              const formattedURL = "[#" + context.runId + "](" + url + ")";
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: "✨ Try run (" + formattedURL + ") " + "succeeded.",
+              });
+      - name: Failure
+        if: ${{ contains(needs.*.result, 'failure') }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+              const url = context.serverUrl +
+                "/" + context.repo.owner +
+                "/" + context.repo.repo +
+                "/actions/runs/" + context.runId;
+              const formattedURL = "[#" + context.runId + "](" + url + ")";
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: "⚠️ Try run (" + formattedURL + ") " + "failed.",
+              });
+
+

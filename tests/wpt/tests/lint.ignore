@@ -252,6 +252,9 @@ SET TIMEOUT: webaudio/the-audio-api/the-mediaelementaudiosourcenode-interface/me
 SET TIMEOUT: webauthn/*timeout.https.html
 SET TIMEOUT: webdriver/*
 SET TIMEOUT: webmessaging/*
+SET TIMEOUT: webrtc-encoded-transform/script-metadata-transform-worker.js
+SET TIMEOUT: webrtc-encoded-transform/script-transform-generateKeyFrame.js
+SET TIMEOUT: webrtc-encoded-transform/script-transform-sendKeyFrameRequest.js
 SET TIMEOUT: webstorage/eventTestHarness.js
 SET TIMEOUT: webvtt/*
 SET TIMEOUT: workers/*

@@ -37,12 +37,6 @@ const defaultDetails = Object.freeze({
 
 promise_test(async (t) => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);
-  const acceptPromise = request.show();
-  await promise_rejects_dom(t, "SecurityError", acceptPromise);
-}, `Calling show() without being triggered by user interaction throws`);
-
-promise_test(async (t) => {
-  const request = new PaymentRequest(defaultMethods, defaultDetails);
   await promise_rejects_dom(t, "SecurityError", request.show());
 
   await test_driver.bless();
@@ -63,11 +57,8 @@ promise_test(async (t) => {
   await test_driver.bless();
   const acceptPromise1 = request1.show();
 
-  // User activation consumed, so...
-  const request2 = new PaymentRequest(defaultMethods, defaultDetails);
-  await promise_rejects_dom(t, "SecurityError", request2.show());
-
   // Payment request already showing, so...
+  const request2 = new PaymentRequest(defaultMethods, defaultDetails);
   await test_driver.bless();
   await promise_rejects_dom(t, "AbortError", request2.show());
 

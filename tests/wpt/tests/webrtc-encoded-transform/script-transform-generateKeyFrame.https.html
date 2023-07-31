@@ -1,0 +1,229 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>RTCRtpScriptTransformer.generateKeyFrame tests</title>
+    <meta name='timeout' content='long'>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src=/resources/testdriver.js></script>
+    <script src=/resources/testdriver-vendor.js></script>
+    <script src='../mediacapture-streams/permission-helper.js'></script>
+  </head>
+  <body>
+    <video id='video1' autoplay></video>
+    <video id='video2' autoplay></video>
+    <script src ='routines.js'></script>
+    <script src ='../webrtc/simulcast/simulcast.js'></script>
+    <script src ='../webrtc/RTCPeerConnection-helper.js'></script>
+    <script src='../webrtc/third_party/sdp/sdp.js'></script>
+    <script>
+
+const generateKeyFrame = (port, opts) => postMethod(port, 'generateKeyFrame', opts);
+const waitForFrame = port => postMethod(port, 'waitForFrame');
+
+promise_test(async (test) => {
+  const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {audio: true});
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  // No rids
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
+
+  message = await waitForFrame(receiver.transform.port);
+  assert_equals(message, 'got frame');
+
+  // No rids
+  message = await generateKeyFrame(receiver.transform.port);
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
+}, 'generateKeyFrame() throws for audio');
+
+promise_test(async (test) => {
+  const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  // No rids
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+  // value should be a timestamp
+  assert_equals(typeof message.value, 'number');
+  assert_greater_than(message.value, 0);
+
+  // No rids
+  message = await generateKeyFrame(receiver.transform.port);
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
+
+  video1.srcObject = new MediaStream([receiver.track]);
+  await video1.play();
+}, 'generateKeyFrame(null) resolves for video sender, and throws for video receiver');
+
+promise_test(async (test) => {
+  const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  // Invalid rid, empty string
+  message = await generateKeyFrame(sender.transform.port, {rid: ''});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotAllowedError', `Message: ${message.message}`);
+
+  // Invalid rid, bad ASCII characters
+  message = await generateKeyFrame(sender.transform.port, {rid: '!?'});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotAllowedError', `Message: ${message.message}`);
+
+  // Invalid rid, bad ASCII characters (according to RFC 8852, but not RFC 8851)
+  message = await generateKeyFrame(sender.transform.port, {rid: 'foo-bar'});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotAllowedError', `Message: ${message.message}`);
+
+  // Invalid rid, bad ASCII characters (according to RFC 8852, but not RFC 8851)
+  message = await generateKeyFrame(sender.transform.port, {rid: 'foo_bar'});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotAllowedError', `Message: ${message.message}`);
+
+  // Invalid rid, bad non-ASCII characters
+  message = await generateKeyFrame(sender.transform.port, {rid: '(╯°□°)╯︵ ┻━┻'});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotAllowedError', `Message: ${message.message}`);
+
+  // Invalid rid, too long
+  message = await generateKeyFrame(sender.transform.port, {rid: 'a'.repeat(256)});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotAllowedError', `Message: ${message.message}`);
+}, 'generateKeyFrame throws NotAllowedError for invalid rid');
+
+promise_test(async (test) => {
+  const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  message = await generateKeyFrame(sender.transform.port, {rid: 'foo'});
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'NotFoundError', `Message: ${message.message}`);
+}, 'generateKeyFrame throws NotFoundError for unknown rid');
+
+promise_test(async (test) => {
+  const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+
+  const senderTransform = sender.transform;
+  sender.transform = null;
+
+  message = await generateKeyFrame(senderTransform.port);
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
+}, 'generateKeyFrame throws for unset transforms');
+
+promise_test(async (test) => {
+  const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+  // value should be a timestamp
+  assert_equals(typeof message.value, 'number');
+  assert_greater_than(message.value, 0);
+  const timestamp = message.value;
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+  // value should be a timestamp
+  assert_equals(typeof message.value, 'number');
+  assert_greater_than(message.value, timestamp);
+}, 'generateKeyFrame timestamp should advance');
+
+promise_test(async (test) => {
+  const {sender, receiver} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+  const count = message.count;
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+  assert_greater_than(message.count, count);
+}, 'await generateKeyFrame, await generateKeyFrame should see an increase in count of keyframes');
+
+promise_test(async (test) => {
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+
+  senderPc.getTransceivers()[0].direction = 'inactive';
+  await senderPc.setLocalDescription();
+  await receiverPc.setRemoteDescription(senderPc.localDescription);
+  await receiverPc.setLocalDescription();
+  await senderPc.setRemoteDescription(receiverPc.localDescription);
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
+
+  senderPc.getTransceivers()[0].direction = 'sendonly';
+  await senderPc.setLocalDescription();
+  await receiverPc.setRemoteDescription(senderPc.localDescription);
+  await receiverPc.setLocalDescription();
+  await senderPc.setRemoteDescription(receiverPc.localDescription);
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+}, 'generateKeyFrame rejects when the sender is negotiated inactive, and resumes succeeding when negotiated back to active');
+
+promise_test(async (test) => {
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+
+  senderPc.getTransceivers()[0].stop();
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
+}, 'generateKeyFrame rejects when the sender is stopped, even without negotiation');
+
+promise_test(async (test) => {
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-generateKeyFrame.js', {video: true});
+  let message = await waitForFrame(sender.transform.port);
+  assert_equals(message, 'got frame');
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'success');
+
+  await senderPc.getTransceivers()[0].sender.replaceTrack(null);
+
+  message = await generateKeyFrame(sender.transform.port);
+  assert_equals(message.result, 'failure');
+  assert_equals(message.value, 'InvalidStateError', `Message: ${message.message}`);
+}, 'generateKeyFrame rejects with a null track');
+
+// TODO: It would be nice to be able to test that pending generateKeyFrame
+// promises are _rejected_ when the transform is unset, or the sender stops
+// sending. However, getting the timing on this right is going to be very hard.
+// While we could stop the processing of frames before calling
+// generateKeyFrame, this would not necessarily help, because generateKeyFrame
+// promises are resolved _before_ enqueueing the frame into |readable|, and
+// right now the spec does not have a high water mark/backpressure on
+// |readable|, so pausing would not necessarily prevent the enqueue.
+    </script>
+  </body>
+</html>
+

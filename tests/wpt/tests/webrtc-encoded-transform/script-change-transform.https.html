@@ -37,7 +37,6 @@ promise_test(async (test) => {
     const stream = await new Promise((resolve, reject) => {
         createConnections(test, (firstConnection) => {
             sender = firstConnection.addTrack(localStream.getVideoTracks()[0], localStream);
-            firstConnection.getTransceivers()[0].setCodecPreferences([{mimeType: "video/VP8", clockRate: 90000}]);
             sender.transform = senderTransform1;
         }, (secondConnection) => {
             secondConnection.ontrack = (trackEvent) => {

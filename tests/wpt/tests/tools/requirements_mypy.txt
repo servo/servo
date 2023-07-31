@@ -8,7 +8,7 @@ types-python-dateutil==2.8.19.13
 types-PyYAML==6.0.12.10
 types-requests==2.31.0.1
 types-setuptools==68.0.0.2
-types-six==1.16.21.8
+types-six==1.16.21.9
 types-ujson==5.7.0.5
-types-urllib3==1.26.25.13
+types-urllib3==1.26.25.14
 typing_extensions==4.6.3

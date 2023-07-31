@@ -11,6 +11,8 @@
 <div id="log"></div>
 <script>
 
+const source_location_regex = /^([^@]+\@)?https?\:\/\/[^\/]+[^\:]+\:\d*$/;
+
 promise_test(async t => {
   const [entry, script] = await expect_long_frame_with_script(() => {
     requestAnimationFrame(function non_bound_function() {
@@ -18,6 +20,7 @@ promise_test(async t => {
     });
   }, script => script.name === "FrameRequestCallback", t);
   assert_true(script.sourceLocation?.startsWith("non_bound_function"));
+  assert_regexp_match(script.sourceLocation, source_location_regex);
 }, "Source location should be extracted from non-bound functions");
 
 promise_test(async t => {
@@ -28,6 +31,7 @@ promise_test(async t => {
     }).bind(object));
   }, script => script.name === "FrameRequestCallback", t);
   assert_true(script.sourceLocation?.startsWith("my_bound_function"));
+  assert_regexp_match(script.sourceLocation, source_location_regex);
 }, "Source location should be extracted from bound functions");
 
 promise_test(async t => {
@@ -37,6 +41,7 @@ promise_test(async t => {
     });
   }, script => script.name === "TimerHandler:setTimeout" && script.sourceLocation, t );
   assert_true(script.sourceLocation.includes("testharness.js"));
+  assert_regexp_match(script.sourceLocation, source_location_regex);
 }, "Source location should be extracted for setTimeout");
 
 </script>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>requireInteraction: true</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>
+  <button id="button">Push me to open a requireInteraction=true notification!</button>
+  <button id="finish">Push me if you are done</button>
+</p>
+Steps:
+<ol>
+  <li>Make sure you didn't block the notification permission.</li>
+  <li>Allow the notification permission if the prompt opens.</li>
+  <li>Click the first button.</li>
+  <li>See whether the notification disappears from the screen without interaction. It must not.</li>
+  <li>If you are sure it's not disappearing, then click that second button.</li>
+</ol>
+Why this is manual? Because
+<ol>
+  <li>
+    One need to wait for more than arbitrary platform-specific time to see
+    it really does not disappear automatically.
+  </li>
+  <li>There's simply no API to tell it's disappeared from the screen or not</li>
+</ol>
+<script>
+  setup({ explicit_timeout: true })
+
+  promise_test(async () => {
+    const permission = await Notification.requestPermission();
+    if (permission === "denied") {
+      throw new Error("Permission is denied, can't proceed");
+    }
+    await new Promise(r => button.onclick = r);
+    const n = new Notification("Test notification", { requireInteraction: true });
+    await new Promise((resolve, reject) => {
+      n.onshow = resolve;
+      n.onerror = () => reject(new Error(
+        "Notification failed, and there's no good error message. Maybe some permission issue?"
+      ));
+    });
+    await Promise.race([
+      new Promise(r => finish.onclick = r),
+      new Promise((r, reject) => {
+        n.onclose = n.onclick = () => reject(new Error(
+          "Uh, you should finish the test before you interact with the notification."
+        ));
+      }),
+    ]);
+  });
+</script>

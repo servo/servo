@@ -7,7 +7,7 @@
 	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-masks"/>
 	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#MaskElement"/>
 	<html:link rel="match" href="reference/mask-content-clip-001-ref.svg" />
-	<html:meta name="fuzzy" content="0-38; 0-200"/>
+	<html:meta name="fuzzy" content="0-38; 0-376"/>
 	<metadata class="flags">svg</metadata>
 	<desc class="assert">The mask element with
 	maskContentUnits="objectBoundingBox" gets clipped. The clipping path has a

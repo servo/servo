@@ -488,11 +488,13 @@ const attribute_test_with_validator = (loader, path, validator, run_test, test_l
   attribute_test_internal(loader, path, validator, run_test, test_label);
 };
 
-const network_error_entry_test = (originalURL, args, label) => {
+const network_error_entry_test = (originalURL, args, label, loader) => {
   const url = new URL(originalURL, location.href);
   const search = new URLSearchParams(url.search.substr(1));
   const timeBefore = performance.now();
-  loader = () => new Promise(resolve => fetch(url, args).catch(resolve));
+
+  // Load using `fetch()`, unless we're given a specific loader for this test.
+  loader ??= () => new Promise(resolve => fetch(url, args).catch(resolve));
 
   attribute_test(
     loader, url,

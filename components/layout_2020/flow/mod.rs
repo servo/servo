@@ -7,7 +7,7 @@
 use self::float::PlacementAmongFloats;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::flow::float::{ClearSide, ContainingBlockPositionInfo, FloatBox, SequentialLayoutState};
+use crate::flow::float::{ContainingBlockPositionInfo, FloatBox, SequentialLayoutState};
 use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
@@ -222,7 +222,7 @@ impl BlockFormattingContext {
         // (https://drafts.csswg.org/css2/#root-height), we implement this by imagining there is
         // an element with `clear: both` after the actual contents.
         let clearance = sequential_layout_state.and_then(|sequential_layout_state| {
-            sequential_layout_state.calculate_clearance(ClearSide::Both, &CollapsedMargin::zero())
+            sequential_layout_state.calculate_clearance(Clear::Both, &CollapsedMargin::zero())
         });
 
         IndependentLayout {
@@ -250,7 +250,8 @@ fn calculate_inline_content_size_for_block_level_boxes(
             BlockLevelBox::OutOfFlowFloatBox(ref mut float_box) => {
                 let size = float_box
                     .contents
-                    .outer_inline_content_sizes(layout_context, writing_mode);
+                    .outer_inline_content_sizes(layout_context, writing_mode)
+                    .max(ContentSizes::zero());
                 let style_box = &float_box.contents.style().get_box();
                 Some((size, style_box.float, style_box.clear))
             },
@@ -259,14 +260,17 @@ fn calculate_inline_content_size_for_block_level_boxes(
             } => {
                 let size = sizing::outer_inline(&style, writing_mode, || {
                     contents.inline_content_sizes(layout_context, style.writing_mode)
-                });
+                })
+                .max(ContentSizes::zero());
                 // A block in the same BFC can overlap floats, it's not moved next to them,
                 // so we shouldn't add its size to the size of the floats.
                 // Instead, we treat it like an independent block with 'clear: both'.
                 Some((size, Float::None, Clear::Both))
             },
             BlockLevelBox::Independent(ref mut independent) => {
-                let size = independent.outer_inline_content_sizes(layout_context, writing_mode);
+                let size = independent
+                    .outer_inline_content_sizes(layout_context, writing_mode)
+                    .max(ContentSizes::zero());
                 Some((size, Float::None, independent.style().get_box().clear))
             },
         }
@@ -654,7 +658,11 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
 
             // Introduce clearance if necessary.
             clearance = sequential_layout_state
-                .calculate_clearance_and_adjoin_margin(style, &block_start_margin);
+                .calculate_clearance(style.get_box().clear, &block_start_margin);
+            if clearance.is_some() {
+                sequential_layout_state.collapse_margins();
+            }
+            sequential_layout_state.adjoin_assign(&block_start_margin);
             if !start_margin_can_collapse_with_children {
                 sequential_layout_state.collapse_margins();
             }
@@ -873,7 +881,7 @@ impl NonReplacedFormattingContext {
 
         let block_start_margin = CollapsedMargin::new(margin.block_start);
         let clearance = sequential_layout_state
-            .calculate_clearance(ClearSide::from_style(&self.style), &block_start_margin);
+            .calculate_clearance(self.style.get_box().clear, &block_start_margin);
 
         let layout = self.layout(
             layout_context,
@@ -1033,8 +1041,8 @@ fn layout_in_flow_replaced_block_level<'a>(
     let mut adjustment_from_floats = Vec2::zero();
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
         let block_start_margin = CollapsedMargin::new(margin.block_start);
-        let clearance = sequential_layout_state
-            .calculate_clearance(ClearSide::from_style(style), &block_start_margin);
+        let clearance =
+            sequential_layout_state.calculate_clearance(style.get_box().clear, &block_start_margin);
 
         // We calculate a hypothetical value for `bfc_relative_block_position`,
         // assuming that there was no adjustment from floats. The real value will

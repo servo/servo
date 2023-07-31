@@ -1,6 +1,7 @@
 import pytest
 
 from . import navigate_and_assert
+from ... import any_string
 
 pytestmark = pytest.mark.asyncio
 
@@ -60,3 +61,30 @@ async def test_navigate_in_iframe(bidi_session, inline, new_tab):
 
     url_after = f"{frame_start_url}#foo"
     await navigate_and_assert(bidi_session, frame, url_after)
+
+
+async def test_navigate_unique_navigation_id(bidi_session, inline, new_tab):
+    url = inline("<div>foo</div>")
+
+    result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url, wait="complete"
+    )
+    any_string(result["navigation"])
+
+    hash_result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=f"{url}#foo", wait="complete"
+    )
+    any_string(hash_result["navigation"])
+    assert hash_result["navigation"] != result["navigation"]
+
+    other_hash_result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=f"{url}#bar", wait="complete"
+    )
+    any_string(other_hash_result["navigation"])
+    assert other_hash_result["navigation"] != hash_result["navigation"]
+
+    same_hash_result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=f"{url}#bar", wait="complete"
+    )
+    any_string(same_hash_result["navigation"])
+    assert same_hash_result["navigation"] != other_hash_result["navigation"]
