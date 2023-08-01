@@ -21,6 +21,8 @@ import sys
 import traceback
 import urllib
 
+import toml
+
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -283,15 +285,16 @@ class MachCommands(CommandBase):
                      default='1',
                      help='Keep up to this many most recent nightlies')
     def clean_nightlies(self, force=False, keep=None):
-        print("Current Rust version for Servo: {}".format(self.rust_toolchain()))
+        print(f"Current Rust version for Servo: {self.rust_toolchain()}")
         old_toolchains = []
         keep = int(keep)
-        stdout = subprocess.check_output(['git', 'log', '--format=%H', 'rust-toolchain'])
+        stdout = subprocess.check_output(['git', 'log', '--format=%H', 'rust-toolchain.toml'])
         for i, commit_hash in enumerate(stdout.split(), 1):
             if i > keep:
-                toolchain = subprocess.check_output(
-                    ['git', 'show', '%s:rust-toolchain' % commit_hash])
-                old_toolchains.append(toolchain.strip())
+                toolchain_config_text = subprocess.check_output(
+                    ['git', 'show', f'{commit_hash}:rust-toolchain.toml'])
+                toolchain = toml.loads(toolchain_config_text)['toolchain']['channel']
+                old_toolchains.append(toolchain)
 
         removing_anything = False
         stdout = subprocess.check_output(['rustup', 'toolchain', 'list'])
@@ -300,10 +303,10 @@ class MachCommands(CommandBase):
                 if toolchain_with_host.startswith(old):
                     removing_anything = True
                     if force:
-                        print("Removing {}".format(toolchain_with_host))
+                        print(f"Removing {toolchain_with_host}")
                         check_call(["rustup", "uninstall", toolchain_with_host])
                     else:
-                        print("Would remove {}".format(toolchain_with_host))
+                        print(f"Would remove {toolchain_with_host}")
         if not removing_anything:
             print("Nothing to remove.")
         elif not force:

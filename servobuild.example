@@ -4,12 +4,6 @@
 
 # Tool options
 [tools]
-# If use-rustup is set to false, mach will run for example "cargo build"
-# instead of "rustup run --install <toolchain> cargo build"
-# It is then the user’s responsibility to ensure that cargo and especially rustc
-# in $PATH are versions compatible with Servo.
-use-rustup = true
-
 # If rustc-with-gold is true, will try to find and use gold linker with rustc.
 # Defaults to true
 rustc-with-gold = true

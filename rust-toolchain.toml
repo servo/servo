@@ -1,0 +1,11 @@
+[toolchain]
+channel = "nightly-2023-02-01"
+components = [
+    # https://github.com/rust-lang/rust/issues/72594#issuecomment-633779564
+    "llvm-tools-preview",
+    # For components/script_plugins, https://github.com/rust-lang/rust/pull/67469
+    "rustc-dev",
+    "rust-docs",
+    "rustfmt-preview",
+]
+profile = "minimal"

@@ -244,7 +244,6 @@ class CommandBase(object):
 
         context.sharedir = self.config["tools"]["cache-dir"]
 
-        self.config["tools"].setdefault("use-rustup", True)
         self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
         self.config.setdefault("build", {})
@@ -272,23 +271,12 @@ class CommandBase(object):
     _rust_toolchain = None
 
     def rust_toolchain(self):
-        if self._rust_toolchain is None:
-            filename = path.join(self.context.topdir, "rust-toolchain")
-            with open(filename) as f:
-                self._rust_toolchain = f.read().strip()
+        if self._rust_toolchain:
+            return self._rust_toolchain
 
-            if platform.system() == "Windows":
-                self._rust_toolchain += "-x86_64-pc-windows-msvc"
-
+        toolchain_file = path.join(self.context.topdir, "rust-toolchain.toml")
+        self._rust_toolchain = toml.load(toolchain_file)['toolchain']['channel']
         return self._rust_toolchain
-
-    def call_rustup_run(self, args, **kwargs):
-        if self.config["tools"]["use-rustup"]:
-            assert self.context.bootstrapped
-            args = ["rustup" + BIN_SUFFIX, "run", "--install", self.rust_toolchain()] + args
-        else:
-            args[0] += BIN_SUFFIX
-        return call(args, **kwargs)
 
     def get_top_dir(self):
         return self.context.topdir
@@ -933,7 +921,7 @@ class CommandBase(object):
         if with_debug_assertions or self.config["build"]["debug-assertions"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
-        return self.call_rustup_run(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
+        return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
     def android_support_dir(self):
         return path.join(self.context.topdir, "support", "android")
@@ -986,43 +974,19 @@ class CommandBase(object):
             return True
         return False
 
-    def ensure_bootstrapped(self, rustup_components=None):
+    def ensure_bootstrapped(self):
         if self.context.bootstrapped:
             return
 
         servo.platform.get().passive_bootstrap()
 
-        if self.config["tools"]["use-rustup"]:
-            self.ensure_rustup_version()
-            toolchain = self.rust_toolchain()
-
-            status = subprocess.call(
-                ["rustup", "run", toolchain, "rustc", "--version"],
-                stdout=open(os.devnull, "wb"),
-                stderr=subprocess.STDOUT,
+        needs_toolchain_install = self.cross_compile_target \
+            and self.cross_compile_target not in check_output(
+                ["rustup", "target", "list", "--installed"], cwd=self.context.topdir
             )
-            if status:
-                check_call(["rustup", "toolchain", "install", "--profile", "minimal", toolchain])
-
-            installed = check_output(
-                ["rustup", "component", "list", "--installed", "--toolchain", toolchain]
-            )
-            required_components = {
-                # For components/script_plugins, https://github.com/rust-lang/rust/pull/67469
-                "rustc-dev",
-                # https://github.com/rust-lang/rust/issues/72594#issuecomment-633779564
-                "llvm-tools-preview",
-            }
-            for component in set(rustup_components or []) | required_components:
-                if component.encode("utf-8") not in installed:
-                    check_call(["rustup", "component", "add", "--toolchain", toolchain, component])
-
-            needs_toolchain_install = self.cross_compile_target \
-                and self.cross_compile_target.encode("utf-8") not in check_output(
-                    ["rustup", "target", "list", "--installed", "--toolchain", toolchain]
-                )
-            if needs_toolchain_install:
-                check_call(["rustup", "target", "add", "--toolchain", toolchain, self.cross_compile_target])
+        if needs_toolchain_install:
+            check_call(["rustup", "target", "add", self.cross_compile_target],
+                       cwd=self.context.topdir)
 
         self.context.bootstrapped = True
 
@@ -1042,7 +1006,7 @@ class CommandBase(object):
                 sys.exit(1)
             raise
         version = tuple(map(int, re.match(br"rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
-        version_needed = (1, 21, 0)
+        version_needed = (1, 23, 0)
         if version < version_needed:
             print("rustup is at version %s.%s.%s, Servo requires %s.%s.%s or more recent." % (version + version_needed))
             print("Try running 'rustup self update'.")
