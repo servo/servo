@@ -34,18 +34,13 @@ No-Vary-Search headers also match during navigation</title>
 <meta name="variant" content="?22-22">
 <meta name="variant" content="?23-23">
 <meta name="variant" content="?24-24">
-<meta name="variant" content="?25-last">
+<meta name="variant" content="?25-25">
+<meta name="variant" content="?26-26">
+<meta name="variant" content="?27-27">
+<meta name="variant" content="?28-last">
 
 <script>
   setup(() => assertSpeculationRulesIsSupported());
-
-  function addNoVarySearchHeaderUsingQueryParam(url, value){
-    // Use nvs_header query parameter to ask the wpt server
-    // to populate No-Vary-Search response header.
-    if(value){
-      url.searchParams.append("nvs_header", value);
-    }
-  }
 
   /*
     remoteAgent: the RemoteContext instance used to communicate between the
@@ -288,6 +283,30 @@ No-Vary-Search headers also match during navigation</title>
     prefetchQuery: "b=5&a=3&d=6&c=3",
     navigateQuery: "b=5&a=3&d=6&c=3",
     shouldUsePrefetch: true},
+
+   {description:"Use the in-flight prefetch. Invalid No-Vary-Search means default URL variance." +
+                " The prefetched and the navigated URLs have to be the same.",
+    noVarySearch: "",
+    noVarySearchHint: "params=(a)",
+    prefetchQuery: "b=5&a=3&d=6&c=3",
+    navigateQuery: "b=5&a=3&d=6&c=3",
+    shouldUsePrefetch: true},
+
+   {description:"Don't use the in-flight prefetch. Invalid No-Vary-Search means default URL variance." +
+                " The prefetched and the navigated URLs are not the same.",
+    noVarySearch: "",
+    noVarySearchHint: "params=(a)",
+    prefetchQuery: "b=5&a=3&d=6&c=3",
+    navigateQuery: "b=5&a=4&d=6&c=3",
+    shouldUsePrefetch: false},
+
+   {description:"No-Vary-Search hint must be a string so the speculation rule will be ignored." +
+                " There is no prefetch happening.",
+    noVarySearch: "",
+    noVarySearchHint: 0,
+    prefetchQuery: "b=5&a=3&d=6&c=3",
+    navigateQuery: "b=5&a=3&d=6&c=3",
+    shouldUsePrefetch: false},
 
    {description:"Use the in-flight prefetch. Empty No-Vary-Search means default URL variance." +
                 " The prefetched and the navigated URLs have to be the same.",

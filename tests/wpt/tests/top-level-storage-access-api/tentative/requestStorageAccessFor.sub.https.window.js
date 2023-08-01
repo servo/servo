@@ -78,7 +78,7 @@ promise_test(
           'granted');
 
       const frame = await CreateFrame(
-        '/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js');
+        altOrigin + '/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js');
 
       await RunCallbackWithGesture(() => document.requestStorageAccessFor(altOrigin));
       assert_true(await RequestStorageAccessInFrame(frame));

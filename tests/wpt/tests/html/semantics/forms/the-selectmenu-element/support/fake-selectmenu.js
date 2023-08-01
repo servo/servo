@@ -1,20 +1,14 @@
+function replaceChildElement(newChild, oldChild) {
+  oldChild.parentElement.replaceChild(newChild, oldChild);
+}
+
 function createFakeSelectmenu(selectedValueText) {
-  const selectmenu = document.createElement('div');
-  selectmenu.classList.add('fake-selectmenu');
-
+  const selectmenu = document.createElement('button');
+  selectmenu.classList.add('fake-selectmenu-internal-selectmenu-button');
   selectmenu.innerHTML = `
-    <button class="fake-selectmenu-internal-selectmenu-button">
-      <div class="fake-selectmenu-selected-value"></div>
-      <div class="fake-selectmenu-internal-selectmenu-button-icon"></div>
-    </button>
+    <div class="fake-selectmenu-selected-value"></div>
+    <div class="fake-selectmenu-internal-selectmenu-button-icon"></div>
     <style>
-    .fake-selectmenu {
-      display: inline-block;
-      user-select: none;
-      font-family: sans-serif;
-      font-size: .875em;
-    }
-
     .fake-selectmenu-internal-selectmenu-button {
       display: inline-flex;
       align-items: center;
@@ -25,6 +19,13 @@ function createFakeSelectmenu(selectedValueText) {
       border: 1px solid ButtonBorder;
       border-radius: 0.25em;
       padding: 0.25em;
+      overflow-x:hidden;
+      overflow-y:hidden;
+    }
+
+    .fake-selectmenu-selected-value {
+      color: FieldText;
+      flex-grow:1;
     }
 
     .fake-selectmenu-internal-selectmenu-button-icon {

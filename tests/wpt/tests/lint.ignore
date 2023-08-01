@@ -605,7 +605,7 @@ AHEM SYSTEM FONT: acid/acid3/test.html
 AHEM SYSTEM FONT: resource-timing/font-timestamps.html
 AHEM SYSTEM FONT: resource-timing/initiator-type/style.html
 AHEM SYSTEM FONT: resource-timing/resources/iframe-reload-TAO.sub.html
-AHEM SYSTEM FONT: html/canvas/element/drawing-text-to-the-canvas/2d.text.measure.fontBoundingBox.ahem.html
+AHEM SYSTEM FONT: html/canvas/element/text/2d.text.measure.fontBoundingBox.ahem.html
 AHEM SYSTEM FONT: css/css-font-loading/fontface-override-descriptors.html
 AHEM SYSTEM FONT: css/css-font-loading/fontface-size-adjust-descriptor.html
 AHEM SYSTEM FONT: css/css-font-loading/fontface-size-adjust-descriptor-ref.html

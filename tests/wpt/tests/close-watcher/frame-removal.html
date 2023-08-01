@@ -10,7 +10,7 @@ promise_test(async (t) => {
   watcher.oncancel = () => i.remove();
   watcher.onclose = () => t.unreached_func("close event must not fire");
 
-  watcher.close();
+  watcher.requestClose();
 }, "detaching the iframe during the cancel event");
 
 promise_test(async (t) => {
@@ -18,7 +18,7 @@ promise_test(async (t) => {
   const watcher = new i.contentWindow.CloseWatcher();
   watcher.onclose = () => i.remove();
 
-  watcher.close();
+  watcher.requestClose();
 }, "detaching the iframe during the close event");
 
 promise_test(async (t) => {
@@ -38,6 +38,16 @@ promise_test(async (t) => {
 
   watcher.close();
 }, "detaching the iframe then calling close()");
+
+promise_test(async (t) => {
+  const i = await setupIframe();
+  const watcher = new i.contentWindow.CloseWatcher();
+  watcher.oncancel = () => t.unreached_func("cancel event must not fire");
+  watcher.onclose = () => t.unreached_func("close event must not fire");
+  i.remove();
+
+  watcher.requestClose();
+}, "detaching the iframe then calling requestClose()");
 
 promise_test(async (t) => {
   const i = await setupIframe();

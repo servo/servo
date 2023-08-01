@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <title>CSS Text Module Test: parsing text-transform with invalid values</title>
 <link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-text-transform">
-<meta name="assert" content="text-transform supports only the grammar 'none | [capitalize | uppercase | lowercase ] || full-width || full-size-kana'.">
+<link rel="help" href="https://w3c.github.io/mathml-core/#new-text-transform-values">
+<meta name="assert" content="text-transform supports only the grammar 'none | [capitalize | uppercase | lowercase ] || full-width || full-size-kana | math-auto'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -18,6 +19,22 @@ test_invalid_value("text-transform", "capitalize full-width lowercase");
 test_invalid_value("text-transform", "uppercase full-size-kana uppercase");
 test_invalid_value("text-transform", "full-width full-size-kana full-width");
 test_invalid_value("text-transform", "full-size-kana capitalize full-size-kana");
+
+
+// math-auto keyword cannot be combined with other values.
+test_invalid_value("text-transform", "none math-auto");
+test_invalid_value("text-transform", "math-auto none");
+test_invalid_value("text-transform", "uppercase math-auto");
+test_invalid_value("text-transform", "math-auto uppercase");
+test_invalid_value("text-transform", "lowercase math-auto");
+test_invalid_value("text-transform", "math-auto lowercase");
+test_invalid_value("text-transform", "capitalize math-auto");
+test_invalid_value("text-transform", "math-auto capitalize");
+test_invalid_value("text-transform", "full-width math-auto");
+test_invalid_value("text-transform", "math-auto full-width");
+test_invalid_value("text-transform", "full-size-kana math-auto");
+test_invalid_value("text-transform", "math-auto full-size-kana");
+test_invalid_value("text-transform", "math-auto math-auto");
 </script>
 </body>
 </html>

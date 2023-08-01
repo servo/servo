@@ -5,6 +5,16 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/html/canvas/resources/canvas-tests.js"></script>
 <link rel="stylesheet" href="/html/canvas/resources/canvas-tests.css">
+{% if fonts %}
+<style>
+{% for font in fonts %}
+@font-face {
+  font-family: {{ font }};
+  src: url("/fonts/{{ font }}.ttf");
+}
+{% endfor %}
+</style>
+{% endif %}
 <body class="show_output">
 
 <h1>{{ name }}</h1>
@@ -13,6 +23,11 @@
 {% if notes %}<p class="notes">{{ notes }}
 {% else %}
 
+{% endif %}
+{% if fonts and not font_unused_in_dom %}
+{% for font in fonts %}
+<span style="font-family: {{ font }}; position: absolute; visibility: hidden">A</span>
+{% endfor %}
 {% endif %}
 <p class="output">Actual output:</p>
 <canvas id="c" class="output" width="{{ size[0] }}" height="{{ size[1] }}"

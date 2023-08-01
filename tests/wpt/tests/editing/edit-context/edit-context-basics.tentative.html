@@ -14,10 +14,7 @@
       const editContextDict = {
         text: "Hello world",
         selectionStart: 11,
-        selectionEnd: 11,
-        inputMode: "text",
-        inputPanelPolicy: "auto",
-        enterKeyHint: "enter"
+        selectionEnd: 11
       };
       const editContext = new EditContext(editContextDict);
       assert_not_equals(editContext, null);
@@ -25,9 +22,6 @@
       assert_equals(editContext.text, "Hello world");
       assert_equals(editContext.selectionStart, 11);
       assert_equals(editContext.selectionEnd, 11);
-      assert_equals(editContext.inputMode, "text");
-      assert_equals(editContext.inputPanelPolicy, "auto");
-      assert_equals(editContext.enterKeyHint, "enter");
     }, 'Testing EditContext Dictionary Init');
 
     test(function() {

@@ -17,11 +17,11 @@ test(() => {
   watcher.oncancel = () => oncancel_called = true;
   watcher.onclose = () => onclose_called = true;
 
-  watcher.close();
+  watcher.requestClose();
 
   assert_false(oncancel_called);
   assert_false(onclose_called);
-}, "already-aborted AbortSignal then close() fires no events");
+}, "already-aborted AbortSignal then requestClose() fires no events");
 
 test(() => {
   let controller = new AbortController();
@@ -32,11 +32,11 @@ test(() => {
   watcher.onclose = () => onclose_called = true;
 
   controller.abort();
-  watcher.close();
+  watcher.requestClose();
 
   assert_false(oncancel_called);
   assert_false(onclose_called);
-}, "abortController.abort() then close() fires no events");
+}, "abortController.abort() then requestClose() fires no events");
 
 test(() => {
   let controller = new AbortController();
@@ -46,12 +46,12 @@ test(() => {
   watcher.oncancel = () => oncancel_call_count_++;
   watcher.onclose = () => onclose_call_count_++;
 
-  watcher.close();
+  watcher.requestClose();
   controller.abort();
 
   assert_equals(oncancel_call_count_, 0);
   assert_equals(onclose_call_count_, 1);
-}, "close() then abortController.abort() fires only one close event");
+}, "requestClose() then abortController.abort() fires only one close event");
 
 promise_test(async () => {
   let watcher = new CloseWatcher({ signal: AbortSignal.abort() });
@@ -110,7 +110,7 @@ promise_test(async t => {
   watcher.oncancel = () => { controller.abort(); }
   watcher.onclose = t.unreached_func("onclose");
   await test_driver.bless("give user activation so that cancel will fire", () => {
-    watcher.close();
+    watcher.requestClose();
   });
 }, "abortController.abort() inside oncancel");
 
@@ -118,6 +118,6 @@ test(t => {
   let controller = new AbortController();
   let watcher = new CloseWatcher({ signal: controller.signal });
   watcher.onclose = () => { controller.abort(); }
-  watcher.close();
+  watcher.requestClose();
 }, "abortController.abort() inside onclose is benign");
 </script>

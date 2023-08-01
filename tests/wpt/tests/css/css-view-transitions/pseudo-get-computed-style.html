@@ -14,6 +14,8 @@ div {
   background: blue;
   contain: paint;
   view-transition-name: target;
+  mix-blend-mode: multiply;
+  text-orientation: upright;
 }
 ::view-transition-image-pair(target) {
   position: fixed;
@@ -29,22 +31,28 @@ promise_test(() => {
     let transition = document.startViewTransition(() => {
       assert_equals(getComputedStyle(document.documentElement, ":view-transition").position, "fixed", ":view-transition");
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(target)").position, "absolute", "container(target)");
+      assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(target)").mixBlendMode, "multiply", "container(target)");
+      assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(target)").textOrientation, "upright", "container(target)");
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(target)").position, "absolute", "wrapper(target)");
 
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-old(target)").position, "absolute", "outgoing(target)");
 
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").position, "absolute", "container(root)");
+      assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").mixBlendMode, "normal", "container(root)");
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(root)").position, "absolute", "wrapper(root)");
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-old(root)").position, "absolute", "outgoing(root)");
 
       requestAnimationFrame(() => {
         assert_equals(getComputedStyle(document.documentElement, ":view-transition").position, "fixed", "raf :view-transition");
         assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(target)").position, "absolute", "raf container(target)");
+        assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(target)").mixBlendMode, "multiply", "raf container(target)");
+      assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(target)").textOrientation, "upright", "raf container(target)");
         assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(target)").position, "fixed", "raf wrapper(target)");
 
         assert_equals(getComputedStyle(document.documentElement, ":view-transition-old(target)").position, "absolute", "raf outgoing(target)");
 
         assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").position, "absolute", "raf container(root)");
+        assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").mixBlendMode, "normal", "raf container(root)");
         assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(root)").position, "absolute", "raf wrapper(root)");
         assert_equals(getComputedStyle(document.documentElement, ":view-transition-old(root)").position, "absolute", "raf outgoing(root)");
       });
@@ -67,10 +75,16 @@ promise_test(() => {
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").position, "absolute");
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(root)").position, "absolute");
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-old(root)").position, "absolute");
+
+      target.remove();
     });
+
+    await transition.ready;
 
     assert_equals(getComputedStyle(document.documentElement, ":view-transition").position, "fixed");
     assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(target)").position, "absolute");
+    assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(target)").mixBlendMode, "multiply");
+    assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(target)").textOrientation, "upright");
     assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(target)").position, "fixed");
 
     assert_equals(getComputedStyle(document.documentElement, ":view-transition-old(target)").position, "absolute");
@@ -90,5 +104,5 @@ promise_test(() => {
 
     resolve();
   });
-}, "position property of pseudo elements with prepare api");
+}, "properties of pseudo elements outside of transition");
 </script>

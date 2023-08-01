@@ -133,6 +133,19 @@ var TestUtils = (function() {
       }
     },
     {
+      "name": "Storage Buckets",
+      "supported": function() { return !!navigator.storageBuckets; },
+      "add": function() {
+        return navigator.storageBuckets.open('inbox_bucket');
+      },
+      "isEmpty": function() {
+        return new Promise(async function(resolve, reject) {
+          var keys = await navigator.storageBuckets.keys();
+          resolve(!keys.includes('inbox_bucket'));
+        });
+      }
+    },
+    {
       "name": "WebSQL",
       "supported": function() { return !!window.openDatabase; },
       "add": function() {

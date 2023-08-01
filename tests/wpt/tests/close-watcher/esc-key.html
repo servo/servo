@@ -1,0 +1,77 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/helpers.js"></script>
+
+<!--
+  Tests in this file are around the interaction of the Esc key specifically, not
+  the general concept of close signals. Ideally, all other tests would work
+  as-is if you changed the implementation of sendCloseSignal(). These tests
+  assume that Esc is the close signal for the platform being tested.
+-->
+
+<div id='d' style='height: 100px; width: 100px'></div>
+<script>
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  await sendEscKey();
+
+  assert_array_equals(events, ["close"]);
+}, "Esc key does not count as user activation, so if it is the sole user interaction, that fires close but not cancel");
+
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  window.onkeydown = e => e.preventDefault();
+
+  await sendEscKey();
+
+  assert_array_equals(events, []);
+}, "A keydown listener can prevent the Esc keypress from being interpreted as a close signal");
+
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  window.onkeyup = e => e.preventDefault();
+
+  await sendEscKey();
+
+  assert_array_equals(events, []);
+}, "A keyup listener can prevent the Esc keypress from being interpreted as a close signal");
+
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  window.onkeypress = e => e.preventDefault();
+
+  await sendEscKey();
+
+  assert_array_equals(events, []);
+}, "A keypress listener can prevent the Esc keypress from being interpreted as a close signal");
+
+test(t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  let keydown = new KeyboardEvent('keydown', {'key': 'Escape', 'keyCode': 27});
+  window.dispatchEvent(keydown);
+  let keyup = new KeyboardEvent('keyup', {'key': 'Escape', 'keyCode': 27});
+  window.dispatchEvent(keyup);
+
+  assert_array_equals(events, []);
+
+  let keyup2 = document.createEvent("Event");
+  keyup2.initEvent("keyup", true);
+  window.dispatchEvent(keyup2);
+
+  assert_array_equals(events, []);
+}, "close via synthesized Esc key must not work");
+</script>

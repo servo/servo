@@ -150,8 +150,33 @@ class ContentShellErrorsPart(ProtocolPart):
         return result
 
 
+class ContentShellBasePart(ProtocolPart):
+    """This protocol part provides functionality common to all executors.
+
+    In particular, this protocol part implements `wait()`, which, when
+    `--pause-after-test` is enabled, test runners block on until the next test
+    should run.
+    """
+    name = "base"
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.io_stopped = parent.browser.io_stopped
+
+    def wait(self):
+        # This worker is unpaused when the browser window is closed, which this
+        # `multiprocessing.Event` signals.
+        self.io_stopped.wait()
+        # Never rerun the test.
+        return False
+
+
 class ContentShellProtocol(Protocol):
-    implements = [ContentShellTestPart, ContentShellErrorsPart]
+    implements = [
+        ContentShellBasePart,
+        ContentShellTestPart,
+        ContentShellErrorsPart,
+    ]
     init_timeout = 10  # Timeout (seconds) to wait for #READY message.
 
     def connect(self):

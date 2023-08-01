@@ -26,7 +26,7 @@ const alwaysNone = [
 
 test_interpolation({
   property: 'display',
-  animationType: 'discrete',
+  behavior: 'allow-discrete',
   from: 'block',
   to: 'none',
 }, [
@@ -43,7 +43,7 @@ test_interpolation({
 // can be worked around by using @initial.
 test_interpolation({
   property: 'display',
-  animationType: 'discrete',
+  behavior: 'allow-discrete',
   from: 'none',
   to: 'block',
   'CSS Transitions with transition: all': alwaysBlock,
@@ -65,14 +65,14 @@ test_no_interpolation({
 
 test_interpolation({
   property: 'display',
-  animationType: 'discrete',
+  behavior: 'allow-discrete',
   from: 'block',
   to: 'block'
 }, alwaysBlock);
 
 test_interpolation({
   property: 'display',
-  animationType: 'discrete',
+  behavior: 'allow-discrete',
   from: 'none',
   to: 'none'
 }, alwaysNone);

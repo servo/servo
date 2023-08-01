@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Text: getComputedStyle().textTransform</title>
 <link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-text-transform">
+<link rel="help" href="https://w3c.github.io/mathml-core/#new-text-transform-values">
 <meta name="assert" content="text-transform computed value is specified keywords.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -19,6 +20,7 @@ test_computed_value("text-transform", "uppercase");
 test_computed_value("text-transform", "lowercase");
 test_computed_value("text-transform", "full-width");
 test_computed_value("text-transform", "full-size-kana");
+test_computed_value("text-transform", "math-auto");
 
 test_computed_value("text-transform", "capitalize full-width");
 test_computed_value("text-transform", "full-width full-size-kana");

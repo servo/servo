@@ -12,10 +12,10 @@ main() {
 
     # Exclude tests that rely on font rendering
     excluded=(
-        'html/canvas/element/drawing-text-to-the-canvas/2d.text.draw.fill.basic.png'
-        'html/canvas/element/drawing-text-to-the-canvas/2d.text.draw.fill.maxWidth.large.png'
-        'html/canvas/element/drawing-text-to-the-canvas/2d.text.draw.fill.rtl.png'
-        'html/canvas/element/drawing-text-to-the-canvas/2d.text.draw.stroke.basic.png'
+        'html/canvas/element/text/2d.text.draw.fill.basic.png'
+        'html/canvas/element/text/2d.text.draw.fill.maxWidth.large.png'
+        'html/canvas/element/text/2d.text.draw.fill.rtl.png'
+        'html/canvas/element/text/2d.text.draw.stroke.basic.png'
         'html/canvas/offscreen/text/2d.text.draw.fill.basic.png'
         'html/canvas/offscreen/text/2d.text.draw.fill.maxWidth.large.png'
         'html/canvas/offscreen/text/2d.text.draw.fill.rtl.png'

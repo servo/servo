@@ -214,7 +214,10 @@ for (const curTest of tests) {
     if (typeof curTest.cleanUp == "function") {
       await curTest.cleanUp(contentWindow, contentDocument, editingHost);
     }
-    iframe.srcdoc = "";
+    await new Promise(resolve => {
+      iframe.addEventListener("load", resolve, {once: true});
+      iframe.srcdoc = "";
+    });
     contentDocument.documentElement.scrollHeight; // flush pending things
     await new Promise(resolve =>
       requestAnimationFrame(

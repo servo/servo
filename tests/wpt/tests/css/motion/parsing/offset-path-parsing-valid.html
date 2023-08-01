@@ -82,6 +82,13 @@ test_valid_value("offset-path", "xywh(0px 1% 2px 3em round 0 1px)", "xywh(0px 1%
 test_valid_value("offset-path", "xywh(0px 1% 2px 3em round 0px 1px 2%)");
 test_valid_value("offset-path", "xywh(0px 1% 2px 3em round 0px 1px 2% 3em)");
 
+test_valid_value("offset-path", "rect(0 100% 200px 4em)", "rect(0px 100% 200px 4em)");
+test_valid_value("offset-path", "rect(auto auto auto auto)");
+test_valid_value("offset-path", "rect(0px 100% auto 4em round 0)", "rect(0px 100% auto 4em)");
+test_valid_value("offset-path", "rect(0px 100% auto 4em round 0 1px)", "rect(0px 100% auto 4em round 0px 1px)");
+test_valid_value("offset-path", "rect(0px 100% auto 4em round 0px 1px 2%)");
+test_valid_value("offset-path", "rect(0px 100% auto 4em round 0px 1px 2% 3em)");
+
 test_valid_value("offset-path", "content-box");
 test_valid_value("offset-path", "border-box");
 test_valid_value("offset-path", "view-box");

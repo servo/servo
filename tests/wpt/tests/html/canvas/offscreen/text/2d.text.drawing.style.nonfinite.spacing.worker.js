@@ -28,7 +28,6 @@ t.step(function() {
   test_word_spacing(NaN);
   test_word_spacing(Infinity);
   test_word_spacing(-Infinity);
-
   t.done();
 });
 done();

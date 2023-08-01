@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<!-- Tests that the marker is visible when the <selectmenu> contains more text than it can show -->
+<link rel=author href="mailto:pkotwicz@chromium.org">
+<link rel="match" href="selectmenu-marker-visible-overflow-ref.tentative.html">
+
+<style>
+selectmenu {
+  width:100px;
+}
+</style>
+<div>
+<selectmenu>
+  <option>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>
+</selectmenu>

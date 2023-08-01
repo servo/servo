@@ -9,6 +9,5 @@
   const newMarker = document.createElement('div');
   newMarker.textContent = 'marker';
 
-  const button = selectmenu.querySelector('.fake-selectmenu-internal-selectmenu-button');
-  button.replaceChild(newMarker, oldMarker);
+  replaceChildElement(newMarker, oldMarker);
 </script>

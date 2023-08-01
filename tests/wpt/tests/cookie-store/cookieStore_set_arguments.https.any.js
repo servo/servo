@@ -285,3 +285,27 @@ promise_test(async testCase => {
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'new-cookie-value');
 }, 'cookieStore.set with get result');
+
+promise_test(async testCase => {
+  // The maximum attribute value size is specified as 1024 bytes at https://wicg.github.io/cookie-store/#cookie-maximum-attribute-value-size.
+  await cookieStore.delete('cookie-name');
+
+  await promise_rejects_js(testCase, TypeError, cookieStore.set(
+      { name: 'cookie-name',
+        value: 'cookie-value',
+        path: '/' + 'a'.repeat(1023) + '/' }));
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie, null);
+}, 'cookieStore.set checks if the path is too long');
+
+promise_test(async testCase => {
+  // The maximum attribute value size is specified as 1024 bytes at https://wicg.github.io/cookie-store/#cookie-maximum-attribute-value-size.
+  await cookieStore.delete('cookie-name');
+
+  await promise_rejects_js(testCase, TypeError, cookieStore.set(
+      { name: 'cookie-name',
+        value: 'cookie-value',
+        domain: 'a'.repeat(1025) }));
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie, null);
+}, 'cookieStore.set checks if the domain is too long');

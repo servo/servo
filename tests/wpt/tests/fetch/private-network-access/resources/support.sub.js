@@ -359,9 +359,8 @@ async function fencedFrameFetchTest(t, { source, target, fetchOptions, expected 
   const type_token = token();
   const source_url = generateURL(fetcher_url, [error_token, ok_token, body_token, type_token]);
 
-  const fenced_frame = document.createElement('fencedframe');
-  fenced_frame.config = new FencedFrameConfig(source_url);
-  document.body.append(fenced_frame);
+  const urn = await generateURNFromFledge(source_url, []);
+  attachFencedFrame(urn);
 
   const error = await nextValueFromServer(error_token);
   const ok = await nextValueFromServer(ok_token);
@@ -478,9 +477,8 @@ async function fencedFrameTest(t, { source, target, expected }) {
       resolveUrl("resources/fenced-frame-local-network-access.https.html", sourceResolveOptions(source));
   source_url.searchParams.set("fenced_frame_url", child_frame_target);
 
-  const fenced_frame = document.createElement('fencedframe');
-  fenced_frame.config = new FencedFrameConfig(source_url);
-  document.body.append(fenced_frame);
+  const urn = await generateURNFromFledge(source_url, []);
+  attachFencedFrame(urn);
 
   // The grandchild fenced frame writes a value to the server iff it loads
   // successfully.
