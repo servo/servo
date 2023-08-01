@@ -82,9 +82,6 @@ pub(crate) struct PlacementAmongFloats<'a> {
     next_band: FloatBand,
     /// The size of the object to place.
     object_size: Vec2<Length>,
-    /// The minimum position in the block direction for the placement. Objects should not
-    /// be placed before this point.
-    ceiling: Length,
 }
 
 impl<'a> PlacementAmongFloats<'a> {
@@ -94,25 +91,25 @@ impl<'a> PlacementAmongFloats<'a> {
         object_size: Vec2<Length>,
     ) -> Self {
         assert!(!ceiling.px().is_infinite());
-        let current_band = float_context.bands.find(ceiling).unwrap();
+        let mut current_band = float_context.bands.find(ceiling).unwrap();
+        current_band.top = ceiling;
         let current_bands = VecDeque::from([current_band]);
-        let next_band = float_context.bands.find_next(current_band.top).unwrap();
+        let next_band = float_context.bands.find_next(ceiling).unwrap();
         PlacementAmongFloats {
             float_context,
             current_bands,
             next_band,
             object_size,
-            ceiling,
         }
     }
 
-    fn top_of_placement_for_current_bands(&self) -> Length {
-        self.ceiling.max(self.current_bands.front().unwrap().top)
+    fn current_ceiling(&self) -> Length {
+        self.current_bands.front().unwrap().top
     }
 
     fn current_bands_height(&self) -> Length {
         assert!(!self.current_bands.is_empty());
-        self.next_band.top - self.top_of_placement_for_current_bands()
+        self.next_band.top - self.current_ceiling()
     }
 
     fn accumulate_enough_bands_for_block_size(&mut self) {
@@ -146,31 +143,31 @@ impl<'a> PlacementAmongFloats<'a> {
     pub(crate) fn try_place_once(&mut self) -> Option<Vec2<Length>> {
         self.accumulate_enough_bands_for_block_size();
         let (inline_start, inline_end) = self.calculate_viable_inline_space();
-        if inline_end - inline_start >= self.object_size.inline {
-            return Some(Vec2 {
-                inline: inline_start,
-                block: self.top_of_placement_for_current_bands(),
-            });
+        if self.object_size.inline > inline_end - inline_start {
+            return None;
         }
-
-        self.current_bands.pop_front();
-        None
+        Some(Vec2 {
+            inline: inline_start,
+            block: self.current_ceiling(),
+        })
     }
 
     /// Run the placement algorithm for this [PlacementAmongFloats].
     pub(crate) fn place(&mut self) -> Vec2<Length> {
-        while self.current_bands.len() > 0 {
+        let ceiling = self.current_ceiling();
+
+        while !self.current_bands.is_empty() {
             if let Some(result) = self.try_place_once() {
                 return result;
             }
+            self.current_bands.pop_front();
         }
 
         // We could not fit the object in among the floats, so we place it as if it
         // cleared all floats.
         return Vec2 {
             inline: self.float_context.containing_block_info.inline_start,
-            block: self
-                .ceiling
+            block: ceiling
                 .max(self.float_context.clear_left_position)
                 .max(self.float_context.clear_right_position),
         };
