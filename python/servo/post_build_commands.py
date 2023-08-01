@@ -244,10 +244,8 @@ class PostBuildCommands(CommandBase):
         help="Command-line arguments to be passed through to cargo doc")
     @CommandBase.build_like_command_arguments
     def doc(self, params: List[str], **kwargs):
-        self.ensure_bootstrapped(rustup_components=["rust-docs"])
-        rustc_path = check_output(
-            ["rustup" + BIN_SUFFIX, "which", "--toolchain", self.rust_toolchain(), "rustc"]
-        ).decode('utf-8')
+        self.ensure_bootstrapped()
+        rustc_path = check_output(["rustup" + BIN_SUFFIX, "which", "rustc"], cwd=self.context.topdir)
         assert path.basename(path.dirname(rustc_path)) == "bin"
         toolchain_path = path.dirname(path.dirname(rustc_path))
         rust_docs = path.join(toolchain_path, "share", "doc", "rust", "html")

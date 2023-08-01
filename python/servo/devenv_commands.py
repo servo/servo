@@ -97,7 +97,7 @@ class MachCommands(CommandBase):
 
         self.ensure_bootstrapped()
         with cd(self.context.topdir):
-            self.call_rustup_run(["cargo", "update"] + params, env=self.build_env())
+            call(["cargo", "update"] + params, env=self.build_env())
 
     @Command('rustc',
              description='Run the Rust compiler',
@@ -110,7 +110,7 @@ class MachCommands(CommandBase):
             params = []
 
         self.ensure_bootstrapped()
-        return self.call_rustup_run(["rustc"] + params, env=self.build_env())
+        return call(["rustc"] + params, env=self.build_env())
 
     @Command('cargo-fix',
              description='Run "cargo fix"',
@@ -173,10 +173,16 @@ class MachCommands(CommandBase):
     def rustup(self):
         nightly_date = urllib.request.urlopen(
             "https://static.rust-lang.org/dist/channel-rust-nightly-date.txt").read()
-        toolchain = b"nightly-" + nightly_date
-        filename = path.join(self.context.topdir, "rust-toolchain")
-        with open(filename, "wb") as f:
-            f.write(toolchain + b"\n")
+        new_toolchain = f"nightly-{nightly_date.decode('utf-8')}"
+        old_toolchain = self.rust_toolchain()
+
+        filename = path.join(self.context.topdir, "rust-toolchain.toml")
+        with open(filename, "r", encoding="utf-8") as file:
+            contents = file.read()
+        contents = contents.replace(old_toolchain, new_toolchain)
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write(contents)
+
         self.ensure_bootstrapped()
 
     @Command('fetch',
@@ -184,9 +190,7 @@ class MachCommands(CommandBase):
              category='devenv')
     def fetch(self):
         self.ensure_bootstrapped()
-
-        with cd(self.context.topdir):
-            return self.call_rustup_run(["cargo", "fetch"], env=self.build_env())
+        return call(["cargo", "fetch"], env=self.build_env())
 
     @Command('ndk-stack',
              description='Invoke the ndk-stack tool with the expected symbol paths',
