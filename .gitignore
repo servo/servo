@@ -58,8 +58,5 @@ Sessionx.vim
 # Layout debugger trace files
 layout_trace*
 
-# Package managers
-etc/homebrew/Brewfile.lock.json
-
 # direnv
 .envrc

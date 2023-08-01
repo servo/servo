@@ -49,6 +49,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip virtualenv
           python3 ./mach bootstrap
+          brew install gnu-tar
       - name: Release build
         run: |
           python3 ./mach build --release
@@ -124,7 +125,6 @@ jobs:
   #       run: |
   #         gtar -xzf target.tar.gz
   #         python3 -m pip install --upgrade pip virtualenv
-  #         brew bundle install --verbose --no-upgrade --file=etc/homebrew/Brewfile
   #     - name: Smoketest
   #       run: python3 ./mach smoketest
   #     - name: Run tests

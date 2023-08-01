@@ -16,8 +16,8 @@ from .. import util
 from .base import Base
 
 URL_BASE = "https://github.com/servo/servo-build-deps/releases/download/macOS"
-GSTREAMER_URL = f"{URL_BASE}/gstreamer-1.0-1.22.2-universal.pkg"
-GSTREAMER_DEVEL_URL = f"{URL_BASE}/gstreamer-1.0-devel-1.22.2-universal.pkg"
+GSTREAMER_URL = f"{URL_BASE}/gstreamer-1.0-1.22.3-universal.pkg"
+GSTREAMER_DEVEL_URL = f"{URL_BASE}/gstreamer-1.0-devel-1.22.3-universal.pkg"
 GSTREAMER_ROOT = "/Library/Frameworks/GStreamer.framework/Versions/1.0"
 
 
@@ -55,19 +55,7 @@ class MacOS(Base):
         return True
 
     def _platform_bootstrap(self, _force: bool) -> bool:
-        installed_something = False
-        try:
-            brewfile = os.path.join(util.SERVO_ROOT, "etc", "homebrew", "Brewfile")
-            output = subprocess.check_output(
-                ['brew', 'bundle', 'install', "--file", brewfile]
-            ).decode("utf-8")
-            print(output)
-            installed_something = "Installing" in output
-        except subprocess.CalledProcessError as e:
-            print("Could not run homebrew. Is it installed?")
-            raise e
-        installed_something |= self._platform_bootstrap_gstreamer(False)
-        return installed_something
+        return self._platform_bootstrap_gstreamer(False)
 
     def _platform_bootstrap_gstreamer(self, force: bool) -> bool:
         if not force and self.is_gstreamer_installed(cross_compilation_target=None):
