@@ -238,12 +238,6 @@ class MachCommands(CommandBase):
                     if not package_gstreamer_dylibs(self.cross_compile_target, servo_path):
                         return 1
 
-                    # On Mac we use the relocatable dylibs from offical gstreamer
-                    # .pkg distribution. We need to add an LC_RPATH to the servo binary
-                    # to allow the dynamic linker to be able to locate these dylibs
-                    # See `man dyld` for more info
-                    add_rpath_to_binary(servo_path, "@executable_path/lib/")
-
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
                 # like Instruments.app.
                 try:
@@ -402,14 +396,6 @@ def install_name_tool(binary, *args):
 
 def change_link_name(binary, old, new):
     install_name_tool(binary, '-change', old, f"@executable_path/{new}")
-
-
-def add_rpath_to_binary(binary, relative_path):
-    install_name_tool(binary, "-add_rpath", relative_path)
-
-
-def change_rpath_in_binary(binary, old, new):
-    install_name_tool(binary, "-rpath", old, new)
 
 
 def is_system_library(lib):
