@@ -25,6 +25,12 @@ fn main() {
         println!("cargo:rustc-env=VERGEN_GIT_SHA=nogit");
     }
 
+    // On MacOS, all dylib dependencies are shipped along with the binary
+    // in the "/lib" directory. Setting the rpath here, allows the dynamic
+    // linker to locate them. See `man dyld` for more info.
+    #[cfg(target_os = "macos")]
+    println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/lib/");
+
     // Generate GL bindings
     // For now, we only support EGL, and only on Windows and Android.
     if target.contains("android") || target.contains("windows") {
