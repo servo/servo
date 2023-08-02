@@ -1087,37 +1087,22 @@ fn solve_containing_block_padding_border_and_margin_for_in_flow_box<'a>(
         .content_min_box_size(containing_block, &pbm)
         .auto_is(Length::zero);
 
-    let (mut inline_size, mut inline_margins) =
-        if let Some(inline_size) = box_size.inline.non_auto() {
-            (
-                inline_size,
-                solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size),
-            )
-        } else {
+    // https://drafts.csswg.org/css2/#the-width-property
+    // https://drafts.csswg.org/css2/visudet.html#min-max-widths
+    let inline_size = box_size
+        .inline
+        .auto_is(|| {
             let margin_inline_start = pbm.margin.inline_start.auto_is(Length::zero);
             let margin_inline_end = pbm.margin.inline_end.auto_is(Length::zero);
-            let inline_size = containing_block.inline_size -
+            containing_block.inline_size -
                 pbm.padding_border_sums.inline -
                 margin_inline_start -
-                margin_inline_end;
-            (inline_size, (margin_inline_start, margin_inline_end))
-        };
+                margin_inline_end
+        })
+        .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
-    // https://drafts.csswg.org/css2/visudet.html#min-max-widths
-    if let Some(max_inline_size) = max_box_size.inline {
-        if inline_size > max_inline_size {
-            inline_size = max_inline_size;
-            inline_margins =
-                solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size);
-        }
-    }
-
-    if inline_size < min_box_size.inline {
-        inline_size = min_box_size.inline;
-        inline_margins =
-            solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size);
-    }
-
+    let inline_margins =
+        solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size);
     let margin = Sides {
         inline_start: inline_margins.0,
         inline_end: inline_margins.1,
@@ -1125,6 +1110,7 @@ fn solve_containing_block_padding_border_and_margin_for_in_flow_box<'a>(
         block_end: pbm.margin.block_end.auto_is(Length::zero),
     };
 
+    // https://drafts.csswg.org/css2/#the-height-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
     let mut block_size = box_size.block;
     if let LengthOrAuto::LengthPercentage(ref mut block_size) = block_size {
