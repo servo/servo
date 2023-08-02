@@ -141,7 +141,7 @@ def call(*args, **kwargs):
     return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
 
 
-def check_output(*args, **kwargs):
+def check_output(*args, **kwargs) -> bytes:
     """Wrap `subprocess.call`, printing the command if verbose=True."""
     verbose = kwargs.pop('verbose', False)
     if verbose:
@@ -980,10 +980,10 @@ class CommandBase(object):
 
         servo.platform.get().passive_bootstrap()
 
-        needs_toolchain_install = self.cross_compile_target \
-            and self.cross_compile_target not in check_output(
-                ["rustup", "target", "list", "--installed"], cwd=self.context.topdir
-            )
+        needs_toolchain_install = self.cross_compile_target and \
+            self.cross_compile_target not in \
+            check_output(["rustup", "target", "list", "--installed"],
+                         cwd=self.context.topdir).decode()
         if needs_toolchain_install:
             check_call(["rustup", "target", "add", self.cross_compile_target],
                        cwd=self.context.topdir)
