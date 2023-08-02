@@ -31,7 +31,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::JSContext;
-use base64;
+use base64::Engine;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
@@ -434,7 +434,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         let mut url = "data:image/png;base64,".to_owned();
         // FIXME(nox): Should this use base64::URL_SAFE?
         // FIXME(nox): https://github.com/marshallpierce/rust-base64/pull/56
-        base64::encode_config_buf(&png, base64::STANDARD, &mut url);
+        base64::engine::general_purpose::STANDARD.encode_string(&png, &mut url);
         Ok(USVString(url))
     }
 

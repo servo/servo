@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base64;
+use base64::Engine;
 use generic_array::ArrayLength;
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use sha2::{Digest, Sha256, Sha384, Sha512};
@@ -123,7 +123,7 @@ fn apply_algorithm_to_response<S: ArrayLength<u8>, D: Digest<OutputSize = S>>(
     if let ResponseBody::Done(ref vec) = *body {
         hasher.update(vec);
         let response_digest = hasher.finalize(); //Now hash
-        base64::encode(&response_digest)
+        base64::engine::general_purpose::STANDARD.encode(&response_digest)
     } else {
         unreachable!("Tried to calculate digest of incomplete response body")
     }

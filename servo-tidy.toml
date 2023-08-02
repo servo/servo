@@ -48,6 +48,7 @@ packages = [
   "time",
   "wasi",
   "wayland-sys",
+  "bitflags",
 
   # https://github.com/servo/servo/issues/26933
   "bytes",
