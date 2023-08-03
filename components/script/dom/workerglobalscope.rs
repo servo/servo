@@ -286,8 +286,14 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             match result {
                 Ok(_) => (),
                 Err(_) => {
-                    println!("evaluate_script failed");
-                    return Err(Error::JSFailed);
+                    if self.is_closing() {
+                        // Don't return JSFailed as we might not have
+                        // any pending exceptions.
+                        println!("evaluate_script failed (terminated)");
+                    } else {
+                        println!("evaluate_script failed");
+                        return Err(Error::JSFailed);
+                    }
                 },
             }
         }
