@@ -45,7 +45,11 @@ struct Minibrowser {
 }
 
 enum MinibrowserEvent {
+    /// Go button clicked.
     Go,
+
+    /// Minibrowser repainted and needs glFlush.
+    Repaint,
 }
 
 impl Minibrowser {
@@ -71,6 +75,7 @@ impl Minibrowser {
             toolbar_height.set(ctx.used_rect().height());
         });
         context.paint(window);
+        event_queue.borrow_mut().push(MinibrowserEvent::Repaint);
     }
 }
 
@@ -290,6 +295,9 @@ impl App {
                             break;
                         };
                         self.event_queue.borrow_mut().push(EmbedderEvent::LoadUrl(browser_id, url));
+                    },
+                    MinibrowserEvent::Repaint => {
+                        self.event_queue.borrow_mut().push(EmbedderEvent::Refresh);
                     },
                 }
             }
