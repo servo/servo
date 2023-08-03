@@ -5322,6 +5322,7 @@ dependencies = [
  "libc",
  "libservo",
  "log",
+ "raw-window-handle 0.5.0",
  "servo-media",
  "shellwords",
  "sig",
@@ -6049,9 +6050,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.6.0"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4ebdfa54ba49e91f713e232973ca44ac493aa98e6fbf1366772ffdf9b9ddb3f"
+checksum = "23cf77d20c00c8355323883b3ab476057430bd4c752c6b5cff4fabc9aa5786e9"
 dependencies = [
  "bitflags 1.3.2",
  "cfg_aliases",
@@ -6079,9 +6080,9 @@ dependencies = [
 
 [[package]]
 name = "surfman-chains"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b51e9d68bff975cc81ed92995691c9522c49a0531900b6548e7c5bbb8681cc79"
+checksum = "896f2c9668d2b6b1cc6634bcba84b6e80147c2c9243dfde6dedf782756f9a19c"
 dependencies = [
  "euclid",
  "fnv",
@@ -7073,7 +7074,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#a5824ed9674d60a507c8b8f8511cfdbbd68c92c6"
+source = "git+https://github.com/servo/webxr#8be0c295d966ad9334fc9ad828d966ac14b21eac"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -7093,7 +7094,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#a5824ed9674d60a507c8b8f8511cfdbbd68c92c6"
+source = "git+https://github.com/servo/webxr#8be0c295d966ad9334fc9ad828d966ac14b21eac"
 dependencies = [
  "euclid",
  "ipc-channel",
