@@ -1142,12 +1142,15 @@ fn solve_inline_margins_for_in_flow_block_level(
     pbm: &PaddingBorderMargin,
     inline_size: Length,
 ) -> (Length, Length) {
-    let available = containing_block.inline_size - pbm.padding_border_sums.inline - inline_size;
-    match (pbm.margin.inline_start, pbm.margin.inline_end) {
-        (LengthOrAuto::Auto, LengthOrAuto::Auto) => (available / 2., available / 2.),
-        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => (available - end, end),
-        (LengthOrAuto::LengthPercentage(start), _) => (start, available - start),
-    }
+    let free_space = containing_block.inline_size - pbm.padding_border_sums.inline - inline_size;
+    let margin_inline_start = match (pbm.margin.inline_start, pbm.margin.inline_end) {
+        (LengthOrAuto::Auto, LengthOrAuto::Auto) => Length::zero().max(free_space / 2.),
+        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
+            Length::zero().max(free_space - end)
+        },
+        (LengthOrAuto::LengthPercentage(start), _) => start,
+    };
+    (margin_inline_start, free_space - margin_inline_start)
 }
 
 /// State that we maintain when placing blocks.
