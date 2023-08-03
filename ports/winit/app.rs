@@ -290,34 +290,30 @@ impl App {
 
     /// Takes any outstanding events from the [Minibrowser], converting them to [EmbedderEvent] and
     /// routing those to the App event queue.
-    fn queue_embedder_events_for_minibrowser_events(&self) {
-        if let Some(minibrowser) = self.minibrowser() {
-            for event in minibrowser.event_queue.borrow_mut().drain(..) {
-                match event {
-                    MinibrowserEvent::Go => {
-                        let browser_id = self.browser.borrow().browser_id().unwrap();
-                        let location = minibrowser.location.borrow();
-                        let Ok(url) = ServoUrl::parse(&location) else {
-                            warn!("failed to parse location");
-                            break;
-                        };
-                        self.event_queue.borrow_mut().push(EmbedderEvent::LoadUrl(browser_id, url));
-                    },
-                    MinibrowserEvent::Repaint => {
-                        self.event_queue.borrow_mut().push(EmbedderEvent::Refresh);
-                    },
-                }
+    fn queue_embedder_events_for_minibrowser_events(&self, minibrowser: &mut RefMut<Minibrowser>) {
+        for event in minibrowser.event_queue.borrow_mut().drain(..) {
+            match event {
+                MinibrowserEvent::Go => {
+                    let browser_id = self.browser.borrow().browser_id().unwrap();
+                    let location = minibrowser.location.borrow();
+                    let Ok(url) = ServoUrl::parse(&location) else {
+                        warn!("failed to parse location");
+                        break;
+                    };
+                    self.event_queue.borrow_mut().push(EmbedderEvent::LoadUrl(browser_id, url));
+                },
+                MinibrowserEvent::Repaint => {
+                    self.event_queue.borrow_mut().push(EmbedderEvent::Refresh);
+                },
             }
         }
     }
 
     /// Updates the location in toolbar if browser history state has changed.
-    fn update_location_in_toolbar(&self) {
-        if let Some(mut minibrowser) = self.minibrowser() {
-            if !minibrowser.location_dirty.get() {
-                if let Some(current_url) = self.browser.borrow().current_top_level_url() {
-                    minibrowser.location = RefCell::new(ServoUrl::into_string(current_url));
-                }
+    fn update_location_in_toolbar(&self, minibrowser: &mut RefMut<Minibrowser>) {
+        if !minibrowser.location_dirty.get() {
+            if let Some(current_url) = self.browser.borrow().current_top_level_url() {
+                minibrowser.location = RefCell::new(ServoUrl::into_string(current_url));
             }
         }
     }
@@ -338,9 +334,10 @@ impl App {
         // will send a key event to the servo window.
 
         // Consume and handle any events from the Minibrowser.
-        self.queue_embedder_events_for_minibrowser_events();
-
-        self.update_location_in_toolbar();
+        if let Some(mut minibrowser) = self.minibrowser() {
+            self.queue_embedder_events_for_minibrowser_events(&mut minibrowser);
+            self.update_location_in_toolbar(&mut minibrowser);
+        }
 
         let mut browser = self.browser.borrow_mut();
 
