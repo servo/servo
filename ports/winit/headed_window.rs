@@ -537,7 +537,7 @@ impl WindowMethods for Window {
 
         // Get the height of toolbar for minibrowser
         let toolbar_height = self.toolbar_size.get();
-        let viewport_origin = Point2D::new(0f32, toolbar_height * 0f32).to_i32(); // TODO this misbehaves
+        let viewport_origin = Point2D::new(0f32, 0f32).to_i32(); // bottom left
         let viewport_size = (Size2D::new(width as f32, height as f32 - toolbar_height) * dpr).to_i32();
         let viewport = DeviceIntRect::new(viewport_origin, viewport_size);
 
