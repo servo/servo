@@ -158,13 +158,16 @@ impl PositioningContext {
     /// with the hoisted fragment so that it can be laid out properly at the containing
     /// block.
     ///
-    /// This function is used to update that static position at every level of the
-    /// fragment tree as the hoisted fragments move back up to their containing blocks.
-    /// Once an ancestor fragment is laid out, this function can be used to aggregate its
-    /// offset on the way back up.
+    /// This function is used to update the static position of hoisted boxes added after
+    /// the given index at every level of the fragment tree as the hoisted fragments move
+    /// up to their containing blocks. Once an ancestor fragment is laid out, this
+    /// function can be used to aggregate its offset to any descendent boxes that are
+    /// being hoisted. In this case, the appropriate index to use is the result of
+    /// [`PositioningContext::len()`] cached before laying out the [`Fragment`].
     pub(crate) fn adjust_static_position_of_hoisted_fragments(
         &mut self,
         parent_fragment: &Fragment,
+        index: PositioningContextLength,
     ) {
         let start_offset = match &parent_fragment {
             Fragment::Box(b) | Fragment::Float(b) => &b.content_rect.start_corner,
@@ -172,13 +175,14 @@ impl PositioningContext {
             Fragment::Anonymous(a) => &a.rect.start_corner,
             _ => unreachable!(),
         };
-        self.adjust_static_position_of_hoisted_fragments_with_offset(start_offset);
+        self.adjust_static_position_of_hoisted_fragments_with_offset(start_offset, index);
     }
 
     /// See documentation for [adjust_static_position_of_hoisted_fragments].
     pub(crate) fn adjust_static_position_of_hoisted_fragments_with_offset(
         &mut self,
         start_offset: &Vec2<CSSPixelLength>,
+        index: PositioningContextLength,
     ) {
         let update_fragment_if_needed = |hoisted_fragment: &mut HoistedAbsolutelyPositionedBox| {
             let mut fragment = hoisted_fragment.fragment.borrow_mut();
@@ -193,10 +197,14 @@ impl PositioningContext {
         self.for_nearest_positioned_ancestor
             .as_mut()
             .map(|hoisted_boxes| {
-                hoisted_boxes.iter_mut().for_each(update_fragment_if_needed);
+                hoisted_boxes
+                    .iter_mut()
+                    .skip(index.for_nearest_positioned_ancestor)
+                    .for_each(update_fragment_if_needed);
             });
         self.for_nearest_containing_block_for_all_descendants
             .iter_mut()
+            .skip(index.for_nearest_containing_block_for_all_descendants)
             .for_each(update_fragment_if_needed);
     }
 
@@ -342,6 +350,43 @@ impl PositioningContext {
         self.for_nearest_positioned_ancestor
             .as_mut()
             .map(|v| v.clear());
+    }
+
+    /// Get the length of this [PositioningContext].
+    pub(crate) fn len(&self) -> PositioningContextLength {
+        PositioningContextLength {
+            for_nearest_positioned_ancestor: self
+                .for_nearest_positioned_ancestor
+                .as_ref()
+                .map_or(0, |vec| vec.len()),
+            for_nearest_containing_block_for_all_descendants: self
+                .for_nearest_containing_block_for_all_descendants
+                .len(),
+        }
+    }
+}
+
+/// A data structure which stores the size of a positioning context.
+pub(crate) struct PositioningContextLength {
+    /// The number of boxes that will be hoisted the the nearest positioned ancestor for
+    /// layout.
+    for_nearest_positioned_ancestor: usize,
+    /// The number of boxes that will be hoisted the the nearest ancestor which
+    /// establishes a containing block for all descendants for layout.
+    for_nearest_containing_block_for_all_descendants: usize,
+}
+
+impl Zero for PositioningContextLength {
+    fn zero() -> Self {
+        PositioningContextLength {
+            for_nearest_positioned_ancestor: 0,
+            for_nearest_containing_block_for_all_descendants: 0,
+        }
+    }
+
+    fn is_zero(&self) -> bool {
+        self.for_nearest_positioned_ancestor == 0 &&
+            self.for_nearest_containing_block_for_all_descendants == 0
     }
 }
 
@@ -640,6 +685,7 @@ impl HoistedAbsolutelyPositionedBox {
         // adjust it to account for the start corner of this absolute.
         positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
             &new_fragment.content_rect.start_corner,
+            PositioningContextLength::zero(),
         );
 
         for_nearest_containing_block_for_all_descendants

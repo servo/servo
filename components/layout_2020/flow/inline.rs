@@ -786,8 +786,7 @@ fn layout_atomic(
     let margin = pbm.margin.auto_is(Length::zero);
     let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
     let position = style.clone_position();
-
-    let mut child_positioning_context = None;
+    let positioning_context_length_before_layout = ifc.positioning_context.len();
 
     // We need to know the inline size of the atomic before deciding whether to do the line break.
     let mut fragment = match atomic {
@@ -854,15 +853,9 @@ fn layout_atomic(
                 "Mixed writing modes are not supported yet"
             );
 
-            let collects_for_nearest_positioned_ancestor = ifc
-                .positioning_context
-                .collects_for_nearest_positioned_ancestor();
-            child_positioning_context = Some(PositioningContext::new_for_subtree(
-                collects_for_nearest_positioned_ancestor,
-            ));
             let independent_layout = non_replaced.layout(
                 layout_context,
-                child_positioning_context.as_mut().unwrap(),
+                &mut ifc.positioning_context,
                 &containing_block_for_children,
             );
 
@@ -916,11 +909,11 @@ fn layout_atomic(
         start_corner += &relative_adjustement(atomic.style(), ifc.containing_block)
     }
 
-    if let Some(mut child_positioning_context) = child_positioning_context.take() {
-        child_positioning_context
-            .adjust_static_position_of_hoisted_fragments_with_offset(&start_corner);
-        ifc.positioning_context.append(child_positioning_context);
-    }
+    ifc.positioning_context
+        .adjust_static_position_of_hoisted_fragments_with_offset(
+            &start_corner,
+            positioning_context_length_before_layout,
+        );
 
     fragment.content_rect.start_corner = start_corner;
 
