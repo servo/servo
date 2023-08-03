@@ -11,7 +11,7 @@ use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::LengthOrAuto;
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
 use crate::style_ext::ComputedValuesExt;
 use crate::ContainingBlock;
@@ -194,8 +194,10 @@ impl FlexContainer {
                     let (fragment, mut child_positioning_context) =
                         flex_item_fragments.next().unwrap();
                     let fragment = Fragment::Box(fragment);
-                    child_positioning_context
-                        .adjust_static_position_of_hoisted_fragments(&fragment);
+                    child_positioning_context.adjust_static_position_of_hoisted_fragments(
+                        &fragment,
+                        PositioningContextLength::zero(),
+                    );
                     positioning_context.append(child_positioning_context);
                     fragment
                 },

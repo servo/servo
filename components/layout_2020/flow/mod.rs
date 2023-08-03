@@ -15,7 +15,7 @@ use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
@@ -449,7 +449,10 @@ fn layout_block_level_children_in_parallel(
         .into_iter()
         .map(|(mut fragment, mut child_positioning_context)| {
             placement_state.place_fragment(&mut fragment, None);
-            child_positioning_context.adjust_static_position_of_hoisted_fragments(&fragment);
+            child_positioning_context.adjust_static_position_of_hoisted_fragments(
+                &fragment,
+                PositioningContextLength::zero(),
+            );
             positioning_context.append(child_positioning_context);
             fragment
         })
@@ -472,8 +475,6 @@ fn layout_block_level_children_sequentially(
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
 ) -> FlowLayout {
     let mut placement_state = PlacementState::new(collapsible_with_parent_start_margin);
-    let collects_for_nearest_positioned_ancestor =
-        positioning_context.collects_for_nearest_positioned_ancestor();
 
     // Because floats are involved, we do layout for this block formatting context in tree
     // order without parallelism. This enables mutable access to a `SequentialLayoutState` that
@@ -481,11 +482,10 @@ fn layout_block_level_children_sequentially(
     let fragments = child_boxes
         .iter()
         .map(|child_box| {
-            let mut child_positioning_context =
-                PositioningContext::new_for_subtree(collects_for_nearest_positioned_ancestor);
+            let positioning_context_length_before_layout = positioning_context.len();
             let mut fragment = child_box.borrow_mut().layout(
                 layout_context,
-                &mut child_positioning_context,
+                positioning_context,
                 containing_block,
                 Some(&mut *sequential_layout_state),
                 Some(CollapsibleWithParentStartMargin(
@@ -494,9 +494,10 @@ fn layout_block_level_children_sequentially(
             );
 
             placement_state.place_fragment(&mut fragment, Some(sequential_layout_state));
-
-            child_positioning_context.adjust_static_position_of_hoisted_fragments(&fragment);
-            positioning_context.append(child_positioning_context);
+            positioning_context.adjust_static_position_of_hoisted_fragments(
+                &fragment,
+                positioning_context_length_before_layout,
+            );
 
             fragment
         })
