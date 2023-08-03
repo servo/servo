@@ -87,7 +87,7 @@ use std::os;
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, ThreadState};
@@ -858,24 +858,34 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
-#[repr(transparent)]
 /// A wrapper around a JSContext that is Send,
 /// enabling an interrupt to be requested
 /// from a thread other than the one running JS using that context.
-pub struct ContextForRequestInterrupt(*mut RawJSContext);
+#[derive(Clone)]
+pub struct ContextForRequestInterrupt(Arc<Mutex<Option<*mut RawJSContext>>>);
 
 impl ContextForRequestInterrupt {
     pub fn new(context: *mut RawJSContext) -> ContextForRequestInterrupt {
-        ContextForRequestInterrupt(context)
+        ContextForRequestInterrupt(Arc::new(Mutex::new(Some(context))))
+    }
+
+    pub fn revoke(&self) {
+        self.0.lock().unwrap().take();
     }
 
     #[allow(unsafe_code)]
     /// Can be called from any thread, to request the callback set by
-    /// JS_AddInterruptCallback to be called
-    /// on the thread where that context is running.
+    /// JS_AddInterruptCallback to be called on the thread
+    /// where that context is running.
+    /// The lock is held when calling JS_RequestInterruptCallback
+    /// because it is possible for the JSContext to be destroyed
+    /// on the other thread in the case of Worker shutdown
     pub fn request_interrupt(&self) {
-        unsafe {
-            JS_RequestInterruptCallback(self.0);
+        let maybe_cx = self.0.lock().unwrap();
+        if let Some(cx) = *maybe_cx {
+            unsafe {
+                JS_RequestInterruptCallback(cx);
+            }
         }
     }
 }

@@ -378,7 +378,8 @@ impl DedicatedWorkerGlobalScope {
                     new_child_runtime(parent, Some(task_source))
                 };
 
-                let _ = context_sender.send(ContextForRequestInterrupt::new(runtime.cx()));
+                let context_for_interrupt = ContextForRequestInterrupt::new(runtime.cx());
+                let _ = context_sender.send(context_for_interrupt.clone());
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
                 ROUTER.route_ipc_receiver_to_crossbeam_sender(
@@ -476,7 +477,8 @@ impl DedicatedWorkerGlobalScope {
                         parent_sender,
                         CommonScriptMsg::CollectReports,
                     );
-                scope.clear_js_runtime();
+
+                scope.clear_js_runtime(context_for_interrupt);
             })
             .expect("Thread spawning failed")
     }
