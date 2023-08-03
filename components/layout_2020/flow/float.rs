@@ -82,6 +82,9 @@ pub(crate) struct PlacementAmongFloats<'a> {
     next_band: FloatBand,
     /// The size of the object to place.
     object_size: Vec2<Length>,
+    /// The minimum position in the block direction for the placement. Objects should not
+    /// be placed before this point.
+    ceiling: Length,
 }
 
 impl<'a> PlacementAmongFloats<'a> {
@@ -100,35 +103,52 @@ impl<'a> PlacementAmongFloats<'a> {
             current_bands,
             next_band,
             object_size,
+            ceiling,
         }
     }
 
-    fn current_ceiling(&self) -> Length {
-        self.current_bands.front().unwrap().top
+    /// The top of the bands under consideration. This is initially the ceiling provided
+    /// during creation of this [`PlacementAmongFloats`], but may be larger if the top
+    /// band is discarded.
+    fn top_of_bands(&self) -> Option<Length> {
+        self.current_bands.front().map(|band| band.top)
     }
 
+    /// The height of the bands under consideration.
     fn current_bands_height(&self) -> Length {
-        assert!(!self.current_bands.is_empty());
-        self.next_band.top - self.current_ceiling()
+        if let Some(top) = self.top_of_bands() {
+            self.next_band.top - top
+        } else {
+            assert!(self.next_band.top.px().is_infinite());
+            self.next_band.top
+        }
     }
 
+    /// Add a single band to the bands under consideration and calculate the new
+    /// [`PlacementAmongFloats::next_band`].
+    fn add_one_band(&mut self) {
+        assert!(!self.next_band.top.px().is_infinite());
+        self.current_bands.push_back(self.next_band);
+        self.next_band = self
+            .float_context
+            .bands
+            .find_next(self.next_band.top)
+            .unwrap();
+    }
+
+    /// Adds bands to the set of bands under consideration until their block size is at
+    /// least large enough to contain the block size of the object being placed.
     fn accumulate_enough_bands_for_block_size(&mut self) {
         while self.current_bands_height() < self.object_size.block {
-            assert!(!self.next_band.top.px().is_infinite());
-            self.current_bands.push_back(self.next_band);
-            self.next_band = self
-                .float_context
-                .bands
-                .find_next(self.next_band.top)
-                .unwrap();
+            self.add_one_band();
         }
     }
 
-    fn calculate_viable_inline_space(&self) -> (Length, Length) {
+    /// Find the start and end of the inline space provided by the current set of bands
+    /// under consideration.
+    fn calculate_inline_start_and_end(&self) -> (Length, Length) {
         let mut max_inline_start = self.float_context.containing_block_info.inline_start;
         let mut min_inline_end = self.float_context.containing_block_info.inline_end;
-        assert!(!self.current_bands.is_empty());
-
         for band in self.current_bands.iter() {
             if let Some(left) = band.left {
                 max_inline_start = max_inline_start.max(left);
@@ -140,22 +160,29 @@ impl<'a> PlacementAmongFloats<'a> {
         return (max_inline_start, min_inline_end);
     }
 
-    pub(crate) fn try_place_once(&mut self) -> Option<Vec2<Length>> {
+    fn try_place_once(&mut self) -> Option<Rect<Length>> {
+        assert!(!self.current_bands.is_empty());
         self.accumulate_enough_bands_for_block_size();
-        let (inline_start, inline_end) = self.calculate_viable_inline_space();
-        if self.object_size.inline > inline_end - inline_start {
+        let (inline_start, inline_end) = self.calculate_inline_start_and_end();
+        let available_inline_size = inline_end - inline_start;
+        if available_inline_size < self.object_size.inline {
             return None;
         }
-        Some(Vec2 {
-            inline: inline_start,
-            block: self.current_ceiling(),
+        let top = self.top_of_bands().unwrap();
+        Some(Rect {
+            start_corner: Vec2 {
+                inline: inline_start,
+                block: top,
+            },
+            size: Vec2 {
+                inline: available_inline_size,
+                block: self.next_band.top - top,
+            },
         })
     }
 
     /// Run the placement algorithm for this [PlacementAmongFloats].
-    pub(crate) fn place(&mut self) -> Vec2<Length> {
-        let ceiling = self.current_ceiling();
-
+    pub(crate) fn place(&mut self) -> Rect<Length> {
         while !self.current_bands.is_empty() {
             if let Some(result) = self.try_place_once() {
                 return result;
@@ -165,12 +192,20 @@ impl<'a> PlacementAmongFloats<'a> {
 
         // We could not fit the object in among the floats, so we place it as if it
         // cleared all floats.
-        return Vec2 {
-            inline: self.float_context.containing_block_info.inline_start,
-            block: ceiling
-                .max(self.float_context.clear_left_position)
-                .max(self.float_context.clear_right_position),
-        };
+        Rect {
+            start_corner: Vec2 {
+                inline: self.float_context.containing_block_info.inline_start,
+                block: self
+                    .ceiling
+                    .max(self.float_context.clear_left_position)
+                    .max(self.float_context.clear_right_position),
+            },
+            size: Vec2 {
+                inline: self.float_context.containing_block_info.inline_end -
+                    self.float_context.containing_block_info.inline_start,
+                block: Length::new(f32::INFINITY),
+            },
+        }
     }
 }
 
@@ -989,7 +1024,7 @@ impl SequentialLayoutState {
         let ceiling =
             clear_position.unwrap_or_else(|| self.position_without_clearance(&block_start_margin));
         let mut placement = PlacementAmongFloats::new(&self.floats, ceiling, object_size);
-        let position = placement.place();
+        let position = placement.place().start_corner;
         let has_clearance = clear_position.is_some() || position.block > ceiling;
         let clearance = if has_clearance {
             Some(position.block - self.position_with_zero_clearance(&block_start_margin))
