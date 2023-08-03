@@ -40,8 +40,11 @@ pub struct App {
 struct Minibrowser {
     context: egui_glow::EguiGlow,
     event_queue: RefCell<Vec<MinibrowserEvent>>,
-    location: RefCell<String>,
     toolbar_height: Cell<f32>,
+    location: RefCell<String>,
+
+    /// Whether the location has been edited by the user without clicking Go.
+    location_dirty: Cell<bool>,
 }
 
 enum MinibrowserEvent {
@@ -54,7 +57,7 @@ enum MinibrowserEvent {
 
 impl Minibrowser {
     fn update(&mut self, window: &winit::window::Window) {
-        let Self { context, event_queue, location, toolbar_height } = self;
+        let Self { context, event_queue, location, location_dirty, toolbar_height } = self;
         let _duration = context.run(window, |ctx| {
             TopBottomPanel::top("toolbar").show(ctx, |ui| {
                 ui.allocate_ui_with_layout(
@@ -63,11 +66,14 @@ impl Minibrowser {
                     |ui| {
                         if ui.button("go").clicked() {
                             event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                            location_dirty.set(false);
                         }
-                        ui.add_sized(
+                        if ui.add_sized(
                             ui.available_size(),
                             egui::TextEdit::singleline(&mut *location.borrow_mut()),
-                        );
+                        ).changed() {
+                            location_dirty.set(true);
+                        }
                     },
                 );
             });
@@ -133,8 +139,9 @@ impl App {
             app.minibrowser = Some(Minibrowser {
                 context: egui_glow::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
                 event_queue: RefCell::new(vec![]),
-                location: RefCell::new(ServoUrl::into_string(get_default_url())),
                 toolbar_height: 0f32.into(),
+                location: RefCell::new(ServoUrl::into_string(get_default_url())),
+                location_dirty: false.into(),
             }.into());
         }
 
@@ -304,11 +311,13 @@ impl App {
         }
     }
 
-    /// Updated the location in toolbar if browser history state has changed.
+    /// Updates the location in toolbar if browser history state has changed.
     fn update_location_in_toolbar(&self) {
         if let Some(mut minibrowser) = self.minibrowser() {
-            if let Some(current_url) = self.browser.borrow().current_top_level_url() {
-                minibrowser.location = RefCell::new(ServoUrl::into_string(current_url));
+            if !minibrowser.location_dirty.get() {
+                if let Some(current_url) = self.browser.borrow().current_top_level_url() {
+                    minibrowser.location = RefCell::new(ServoUrl::into_string(current_url));
+                }
             }
         }
     }
