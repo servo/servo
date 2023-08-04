@@ -147,7 +147,7 @@ impl App {
 
         if let Some(mut minibrowser) = app.minibrowser() {
             minibrowser.update(window.winit_window().unwrap());
-            window.set_toolbar_size(minibrowser.toolbar_height.get());
+            window.set_toolbar_height(minibrowser.toolbar_height.get());
         }
 
         let ev_waker = events_loop.create_event_loop_waker();

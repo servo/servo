@@ -52,7 +52,7 @@ pub struct Window {
     webrender_surfman: WebrenderSurfman,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<Size2D<u32, DeviceIndependentPixel>>,
-    toolbar_size: Cell<f32>,
+    toolbar_height: Cell<f32>,
     mouse_down_button: Cell<Option<winit::event::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
     primary_monitor: winit::monitor::MonitorHandle,
@@ -156,7 +156,7 @@ impl Window {
             device_pixels_per_px,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
-            toolbar_size: Cell::new(0.0),
+            toolbar_height: Cell::new(0.0),
         }
     }
 
@@ -510,8 +510,8 @@ impl WindowPortsMethods for Window {
         Some(&self.winit_window)
     }
 
-    fn set_toolbar_size(&self, height: f32) {
-        self.toolbar_size.set(height);
+    fn set_toolbar_height(&self, height: f32) {
+        self.toolbar_height.set(height);
     }
 }
 
@@ -536,7 +536,7 @@ impl WindowMethods for Window {
             .inner_size();
 
         // Subtract the minibrowser toolbar height if any
-        let toolbar_height = self.toolbar_size.get();
+        let toolbar_height = self.toolbar_height.get();
         let inner_size = Size2D::new(width as f32, height as f32) * dpr;
         let viewport_size = inner_size - Size2D::new(0f32, toolbar_height);
         let viewport_origin = DeviceIntPoint::zero(); // bottom left

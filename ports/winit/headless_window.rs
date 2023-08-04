@@ -113,7 +113,7 @@ impl WindowPortsMethods for Window {
         None
     }
 
-    fn set_toolbar_size(&self, _height: f32) {
+    fn set_toolbar_height(&self, _height: f32) {
         unimplemented!("headless Window only")
     }
 }
