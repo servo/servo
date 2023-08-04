@@ -19,7 +19,7 @@ use rustc_span::symbol::Symbol;
 declare_lint!(
     TRACE_IN_NO_TRACE,
     Deny,
-    "Warn and report incorect usage of Traceable (jsmanaged) objects in must_not_have_traceable marked wrappers"
+    "Warn and report incorrect usage of Traceable (jsmanaged) objects in must_not_have_traceable marked wrappers"
 );
 
 declare_lint!(
