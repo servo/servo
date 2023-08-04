@@ -521,8 +521,6 @@ impl<'a> Iterator for DocumentsIter<'a> {
 pub struct IncompleteParserContexts(RefCell<Vec<(PipelineId, ParserContext)>>);
 
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
-unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitorRegister);
-unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitor);
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
@@ -552,8 +550,10 @@ pub struct ScriptThread {
     task_queue: TaskQueue<MainThreadScriptMsg>,
 
     /// A handle to register associated layout threads for hang-monitoring.
+    #[no_trace]
     background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     /// The dedicated means of communication with the background-hang-monitor for this script-thread.
+    #[no_trace]
     background_hang_monitor: Box<dyn BackgroundHangMonitor>,
     /// A flag set to `true` by the BHM on exit, and checked from within the interrupt handler.
     closing: Arc<AtomicBool>,

@@ -25,8 +25,6 @@ use style::stylesheets::{
 
 unsafe_no_jsmanaged_fields!(RulesSource);
 
-unsafe_no_jsmanaged_fields!(CssRules);
-
 impl From<RulesMutateError> for Error {
     fn from(other: RulesMutateError) -> Self {
         match other {

@@ -312,22 +312,6 @@ macro_rules! unsafe_no_jsmanaged_fields(
     );
 );
 
-macro_rules! jsmanaged_array(
-    ($count:expr) => (
-        #[allow(unsafe_code)]
-        unsafe impl<T> $crate::dom::bindings::trace::JSTraceable for [T; $count]
-            where T: $crate::dom::bindings::trace::JSTraceable
-        {
-            #[inline]
-            unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
-                for v in self.iter() {
-                    v.trace(tracer);
-                }
-            }
-        }
-    );
-);
-
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
     ($handler: ty, $event_type: ident, $getter: ident, $setter: ident, $setter_fn: ident) => (

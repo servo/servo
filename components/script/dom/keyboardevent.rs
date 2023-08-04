@@ -19,16 +19,15 @@ use js::rust::HandleObject;
 use keyboard_types::{Key, Modifiers};
 use std::cell::Cell;
 
-unsafe_no_jsmanaged_fields!(Key);
-unsafe_no_jsmanaged_fields!(Modifiers);
-
 #[dom_struct]
 pub struct KeyboardEvent {
     uievent: UIEvent,
     key: DomRefCell<DOMString>,
+    #[no_trace]
     typed_key: DomRefCell<Key>,
     code: DomRefCell<DOMString>,
     location: Cell<u32>,
+    #[no_trace]
     modifiers: Cell<Modifiers>,
     repeat: Cell<bool>,
     is_composing: Cell<bool>,

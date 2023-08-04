@@ -7,7 +7,7 @@ extern crate syn;
 #[macro_use]
 extern crate synstructure;
 
-decl_derive!([JSTraceable, attributes(no_trace)] =>
+decl_derive!([JSTraceable, attributes(no_trace, custom_trace)] =>
 /// Implements `JSTraceable` on structs and enums
 ///
 /// Example:
@@ -17,6 +17,8 @@ decl_derive!([JSTraceable, attributes(no_trace)] =>
 ///   js_managed: JSManagedType,
 ///   #[no_trace]
 ///   non_js: NonJSManagedType,
+///   #[custom_trace] // Extern type implements CustomTraceable that is in servo => no problem with orphan rules
+///   extern_managed_type: Extern<JSManagedType>,
 /// }
 /// ```
 ///
@@ -30,12 +32,16 @@ decl_derive!([JSTraceable, attributes(no_trace)] =>
 ///             S {
 ///                 js_managed: ref __binding_0,
 ///                 non_js: ref __binding_1,
+///                 extern_managed_type: ref __binding_2,
 ///             } => {
 ///                 {
 ///                     __binding_0.trace(tracer);
 ///                 }
 ///                 {
 ///                     // __binding_1 is not traceable so we do not need to trace it
+///                 }
+///                 {
+///                     <crate::dom::bindings::trace::CustomTraceable>::trace(__binding_2, tracer);
 ///                 }
 ///             },
 ///         }
@@ -150,9 +156,12 @@ fn js_traceable_derive(s: synstructure::Structure) -> proc_macro2::TokenStream {
                     if path.is_ident("no_trace") {
                         asserts.extend(assert_not_impl_traceable(&binding.ast().ty));
                         return None;
+                    } else if path.is_ident("custom_trace") {
+                        return Some(quote!(<crate::dom::bindings::trace::CustomTraceable>::trace(#binding, tracer);));
                     }
                 },
                 syn::Meta::NameValue(syn::MetaNameValue { ref path, .. }) => {
+                    // if reason provided we can skip JSTraceable check
                     if path.is_ident("no_trace") {
                         return None;
                     }

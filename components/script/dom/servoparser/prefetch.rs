@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::document::{determine_policy_for_token, Document};
 use crate::dom::htmlimageelement::{image_fetch_request, FromPictureOrSrcSet};
 use crate::dom::htmlscriptelement::script_fetch_request;
@@ -42,7 +42,7 @@ pub struct Tokenizer {
 }
 
 #[allow(unsafe_code)]
-unsafe impl JSTraceable for HtmlTokenizer<PrefetchSink> {
+unsafe impl CustomTraceable for HtmlTokenizer<PrefetchSink> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         self.sink.trace(trc)
     }

@@ -43,8 +43,6 @@ enum WebGLTextureOwner {
 const MAX_LEVEL_COUNT: usize = 31;
 const MAX_FACE_COUNT: usize = 6;
 
-jsmanaged_array!(MAX_LEVEL_COUNT * MAX_FACE_COUNT);
-
 #[dom_struct]
 pub struct WebGLTexture {
     webgl_object: WebGLObject,

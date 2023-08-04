@@ -5,7 +5,7 @@
 #![allow(unrooted_must_root)]
 
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::document::Document;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::node::Node;
@@ -59,7 +59,7 @@ impl Tokenizer {
 }
 
 #[allow(unsafe_code)]
-unsafe impl JSTraceable for XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>> {
+unsafe impl CustomTraceable for XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         struct Tracer(*mut JSTracer);
         let tracer = Tracer(trc);
