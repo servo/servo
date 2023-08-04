@@ -261,7 +261,7 @@ name = "background_hang_monitor"
 version = "0.0.1"
 dependencies = [
  "backtrace",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "ipc-channel",
  "lazy_static",
  "libc",
@@ -527,7 +527,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8e3ff9db740167616e528c509b3618046fc05d337f8f3182d300f4aa977d2bb"
 dependencies = [
- "crossbeam-utils 0.8.8",
+ "crossbeam-utils",
  "jobserver",
  "num_cpus",
 ]
@@ -619,7 +619,7 @@ dependencies = [
  "bitflags 1.3.2",
  "byteorder",
  "canvas_traits",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "cssparser",
  "euclid",
  "fnv",
@@ -655,7 +655,7 @@ dependencies = [
 name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "cssparser",
  "euclid",
  "ipc-channel",
@@ -863,7 +863,7 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "canvas",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -907,7 +907,7 @@ dependencies = [
  "bluetooth_traits",
  "canvas_traits",
  "compositing",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "devtools_traits",
  "embedder_traits",
  "euclid",
@@ -1069,22 +1069,12 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.4.4"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b153fe7cbef478c567df0f972e02e6d736db11affe43dfc9c56a9374d1adfb87"
-dependencies = [
- "crossbeam-utils 0.7.2",
- "maybe-uninit",
-]
-
-[[package]]
-name = "crossbeam-channel"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dca26ee1f8d361640700bde38b2c37d8c22b3ce2d360e1fc1c74ea4b0aa7d775"
+checksum = "a33c2bf77f2df06183c3aa30d1e96c0695a313d4f9c453cc3762a6db39f99200"
 dependencies = [
  "cfg-if 1.0.0",
- "crossbeam-utils 0.8.8",
+ "crossbeam-utils",
 ]
 
 [[package]]
@@ -1095,7 +1085,7 @@ checksum = "6455c0ca19f0d2fbf751b908d5c55c1f5cbc65e03c4225427254b46890bdde1e"
 dependencies = [
  "cfg-if 1.0.0",
  "crossbeam-epoch",
- "crossbeam-utils 0.8.8",
+ "crossbeam-utils",
 ]
 
 [[package]]
@@ -1106,21 +1096,10 @@ checksum = "045ebe27666471bb549370b4b0b3e51b07f56325befa4284db65fc89c02511b1"
 dependencies = [
  "autocfg",
  "cfg-if 1.0.0",
- "crossbeam-utils 0.8.8",
+ "crossbeam-utils",
  "memoffset",
  "once_cell",
  "scopeguard",
-]
-
-[[package]]
-name = "crossbeam-utils"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3c7c73a2d1e9fc0886a08b93e98eb643461230d5f1925e4036204d5f2e261a8"
-dependencies = [
- "autocfg",
- "cfg-if 0.1.10",
- "lazy_static",
 ]
 
 [[package]]
@@ -1335,7 +1314,7 @@ dependencies = [
 name = "devtools"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "devtools_traits",
  "embedder_traits",
  "headers",
@@ -1486,7 +1465,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 name = "embedder_traits"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "ipc-channel",
  "keyboard-types",
  "lazy_static",
@@ -2890,12 +2869,12 @@ dependencies = [
 
 [[package]]
 name = "ipc-channel"
-version = "0.14.1"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3698b8affd5656032a074a7d40b3c2a29b71971f3e1ff6042b9d40724e20d97c"
+checksum = "342d636452fbc2895574e0b319b23c014fd01c9ed71dcd87f6a4a8e2f948db4b"
 dependencies = [
  "bincode",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "fnv",
  "lazy_static",
  "libc",
@@ -2903,7 +2882,8 @@ dependencies = [
  "rand 0.7.3",
  "serde",
  "tempfile",
- "uuid 0.8.2",
+ "uuid 1.3.4",
+ "winapi",
 ]
 
 [[package]]
@@ -3102,7 +3082,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -3147,7 +3127,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -3186,7 +3166,7 @@ dependencies = [
 name = "layout_traits"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "gfx",
  "ipc-channel",
  "metrics",
@@ -3304,7 +3284,7 @@ dependencies = [
  "canvas_traits",
  "compositing",
  "constellation",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "devtools",
  "devtools_traits",
  "embedder_traits",
@@ -3455,7 +3435,7 @@ dependencies = [
  "accountable-refcell",
  "app_units",
  "content-security-policy",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "cssparser",
  "euclid",
  "http",
@@ -3515,12 +3495,6 @@ name = "matches"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3e378b66a060d48947b590737b30a1be76706c8dd7b8ba0f2fe3989c68a853f"
-
-[[package]]
-name = "maybe-uninit"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
 
 [[package]]
 name = "media"
@@ -3864,7 +3838,7 @@ dependencies = [
  "bytes 1.1.0",
  "content-security-policy",
  "cookie 0.12.0",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "data-url",
  "devtools_traits",
  "embedder_traits",
@@ -4666,7 +4640,7 @@ dependencies = [
 name = "profile_traits"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "ipc-channel",
  "log",
  "serde",
@@ -4849,9 +4823,9 @@ version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b8f95bd6966f5c87776639160a66bd8ab9895d9d4ab01ddba9fc60661aebe8d"
 dependencies = [
- "crossbeam-channel 0.5.0",
+ "crossbeam-channel",
  "crossbeam-deque",
- "crossbeam-utils 0.8.8",
+ "crossbeam-utils",
  "num_cpus",
 ]
 
@@ -5028,7 +5002,7 @@ dependencies = [
  "chrono",
  "content-security-policy",
  "cookie 0.12.0",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "cssparser",
  "data-url",
  "deny_public_fields",
@@ -5119,7 +5093,7 @@ dependencies = [
  "app_units",
  "atomic_refcell",
  "canvas_traits",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "euclid",
  "fxhash",
  "gfx_traits",
@@ -5173,7 +5147,7 @@ dependencies = [
  "bluetooth_traits",
  "canvas_traits",
  "cookie 0.12.0",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "devtools_traits",
  "embedder_traits",
  "euclid",
@@ -5352,7 +5326,7 @@ dependencies = [
 name = "servo-gst-plugin"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "euclid",
  "glib",
  "gst-plugin-version-helper",
@@ -5376,7 +5350,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "servo-media-audio",
  "servo-media-player",
@@ -5388,7 +5362,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.2.0"
-source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5410,7 +5384,7 @@ dependencies = [
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "boxfnonce",
  "ipc-channel",
@@ -5425,7 +5399,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5461,7 +5435,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -5471,7 +5445,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5484,7 +5458,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5497,7 +5471,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -5509,7 +5483,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "lazy_static",
  "uuid 0.8.2",
@@ -5518,12 +5492,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "boxfnonce",
  "lazy_static",
@@ -5601,7 +5575,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
+source = "git+https://github.com/servo/media#dedcd7b82b3a7e3595393281201fd36ea79e9d00"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6943,7 +6917,7 @@ dependencies = [
  "base64 0.21.2",
  "compositing",
  "cookie 0.12.0",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "euclid",
  "headers",
  "http",
@@ -7074,11 +7048,11 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#8be0c295d966ad9334fc9ad828d966ac14b21eac"
+source = "git+https://github.com/servo/webxr#798bf4da505a8d82e9f0bebfaf651f2133d89e3f"
 dependencies = [
  "android_injected_glue",
  "bindgen",
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel",
  "euclid",
  "gl_generator 0.13.1",
  "gvr-sys",
@@ -7094,7 +7068,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#8be0c295d966ad9334fc9ad828d966ac14b21eac"
+source = "git+https://github.com/servo/webxr#798bf4da505a8d82e9f0bebfaf651f2133d89e3f"
 dependencies = [
  "euclid",
  "ipc-channel",
