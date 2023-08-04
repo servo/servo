@@ -406,8 +406,9 @@ impl WindowPortsMethods for Window {
                 }
             },
             winit::event::WindowEvent::CursorMoved { position, .. } => {
-                let (x, y): (i32, i32) = position.into();
-                self.mouse_pos.set(Point2D::new(x, y));
+                let (x, y): (f64, f64) = position.into();
+                let y = y - f64::from(self.toolbar_height.get());
+                self.mouse_pos.set(Point2D::new(x, y).to_i32());
                 self.event_queue
                     .borrow_mut()
                     .push(EmbedderEvent::MouseWindowMoveEventClass(Point2D::new(
