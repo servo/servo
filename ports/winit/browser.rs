@@ -31,6 +31,8 @@ use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
 pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
+    current_url_taken: bool,
+
     /// id of the top level browsing context. It is unique as tabs
     /// are not supported yet. None until created.
     browser_id: Option<BrowserId>,
@@ -57,6 +59,7 @@ where
         Browser {
             title: None,
             current_url: None,
+            current_url_taken: false,
             browser_id: None,
             browsers: Vec::new(),
             window,
@@ -76,8 +79,14 @@ where
         self.browser_id
     }
 
-    pub fn current_top_level_url(&self) -> Option<ServoUrl> {
-        self.current_url.clone()
+    /// Returns current_url iff there has been a HistoryChanged event since the last call.
+    pub fn take_top_level_url_change(&mut self) -> Option<ServoUrl> {
+        if self.current_url_taken {
+            None
+        } else {
+            self.current_url_taken = true;
+            self.current_url.clone()
+        }
     }
 
     pub fn get_events(&mut self) -> Vec<EmbedderEvent> {
@@ -445,6 +454,7 @@ where
                 },
                 EmbedderMsg::HistoryChanged(urls, current) => {
                     self.current_url = Some(urls[current].clone());
+                    self.current_url_taken = false;
                 },
                 EmbedderMsg::SetFullscreenState(state) => {
                     self.window.set_fullscreen(state);

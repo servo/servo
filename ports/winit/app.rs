@@ -309,10 +309,11 @@ impl App {
         }
     }
 
-    /// Updates the location field, if the user hasn’t started editing it.
+    /// Updates the location field when the [Browser] says it has changed, unless the user has
+    /// started editing it without clicking Go.
     fn update_location_in_toolbar(&self, minibrowser: &mut RefMut<Minibrowser>) {
         if !minibrowser.location_dirty.get() {
-            if let Some(current_url) = self.browser.borrow().current_top_level_url() {
+            if let Some(current_url) = self.browser.borrow_mut().take_top_level_url_change() {
                 minibrowser.location = RefCell::new(ServoUrl::into_string(current_url));
             }
         }
