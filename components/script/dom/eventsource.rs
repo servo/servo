@@ -60,7 +60,9 @@ enum ReadyState {
 #[dom_struct]
 pub struct EventSource {
     eventtarget: EventTarget,
+    #[no_trace]
     url: ServoUrl,
+    #[no_trace]
     request: DomRefCell<Option<RequestBuilder>>,
     last_event_id: DomRefCell<DOMString>,
     reconnection_time: Cell<u64>,
@@ -647,6 +649,7 @@ pub struct EventSourceTimeoutCallback {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     event_source: Trusted<EventSource>,
     #[ignore_malloc_size_of = "Because it is non-owning"]
+    #[no_trace]
     action_sender: ipc::IpcSender<FetchResponseMsg>,
 }
 

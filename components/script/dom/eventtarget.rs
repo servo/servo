@@ -44,13 +44,14 @@ use libc::c_char;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::HashMap;
 use std::default::Default;
 use std::ffi::CString;
 use std::hash::BuildHasherDefault;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
+
+use super::bindings::trace::HashMapTracedValues;
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum CommonEventHandler {
@@ -81,6 +82,7 @@ pub enum ListenerPhase {
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 struct InternalRawUncompiledHandler {
     source: DOMString,
+    #[no_trace]
     url: ServoUrl,
     line: usize,
 }
@@ -344,7 +346,7 @@ impl EventListeners {
 #[dom_struct]
 pub struct EventTarget {
     reflector_: Reflector,
-    handlers: DomRefCell<HashMap<Atom, EventListeners, BuildHasherDefault<FnvHasher>>>,
+    handlers: DomRefCell<HashMapTracedValues<Atom, EventListeners, BuildHasherDefault<FnvHasher>>>,
 }
 
 impl EventTarget {

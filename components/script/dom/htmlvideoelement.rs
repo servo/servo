@@ -60,6 +60,7 @@ pub struct HTMLVideoElement {
     load_blocker: DomRefCell<Option<LoadBlocker>>,
     /// A copy of the last frame
     #[ignore_malloc_size_of = "VideoFrame"]
+    #[no_trace]
     last_frame: DomRefCell<Option<VideoFrame>>,
 }
 

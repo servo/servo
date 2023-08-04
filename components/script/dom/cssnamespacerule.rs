@@ -18,6 +18,7 @@ use style::stylesheets::NamespaceRule;
 pub struct CSSNamespaceRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     namespacerule: Arc<Locked<NamespaceRule>>,
 }
 

@@ -34,7 +34,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
@@ -185,26 +185,36 @@ pub unsafe fn trace_thread(tr: *mut JSTracer) {
 #[derive(JSTraceable)]
 struct InProgressLoad {
     /// The pipeline which requested this load.
+    #[no_trace]
     pipeline_id: PipelineId,
     /// The browsing context being loaded into.
+    #[no_trace]
     browsing_context_id: BrowsingContextId,
     /// The top level ancestor browsing context.
+    #[no_trace]
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The parent pipeline and frame type associated with this load, if any.
+    #[no_trace]
     parent_info: Option<PipelineId>,
     /// The opener, if this is an auxiliary.
+    #[no_trace]
     opener: Option<BrowsingContextId>,
     /// The current window size associated with this pipeline.
+    #[no_trace]
     window_size: WindowSizeData,
     /// Channel to the layout thread associated with this pipeline.
+    #[no_trace]
     layout_chan: Sender<message::Msg>,
     /// The activity level of the document (inactive, active or fully active).
+    #[no_trace]
     activity: DocumentActivity,
     /// Window is visible.
     is_visible: bool,
     /// The requested URL of the load.
+    #[no_trace]
     url: ServoUrl,
     /// The origin for the document
+    #[no_trace]
     origin: MutableOrigin,
     /// Timestamp reporting the time when the browser started this load.
     navigation_start: u64,
@@ -398,7 +408,7 @@ impl ScriptPort for Receiver<(TrustedServiceWorkerAddress, CommonScriptMsg)> {
 
 /// Encapsulates internal communication of shared messages within the script thread.
 #[derive(JSTraceable)]
-pub struct SendableMainThreadScriptChan(pub Sender<CommonScriptMsg>);
+pub struct SendableMainThreadScriptChan(#[no_trace] pub Sender<CommonScriptMsg>);
 
 impl ScriptChan for SendableMainThreadScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
@@ -412,7 +422,7 @@ impl ScriptChan for SendableMainThreadScriptChan {
 
 /// Encapsulates internal communication of main thread messages within the script thread.
 #[derive(JSTraceable)]
-pub struct MainThreadScriptChan(pub Sender<MainThreadScriptMsg>);
+pub struct MainThreadScriptChan(#[no_trace] pub Sender<MainThreadScriptMsg>);
 
 impl ScriptChan for MainThreadScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
@@ -436,13 +446,13 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
 #[derive(JSTraceable)]
 #[unrooted_must_root_lint::must_root]
 pub struct Documents {
-    map: HashMap<PipelineId, Dom<Document>>,
+    map: HashMapTracedValues<PipelineId, Dom<Document>>,
 }
 
 impl Documents {
     pub fn new() -> Documents {
         Documents {
-            map: HashMap::new(),
+            map: HashMapTracedValues::new(),
         }
     }
 
@@ -522,17 +532,20 @@ pub struct ScriptThread {
     documents: DomRefCell<Documents>,
     /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
-    window_proxies: DomRefCell<HashMap<BrowsingContextId, Dom<WindowProxy>>>,
+    window_proxies: DomRefCell<HashMapTracedValues<BrowsingContextId, Dom<WindowProxy>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
     incomplete_parser_contexts: IncompleteParserContexts,
     /// Image cache for this script thread.
+    #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
     /// there are many iframes.
+    #[no_trace]
     resource_threads: ResourceThreads,
     /// A handle to the bluetooth thread.
+    #[no_trace]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A queue of tasks to be executed in this script-thread.
@@ -551,12 +564,15 @@ pub struct ScriptThread {
 
     dom_manipulation_task_sender: Box<dyn ScriptChan>,
 
+    #[no_trace]
     media_element_task_sender: Sender<MainThreadScriptMsg>,
 
+    #[no_trace]
     user_interaction_task_sender: Sender<MainThreadScriptMsg>,
 
     networking_task_sender: Box<dyn ScriptChan>,
 
+    #[no_trace]
     history_traversal_task_sender: Sender<MainThreadScriptMsg>,
 
     file_reading_task_sender: Box<dyn ScriptChan>,
@@ -570,34 +586,45 @@ pub struct ScriptThread {
     remote_event_task_sender: Box<dyn ScriptChan>,
 
     /// A channel to hand out to threads that need to respond to a message from the script thread.
+    #[no_trace]
     control_chan: IpcSender<ConstellationControlMsg>,
 
     /// The port on which the constellation and layout threads can communicate with the
     /// script thread.
+    #[no_trace]
     control_port: Receiver<ConstellationControlMsg>,
 
     /// For communicating load url messages to the constellation
+    #[no_trace]
     script_sender: IpcSender<(PipelineId, ScriptMsg)>,
 
     /// A sender for new layout threads to communicate to the constellation.
+    #[no_trace]
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
     /// The port on which we receive messages from the image cache
+    #[no_trace]
     image_cache_port: Receiver<ImageCacheMsg>,
 
     /// The channel on which the image cache can send messages to ourself.
+    #[no_trace]
     image_cache_channel: Sender<ImageCacheMsg>,
     /// For providing contact with the time profiler.
+    #[no_trace]
     time_profiler_chan: profile_time::ProfilerChan,
 
     /// For providing contact with the memory profiler.
+    #[no_trace]
     mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
+    #[no_trace]
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// For receiving commands from an optional devtools server. Will be ignored if
     /// no such server exists.
+    #[no_trace]
     devtools_port: Receiver<DevtoolScriptControlMsg>,
+    #[no_trace]
     devtools_sender: IpcSender<DevtoolScriptControlMsg>,
 
     /// The JavaScript runtime.
@@ -607,10 +634,13 @@ pub struct ScriptThread {
     topmost_mouse_over_target: MutNullableDom<Element>,
 
     /// List of pipelines that have been owned and closed by this script thread.
+    #[no_trace]
     closed_pipelines: DomRefCell<HashSet<PipelineId>>,
 
+    #[no_trace]
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
+    #[no_trace]
     content_process_shutdown_chan: Sender<()>,
 
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
@@ -623,9 +653,11 @@ pub struct ScriptThread {
     mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
 
     /// A handle to the WebGL thread
+    #[no_trace]
     webgl_chan: Option<WebGLPipeline>,
 
     /// The WebXR device registry
+    #[no_trace]
     webxr_registry: webxr_api::Registry,
 
     /// The worklet thread pool
@@ -639,9 +671,11 @@ pub struct ScriptThread {
     custom_element_reaction_stack: CustomElementReactionStack,
 
     /// The Webrender Document ID associated with this thread.
+    #[no_trace]
     webrender_document: DocumentId,
 
     /// Webrender API sender.
+    #[no_trace]
     webrender_api_sender: WebrenderIpcSender,
 
     /// Periodically print out on which events script threads spend their processing time.
@@ -678,9 +712,11 @@ pub struct ScriptThread {
     user_agent: Cow<'static, str>,
 
     /// Application window's GL Context for Media player
+    #[no_trace]
     player_context: WindowGLContext,
 
     /// A mechanism to force the compositor's event loop to process events.
+    #[no_trace]
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 
     /// A set of all nodes ever created in this script thread
@@ -690,9 +726,11 @@ pub struct ScriptThread {
     is_user_interacting: Cell<bool>,
 
     /// Identity manager for WebGPU resources
+    #[no_trace]
     gpu_id_hub: Arc<Mutex<Identities>>,
 
     /// Receiver to receive commands from optional WebGPU server.
+    #[no_trace]
     webgpu_port: RefCell<Option<Receiver<WebGPUMsg>>>,
 
     // Secure context
@@ -1297,7 +1335,7 @@ impl ScriptThread {
 
         ScriptThread {
             documents: DomRefCell::new(Documents::new()),
-            window_proxies: DomRefCell::new(HashMap::new()),
+            window_proxies: DomRefCell::new(HashMapTracedValues::new()),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
 

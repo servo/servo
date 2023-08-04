@@ -82,6 +82,7 @@ struct WebGLExtensionFeatures {
     gl_extensions: FnvHashSet<String>,
     disabled_tex_types: FnvHashSet<GLenum>,
     not_filterable_tex_types: FnvHashSet<GLenum>,
+    #[no_trace]
     effective_tex_internal_formats: FnvHashMap<TexFormatType, TexFormat>,
     /// WebGL Hint() targets enabled by extensions.
     hint_targets: FnvHashSet<GLenum>,
@@ -166,8 +167,11 @@ impl WebGLExtensionFeatures {
 pub struct WebGLExtensions {
     extensions: DomRefCell<HashMap<String, Box<dyn WebGLExtensionWrapper>>>,
     features: DomRefCell<WebGLExtensionFeatures>,
+    #[no_trace]
     webgl_version: WebGLVersion,
+    #[no_trace]
     api_type: GlType,
+    #[no_trace]
     glsl_version: WebGLSLVersion,
 }
 
@@ -466,5 +470,5 @@ impl WebGLExtensions {
 }
 
 // Helper structs
-#[derive(Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Eq, Hash, MallocSizeOf, PartialEq)]
 struct TexFormatType(TexFormat, u32);

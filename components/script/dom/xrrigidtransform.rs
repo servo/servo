@@ -27,6 +27,7 @@ pub struct XRRigidTransform {
     position: MutNullableDom<DOMPointReadOnly>,
     orientation: MutNullableDom<DOMPointReadOnly>,
     #[ignore_malloc_size_of = "defined in euclid"]
+    #[no_trace]
     transform: ApiRigidTransform,
     inverse: MutNullableDom<XRRigidTransform>,
     #[ignore_malloc_size_of = "defined in mozjs"]

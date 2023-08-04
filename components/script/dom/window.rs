@@ -157,6 +157,8 @@ use url::Position;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
 
+use super::bindings::trace::HashMapTracedValues;
+
 /// Current state of the window object
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WindowState {
@@ -199,8 +201,10 @@ pub struct Window {
     task_manager: TaskManager,
     navigator: MutNullableDom<Navigator>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     image_cache_chan: Sender<ImageCacheMsg>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
@@ -217,14 +221,18 @@ pub struct Window {
 
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
+    #[no_trace]
     devtools_markers: DomRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
     /// Pending resize event, if any.
+    #[no_trace]
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
     /// Parent id associated with this page, if any.
+    #[no_trace]
     parent_info: Option<PipelineId>,
 
     /// Global static data related to the DOM.
@@ -239,23 +247,28 @@ pub struct Window {
     /// This channel shouldn't be accessed directly, but through `Window::layout_chan()`,
     /// which returns `None` if there's no layout thread anymore.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     layout_chan: Sender<Msg>,
 
     /// A handle to perform RPC calls into the layout, quickly.
     #[ignore_malloc_size_of = "trait objects are hard"]
+    #[no_trace]
     layout_rpc: Box<dyn LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
+    #[no_trace]
     window_size: Cell<WindowSizeData>,
 
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
 
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
+    #[no_trace]
     page_clip_rect: Cell<UntypedRect<Au>>,
 
     /// Flag to suppress reflows. The first reflow will come either with
@@ -268,16 +281,19 @@ pub struct Window {
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     webdriver_script_chan: DomRefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
 
+    #[no_trace]
     current_viewport: Cell<UntypedRect<Au>>,
 
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
+    #[no_trace]
     scroll_offsets: DomRefCell<HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>>,
 
     /// All the MediaQueryLists we need to update
@@ -287,16 +303,18 @@ pub struct Window {
 
     /// A handle for communicating messages to the WebGL thread, if available.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     webgl_chan: Option<WebGLChan>,
 
     #[ignore_malloc_size_of = "defined in webxr"]
+    #[no_trace]
     webxr_registry: webxr_api::Registry,
 
     /// All of the elements that have an outstanding image request that was
     /// initiated by layout during a reflow. They are stored in the script thread
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
-    pending_layout_images: DomRefCell<HashMap<PendingImageId, Vec<Dom<Node>>>>,
+    pending_layout_images: DomRefCell<HashMapTracedValues<PendingImageId, Vec<Dom<Node>>>>,
 
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
@@ -311,6 +329,7 @@ pub struct Window {
     paint_worklet: MutNullableDom<Worklet>,
     /// The Webrender Document id associated with this window.
     #[ignore_malloc_size_of = "defined in webrender_api"]
+    #[no_trace]
     webrender_document: DocumentId,
 
     /// Flag to identify whether mutation observers are present(true)/absent(false)
@@ -318,6 +337,7 @@ pub struct Window {
 
     /// Webrender API Sender
     #[ignore_malloc_size_of = "Wraps an IpcSender"]
+    #[no_trace]
     webrender_api_sender: WebrenderIpcSender,
 
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
@@ -348,10 +368,12 @@ pub struct Window {
 
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
+    #[no_trace]
     player_context: WindowGLContext,
 
     /// A mechanism to force the compositor to process events.
     #[ignore_malloc_size_of = "traits are cumbersome"]
+    #[no_trace]
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 
     visible: Cell<bool>,
@@ -1469,6 +1491,7 @@ impl WindowMethods for Window {
         // Step 4.
         #[derive(JSTraceable, MallocSizeOf)]
         struct WindowNamedGetter {
+            #[no_trace]
             name: Atom,
         }
         impl CollectionFilter for WindowNamedGetter {
@@ -1509,7 +1532,7 @@ impl WindowMethods for Window {
 
         let document = self.Document();
         let name_map = document.name_map();
-        for (name, elements) in &*name_map {
+        for (name, elements) in &(*name_map).0 {
             if name.is_empty() {
                 continue;
             }
@@ -1521,7 +1544,7 @@ impl WindowMethods for Window {
             }
         }
         let id_map = document.id_map();
-        for (id, elements) in &*id_map {
+        for (id, elements) in &(*id_map).0 {
             if id.is_empty() {
                 continue;
             }
@@ -2666,7 +2689,7 @@ impl Window {
     /// Create a new cached instance of the given value.
     pub fn cache_layout_value<T>(&self, value: T) -> LayoutValue<T>
     where
-        T: Copy + JSTraceable + MallocSizeOf,
+        T: Copy + MallocSizeOf,
     {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
     }
@@ -2676,14 +2699,21 @@ impl Window {
 /// value can only be read as long as the associated layout marker that is considered
 /// valid. It will automatically become unavailable when the next layout operation is
 /// performed.
-#[derive(JSTraceable, MallocSizeOf)]
-pub struct LayoutValue<T: JSTraceable + MallocSizeOf> {
+#[derive(MallocSizeOf)]
+pub struct LayoutValue<T: MallocSizeOf> {
     #[ignore_malloc_size_of = "Rc is hard"]
     is_valid: Rc<Cell<bool>>,
     value: T,
 }
 
-impl<T: Copy + JSTraceable + MallocSizeOf> LayoutValue<T> {
+#[allow(unsafe_code)]
+unsafe impl<T: JSTraceable + MallocSizeOf> JSTraceable for LayoutValue<T> {
+    unsafe fn trace(&self, trc: *mut js::jsapi::JSTracer) {
+        self.value.trace(trc)
+    }
+}
+
+impl<T: Copy + MallocSizeOf> LayoutValue<T> {
     fn new(marker: Rc<Cell<bool>>, value: T) -> Self {
         LayoutValue {
             is_valid: marker,

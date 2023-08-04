@@ -43,6 +43,7 @@ type ParseNodeId = usize;
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct ParseNode {
     id: ParseNodeId,
+    #[no_trace]
     qual_name: Option<QualName>,
 }
 
@@ -54,6 +55,7 @@ enum NodeOrText {
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct Attribute {
+    #[no_trace]
     name: QualName,
     value: String,
 }
@@ -67,6 +69,7 @@ enum ParseOperation {
 
     CreateElement {
         node: ParseNodeId,
+        #[no_trace]
         name: QualName,
         attrs: Vec<Attribute>,
         current_line: u64,
@@ -130,6 +133,7 @@ enum ParseOperation {
 
     SetQuirksMode {
         #[ignore_malloc_size_of = "Defined in style"]
+        #[no_trace]
         mode: ServoQuirksMode,
     },
 }
@@ -200,11 +204,14 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
 pub struct Tokenizer {
     document: Dom<Document>,
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     receiver: Receiver<ToTokenizerMsg>,
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
     #[ignore_malloc_size_of = "Defined in std"]
     nodes: HashMap<ParseNodeId, Dom<Node>>,
+    #[no_trace]
     url: ServoUrl,
     parsing_algorithm: ParsingAlgorithm,
 }

@@ -16,8 +16,10 @@ use servo_media::streams::MediaStreamType;
 pub struct MediaStreamTrack {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "defined in servo-media"]
+    #[no_trace]
     id: MediaStreamId,
     #[ignore_malloc_size_of = "defined in servo-media"]
+    #[no_trace]
     ty: MediaStreamType,
 }
 

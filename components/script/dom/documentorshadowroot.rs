@@ -17,17 +17,19 @@ use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
 use servo_atoms::Atom;
-use std::collections::HashMap;
 use std::fmt;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{Stylesheet, StylesheetContents};
 
+use super::bindings::trace::HashMapTracedValues;
+
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]
 pub struct StyleSheetInDocument {
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     pub sheet: Arc<Stylesheet>,
     pub owner: Dom<Element>,
 }
@@ -247,7 +249,7 @@ impl DocumentOrShadowRoot {
     /// Remove any existing association between the provided id/name and any elements in this document.
     pub fn unregister_named_element(
         &self,
-        id_map: &DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
+        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
         to_unregister: &Element,
         id: &Atom,
     ) {
@@ -275,7 +277,7 @@ impl DocumentOrShadowRoot {
     /// Associate an element present in this document with the provided id/name.
     pub fn register_named_element(
         &self,
-        id_map: &DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
+        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
         element: &Element,
         id: &Atom,
         root: DomRoot<Node>,

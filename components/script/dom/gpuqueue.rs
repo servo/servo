@@ -27,9 +27,11 @@ use webgpu::{identity::WebGPUOpResult, wgt, WebGPU, WebGPUQueue, WebGPURequest};
 pub struct GPUQueue {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
+    #[no_trace]
     channel: WebGPU,
     device: DomRefCell<Option<Dom<GPUDevice>>>,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     queue: WebGPUQueue,
 }
 

@@ -15,6 +15,7 @@ use webgpu::WebGPUShaderModule;
 pub struct GPUShaderModule {
     reflector_: Reflector,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     shader_module: WebGPUShaderModule,
 }
 

@@ -182,6 +182,7 @@ pub struct DedicatedWorkerGlobalScope {
     #[ignore_malloc_size_of = "Defined in std"]
     task_queue: TaskQueue<DedicatedWorkerScriptMsg>,
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     own_sender: Sender<DedicatedWorkerScriptMsg>,
     #[ignore_malloc_size_of = "Trusted<T> has unclear ownership like Dom<T>"]
     worker: DomRefCell<Option<TrustedWorkerAddress>>,
@@ -189,11 +190,14 @@ pub struct DedicatedWorkerGlobalScope {
     /// Sender to the parent thread.
     parent_sender: Box<dyn ScriptChan + Send>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image_cache: Arc<dyn ImageCache>,
+    #[no_trace]
     browsing_context: Option<BrowsingContextId>,
     /// A receiver of control messages,
     /// currently only used to signal shutdown.
     #[ignore_malloc_size_of = "Channels are hard"]
+    #[no_trace]
     control_receiver: Receiver<DedicatedWorkerControlMsg>,
 }
 

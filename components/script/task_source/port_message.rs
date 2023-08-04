@@ -9,7 +9,10 @@ use msg::constellation_msg::PipelineId;
 use std::fmt;
 
 #[derive(JSTraceable)]
-pub struct PortMessageQueue(pub Box<dyn ScriptChan + Send + 'static>, pub PipelineId);
+pub struct PortMessageQueue(
+    pub Box<dyn ScriptChan + Send + 'static>,
+    #[no_trace] pub PipelineId,
+);
 
 impl Clone for PortMessageQueue {
     fn clone(&self) -> PortMessageQueue {

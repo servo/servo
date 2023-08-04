@@ -13,6 +13,7 @@ use webxr_api::Viewport;
 #[dom_struct]
 pub struct XRViewport {
     reflector_: Reflector,
+    #[no_trace]
     viewport: Rect<i32, Viewport>,
 }
 

@@ -15,8 +15,11 @@ use webgpu::{WebGPU, WebGPUDevice, WebGPURenderBundle};
 pub struct GPURenderBundle {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     channel: WebGPU,
+    #[no_trace]
     device: WebGPUDevice,
+    #[no_trace]
     render_bundle: WebGPURenderBundle,
     label: DomRefCell<Option<USVString>>,
 }

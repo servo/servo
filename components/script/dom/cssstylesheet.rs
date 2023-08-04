@@ -26,6 +26,7 @@ pub struct CSSStyleSheet {
     owner: MutNullableDom<Element>,
     rulelist: MutNullableDom<CSSRuleList>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     style_stylesheet: Arc<StyleStyleSheet>,
     origin_clean: Cell<bool>,
 }

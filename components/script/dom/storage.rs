@@ -24,6 +24,7 @@ use servo_url::ServoUrl;
 #[dom_struct]
 pub struct Storage {
     reflector_: Reflector,
+    #[no_trace]
     storage_type: StorageType,
 }
 

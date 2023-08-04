@@ -169,7 +169,7 @@ impl WorkletMethods for Worklet {
 
 /// A guid for worklets.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
-pub struct WorkletId(Uuid);
+pub struct WorkletId(#[no_trace] Uuid);
 
 malloc_size_of_is_0!(WorkletId);
 
@@ -251,12 +251,18 @@ impl PendingTasksStruct {
 #[derive(Clone, JSTraceable)]
 pub struct WorkletThreadPool {
     // Channels to send data messages to the three roles.
+    #[no_trace]
     primary_sender: Sender<WorkletData>,
+    #[no_trace]
     hot_backup_sender: Sender<WorkletData>,
+    #[no_trace]
     cold_backup_sender: Sender<WorkletData>,
     // Channels to send control messages to the three threads.
+    #[no_trace]
     control_sender_0: Sender<WorkletControl>,
+    #[no_trace]
     control_sender_1: Sender<WorkletControl>,
+    #[no_trace]
     control_sender_2: Sender<WorkletControl>,
 }
 
@@ -746,6 +752,7 @@ impl WorkletThread {
 pub struct WorkletExecutor {
     worklet_id: WorkletId,
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     primary_sender: Sender<WorkletData>,
 }
 

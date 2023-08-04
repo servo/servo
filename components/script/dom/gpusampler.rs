@@ -15,8 +15,10 @@ use webgpu::{WebGPUDevice, WebGPUSampler};
 pub struct GPUSampler {
     reflector_: Reflector,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     device: WebGPUDevice,
     compare_enable: bool,
+    #[no_trace]
     sampler: WebGPUSampler,
 }
 

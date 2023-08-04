@@ -55,7 +55,6 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
-use std::collections::HashMap;
 use std::ptr::null_mut;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -66,6 +65,8 @@ use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
 
+use super::bindings::trace::HashMapTracedValues;
+
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
 pub struct PaintWorkletGlobalScope {
@@ -73,23 +74,29 @@ pub struct PaintWorkletGlobalScope {
     worklet_global: WorkletGlobalScope,
     /// The image cache
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     /// <https://drafts.css-houdini.org/css-paint-api/#paint-definitions>
-    paint_definitions: DomRefCell<HashMap<Atom, Box<PaintDefinition>>>,
+    paint_definitions: DomRefCell<HashMapTracedValues<Atom, Box<PaintDefinition>>>,
     /// <https://drafts.css-houdini.org/css-paint-api/#paint-class-instances>
     #[ignore_malloc_size_of = "mozjs"]
-    paint_class_instances: DomRefCell<HashMap<Atom, Box<Heap<JSVal>>>>,
+    paint_class_instances: DomRefCell<HashMapTracedValues<Atom, Box<Heap<JSVal>>>>,
     /// The most recent name the worklet was called with
+    #[no_trace]
     cached_name: DomRefCell<Atom>,
     /// The most recent size the worklet was drawn at
+    #[no_trace]
     cached_size: Cell<Size2D<f32, CSSPixel>>,
     /// The most recent device pixel ratio the worklet was drawn at
+    #[no_trace]
     cached_device_pixel_ratio: Cell<Scale<f32, CSSPixel, DevicePixel>>,
     /// The most recent properties the worklet was drawn at
+    #[no_trace]
     cached_properties: DomRefCell<Vec<(Atom, String)>>,
     /// The most recent arguments the worklet was drawn at
     cached_arguments: DomRefCell<Vec<String>>,
     /// The most recent result
+    #[no_trace]
     cached_result: DomRefCell<DrawAPaintImageResult>,
 }
 

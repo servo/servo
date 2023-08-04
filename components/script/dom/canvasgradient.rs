@@ -22,13 +22,14 @@ use dom_struct::dom_struct;
 pub struct CanvasGradient {
     reflector_: Reflector,
     style: CanvasGradientStyle,
+    #[no_trace]
     stops: DomRefCell<Vec<CanvasGradientStop>>,
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum CanvasGradientStyle {
-    Linear(LinearGradientStyle),
-    Radial(RadialGradientStyle),
+    Linear(#[no_trace] LinearGradientStyle),
+    Radial(#[no_trace] RadialGradientStyle),
 }
 
 impl CanvasGradient {

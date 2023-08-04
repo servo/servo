@@ -15,7 +15,9 @@ use webgpu::{WebGPUBindGroupLayout, WebGPUPipelineLayout};
 pub struct GPUPipelineLayout {
     reflector_: Reflector,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     pipeline_layout: WebGPUPipelineLayout,
+    #[no_trace]
     bind_group_layouts: Vec<WebGPUBindGroupLayout>,
 }
 

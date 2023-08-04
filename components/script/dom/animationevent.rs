@@ -20,6 +20,7 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct AnimationEvent {
     event: Event,
+    #[no_trace]
     animation_name: Atom,
     elapsed_time: Finite<f32>,
     pseudo_element: DOMString,

@@ -52,6 +52,7 @@ struct FetchContext {
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub struct FetchCanceller {
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     cancel_chan: Option<ipc::IpcSender<()>>,
 }
 

@@ -164,7 +164,9 @@ impl HTMLCollection {
 
         #[derive(JSTraceable, MallocSizeOf)]
         struct HtmlDocumentFilter {
+            #[no_trace]
             qualified_name: LocalName,
+            #[no_trace]
             ascii_lower_qualified_name: LocalName,
         }
         impl CollectionFilter for HtmlDocumentFilter {
@@ -216,6 +218,7 @@ impl HTMLCollection {
     ) -> DomRoot<HTMLCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct TagNameNSFilter {
+            #[no_trace]
             qname: QualName,
         }
         impl CollectionFilter for TagNameNSFilter {
@@ -245,6 +248,7 @@ impl HTMLCollection {
     ) -> DomRoot<HTMLCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct ClassNameFilter {
+            #[no_trace]
             classes: Vec<Atom>,
         }
         impl CollectionFilter for ClassNameFilter {

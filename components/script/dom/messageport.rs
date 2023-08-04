@@ -33,7 +33,9 @@ use std::rc::Rc;
 /// The MessagePort used in the DOM.
 pub struct MessagePort {
     eventtarget: EventTarget,
+    #[no_trace]
     message_port_id: MessagePortId,
+    #[no_trace]
     entangled_port: RefCell<Option<MessagePortId>>,
     detached: Cell<bool>,
 }

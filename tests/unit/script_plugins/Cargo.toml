@@ -10,4 +10,4 @@ path = "lib.rs"
 test = false
 
 [dependencies]
-script_plugins = {path = "../../../components/script_plugins"}
+script_plugins = {path = "../../../components/script_plugins", features = ["unrooted_must_root_lint", "trace_in_no_trace_lint"]}

@@ -43,7 +43,6 @@ use ipc_channel::router::ROUTER;
 use metrics::ToMs;
 use profile_traits::ipc;
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::mem;
 use std::rc::Rc;
@@ -54,6 +53,8 @@ use webxr_api::{
     View, Viewer, Visibility,
 };
 
+use super::bindings::trace::HashMapTracedValues;
+
 #[dom_struct]
 pub struct XRSession {
     eventtarget: EventTarget,
@@ -62,11 +63,13 @@ pub struct XRSession {
     visibility_state: Cell<XRVisibilityState>,
     viewer_space: MutNullableDom<XRSpace>,
     #[ignore_malloc_size_of = "defined in webxr"]
+    #[no_trace]
     session: DomRefCell<Session>,
     frame_requested: Cell<bool>,
     pending_render_state: MutNullableDom<XRRenderState>,
     active_render_state: MutDom<XRRenderState>,
     /// Cached projection matrix for inline sessions
+    #[no_trace]
     inline_projection_matrix: DomRefCell<Transform3D<f32, Viewer, Display>>,
 
     next_raf_id: Cell<i32>,
@@ -81,9 +84,10 @@ pub struct XRSession {
     /// https://immersive-web.github.io/webxr/#ended
     ended: Cell<bool>,
     #[ignore_malloc_size_of = "defined in webxr"]
+    #[no_trace]
     next_hit_test_id: Cell<HitTestId>,
     #[ignore_malloc_size_of = "defined in webxr"]
-    pending_hit_test_promises: DomRefCell<HashMap<HitTestId, Rc<Promise>>>,
+    pending_hit_test_promises: DomRefCell<HashMapTracedValues<HitTestId, Rc<Promise>>>,
     /// Opaque framebuffers need to know the session is "outside of a requestAnimationFrame"
     /// https://immersive-web.github.io/webxr/#opaque-framebuffer
     outside_raf: Cell<bool>,
@@ -115,7 +119,7 @@ impl XRSession {
             end_promises: DomRefCell::new(vec![]),
             ended: Cell::new(false),
             next_hit_test_id: Cell::new(HitTestId(0)),
-            pending_hit_test_promises: DomRefCell::new(HashMap::new()),
+            pending_hit_test_promises: DomRefCell::new(HashMapTracedValues::new()),
             outside_raf: Cell::new(true),
         }
     }

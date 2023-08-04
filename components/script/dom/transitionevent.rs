@@ -21,6 +21,7 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct TransitionEvent {
     event: Event,
+    #[no_trace]
     property_name: Atom,
     elapsed_time: Finite<f32>,
     pseudo_element: DOMString,

@@ -129,6 +129,8 @@ use time::{get_time, Timespec};
 use uuid::Uuid;
 use webgpu::{identity::WebGPUOpResult, ErrorScopeId, WebGPUDevice};
 
+use super::bindings::trace::HashMapTracedValues;
+
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker {
     /// https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-closing
@@ -137,6 +139,7 @@ pub struct AutoCloseWorker {
     join_handle: Option<JoinHandle<()>>,
     /// A sender of control messages,
     /// currently only used to signal shutdown.
+    #[no_trace]
     control_sender: Sender<DedicatedWorkerControlMsg>,
     /// The context to request an interrupt on the worker thread.
     context: ContextForRequestInterrupt,
@@ -187,13 +190,15 @@ pub struct GlobalScope {
     blob_state: DomRefCell<BlobState>,
 
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-registration-object-map>
-    registration_map:
-        DomRefCell<HashMap<ServiceWorkerRegistrationId, Dom<ServiceWorkerRegistration>>>,
+    registration_map: DomRefCell<
+        HashMapTracedValues<ServiceWorkerRegistrationId, Dom<ServiceWorkerRegistration>>,
+    >,
 
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-object-map>
-    worker_map: DomRefCell<HashMap<ServiceWorkerId, Dom<ServiceWorker>>>,
+    worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>>>,
 
     /// Pipeline id associated with this global.
+    #[no_trace]
     pipeline_id: PipelineId,
 
     /// A flag to indicate whether the developer tools has requested
@@ -206,28 +211,33 @@ pub struct GlobalScope {
     /// module map is used when importing JavaScript modules
     /// https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map
     #[ignore_malloc_size_of = "mozjs"]
-    module_map: DomRefCell<HashMap<ServoUrl, Rc<ModuleTree>>>,
+    module_map: DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>>,
 
     #[ignore_malloc_size_of = "mozjs"]
     inline_module_map: DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>>,
 
     /// For providing instructions to an optional devtools server.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 
     /// For sending messages to the memory profiler.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// For sending messages to the time profiler.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     time_profiler_chan: profile_time::ProfilerChan,
 
     /// A handle for communicating messages to the constellation thread.
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     script_to_constellation_chan: ScriptToConstellationChan,
 
     #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
     /// <https://html.spec.whatwg.org/multipage/#in-error-reporting-mode>
@@ -235,6 +245,7 @@ pub struct GlobalScope {
 
     /// Associated resource threads for use by DOM objects like XMLHttpRequest,
     /// including resource_thread, filemanager_thread and storage_thread
+    #[no_trace]
     resource_threads: ResourceThreads,
 
     /// The mechanism by which time-outs and intervals are scheduled.
@@ -245,9 +256,11 @@ pub struct GlobalScope {
     init_timers: Cell<bool>,
 
     /// The origin of the globalscope
+    #[no_trace]
     origin: MutableOrigin,
 
     /// https://html.spec.whatwg.org/multipage/#concept-environment-creation-url
+    #[no_trace]
     creation_url: Option<ServoUrl>,
 
     /// A map for storing the previous permission state read results.
@@ -296,16 +309,18 @@ pub struct GlobalScope {
 
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
+    #[no_trace]
     gpu_id_hub: Arc<Mutex<Identities>>,
 
     /// WebGPU devices
-    gpu_devices: DomRefCell<HashMap<WebGPUDevice, Dom<GPUDevice>>>,
+    gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, Dom<GPUDevice>>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
     frozen_supported_performance_entry_types: DomRefCell<Option<Heap<JSVal>>>,
 
     /// currect https state (from previous request)
+    #[no_trace]
     https_state: Cell<HttpsState>,
 
     /// The stack of active group labels for the Console APIs.
@@ -379,6 +394,7 @@ pub struct BlobInfo {
     /// The weak ref to the corresponding DOM object.
     tracker: BlobTracker,
     /// The data and logic backing the DOM object.
+    #[no_trace]
     blob_impl: BlobImpl,
     /// Whether this blob has an outstanding URL,
     /// <https://w3c.github.io/FileAPI/#url>.
@@ -389,7 +405,7 @@ pub struct BlobInfo {
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum BlobState {
     /// A map of managed blobs.
-    Managed(HashMap<BlobId, BlobInfo>),
+    Managed(HashMapTracedValues<BlobId, BlobInfo>),
     /// This global is not managing any blobs at this time.
     UnManaged,
 }
@@ -412,6 +428,7 @@ pub struct ManagedMessagePort {
     /// The option is needed to take out the port-impl
     /// as part of its transferring steps,
     /// without having to worry about rooting the dom-port.
+    #[no_trace]
     port_impl: Option<MessagePortImpl>,
     /// We keep ports pending when they are first transfer-received,
     /// and only add them, and ask the constellation to complete the transfer,
@@ -430,7 +447,7 @@ pub enum BroadcastChannelState {
     /// of https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage
     /// requires keeping track of creation order, hence the queue.
     Managed(
-        BroadcastChannelRouterId,
+        #[no_trace] BroadcastChannelRouterId,
         /// The map of channel-name to queue of channels, in order of creation.
         HashMap<DOMString, VecDeque<Dom<BroadcastChannel>>>,
     ),
@@ -444,8 +461,8 @@ pub enum BroadcastChannelState {
 pub enum MessagePortState {
     /// The message-port router id for this global, and a map of managed ports.
     Managed(
-        MessagePortRouterId,
-        HashMap<MessagePortId, ManagedMessagePort>,
+        #[no_trace] MessagePortRouterId,
+        HashMapTracedValues<MessagePortId, ManagedMessagePort>,
     ),
     /// This global is not managing any ports at this time.
     UnManaged,
@@ -739,8 +756,8 @@ impl GlobalScope {
             blob_state: DomRefCell::new(BlobState::UnManaged),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
-            registration_map: DomRefCell::new(HashMap::new()),
-            worker_map: DomRefCell::new(HashMap::new()),
+            registration_map: DomRefCell::new(HashMapTracedValues::new()),
+            worker_map: DomRefCell::new(HashMapTracedValues::new()),
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
@@ -766,7 +783,7 @@ impl GlobalScope {
             is_headless,
             user_agent,
             gpu_id_hub,
-            gpu_devices: DomRefCell::new(HashMap::new()),
+            gpu_devices: DomRefCell::new(HashMapTracedValues::new()),
             frozen_supported_performance_entry_types: DomRefCell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
@@ -789,7 +806,7 @@ impl GlobalScope {
         if let MessagePortState::Managed(_router_id, message_ports) =
             &*self.message_port_state.borrow()
         {
-            return message_ports.contains_key(port_id);
+            return message_ports.contains_key(&*port_id);
         }
         false
     }
@@ -976,7 +993,7 @@ impl GlobalScope {
             &mut *self.message_port_state.borrow_mut()
         {
             for (port_id, entangled_id) in &[(port1, port2), (port2, port1)] {
-                match message_ports.get_mut(&port_id) {
+                match message_ports.get_mut(&*port_id) {
                     None => {
                         return warn!("entangled_ports called on a global not managing the port.");
                     },
@@ -1017,7 +1034,7 @@ impl GlobalScope {
             &mut *self.message_port_state.borrow_mut()
         {
             let mut port_impl = message_ports
-                .remove(&port_id)
+                .remove(&*port_id)
                 .map(|ref mut managed_port| {
                     managed_port
                         .port_impl
@@ -1040,7 +1057,7 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let message_buffer = match message_ports.get_mut(&port_id) {
+            let message_buffer = match message_ports.get_mut(&*port_id) {
                 None => panic!("start_message_port called on a unknown port."),
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
@@ -1073,7 +1090,7 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            match message_ports.get_mut(&port_id) {
+            match message_ports.get_mut(&*port_id) {
                 None => panic!("close_message_port called on an unknown port."),
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
@@ -1306,7 +1323,7 @@ impl GlobalScope {
                 .collect();
             for id in to_be_added.iter() {
                 let managed_port = message_ports
-                    .get_mut(&id)
+                    .get_mut(&*id)
                     .expect("Collected port-id to match an entry");
                 if !managed_port.pending {
                     panic!("Only pending ports should be found in to_be_added")
@@ -1472,7 +1489,8 @@ impl GlobalScope {
                 }),
             );
             let router_id = MessagePortRouterId::new();
-            *current_state = MessagePortState::Managed(router_id.clone(), HashMap::new());
+            *current_state =
+                MessagePortState::Managed(router_id.clone(), HashMapTracedValues::new());
             let _ = self
                 .script_to_constellation_chan()
                 .send(ScriptMsg::NewMessagePortRouter(
@@ -1551,7 +1569,7 @@ impl GlobalScope {
 
         match &mut *blob_state {
             BlobState::UnManaged => {
-                let mut blobs_map = HashMap::new();
+                let mut blobs_map = HashMapTracedValues::new();
                 blobs_map.insert(blob_id, blob_info);
                 *blob_state = BlobState::Managed(blobs_map);
             },
@@ -1593,7 +1611,7 @@ impl GlobalScope {
     fn perform_a_blob_garbage_collection_checkpoint(&self) {
         let mut blob_state = self.blob_state.borrow_mut();
         if let BlobState::Managed(blobs_map) = &mut *blob_state {
-            blobs_map.retain(|_id, blob_info| {
+            blobs_map.0.retain(|_id, blob_info| {
                 let garbage_collected = match &blob_info.tracker {
                     BlobTracker::File(weak) => weak.root().is_none(),
                     BlobTracker::Blob(weak) => weak.root().is_none(),
@@ -1644,7 +1662,7 @@ impl GlobalScope {
             let blob_state = self.blob_state.borrow();
             if let BlobState::Managed(blobs_map) = &*blob_state {
                 let blob_info = blobs_map
-                    .get(blob_id)
+                    .get(&blob_id)
                     .expect("get_blob_bytes for an unknown blob.");
                 match blob_info.blob_impl.blob_data() {
                     BlobData::Sliced(ref parent, ref rel_pos) => {
@@ -1671,7 +1689,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(blob_id)
+                .get(&blob_id)
                 .expect("get_blob_bytes_non_sliced called for a unknown blob.");
             match blob_info.blob_impl.blob_data() {
                 BlobData::File(ref f) => {
@@ -1709,7 +1727,7 @@ impl GlobalScope {
             let blob_state = self.blob_state.borrow();
             if let BlobState::Managed(blobs_map) = &*blob_state {
                 let blob_info = blobs_map
-                    .get(blob_id)
+                    .get(&blob_id)
                     .expect("get_blob_bytes_or_file_id for an unknown blob.");
                 match blob_info.blob_impl.blob_data() {
                     BlobData::Sliced(ref parent, ref rel_pos) => {
@@ -1745,7 +1763,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(blob_id)
+                .get(&blob_id)
                 .expect("get_blob_bytes_non_sliced_or_file_id called for a unknown blob.");
             match blob_info.blob_impl.blob_data() {
                 BlobData::File(ref f) => match f.get_cache() {
@@ -1767,7 +1785,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(blob_id)
+                .get(&blob_id)
                 .expect("get_blob_type_string called for a unknown blob.");
             blob_info.blob_impl.type_string()
         } else {
@@ -1781,7 +1799,7 @@ impl GlobalScope {
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let parent = {
                 let blob_info = blobs_map
-                    .get(blob_id)
+                    .get(&blob_id)
                     .expect("get_blob_size called for a unknown blob.");
                 match blob_info.blob_impl.blob_data() {
                     BlobData::Sliced(ref parent, ref rel_pos) => {
@@ -1803,7 +1821,9 @@ impl GlobalScope {
                     rel_pos.to_abs_range(parent_size as usize).len() as u64
                 },
                 None => {
-                    let blob_info = blobs_map.get(blob_id).expect("Blob whose size is unknown.");
+                    let blob_info = blobs_map
+                        .get(&blob_id)
+                        .expect("Blob whose size is unknown.");
                     match blob_info.blob_impl.blob_data() {
                         BlobData::File(ref f) => f.get_size(),
                         BlobData::Memory(ref v) => v.len() as u64,
@@ -1823,7 +1843,7 @@ impl GlobalScope {
         if let BlobState::Managed(blobs_map) = &mut *blob_state {
             let parent = {
                 let blob_info = blobs_map
-                    .get_mut(blob_id)
+                    .get_mut(&blob_id)
                     .expect("get_blob_url_id called for a unknown blob.");
 
                 // Keep track of blobs with outstanding URLs.
@@ -1849,13 +1869,13 @@ impl GlobalScope {
                     };
                     let parent_size = rel_pos.to_abs_range(parent_size as usize).len() as u64;
                     let blob_info = blobs_map
-                        .get_mut(blob_id)
+                        .get_mut(&blob_id)
                         .expect("Blob whose url is requested is unknown.");
                     self.create_sliced_url_id(blob_info, &parent_file_id, &rel_pos, parent_size)
                 },
                 None => {
                     let blob_info = blobs_map
-                        .get_mut(blob_id)
+                        .get_mut(&blob_id)
                         .expect("Blob whose url is requested is unknown.");
                     self.promote(blob_info, /* set_valid is */ true)
                 },
@@ -2206,7 +2226,7 @@ impl GlobalScope {
         self.module_map.borrow_mut().insert(url, Rc::new(module));
     }
 
-    pub fn get_module_map(&self) -> &DomRefCell<HashMap<ServoUrl, Rc<ModuleTree>>> {
+    pub fn get_module_map(&self) -> &DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>> {
         &self.module_map
     }
 

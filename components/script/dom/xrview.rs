@@ -25,6 +25,7 @@ pub struct XRView {
     #[ignore_malloc_size_of = "mozjs"]
     proj: Heap<*mut JSObject>,
     #[ignore_malloc_size_of = "defined in rust-webxr"]
+    #[no_trace]
     view: View<ApiSpace>,
     transform: Dom<XRRigidTransform>,
 }

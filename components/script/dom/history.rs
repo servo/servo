@@ -42,6 +42,7 @@ pub struct History {
     window: Dom<Window>,
     #[ignore_malloc_size_of = "mozjs"]
     state: Heap<JSVal>,
+    #[no_trace]
     state_id: Cell<Option<HistoryStateId>>,
 }
 

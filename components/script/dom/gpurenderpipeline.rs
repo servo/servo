@@ -19,7 +19,9 @@ use webgpu::{WebGPUBindGroupLayout, WebGPURenderPipeline};
 pub struct GPURenderPipeline {
     reflector_: Reflector,
     label: DomRefCell<Option<USVString>>,
+    #[no_trace]
     render_pipeline: WebGPURenderPipeline,
+    #[no_trace]
     bind_group_layouts: Vec<WebGPUBindGroupLayout>,
     device: Dom<GPUDevice>,
 }

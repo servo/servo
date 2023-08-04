@@ -27,6 +27,7 @@ use std::default::Default;
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image: DomRefCell<Option<Arc<Image>>>,
     form_owner: MutNullableDom<HTMLFormElement>,
     validity_state: MutNullableDom<ValidityState>,

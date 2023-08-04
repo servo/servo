@@ -166,13 +166,18 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Channels are hard"]
     webgl_sender: WebGLMessageSender,
     #[ignore_malloc_size_of = "Defined in webrender"]
+    #[no_trace]
     webrender_image: ImageKey,
+    #[no_trace]
     webgl_version: WebGLVersion,
+    #[no_trace]
     glsl_version: WebGLSLVersion,
     #[ignore_malloc_size_of = "Defined in surfman"]
+    #[no_trace]
     limits: GLLimits,
     canvas: Dom<HTMLCanvasElement>,
     #[ignore_malloc_size_of = "Defined in canvas_traits"]
+    #[no_trace]
     last_error: Cell<Option<WebGLError>>,
     texture_packing_alignment: Cell<u8>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
@@ -190,6 +195,7 @@ pub struct WebGLRenderingContext {
     current_scissor: Cell<(i32, i32, u32, u32)>,
     #[ignore_malloc_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
+    #[no_trace]
     size: Cell<Size2D<u32>>,
     extension_manager: WebGLExtensions,
     capabilities: Capabilities,
@@ -198,6 +204,7 @@ pub struct WebGLRenderingContext {
     default_vao_webgl2: DomOnceCell<WebGLVertexArrayObject>,
     current_vao_webgl2: MutNullableDom<WebGLVertexArrayObject>,
     textures: Textures,
+    #[no_trace]
     api_type: GlType,
 }
 
@@ -4886,7 +4893,9 @@ pub enum TexSource {
 
 #[derive(JSTraceable)]
 pub struct WebGLCommandSender {
+    #[no_trace]
     sender: WebGLChan,
+    #[no_trace]
     waker: Option<Box<dyn EventLoopWaker>>,
 }
 
@@ -4906,8 +4915,10 @@ impl WebGLCommandSender {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct WebGLMessageSender {
+    #[no_trace]
     sender: WebGLMsgSender,
     #[ignore_malloc_size_of = "traits are cumbersome"]
+    #[no_trace]
     waker: Option<Box<dyn EventLoopWaker>>,
 }
 

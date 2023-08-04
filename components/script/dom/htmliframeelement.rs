@@ -71,10 +71,15 @@ enum ProcessingMode {
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
+    #[no_trace]
     top_level_browsing_context_id: Cell<Option<TopLevelBrowsingContextId>>,
+    #[no_trace]
     browsing_context_id: Cell<Option<BrowsingContextId>>,
+    #[no_trace]
     pipeline_id: Cell<Option<PipelineId>>,
+    #[no_trace]
     pending_pipeline_id: Cell<Option<PipelineId>>,
+    #[no_trace]
     about_blank_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: MutNullableDom<DOMTokenList>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,

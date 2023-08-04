@@ -21,6 +21,7 @@ pub struct XRLayer {
     /// If none, the session is inline (the composition disabled flag is true)
     /// and this is a XRWebGLLayer.
     #[ignore_malloc_size_of = "Layer ids don't heap-allocate"]
+    #[no_trace]
     layer_id: Option<LayerId>,
 }
 

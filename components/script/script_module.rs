@@ -145,7 +145,7 @@ impl ModuleScript {
 #[derive(Clone, Debug, Eq, Hash, JSTraceable, PartialEq)]
 pub enum ModuleIdentity {
     ScriptId(ScriptId),
-    ModuleUrl(ServoUrl),
+    ModuleUrl(#[no_trace] ServoUrl),
 }
 
 impl ModuleIdentity {
@@ -165,6 +165,7 @@ impl ModuleIdentity {
 
 #[derive(JSTraceable)]
 pub struct ModuleTree {
+    #[no_trace]
     url: ServoUrl,
     text: DomRefCell<Rc<DOMString>>,
     record: DomRefCell<Option<ModuleObject>>,
@@ -178,11 +179,15 @@ pub struct ModuleTree {
     // (https://infra.spec.whatwg.org/#ordered-map), however we can usually get away with using
     // stdlib maps and sets because we rarely iterate over them.
     parent_identities: DomRefCell<IndexSet<ModuleIdentity>>,
+    #[no_trace]
     descendant_urls: DomRefCell<IndexSet<ServoUrl>>,
     // A set to memoize which descendants are under fetching
+    #[no_trace]
     incomplete_fetch_urls: DomRefCell<IndexSet<ServoUrl>>,
+    #[no_trace]
     visited_urls: DomRefCell<HashSet<ServoUrl>>,
     rethrow_error: DomRefCell<Option<RethrowError>>,
+    #[no_trace]
     network_error: DomRefCell<Option<NetworkError>>,
     // A promise for owners to execute when the module tree
     // is finished
@@ -324,7 +329,7 @@ impl ModuleTree {
         let module_map = global.get_module_map().borrow();
         let mut discovered_urls = HashSet::new();
 
-        return ModuleTree::recursive_check_descendants(&self, &module_map, &mut discovered_urls);
+        return ModuleTree::recursive_check_descendants(&self, &module_map.0, &mut discovered_urls);
     }
 
     // We just leverage the power of Promise to run the task for `finish` the owner.
@@ -926,7 +931,7 @@ impl ModuleOwner {
 
                     let network_error = module_tree.get_network_error().borrow();
                     match network_error.as_ref() {
-                        Some(network_error) => Err(network_error.clone()),
+                        Some(network_error) => Err(network_error.clone().into()),
                         None => match module_identity {
                             ModuleIdentity::ModuleUrl(script_src) => Ok(ScriptOrigin::external(
                                 Rc::clone(&module_tree.get_text().borrow()),
@@ -1296,11 +1301,15 @@ pub unsafe extern "C" fn host_import_module_dynamically(
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 /// <https://html.spec.whatwg.org/multipage/#script-fetch-options>
 pub struct ScriptFetchOptions {
+    #[no_trace]
     pub referrer: Referrer,
     pub integrity_metadata: String,
+    #[no_trace]
     pub credentials_mode: CredentialsMode,
     pub cryptographic_nonce: String,
+    #[no_trace]
     pub parser_metadata: ParserMetadata,
+    #[no_trace]
     pub referrer_policy: Option<ReferrerPolicy>,
 }
 

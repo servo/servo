@@ -19,14 +19,15 @@ use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use servo_atoms::Atom;
-use std::collections::HashMap;
+
+use super::bindings::trace::HashMapTracedValues;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
 pub struct DocumentFragment {
     node: Node,
     /// Caches for the getElement methods
-    id_map: DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
+    id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
 }
 
 impl DocumentFragment {
@@ -34,7 +35,7 @@ impl DocumentFragment {
     pub fn new_inherited(document: &Document) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(document),
-            id_map: DomRefCell::new(HashMap::new()),
+            id_map: DomRefCell::new(HashMapTracedValues::new()),
         }
     }
 
@@ -63,7 +64,7 @@ impl DocumentFragment {
         Ok(DocumentFragment::new_with_proto(&document, proto))
     }
 
-    pub fn id_map(&self) -> &DomRefCell<HashMap<Atom, Vec<Dom<Element>>>> {
+    pub fn id_map(&self) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         &self.id_map
     }
 }

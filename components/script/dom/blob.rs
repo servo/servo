@@ -34,6 +34,7 @@ use uuid::Uuid;
 #[dom_struct]
 pub struct Blob {
     reflector_: Reflector,
+    #[no_trace]
     blob_id: BlobId,
 }
 

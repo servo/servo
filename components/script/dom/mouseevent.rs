@@ -43,6 +43,7 @@ pub struct MouseEvent {
     button: Cell<i16>,
     buttons: Cell<u16>,
     related_target: MutNullableDom<EventTarget>,
+    #[no_trace]
     point_in_target: Cell<Option<Point2D<f32>>>,
 }
 

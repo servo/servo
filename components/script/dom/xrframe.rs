@@ -28,6 +28,7 @@ pub struct XRFrame {
     reflector_: Reflector,
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "defined in webxr_api"]
+    #[no_trace]
     data: Frame,
     active: Cell<bool>,
     animation_frame: Cell<bool>,

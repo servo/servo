@@ -392,6 +392,7 @@ pub enum RadioListMode {
 pub struct RadioList {
     form: Dom<HTMLFormElement>,
     mode: RadioListMode,
+    #[no_trace]
     name: Atom,
 }
 

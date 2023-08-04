@@ -26,20 +26,23 @@ use embedder_traits::MediaMetadata as EmbedderMediaMetadata;
 use embedder_traits::MediaSessionEvent;
 use script_traits::MediaSessionActionType;
 use script_traits::ScriptMsg;
-use std::collections::HashMap;
 use std::rc::Rc;
+
+use super::bindings::trace::HashMapTracedValues;
 
 #[dom_struct]
 pub struct MediaSession {
     reflector_: Reflector,
     /// https://w3c.github.io/mediasession/#dom-mediasession-metadata
     #[ignore_malloc_size_of = "defined in embedder_traits"]
+    #[no_trace]
     metadata: DomRefCell<Option<EmbedderMediaMetadata>>,
     /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate
     playback_state: DomRefCell<MediaSessionPlaybackState>,
     /// https://w3c.github.io/mediasession/#supported-media-session-actions
     #[ignore_malloc_size_of = "Rc"]
-    action_handlers: DomRefCell<HashMap<MediaSessionActionType, Rc<MediaSessionActionHandler>>>,
+    action_handlers:
+        DomRefCell<HashMapTracedValues<MediaSessionActionType, Rc<MediaSessionActionHandler>>>,
     /// The media instance controlled by this media session.
     /// For now only HTMLMediaElements are controlled by media sessions.
     media_instance: MutNullableDom<HTMLMediaElement>,
@@ -52,7 +55,7 @@ impl MediaSession {
             reflector_: Reflector::new(),
             metadata: DomRefCell::new(None),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
-            action_handlers: DomRefCell::new(HashMap::new()),
+            action_handlers: DomRefCell::new(HashMapTracedValues::new()),
             media_instance: Default::default(),
         };
         media_session

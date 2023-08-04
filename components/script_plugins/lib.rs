@@ -10,372 +10,50 @@
 #![deny(unsafe_code)]
 #![feature(plugin)]
 #![feature(rustc_private)]
-#![cfg(feature = "unrooted_must_root_lint")]
 
 extern crate rustc_ast;
 extern crate rustc_driver;
+extern crate rustc_error_messages;
 extern crate rustc_hir;
+extern crate rustc_infer;
 extern crate rustc_lint;
 extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
+extern crate rustc_trait_selection;
+extern crate rustc_type_ir;
 
-use rustc_ast::ast::{AttrKind, Attribute};
+use rustc_ast::Mutability;
 use rustc_driver::plugin::Registry;
-use rustc_hir::def_id::DefId;
-use rustc_hir::intravisit as visit;
-use rustc_hir::{self as hir, ExprKind};
-use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass};
-use rustc_middle::ty;
-use rustc_session::declare_lint;
-use rustc_span::def_id::LocalDefId;
-use rustc_span::source_map;
+use rustc_hir::def::{DefKind, Res};
+use rustc_hir::def_id::{CrateNum, DefId, LocalDefId, LOCAL_CRATE};
+use rustc_hir::PrimTy;
+use rustc_hir::{ImplItemRef, ItemKind, Node, OwnerId, TraitItemRef};
+use rustc_infer::infer::type_variable::{TypeVariableOrigin, TypeVariableOriginKind};
+use rustc_infer::infer::TyCtxtInferExt;
+use rustc_lint::LateContext;
+use rustc_middle::ty::TyCtxt;
+use rustc_middle::ty::{self, GenericArg, ParamEnv, Ty, TypeVisitable};
 use rustc_span::source_map::{ExpnKind, MacroKind, Span};
-use rustc_span::symbol::sym;
+use rustc_span::symbol::Ident;
 use rustc_span::symbol::Symbol;
+use rustc_span::DUMMY_SP;
+use rustc_trait_selection::infer::InferCtxtExt;
+use rustc_type_ir::{FloatTy, IntTy, UintTy};
+
+#[cfg(feature = "unrooted_must_root_lint")]
+mod unrooted_must_root;
+
+#[cfg(feature = "trace_in_no_trace_lint")]
+mod trace_in_no_trace;
 
 #[allow(unsafe_code)] // #[no_mangle] is unsafe
 #[no_mangle]
 fn __rustc_plugin_registrar(reg: &mut Registry) {
-    registrar(reg)
-}
-
-fn registrar(reg: &mut Registry) {
-    let symbols = Symbols::new();
-    reg.lint_store.register_lints(&[&UNROOTED_MUST_ROOT]);
-    reg.lint_store
-        .register_late_pass(move |_| Box::new(UnrootedPass::new(symbols.clone())));
-}
-
-declare_lint!(
-    UNROOTED_MUST_ROOT,
-    Deny,
-    "Warn and report usage of unrooted jsmanaged objects"
-);
-
-/// Lint for ensuring safe usage of unrooted pointers
-///
-/// This lint (disable with `-A unrooted-must-root`/`#[allow(unrooted_must_root)]`) ensures that
-/// `#[unrooted_must_root_lint::must_root]` values are used correctly.
-///
-/// "Incorrect" usage includes:
-///
-///  - Not being used in a struct/enum field which is not `#[unrooted_must_root_lint::must_root]` itself
-///  - Not being used as an argument to a function (Except onces named `new` and `new_inherited`)
-///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
-///
-/// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a
-/// GC pass.
-///
-/// Structs which have their own mechanism of rooting their unrooted contents (e.g. `ScriptThread`)
-/// can be marked as `#[allow(unrooted_must_root)]`. Smart pointers which root their interior type
-/// can be marked as `#[unrooted_must_root_lint::allow_unrooted_interior]`
-pub(crate) struct UnrootedPass {
-    symbols: Symbols,
-}
-
-impl UnrootedPass {
-    pub fn new(symbols: Symbols) -> UnrootedPass {
-        UnrootedPass { symbols }
-    }
-}
-
-fn has_lint_attr(sym: &Symbols, attrs: &[Attribute], name: Symbol) -> bool {
-    attrs.iter().any(|attr| {
-        matches!(
-            &attr.kind,
-            AttrKind::Normal(normal)
-            if normal.item.path.segments.len() == 2 &&
-            normal.item.path.segments[0].ident.name == sym.unrooted_must_root_lint &&
-            normal.item.path.segments[1].ident.name == name
-        )
-    })
-}
-
-/// Checks if a type is unrooted or contains any owned unrooted types
-fn is_unrooted_ty<'tcx>(
-    sym: &'_ Symbols,
-    cx: &LateContext<'tcx>,
-    ty: ty::Ty<'tcx>,
-    in_new_function: bool,
-) -> bool {
-    let mut ret = false;
-    let mut walker = ty.walk();
-    while let Some(generic_arg) = walker.next() {
-        let t = match generic_arg.unpack() {
-            rustc_middle::ty::subst::GenericArgKind::Type(t) => t,
-            _ => {
-                walker.skip_current_subtree();
-                continue;
-            },
-        };
-        let recur_into_subtree = match t.kind() {
-            ty::Adt(did, substs) => {
-                let has_attr =
-                    |did, name| has_lint_attr(sym, &cx.tcx.get_attrs_unchecked(did), name);
-                if has_attr(did.did(), sym.must_root) {
-                    ret = true;
-                    false
-                } else if has_attr(did.did(), sym.allow_unrooted_interior) {
-                    false
-                } else if match_def_path(cx, did.did(), &[sym.alloc, sym.rc, sym.Rc]) {
-                    // Rc<Promise> is okay
-                    let inner = substs.type_at(0);
-                    if let ty::Adt(did, _) = inner.kind() {
-                        if has_attr(did.did(), sym.allow_unrooted_in_rc) {
-                            false
-                        } else {
-                            true
-                        }
-                    } else {
-                        true
-                    }
-                } else if match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.Ref]) ||
-                    match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.RefMut]) ||
-                    match_def_path(cx, did.did(), &[sym::core, sym::slice, sym::iter, sym.Iter]) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[sym::core, sym::slice, sym::iter, sym.IterMut],
-                    ) ||
-                    match_def_path(cx, did.did(), &[sym.accountable_refcell, sym.Ref]) ||
-                    match_def_path(cx, did.did(), &[sym.accountable_refcell, sym.RefMut]) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Entry],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[
-                            sym::std,
-                            sym.collections,
-                            sym.hash,
-                            sym.map,
-                            sym.OccupiedEntry,
-                        ],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[
-                            sym::std,
-                            sym.collections,
-                            sym.hash,
-                            sym.map,
-                            sym.VacantEntry,
-                        ],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Iter],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[sym::std, sym.collections, sym.hash, sym.set, sym.Iter],
-                    )
-                {
-                    // Structures which are semantically similar to an &ptr.
-                    false
-                } else if did.is_box() && in_new_function {
-                    // box in new() is okay
-                    false
-                } else {
-                    true
-                }
-            },
-            ty::Ref(..) => false,    // don't recurse down &ptrs
-            ty::RawPtr(..) => false, // don't recurse down *ptrs
-            ty::FnDef(..) | ty::FnPtr(_) => false,
-
-            _ => true,
-        };
-        if !recur_into_subtree {
-            walker.skip_current_subtree();
-        }
-    }
-    ret
-}
-
-impl LintPass for UnrootedPass {
-    fn name(&self) -> &'static str {
-        "ServoUnrootedPass"
-    }
-}
-
-impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
-    /// All structs containing #[unrooted_must_root_lint::must_root] types
-    /// must be #[unrooted_must_root_lint::must_root] themselves
-    fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
-        let attrs = cx.tcx.hir().attrs(item.hir_id());
-        if has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
-            return;
-        }
-        if let hir::ItemKind::Struct(def, ..) = &item.kind {
-            for ref field in def.fields() {
-                let field_type = cx.tcx.type_of(field.def_id);
-                if is_unrooted_ty(&self.symbols, cx, field_type, false) {
-                    cx.lint(
-                        UNROOTED_MUST_ROOT,
-                        "Type must be rooted, use #[unrooted_must_root_lint::must_root] \
-                         on the struct definition to propagate",
-                        |lint| lint.set_span(field.span),
-                    )
-                }
-            }
-        }
-    }
-
-    /// All enums containing #[unrooted_must_root_lint::must_root] types
-    /// must be #[unrooted_must_root_lint::must_root] themselves
-    fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
-        let ref map = cx.tcx.hir();
-        let parent_item = map.expect_item(map.get_parent_item(var.hir_id).def_id);
-        let attrs = cx.tcx.hir().attrs(parent_item.hir_id());
-        if !has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
-            match var.data {
-                hir::VariantData::Tuple(fields, ..) => {
-                    for field in fields {
-                        let field_type = cx.tcx.type_of(field.def_id);
-                        if is_unrooted_ty(&self.symbols, cx, field_type, false) {
-                            cx.lint(
-                                UNROOTED_MUST_ROOT,
-                                "Type must be rooted, \
-                                use #[unrooted_must_root_lint::must_root] \
-                                on the enum definition to propagate",
-                                |lint| lint.set_span(field.ty.span),
-                            )
-                        }
-                    }
-                },
-                _ => (), // Struct variants already caught by check_struct_def
-            }
-        }
-    }
-    /// Function arguments that are #[unrooted_must_root_lint::must_root] types are not allowed
-    fn check_fn(
-        &mut self,
-        cx: &LateContext<'tcx>,
-        kind: visit::FnKind<'tcx>,
-        decl: &'tcx hir::FnDecl,
-        body: &'tcx hir::Body,
-        span: source_map::Span,
-        def_id: LocalDefId,
-    ) {
-        let in_new_function = match kind {
-            visit::FnKind::ItemFn(n, _, _) | visit::FnKind::Method(n, _) => {
-                &*n.as_str() == "new" || n.as_str().starts_with("new_")
-            },
-            visit::FnKind::Closure => return,
-        };
-
-        if !in_derive_expn(span) {
-            let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
-
-            for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
-                if is_unrooted_ty(&self.symbols, cx, *ty, false) {
-                    cx.lint(UNROOTED_MUST_ROOT, "Type must be rooted", |lint| {
-                        lint.set_span(arg.span)
-                    })
-                }
-            }
-
-            if !in_new_function &&
-                is_unrooted_ty(&self.symbols, cx, sig.output().skip_binder(), false)
-            {
-                cx.lint(UNROOTED_MUST_ROOT, "Type must be rooted", |lint| {
-                    lint.set_span(decl.output.span())
-                })
-            }
-        }
-
-        let mut visitor = FnDefVisitor {
-            symbols: &self.symbols,
-            cx,
-            in_new_function,
-        };
-        visit::walk_expr(&mut visitor, &body.value);
-    }
-}
-
-struct FnDefVisitor<'a, 'tcx: 'a> {
-    symbols: &'a Symbols,
-    cx: &'a LateContext<'tcx>,
-    in_new_function: bool,
-}
-
-impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
-    type Map = rustc_middle::hir::map::Map<'tcx>;
-
-    fn visit_expr(&mut self, expr: &'tcx hir::Expr) {
-        let cx = self.cx;
-
-        let require_rooted = |cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr| {
-            let ty = cx.typeck_results().expr_ty(&subexpr);
-            if is_unrooted_ty(&self.symbols, cx, ty, in_new_function) {
-                cx.lint(
-                    UNROOTED_MUST_ROOT,
-                    format!("Expression of type {:?} must be rooted", ty),
-                    |lint| lint.set_span(subexpr.span),
-                )
-            }
-        };
-
-        match expr.kind {
-            // Trait casts from #[unrooted_must_root_lint::must_root] types are not allowed
-            ExprKind::Cast(subexpr, _) => require_rooted(cx, self.in_new_function, &subexpr),
-            // This catches assignments... the main point of this would be to catch mutable
-            // references to `JS<T>`.
-            // FIXME: Enable this? Triggers on certain kinds of uses of DomRefCell.
-            // hir::ExprAssign(_, ref rhs) => require_rooted(cx, self.in_new_function, &*rhs),
-            // This catches calls; basically, this enforces the constraint that only constructors
-            // can call other constructors.
-            // FIXME: Enable this? Currently triggers with constructs involving DomRefCell, and
-            // constructs like Vec<JS<T>> and RootedVec<JS<T>>.
-            // hir::ExprCall(..) if !self.in_new_function => {
-            //     require_rooted(cx, self.in_new_function, expr);
-            // }
-            _ => {
-                // TODO(pcwalton): Check generics with a whitelist of allowed generics.
-            },
-        }
-
-        visit::walk_expr(self, expr);
-    }
-
-    fn visit_pat(&mut self, pat: &'tcx hir::Pat) {
-        let cx = self.cx;
-
-        // We want to detect pattern bindings that move a value onto the stack.
-        // When "default binding modes" https://github.com/rust-lang/rust/issues/42640
-        // are implemented, the `Unannotated` case could cause false-positives.
-        // These should be fixable by adding an explicit `ref`.
-        match pat.kind {
-            hir::PatKind::Binding(hir::BindingAnnotation::NONE, ..) |
-            hir::PatKind::Binding(hir::BindingAnnotation::MUT, ..) => {
-                let ty = cx.typeck_results().pat_ty(pat);
-                if is_unrooted_ty(self.symbols, cx, ty, self.in_new_function) {
-                    cx.lint(
-                        UNROOTED_MUST_ROOT,
-                        format!("Expression of type {:?} must be rooted", ty),
-                        |lint| lint.set_span(pat.span),
-                    )
-                }
-            },
-            _ => {},
-        }
-
-        visit::walk_pat(self, pat);
-    }
-
-    fn visit_ty(&mut self, _: &'tcx hir::Ty) {}
-
-    fn nested_visit_map(&mut self) -> Self::Map {
-        self.cx.tcx.hir()
-    }
+    #[cfg(feature = "unrooted_must_root_lint")]
+    unrooted_must_root::register(reg);
+    #[cfg(feature = "trace_in_no_trace_lint")]
+    trace_in_no_trace::register(reg);
 }
 
 /// check if a DefId's path matches the given absolute type path
@@ -408,11 +86,12 @@ fn in_derive_expn(span: Span) -> bool {
     )
 }
 
+#[macro_export]
 macro_rules! symbols {
     ($($s: ident)+) => {
         #[derive(Clone)]
         #[allow(non_snake_case)]
-        struct Symbols {
+        pub(crate) struct Symbols {
             $( $s: Symbol, )+
         }
 
@@ -426,25 +105,248 @@ macro_rules! symbols {
     }
 }
 
-symbols! {
-    unrooted_must_root_lint
-    allow_unrooted_interior
-    allow_unrooted_in_rc
-    must_root
-    alloc
-    rc
-    Rc
-    cell
-    accountable_refcell
-    Ref
-    RefMut
-    Iter
-    IterMut
-    collections
-    hash
-    map
-    set
-    Entry
-    OccupiedEntry
-    VacantEntry
+/*
+Stuff copied from clippy:
+*/
+
+fn find_primitive_impls<'tcx>(tcx: TyCtxt<'tcx>, name: &str) -> impl Iterator<Item = DefId> + 'tcx {
+    use rustc_middle::ty::fast_reject::SimplifiedType::*;
+    let ty = match name {
+        "bool" => BoolSimplifiedType,
+        "char" => CharSimplifiedType,
+        "str" => StrSimplifiedType,
+        "array" => ArraySimplifiedType,
+        "slice" => SliceSimplifiedType,
+        // FIXME: rustdoc documents these two using just `pointer`.
+        //
+        // Maybe this is something we should do here too.
+        "const_ptr" => PtrSimplifiedType(Mutability::Not),
+        "mut_ptr" => PtrSimplifiedType(Mutability::Mut),
+        "isize" => IntSimplifiedType(IntTy::Isize),
+        "i8" => IntSimplifiedType(IntTy::I8),
+        "i16" => IntSimplifiedType(IntTy::I16),
+        "i32" => IntSimplifiedType(IntTy::I32),
+        "i64" => IntSimplifiedType(IntTy::I64),
+        "i128" => IntSimplifiedType(IntTy::I128),
+        "usize" => UintSimplifiedType(UintTy::Usize),
+        "u8" => UintSimplifiedType(UintTy::U8),
+        "u16" => UintSimplifiedType(UintTy::U16),
+        "u32" => UintSimplifiedType(UintTy::U32),
+        "u64" => UintSimplifiedType(UintTy::U64),
+        "u128" => UintSimplifiedType(UintTy::U128),
+        "f32" => FloatSimplifiedType(FloatTy::F32),
+        "f64" => FloatSimplifiedType(FloatTy::F64),
+        _ => return [].iter().copied(),
+    };
+
+    tcx.incoherent_impls(ty).iter().copied()
+}
+
+fn non_local_item_children_by_name(tcx: TyCtxt<'_>, def_id: DefId, name: Symbol) -> Vec<Res> {
+    match tcx.def_kind(def_id) {
+        DefKind::Mod | DefKind::Enum | DefKind::Trait => tcx
+            .module_children(def_id)
+            .iter()
+            .filter(|item| item.ident.name == name)
+            .map(|child| child.res.expect_non_local())
+            .collect(),
+        DefKind::Impl { .. } => tcx
+            .associated_item_def_ids(def_id)
+            .iter()
+            .copied()
+            .filter(|assoc_def_id| tcx.item_name(*assoc_def_id) == name)
+            .map(|assoc_def_id| Res::Def(tcx.def_kind(assoc_def_id), assoc_def_id))
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+fn local_item_children_by_name(tcx: TyCtxt<'_>, local_id: LocalDefId, name: Symbol) -> Vec<Res> {
+    let hir = tcx.hir();
+
+    let root_mod;
+    let item_kind = match hir.find_by_def_id(local_id) {
+        Some(Node::Crate(r#mod)) => {
+            root_mod = ItemKind::Mod(r#mod);
+            &root_mod
+        },
+        Some(Node::Item(item)) => &item.kind,
+        _ => return Vec::new(),
+    };
+
+    let res = |ident: Ident, owner_id: OwnerId| {
+        if ident.name == name {
+            let def_id = owner_id.to_def_id();
+            Some(Res::Def(tcx.def_kind(def_id), def_id))
+        } else {
+            None
+        }
+    };
+
+    match item_kind {
+        ItemKind::Mod(r#mod) => r#mod
+            .item_ids
+            .iter()
+            .filter_map(|&item_id| res(hir.item(item_id).ident, item_id.owner_id))
+            .collect(),
+        ItemKind::Impl(r#impl) => r#impl
+            .items
+            .iter()
+            .filter_map(|&ImplItemRef { ident, id, .. }| res(ident, id.owner_id))
+            .collect(),
+        ItemKind::Trait(.., trait_item_refs) => trait_item_refs
+            .iter()
+            .filter_map(|&TraitItemRef { ident, id, .. }| res(ident, id.owner_id))
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+fn item_children_by_name(tcx: TyCtxt<'_>, def_id: DefId, name: Symbol) -> Vec<Res> {
+    if let Some(local_id) = def_id.as_local() {
+        local_item_children_by_name(tcx, local_id, name)
+    } else {
+        non_local_item_children_by_name(tcx, def_id, name)
+    }
+}
+
+/// Resolves a def path like `std::vec::Vec`.
+///
+/// Can return multiple resolutions when there are multiple versions of the same crate, e.g.
+/// `memchr::memchr` could return the functions from both memchr 1.0 and memchr 2.0.
+///
+/// Also returns multiple results when there are multiple paths under the same name e.g. `std::vec`
+/// would have both a [`DefKind::Mod`] and [`DefKind::Macro`].
+///
+/// This function is expensive and should be used sparingly.
+pub fn def_path_res(cx: &LateContext<'_>, path: &[&str]) -> Vec<Res> {
+    fn find_crates(tcx: TyCtxt<'_>, name: Symbol) -> impl Iterator<Item = DefId> + '_ {
+        tcx.crates(())
+            .iter()
+            .copied()
+            .filter(move |&num| tcx.crate_name(num) == name)
+            .map(CrateNum::as_def_id)
+    }
+
+    let tcx = cx.tcx;
+
+    let (base, mut path) = match *path {
+        [primitive] => {
+            return vec![PrimTy::from_name(Symbol::intern(primitive)).map_or(Res::Err, Res::PrimTy)];
+        },
+        [base, ref path @ ..] => (base, path),
+        _ => return Vec::new(),
+    };
+
+    let base_sym = Symbol::intern(base);
+
+    let local_crate = if tcx.crate_name(LOCAL_CRATE) == base_sym {
+        Some(LOCAL_CRATE.as_def_id())
+    } else {
+        None
+    };
+
+    let starts = find_primitive_impls(tcx, base)
+        .chain(find_crates(tcx, base_sym))
+        .chain(local_crate)
+        .map(|id| Res::Def(tcx.def_kind(id), id));
+
+    let mut resolutions: Vec<Res> = starts.collect();
+
+    while let [segment, rest @ ..] = path {
+        path = rest;
+        let segment = Symbol::intern(segment);
+
+        resolutions = resolutions
+            .into_iter()
+            .filter_map(|res| res.opt_def_id())
+            .flat_map(|def_id| {
+                // When the current def_id is e.g. `struct S`, check the impl items in
+                // `impl S { ... }`
+                let inherent_impl_children = tcx
+                    .inherent_impls(def_id)
+                    .iter()
+                    .flat_map(|&impl_def_id| item_children_by_name(tcx, impl_def_id, segment));
+
+                let direct_children = item_children_by_name(tcx, def_id, segment);
+
+                inherent_impl_children.chain(direct_children)
+            })
+            .collect();
+    }
+
+    resolutions
+}
+
+/// Resolves a def path like `std::vec::Vec` to its [`DefId`]s, see [`def_path_res`].
+pub fn def_path_def_ids(cx: &LateContext<'_>, path: &[&str]) -> impl Iterator<Item = DefId> {
+    def_path_res(cx, path)
+        .into_iter()
+        .filter_map(|res| res.opt_def_id())
+}
+
+pub fn get_trait_def_id(cx: &LateContext<'_>, path: &[&str]) -> Option<DefId> {
+    def_path_res(cx, path)
+        .into_iter()
+        .find_map(|res| match res {
+            Res::Def(DefKind::Trait | DefKind::TraitAlias, trait_id) => Some(trait_id),
+            _ => None,
+        })
+}
+
+/// Checks whether a type implements a trait.
+/// The function returns false in case the type contains an inference variable.
+///
+/// See:
+/// * [`get_trait_def_id`](super::get_trait_def_id) to get a trait [`DefId`].
+/// * [Common tools for writing lints] for an example how to use this function and other options.
+///
+/// [Common tools for writing lints]: https://github.com/rust-lang/rust-clippy/blob/master/book/src/development/common_tools_writing_lints.md#checking-if-a-type-implements-a-specific-trait
+pub fn implements_trait<'tcx>(
+    cx: &LateContext<'tcx>,
+    ty: Ty<'tcx>,
+    trait_id: DefId,
+    ty_params: &[GenericArg<'tcx>],
+) -> bool {
+    implements_trait_with_env(
+        cx.tcx,
+        cx.param_env,
+        ty,
+        trait_id,
+        ty_params.iter().map(|&arg| Some(arg)),
+    )
+}
+
+/// Same as `implements_trait` but allows using a `ParamEnv` different from the lint context.
+pub fn implements_trait_with_env<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    param_env: ParamEnv<'tcx>,
+    ty: ty::Ty<'tcx>,
+    trait_id: DefId,
+    ty_params: impl IntoIterator<Item = Option<GenericArg<'tcx>>>,
+) -> bool {
+    let ty = tcx.erase_regions(ty);
+    if ty.has_escaping_bound_vars() {
+        return false;
+    }
+    let infcx = tcx.infer_ctxt().build();
+    let orig = TypeVariableOrigin {
+        kind: TypeVariableOriginKind::MiscVariable,
+        span: DUMMY_SP,
+    };
+    // in new nightlies: mk_substs -> mk_substs_from_iter
+    let ty_params = tcx.mk_substs(
+        ty_params
+            .into_iter()
+            .map(|arg| arg.unwrap_or_else(|| infcx.next_ty_var(orig).into())),
+    );
+    infcx
+        .type_implements_trait(
+            trait_id,
+            // for some unknown reason we need to have vec here
+            // clippy has array
+            vec![ty.into()].into_iter().chain(ty_params),
+            param_env,
+        )
+        .must_apply_modulo_regions()
 }

@@ -48,6 +48,7 @@ jsmanaged_array!(MAX_LEVEL_COUNT * MAX_FACE_COUNT);
 #[dom_struct]
 pub struct WebGLTexture {
     webgl_object: WebGLObject,
+    #[no_trace]
     id: WebGLTextureId,
     /// The target to which this texture was bound the first time
     target: Cell<Option<u32>>,
@@ -532,7 +533,9 @@ pub struct ImageInfo {
     width: u32,
     height: u32,
     depth: u32,
+    #[no_trace]
     internal_format: TexFormat,
+    #[no_trace]
     data_type: Option<TexDataType>,
 }
 
@@ -581,6 +584,7 @@ pub enum TexCompressionValidation {
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
 pub struct TexCompression {
+    #[no_trace]
     pub format: TexFormat,
     pub bytes_per_block: u8,
     pub block_width: u8,

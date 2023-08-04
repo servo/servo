@@ -59,9 +59,11 @@ pub struct GPUBufferMapInfo {
 pub struct GPUBuffer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
+    #[no_trace]
     channel: WebGPU,
     label: DomRefCell<Option<USVString>>,
     state: Cell<GPUBufferState>,
+    #[no_trace]
     buffer: WebGPUBuffer,
     device: Dom<GPUDevice>,
     size: GPUSize64,

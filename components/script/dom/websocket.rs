@@ -101,11 +101,13 @@ fn fail_the_websocket_connection(
 #[dom_struct]
 pub struct WebSocket {
     eventtarget: EventTarget,
+    #[no_trace]
     url: ServoUrl,
     ready_state: Cell<WebSocketRequestState>,
     buffered_amount: Cell<u64>,
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running thread to clear buffered_amount
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     sender: IpcSender<WebSocketDomAction>,
     binary_type: Cell<BinaryType>,
     protocol: DomRefCell<String>, //Subprotocol selected by server

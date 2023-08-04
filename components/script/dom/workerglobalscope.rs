@@ -97,7 +97,9 @@ pub struct WorkerGlobalScope {
     worker_name: DOMString,
     worker_type: WorkerType,
 
+    #[no_trace]
     worker_id: WorkerId,
+    #[no_trace]
     worker_url: DomRefCell<ServoUrl>,
     #[ignore_malloc_size_of = "Arc"]
     closing: Arc<AtomicBool>,
@@ -107,11 +109,13 @@ pub struct WorkerGlobalScope {
     navigator: MutNullableDom<WorkerNavigator>,
 
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
+    #[no_trace]
     /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
     /// to the server from within the worker
     from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
 
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     /// This `Receiver` will be ignored later if the corresponding
     /// `IpcSender` doesn't exist
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,

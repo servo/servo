@@ -27,6 +27,7 @@ pub enum MediaQueryListMatchState {
 pub struct MediaQueryList {
     eventtarget: EventTarget,
     document: Dom<Document>,
+    #[no_trace]
     media_query_list: MediaList,
     last_match_state: Cell<Option<bool>>,
 }

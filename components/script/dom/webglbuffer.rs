@@ -24,6 +24,7 @@ fn target_is_copy_buffer(target: u32) -> bool {
 #[dom_struct]
 pub struct WebGLBuffer {
     webgl_object: WebGLObject,
+    #[no_trace]
     id: WebGLBufferId,
     /// The target to which this buffer was bound the first time
     target: Cell<Option<u32>>,

@@ -22,6 +22,7 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct WebGLRenderbuffer {
     webgl_object: WebGLObject,
+    #[no_trace]
     id: WebGLRenderbufferId,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,

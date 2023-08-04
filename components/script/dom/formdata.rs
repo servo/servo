@@ -20,10 +20,12 @@ use html5ever::LocalName;
 use js::rust::HandleObject;
 use script_traits::serializable::BlobImpl;
 
+use super::bindings::trace::NoTrace;
+
 #[dom_struct]
 pub struct FormData {
     reflector_: Reflector,
-    data: DomRefCell<Vec<(LocalName, FormDatum)>>,
+    data: DomRefCell<Vec<(NoTrace<LocalName>, FormDatum)>>,
 }
 
 impl FormData {
@@ -31,8 +33,8 @@ impl FormData {
         let data = match form_datums {
             Some(data) => data
                 .iter()
-                .map(|datum| (LocalName::from(datum.name.as_ref()), datum.clone()))
-                .collect::<Vec<(LocalName, FormDatum)>>(),
+                .map(|datum| (NoTrace(LocalName::from(datum.name.as_ref())), datum.clone()))
+                .collect::<Vec<(NoTrace<LocalName>, FormDatum)>>(),
             None => Vec::new(),
         };
 
@@ -87,7 +89,7 @@ impl FormDataMethods for FormData {
 
         self.data
             .borrow_mut()
-            .push((LocalName::from(name.0), datum));
+            .push((NoTrace(LocalName::from(name.0)), datum));
     }
 
     #[allow(unrooted_must_root)]
@@ -101,14 +103,14 @@ impl FormDataMethods for FormData {
 
         self.data
             .borrow_mut()
-            .push((LocalName::from(name.0), datum));
+            .push((NoTrace(LocalName::from(name.0)), datum));
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-delete
     fn Delete(&self, name: USVString) {
         self.data
             .borrow_mut()
-            .retain(|(datum_name, _)| datum_name != &LocalName::from(name.0.clone()));
+            .retain(|(datum_name, _)| datum_name.0 != LocalName::from(name.0.clone()));
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-get
@@ -116,7 +118,7 @@ impl FormDataMethods for FormData {
         self.data
             .borrow()
             .iter()
-            .filter(|(datum_name, _)| datum_name == &LocalName::from(name.0.clone()))
+            .filter(|(datum_name, _)| datum_name.0 == LocalName::from(name.0.clone()))
             .next()
             .map(|(_, datum)| match &datum.value {
                 FormDatumValue::String(ref s) => {
@@ -131,12 +133,12 @@ impl FormDataMethods for FormData {
         self.data
             .borrow()
             .iter()
-            .filter_map(|datum| {
-                if datum.0 != LocalName::from(name.0.clone()) {
+            .filter_map(|(datum_name, datum)| {
+                if datum_name.0 != LocalName::from(name.0.clone()) {
                     return None;
                 }
 
-                Some(match &datum.1.value {
+                Some(match &datum.value {
                     FormDatumValue::String(ref s) => {
                         FileOrUSVString::USVString(USVString(s.to_string()))
                     },
@@ -151,7 +153,7 @@ impl FormDataMethods for FormData {
         self.data
             .borrow()
             .iter()
-            .any(|(datum_name, _0)| datum_name == &LocalName::from(name.0.clone()))
+            .any(|(datum_name, _0)| datum_name.0 == LocalName::from(name.0.clone()))
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-set
@@ -159,10 +161,10 @@ impl FormDataMethods for FormData {
         let mut data = self.data.borrow_mut();
         let local_name = LocalName::from(name.0.clone());
 
-        data.retain(|(datum_name, _)| datum_name != &local_name);
+        data.retain(|(datum_name, _)| datum_name.0 != local_name);
 
         data.push((
-            local_name,
+            NoTrace(local_name),
             FormDatum {
                 ty: DOMString::from("string"),
                 name: DOMString::from(name.0),
@@ -177,10 +179,10 @@ impl FormDataMethods for FormData {
         let mut data = self.data.borrow_mut();
         let local_name = LocalName::from(name.0.clone());
 
-        data.retain(|(datum_name, _)| datum_name != &local_name);
+        data.retain(|(datum_name, _)| datum_name.0 != local_name);
 
         data.push((
-            LocalName::from(name.0.clone()),
+            NoTrace(LocalName::from(name.0.clone())),
             FormDatum {
                 ty: DOMString::from("file"),
                 name: DOMString::from(name.0),

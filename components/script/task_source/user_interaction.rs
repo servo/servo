@@ -18,7 +18,10 @@ use std::fmt;
 use std::result::Result;
 
 #[derive(Clone, JSTraceable)]
-pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);
+pub struct UserInteractionTaskSource(
+    #[no_trace] pub Sender<MainThreadScriptMsg>,
+    #[no_trace] pub PipelineId,
+);
 
 impl fmt::Debug for UserInteractionTaskSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

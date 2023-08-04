@@ -82,6 +82,7 @@ struct DecodeResolver {
 pub struct BaseAudioContext {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
+    #[no_trace]
     audio_context_impl: Arc<Mutex<AudioContext>>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     destination: MutNullableDom<AudioDestinationNode>,

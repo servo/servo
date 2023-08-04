@@ -28,6 +28,7 @@ pub struct URL {
     reflector_: Reflector,
 
     // https://url.spec.whatwg.org/#concept-url-url
+    #[no_trace]
     url: DomRefCell<ServoUrl>,
 
     // https://url.spec.whatwg.org/#dom-url-searchparams

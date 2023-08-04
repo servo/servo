@@ -40,43 +40,11 @@ use crate::dom::gpubuffer::GPUBufferState;
 use crate::dom::gpucanvascontext::WebGPUContextId;
 use crate::dom::gpucommandencoder::GPUCommandEncoderState;
 use crate::dom::htmlimageelement::SourceSet;
-use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
-use crate::dom::identityhub::Identities;
+use crate::dom::htmlmediaelement::HTMLMediaElementFetchContext;
 use crate::script_runtime::{ContextForRequestInterrupt, StreamConsumer};
 use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
-use app_units::Au;
-use canvas_traits::canvas::{
-    CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle,
-};
-use canvas_traits::canvas::{
-    CompositionOrBlending, Direction, LineCapStyle, LineJoinStyle, RepetitionStyle, TextAlign,
-    TextBaseline,
-};
-use canvas_traits::webgl::WebGLVertexArrayId;
-use canvas_traits::webgl::{
-    ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, GlType, TexDataType, TexFormat,
-};
-use canvas_traits::webgl::{GLLimits, WebGLQueryId, WebGLSamplerId};
-use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextId, WebGLError};
-use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
-use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
-use canvas_traits::webgl::{WebGLShaderId, WebGLSyncId, WebGLTextureId, WebGLVersion};
-use content_security_policy::CspList;
-use crossbeam_channel::{Receiver, Sender};
-use cssparser::RGBA;
-use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
-use embedder_traits::{EventLoopWaker, MediaMetadata};
-use encoding_rs::{Decoder, Encoding};
-use euclid::default::{Point2D, Rect, Rotation3D, Transform2D};
-use euclid::Length as EuclidLength;
-use html5ever::buffer_queue::BufferQueue;
-use html5ever::{LocalName, Namespace, Prefix, QualName};
-use http::header::HeaderMap;
-use http::Method;
-use http::StatusCode;
 use indexmap::IndexMap;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallScriptTracer, CallStringTracer, CallValueTracer};
 use js::jsapi::{
     GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, JobQueue, TraceKind,
@@ -86,56 +54,14 @@ use js::rust::{GCMethods, Handle, Runtime, Stencil};
 use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use media::WindowGLContext;
-use metrics::{InteractiveMetrics, InteractiveWindow};
-use mime::Mime;
-use msg::constellation_msg::{
-    BlobId, BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
-    MessagePortRouterId, PipelineId, TopLevelBrowsingContextId,
-};
-use msg::constellation_msg::{ServiceWorkerId, ServiceWorkerRegistrationId};
-use net_traits::filemanager_thread::RelativePos;
-use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache::{ImageCache, PendingImageId};
-use net_traits::request::{CredentialsMode, ParserMetadata, Referrer, Request, RequestBuilder};
-use net_traits::response::HttpsState;
-use net_traits::response::{Response, ResponseBody};
-use net_traits::storage_thread::StorageType;
-use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceThreads};
-use parking_lot::{Mutex as ParkMutex, RwLock};
-use profile_traits::mem::ProfilerChan as MemProfilerChan;
-use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use script_layout_interface::message::PendingRestyle;
-use script_layout_interface::rpc::LayoutRPC;
-use script_layout_interface::StyleAndOpaqueLayoutData;
-use script_traits::serializable::BlobImpl;
-use script_traits::transferable::MessagePortImpl;
-use script_traits::{
-    DocumentActivity, DrawAPaintImageResult, MediaSessionActionType, ScriptToConstellationChan,
-    TimerEventId, TimerSource, UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData,
-    WindowSizeType,
-};
-use selectors::matching::ElementSelectorFlags;
-use serde::{Deserialize, Serialize};
+use parking_lot::RwLock;
 use servo_arc::Arc as ServoArc;
-use servo_atoms::Atom;
-use servo_media::audio::analyser_node::AnalysisEngine;
-use servo_media::audio::buffer_source_node::AudioBuffer;
-use servo_media::audio::context::AudioContext;
-use servo_media::audio::graph::NodeId;
-use servo_media::audio::panner_node::{DistanceModel, PanningModel};
-use servo_media::audio::param::ParamType;
-use servo_media::player::audio::AudioRenderer;
-use servo_media::player::video::VideoFrame;
-use servo_media::player::Player;
-use servo_media::streams::registry::MediaStreamId;
-use servo_media::streams::MediaStreamType;
-use servo_media::webrtc::WebRtcController;
-use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell, UnsafeCell};
+use std::collections::hash_map::RandomState;
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::fmt::Display;
 use std::hash::{BuildHasher, Hash};
 use std::mem;
 use std::num::NonZeroU64;
@@ -143,42 +69,16 @@ use std::ops::{Deref, DerefMut, Range};
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Instant, SystemTime};
-use style::animation::DocumentAnimationSet;
-use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::author_styles::AuthorStyles;
-use style::context::QuirksMode;
-use style::dom::OpaqueNode;
-use style::element_state::*;
-use style::media_queries::MediaList;
-use style::properties::style_structs::Font;
-use style::properties::PropertyDeclarationBlock;
-use style::selector_parser::{PseudoElement, Snapshot};
-use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLock};
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
-use style::stylesheets::keyframes_rule::Keyframe;
-use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
-use style::stylesheets::{ImportRule, NamespaceRule, StyleRule, SupportsRule};
-use style::stylist::CascadeData;
-use style::values::specified::Length;
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
-use tendril::{StrTendril, TendrilSink};
-use time::{Duration, Timespec, Tm};
-use uuid::Uuid;
-use webgpu::{
-    wgpu::command::{ComputePass, RenderBundleEncoder, RenderPass},
-    WebGPU, WebGPUAdapter, WebGPUBindGroup, WebGPUBindGroupLayout, WebGPUBuffer,
-    WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePipeline, WebGPUDevice,
-    WebGPUPipelineLayout, WebGPUQueue, WebGPURenderBundle, WebGPURenderPipeline, WebGPUSampler,
-    WebGPUShaderModule, WebGPUTexture, WebGPUTextureView,
-};
-use webrender_api::{DocumentId, ExternalImageId, ImageKey};
-use webxr_api::{Finger, Hand, Ray, View};
+use tendril::TendrilSink;
+use webxr_api::{Finger, Hand};
 
-unsafe_no_jsmanaged_fields!(Tm);
 unsafe_no_jsmanaged_fields!(JoinHandle<()>);
 
 /// A trait to allow tracing (only) DOM objects.
@@ -187,39 +87,158 @@ pub unsafe trait JSTraceable {
     unsafe fn trace(&self, trc: *mut JSTracer);
 }
 
-unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>, Box<dyn EventLoopWaker>);
+/// Wrapper type for nop traceble
+///
+/// SAFETY: Inner type must not impl JSTraceable
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[trace_in_no_trace_lint::must_not_have_traceable]
+pub struct NoTrace<T>(pub T);
+
+impl<T: Display> Display for NoTrace<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T> From<T> for NoTrace<T> {
+    fn from(item: T) -> Self {
+        Self(item)
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl<T> JSTraceable for NoTrace<T> {
+    #[inline]
+    unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {}
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.size_of(ops)
+    }
+}
+
+/// HashMap wrapper, that has non-jsmanaged keys
+///
+/// Not all methods are reexposed, but you can access inner type via .0
+#[trace_in_no_trace_lint::must_not_have_traceable(0)]
+#[derive(Clone, Debug)]
+pub struct HashMapTracedValues<K, V, S = RandomState>(pub HashMap<K, V, S>);
+
+impl<K, V, S: Default> Default for HashMapTracedValues<K, V, S> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
+impl<K, V> HashMapTracedValues<K, V, RandomState> {
+    /// Wrapper for HashMap::new()
+    #[inline]
+    #[must_use]
+    pub fn new() -> HashMapTracedValues<K, V, RandomState> {
+        Self(HashMap::new())
+    }
+}
+
+impl<K, V, S> HashMapTracedValues<K, V, S> {
+    #[inline]
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, K, V> {
+        self.0.iter()
+    }
+
+    #[inline]
+    pub fn drain(&mut self) -> std::collections::hash_map::Drain<'_, K, V> {
+        self.0.drain()
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl<K, V, S> HashMapTracedValues<K, V, S>
+where
+    K: Eq + Hash,
+    S: BuildHasher,
+{
+    #[inline]
+    pub fn insert(&mut self, k: K, v: V) -> Option<V> {
+        self.0.insert(k, v)
+    }
+
+    #[inline]
+    pub fn get<Q: ?Sized>(&self, k: &Q) -> Option<&V>
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.0.get(k)
+    }
+
+    #[inline]
+    pub fn get_mut<Q: ?Sized>(&mut self, k: &Q) -> Option<&mut V>
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.0.get_mut(k)
+    }
+
+    #[inline]
+    pub fn contains_key<Q: ?Sized>(&self, k: &Q) -> bool
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.0.contains_key(k)
+    }
+
+    #[inline]
+    pub fn remove<Q: ?Sized>(&mut self, k: &Q) -> Option<V>
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.0.remove(k)
+    }
+
+    #[inline]
+    pub fn entry(&mut self, key: K) -> std::collections::hash_map::Entry<'_, K, V> {
+        self.0.entry(key)
+    }
+}
+
+impl<K, V, S> MallocSizeOf for HashMapTracedValues<K, V, S>
+where
+    K: Eq + Hash + MallocSizeOf,
+    V: MallocSizeOf,
+    S: BuildHasher,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.size_of(ops)
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl<K, V: JSTraceable, S> JSTraceable for HashMapTracedValues<K, V, S> {
+    #[inline]
+    unsafe fn trace(&self, trc: *mut ::js::jsapi::JSTracer) {
+        for v in self.0.values() {
+            v.trace(trc);
+        }
+    }
+}
+
+unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 
 unsafe_no_jsmanaged_fields!(IncompleteParserContexts);
 
-unsafe_no_jsmanaged_fields!(MessagePortImpl);
-unsafe_no_jsmanaged_fields!(MessagePortId);
-unsafe_no_jsmanaged_fields!(MessagePortRouterId);
-
-unsafe_no_jsmanaged_fields!(ServiceWorkerId);
-unsafe_no_jsmanaged_fields!(ServiceWorkerRegistrationId);
-
-unsafe_no_jsmanaged_fields!(BroadcastChannelRouterId);
-
-unsafe_no_jsmanaged_fields!(BlobId);
-unsafe_no_jsmanaged_fields!(BlobImpl);
-
-unsafe_no_jsmanaged_fields!(CSSError);
-
-unsafe_no_jsmanaged_fields!(&'static Encoding);
-
-unsafe_no_jsmanaged_fields!(Decoder);
-
 unsafe_no_jsmanaged_fields!(Reflector);
-
-unsafe_no_jsmanaged_fields!(Duration);
-
-unsafe_no_jsmanaged_fields!(TexDataType, TexFormat);
 
 unsafe_no_jsmanaged_fields!(*mut JobQueue);
 
 unsafe_no_jsmanaged_fields!(Cow<'static, str>);
-
-unsafe_no_jsmanaged_fields!(CspList);
 
 /// Trace a `JSScript`.
 pub fn trace_script(tracer: *mut JSTracer, description: &str, script: &Heap<*mut JSScript>) {
@@ -519,164 +538,28 @@ unsafe impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, 
     }
 }
 
-unsafe_no_jsmanaged_fields!(ActiveAttribInfo);
-unsafe_no_jsmanaged_fields!(ActiveUniformInfo);
-unsafe_no_jsmanaged_fields!(ActiveUniformBlockInfo);
-unsafe_no_jsmanaged_fields!(bool, f32, f64, String, AtomicBool, AtomicUsize, Uuid, char);
+unsafe_no_jsmanaged_fields!(bool, f32, f64, String, AtomicBool, AtomicUsize, char);
 unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 unsafe_no_jsmanaged_fields!(NonZeroU64);
 unsafe_no_jsmanaged_fields!(Error);
-unsafe_no_jsmanaged_fields!(ServoUrl, ImmutableOrigin, MutableOrigin);
-unsafe_no_jsmanaged_fields!(Image, ImageMetadata, dyn ImageCache, PendingImageId);
-unsafe_no_jsmanaged_fields!(Metadata);
-unsafe_no_jsmanaged_fields!(NetworkError);
-unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
-unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
-unsafe_no_jsmanaged_fields!(Font);
-// These three are interdependent, if you plan to put jsmanaged data
-// in one of these make sure it is propagated properly to containing structs
-unsafe_no_jsmanaged_fields!(DocumentActivity, WindowSizeData, WindowSizeType);
-unsafe_no_jsmanaged_fields!(
-    BrowsingContextId,
-    HistoryStateId,
-    PipelineId,
-    TopLevelBrowsingContextId
-);
-unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
-unsafe_no_jsmanaged_fields!(TimelineMarkerType);
-unsafe_no_jsmanaged_fields!(WorkerId);
-unsafe_no_jsmanaged_fields!(BufferQueue, QuirksMode, StrTendril);
+
 unsafe_no_jsmanaged_fields!(Runtime);
 unsafe_no_jsmanaged_fields!(ContextForRequestInterrupt);
-unsafe_no_jsmanaged_fields!(HeaderMap, Method);
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);
-unsafe_no_jsmanaged_fields!(UntrustedNodeAddress, OpaqueNode);
-unsafe_no_jsmanaged_fields!(LengthOrPercentageOrAuto);
-unsafe_no_jsmanaged_fields!(RGBA);
-unsafe_no_jsmanaged_fields!(StorageType);
-unsafe_no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
-unsafe_no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
-unsafe_no_jsmanaged_fields!(TextAlign, TextBaseline, Direction);
-unsafe_no_jsmanaged_fields!(RepetitionStyle);
-unsafe_no_jsmanaged_fields!(WebGLError, GLLimits, GlType);
-unsafe_no_jsmanaged_fields!(TimeProfilerChan);
-unsafe_no_jsmanaged_fields!(MemProfilerChan);
-unsafe_no_jsmanaged_fields!(PseudoElement);
-unsafe_no_jsmanaged_fields!(Length);
-unsafe_no_jsmanaged_fields!(ElementSelectorFlags);
-unsafe_no_jsmanaged_fields!(ElementState);
 unsafe_no_jsmanaged_fields!(DOMString);
-unsafe_no_jsmanaged_fields!(Mime);
-unsafe_no_jsmanaged_fields!(AttrIdentifier);
-unsafe_no_jsmanaged_fields!(AttrValue);
-unsafe_no_jsmanaged_fields!(Snapshot);
-unsafe_no_jsmanaged_fields!(PendingRestyle);
-unsafe_no_jsmanaged_fields!(Stylesheet);
-unsafe_no_jsmanaged_fields!(HttpsState);
-unsafe_no_jsmanaged_fields!(Request);
-unsafe_no_jsmanaged_fields!(RequestBuilder);
-unsafe_no_jsmanaged_fields!(StyleSharedRwLock);
 unsafe_no_jsmanaged_fields!(USVString);
-unsafe_no_jsmanaged_fields!(Referrer);
-unsafe_no_jsmanaged_fields!(ReferrerPolicy);
-unsafe_no_jsmanaged_fields!(CredentialsMode);
-unsafe_no_jsmanaged_fields!(ParserMetadata);
-unsafe_no_jsmanaged_fields!(Response);
-unsafe_no_jsmanaged_fields!(ResponseBody);
-unsafe_no_jsmanaged_fields!(ResourceThreads);
-unsafe_no_jsmanaged_fields!(StatusCode);
 unsafe_no_jsmanaged_fields!(SystemTime);
 unsafe_no_jsmanaged_fields!(Instant);
-unsafe_no_jsmanaged_fields!(RelativePos);
-unsafe_no_jsmanaged_fields!(StyleAndOpaqueLayoutData);
 unsafe_no_jsmanaged_fields!(PathBuf);
-unsafe_no_jsmanaged_fields!(DrawAPaintImageResult);
-unsafe_no_jsmanaged_fields!(DocumentId);
-unsafe_no_jsmanaged_fields!(ImageKey);
-unsafe_no_jsmanaged_fields!(ExternalImageId);
-unsafe_no_jsmanaged_fields!(WebGLBufferId);
-unsafe_no_jsmanaged_fields!(WebGLChan);
-unsafe_no_jsmanaged_fields!(WebGLFramebufferId);
-unsafe_no_jsmanaged_fields!(WebGLMsgSender);
-unsafe_no_jsmanaged_fields!(WebGLPipeline);
-unsafe_no_jsmanaged_fields!(WebGLProgramId);
-unsafe_no_jsmanaged_fields!(WebGLQueryId);
-unsafe_no_jsmanaged_fields!(WebGLRenderbufferId);
-unsafe_no_jsmanaged_fields!(WebGLSamplerId);
-unsafe_no_jsmanaged_fields!(WebGLShaderId);
-unsafe_no_jsmanaged_fields!(WebGLSyncId);
-unsafe_no_jsmanaged_fields!(WebGLTextureId);
-unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
-unsafe_no_jsmanaged_fields!(WebGLVersion);
-unsafe_no_jsmanaged_fields!(WebGLSLVersion);
-unsafe_no_jsmanaged_fields!(Arc<ParkMutex<Identities>>);
-unsafe_no_jsmanaged_fields!(WebGPU);
-unsafe_no_jsmanaged_fields!(WebGPUAdapter);
-unsafe_no_jsmanaged_fields!(WebGPUBuffer);
-unsafe_no_jsmanaged_fields!(WebGPUBindGroup);
-unsafe_no_jsmanaged_fields!(WebGPUBindGroupLayout);
-unsafe_no_jsmanaged_fields!(WebGPUComputePipeline);
-unsafe_no_jsmanaged_fields!(WebGPURenderPipeline);
-unsafe_no_jsmanaged_fields!(WebGPURenderBundle);
-unsafe_no_jsmanaged_fields!(WebGPUPipelineLayout);
-unsafe_no_jsmanaged_fields!(WebGPUQueue);
-unsafe_no_jsmanaged_fields!(WebGPUShaderModule);
-unsafe_no_jsmanaged_fields!(WebGPUSampler);
-unsafe_no_jsmanaged_fields!(WebGPUTexture);
-unsafe_no_jsmanaged_fields!(WebGPUTextureView);
 unsafe_no_jsmanaged_fields!(WebGPUContextId);
-unsafe_no_jsmanaged_fields!(WebGPUCommandBuffer);
-unsafe_no_jsmanaged_fields!(WebGPUCommandEncoder);
-unsafe_no_jsmanaged_fields!(WebGPUDevice);
-unsafe_no_jsmanaged_fields!(Option<RenderPass>);
-unsafe_no_jsmanaged_fields!(Option<RenderBundleEncoder>);
-unsafe_no_jsmanaged_fields!(Option<ComputePass>);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
 unsafe_no_jsmanaged_fields!(GPUCommandEncoderState);
 unsafe_no_jsmanaged_fields!(Range<u64>);
-unsafe_no_jsmanaged_fields!(MediaList);
-unsafe_no_jsmanaged_fields!(
-    webxr_api::Registry,
-    webxr_api::Session,
-    webxr_api::Frame,
-    webxr_api::LayerId,
-    webxr_api::InputSource,
-    webxr_api::InputId,
-    webxr_api::Joint,
-    webxr_api::HitTestId,
-    webxr_api::HitTestResult
-);
-unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
-unsafe_no_jsmanaged_fields!(InteractiveMetrics);
-unsafe_no_jsmanaged_fields!(InteractiveWindow);
-unsafe_no_jsmanaged_fields!(CanvasId);
 unsafe_no_jsmanaged_fields!(SourceSet);
-unsafe_no_jsmanaged_fields!(AudioBuffer);
-unsafe_no_jsmanaged_fields!(Arc<Mutex<AudioContext>>);
-unsafe_no_jsmanaged_fields!(NodeId);
-unsafe_no_jsmanaged_fields!(AnalysisEngine, DistanceModel, PanningModel, ParamType);
-unsafe_no_jsmanaged_fields!(Arc<Mutex<dyn Player>>);
-unsafe_no_jsmanaged_fields!(WebRtcController);
-unsafe_no_jsmanaged_fields!(MediaStreamId, MediaStreamType);
-unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
-unsafe_no_jsmanaged_fields!(ResourceFetchTiming);
-unsafe_no_jsmanaged_fields!(Timespec);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
-unsafe_no_jsmanaged_fields!(Rotation3D<f64>, Transform2D<f32>);
-unsafe_no_jsmanaged_fields!(Point2D<f32>, Rect<Au>);
-unsafe_no_jsmanaged_fields!(Rect<f32>);
-unsafe_no_jsmanaged_fields!(CascadeData);
-unsafe_no_jsmanaged_fields!(WindowGLContext);
-unsafe_no_jsmanaged_fields!(VideoFrame);
-unsafe_no_jsmanaged_fields!(WebGLContextId);
-unsafe_no_jsmanaged_fields!(Arc<Mutex<dyn AudioRenderer>>);
-unsafe_no_jsmanaged_fields!(MediaSessionActionType);
-unsafe_no_jsmanaged_fields!(MediaMetadata);
-unsafe_no_jsmanaged_fields!(WebrenderIpcSender);
 unsafe_no_jsmanaged_fields!(StreamConsumer);
-unsafe_no_jsmanaged_fields!(DocumentAnimationSet);
 unsafe_no_jsmanaged_fields!(Stencil);
 
 unsafe impl<'a> JSTraceable for &'a str {
@@ -693,35 +576,7 @@ unsafe impl<A, B> JSTraceable for fn(A) -> B {
     }
 }
 
-unsafe impl<T> JSTraceable for IpcSender<T>
-where
-    T: for<'de> Deserialize<'de> + Serialize,
-{
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-// Safe thanks to the Send bound.
-unsafe impl JSTraceable for Box<dyn LayoutRPC + Send + 'static> {
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
 unsafe impl JSTraceable for () {
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T> JSTraceable for IpcReceiver<T>
-where
-    T: for<'de> Deserialize<'de> + Serialize,
-{
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -732,197 +587,6 @@ unsafe impl<T: DomObject> JSTraceable for Trusted<T> {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
-    }
-}
-
-unsafe impl<T: Send> JSTraceable for Receiver<T> {
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T: Send> JSTraceable for Sender<T> {
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T: Send> JSTraceable for WebGLReceiver<T>
-where
-    T: for<'de> Deserialize<'de> + Serialize,
-{
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T: Send> JSTraceable for WebGLSender<T>
-where
-    T: for<'de> Deserialize<'de> + Serialize,
-{
-    #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<U> JSTraceable for euclid::Vector2D<f32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T, U> JSTraceable for euclid::Scale<f32, T, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T, U> JSTraceable for euclid::RigidTransform3D<f32, T, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T, U> JSTraceable for euclid::RigidTransform3D<f64, T, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T, U> JSTraceable for euclid::Transform3D<f32, T, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T, U> JSTraceable for euclid::Transform3D<f64, T, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<T> JSTraceable for EuclidLength<u64, T> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<U> JSTraceable for euclid::Size2D<i32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<U> JSTraceable for euclid::Size2D<f32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<U> JSTraceable for euclid::Size2D<u32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<U> JSTraceable for euclid::Rect<i32, U> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<Space> JSTraceable for Ray<Space> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl<Eye> JSTraceable for View<Eye> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<FontFaceRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<CssRules> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<Keyframe> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<KeyframesRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<ImportRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<SupportsRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<MediaRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<NamespaceRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<StyleRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<PropertyDeclarationBlock> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
-    }
-}
-
-unsafe impl JSTraceable for StyleLocked<MediaList> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
     }
 }
 

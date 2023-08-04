@@ -49,6 +49,7 @@ use style::element_state::ElementState;
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "#7193"]
+    #[no_trace]
     textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
     placeholder: DomRefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty

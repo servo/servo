@@ -142,12 +142,16 @@ enum ImageRequestPhase {
 #[unrooted_must_root_lint::must_root]
 struct ImageRequest {
     state: State,
+    #[no_trace]
     parsed_url: Option<ServoUrl>,
     source_url: Option<USVString>,
     blocker: Option<LoadBlocker>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image: Option<Arc<Image>>,
+    #[no_trace]
     metadata: Option<ImageMetadata>,
+    #[no_trace]
     final_url: Option<ServoUrl>,
     current_pixel_density: Option<f64>,
 }

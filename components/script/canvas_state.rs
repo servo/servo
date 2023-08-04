@@ -61,7 +61,7 @@ use style_traits::values::ToCss;
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(dead_code)]
 pub(crate) enum CanvasFillOrStrokeStyle {
-    Color(RGBA),
+    Color(#[no_trace] RGBA),
     Gradient(Dom<CanvasGradient>),
     Pattern(Dom<CanvasPattern>),
 }
@@ -80,22 +80,31 @@ impl CanvasFillOrStrokeStyle {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasContextState {
     global_alpha: f64,
+    #[no_trace]
     global_composition: CompositionOrBlending,
     image_smoothing_enabled: bool,
     fill_style: CanvasFillOrStrokeStyle,
     stroke_style: CanvasFillOrStrokeStyle,
     line_width: f64,
+    #[no_trace]
     line_cap: LineCapStyle,
+    #[no_trace]
     line_join: LineJoinStyle,
     miter_limit: f64,
+    #[no_trace]
     transform: Transform2D<f32>,
     shadow_offset_x: f64,
     shadow_offset_y: f64,
     shadow_blur: f64,
+    #[no_trace]
     shadow_color: RGBA,
+    #[no_trace]
     font_style: Option<Font>,
+    #[no_trace]
     text_align: TextAlign,
+    #[no_trace]
     text_baseline: TextBaseline,
+    #[no_trace]
     direction: Direction,
 }
 
@@ -131,17 +140,23 @@ impl CanvasContextState {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasState {
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
+    #[no_trace]
     ipc_renderer: IpcSender<CanvasMsg>,
+    #[no_trace]
     canvas_id: CanvasId,
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     /// The base URL for resolving CSS image URL values.
     /// Needed because of https://github.com/servo/servo/issues/17625
+    #[no_trace]
     base_url: ServoUrl,
+    #[no_trace]
     origin: ImmutableOrigin,
     /// Any missing image URLs.
+    #[no_trace]
     missing_image_urls: DomRefCell<Vec<ServoUrl>>,
     saved_states: DomRefCell<Vec<CanvasContextState>>,
 }

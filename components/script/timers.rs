@@ -36,20 +36,24 @@ pub struct OneshotTimerHandle(i32);
 pub struct OneshotTimers {
     js_timers: JsTimers,
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     /// The sender, to be cloned for each timer,
     /// on which the timer scheduler in the constellation can send an event
     /// when the timer is due.
     timer_event_chan: DomRefCell<Option<IpcSender<TimerEvent>>>,
     #[ignore_malloc_size_of = "Defined in std"]
+    #[no_trace]
     /// The sender to the timer scheduler in the constellation.
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     next_timer_handle: Cell<OneshotTimerHandle>,
     timers: DomRefCell<Vec<OneshotTimer>>,
+    #[no_trace]
     suspended_since: Cell<Option<MsDuration>>,
     /// Initially 0, increased whenever the associated document is reactivated
     /// by the amount of ms the document was inactive. The current time can be
     /// offset back by this amount for a coherent time across document
     /// activations.
+    #[no_trace]
     suspension_offset: Cell<MsDuration>,
     /// Calls to `fire_timer` with a different argument than this get ignored.
     /// They were previously scheduled and got invalidated when
@@ -57,14 +61,17 @@ pub struct OneshotTimers {
     ///  - the timer it was scheduled for got canceled or
     ///  - a timer was added with an earlier callback time. In this case the
     ///    original timer is rescheduled when it is the next one to get called.
+    #[no_trace]
     expected_event_id: Cell<TimerEventId>,
 }
 
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 struct OneshotTimer {
     handle: OneshotTimerHandle,
+    #[no_trace]
     source: TimerSource,
     callback: OneshotTimerCallback,
+    #[no_trace]
     scheduled_for: MsDuration,
 }
 
@@ -355,6 +362,7 @@ pub struct JsTimers {
     /// The nesting level of the currently executing timer task or 0.
     nesting_level: Cell<u32>,
     /// Used to introduce a minimum delay in event intervals
+    #[no_trace]
     min_duration: Cell<Option<MsDuration>>,
 }
 
@@ -371,10 +379,12 @@ struct JsTimerEntry {
 pub struct JsTimerTask {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     handle: JsTimerHandle,
+    #[no_trace]
     source: TimerSource,
     callback: InternalTimerCallback,
     is_interval: IsInterval,
     nesting_level: u32,
+    #[no_trace]
     duration: MsDuration,
     is_user_interacting: bool,
 }

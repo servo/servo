@@ -47,7 +47,9 @@ pub struct ElementRareData {
     pub custom_element_state: CustomElementState,
     /// The "name" content attribute; not used as frequently as id, but used
     /// in named getter loops so it's worth looking up quickly when present
+    #[no_trace]
     pub name_attribute: Option<Atom>,
     /// The client rect reported by layout.
+    #[no_trace]
     pub client_rect: Option<LayoutValue<Rect<i32>>>,
 }

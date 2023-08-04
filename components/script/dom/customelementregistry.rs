@@ -43,11 +43,13 @@ use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use std::cell::Cell;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::mem;
 use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
+
+use super::bindings::trace::HashMapTracedValues;
 
 /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
 #[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
@@ -72,12 +74,12 @@ pub struct CustomElementRegistry {
     window: Dom<Window>,
 
     #[ignore_malloc_size_of = "Rc"]
-    when_defined: DomRefCell<HashMap<LocalName, Rc<Promise>>>,
+    when_defined: DomRefCell<HashMapTracedValues<LocalName, Rc<Promise>>>,
 
     element_definition_is_running: Cell<bool>,
 
     #[ignore_malloc_size_of = "Rc"]
-    definitions: DomRefCell<HashMap<LocalName, Rc<CustomElementDefinition>>>,
+    definitions: DomRefCell<HashMapTracedValues<LocalName, Rc<CustomElementDefinition>>>,
 }
 
 impl CustomElementRegistry {
@@ -85,9 +87,9 @@ impl CustomElementRegistry {
         CustomElementRegistry {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
-            when_defined: DomRefCell::new(HashMap::new()),
+            when_defined: DomRefCell::new(HashMapTracedValues::new()),
             element_definition_is_running: Cell::new(false),
-            definitions: DomRefCell::new(HashMap::new()),
+            definitions: DomRefCell::new(HashMapTracedValues::new()),
         }
     }
 
@@ -101,7 +103,7 @@ impl CustomElementRegistry {
     /// Cleans up any active promises
     /// <https://github.com/servo/servo/issues/15318>
     pub fn teardown(&self) {
-        self.when_defined.borrow_mut().clear()
+        self.when_defined.borrow_mut().0.clear()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
@@ -112,6 +114,7 @@ impl CustomElementRegistry {
     ) -> Option<Rc<CustomElementDefinition>> {
         self.definitions
             .borrow()
+            .0
             .values()
             .find(|definition| {
                 // Step 4-5
@@ -127,6 +130,7 @@ impl CustomElementRegistry {
     ) -> Option<Rc<CustomElementDefinition>> {
         self.definitions
             .borrow()
+            .0
             .values()
             .find(|definition| definition.constructor.callback() == constructor.get())
             .cloned()
@@ -497,8 +501,10 @@ pub enum ConstructionStackEntry {
 /// <https://html.spec.whatwg.org/multipage/#custom-element-definition>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct CustomElementDefinition {
+    #[no_trace]
     pub name: LocalName,
 
+    #[no_trace]
     pub local_name: LocalName,
 
     #[ignore_malloc_size_of = "Rc"]

@@ -333,10 +333,13 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]
+    #[no_trace]
     player: DomRefCell<Option<Arc<Mutex<dyn Player>>>>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     video_renderer: Arc<Mutex<MediaFrameRenderer>>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     audio_renderer: DomRefCell<Option<Arc<Mutex<dyn AudioRenderer>>>>,
     /// https://html.spec.whatwg.org/multipage/#show-poster-flag
     show_poster: Cell<bool>,
@@ -353,9 +356,11 @@ pub struct HTMLMediaElement {
     /// https://html.spec.whatwg.org/multipage/#dom-media-muted
     muted: Cell<bool>,
     /// URL of the media resource, if any.
+    #[no_trace]
     resource_url: DomRefCell<Option<ServoUrl>>,
     /// URL of the media resource, if the resource is set through the src_object attribute and it
     /// is a blob.
+    #[no_trace]
     blob_url: DomRefCell<Option<ServoUrl>>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-played
     #[ignore_malloc_size_of = "Rc"]
@@ -368,6 +373,7 @@ pub struct HTMLMediaElement {
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Time of last timeupdate notification.
     #[ignore_malloc_size_of = "Defined in time"]
+    #[no_trace]
     next_timeupdate_event: Cell<Timespec>,
     /// Latest fetch request context.
     current_fetch_context: DomRefCell<Option<HTMLMediaElementFetchContext>>,
@@ -379,6 +385,7 @@ pub struct HTMLMediaElement {
     /// keeping a whitelist of media controls identifiers.
     media_controls_id: DomRefCell<Option<String>>,
     #[ignore_malloc_size_of = "Defined in other crates"]
+    #[no_trace]
     player_context: WindowGLContext,
 }
 
@@ -2471,6 +2478,7 @@ pub enum MediaElementMicrotask {
     ResourceSelectionTask {
         elem: DomRoot<HTMLMediaElement>,
         generation_id: u32,
+        #[no_trace]
         base_url: ServoUrl,
     },
     PauseIfNotInDocumentTask {

@@ -25,9 +25,11 @@ use webgpu::{
 pub struct GPURenderPassEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
+    #[no_trace]
     channel: WebGPU,
     label: DomRefCell<Option<USVString>>,
     #[ignore_malloc_size_of = "defined in wgpu-core"]
+    #[no_trace]
     render_pass: DomRefCell<Option<RenderPass>>,
     command_encoder: Dom<GPUCommandEncoder>,
 }

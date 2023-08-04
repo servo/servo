@@ -42,6 +42,7 @@ use style::attr::AttrValue;
 pub struct HTMLAnchorElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableDom<DOMTokenList>,
+    #[no_trace]
     url: DomRefCell<Option<ServoUrl>>,
 }
 

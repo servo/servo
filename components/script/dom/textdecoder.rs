@@ -22,10 +22,12 @@ use std::cell::{Cell, RefCell};
 #[allow(non_snake_case)]
 pub struct TextDecoder {
     reflector_: Reflector,
+    #[no_trace]
     encoding: &'static Encoding,
     fatal: bool,
     ignoreBOM: bool,
     #[ignore_malloc_size_of = "defined in encoding_rs"]
+    #[no_trace]
     decoder: RefCell<Decoder>,
     in_stream: RefCell<Vec<u8>>,
     do_not_flush: Cell<bool>,

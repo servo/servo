@@ -14,7 +14,9 @@ use dom_struct::dom_struct;
 pub struct WebGLUniformLocation {
     reflector_: Reflector,
     id: i32,
+    #[no_trace]
     context_id: WebGLContextId,
+    #[no_trace]
     program_id: WebGLProgramId,
     link_generation: u64,
     size: Option<i32>,

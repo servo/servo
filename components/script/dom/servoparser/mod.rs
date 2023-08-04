@@ -95,9 +95,11 @@ pub struct ServoParser {
     network_decoder: DomRefCell<Option<NetworkDecoder>>,
     /// Input received from network.
     #[ignore_malloc_size_of = "Defined in html5ever"]
+    #[no_trace]
     network_input: DomRefCell<BufferQueue>,
     /// Input received from script. Used only to support document.write().
     #[ignore_malloc_size_of = "Defined in html5ever"]
+    #[no_trace]
     script_input: DomRefCell<BufferQueue>,
     /// The tokenizer of this parser.
     tokenizer: DomRefCell<Tokenizer>,
@@ -116,6 +118,7 @@ pub struct ServoParser {
     // building the DOM. https://github.com/servo/servo/pull/19203
     prefetch_tokenizer: DomRefCell<prefetch::Tokenizer>,
     #[ignore_malloc_size_of = "Defined in html5ever"]
+    #[no_trace]
     prefetch_input: DomRefCell<BufferQueue>,
 }
 
@@ -1046,6 +1049,7 @@ fn insert(
 #[derive(JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]
 pub struct Sink {
+    #[no_trace]
     base_url: ServoUrl,
     document: Dom<Document>,
     current_line: u64,
@@ -1401,6 +1405,7 @@ impl NetworkDecoder {
 
 #[derive(Default, JSTraceable)]
 struct NetworkSink {
+    #[no_trace]
     output: StrTendril,
 }
 

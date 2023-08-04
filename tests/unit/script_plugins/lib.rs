@@ -66,3 +66,99 @@ pub mod unrooted_must_root {
     pub fn return_type() {}
 
 }
+
+#[rustfmt::skip]
+pub mod trace_in_no_trace_lint {
+    /// Fake jstraceable
+    pub trait JSTraceable {}
+    impl JSTraceable for i32 {}
+
+    /**
+    ```
+    #![allow(deprecated)]
+    #![feature(plugin, register_tool)]
+    #![plugin(script_plugins)]
+    #![register_tool(trace_in_no_trace_lint)]
+
+    use script_plugins_tests::trace_in_no_trace_lint::JSTraceable;
+
+    #[trace_in_no_trace_lint::must_not_have_traceable] struct NoTrace<T>(T);
+
+    struct Bar;
+
+    struct Foo(NoTrace<Bar>);
+
+    fn main() {}
+    ```
+    */
+    pub fn ok() {}
+
+    /**
+    ```compile_fail
+    #![allow(deprecated)]
+    #![feature(plugin, register_tool)]
+    #![plugin(script_plugins)]
+    #![register_tool(trace_in_no_trace_lint)]
+
+    use script_plugins_tests::trace_in_no_trace_lint::JSTraceable;
+
+    #[trace_in_no_trace_lint::must_not_have_traceable] struct NoTrace<T>(T);
+
+    struct Bar;
+    impl JSTraceable for Bar {}
+
+    struct Foo(NoTrace<Bar>);
+
+    fn main() {}
+    ```
+    */
+    pub fn works() {}
+
+    /**
+    ```
+    #![allow(deprecated)]
+    #![feature(plugin, register_tool)]
+    #![plugin(script_plugins)]
+    #![register_tool(trace_in_no_trace_lint)]
+
+    use script_plugins_tests::trace_in_no_trace_lint::JSTraceable;
+
+    // second generic argument must not be traceable
+    #[trace_in_no_trace_lint::must_not_have_traceable(1)]
+    struct NoTraceComposable<Traceable, NoTraceable> {
+        t: Traceable,
+        n: NoTraceable,
+    }
+
+    // this is ok u32 is not traceable
+    struct Foo(NoTraceComposable<i32, u32>);
+
+    fn main() {}
+    ```
+    */
+    pub fn composable_ok() {}
+
+    /**
+    ```
+    #![allow(deprecated)]
+    #![feature(plugin, register_tool)]
+    #![plugin(script_plugins)]
+    #![register_tool(trace_in_no_trace_lint)]
+
+    use script_plugins_tests::trace_in_no_trace_lint::JSTraceable;
+
+    // second generic argument must not be traceable
+    #[trace_in_no_trace_lint::must_not_have_traceable(1)]
+    struct NoTraceComposable<Traceable, NoTraceable> {
+        t: Traceable,
+        n: NoTraceable,
+    }
+
+    // this is not ok i32 is traceable
+    struct Foo(NoTraceComposable<u32, i32>);
+
+    fn main() {}
+    ```
+    */
+    pub fn composable_works() {}
+}

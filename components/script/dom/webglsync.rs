@@ -17,6 +17,7 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct WebGLSync {
     webgl_object: WebGLObject,
+    #[no_trace]
     sync_id: WebGLSyncId,
     marked_for_deletion: Cell<bool>,
     client_wait_status: Cell<Option<u32>>,

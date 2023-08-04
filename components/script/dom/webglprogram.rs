@@ -26,6 +26,7 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct WebGLProgram {
     webgl_object: WebGLObject,
+    #[no_trace]
     id: WebGLProgramId,
     is_in_use: Cell<bool>,
     marked_for_deletion: Cell<bool>,
@@ -34,8 +35,11 @@ pub struct WebGLProgram {
     link_generation: Cell<u64>,
     fragment_shader: MutNullableDom<WebGLShader>,
     vertex_shader: MutNullableDom<WebGLShader>,
+    #[no_trace]
     active_attribs: DomRefCell<Box<[ActiveAttribInfo]>>,
+    #[no_trace]
     active_uniforms: DomRefCell<Box<[ActiveUniformInfo]>>,
+    #[no_trace]
     active_uniform_blocks: DomRefCell<Box<[ActiveUniformBlockInfo]>>,
     transform_feedback_varyings_length: Cell<i32>,
     transform_feedback_mode: Cell<i32>,

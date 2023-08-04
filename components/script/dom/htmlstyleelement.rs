@@ -34,6 +34,7 @@ use style_traits::ParsingMode;
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
     /// <https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts>

@@ -34,6 +34,7 @@ use style::parser::ParserContext;
 #[allow(non_snake_case)]
 pub struct DOMMatrixReadOnly {
     reflector_: Reflector,
+    #[no_trace]
     matrix: DomRefCell<Transform3D<f64>>,
     is2D: Cell<bool>,
 }

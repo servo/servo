@@ -48,6 +48,7 @@ use std::str::FromStr;
 #[dom_struct]
 pub struct Request {
     reflector_: Reflector,
+    #[no_trace]
     request: DomRefCell<NetTraitsRequest>,
     body_stream: MutNullableDom<ReadableStream>,
     headers: MutNullableDom<Headers>,

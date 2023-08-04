@@ -24,6 +24,7 @@ pub struct MediaList {
     reflector_: Reflector,
     parent_stylesheet: Dom<CSSStyleSheet>,
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     media_queries: Arc<Locked<StyleMediaList>>,
 }
 

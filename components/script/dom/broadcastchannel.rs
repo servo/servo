@@ -22,6 +22,7 @@ pub struct BroadcastChannel {
     eventtarget: EventTarget,
     name: DOMString,
     closed: Cell<bool>,
+    #[no_trace]
     id: Uuid,
 }
 
