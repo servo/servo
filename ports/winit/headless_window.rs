@@ -114,7 +114,7 @@ impl WindowPortsMethods for Window {
     }
 
     fn set_toolbar_size(&self, _height: f32) {
-        unreachable!("only reachable in headed Window")
+        unimplemented!("headless Window only")
     }
 }
 

@@ -156,7 +156,7 @@ impl Window {
             device_pixels_per_px,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
-            toolbar_size: Cell::new(0.0), // Initial value
+            toolbar_size: Cell::new(0.0),
         }
     }
 
@@ -535,11 +535,12 @@ impl WindowMethods for Window {
             .winit_window
             .inner_size();
 
-        // Get the height of toolbar for minibrowser
+        // Subtract the minibrowser toolbar height if any
         let toolbar_height = self.toolbar_size.get();
-        let viewport_origin = Point2D::new(0f32, 0f32).to_i32(); // bottom left
-        let viewport_size = (Size2D::new(width as f32, height as f32 - toolbar_height) * dpr).to_i32();
-        let viewport = DeviceIntRect::new(viewport_origin, viewport_size);
+        let inner_size = Size2D::new(width as f32, height as f32) * dpr;
+        let viewport_size = inner_size - Size2D::new(0f32, toolbar_height);
+        let viewport_origin = DeviceIntPoint::zero(); // bottom left
+        let viewport = DeviceIntRect::new(viewport_origin, viewport_size.to_i32());
 
         let framebuffer = DeviceIntSize::from_untyped(viewport.size.to_untyped());
         EmbedderCoordinates {

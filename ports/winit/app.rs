@@ -309,7 +309,7 @@ impl App {
         }
     }
 
-    /// Updates the location in toolbar if browser history state has changed.
+    /// Updates the location field, if the user hasn’t started editing it.
     fn update_location_in_toolbar(&self, minibrowser: &mut RefMut<Minibrowser>) {
         if !minibrowser.location_dirty.get() {
             if let Some(current_url) = self.browser.borrow().current_top_level_url() {
@@ -388,7 +388,6 @@ fn get_default_url() -> ServoUrl {
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
     let cmdline_url = opts::get().url.clone();
-
     let pref_url = {
         let homepage_url = pref!(shell.homepage);
         parse_url_or_filename(&cwd, &homepage_url).ok()
