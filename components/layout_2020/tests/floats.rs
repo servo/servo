@@ -314,7 +314,7 @@ fn test_tree_range_setting() {
 
         for range in ranges {
             let start = range.start_index.min(tops.len() as u32 - 1);
-            let end = (range.start_index + range.length).min(tops.len() as u32 - 1);
+            let end = (range.start_index as u64 + range.length as u64).min(tops.len() as u64 - 1);
             let block_range = tops[start as usize]..tops[end as usize];
             let length = Length::new(range.length as f32);
             let new_tree = tree.set_range(&block_range, range.side, length);
