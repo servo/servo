@@ -229,7 +229,7 @@ def main():
     results = get_results(filenames, args.tag)
     if not results:
         print("Did not find any unexpected results.")
-        create_check_run("Did not find any unexpected results.")
+        create_check_run("Did not find any unexpected results.", args.tag)
         return
 
     print(results.to_string())
