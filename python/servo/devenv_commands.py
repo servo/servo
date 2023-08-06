@@ -24,6 +24,17 @@ from mach.decorators import (
 
 from servo.command_base import CommandBase, cd, call
 
+VALID_TRY_BRACHES = [
+    "try",
+    "try-linux",
+    "try-mac",
+    "try-windows",
+    "try-wpt",
+    "try-wpt-2020",
+    "try-wpt-mac",
+    "try-wpt-mac-2020"
+]
+
 
 @CommandProvider
 class MachCommands(CommandBase):
@@ -282,7 +293,6 @@ class MachCommands(CommandBase):
     def try_jobs(self, jobs):
         branches = []
         # we validate branches because force pushing is destructive
-        VALID_TRY_BRACHES = ["try", "try-linux", "try-mac", "try-windows", "try-wpt", "try-wpt-2020"]
         for job in jobs:
             # branches must start with try-
             if "try" not in job:
