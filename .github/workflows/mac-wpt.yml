@@ -16,11 +16,11 @@ jobs:
     name: WPT ${{ inputs.layout }}
     runs-on: macos-13
     env:
-      max_chunk_id: 20
+      max_chunk_id: 5
     strategy:
       fail-fast: false
       matrix:
-        chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        chunk_id: [1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v3
         if: github.event_name != 'issue_comment'
