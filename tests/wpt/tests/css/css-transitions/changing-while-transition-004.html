@@ -3,13 +3,12 @@
 <head>
 <meta charset=utf-8>
 <title>CSS Transitions Test: behavior when transition changes to default while transitioning</title>
-<meta name="assert" content="Checks a change to the transition-duration
-property does not affect an in-flight transition">
+<meta name="assert" content="Checks a change to the transition-duration property does not affect an in-flight transition">
 <link rel="help" title="3. Starting of transitions" href="https://drafts.csswg.org/css-transitions/#starting">
 
-<script src="/resources/testharness.js" type="text/javascript"></script>
-<script src="/resources/testharnessreport.js" type="text/javascript"></script>
-<script src="./support/helper.js" type="text/javascript"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
 
 </head>
 <body>
@@ -50,7 +49,7 @@ promise_test(async t => {
     50,
     'Even in the next frame the updated transition should not apply'
   );
-}, 'Unsettign transition should not affect in-flight transitions');
+}, 'Unsetting transition should not affect in-flight transitions');
 </script>
 
 </body>

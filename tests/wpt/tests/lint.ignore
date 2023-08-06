@@ -261,6 +261,7 @@ SET TIMEOUT: workers/*
 SET TIMEOUT: xhr/resources/init.htm
 SET TIMEOUT: xhr/resources/xmlhttprequest-timeout.js
 SET TIMEOUT: fenced-frame/resolve-to-config-promise.https.html
+SET TIMEOUT: credential-management/support/fedcm-iframe.html
 
 # generate_tests implementation and sample usage
 GENERATE_TESTS: resources/test/tests/functional/generate-callback.html
@@ -614,9 +615,12 @@ AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-012.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-012-ref.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-013.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-013-ref.html
+AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-014.html
+AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-014-ref.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-metrics-override.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-metrics-override-ref.html
 AHEM SYSTEM FONT: css/css-fonts/line-gap-override.html
+AHEM SYSTEM FONT: css/css-fonts/parsing/font-size-adjust-computed.html
 AHEM SYSTEM FONT: html/dom/render-blocking/remove-attr-unblocks-rendering.optional.html
 AHEM SYSTEM FONT: html/dom/render-blocking/remove-element-unblocks-rendering.optional.html
 

@@ -3,15 +3,18 @@
 <link rel="help" href="https://fedidcg.github.io/FedCM">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 
 <body>
 
 <script type="module">
 import {request_options_with_mediation_required,
-        fedcm_test} from './support/fedcm-helper.sub.js';
+        fedcm_test,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  const cred = await navigator.credentials.get(request_options_with_mediation_required());
+  const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
   assert_equals(cred.token, 'token');
 }, 'Test that COEP policy do not apply to FedCM requests');
 

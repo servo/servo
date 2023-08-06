@@ -1,0 +1,5 @@
+
+#target {
+    /* image.png doesn't exist, but that's irrelevant to the test. */
+    background: url('./image.png');
+}

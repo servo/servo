@@ -228,5 +228,5 @@ def get(error_code):
 
 _errors: DefaultDict[str, Type[WebDriverException]] = collections.defaultdict()
 for item in list(locals().values()):
-    if type(item) == type and item != WebDriverException and issubclass(item, WebDriverException):
+    if isinstance(item, type) and item != WebDriverException and issubclass(item, WebDriverException):
         _errors[item.status_code] = item

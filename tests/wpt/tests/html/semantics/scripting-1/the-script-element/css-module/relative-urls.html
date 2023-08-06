@@ -7,7 +7,7 @@
 <body>
   <div id="target"></div>
   <script type="module">
-    import styleSheet from "./resources/load-relative-url.css" assert { type: "css"};
+    import styleSheet from "./resources/load-relative-url.css" with { type: "css"};
     test(() => {
       const target = document.querySelector("#target");
       document.adoptedStyleSheets = [ styleSheet ];

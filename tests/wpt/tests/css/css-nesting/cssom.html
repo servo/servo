@@ -9,6 +9,10 @@
 
 <script>
   test(() => {
+    assert_equals(CSSStyleRule.__proto__, CSSGroupingRule);
+  }, "CSSStyleRule is a CSSGroupingRule");
+
+  test(() => {
     let [ss] = document.styleSheets;
     assert_equals(ss.cssRules.length, 0);
     ss.insertRule('.a { color: red; }');

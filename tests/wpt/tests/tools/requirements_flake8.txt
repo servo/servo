@@ -1,7 +1,7 @@
 flake8==5.0.4; python_version < '3.9'
 pycodestyle==2.9.1; python_version < '3.8'
 pyflakes==2.5.0; python_version < '3.8'
-flake8==6.0.0; python_version >= '3.9'
-pycodestyle==2.10.0; python_version >= '3.9'
-pyflakes==3.0.1; python_version >= '3.9'
+flake8==6.1.0; python_version >= '3.9'
+pycodestyle==2.11.0; python_version >= '3.9'
+pyflakes==3.1.0; python_version >= '3.9'
 pep8-naming==0.13.3

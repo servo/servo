@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#at-page-rule">
+<link rel="match" href="page-margin-001-print-ref.html">
+<style>
+  @page {
+    margin: 10px 20px 30px 40px;
+  }
+  body {
+    margin: 0;
+  }
+  .fullpager {
+    width: 100vw;
+    height: 100vh;
+  }
+</style>
+<div class="fullpager" style="background:yellow;">
+  first page
+</div>
+<div class="fullpager" style="background:cyan;">
+  second page
+</div>
+<div class="fullpager" style="background:pink;">
+  third page
+</div>

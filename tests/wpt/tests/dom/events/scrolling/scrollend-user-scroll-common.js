@@ -54,7 +54,7 @@ async function test_scrollend_on_scrollbar_gutter_click(t, target_div) {
   await resetTargetScrollState(t, target_div);
   await waitForCompositorReady();
 
-  const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div);
+  const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div, 1000);
   verifyNoScrollendOnDocument(t);
 
   const bounds = target_div.getBoundingClientRect();

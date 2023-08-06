@@ -9,8 +9,8 @@ pytestmark = pytest.mark.asyncio
     "url",
     [
         "thisprotocoldoesnotexist://",
-        "http://doesnotexist.localhost/",
-        "http://localhost:0",
+        "https://doesnotexist.localhost/",
+        "https://localhost:0",
     ],
     ids=[
         "protocol",

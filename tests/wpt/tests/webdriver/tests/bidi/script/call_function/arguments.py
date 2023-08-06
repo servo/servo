@@ -23,7 +23,11 @@ async def test_default_arguments(bidi_session, top_context):
 async def test_primitive_value(bidi_session, top_context, argument, expected):
     result = await bidi_session.script.call_function(
         function_declaration=f"""(arg) => {{
-            if (arg !== {expected}) {{
+            if (typeof {expected} === "number" && isNaN({expected})) {{
+                if (!isNaN(arg)) {{
+                    throw new Error(`Argument should be {expected}, but was ` + arg);
+                }}
+            }} else if (arg !== {expected}) {{
                 throw new Error(`Argument should be {expected}, but was ` + arg);
             }}
             return arg;
@@ -34,24 +38,6 @@ async def test_primitive_value(bidi_session, top_context, argument, expected):
     )
 
     recursive_compare(argument, result)
-
-
-@pytest.mark.asyncio
-async def test_primitive_value_NaN(bidi_session, top_context):
-    nan_remote_value = {"type": "number", "value": "NaN"}
-    result = await bidi_session.script.call_function(
-        function_declaration="""(arg) => {
-            if (!isNaN(arg)) {
-                throw new Error("Argument should be 'NaN', but was " + arg);
-            }
-            return arg;
-        }""",
-        arguments=[nan_remote_value],
-        await_promise=False,
-        target=ContextTarget(top_context["context"]),
-    )
-
-    recursive_compare(nan_remote_value, result)
 
 
 @pytest.mark.asyncio

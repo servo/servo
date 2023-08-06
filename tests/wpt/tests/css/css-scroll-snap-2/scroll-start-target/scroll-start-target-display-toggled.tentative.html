@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title> CSS Scroll Snap 2 Test: scroll-start-target*</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start-target">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <style>
+      #space-filler {
+        width: 500px;
+        height: 500px;
+        border: solid 1px red;
+      }
+      #outer-container {
+        width: 400px;
+        height: 400px;
+        overflow: scroll;
+        border: solid 2px blue;
+      }
+      #inner-container {
+        top: 20px;
+        left: 20px;
+        width: 300px;
+        height: 300px;
+        overflow: scroll;
+        position: relative;
+        border: solid 2px black;
+      }
+      #target {
+        width: 100px;
+        height: 100px;
+        background-color: pink;
+        scroll-start-target: auto auto;
+      }
+    </style>
+    <div id="outer-container">
+      <div id="inner-container">
+        <div id="space-filler"></div>
+        <div id="target">
+        </div>
+      </div>
+    </div>
+    <script>
+      let outer_scroller = document.getElementById("outer-container");
+      let inner_scroller = document.getElementById("inner-container");
+      let space_filler = document.getElementById("space-filler");
+      let target = document.getElementById("target");
+
+      const target_height = target.getBoundingClientRect().height;
+      const space_filler_height = space_filler.getBoundingClientRect().height;
+      const total_content_height = target_height + space_filler_height;
+
+      async function resetDisplay() {
+        return new Promise((resolve) => {
+          if (getComputedStyle(outer_scroller).display == "block" &&
+              getComputedStyle(inner_scroller).display == "block" &&
+              getComputedStyle(target).display == "block") {
+            resolve();
+          } else {
+            outer_scroller.style.display = "block";
+            inner_scroller.style.display = "block";
+            target.style.display = "block";
+            requestAnimationFrame(async () => {
+              await resetDisplay();
+              resolve();
+            });
+          }
+        });
+      }
+
+      async function waitForDisplay(element, display) {
+        return new Promise((resolve) => {
+          if (getComputedStyle(element).display == display) {
+            resolve();
+          } else {
+            requestAnimationFrame(async () => {
+              await waitForDisplay(element, display);
+              resolve();
+            })
+          }
+        });
+      }
+
+      promise_test(async (t) => {
+        await resetDisplay();
+        let initial_expected_scroll_top =
+            total_content_height - inner_scroller.clientHeight;
+        assert_equals(inner_scroller.scrollTop, initial_expected_scroll_top,
+          "inner-scroller is scrolled to scroll-start-target");
+
+        let display_promise = waitForDisplay(target, "none");
+        target.style.display = "none";
+        await display_promise;
+
+        let final_expected_scroll_top = initial_expected_scroll_top - target_height;
+        assert_equals(inner_scroller.scrollTop, final_expected_scroll_top,
+          "inner scroller is clamped to updated scroll range");
+      }, "display:block scroll-start-target becomes display: none");
+
+      promise_test(async (t) => {
+        await resetDisplay();
+        let initial_expected_scroll_top =
+            total_content_height - inner_scroller.clientHeight;
+        assert_equals(inner_scroller.scrollTop, initial_expected_scroll_top,
+          "inner-scroller is scrolled to scroll-start-target");
+
+        let display_promise = waitForDisplay(target, "none");
+        target.style.display = "none";
+        await display_promise;
+        assert_equals(inner_scroller.scrollTop,
+            initial_expected_scroll_top - target_height,
+            "inner scroller is clamped to updated scroll range");
+
+        display_promise = waitForDisplay(target, "block");
+        target.style.display = "block";
+        await display_promise;
+        assert_equals(inner_scroller.scrollTop, initial_expected_scroll_top,
+            "inner scroller is updated as scroll-start-target reappears");
+      }, "display:none scroll-start-target becomes display: block");
+    </script>
+  </body>
+</html>

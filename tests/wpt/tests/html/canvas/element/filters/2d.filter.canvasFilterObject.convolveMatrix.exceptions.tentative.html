@@ -19,23 +19,23 @@
 var t = async_test("Test exceptions on CanvasFilter() convolveMatrix");
 _addTest(function(canvas, ctx) {
 
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix'}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', divisor: 2}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: null}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: 1}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1, 0], [0]]}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1, 'a'], [0]]}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1, 0], 0]}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1, 0], [0, Infinity]]}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: []}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [1]}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [1, 2, 3, 4]}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[], []]}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1, 2], []]}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[], [1, 2]]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix'}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', divisor: 2}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: null}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: 1}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1, 0], [0]]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1, 'a'], [0]]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1, 0], 0]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1, 0], [0, Infinity]]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: []}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [1]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [1, 2, 3, 4]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[], []]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1, 2], []]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[], [1, 2]]}); });
   // This should not throw an error
-  ctx.filter = new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[]]});
-  ctx.filter = new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1]]});
+  ctx.filter = new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[]]});
+  ctx.filter = new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1]]});
 
 });
 </script>

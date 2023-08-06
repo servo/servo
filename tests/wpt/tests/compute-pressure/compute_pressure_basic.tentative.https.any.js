@@ -39,7 +39,7 @@ pressure_test((t, mockPressureService) => {
   mockPressureService.setPressureUpdate('cpu', 'critical');
   mockPressureService.startPlatformCollector(/*sampleRate=*/ 5.0);
 
-  return promise_rejects_dom(t, 'NotSupportedError', promise);
+  return promise_rejects_dom(t, 'AbortError', promise);
 }, 'Removing observer before observe() resolves works');
 
 pressure_test(async (t, mockPressureService) => {

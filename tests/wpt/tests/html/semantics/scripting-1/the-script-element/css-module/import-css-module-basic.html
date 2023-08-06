@@ -17,7 +17,7 @@
         };
     </script>
     <script type="module" onerror="unreachable()">
-        import sheet from "./resources/basic.css" assert { type: "css" };
+        import sheet from "./resources/basic.css" with { type: "css" };
         test(() => {
             document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
             assert_equals(getComputedStyle(document.querySelector('#test'))
@@ -25,7 +25,7 @@
         }, "A CSS Module should load");
     </script>
     <script type="module" onerror="unreachable()">
-        import sheet from "./resources/basic-large.css" assert { type: "css" };
+        import sheet from "./resources/basic-large.css" with { type: "css" };
         test(() => {
             // This tests potential streaming compilation of modules in
             // Chromium that is triggered only for large (32>KiB) files in older
@@ -37,7 +37,7 @@
         }, "A large CSS Module should load");
     </script>
     <script type="module" onerror="unreachable()">
-        import sheet from "./resources/bad-import.css" assert { type: "css" };
+        import sheet from "./resources/bad-import.css" with { type: "css" };
         test(() => {
             document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
             assert_equals(window.errorCount, 0);
@@ -51,7 +51,7 @@
         }, "An @import CSS Module should not load, but should not throw an exception");
     </script>
     <script type="module" onerror="unreachable()">
-        import sheet from "./resources/malformed.css" assert { type: "css" };
+        import sheet from "./resources/malformed.css" with { type: "css" };
         test(() => {
             document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
             assert_equals(window.errorCount, 0);
@@ -67,7 +67,7 @@
     <script type="module">
         promise_test(function (test) {
             const iframe = document.createElement("iframe");
-            iframe.src = "resources/css-module-without-assertion-iframe.html";
+            iframe.src = "resources/css-module-without-attribute-iframe.html";
             return new Promise(resolve => {
                 iframe.onload = resolve;
                 document.body.appendChild(iframe);
@@ -76,8 +76,8 @@
                 assert_equals(iframe.contentDocument.script_onerror.type, "error");
                 assert_equals(getComputedStyle(iframe.contentDocument.querySelector('#test'))
                     .backgroundColor, "rgba(0, 0, 0, 0)",
-                    "CSS module without type assertion should result in a fetch error");
+                    "CSS module without type attribute should result in a fetch error");
             });
-        }, "CSS module without type assertion should result in a fetch error");
+        }, "CSS module without type attribute should result in a fetch error");
     </script>
 </body>

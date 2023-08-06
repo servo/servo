@@ -42,7 +42,7 @@
   script4_dynamic_load.onerror = () => onError(test4_dynamic_load);
   script4_dynamic_load.async = true;
   script4_dynamic_load.appendChild(document.createTextNode(`
-    import "./resources/basic.css" assert { type: "css" };
+    import "./resources/basic.css" with { type: "css" };
     onExecute(test4_dynamic_load);`
   ));
   document.head.appendChild(script4_dynamic_load);
@@ -52,15 +52,15 @@
   script4_dynamic_error.onload = () => onLoad(test4_dynamic_error);
   script4_dynamic_error.onerror = () => onError(test4_dynamic_error);
   script4_dynamic_error.async = true;
-  script4_dynamic_error.appendChild(document.createTextNode(`import "./not_found.css" assert { type: "css" };`));
+  script4_dynamic_error.appendChild(document.createTextNode(`import "./not_found.css" with { type: "css" };`));
   document.head.appendChild(script4_dynamic_error);
 </script>
 <script onload="onLoad(test1_load);" onerror="onError(test1_load);" type="module">
-  import "./resources/basic.css" assert { type: "css"};
+  import "./resources/basic.css" with { type: "css"};
   onExecute(test1_load);
 </script>
 <script onload="onLoad(test1_error);" onerror="onError(test1_error);" type="module">
-    import "./not_found.css" assert { type: "css"};
+    import "./not_found.css" with { type: "css"};
     onExecute(test1_error);
 </script>
 <script src="./resources/load-error-events.py?test=test2_load" onload="onLoad(test2_load);" onerror="onError(test2_load);" type="module"></script>

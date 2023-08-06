@@ -1,2 +1,2 @@
 This directory contains (tentative) tests for the
-[Compute Pressure](https://wicg.github.io/compute-pressure/) specification.
+[Compute Pressure](https://w3c.github.io/compute-pressure/) specification.

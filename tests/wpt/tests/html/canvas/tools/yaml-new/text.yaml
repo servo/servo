@@ -126,6 +126,14 @@
     ctx.font = '1em sans-serif';
     @assert ctx.font === '10px sans-serif';
 
+- name: 2d.text.font.weight
+  code: |
+    ctx.font = 'italic 400 12px serif';
+    @assert ctx.font === 'italic 12px serif';
+
+    ctx.font = 'italic 300 12px serif';
+    @assert ctx.font === 'italic 300 12px serif';
+
 - name: 2d.text.align.valid
   code: |
     ctx.textAlign = 'start';

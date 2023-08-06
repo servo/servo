@@ -1,0 +1,27 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+<body>
+
+<!-- ... assuming that color inherits -->
+<p>
+  <span style="color: green"><m:math><m:mstyle><m:mi>X</m:mi></m:mstyle></m:math></span>
+  <span style="color: green"><m:math><m:mstyle><m:mi>X</m:mi></m:mstyle></m:math></span>
+  <span style="color: green"><m:math><m:mstyle><m:mi>X</m:mi></m:mstyle></m:math></span>
+</p>
+
+<!-- ... assuming that color inherits -->
+<p>
+  <span style="color: green"><m:math><m:mstyle><m:mi>X</m:mi></m:mstyle></m:math></span>
+  <span style="color: green"><m:math><m:mstyle><m:mi>X</m:mi></m:mstyle></m:math></span>
+  <span style="color: green"><m:math><m:mstyle><m:mi>X</m:mi></m:mstyle></m:math></span>
+</p>
+
+<!-- ... assuming that mathbackground works on m:mstyle -->
+<p><m:math><m:mstyle mathbackground="lightgreen"><m:mi>Y</m:mi></m:mstyle></m:math></p>
+<p><m:math><m:mstyle mathbackground="lightgreen"><m:mi>Y</m:mi></m:mstyle></m:math></p>
+
+<!-- ... assuming that mathbackground works on m:mstyle -->
+<p><m:math><m:mstyle mathbackground="lightgreen"><m:mfenced><m:mi>x</m:mi></m:mfenced></m:mstyle></m:math></p>
+<p><m:math><m:mstyle mathbackground="lightgreen"><m:mfenced><m:mi>x</m:mi></m:mfenced></m:mstyle></m:math></p>
+
+</body>
+</html>

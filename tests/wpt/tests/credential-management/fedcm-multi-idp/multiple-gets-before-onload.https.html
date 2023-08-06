@@ -3,11 +3,17 @@
 <link rel="help" href="https://fedidcg.github.io/FedCM">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 
 <body>
 
 <script type="module">
-import {set_fedcm_cookie, set_alt_fedcm_cookie, request_options_with_mediation_required, alt_request_options_with_mediation_required} from '../support/fedcm-helper.sub.js';
+import {set_fedcm_cookie,
+        set_alt_fedcm_cookie,
+        request_options_with_mediation_required,
+        alt_request_options_with_mediation_required,
+        fedcm_select_account_promise} from '../support/fedcm-helper.sub.js';
 
 let cookies_promise = Promise.all([set_fedcm_cookie(), set_alt_fedcm_cookie()]);
 let has_window_loaded = false;
@@ -15,15 +21,17 @@ window.addEventListener('load', () => {
   has_window_loaded = true;
 });
 
-// TODO(crbug.com/1374869): Add multi IDP test where second IDP is selected.
 promise_test(async t => {
   assert_false(has_window_loaded);
   const first_cred = navigator.credentials.get(alt_request_options_with_mediation_required());
   const second_cred = navigator.credentials.get(request_options_with_mediation_required());
   await cookies_promise;
-  await promise_rejects_dom(t, 'NetworkError', second_cred);
-  const first = await first_cred;
-  assert_equals(first.token, "token");
+
+  // Select second account, i.e. from the second get() call.
+  await fedcm_select_account_promise(t, 1);
+  await promise_rejects_dom(t, 'NetworkError', first_cred);
+  const cred = await second_cred;
+  assert_equals(cred.token, "token");
 }, "Multiple get calls before window onload are allowed.");
 
 </script>

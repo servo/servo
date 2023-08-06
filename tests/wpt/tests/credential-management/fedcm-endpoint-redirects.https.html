@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        select_manifest,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_required("manifest_redirect_accounts.json");
+  await select_manifest(t, test_options);
+
+  const cred = fedcm_get_and_select_first_account(t, test_options);
+  return promise_rejects_dom(t, 'NetworkError', cred);
+}, 'Test that promise is rejected if accounts endpoint redirects');
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_required("manifest_redirect_token.json");
+  await select_manifest(t, test_options);
+
+  const cred = fedcm_get_and_select_first_account(t, test_options);
+  return promise_rejects_dom(t, 'NetworkError', cred);
+}, 'Test that token endpoint does not follow redirects');
+</script>

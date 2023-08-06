@@ -1,222 +1,219 @@
-
 <!DOCTYPE html>
 <html>
+
 <head>
   <script src='/resources/testharness.js'></script>
   <script src='/resources/testharnessreport.js'></script>
   <script src="/common/get-host-info.sub.js"></script>
 </head>
+
 <body>
-<svg id="svg" width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-</svg>
-<script>
-const SAMEORIGIN_BASE = get_host_info().HTTP_ORIGIN;
-const CROSSORIGIN_BASE = get_host_info().HTTP_NOTSAMESITE_ORIGIN;
+  <svg id="svg" width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  </svg>
+  <script>
+    const SAMEORIGIN_BASE = get_host_info().HTTP_ORIGIN;
+    const CROSSORIGIN_BASE = get_host_info().HTTP_NOTSAMESITE_ORIGIN;
 
-async function getVideoFilename()
-{
-     const videoConfiguration = {
-       type: 'file',
-       video: {
-           contentType: 'video/mp4; codecs=avc1',
-           width: 640,
-           height: 480,
-           bitrate: 800,
-           framerate: 30
-         }
-     };
-     const result = await navigator.mediaCapabilities.decodingInfo(videoConfiguration);
-     if (result.supported)
-         return '/webcodecs/h264.mp4';
-     return '/webcodecs/av1.mp4';
-}
-
-const TESTS = [
-  // HTMLImageElement
-  {
-    title: 'Test creating a VideoFrame with a same-origin HTMLImageElement',
-    factory: () => {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.src = SAMEORIGIN_BASE + '/webcodecs/four-colors.jpg';
-      });
-    },
-    should_throw: false,
-  },
-  {
-    title: 'Test creating a VideoFrame with a cross-origin HTMLImageElement',
-    factory: () => {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.src = CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg';
-      });
-    },
-    should_throw: true,
-  },
-  {
-    title: 'Test creating a VideoFrame with a CORS enabled cross-origin HTMLImageElement without setting crossorigin',
-    factory: () => {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.src = CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg?pipe=header(Access-Control-Allow-Origin,*)';
-      });
-    },
-    should_throw: true,
-  },
-  {
-    title: 'Test creating a VideoFrame with a CORS enabled cross-origin HTMLImageElement with crossorigin="anonymous"',
-    factory: () => {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.crossOrigin = 'anonymous';
-        image.src = CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg?pipe=header(Access-Control-Allow-Origin,*)';
-      });
-    },
-    should_throw: false,
-  },
-  // SVGImageElement
-  {
-    title: 'Test creating a VideoFrame with a same-origin SVGImageElement',
-    factory: () => {
-      return new Promise((resolve, reject) => {
-        const image = document.createElementNS('http://www.w3.org/2000/svg','image');
-        svg.appendChild(image);
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.setAttribute('href', SAMEORIGIN_BASE + '/webcodecs/four-colors.jpg');
-      });
-    },
-    should_throw: false,
-  },
-  {
-    title: 'Test creating a VideoFrame with a cross-origin SVGImageElement',
-    factory: () => {
-      return new Promise((resolve, reject) => {
-        const image = document.createElementNS('http://www.w3.org/2000/svg','image');
-        svg.appendChild(image);
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.setAttribute('href', CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg');
-      });
-    },
-    should_throw: true,
-  },
-  {
-    title: 'Test creating a VideoFrame with a CORS enabled cross-origin SVGImageElement without setting crossorigin',
-    factory: () => {
-      return new Promise((resolve, reject) => {
-        const image = document.createElementNS('http://www.w3.org/2000/svg','image');
-        svg.appendChild(image);
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.setAttribute('href', CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg?pipe=header(Access-Control-Allow-Origin,*)');
-      });
-    },
-    should_throw: true,
-  },
-  {
-    title: 'Test creating a VideoFrame with a CORS enabled cross-origin SVGImageElement with crossorigin="anonymous"',
-    factory: () => {
-      return new Promise((resolve, reject) => {
-        const image = document.createElementNS('http://www.w3.org/2000/svg','image');
-        svg.appendChild(image);
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.crossOrigin = 'anonymous';
-        image.setAttribute('href', CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg?pipe=header(Access-Control-Allow-Origin,*)');
-      });
-    },
-    should_throw: () => {
-      // SVGImageElement.crossOrigin is not standardized.
-      const image = document.createElementNS('http://www.w3.org/2000/svg','image');
-      return !('crossOrigin' in image);
-    },
-  },
-  // HTMLVideoElement
-  {
-    title: 'Test creating a VideoFrame with a same-origin HTMLVideoElement',
-    factory: () => {
-      return new Promise(async (resolve, reject) => {
-        const video = document.createElement('video');
-        on_frame_available(video, () => resolve(video));
-        video.onerror = reject;
-        video.src = SAMEORIGIN_BASE + await getVideoFilename();
-      });
-    },
-    should_throw: false,
-  },
-  {
-    title: 'Test creating a VideoFrame with a cross-origin HTMLVideoElement',
-    factory: () => {
-      return new Promise(async (resolve, reject) => {
-        const video = document.createElement('video');
-        on_frame_available(video, () => resolve(video));
-        video.onerror = reject;
-        video.src = CROSSORIGIN_BASE + await getVideoFilename();
-      });
-    },
-    should_throw: true,
-  },
-  {
-    title: 'Test creating a VideoFrame with a CORS enabled cross-origin HTMLVideoElement without setting crossorigin',
-    factory: () => {
-      return new Promise(async (resolve, reject) => {
-        const video = document.createElement('video');
-        on_frame_available(video, () => resolve(video));
-        video.onerror = reject;
-        video.src = CROSSORIGIN_BASE + await getVideoFilename() + '?pipe=header(Access-Control-Allow-Origin,*)';
-      });
-    },
-    should_throw: true,
-  },
-  {
-    title: 'Test creating a VideoFrame with a CORS enabled cross-origin HTMLVideoElement with crossorigin="anonymous"',
-    factory: () => {
-      return new Promise(async (resolve, reject) => {
-        const video = document.createElement('video');
-        on_frame_available(video, () => resolve(video));
-        video.onerror = reject;
-        video.crossOrigin = 'anonymous';
-        video.src = CROSSORIGIN_BASE + await getVideoFilename() +'?pipe=header(Access-Control-Allow-Origin,*)';
-      });
-    },
-    should_throw: false,
-  },
-];
-
-TESTS.forEach(test => run_test(test));
-
-function run_test(test) {
-  promise_test(async t => {
-    const source = await test.factory();
-    if (test.should_throw) {
-      assert_throws_dom('SecurityError', () => { create_frame(source); });
-    } else {
-      create_frame(source);
+    async function getVideoFilename() {
+      const videoConfiguration = {
+        type: 'file',
+        video: {
+          contentType: 'video/mp4; codecs=avc1',
+          width: 640,
+          height: 480,
+          bitrate: 800,
+          framerate: 30
+        }
+      };
+      const result = await navigator.mediaCapabilities.decodingInfo(videoConfiguration);
+      if (result.supported)
+        return '/webcodecs/h264.mp4';
+      return '/webcodecs/av1.mp4';
     }
-  }, test.title);
-}
 
-function create_frame(img) {
-  let frame = new VideoFrame(img, {timestamp: 0});
-  frame.close();
-}
+    const TESTS = [
+      // HTMLImageElement
+      {
+        title: 'Test creating a VideoFrame with a same-origin HTMLImageElement',
+        factory: () => {
+          return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = SAMEORIGIN_BASE + '/webcodecs/four-colors.jpg';
+          });
+        },
+        should_throw: false,
+      },
+      {
+        title: 'Test creating a VideoFrame with a cross-origin HTMLImageElement',
+        factory: () => {
+          return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg';
+          });
+        },
+        should_throw: true,
+      },
+      {
+        title: 'Test creating a VideoFrame with a CORS enabled cross-origin HTMLImageElement without setting crossorigin',
+        factory: () => {
+          return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg?pipe=header(Access-Control-Allow-Origin,*)';
+          });
+        },
+        should_throw: true,
+      },
+      {
+        title: 'Test creating a VideoFrame with a CORS enabled cross-origin HTMLImageElement with crossorigin="anonymous"',
+        factory: () => {
+          return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.crossOrigin = 'anonymous';
+            image.src = CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg?pipe=header(Access-Control-Allow-Origin,*)';
+          });
+        },
+        should_throw: false,
+      },
+      // SVGImageElement
+      {
+        title: 'Test creating a VideoFrame with a same-origin SVGImageElement',
+        factory: () => {
+          return new Promise((resolve, reject) => {
+            const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            svg.appendChild(image);
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.setAttribute('href', SAMEORIGIN_BASE + '/webcodecs/four-colors.jpg');
+          });
+        },
+        should_throw: false,
+      },
+      {
+        title: 'Test creating a VideoFrame with a cross-origin SVGImageElement',
+        factory: () => {
+          return new Promise((resolve, reject) => {
+            const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            svg.appendChild(image);
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.setAttribute('href', CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg');
+          });
+        },
+        should_throw: true,
+      },
+      {
+        title: 'Test creating a VideoFrame with a CORS enabled cross-origin SVGImageElement without setting crossorigin',
+        factory: () => {
+          return new Promise((resolve, reject) => {
+            const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            svg.appendChild(image);
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.setAttribute('href', CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg?pipe=header(Access-Control-Allow-Origin,*)');
+          });
+        },
+        should_throw: true,
+      },
+      {
+        title: 'Test creating a VideoFrame with a CORS enabled cross-origin SVGImageElement with crossorigin="anonymous"',
+        factory: () => {
+          return new Promise((resolve, reject) => {
+            const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            svg.appendChild(image);
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.crossOrigin = 'anonymous';
+            image.setAttribute('href', CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg?pipe=header(Access-Control-Allow-Origin,*)');
+          });
+        },
+        should_throw: false,
+      },
+      // HTMLVideoElement
+      {
+        title: 'Test creating a VideoFrame with a same-origin HTMLVideoElement',
+        factory: () => {
+          return new Promise(async (resolve, reject) => {
+            const video = document.createElement('video');
+            on_frame_available(video, () => resolve(video));
+            video.onerror = reject;
+            video.src = SAMEORIGIN_BASE + await getVideoFilename();
+          });
+        },
+        should_throw: false,
+      },
+      {
+        title: 'Test creating a VideoFrame with a cross-origin HTMLVideoElement',
+        factory: () => {
+          return new Promise(async (resolve, reject) => {
+            const video = document.createElement('video');
+            on_frame_available(video, () => resolve(video));
+            video.onerror = reject;
+            video.src = CROSSORIGIN_BASE + await getVideoFilename();
+          });
+        },
+        should_throw: true,
+      },
+      {
+        title: 'Test creating a VideoFrame with a CORS enabled cross-origin HTMLVideoElement without setting crossorigin',
+        factory: () => {
+          return new Promise(async (resolve, reject) => {
+            const video = document.createElement('video');
+            on_frame_available(video, () => resolve(video));
+            video.onerror = reject;
+            video.src = CROSSORIGIN_BASE + await getVideoFilename() + '?pipe=header(Access-Control-Allow-Origin,*)';
+          });
+        },
+        should_throw: true,
+      },
+      {
+        title: 'Test creating a VideoFrame with a CORS enabled cross-origin HTMLVideoElement with crossorigin="anonymous"',
+        factory: () => {
+          return new Promise(async (resolve, reject) => {
+            const video = document.createElement('video');
+            on_frame_available(video, () => resolve(video));
+            video.onerror = reject;
+            video.crossOrigin = 'anonymous';
+            video.src = CROSSORIGIN_BASE + await getVideoFilename() + '?pipe=header(Access-Control-Allow-Origin,*)';
+          });
+        },
+        should_throw: false,
+      },
+    ];
 
-function on_frame_available(video, callback) {
-  if ('requestVideoFrameCallback' in video)
-    video.requestVideoFrameCallback(callback);
-  else
-    video.onloadeddata = callback;
-}
+    TESTS.forEach(test => run_test(test));
 
-</script>
+    function run_test(test) {
+      promise_test(async t => {
+        const source = await test.factory();
+        if (test.should_throw) {
+          assert_throws_dom('SecurityError', () => { create_frame(source); });
+        } else {
+          create_frame(source);
+        }
+      }, test.title);
+    }
+
+    function create_frame(img) {
+      let frame = new VideoFrame(img, { timestamp: 0 });
+      frame.close();
+    }
+
+    function on_frame_available(video, callback) {
+      if ('requestVideoFrameCallback' in video)
+        video.requestVideoFrameCallback(callback);
+      else
+        video.onloadeddata = callback;
+    }
+
+  </script>
 </body>
+
 </html>

@@ -11,6 +11,15 @@ const supportedBlobRange = [
     result: "Hello, World!",
   },
   {
+    name: "A blob range request with no type.",
+    data: ["A simple Hello, World! example"],
+    type: undefined,
+    range: "bytes=9-21",
+    content_length: 13,
+    content_range: "bytes 9-21/30",
+    result: "Hello, World!",
+  },
+  {
     name: "A blob range request with no end.",
     data: ["Range with no end"],
     type: "text/plain",
@@ -201,7 +210,7 @@ supportedBlobRange.forEach(({ name, data, type, range, content_length, content_r
     });
     assert_equals(resp.status, 206, "HTTP status is 206");
     assert_equals(resp.type, "basic", "response type is basic");
-    assert_equals(resp.headers.get("Content-Type"), type, "Content-Type is " + resp.headers.get("Content-Type"));
+    assert_equals(resp.headers.get("Content-Type"), type || "", "Content-Type is " + resp.headers.get("Content-Type"));
     assert_equals(resp.headers.get("Content-Length"), content_length.toString(), "Content-Length is " + resp.headers.get("Content-Length"));
     assert_equals(resp.headers.get("Content-Range"), content_range, "Content-Range is " + resp.headers.get("Content-Range"));
     const text = await resp.text();

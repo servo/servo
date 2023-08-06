@@ -116,12 +116,12 @@ t.step(function() {
   ]
 
   for (testCase of errorTestCases) {
-    const filterOptions = {...{filter: 'turbulence'}, ...testCase};
+    const filterOptions = {...{name: 'turbulence'}, ...testCase};
     assert_throws_js(TypeError, function() { new CanvasFilter(filterOptions); });
   }
 
   for (testCase of workingTestCases) {
-    const filterOptions = {...{filter: 'turbulence'}, ...testCase};
+    const filterOptions = {...{name: 'turbulence'}, ...testCase};
     _assert(new CanvasFilter(filterOptions) != null, "new CanvasFilter(filterOptions) != null");
   }
   t.done();

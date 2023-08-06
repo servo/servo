@@ -7,7 +7,7 @@
 <body>
     <h1>json-module-import-cross-domain-NoCORS</h1>
     <script type="module" onerror="document._log.push('error');">
-        import json from "http://{{domains[www2]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/json-module/data.json" assert { type: "json" };
+        import json from "http://{{domains[www2]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/json-module/data.json" with { type: "json" };
         // Push an event to the log indicating that the script was executed.
         document._log.push(`imported JSON: ${json.answer}`);
     </script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Verify dir attribute on mpadded</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#adjust-space-around-content-mpadded">
+    <meta name="assert" content="Verify dir attribute on mpadded.">
+    <link rel="match" href="direction-mpadded-ref.html">
+  </head>
+  <body>
+    <p>
+      mpadded lspace="25px" width="150px":
+      <math dir="rtl">
+        <mspace width="1px" height="25px" mathbackground="black"/>
+        <mpadded lspace="25px" width="150px">
+          <mspace width="25px" height="25px" mathbackground="red"/>
+          <mspace width="25px" height="25px" mathbackground="green"/>
+          <mspace width="25px" height="25px" mathbackground="blue"/>
+        </mpadded>
+        <mspace width="1px" height="25px" mathbackground="black"/>
+      </math>
+    </p>
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");</script>
+  </body>
+</html>

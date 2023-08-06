@@ -18,7 +18,7 @@ function makeConvolveFilter(options) {
   ];
 
   options = Object.assign(options, {
-    kernelMatrix: KERNEL_MATRIX, filter: "convolveMatrix"});
+    kernelMatrix: KERNEL_MATRIX, name: "convolveMatrix"});
   return new CanvasFilter(options);
 }
 
