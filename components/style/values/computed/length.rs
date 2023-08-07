@@ -304,6 +304,22 @@ impl CSSPixelLength {
             Some(max_size) => self.min(max_size),
         }
     }
+
+    #[inline]
+    /// Applies rounding to a length value, per https://drafts.csswg.org/css-values-4/#lengths
+    ///
+    /// If len is greater than zero, but less than 1 device pixel, round len up to 1 device pixel.
+    /// If len is greater than 1 device pixel, round it down to the nearest integer number of
+    /// device pixels.
+    pub fn round_to_pixels(self) -> Self {
+        if self.0 <= 0.0 {
+            CSSPixelLength::new(0.)
+        } else if self.0 < 1.0 {
+            CSSPixelLength::new(self.0.ceil())
+        } else {
+            CSSPixelLength::new(self.0.floor())
+        }
+    }
 }
 
 impl num_traits::Zero for CSSPixelLength {

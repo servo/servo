@@ -675,10 +675,10 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn build_border(&mut self, builder: &mut DisplayListBuilder) {
         let border = self.fragment.style.get_border();
         let widths = SideOffsets2D::new(
-            border.border_top_width.px(),
-            border.border_right_width.px(),
-            border.border_bottom_width.px(),
-            border.border_left_width.px(),
+            border.border_top_width.0.round_to_pixels().px(),
+            border.border_right_width.0.round_to_pixels().px(),
+            border.border_bottom_width.0.round_to_pixels().px(),
+            border.border_left_width.0.round_to_pixels().px(),
         );
         if widths == SideOffsets2D::zero() {
             return;

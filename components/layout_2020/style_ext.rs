@@ -313,10 +313,10 @@ impl ComputedValuesExt for ComputedValues {
         let border = self.get_border();
         flow_relative::Sides::from_physical(
             &PhysicalSides::new(
-                border.border_top_width.0,
-                border.border_right_width.0,
-                border.border_bottom_width.0,
-                border.border_left_width.0,
+                border.border_top_width.0.round_to_pixels(),
+                border.border_right_width.0.round_to_pixels(),
+                border.border_bottom_width.0.round_to_pixels(),
+                border.border_left_width.0.round_to_pixels(),
             ),
             containing_block_writing_mode,
         )
