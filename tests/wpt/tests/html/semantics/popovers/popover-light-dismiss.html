@@ -14,15 +14,14 @@
 
 <button id=b1t popovertarget='p1'>Popover 1</button>
 <button id=b1s popovertarget='p1' popovertargetaction=show>Popover 1</button>
-<button id=p1anchor  tabindex="0">Popover1 anchor (no action)</button>
 <span id=outside>Outside all popovers</span>
-<div popover id=p1 anchor=p1anchor>
+<div popover id=p1>
   <span id=inside1>Inside popover 1</span>
   <button id=b2 popovertarget='p2' popovertargetaction=show>Popover 2</button>
   <span id=inside1after>Inside popover 1 after button</span>
-</div>
-<div popover id=p2 anchor=b2>
-  <span id=inside2>Inside popover 2</span>
+  <div popover id=p2>
+    <span id=inside2>Inside popover 2</span>
+  </div>
 </div>
 <button id=after_p1 tabindex="0">Next control after popover1</button>
 <style>
@@ -38,7 +37,6 @@
   const popover1 = document.querySelector('#p1');
   const button1toggle = document.querySelector('#b1t');
   const button1show = document.querySelector('#b1s');
-  const popover1anchor = document.querySelector('#p1anchor');
   const inside1After = document.querySelector('#inside1after');
   const button2 = document.querySelector('#b2');
   const popover2 = document.querySelector('#p2');
@@ -242,14 +240,6 @@
 
   promise_test(async () => {
     popover1.showPopover();
-    assert_true(popover1.matches(':popover-open'));
-    await waitForRender();
-    await clickOn(popover1anchor);
-    assert_false(popover1.matches(':popover-open'),'popover1 should close');
-  },'Clicking on anchor element (that isn\'t an invoking element) shouldn\'t prevent its popover from being closed');
-
-  promise_test(async () => {
-    popover1.showPopover();
     popover2.showPopover(); // Popover1 is an ancestral element for popover2.
     assert_true(popover1.matches(':popover-open'));
     assert_true(popover2.matches(':popover-open'));
@@ -335,8 +325,8 @@
 
 <my-element id="myElement">
   <template shadowrootmode="open">
-    <button id=b7 onclick='showPopover7()' tabindex="0">Popover7</button>
-    <div popover id=p7 anchor=b7 style="top: 100px;">
+    <button id=b7 popovertarget=p7 popovertargetaction=show tabindex="0">Popover7</button>
+    <div popover id=p7 style="top: 100px;">
       <p>Popover content.</p>
       <input id="inside7" type="text" placeholder="some text">
     </div>
@@ -347,9 +337,6 @@
   const button7 = document.querySelector('#myElement').shadowRoot.querySelector('#b7');
   const popover7 = document.querySelector('#myElement').shadowRoot.querySelector('#p7');
   const inside7 = document.querySelector('#myElement').shadowRoot.querySelector('#inside7');
-  function showPopover7() {
-    popover7.showPopover();
-  }
   promise_test(async () => {
     button7.click();
     assert_true(popover7.matches(':popover-open'),'invoking element should open popover');
@@ -367,40 +354,38 @@
   },'Clicking outside a shadow DOM popover should close that popover');
 </script>
 
-<div popover id=p8 anchor=p8anchor>
+<div popover id=p8>
   <button tabindex="0">Button</button>
   <span id=inside8after>Inside popover 8 after button</span>
 </div>
-<button id=p8anchor tabindex="0">Popover8 anchor (no action)</button>
+<button id=p8invoker popovertarget=p8 tabindex="0">Popover8 invoker (no action)</button>
 <script>
   promise_test(async () => {
     const popover8 = document.querySelector('#p8');
     const inside8After = document.querySelector('#inside8after');
-    const popover8Anchor = document.querySelector('#p8anchor');
+    const popover8Invoker = document.querySelector('#p8invoker');
     assert_false(popover8.matches(':popover-open'));
     popover8.showPopover();
     await clickOn(inside8After);
     assert_true(popover8.matches(':popover-open'));
     await sendTab();
-    assert_equals(document.activeElement,popover8Anchor,'Focus should move to the anchor element');
+    assert_equals(document.activeElement,popover8Invoker,'Focus should move to the invoker element');
     assert_true(popover8.matches(':popover-open'),'popover should stay open');
     popover8.hidePopover(); // Cleanup
-  },'Moving focus back to the anchor element should not dismiss the popover');
+  },'Moving focus back to the invoker element should not dismiss the popover');
 </script>
 
 <!-- Convoluted ancestor relationship -->
 <div popover id=convoluted_p1>Popover 1
-  <div id=convoluted_anchor>Anchor
-    <button popovertarget=convoluted_p2>Open Popover 2</button>
-    <div popover id=convoluted_p4><p>Popover 4</p></div>
+  <button popovertarget=convoluted_p2>Open Popover 2</button>
+<div popover id=convoluted_p2>Popover 2
+    <button popovertarget=convoluted_p3>Open Popover 3</button>
+    <button popovertarget=convoluted_p2 popovertargetaction=show>Self-linked invoker</button>
   </div>
-</div>
-<div popover id=convoluted_p2 anchor=convoluted_p2>Popover 2 (self-anchor-linked)
-  <button popovertarget=convoluted_p3>Open Popover 3</button>
-  <button popovertarget=convoluted_p2 popovertargetaction=show>Self-linked invoker</button>
-</div>
-<div popover id=convoluted_p3 anchor=convoluted_anchor>Popover 3
-  <button popovertarget=convoluted_p4>Open Popover 4</button>
+  <div popover id=convoluted_p3>Popover 3
+    <button popovertarget=convoluted_p4>Open Popover 4</button>
+  </div>
+  <div popover id=convoluted_p4><p>Popover 4</p></div>
 </div>
 <button onclick="convoluted_p1.showPopover()" tabindex="0">Open convoluted popover</button>
 <style>

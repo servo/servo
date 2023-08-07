@@ -3,11 +3,15 @@
 <link rel="help" href="https://fedidcg.github.io/FedCM">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 
 <body>
 
 <script type="module">
-import {set_fedcm_cookie, request_options_with_mediation_required} from '../support/fedcm-helper.sub.js';
+import {set_fedcm_cookie,
+        request_options_with_mediation_required,
+        fedcm_select_account_promise} from '../support/fedcm-helper.sub.js';
 
 let has_window_loaded = false;
 const window_loaded = new Promise(resolve => {
@@ -23,8 +27,11 @@ promise_test(async t => {
   await set_fedcm_cookie();
   await window_loaded;
   assert_true(has_window_loaded);
+
+  // Select first account after onload.
+  await fedcm_select_account_promise(t, 0);
   const first = await first_cred;
   assert_equals(first.token, "token");
-}, "Single `get` call before onload is allowed.");
+}, "Single `get` call before onload is allowed even if account is selected after.");
 
 </script>

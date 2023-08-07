@@ -139,13 +139,39 @@ export function request_options_with_login_hint(manifest_filename, login_hint) {
 }
 
 export function fedcm_get_title_promise(t) {
-  async function helper(resolve) {
-    try {
-      const title = await window.test_driver.get_fedcm_dialog_title();
-      resolve(title);
-    } catch (ex) {
-      t.step_timeout(helper, 100);
+  return new Promise(resolve => {
+    async function helper() {
+      // Try to get the title. If the UI is not up yet, we'll catch an exception
+      // and try again in 100ms.
+      try {
+        const title = await window.test_driver.get_fedcm_dialog_title();
+        resolve(title);
+      } catch (ex) {
+        t.step_timeout(helper, 100);
+      }
     }
-  }
-  return new Promise(helper);
+    helper();
+  });
+}
+
+export function fedcm_select_account_promise(t, account_index) {
+  return new Promise(resolve => {
+    async function helper() {
+      // Try to select the account. If the UI is not up yet, we'll catch an exception
+      // and try again in 100ms.
+      try {
+        await window.test_driver.select_fedcm_account(account_index);
+        resolve();
+      } catch (ex) {
+        t.step_timeout(helper, 100);
+      }
+    }
+    helper();
+  });
+}
+
+export function fedcm_get_and_select_first_account(t, options) {
+  const credentialPromise = navigator.credentials.get(options);
+  fedcm_select_account_promise(t, 0);
+  return credentialPromise;
 }

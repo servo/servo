@@ -13,7 +13,7 @@ pressure_test(async (t, mockPressureService) => {
   // Ensure that observer1's schema gets registered before observer2 starts.
   const promise = observer1.observe('cpu');
   observer1.disconnect();
-  await promise_rejects_dom(t, 'NotSupportedError', promise);
+  await promise_rejects_dom(t, 'AbortError', promise);
 
   const observer2_changes = [];
   await new Promise((resolve, reject) => {
@@ -53,7 +53,7 @@ pressure_test(async (t, mockPressureService) => {
     const promise = observer1.observe('cpu');
     observer2.observe('cpu');
     observer1.disconnect();
-    await promise_rejects_dom(t, 'NotSupportedError', promise);
+    await promise_rejects_dom(t, 'AbortError', promise);
     mockPressureService.setPressureUpdate('cpu', 'critical');
     mockPressureService.startPlatformCollector(/*sampleRate=*/ 5.0);
   });

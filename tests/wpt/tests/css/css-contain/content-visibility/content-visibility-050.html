@@ -28,10 +28,11 @@ async_test((t) => {
     focusable.tabIndex = 0;
     container.appendChild(focusable);
     focusable.focus();
-    requestAnimationFrame(() => {
-      t.step(() => assert_greater_than(document.scrollingElement.scrollTop, 500));
-      t.done();
-    });
+    step_timeout(finish, 0);
+  }
+  function finish() {
+    t.step(() => assert_greater_than(document.scrollingElement.scrollTop, 500));
+    t.done();
   }
   onload = requestAnimationFrame(() => requestAnimationFrame(runTest));
 }, "Using tabindex to focus an newly constructed element in an auto subtree focuses element");

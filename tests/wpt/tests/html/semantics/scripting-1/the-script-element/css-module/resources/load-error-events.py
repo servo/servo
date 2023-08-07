@@ -7,8 +7,8 @@ def main(request, response):
 
     status = 200
     if test.find(b'_load') >= 0:
-      content = b'import "./basic.css" assert { type: "css"}; %s.executed = true;' % test
+      content = b'import "./basic.css" with { type: "css"}; %s.executed = true;' % test
     else:
-      content = b'import "./not_found.css" assert { type: "css"}; %s.test.step(function() { assert_unreached("404 script should not be executed"); });' % test
+      content = b'import "./not_found.css" with { type: "css"}; %s.test.step(function() { assert_unreached("404 script should not be executed"); });' % test
 
     return status, headers, content

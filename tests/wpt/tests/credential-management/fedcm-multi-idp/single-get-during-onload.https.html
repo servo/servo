@@ -3,19 +3,24 @@
 <link rel="help" href="https://fedidcg.github.io/FedCM">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 
 <body>
 
 <script type="module">
-import {request_options_with_mediation_required, set_fedcm_cookie} from '../support/fedcm-helper.sub.js';
+import {request_options_with_mediation_required,
+        set_fedcm_cookie,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
 
 promise_test(async t => {
   const window_loaded = new Promise(resolve => {
     window.addEventListener('load', async () => {
-      const first_cred = navigator.credentials.get(request_options_with_mediation_required());
       await set_fedcm_cookie();
-      const first = await first_cred;
-      assert_equals(first.token, "token");
+      const first_cred = fedcm_get_and_select_first_account(t,
+          request_options_with_mediation_required());
+      const cred = await first_cred;
+      assert_equals(cred.token, "token");
       resolve();
     });
   });

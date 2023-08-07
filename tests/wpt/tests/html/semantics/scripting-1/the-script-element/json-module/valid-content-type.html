@@ -21,26 +21,26 @@ const t5 = async_test("text/json;boundary=something");
 const t6 = async_test("text/json;foo=bar");
 </script>
 <script type="module" onerror="t1.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json" assert { type: "json"};
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json" with { type: "json"};
 check(t1, v);
 </script>
 <script type="module" onerror="t2.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=application/json" assert { type: "json"};
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=application/json" with { type: "json"};
 check(t2, v);
 </script>
 <script type="module" onerror="t3.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/html%2Bjson" assert { type: "json"};
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/html%2Bjson" with { type: "json"};
 check(t3, v);
 </script>
 <script type="module" onerror="t4.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=image/svg%2Bjson" assert { type: "json"};
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=image/svg%2Bjson" with { type: "json"};
 check(t4, v);
 </script>
 <script type="module" onerror="t5.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json;boundary=something" assert { type: "json"};
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json;boundary=something" with { type: "json"};
 check(t5, v);
 </script>
 <script type="module" onerror="t6.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json;foo=bar" assert { type: "json"};
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json;foo=bar" with { type: "json"};
 check(t6, v);
 </script>

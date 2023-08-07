@@ -12,7 +12,7 @@
   // preserveAlpha for convolveMatrix is the only boolean so far implemented
   function drawWithConvolveFilter(x, y, preserveAlphaValue) {
     ctx.filter = new CanvasFilter({
-      filter: "convolveMatrix",
+      name: "convolveMatrix",
       kernelMatrix: [[1, 0], [0, 1]],
       preserveAlpha: preserveAlphaValue,
     });
@@ -51,7 +51,7 @@
   }
 
   ctx.filter = new CanvasFilter({
-    filter: "componentTransfer",
+    name: "componentTransfer",
     funcR: {type: "discrete", tableValues: 0.5},
   });
   ctx.fillRect(10, 10, 100, 100);

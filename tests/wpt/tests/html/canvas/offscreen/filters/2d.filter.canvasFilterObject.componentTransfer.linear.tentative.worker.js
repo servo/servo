@@ -27,7 +27,7 @@ t.step(function() {
 
   const slopes = [0.5, 1.2, -0.2];
   const intercepts = [0.25, 0, 0.5];
-  ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+  ctx.filter = new CanvasFilter({name: 'componentTransfer',
       funcR: {type: 'linear', slope: slopes[0], intercept: intercepts[0]},
       funcG: {type: 'linear', slope: slopes[1], intercept: intercepts[1]},
       funcB: {type: 'linear', slope: slopes[2], intercept: intercepts[2]},

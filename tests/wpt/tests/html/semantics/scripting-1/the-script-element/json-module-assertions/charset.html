@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>JSON modules: UTF-8 decoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script type="module" onerror="unreachable()">
+  import json from "../serve-with-content-type.py?fn=json-module-assertions/utf-8.json&ct=text/json%3Bcharset=utf-8" assert { type: "json"};
+  test(() => {
+    assert_equals(json.data, "śćążź");
+  }, "JSON module should be loaded as utf-8 when charset=utf8 is specified");
+</script>
+<script type="module" onerror="unreachable()">
+  import json from "../serve-with-content-type.py?fn=json-module-assertions/utf-8.json&ct=text/json%3Bcharset=shift-jis" assert { type: "json"};
+  test(() => {
+    assert_equals(json.data, "śćążź");
+  }, "JSON module should be loaded as utf-8 when charset=shift-jis is specified");
+</script>
+<script type="module" onerror="unreachable()">
+  import json from "../serve-with-content-type.py?fn=json-module-assertions/utf-8.json&ct=text/json%3Bcharset=windows-1252" assert { type: "json"};
+  test(() => {
+    assert_equals(json.data, "śćążź");
+  }, "JSON module should be loaded as utf-8 when charset=windows-1252 is specified");
+</script>
+<script type="module" onerror="unreachable()">
+  import json from "../serve-with-content-type.py?fn=json-module-assertions/utf-8.json&ct=text/json%3Bcharset=utf-7" assert { type: "json"};;
+  test(() => {
+    assert_equals(json.data, "śćążź");
+  }, "JSON module should be loaded as utf-8 when charset=utf-7 is specified");
+</script>
+<script type="module" onerror="unreachable()">
+  import json from "../serve-with-content-type.py?fn=json-module-assertions/windows-1250.json&ct=text/json%3Bcharset=windows-1250" assert { type: "json"};
+  test(() => {
+    assert_not_equals(json.data, "śćążź",
+                    'Should be decoded as UTF-8');
+  }, "JSON module should be loaded as utf-8 even if it is encoded in windows-1250 and served with a windows-1250 charset response header");
+</script>

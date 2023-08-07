@@ -6,7 +6,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="resources/helpers.js"></script>
 
-<div id="d" style="height: 100px; width: 100px;"></div>
+<body>
 <script>
 
 // This test needs to be separate from user-activation.html since, unlike those,
@@ -23,10 +23,10 @@ promise_test(async t => {
     createRecordingCloseWatcher(t, events, "activationWatcher2");
   });
 
-  await sendCloseSignal();
+  await sendCloseRequest();
   assert_array_equals(events, ["activationWatcher2 close", "activationWatcher1 close"]);
 
-  await sendCloseSignal();
+  await sendCloseRequest();
   assert_array_equals(events, ["activationWatcher2 close", "activationWatcher1 close", "freeWatcher close"]);
 }, "Multiple CloseWatchers created from a single user activation close together, but original free CloseWatcher closes separately");
 </script>

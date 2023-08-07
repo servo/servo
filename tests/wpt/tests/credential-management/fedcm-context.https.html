@@ -15,26 +15,34 @@ import {request_options_with_mediation_required,
         fedcm_test} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  navigator.credentials.get(request_options_with_mediation_required());
+  let p = navigator.credentials.get(request_options_with_mediation_required());
   const title = await fedcm_get_title_promise(t);
   assert_true(title.toLowerCase().includes('sign in'));
+  window.test_driver.select_fedcm_account(0);
+  return p;
 }, "FedCM call defaults to 'signin' context.");
 
 fedcm_test(async t => {
-  navigator.credentials.get(request_options_with_context("manifest.py", "signup"));
+  let p = navigator.credentials.get(request_options_with_context("manifest.py", "signup"));
   const title = await fedcm_get_title_promise(t);
   assert_true(title.toLowerCase().includes('sign up'));
+  window.test_driver.select_fedcm_account(0);
+  return p;
 }, "FedCM with 'signup' context.");
 
 fedcm_test(async t => {
-  navigator.credentials.get(request_options_with_context("manifest.py", "use"));
+  let p = navigator.credentials.get(request_options_with_context("manifest.py", "use"));
   const title = await fedcm_get_title_promise(t);
   assert_true(title.toLowerCase().includes('use'));
+  window.test_driver.select_fedcm_account(0);
+  return p;
 }, "FedCM with 'use' context.");
 
 fedcm_test(async t => {
-  navigator.credentials.get(request_options_with_context("manifest.py", "continue"));
+  let p = navigator.credentials.get(request_options_with_context("manifest.py", "continue"));
   const title = await fedcm_get_title_promise(t);
   assert_true(title.toLowerCase().includes('continue'));
+  window.test_driver.select_fedcm_account(0);
+  return p;
 }, "FedCM with 'continue' context.");
 </script>

@@ -132,5 +132,23 @@ test(() => {
   fieldset.disabled = false;
   assert_array_equals(container.querySelector('my-control').disabledHistory(), [true]);
 }, 'Toggling "disabled" attribute on a <fieldset> does not trigger a callback on disabled custom element descendant');
+
+test(() => {
+  const template = document.createElement('template');
+  template.innerHTML = '<my-control></my-control>';
+  const container = document.createElement('fieldset');
+  document.body.appendChild(container);
+  container.disabled = true;
+  container.appendChild(template.content.cloneNode(true));
+  assert_array_equals(container.querySelector('my-control').disabledHistory(), [true]);
+}, 'Callback triggered during a clone/append operation, with disabled state provided by ancestor');
+
+test(() => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  container.innerHTML = '<fieldset disabled><my-control></my-control></fieldset>';
+  const clone = container.cloneNode(true);
+  assert_array_equals(container.querySelector('my-control').disabledHistory(), [true]);
+}, 'Callback triggered during a clone operation, with disabled state provided by ancestor');
 </script>
 </body>

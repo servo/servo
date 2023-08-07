@@ -11,7 +11,7 @@ const content_types = [
 for (const content_type of content_types) {
   promise_test(async test => {
     await promise_rejects_js(test, TypeError,
-      import(`./module.json?pipe=header(Content-Type,${content_type})`, { assert: { type: "json"} }),
+      import(`./module.json?pipe=header(Content-Type,${content_type})`, { with: { type: "json"} }),
       `Import of a JSON module with MIME type ${content_type} should fail`);
   }, `Try importing JSON module with MIME type ${content_type}`);
 }

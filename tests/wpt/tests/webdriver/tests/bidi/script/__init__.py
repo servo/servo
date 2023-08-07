@@ -68,7 +68,7 @@ PRIMITIVE_VALUES: list[tuple[str, dict]] = [
     ("null", {"type": "null"}),
     ("'foobar'", {"type": "string", "value": "foobar"}),
     ("'2'", {"type": "string", "value": "2"}),
-    ("Number.NaN", {"type": "number", "value": "NaN"}),
+    ("NaN", {"type": "number", "value": "NaN"}),
     ("-0", {"type": "number", "value": "-0"}),
     ("Infinity", {"type": "number", "value": "Infinity"}),
     ("-Infinity", {"type": "number", "value": "-Infinity"}),

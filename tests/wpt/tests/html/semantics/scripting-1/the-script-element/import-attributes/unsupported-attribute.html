@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Handling of unsupported attribute</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  setup({allow_uncaught_exception: true});
+
+  window.log = [];
+
+  window.addEventListener("error", ev => log.push(ev.error));
+
+  const test_load = async_test(
+      "Test that invalid module attribute leads to SyntaxError on window.");
+  window.addEventListener("load", test_load.step_func_done(ev => {
+    assert_equals(log.length, 1);
+    assert_equals(log[0].constructor, SyntaxError);
+  }));
+
+  function unreachable() { log.push("unexpected"); }
+</script>
+<script type="module" src="./unsupported-attribute.js" onerror="unreachable()"></script>

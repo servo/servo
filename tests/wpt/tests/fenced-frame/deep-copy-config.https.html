@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>Test deep copying FencedFrameConfig objects</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const key = token();
+
+  // Create a FencedFrameConfig from a FLEDGE auction, then deep copy it.
+  let old_config = await generateURNFromFledge(
+      "resources/embeddee.html", [key], [], true);
+  assert_true(old_config instanceof FencedFrameConfig);
+  let new_config = structuredClone(old_config);
+
+  const fencedframe = attachFencedFrame(new_config);
+  const response = await nextValueFromServer(key);
+  assert_equals(response, "PASS",
+      "The page should have loaded from the cloned config.");
+}, 'A cloned config with a URN will navigate.');
+
+promise_test(async(t) => {
+  const key = token();
+
+  // Create a FencedFrameConfig from a FLEDGE auction, then deep copy it.
+  let old_config = new FencedFrameConfig(generateURL(
+      "resources/embeddee.html", [key]));
+  assert_true(old_config instanceof FencedFrameConfig);
+  let new_config = structuredClone(old_config);
+
+  const fencedframe = attachFencedFrame(new_config);
+  const response = await nextValueFromServer(key);
+  assert_equals(response, "PASS",
+      "The page should have loaded from the cloned config.");
+}, 'A cloned config with a URL will navigate.');
+
+promise_test(async(t) => {
+  const key = token();
+  const fenced_url = generateURL("resources/embeddee.html", [key]);
+
+  // Create a fenced frame once the config comes in through postMessage.
+  window.addEventListener(
+    "message",
+    (event) => {
+      attachFencedFrame(event.data);
+    },
+    false,
+  );
+
+  // Create an iframe that creates a FencedFrameConfig
+  const frame = await attachIFrameContext(
+      {origin: get_host_info().HTTPS_REMOTE_ORIGIN});
+  await frame.execute(async (fenced_url) => {
+    const config = await generateURNFromFledge(fenced_url, [], [], true);
+    window.parent.postMessage(config, "*");
+  }, [fenced_url]);
+
+  const response = await nextValueFromServer(key);
+  assert_equals(response, "PASS",
+      "The page should have loaded from the postMessage'd config.");
+}, 'A config received through window.postMessage will navigate.');
+
+promise_test(async(t) => {
+  // Create a FencedFrameConfig from a FLEDGE auction.
+  let config = await generateURNFromFledge(
+      "resources/embeddee.html", [], [], true);
+  assert_true(config instanceof FencedFrameConfig);
+
+  assert_throws_dom("DataCloneError", () => {
+    history.pushState(config, "", location.href);
+  }, "The write should fail for a FencedFrameConfig.");
+}, 'A FencedFrameConfig cannot be written to storage.');
+
+</script>
+</body>
+</html>

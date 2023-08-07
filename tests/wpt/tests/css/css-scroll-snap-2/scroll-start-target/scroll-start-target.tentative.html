@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-target*</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start-target">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <style>
+    .spacer {
+      width: 1000px;
+      height: 1000px;
+    }
+
+    .scroller {
+      width: 300px;
+      height: 300px;
+      border: solid 1px black;
+      overflow: scroll;
+      margin: 0px;
+      position: absolute;
+    }
+
+    .box {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+    }
+
+    .top_left {
+      top: 0px;
+      left: 0px;
+      background-color: red;
+    }
+
+    .target_for_x_and_y {
+      scroll-start-target: auto auto;
+    }
+
+    .target_for_x {
+      scroll-start-target: none auto;
+    }
+
+    .center {
+      top: 200px;
+      left: 200px;
+      background-color: purple;
+    }
+
+    .bottom_right {
+      top: 400px;
+      left: 400px;
+      background-color: yellow;
+    }
+  </style>
+  <div class="scroller" id="scroller1">
+    <div class="spacer"></div>
+    <div class="top_left box" id="top_left_box1"></div>
+    <div class="center box target_for_x_and_y" id="centerbox"></div>
+    <div class="bottom_right box"></div>
+  </div>
+  <div class="scroller" id="scroller2">
+    <div class="spacer"></div>
+    <div class="top_left box" id="top_left_box2"></div>
+    <div class="center box target_for_x" id="centerbox2"></div>
+    <div class="bottom_right box"></div>
+  </div>
+  <script>
+    test((t) => {
+      let scroller = document.getElementById("scroller1");
+      let top_left_box = document.getElementById("top_left_box1");
+
+      const expected_scroll_top = top_left_box.getBoundingClientRect().height;
+      const expected_scroll_left = top_left_box.getBoundingClientRect().width;
+
+      assert_approx_equals(scroller.scrollTop, expected_scroll_top, 1,
+        "scroll-start-target sets initial vertical scroll position");
+      assert_approx_equals(scroller.scrollLeft, expected_scroll_left, 1,
+        "scroll-start-target sets initial horizontal scroll position");
+    });
+    test((t) => {
+      let scroller = document.getElementById("scroller2");
+      let top_left_box = document.getElementById("top_left_box2");
+
+      const expected_scroll_top = 0;
+      const expected_scroll_left = top_left_box.getBoundingClientRect().width;
+
+      assert_approx_equals(scroller.scrollTop, expected_scroll_top, 1,
+        "scroll-start-target sets initial vertical scroll position");
+      assert_approx_equals(scroller.scrollLeft, expected_scroll_left, 1,
+        "scroll-start-target sets initial horizontal scroll position");
+    });
+  </script>
+</body>

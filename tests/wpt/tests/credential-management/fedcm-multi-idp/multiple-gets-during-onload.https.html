@@ -3,11 +3,17 @@
 <link rel="help" href="https://fedidcg.github.io/FedCM">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 
 <body>
 
 <script type="module">
-import {set_fedcm_cookie, set_alt_fedcm_cookie, request_options_with_mediation_required, alt_request_options_with_mediation_required} from '../support/fedcm-helper.sub.js';
+import {set_fedcm_cookie,
+        set_alt_fedcm_cookie,
+        request_options_with_mediation_required,
+        alt_request_options_with_mediation_required,
+        fedcm_select_account_promise} from '../support/fedcm-helper.sub.js';
 
 let cookies_promise = Promise.all([set_fedcm_cookie(), set_alt_fedcm_cookie()]);
 
@@ -17,6 +23,7 @@ promise_test(async t => {
       const first_cred = navigator.credentials.get(request_options_with_mediation_required());
       const second_cred = navigator.credentials.get(alt_request_options_with_mediation_required());
       await cookies_promise;
+      await fedcm_select_account_promise(t, 0);
       await promise_rejects_dom(t, 'NetworkError', second_cred);
       const first = await first_cred;
       assert_equals(first.token, "token");

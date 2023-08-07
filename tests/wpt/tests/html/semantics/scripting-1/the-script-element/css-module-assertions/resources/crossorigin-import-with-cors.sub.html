@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>css-module-assertions-import-cross-domain-WithCORS</title>
+    <script src="../../module/crossorigin-common.js"></script>
+</head>
+<body>
+    <h1>css-module-assertions-import-cross-domain-WithCORS</h1>
+    <script type="module" crossorigin>
+        import styleSheet from "http://{{domains[www2]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module-assertions/resources/basic.css?pipe=header(Access-Control-Allow-Origin,*)" assert { type: "css" };
+        // Push an event to the log indicating that the script was executed.
+        document._log.push(`imported CSS: ${styleSheet.rules[0].cssText}`);
+    </script>
+</body>
+</html>
