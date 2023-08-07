@@ -6,6 +6,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="resources/helpers.js"></script>
 
 <button id=b0>b0</button>
 
@@ -20,8 +21,6 @@
 </div>
 
 <script>
-const escapeKey = '\uE00C';
-
 promise_test(async () => {
   p1.showPopover();
   await test_driver.click(b1);
@@ -31,12 +30,12 @@ promise_test(async () => {
   assert_true(p2.matches(':popover-open'), 'p2 should be open.');
   assert_true(p3.matches(':popover-open'), 'p3 should be open.');
 
-  await test_driver.send_keys(p3, escapeKey);
+  await sendCloseRequest();
   assert_true(p1.matches(':popover-open'), 'first escape: p1 should be open.');
   assert_false(p2.matches(':popover-open'), 'first escape: p2 should be closed.');
   assert_false(p3.matches(':popover-open'), 'first escape: p3 should be closed.');
 
-  await test_driver.send_keys(p1, escapeKey);
+  await sendCloseRequest();
   assert_false(p1.matches(':popover-open'), 'second escape: p1 should be closed.');
   assert_false(p2.matches(':popover-open'), 'second escape: p2 should be closed.');
   assert_false(p3.matches(':popover-open'), 'second escape: p3 should be closed.');

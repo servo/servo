@@ -37,7 +37,7 @@ t.step(function() {
   tableValuesR = [0, 0, 1, 1];
   tableValuesG = [2, 0, 0.5, 3];
   tableValuesB = [1, -1, 5, 0];
-  ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+  ctx.filter = new CanvasFilter({name: 'componentTransfer',
       funcR: {type: 'discrete', tableValues: tableValuesR},
       funcG: {type: 'discrete', tableValues: tableValuesG},
       funcB: {type: 'discrete', tableValues: tableValuesB},

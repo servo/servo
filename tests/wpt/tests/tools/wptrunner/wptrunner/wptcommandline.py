@@ -167,6 +167,9 @@ scheme host and port.""")
     test_selection_group.add_argument("--tag", action="append", dest="tags",
                                       help="Labels applied to tests to include in the run. "
                                            "Labels starting dir: are equivalent to top-level directories.")
+    test_selection_group.add_argument("--exclude-tag", action="append", dest="exclude_tags",
+                                      help="Labels applied to tests to exclude in the run. Takes precedence over `--tag`. "
+                                           "Labels starting dir: are equivalent to top-level directories.")
     test_selection_group.add_argument("--default-exclude", action="store_true",
                                       default=False,
                                       help="Only run the tests explicitly given in arguments. "
@@ -661,6 +664,11 @@ def check_args(kwargs):
     if kwargs["preload_browser"] is None:
         # Default to preloading a gecko instance if we're only running a single process
         kwargs["preload_browser"] = kwargs["processes"] == 1
+
+    if kwargs["tags"] and kwargs["exclude_tags"]:
+        contradictory = set(kwargs["tags"]) & set(kwargs["exclude_tags"])
+        if contradictory:
+            print("contradictory tags found; exclusion will take precedence:", contradictory)
 
     return kwargs
 

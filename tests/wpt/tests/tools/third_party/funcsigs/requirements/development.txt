@@ -1,5 +1,0 @@
-coverage
-coveralls
-flake8
-sphinx
-unittest2

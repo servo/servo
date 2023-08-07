@@ -8,12 +8,12 @@
 
 <!--
   Tests in this file are around the interaction of the Esc key specifically, not
-  the general concept of close signals. Ideally, all other tests would work
-  as-is if you changed the implementation of sendCloseSignal(). These tests
-  assume that Esc is the close signal for the platform being tested.
+  the general concept of close requests. Ideally, all other tests would work
+  as-is if you changed the implementation of sendCloseRequest(). These tests
+  assume that Esc is the close request for the platform being tested.
 -->
 
-<div id='d' style='height: 100px; width: 100px'></div>
+<body>
 <script>
 promise_test(async t => {
   let events = [];
@@ -33,7 +33,7 @@ promise_test(async t => {
   await sendEscKey();
 
   assert_array_equals(events, []);
-}, "A keydown listener can prevent the Esc keypress from being interpreted as a close signal");
+}, "A keydown listener can prevent the Esc keypress from being interpreted as a close request");
 
 promise_test(async t => {
   let events = [];
@@ -44,7 +44,7 @@ promise_test(async t => {
   await sendEscKey();
 
   assert_array_equals(events, []);
-}, "A keyup listener can prevent the Esc keypress from being interpreted as a close signal");
+}, "A keyup listener can prevent the Esc keypress from being interpreted as a close request");
 
 promise_test(async t => {
   let events = [];
@@ -55,7 +55,7 @@ promise_test(async t => {
   await sendEscKey();
 
   assert_array_equals(events, []);
-}, "A keypress listener can prevent the Esc keypress from being interpreted as a close signal");
+}, "A keypress listener can prevent the Esc keypress from being interpreted as a close request");
 
 test(t => {
   let events = [];

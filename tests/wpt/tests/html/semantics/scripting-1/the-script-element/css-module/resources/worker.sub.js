@@ -1,2 +1,2 @@
-import "./record-fetch.py?key={{GET[key]}}&action=incCount" assert { type: "css" };
+import "./record-fetch.py?key={{GET[key]}}&action=incCount" with { type: "css" };
 postMessage("Unexpectedly loaded");

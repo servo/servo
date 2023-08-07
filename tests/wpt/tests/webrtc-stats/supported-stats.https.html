@@ -147,9 +147,9 @@ promise_test(async t => {
   }
 
   const remaining = JSON.parse(JSON.stringify(all));
-    for (const type in remaining) {
-      remaining[type] = new Set(remaining[type]);
-    }
+  for (const type in remaining) {
+    remaining[type] = new Set(remaining[type]);
+  }
 
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -175,7 +175,11 @@ promise_test(async t => {
   await pc2.setLocalDescription();
   await waitForIceGatheringState(pc2, ['complete']);
   await pc1.setRemoteDescription(pc2.localDescription);
-
+  // Await the DTLS handshake.
+  await Promise.all([
+    listenToConnected(pc1),
+    listenToConnected(pc2),
+  ]);
   const stats = await getAllStats(t, pc1);
 
   // The focus of this test is not API correctness, but rather to provide an

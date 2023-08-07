@@ -8,8 +8,8 @@
 <body>
 <script type="module">
   // "name" parameter is necessary for bypassing the module map.
-  import referrerSame from "./resources/referrer-checker.py?name=sameNoReferrerPolicy" assert { type: "css"};
-  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteNoReferrerPolicy" assert { type: "css"};
+  import referrerSame from "./resources/referrer-checker.py?name=sameNoReferrerPolicy" with { type: "css"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteNoReferrerPolicy" with { type: "css"};
 
   const origin = (new URL(location.href)).origin + "/";
   const originUrl = location.href;
@@ -27,8 +27,8 @@
   }, "Importing a remote-origin top-level script with the default referrer policy.");
 </script>
 <script type="module" referrerpolicy="origin">
-  import referrerSame from "./resources/referrer-checker.py?name=sameReferrerPolicyOrigin" assert { type: "css"};
-  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteReferrerPolicyOrigin" assert { type: "css"};
+  import referrerSame from "./resources/referrer-checker.py?name=sameReferrerPolicyOrigin" with { type: "css"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteReferrerPolicyOrigin" with { type: "css"};
 
   const origin = (new URL(location.href)).origin + "/";
 
@@ -46,8 +46,8 @@
 
 </script>
 <script type="module" referrerpolicy="no-referrer">
-  import referrerSame from "./resources/referrer-checker.py?name=sameReferrerPolicyNoReferrer" assert { type: "css"};
-  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteReferrerPolicyNoReferrer" assert { type: "css"};
+  import referrerSame from "./resources/referrer-checker.py?name=sameReferrerPolicyNoReferrer" with { type: "css"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteReferrerPolicyNoReferrer" with { type: "css"};
 
   test(t => {
     assert_equals(
@@ -63,8 +63,8 @@
 
 </script>
 <script type="module" referrerpolicy="unsafe-url">
-  import referrerSame from "./resources/referrer-checker.py?name=sameNoReferrerPolicyUnsafeUrl" assert { type: "css"};
-  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteNoReferrerPolicyUnsafeUrl" assert { type: "css"};
+  import referrerSame from "./resources/referrer-checker.py?name=sameNoReferrerPolicyUnsafeUrl" with { type: "css"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteNoReferrerPolicyUnsafeUrl" with { type: "css"};
 
   const originUrl = location.href;
 

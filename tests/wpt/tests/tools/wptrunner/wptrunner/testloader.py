@@ -185,11 +185,17 @@ class TestFilter:
 
 
 class TagFilter:
-    def __init__(self, tags):
-        self.tags = set(tags)
+    def __init__(self, include_tags, exclude_tags):
+        self.include_tags = set(include_tags) if include_tags else None
+        self.exclude_tags = set(exclude_tags) if exclude_tags else None
 
     def __call__(self, test):
-        return test.tags & self.tags
+        does_match = True
+        if self.include_tags:
+            does_match &= bool(test.tags & self.include_tags)
+        if self.exclude_tags:
+            does_match &= not (test.tags & self.exclude_tags)
+        return does_match
 
 
 class ManifestLoader:

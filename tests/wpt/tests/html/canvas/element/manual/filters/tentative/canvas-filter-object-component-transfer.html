@@ -15,7 +15,7 @@
   ctx.fillStyle = grad;
 
   const identityFilter = new CanvasFilter({
-    filter: "componentTransfer",
+    name: "componentTransfer",
     funcR: {type: "identity"},
     funcG: {type: "identity"},
     funcB: {type: "identity"},
@@ -25,7 +25,7 @@
   ctx.fillRect(10, 10, 480, 10);
 
   const tableFilter = new CanvasFilter({
-    filter: "componentTransfer",
+    name: "componentTransfer",
     funcR: {type: "table", tableValues: [0, 2, 0.5, 1]},
     funcG: {type: "table", tableValues: [1, -1, 5, 0]},
     funcB: {type: "table", tableValues: [0, 1, 1, 0]},
@@ -34,7 +34,7 @@
   ctx.fillRect(10, 30, 480, 10);
 
   const discreteFilter = new CanvasFilter({
-    filter: "componentTransfer",
+    name: "componentTransfer",
     funcR: {type: "discrete", tableValues: [0, 2, 0.5, 1]},
     funcG: {type: "discrete", tableValues: [1, -1, 5, 0]},
     funcB: {type: "discrete", tableValues: [0, 1, 1, 0]},
@@ -43,7 +43,7 @@
   ctx.fillRect(10, 50, 480, 10);
 
   const linearFilter = new CanvasFilter({
-    filter: "componentTransfer",
+    name: "componentTransfer",
     funcR: {type: "linear", slope: 0.5, intercept: 0.25},
     funcG: {type: "linear", slope: 1.5, intercept: 0},
     funcB: {type: "linear", slope: -0.5, intercept: 0.5},
@@ -52,7 +52,7 @@
   ctx.fillRect(10, 70, 480, 10);
 
   const gammaFilter = new CanvasFilter({
-    filter: "componentTransfer",
+    name: "componentTransfer",
     funcR: {type: "gamma", amplitude: 2, exponent: 5, offset: -0.5},
     funcG: {type: "gamma", amplitude: 0.9, exponent: 3, offset: 0.3},
     funcB: {type: "gamma", amplitude: 1.1, exponent: 1, offset: 0.1},

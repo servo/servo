@@ -121,7 +121,7 @@ def test_add_domain_cookie(session, url, server_config):
         cookie["domain"] == ".%s" % server_config["browser_host"]
 
 
-def test_add_cookie_for_ip(session, url, server_config, configuration):
+def test_add_cookie_for_ip(session, server_config):
     new_cookie = {
         "name": "hello",
         "value": "world",
@@ -131,7 +131,9 @@ def test_add_cookie_for_ip(session, url, server_config, configuration):
         "secure": False
     }
 
-    session.url = "http://127.0.0.1:%s/common/blank.html" % (server_config["ports"]["http"][0])
+    port = server_config["ports"]["http"][0]
+    session.url = f"http://127.0.0.1:{port}/common/blank.html"
+
     clear_all_cookies(session)
 
     result = add_cookie(session, new_cookie)

@@ -101,7 +101,7 @@
     test(function() {
       const editContext = new EditContext();
       assert_not_equals(editContext, null);
-      editContext.text = "foo";
+      editContext.updateText(0, 3, "foo");
       assert_equals(editContext.text, "foo");
       const test = document.getElementById('test');
       // Update the layout of the |EditContext|
@@ -115,12 +115,15 @@
       editContext.updateSelection(0, 0);
       assert_equals(editContext.selectionStart, 0);
       assert_equals(editContext.selectionEnd, 0);
-      editContext.selectionStart = 1;
-      assert_equals(editContext.selectionStart, 0); // selectionEnd is still 0
-      editContext.selectionEnd = 1;
+      assert_throws_dom("IndexSizeError", function() { editContext.updateSelection(1, 0); });
+      assert_equals(editContext.selectionStart, 0);
+      assert_equals(editContext.selectionEnd, 0);
+      editContext.updateSelection(0, 1);
+      assert_equals(editContext.selectionStart, 0);
       assert_equals(editContext.selectionEnd, 1);
-      editContext.selectionStart = 1;
+      editContext.updateSelection(1, 1);
       assert_equals(editContext.selectionStart, 1);
+      assert_equals(editContext.selectionEnd, 1);
       editContext.updateControlBounds(viewRect);
       editContext.updateSelectionBounds(caretRect);
     }, 'Testing EditContext update text, selection and layout');
@@ -151,7 +154,7 @@
     test(function() {
       const editContext = new EditContext();
       assert_not_equals(editContext, null);
-      editContext.text = "foo";
+      editContext.updateText(0, 3, "foo");
       assert_equals(editContext.text, "foo");
       assert_throws_dom("IndexSizeError", function() { editContext.updateSelection(10, 0); });
       assert_equals(editContext.selectionStart, 0);

@@ -111,12 +111,14 @@ promise_test(async t => {
   t.add_cleanup(function() {
     topLeft.style.width = "";
     topRight.style.left = "400px";
+    topRight.style.scrollSnapStop = "";
   });
 
   // Make the snap area cover the snapport.
   topLeft.style.width = "800px";
   // Make the next snap offset closer than the original intended offset.
   topRight.style.left = "20px";
+  topRight.style.scrollSnapStop = "always";
   scroller.scrollTo(0, 0);
   assert_equals(scroller.scrollLeft, 0, "verify test pre-condition");
   await keyPress(scroller, "ArrowRight");
@@ -138,9 +140,18 @@ promise_test(async t => {
 promise_test(async t => {
   t.add_cleanup(function() {
     scroller.style.scrollSnapType = "both mandatory";
+    scroller.style.width = "";
+    topLeft.style.width = "";
   });
 
   scroller.style.scrollSnapType = "both proximity";
+
+  // This test case works only if the scroll amount of pressing "ArrowRight" is
+  // greater than the scroll snap proximity value of the scroll container.
+  // "100px" width of the scroll container works on major browsers.
+  scroller.style.width = "100px";
+  topLeft.style.width = "80px";
+
   scroller.scrollTo(400, 0);
   assert_equals(scroller.scrollLeft, 400, "verify test pre-condition");
   await keyPress(scroller, "ArrowRight");

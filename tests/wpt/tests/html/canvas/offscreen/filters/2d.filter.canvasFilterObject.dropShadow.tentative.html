@@ -20,88 +20,88 @@
   ctx.fillStyle = 'crimson';
 
   // Parameter defaults.
-  ctx.filter = new CanvasFilter({filter: 'dropShadow'});
+  ctx.filter = new CanvasFilter({name: 'dropShadow'});
   ctx.fillRect(10, 10, 80, 80);
 
   // All parameters specified.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
      floodColor: 'purple', floodOpacity: 0.7});
   ctx.fillRect(110, 10, 80, 80);
 
   // Named color.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
      floodColor: 'purple'});
   ctx.fillRect(10, 110, 80, 80);
 
   // System color.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
      floodColor: 'LinkText'});
   ctx.fillRect(110, 110, 80, 80);
 
   // Numerical color.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
      floodColor: 'rgba(20, 50, 130, 1)'});
   ctx.fillRect(210, 110, 80, 80);
 
   // Transparent floodColor.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
      floodColor: 'rgba(20, 50, 130, 0.7)'});
   ctx.fillRect(310, 110, 80, 80);
 
   // Transparent floodColor and floodOpacity.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
      floodColor: 'rgba(20, 50, 130, 0.7)', floodOpacity: 0.7});
   ctx.fillRect(410, 110, 80, 80);
 
   // No blur.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 0,
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 0,
      floodColor: 'purple'});
   ctx.fillRect(10, 210, 80, 80);
 
   // Single float blur.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
      floodColor: 'purple'});
   ctx.fillRect(110, 210, 80, 80);
 
   // Single negative float blur.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: -5,
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: -5,
      floodColor: 'purple'});
   ctx.fillRect(210, 210, 80, 80);
 
   // Two floats (X&Y) blur.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: [3, 5],
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: [3, 5],
      floodColor: 'purple'});
   ctx.fillRect(310, 210, 80, 80);
 
   // Two negative floats (X&Y) blur.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: [-3, -5],
+    {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: [-3, -5],
      floodColor: 'purple'});
   ctx.fillRect(410, 210, 80, 80);
 
   // Degenerate parameter values.
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: [-5], dy: [], stdDeviation: null,
+    {name: 'dropShadow', dx: [-5], dy: [], stdDeviation: null,
      floodColor: 'purple', floodOpacity: [2]});
   ctx.fillRect(10, 310, 80, 80);
 
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: null, dy: '5', stdDeviation: [[-5], ['3']],
+    {name: 'dropShadow', dx: null, dy: '5', stdDeviation: [[-5], ['3']],
      floodColor: 'purple', floodOpacity: '0.8'});
   ctx.fillRect(110, 310, 80, 80);
 
   ctx.filter = new CanvasFilter(
-    {filter: 'dropShadow', dx: true, dy: ['10'], stdDeviation: false,
+    {name: 'dropShadow', dx: true, dy: ['10'], stdDeviation: false,
      floodColor: 'purple', floodOpacity: ['0.4']});
   ctx.fillRect(210, 310, 80, 80);
 

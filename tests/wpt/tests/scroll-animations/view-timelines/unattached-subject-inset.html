@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test construction of a view timeline with a detached subject</title>
+</head>
+<style type="text/css">
+  #container {
+    overflow:  hidden;
+    height:  200px;
+    width:  200px;
+  }
+
+  #block {
+    background:  green;
+    height:  100px;
+    width:  100px;
+  }
+
+  .filler {
+    height:  200px;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<body>
+  <div id="container">
+    <div class="filler"></div>
+  </div>
+</body>
+<script>
+  promise_test(async t => {
+    const element = document.createElement('div');
+    element.id = 'block';
+    const timeline = new ViewTimeline({
+      subject: element,
+      inset: new CSSMathNegate(CSS.px(144))
+    });
+    assert_equals(timeline.source, null, 'Null source while detached');
+    await waitForNextFrame();
+    const scroller = document.getElementById('container');
+    scroller.appendChild(element);
+    assert_equals(timeline.source, scroller, 'Source resolved once attached');
+    await waitForNextFrame();
+
+    // Start offset = cover 0%
+    //              = target offset - viewport height + end side inset
+    //              = 200 - 200 + (-144) = -144
+    assert_equals(timeline.startOffset.toString(), CSS.px(-144).toString());
+    // End offset = cover 100%
+    //            = target offset + target height - start side inset
+    //            = 200 + 100 - (-144) = 444
+    assert_equals(timeline.endOffset.toString(), CSS.px(444).toString());
+  }, 'Creating a view timeline with a subject that is not attached to the ' +
+     'document works as expected');
+</script>
+</html>

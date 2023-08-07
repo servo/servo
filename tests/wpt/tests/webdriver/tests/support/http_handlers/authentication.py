@@ -1,12 +1,12 @@
 from urllib.parse import urlencode
 
 
-def basic_authentication(url, protocol="http"):
+def basic_authentication(url, **kwargs):
     query = {}
 
     return url("/webdriver/tests/support/http_handlers/authentication.py",
                query=urlencode(query),
-               protocol=protocol)
+               **kwargs)
 
 
 def main(request, response):

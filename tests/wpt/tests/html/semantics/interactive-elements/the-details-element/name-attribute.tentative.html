@@ -228,4 +228,102 @@ promise_test(async t => {
   assert_element_states(elements, [1, 1, 1, 1, 1, 1], "after setting all elements open");
 }, "empty and missing name attributes do not create groups");
 
+const connected_scenarios = {
+  "connected": {
+    "create": data => container,
+    "cleanup": data => {},
+  },
+  "disconnected": {
+    "create": data => document.createElement("div"),
+    "cleanup": data => {},
+  },
+  "shadow": {
+    "create": data => {
+      let e = document.createElement("div");
+      container.appendChild(e);
+      data.wrapper = e;
+      let shadowRoot = e.attachShadow({ mode: "open" });
+      let d = document.createElement("div");
+      shadowRoot.appendChild(d);
+      return d;
+    },
+    "cleanup": data => { data.wrapper.remove(); },
+  },
+  "shadow-in-disconnected": {
+    "create": data => {
+      let e = document.createElement("div");
+      let shadowRoot = e.attachShadow({ mode: "open" });
+      let d = document.createElement("div");
+      shadowRoot.appendChild(d);
+      return d;
+    },
+    "cleanup": data => {},
+  },
+  "template-in-disconnected": {
+    "create": data => {
+      let e = document.createElement("div");
+      e.innerHTML = `
+        <template>
+          <div></div>
+        </template>
+      `;
+      return e.firstElementChild.content.firstElementChild;
+    },
+    "cleanup": data => {},
+  },
+  "connected-in-xhr-response": {
+    "create": data => new Promise((resolve, reject) => {
+      let xhr = new XMLHttpRequest();
+      xhr.open("GET", "support/empty-html-document.html");
+      xhr.responseType = "document";
+      xhr.send();
+      xhr.addEventListener("load", event => { resolve(xhr.response.body); });
+      let reject_with_type =
+        event => { reject(`${event.type} event received`); }
+      xhr.addEventListener("error", reject_with_type);
+      xhr.addEventListener("abort", reject_with_type);
+    }),
+    "cleanup": data => {},
+  },
+  "connected-in-implementation-create-document": {
+    "create": data => {
+      let doc = document.implementation.createHTMLDocument("impl-created");
+      return doc.body;
+    },
+    "cleanup": data => {},
+  },
+  "connected-in-template": {
+    "create": data => {
+      container.innerHTML = `
+        <template>
+          <div></div>
+        </template>
+      `;
+      return container.firstElementChild.content.firstElementChild;
+    },
+    "cleanup": data => { container.innerHTML = ""; },
+  },
+};
+
+for (const [scenario, scenario_callbacks] of Object.entries(connected_scenarios)) {
+  promise_test(async t => {
+    let data = {};
+    let container = await scenario_callbacks.create(data);
+    t.add_cleanup(async () => await scenario_callbacks.cleanup(data));
+    assert_true(container instanceof HTMLDivElement ||
+                  container instanceof HTMLBodyElement,
+                "error in test setup");
+
+    container.innerHTML = `
+      <details name="scenariotest" open></details>
+      <details name="scenariotest"></details>
+    `;
+
+    let elements = Array.from(container.querySelectorAll("details[name='scenariotest']"));
+    assert_element_states(elements, [1, 0], "state before toggle");
+    elements[1].open = true;
+    assert_element_states(elements, [0, 1], "state after toggle enforces exclusivity");
+  }, `exclusivity enforcement with attachment scenario ${scenario}`);
+}
+
 </script>

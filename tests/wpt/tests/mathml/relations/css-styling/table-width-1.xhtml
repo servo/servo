@@ -1,0 +1,66 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Check that the content box is large enough</title>
+    <link rel="match" href="table-width-1-ref.xhtml"/>
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=363240"/>
+    <style type="text/css">
+      html { background-color: grey; }
+      td { border: 1px solid white;
+           padding-top: 0;
+           padding-bottom: 0;
+           padding-right: 1px;
+           padding-left: 1px;
+           background-color: black;
+           color: black; }
+    </style>
+  </head>
+<body>
+  <table>
+    <td>
+      <math xmlns="http://www.w3.org/1998/Math/MathML">
+        <mrow>
+          <mn>60</mn>
+          <mo>&#x2062;</mo>
+          <msqrt>
+            <mn>2</mn>
+            <mo>+</mo>
+            <mn>3</mn>
+            <mo>-</mo>
+            <mo>5</mo>
+          </msqrt>
+        </mrow>
+      </math>
+    </td>
+  </table>
+  <table>
+    <td>
+      <math xmlns="http://www.w3.org/1998/Math/MathML">
+        <mroot>
+          <mfrac>
+            <mn>8</mn>
+            <mn>90</mn>
+          </mfrac>
+          <mn>61</mn>
+        </mroot>
+      </math>
+    </td>
+  </table>
+  <table>
+    <td>
+      <math xmlns="http://www.w3.org/1998/Math/MathML">
+        <mrow>
+          <mo>|</mo>
+          <mo>{</mo>
+          <mtable>
+            <mtr><mtd><mn>0</mn></mtd></mtr>
+            <mtr><mtd><mn>5</mn></mtd></mtr>
+            <mtr><mtd><mn>9</mn></mtd></mtr>
+          </mtable>
+          <mo>}</mo>
+          <mo>|</mo>
+        </mrow>
+      </math>
+    </td>
+  </table>
+</body>
+</html>

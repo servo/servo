@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<title>Details and summary and display property (subgrid)</title>
+<link rel="match" href="details-display-type-001-ref.html">
+<link rel="help" href="https://github.com/dbaron/details-styling">
+<link rel="help" href="https://crbug.com/1469418">
+<style>
+
+.container {
+  display: grid;
+  grid: 30px 75px 45px / 80px 125px 90px;
+}
+
+.container::before {
+  display: block;
+  content: "before";
+  background: aqua;
+  grid-area: 1 / 3;
+}
+
+.container::after {
+  display: block;
+  content: "after";
+  background: yellow;
+  grid-area: 3 / 1;
+}
+
+details {
+  display: grid;
+  grid-template: subgrid / subgrid;
+  grid-area: 2 / 2 / 4 / 4;
+}
+
+summary {
+  display: block;
+  background: fuchsia;
+  grid-area: 1 / 1;
+}
+
+.contents {
+  background: silver;
+  grid-area: 2 / 2;
+}
+
+</style>
+
+<div class="container">
+  <details open>
+    <summary>summary</summary>
+    <div class="contents">contents</div>
+  </details>
+</div>

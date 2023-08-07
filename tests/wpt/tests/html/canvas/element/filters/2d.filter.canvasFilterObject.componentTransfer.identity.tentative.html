@@ -19,7 +19,7 @@
 var t = async_test("Test pixels on CanvasFilter() componentTransfer with identity type");
 _addTest(function(canvas, ctx) {
 
-  ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+  ctx.filter = new CanvasFilter({name: 'componentTransfer',
       funcR: {type: 'identity'},
       funcG: {type: 'identity'},
       funcB: {type: 'identity'},

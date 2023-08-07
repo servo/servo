@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <link rel="match" href="pseudo-first-margin-print-ref.html"/>
+  <link rel="help" href="https://www.w3.org/TR/css-page-3/#first-pseudo"/>
+  <style>
+@page :first {
+    margin: 1cm;
+}
+@page {
+    margin: 0;
+}
+div {
+    width: 1cm;
+    height: 1cm;
+    border: 2px solid red;
+}
+  </style>
+  <body>
+    <div style="page: a; border-color: lightblue"></div>
+    <div style="page: b; border-color: pink"></div>
+  </body>
+</html>

@@ -1,6 +1,0 @@
-[run]
-source=funcsigs
-omit=funcsigs/odict*
-
-[report]
-include=funcsigs*

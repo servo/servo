@@ -3,11 +3,15 @@
 <link rel="help" href="https://fedidcg.github.io/FedCM">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 
 <body>
 
 <script type="module">
-import {set_fedcm_cookie, request_options_with_mediation_required} from '../support/fedcm-helper.sub.js';
+import {set_fedcm_cookie,
+        request_options_with_mediation_required,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
 
 const window_loaded = new Promise(resolve => {
   window.addEventListener('load', () => {
@@ -18,7 +22,7 @@ const window_loaded = new Promise(resolve => {
 promise_test(async t => {
   await set_fedcm_cookie();
   await window_loaded;
-  const cred = await navigator.credentials.get(request_options_with_mediation_required());
+  const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
   assert_equals(cred.token, "token");
 }, "Single `get` call after onload is allowed.");
 

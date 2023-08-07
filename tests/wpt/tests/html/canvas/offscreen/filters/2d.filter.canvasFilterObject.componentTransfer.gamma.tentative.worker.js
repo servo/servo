@@ -28,7 +28,7 @@ t.step(function() {
   const amplitudes = [2, 1.1, 0.5];
   const exponents = [5, 3, 1];
   const offsets = [0.25, 0, 0.5];
-  ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+  ctx.filter = new CanvasFilter({name: 'componentTransfer',
       funcR: {type: 'gamma', amplitude: amplitudes[0], exponent: exponents[0], offset: offsets[0]},
       funcG: {type: 'gamma', amplitude: amplitudes[1], exponent: exponents[1], offset: offsets[1]},
       funcB: {type: 'gamma', amplitude: amplitudes[2], exponent: exponents[2], offset: offsets[2]},
