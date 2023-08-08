@@ -151,47 +151,60 @@ impl App {
 
         let ev_waker = events_loop.create_event_loop_waker();
         events_loop.run_forever(move |e, w, control_flow| {
-            if let winit::event::Event::NewEvents(winit::event::StartCause::Init) = e {
-                let surfman = window.webrender_surfman();
+            match e {
+                winit::event::Event::NewEvents(winit::event::StartCause::Init) => {
+                    let surfman = window.webrender_surfman();
 
-                let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && ! opts::get().headless {
-                    let window = window.clone();
-                    // This should be safe because run_forever does, in fact,
-                    // run forever. The event loop window target doesn't get
-                    // moved, and does outlast this closure, and we won't
-                    // ever try to make use of it once shutdown begins and
-                    // it stops being valid.
-                    let w = unsafe {
-                        std::mem::transmute::<
-                            &EventLoopWindowTarget<WakerEvent>,
-                            &'static EventLoopWindowTarget<WakerEvent>
-                        >(w.unwrap())
+                    let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && ! opts::get().headless {
+                        let window = window.clone();
+                        // This should be safe because run_forever does, in fact,
+                        // run forever. The event loop window target doesn't get
+                        // moved, and does outlast this closure, and we won't
+                        // ever try to make use of it once shutdown begins and
+                        // it stops being valid.
+                        let w = unsafe {
+                            std::mem::transmute::<
+                                &EventLoopWindowTarget<WakerEvent>,
+                                &'static EventLoopWindowTarget<WakerEvent>
+                            >(w.unwrap())
+                        };
+                        let factory = Box::new(move || Ok(window.new_glwindow(w)));
+                        Some(GlWindowDiscovery::new(
+                            surfman.connection(),
+                            surfman.adapter(),
+                            surfman.context_attributes(),
+                            factory,
+                        ))
+                    } else {
+                        None
                     };
-                    let factory = Box::new(move || Ok(window.new_glwindow(w)));
-                    Some(GlWindowDiscovery::new(
-                        surfman.connection(),
-                        surfman.adapter(),
-                        surfman.context_attributes(),
-                        factory,
-                    ))
-                } else {
-                    None
-                };
 
-                let window = window.clone();
-                // Implements embedder methods, used by libservo and constellation.
-                let embedder = Box::new(EmbedderCallbacks::new(
-                    ev_waker.clone(),
-                    xr_discovery,
-                ));
+                    let window = window.clone();
+                    // Implements embedder methods, used by libservo and constellation.
+                    let embedder = Box::new(EmbedderCallbacks::new(
+                        ev_waker.clone(),
+                        xr_discovery,
+                    ));
 
-                let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
-                let mut servo = servo_data.servo;
-                servo.handle_events(vec![EmbedderEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
-                servo.setup_logging();
+                    let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
+                    let mut servo = servo_data.servo;
+                    servo.handle_events(vec![EmbedderEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
+                    servo.setup_logging();
 
-                app.windows.insert(window.id(), window.clone());
-                app.servo = Some(servo);
+                    app.windows.insert(window.id(), window.clone());
+                    app.servo = Some(servo);
+                }
+
+                // TODO does windows still need this workaround?
+                // https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs#L203
+                // winit::event::Event::RedrawEventsCleared => todo!(),
+                winit::event::Event::RedrawRequested(_) => {
+                    if let Some(mut minibrowser) = app.minibrowser() {
+                        minibrowser.update(window.winit_window().unwrap());
+                    }
+                }
+
+                _ => {}
             }
 
             // If self.servo is None here, it means that we're in the process of shutting down,
@@ -201,25 +214,21 @@ impl App {
             }
 
             // Handle the event
+            let mut consumed = false;
             if let Some(mut minibrowser) = app.minibrowser() {
                 if let winit::event::Event::WindowEvent { ref event, .. } = e {
-                    if match event {
-                        winit::event::WindowEvent::CursorMoved { position, .. }
-                            => position.y < minibrowser.toolbar_height.get().into(),
-                        _ => true,
-                    } {
-                        let response = minibrowser.context.on_event(&event);
-                        if response.repaint {
-                            minibrowser.update(window.winit_window().unwrap());
-                        }
-
-                        // TODO how do we handle the tab key? (see doc for consumed)
-                        if !response.consumed {
-                            app.queue_embedder_events_for_winit_event(e);
-                        }
+                    let response = minibrowser.context.on_event(&event);
+                    if response.repaint {
+                        // Request a redraw event that will in turn trigger a minibrowser update.
+                        // This allows us to coalesce minibrowser updates across multiple events.
+                        window.winit_window().unwrap().request_redraw();
                     }
+
+                    // TODO how do we handle the tab key? (see doc for consumed)
+                    consumed = response.consumed;
                 }
-            } else {
+            }
+            if !consumed {
                 app.queue_embedder_events_for_winit_event(e);
             }
 
