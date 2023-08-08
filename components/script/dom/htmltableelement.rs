@@ -188,16 +188,17 @@ impl HTMLTableElementMethods for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
-    fn SetCaption(&self, new_caption: Option<&HTMLTableCaptionElement>) {
+    fn SetCaption(&self, new_caption: Option<&HTMLTableCaptionElement>) -> Fallible<()> {
         if let Some(ref caption) = self.GetCaption() {
             caption.upcast::<Node>().remove_self();
         }
 
         if let Some(caption) = new_caption {
             let node = self.upcast::<Node>();
-            node.InsertBefore(caption.upcast(), node.GetFirstChild().as_deref())
-                .expect("Insertion failed");
+            node.InsertBefore(caption.upcast(), node.GetFirstChild().as_deref())?;
         }
+
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createcaption
@@ -211,7 +212,8 @@ impl HTMLTableElementMethods for HTMLTableElement {
                     &document_from_node(self),
                     None,
                 );
-                self.SetCaption(Some(&caption));
+                self.SetCaption(Some(&caption))
+                    .expect("Generated caption is invalid");
                 caption
             },
         }
