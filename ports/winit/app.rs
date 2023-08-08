@@ -10,7 +10,6 @@ use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
 use egui::TopBottomPanel;
-use egui_winit::EventResponse;
 use gleam::gl;
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
@@ -202,23 +201,26 @@ impl App {
             }
 
             // Handle the event
-            let response = match e {
-                winit::event::Event::WindowEvent { ref event, .. } => {
-                    if let Some(mut minibrowser) = app.minibrowser() {
-                        minibrowser.context.on_event(&event)
-                    } else {
-                        EventResponse { consumed: false, repaint: false }
+            if let Some(mut minibrowser) = app.minibrowser() {
+                if let winit::event::Event::WindowEvent { ref event, .. } = e {
+                    if match event {
+                        winit::event::WindowEvent::CursorMoved { position, .. }
+                            => position.y < minibrowser.toolbar_height.get().into(),
+                        _ => true,
+                    } {
+                        let response = minibrowser.context.on_event(&event);
+                        if response.repaint {
+                            minibrowser.update(window.winit_window().unwrap());
+                        }
+
+                        // TODO how do we handle the tab key? (see doc for consumed)
+                        if !response.consumed {
+                            app.queue_embedder_events_for_winit_event(e);
+                        }
                     }
                 }
-                _ => EventResponse { consumed: false, repaint: false },
-            };
-
-            // TODO how do we handle the tab key? (see doc for consumed)
-            if !response.consumed {
+            } else {
                 app.queue_embedder_events_for_winit_event(e);
-            }
-            if response.repaint {
-                app.minibrowser().unwrap().update(window.winit_window().unwrap());
             }
 
             let animating = app.is_animating();
