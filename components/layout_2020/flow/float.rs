@@ -160,6 +160,12 @@ impl<'a> PlacementAmongFloats<'a> {
         return (max_inline_start, min_inline_end);
     }
 
+    /// Find the total inline size provided by the current set of bands under consideration.
+    fn calculate_viable_inline_size(&self) -> Length {
+        let (inline_start, inline_end) = self.calculate_inline_start_and_end();
+        inline_end - inline_start
+    }
+
     fn try_place_once(&mut self) -> Option<Rect<Length>> {
         assert!(!self.current_bands.is_empty());
         self.accumulate_enough_bands_for_block_size();
@@ -206,6 +212,56 @@ impl<'a> PlacementAmongFloats<'a> {
                 block: Length::new(f32::INFINITY),
             },
         }
+    }
+
+    /// After placing an object with `height: auto` (and using the minimum inline and
+    /// block size as the object size) and then laying it out, try to fit the object into
+    /// the current set of bands, given block size after layout and the available inline
+    /// space from the original placement. This will return true if the object fits at the
+    /// original placement location or false if the placement and layout must be run again
+    /// (with this [PlacementAmongFloats]).
+    pub(crate) fn try_to_expand_for_auto_block_size(
+        &mut self,
+        block_size_after_layout: Length,
+        size_from_placement: &Vec2<Length>,
+    ) -> bool {
+        debug_assert_eq!(size_from_placement.block, self.current_bands_height());
+        debug_assert_eq!(
+            size_from_placement.inline,
+            self.calculate_viable_inline_size()
+        );
+
+        // If the object after layout fits into the originally calculated placement, then
+        // it fits without any more work.
+        if block_size_after_layout <= size_from_placement.block {
+            return true;
+        }
+
+        // Keep searching until we have found an area with enough height
+        // to contain the block after layout.
+        let old_num_bands = self.current_bands.len();
+        assert!(old_num_bands > 0);
+        while self.current_bands_height() < block_size_after_layout {
+            self.add_one_band();
+
+            // If the new inline size is narrower, we must stop and run layout again.
+            // Normally, a narrower block size means a bigger height, but in some
+            // circumstances, such as when aspect ratio is used a narrower inline size
+            // can counter-interuitively lead to a smaller block size after layout!
+            let available_inline_size = self.calculate_viable_inline_size();
+            if available_inline_size < size_from_placement.inline {
+                // If the inline size becomes smaller than the minimum inline size, then
+                // the current set of bands will never work and we must try removing the
+                // first and searching starting from the second.
+                if available_inline_size < self.object_size.inline {
+                    self.next_band = self.current_bands[old_num_bands];
+                    self.current_bands.truncate(old_num_bands);
+                    self.current_bands.pop_front();
+                }
+                return false;
+            }
+        }
+        true
     }
 }
 
@@ -939,14 +995,20 @@ impl SequentialLayoutState {
 
     /// Computes the position of the block-start border edge of an element
     /// with the provided `block_start_margin`, assuming no clearance.
-    fn position_without_clearance(&self, block_start_margin: &CollapsedMargin) -> Length {
+    pub(crate) fn position_without_clearance(
+        &self,
+        block_start_margin: &CollapsedMargin,
+    ) -> Length {
         // Adjoin `current_margin` and `block_start_margin` since there is no clearance.
         self.bfc_relative_block_position + self.current_margin.adjoin(&block_start_margin).solve()
     }
 
     /// Computes the position of the block-start border edge of an element
     /// with the provided `block_start_margin`, assuming a clearance of 0px.
-    fn position_with_zero_clearance(&self, block_start_margin: &CollapsedMargin) -> Length {
+    pub(crate) fn position_with_zero_clearance(
+        &self,
+        block_start_margin: &CollapsedMargin,
+    ) -> Length {
         // Clearance prevents `current_margin` and `block_start_margin` from being
         // adjoining, so we need to solve them separately and then sum.
         self.bfc_relative_block_position + self.current_margin.solve() + block_start_margin.solve()
@@ -954,7 +1016,7 @@ impl SequentialLayoutState {
 
     /// Returns the block-end outer edge of the lowest float that is to be cleared (if any)
     /// by an element with the provided `clear` and `block_start_margin`.
-    fn calculate_clear_position(
+    pub(crate) fn calculate_clear_position(
         &self,
         clear: Clear,
         block_start_margin: &CollapsedMargin,
