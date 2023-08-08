@@ -40,7 +40,8 @@ if __name__ == '__main__':
         print('NOTE: Entering nix-shell etc/shell.nix')
         try:
             # sys argv already contains the ./mach part, so we just need to pass it as-is
-            subprocess.Popen(['nix-shell', mach_dir + '/etc/shell.nix', '--run', ' '.join(map(quote, sys.argv))]).wait()
+            result = subprocess.run(['nix-shell', mach_dir + '/etc/shell.nix', '--run', ' '.join(map(quote, sys.argv))])
+            sys.exit(result.returncode)
         except KeyboardInterrupt:
             sys.exit(0)
     else:
