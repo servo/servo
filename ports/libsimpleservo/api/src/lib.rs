@@ -900,7 +900,6 @@ impl ResourceReaderMethods for ResourceReaderInstance {
             Resource::HstsPreloadList => {
                 &include_bytes!("../../../../resources/hsts_preload.json")[..]
             },
-            Resource::SSLCertificates => &include_bytes!("../../../../resources/certs")[..],
             Resource::BadCertHTML => &include_bytes!("../../../../resources/badcert.html")[..],
             Resource::NetErrorHTML => &include_bytes!("../../../../resources/neterror.html")[..],
             Resource::UserAgentCSS => &include_bytes!("../../../../resources/user-agent.css")[..],
