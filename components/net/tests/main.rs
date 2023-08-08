@@ -22,10 +22,8 @@ mod resource_thread;
 mod subresource_integrity;
 
 use core::convert::Infallible;
-use core::pin::Pin;
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::resources::{self, Resource};
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use futures::future::ready;
 use futures::StreamExt;
@@ -33,7 +31,6 @@ use hyper::server::conn::Http;
 use hyper::server::Server as HyperServer;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
-use net::connector::{create_tls_config, ConnectionCerts, ExtraCerts, ALPN_H2_H1};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -43,16 +40,19 @@ use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
 use net_traits::response::Response;
 use net_traits::{FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
-use openssl::ssl::{Ssl, SslAcceptor, SslFiletype, SslMethod};
+use rustls::{self, Certificate, PrivateKey};
+use rustls_pemfile::{certs, pkcs8_private_keys};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
+use std::fs::File;
+use std::io::{self, BufReader};
 use std::net::TcpListener as StdTcpListener;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, Weak};
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
 use tokio::runtime::{Builder, Runtime};
-use tokio_openssl::SslStream;
+use tokio_rustls::{self, TlsAcceptor};
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_test::block_on;
 
@@ -102,17 +102,10 @@ fn new_fetch_context(
     fc: Option<EmbedderProxy>,
     pool_handle: Option<Weak<CoreResourceThreadPool>>,
 ) -> FetchContext {
-    let certs = resources::read_string(Resource::SSLCertificates);
-    let tls_config = create_tls_config(
-        &certs,
-        ALPN_H2_H1,
-        ExtraCerts::new(),
-        ConnectionCerts::new(),
-    );
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
 
     FetchContext {
-        state: Arc::new(HttpState::new(tls_config)),
+        state: Arc::new(HttpState::new()),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
         filemanager: Arc::new(Mutex::new(FileManager::new(
@@ -167,6 +160,7 @@ fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Respon
 
 pub(crate) struct Server {
     pub close_channel: tokio::sync::oneshot::Sender<()>,
+    pub certificates: Option<Vec<Certificate>>,
 }
 
 impl Server {
@@ -205,11 +199,39 @@ where
     };
 
     HANDLE.lock().unwrap().spawn(server);
-    let server = Server { close_channel: tx };
-    (server, url)
+    (
+        Server {
+            close_channel: tx,
+            certificates: None,
+        },
+        url,
+    )
 }
 
-fn make_ssl_server<H>(handler: H, cert_path: PathBuf, key_path: PathBuf) -> (Server, ServoUrl)
+/// Given a path to a file containing PEM certificates, load and parse them into
+/// a vector of RusTLS [Certificate]s.
+fn load_certificates_from_pem(path: &PathBuf) -> std::io::Result<Vec<Certificate>> {
+    let file = File::open(path)?;
+    let mut reader = BufReader::new(file);
+    let certs = certs(&mut reader)?;
+    Ok(certs.into_iter().map(Certificate).collect())
+}
+
+/// Given a path to a file containing PEM keys, load and parse them into
+/// a vector of RusTLS [PrivateKey]s.
+fn load_private_key_from_file(path: &PathBuf) -> Result<PrivateKey, Box<dyn std::error::Error>> {
+    let file = File::open(&path)?;
+    let mut reader = BufReader::new(file);
+    let mut keys = pkcs8_private_keys(&mut reader)?;
+
+    match keys.len() {
+        0 => Err(format!("No PKCS8-encoded private key found in {path:?}").into()),
+        1 => Ok(PrivateKey(keys.remove(0))),
+        _ => Err(format!("More than one PKCS8-encoded private key found in {path:?}").into()),
+    }
+}
+
+fn make_ssl_server<H>(handler: H) -> (Server, ServoUrl)
 where
     H: Fn(HyperRequest<Body>, &mut HyperResponse<Body>) + Send + Sync + 'static,
 {
@@ -219,13 +241,28 @@ where
         .lock()
         .unwrap()
         .block_on(async move { TcpListener::from_std(listener).unwrap() });
-
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
-    let mut listener = TcpListenerStream::new(listener);
-
     let url = ServoUrl::parse(&url_string).unwrap();
-    let (tx, mut rx) = tokio::sync::oneshot::channel::<()>();
 
+    let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt")
+        .canonicalize()
+        .unwrap();
+    let key_path = Path::new("../../resources/privatekey_for_testing.key")
+        .canonicalize()
+        .unwrap();
+    let certificates = load_certificates_from_pem(&cert_path).expect("Invalid certificate");
+    let key = load_private_key_from_file(&key_path).expect("Invalid key");
+
+    let config = rustls::ServerConfig::builder()
+        .with_safe_defaults()
+        .with_no_client_auth()
+        .with_single_cert(certificates.clone(), key)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))
+        .expect("Could not create rustls ServerConfig");
+    let acceptor = TlsAcceptor::from(Arc::new(config));
+
+    let mut listener = TcpListenerStream::new(listener);
+    let (tx, mut rx) = tokio::sync::oneshot::channel::<()>();
     let server = async move {
         loop {
             let stream = tokio::select! {
@@ -244,22 +281,16 @@ where
                 .unwrap();
             let stream = TcpStream::from_std(stream).unwrap();
 
-            let mut tls_server_config =
-                SslAcceptor::mozilla_intermediate_v5(SslMethod::tls()).unwrap();
-            tls_server_config
-                .set_certificate_file(&cert_path, SslFiletype::PEM)
-                .unwrap();
-            tls_server_config
-                .set_private_key_file(&key_path, SslFiletype::PEM)
-                .unwrap();
-
-            let tls_server_config = tls_server_config.build();
-            let ssl = Ssl::new(tls_server_config.context()).unwrap();
-            let mut stream = SslStream::new(ssl, stream).unwrap();
-
-            let _ = Pin::new(&mut stream).accept().await;
-
             let handler = handler.clone();
+            let acceptor = acceptor.clone();
+
+            let stream = match acceptor.accept(stream).await {
+                Ok(stream) => stream,
+                Err(_) => {
+                    eprintln!("Error handling TLS stream.");
+                    continue;
+                },
+            };
 
             let _ = Http::new()
                 .serve_connection(
@@ -276,6 +307,11 @@ where
 
     HANDLE.lock().unwrap().spawn(server);
 
-    let server = Server { close_channel: tx };
-    (server, url)
+    (
+        Server {
+            close_channel: tx,
+            certificates: Some(certificates),
+        },
+        url,
+    )
 }

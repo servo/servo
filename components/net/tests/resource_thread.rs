@@ -4,6 +4,7 @@
 
 use crate::create_embedder_proxy;
 use ipc_channel::ipc;
+use net::connector::CACertificates;
 use net::resource_thread::new_core_resource_thread;
 use net::test::parse_hostsfile;
 use net_traits::CoreResourceMsg;
@@ -27,7 +28,8 @@ fn test_exit() {
         MemProfilerChan(mtx),
         create_embedder_proxy(),
         None,
-        None,
+        CACertificates::Default,
+        false, /* ignore_certificate_errors */
     );
     resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
     receiver.recv().unwrap();

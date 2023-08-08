@@ -5,7 +5,7 @@
 //! A thread that takes a URL and streams back the binary data.
 
 use crate::connector::{
-    create_http_client, create_tls_config, ConnectionCerts, ExtraCerts, ALPN_H2_H1,
+    create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
 };
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
@@ -19,7 +19,6 @@ use crate::storage_thread::StorageThreadFactory;
 use crate::websocket_loader;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::resources::{self, Resource};
 use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
@@ -39,18 +38,29 @@ use net_traits::{ResourceThreads, WebSocketDomAction};
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::time::ProfilerChan;
+use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
-use std::fs::{self, File};
-use std::io::prelude::*;
+use std::fs::File;
+use std::io::{self, prelude::*, BufReader};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::Duration;
+
+/// Load a file with CA certificate and produce a RootCertStore with the results.
+fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore> {
+    let mut root_cert_store = RootCertStore::empty();
+
+    let mut pem = BufReader::new(File::open(file_path)?);
+    let certs = rustls_pemfile::certs(&mut pem)?;
+    root_cert_store.add_parsable_certificates(&certs);
+    Ok(root_cert_store)
+}
 
 /// Returns a tuple of (public, private) senders to the new threads.
 pub fn new_resource_threads(
@@ -61,7 +71,19 @@ pub fn new_resource_threads(
     embedder_proxy: EmbedderProxy,
     config_dir: Option<PathBuf>,
     certificate_path: Option<String>,
+    ignore_certificate_errors: bool,
 ) -> (ResourceThreads, ResourceThreads) {
+    let ca_certificates = match certificate_path {
+        Some(path) => match load_root_cert_store_from_file(path) {
+            Ok(root_cert_store) => CACertificates::Override(root_cert_store),
+            Err(error) => {
+                warn!("Could not load CA file. Falling back to defaults. {error:?}");
+                CACertificates::Default
+            },
+        },
+        None => CACertificates::Default,
+    };
+
     let (public_core, private_core) = new_core_resource_thread(
         user_agent,
         devtools_sender,
@@ -69,7 +91,8 @@ pub fn new_resource_threads(
         mem_profiler_chan,
         embedder_proxy,
         config_dir.clone(),
-        certificate_path,
+        ca_certificates,
+        ignore_certificate_errors,
     );
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (
@@ -86,7 +109,8 @@ pub fn new_core_resource_thread(
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: EmbedderProxy,
     config_dir: Option<PathBuf>,
-    certificate_path: Option<String>,
+    ca_certificates: CACertificates,
+    ignore_certificate_errors: bool,
 ) -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
@@ -100,13 +124,15 @@ pub fn new_core_resource_thread(
                 devtools_sender,
                 time_profiler_chan,
                 embedder_proxy,
-                certificate_path.clone(),
+                ca_certificates.clone(),
+                ignore_certificate_errors,
             );
 
             let mut channel_manager = ResourceChannelManager {
                 resource_manager,
                 config_dir,
-                certificate_path,
+                ca_certificates,
+                ignore_certificate_errors,
             };
 
             mem_profiler_chan.run_with_memory_reporting(
@@ -123,12 +149,14 @@ pub fn new_core_resource_thread(
 struct ResourceChannelManager {
     resource_manager: CoreResourceManager,
     config_dir: Option<PathBuf>,
-    certificate_path: Option<String>,
+    ca_certificates: CACertificates,
+    ignore_certificate_errors: bool,
 }
 
 fn create_http_states(
     config_dir: Option<&Path>,
-    certificate_path: Option<String>,
+    ca_certificates: CACertificates,
+    ignore_certificate_errors: bool,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::from_servo_preload();
     let mut auth_cache = AuthCache::new();
@@ -140,14 +168,7 @@ fn create_http_states(
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
 
-    let certs = match certificate_path {
-        Some(ref path) => fs::read_to_string(path).expect("Couldn't not find certificate file"),
-        None => resources::read_string(Resource::SSLCertificates),
-    };
-
-    let extra_certs = ExtraCerts::new();
-    let connection_certs = ConnectionCerts::new();
-
+    let override_manager = CertificateErrorOverrideManager::new();
     let http_state = HttpState {
         hsts_list: RwLock::new(hsts_list),
         cookie_jar: RwLock::new(cookie_jar),
@@ -156,18 +177,14 @@ fn create_http_states(
         http_cache: RwLock::new(http_cache),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
-            &certs,
-            ALPN_H2_H1,
-            extra_certs.clone(),
-            connection_certs.clone(),
+            ca_certificates.clone(),
+            ignore_certificate_errors,
+            override_manager.clone(),
         )),
-        extra_certs,
-        connection_certs,
+        override_manager,
     };
 
-    let extra_certs = ExtraCerts::new();
-    let connection_certs = ConnectionCerts::new();
-
+    let override_manager = CertificateErrorOverrideManager::new();
     let private_http_state = HttpState {
         hsts_list: RwLock::new(HstsList::from_servo_preload()),
         cookie_jar: RwLock::new(CookieStorage::new(150)),
@@ -176,13 +193,11 @@ fn create_http_states(
         http_cache: RwLock::new(HttpCache::new()),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
-            &certs,
-            ALPN_H2_H1,
-            extra_certs.clone(),
-            connection_certs.clone(),
+            ca_certificates,
+            ignore_certificate_errors,
+            override_manager.clone(),
         )),
-        extra_certs,
-        connection_certs,
+        override_manager,
     };
 
     (Arc::new(http_state), Arc::new(private_http_state))
@@ -198,7 +213,8 @@ impl ResourceChannelManager {
     ) {
         let (public_http_state, private_http_state) = create_http_states(
             self.config_dir.as_ref().map(Deref::deref),
-            self.certificate_path.clone(),
+            self.ca_certificates.clone(),
+            self.ignore_certificate_errors,
         );
 
         let mut rx_set = IpcReceiverSet::new().unwrap();
@@ -455,7 +471,8 @@ pub struct CoreResourceManager {
     sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
     thread_pool: Arc<CoreResourceThreadPool>,
-    certificate_path: Option<String>,
+    ca_certificates: CACertificates,
+    ignore_certificate_errors: bool,
 }
 
 /// The state of the thread-pool used by CoreResource.
@@ -589,7 +606,8 @@ impl CoreResourceManager {
         devtools_sender: Option<Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
         embedder_proxy: EmbedderProxy,
-        certificate_path: Option<String>,
+        ca_certificates: CACertificates,
+        ignore_certificate_errors: bool,
     ) -> CoreResourceManager {
         let pool = CoreResourceThreadPool::new(16);
         let pool_handle = Arc::new(pool);
@@ -599,7 +617,8 @@ impl CoreResourceManager {
             sw_managers: Default::default(),
             filemanager: FileManager::new(embedder_proxy, Arc::downgrade(&pool_handle)),
             thread_pool: pool_handle,
-            certificate_path,
+            ca_certificates,
+            ignore_certificate_errors,
         }
     }
 
@@ -725,7 +744,8 @@ impl CoreResourceManager {
             event_sender,
             action_receiver,
             http_state.clone(),
-            self.certificate_path.clone(),
+            self.ca_certificates.clone(),
+            self.ignore_certificate_errors,
         );
     }
 }

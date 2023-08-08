@@ -6,7 +6,6 @@ license = "MPL-2.0"
 edition = "2018"
 publish = false
 autotests = false  # Inhibit lookup for tests/*.rs without [[test]] sections
-build = "build.rs"
 
 [lib]
 name = "net"
@@ -16,7 +15,7 @@ doctest = false
 
 [dependencies]
 async-recursion = "0.3.2"
-async-tungstenite = { version = "0.22", features = ["tokio-openssl"] }
+async-tungstenite = { workspace = true }
 base64 = { workspace = true }
 brotli = "3"
 bytes = "1"
@@ -33,7 +32,7 @@ generic-array = "0.14"
 headers = { workspace = true }
 http = { workspace = true }
 hyper = { workspace = true, features = ["client", "http1", "http2", "tcp", "stream"] }
-hyper-openssl = "0.9.1"
+hyper-rustls = { workspace = true }
 hyper_serde = { workspace = true }
 immeta = "0.4"
 ipc-channel = { workspace = true }
@@ -46,12 +45,12 @@ mime = { workspace = true }
 mime_guess = { workspace = true }
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
-openssl = "0.10"
-openssl-sys = "0.9"
 percent-encoding = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { path = "../profile_traits" }
 rayon = { workspace = true }
+rustls = { workspace = true }
+rustls-pemfile = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_allocator = { path = "../allocator" }
@@ -61,16 +60,17 @@ servo_url = { path = "../url" }
 sha2 = "0.10"
 time = { workspace = true }
 tokio = { workspace = true, features = ["sync", "macros", "rt-multi-thread"] }
+tokio-rustls = { workspace = true }
 tokio-stream = "0.1"
-tungstenite = "0.19"
+tungstenite = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
 webrender_api = { workspace = true }
+webpki-roots = { workspace = true }
 
 [dev-dependencies]
 futures = {version = "0.3", features = ["compat"]}
 std_test_override = { path = "../std_test_override" }
-tokio-openssl = "0.6"
 tokio-test = "0.4"
 tokio-stream = { version = "0.1", features = ["net"] }
 hyper = { workspace = true, features = ["full"] }

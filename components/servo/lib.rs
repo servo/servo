@@ -857,6 +857,7 @@ fn create_constellation(
         embedder_proxy.clone(),
         config_dir,
         opts.certificate_path.clone(),
+        opts.ignore_certificate_errors,
     );
 
     let font_cache_thread = FontCacheThread::new(

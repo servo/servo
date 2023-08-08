@@ -30,6 +30,7 @@ use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
+use rustls::Certificate;
 use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use time::precise_time_ns;
@@ -762,12 +763,11 @@ pub enum NetworkError {
 }
 
 impl NetworkError {
-    pub fn from_hyper_error(error: &HyperError, cert_bytes: Option<Vec<u8>>) -> Self {
-        let s = error.to_string();
-        if s.to_lowercase().contains("ssl") {
-            NetworkError::SslValidation(s, cert_bytes.unwrap_or_default())
-        } else {
-            NetworkError::Internal(s)
+    pub fn from_hyper_error(error: &HyperError, certificate: Option<Certificate>) -> Self {
+        let error_string = error.to_string();
+        match certificate {
+            Some(certificate) => NetworkError::SslValidation(error_string, certificate.0),
+            _ => NetworkError::Internal(error_string),
         }
     }
 

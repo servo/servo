@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::connector::{create_http_client, ConnectionCerts, Connector, ExtraCerts, TlsConfig};
+use crate::connector::{
+    create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
+    Connector,
+};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -98,12 +101,12 @@ pub struct HttpState {
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, Body>,
-    pub extra_certs: ExtraCerts,
-    pub connection_certs: ConnectionCerts,
+    pub override_manager: CertificateErrorOverrideManager,
 }
 
 impl HttpState {
-    pub fn new(tls_config: TlsConfig) -> HttpState {
+    pub fn new() -> HttpState {
+        let override_manager = CertificateErrorOverrideManager::new();
         HttpState {
             hsts_list: RwLock::new(HstsList::new()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
@@ -111,9 +114,12 @@ impl HttpState {
             history_states: RwLock::new(HashMap::new()),
             http_cache: RwLock::new(HttpCache::new()),
             http_cache_state: Mutex::new(HashMap::new()),
-            client: create_http_client(tls_config),
-            extra_certs: ExtraCerts::new(),
-            connection_certs: ConnectionCerts::new(),
+            client: create_http_client(create_tls_config(
+                CACertificates::Default,
+                false, /* ignore_certificate_errors */
+                override_manager.clone(),
+            )),
+            override_manager,
         }
     }
 }
@@ -652,18 +658,12 @@ async fn obtain_response(
         let send_start = precise_time_ms();
 
         let host = request.uri().host().unwrap_or("").to_owned();
-        let host_clone = request.uri().host().unwrap_or("").to_owned();
-        let connection_certs = context.state.connection_certs.clone();
-        let connection_certs_clone = context.state.connection_certs.clone();
-
+        let override_manager = context.state.override_manager.clone();
         let headers = headers.clone();
 
         client
             .request(request)
             .and_then(move |res| {
-                // We no longer need to track the cert for this connection.
-                connection_certs.remove(host);
-
                 let send_end = precise_time_ms();
 
                 // TODO(#21271) response_start: immediately after receiving first byte of response
@@ -696,8 +696,11 @@ async fn obtain_response(
                 };
                 future::ready(Ok((Decoder::detect(res), msg)))
             })
-            .map_err(move |e| {
-                NetworkError::from_hyper_error(&e, connection_certs_clone.remove(host_clone))
+            .map_err(move |error| {
+                NetworkError::from_hyper_error(
+                    &error,
+                    override_manager.remove_certificate_failing_verification(host.as_str()),
+                )
             })
             .await
     }

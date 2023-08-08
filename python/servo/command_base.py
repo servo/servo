@@ -500,19 +500,6 @@ class CommandBase(object):
             env.setdefault("CC", "clang-cl.exe")
             env.setdefault("CXX", "clang-cl.exe")
 
-            arch = effective_target.split('-')[0]
-            vcpkg_arch = {
-                "x86_64": "x64-windows",
-                "i686": "x86-windows",
-                "aarch64": "arm64-windows",
-            }
-            target_arch = vcpkg_arch[arch]
-            openssl_base_dir = path.join(self.msvc_package_dir("openssl"), target_arch)
-
-            # Link openssl
-            env["OPENSSL_INCLUDE_DIR"] = path.join(openssl_base_dir, "include")
-            env["OPENSSL_LIB_DIR"] = path.join(openssl_base_dir, "lib")
-            env["OPENSSL_LIBS"] = "libssl:libcrypto"
             # Link moztools, used for building SpiderMonkey
             moztools_paths = [
                 path.join(self.msvc_package_dir("moztools"), "bin"),
@@ -625,9 +612,6 @@ class CommandBase(object):
         android_lib = self.config["android"]["lib"]
         android_arch = self.config["android"]["arch"]
 
-        # Build OpenSSL for android
-        env["OPENSSL_VERSION"] = "1.1.1d"
-
         # Check if the NDK version is 15
         if not os.path.isfile(path.join(env["ANDROID_NDK"], 'source.properties')):
             print("ANDROID_NDK should have file `source.properties`.")
@@ -639,11 +623,6 @@ class CommandBase(object):
                 print("Currently only support NDK 15. Please re-run `./mach bootstrap-android`.")
                 sys.exit(1)
 
-        openssl_dir = path.join(
-            self.target_path, "native", "openssl", "openssl-{}".format(env["OPENSSL_VERSION"]))
-        env['OPENSSL_LIB_DIR'] = openssl_dir
-        env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
-        env['OPENSSL_STATIC'] = 'TRUE'
         # Android builds also require having the gcc bits on the PATH and various INCLUDE
         # path munging if you do not want to install a standalone NDK. See:
         # https://dxr.mozilla.org/mozilla-central/source/build/autoconf/android.m4#139-161

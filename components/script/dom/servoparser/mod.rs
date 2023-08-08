@@ -36,6 +36,7 @@ use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::PreInvoke;
 use crate::realms::enter_realm;
 use crate::script_thread::ScriptThread;
+use base64::{engine::general_purpose, Engine as _};
 use content_security_policy::{self as csp, CspList};
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
@@ -880,8 +881,8 @@ impl FetchResponseListener for ParserContext {
                     self.is_synthesized_document = true;
                     let page = resources::read_string(Resource::BadCertHTML);
                     let page = page.replace("${reason}", &reason);
-                    let page =
-                        page.replace("${bytes}", std::str::from_utf8(&bytes).unwrap_or_default());
+                    let encoded_bytes = general_purpose::STANDARD_NO_PAD.encode(&bytes);
+                    let page = page.replace("${bytes}", encoded_bytes.as_str());
                     let page =
                         page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string());
                     parser.push_string_input_chunk(page);

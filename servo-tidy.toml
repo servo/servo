@@ -48,6 +48,12 @@ packages = [
   "wayland-sys",
   "bitflags",
 
+  # Duplicated by rustls and image.
+  "spin",
+
+  # Duplicated by rustls and the version of webpki-roots required by async_tungstenite.
+  "rustls-webpki",
+
   # https://github.com/servo/servo/issues/26933
   "bytes",
   "futures",
@@ -112,7 +118,6 @@ files = [
   # Long encoded string
   "./tests/wpt/mozilla/tests/mozilla/resources/brotli.py",
   "./tests/wpt/webgl/meta/MANIFEST.json",
-  "./support/android/openssl.sh",
   # Upstream code from Khronos/WebGL uses tabs for indentation
   "./tests/wpt/webgl/tests",
   # Vendored from upstream

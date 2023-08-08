@@ -6,7 +6,7 @@
   <p>${reason}</p>
   <button id="leave" onclick="history.back()">Go back (recommended)</button>
   <button id="allow">Allow certificate temporarily</button>
-  <pre id="bytes">${bytes}</pre>
+  <div style="word-break: break-all; font-family: monospace" id="bytes">${bytes}</div>
   <script>
     let bytes = document.getElementById('bytes').textContent;
     let button = document.getElementById('allow');
@@ -18,7 +18,7 @@
             xhr.onloadend = function() {
                 location.reload(true);
             };
-            xhr.send("${secret}&" + btoa(bytes));
+            xhr.send("${secret}&${bytes}");
         };
     } else {
         button.style.display = "none";
