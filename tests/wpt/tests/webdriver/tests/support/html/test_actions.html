@@ -172,15 +172,12 @@
           els.dragTarget = document.getElementById("dragTarget");
           els.dragTarget.addEventListener("mousedown", grabOnce);
 
-          var draggable = document.getElementById("draggable");
-          draggable.addEventListener("dragstart", recordPointerEvent);
-          draggable.addEventListener("dragenter", recordPointerEvent);
-          draggable.addEventListener("dragend", recordPointerEvent);
-          draggable.addEventListener("dragleave", recordPointerEvent);
-          draggable.addEventListener("dragover", recordPointerEvent);
-
-          var droppable = document.getElementById("droppable");
-          droppable.addEventListener("drop", recordPointerEvent);
+          window.addEventListener("dragstart", recordPointerEvent);
+          window.addEventListener("dragenter", recordPointerEvent);
+          window.addEventListener("dragover", recordPointerEvent);
+          window.addEventListener("dragleave", recordPointerEvent);
+          window.addEventListener("drop", recordPointerEvent);
+          window.addEventListener("dragend", recordPointerEvent);
         });
     </script>
 </head>
@@ -204,8 +201,8 @@
   <div>
     <h2>draggable</h2>
     <div class=box>
-      <div id=draggable draggable="true" class="area"></div>&nbsp;
-      <div id=droppable dropzone="true" class="area"></div>
+      <div id="draggable" draggable="true" class="area"></div>&nbsp;
+      <div id="droppable" ondrop="event.preventDefault()" ondragover="event.preventDefault()" class="area"></div>
     </div>
   </div>
   <div id="resultContainer">

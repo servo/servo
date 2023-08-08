@@ -13,7 +13,7 @@
   ctx.fillStyle = 'purple';
   ctx.globalAlpha = 0.5;
 
-  ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+  ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
   ctx.fillStyle = 'grey';
   ctx.fillRect(70, 70, 75, 50);
   ctx.fillStyle = 'orange';

@@ -296,16 +296,16 @@ class TestRunnerManager(threading.Thread):
 
         self.test_implementation_by_type = {}
         for test_type, test_implementation in test_implementation_by_type.items():
-            kwargs = test_implementation.browser_kwargs
-            if kwargs.get("device_serial"):
-                kwargs = kwargs.copy()
+            browser_kwargs = test_implementation.browser_kwargs
+            if browser_kwargs.get("device_serial"):
+                browser_kwargs = browser_kwargs.copy()
                 # Assign Android device to runner according to current manager index
-                kwargs["device_serial"] = kwargs["device_serial"][index]
+                browser_kwargs["device_serial"] = browser_kwargs["device_serial"][index]
                 self.test_implementation_by_type[test_type] = TestImplementation(
                     test_implementation.executor_cls,
                     test_implementation.executor_kwargs,
                     test_implementation.browser_cls,
-                    kwargs)
+                    browser_kwargs)
             else:
                 self.test_implementation_by_type[test_type] = test_implementation
 

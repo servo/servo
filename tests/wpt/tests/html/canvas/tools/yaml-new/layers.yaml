@@ -109,14 +109,14 @@
 
     {{ render_states }}
 
-    ctx.beginLayer([
-        {filter: 'colorMatrix', values: [0.393, 0.769, 0.189, 0, 0,
-                                         0.349, 0.686, 0.168, 0, 0,
-                                         0.272, 0.534, 0.131, 0, 0,
-                                         0, 0, 0, 1, 0]},
-        {filter: 'componentTransfer',
+    ctx.beginLayer({filter: [
+        {name: 'colorMatrix', values: [0.393, 0.769, 0.189, 0, 0,
+                                       0.349, 0.686, 0.168, 0, 0,
+                                       0.272, 0.534, 0.131, 0, 0,
+                                       0, 0, 0, 1, 0]},
+        {name: 'componentTransfer',
             funcA: {type: "table", tableValues: [0, 0.7]}},
-        {filter: 'dropShadow', dx: 5, dy: 5, floodColor: '#81e'}]);
+        {name: 'dropShadow', dx: 5, dy: 5, floodColor: '#81e'}]});
 
     ctx.fillStyle = 'rgba(200, 0, 0, 1)';
     ctx.fillRect(50, 50, 75, 50);
@@ -255,7 +255,7 @@
     ctx.fillRect(60, 60, 75, 50);
     ctx.globalAlpha = 0.5;
 
-    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
     ctx.fillRect(40, 40, 75, 50);
     ctx.fillStyle = 'grey';
     ctx.fillRect(50, 50, 75, 50);
@@ -264,7 +264,7 @@
     ctx.fillRect(60, 60, 75, 50);
     ctx.globalAlpha = 0.5;
 
-    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
     ctx.fillStyle = 'purple';
     ctx.fillRect(40, 40, 75, 50);
     ctx.fillStyle = 'grey';
@@ -314,7 +314,7 @@
     ctx.fillRect(60, 60, 75, 50);
     ctx.globalAlpha = 0.5;
 
-    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
     ctx.fillRect(40, 40, 75, 50);
     ctx.fillStyle = 'grey';
     ctx.fillRect(50, 50, 75, 50);
@@ -333,14 +333,14 @@
     ctx.fillRect(60, 60, 75, 50);
     ctx.globalAlpha = 0.5;
 
-    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
     ctx.fillStyle = 'purple';
     ctx.fillRect(40, 40, 75, 50);
     ctx.fillStyle = 'grey';
     ctx.fillRect(50, 50, 75, 50);
     ctx.endLayer();
 
-    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
     ctx.fillStyle = 'grey';
     ctx.fillRect(70, 70, 75, 50);
     ctx.fillStyle = 'orange';
@@ -392,7 +392,7 @@
     ctx.fillRect(60, 60, 75, 50);
     ctx.globalAlpha = 0.5;
 
-    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
     ctx.fillRect(40, 40, 75, 50);
     ctx.fillStyle = 'grey';
     ctx.fillRect(50, 50, 75, 50);
@@ -411,7 +411,7 @@
     ctx.fillStyle = 'purple';
     ctx.globalAlpha = 0.5;
 
-    ctx.beginLayer({filter: 'dropShadow', dx: -2, dy: 2});
+    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
     ctx.fillStyle = 'grey';
     ctx.fillRect(70, 70, 75, 50);
     ctx.fillStyle = 'orange';
@@ -480,7 +480,7 @@
     ctx.shadowOffsetY = 3;
     ctx.shadowColor = 'rgba(0, 30, 0, 0.3)';
 
-    ctx.beginLayer({filter: 'dropShadow', dx: -3, dy: 3});
+    ctx.beginLayer({filter: {name: 'dropShadow', dx: -3, dy: 3}});
 
     // Layer states:
     ctx.globalAlpha = 0.6;
@@ -573,6 +573,16 @@
         ctx.reset();
         ctx.endLayer();
 
+- name: 2d.layer.exceptions-are-no-op
+  desc: Checks that the context state is left unchanged if beginLayer throws.
+  code: |
+    // Get `beginLayer` to throw while parsing the filter.
+    assert_throws_js(TypeError,
+                     () => ctx.beginLayer({filter: {name: 'colorMatrix',
+                                                    values: 'foo'}}));
+    // `beginLayer` shouldn't have opened the layer, so `endLayer` should throw.
+    assert_throws_dom("InvalidStateError", () => ctx.endLayer());
+
 - name: 2d.layer.cross-layer-paths
   desc: Checks that path defined in a layer is usable outside.
   code: |
@@ -586,3 +596,30 @@
     ctx.moveTo(50, 0);
     ctx.lineTo(50, 100);
     ctx.stroke();
+
+- name: 2d.layer.beginLayer-options
+  desc: Checks beginLayer works for different option parameter values
+  code: |
+    ctx.beginLayer(); ctx.endLayer();
+    ctx.beginLayer(null); ctx.endLayer();
+    ctx.beginLayer(undefined); ctx.endLayer();
+    ctx.beginLayer([]); ctx.endLayer();
+    ctx.beginLayer({}); ctx.endLayer();
+
+    @assert throws TypeError ctx.beginLayer('');
+    @assert throws TypeError ctx.beginLayer(0);
+    @assert throws TypeError ctx.beginLayer(1);
+    @assert throws TypeError ctx.beginLayer(true);
+    @assert throws TypeError ctx.beginLayer(false);
+
+    ctx.beginLayer({filter: null}); ctx.endLayer();
+    ctx.beginLayer({filter: undefined}); ctx.endLayer();
+    ctx.beginLayer({filter: []}); ctx.endLayer();
+    ctx.beginLayer({filter: {}}); ctx.endLayer();
+    ctx.beginLayer({filter: {name: "unknown"}}); ctx.endLayer();
+
+    @assert throws TypeError ctx.beginLayer({filter: ''});
+    @assert throws TypeError ctx.beginLayer({filter: 0});
+    @assert throws TypeError ctx.beginLayer({filter: 1});
+    @assert throws TypeError ctx.beginLayer({filter: true});
+    @assert throws TypeError ctx.beginLayer({filter: false});

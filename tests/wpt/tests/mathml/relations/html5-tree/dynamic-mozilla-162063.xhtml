@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait">
+<head>
+<link rel="help" href="https://w3c.github.io/mathml-core/#dom-and-javascript"/>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=162063"/>
+<link rel="match" href="about:blank"/>
+<meta name="assert" content="Table's anonymous boxes should properly be removed when dropping some MathML content from them."/>
+<script type="text/javascript">
+/* <![CDATA[ */
+function mutate()
+{
+   var q = document.getElementById("target");
+   remove(q);
+   document.documentElement.className = "";
+
+}
+
+function remove(n)
+{
+  n.parentNode.removeChild(n);
+}
+
+document.documentElement.addEventListener("TestRendered", mutate);
+/* ]]> */
+</script>
+<title> test for pseudo removal</title>
+</head>
+
+<body>
+ <div style="display:table; border-spacing:10px; background-color:Maroon">
+     <math xmlns="http://www.w3.org/1998/Math/MathML" id="target">
+        <msup>
+          <mfenced>
+            <mrow>
+              <mi>a</mi>
+              <mo>+</mo>
+              <mi>b</mi>
+            </mrow>
+          </mfenced>
+          <mn>2</mn>
+        </msup>
+    </math>
+ </div>
+</body>
+</html>

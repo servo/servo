@@ -19,7 +19,7 @@
     const canvas = document.createElement("canvas");
     document.body.appendChild(canvas);
     const ctx = canvas.getContext("2d");
-    const filterOptions = {...{filter: "turbulence"}, ...tc};
+    const filterOptions = {...{name: "turbulence"}, ...tc};
     ctx.filter = new CanvasFilter(filterOptions);
     ctx.fillRect(0, 0, 1, 1);
   }

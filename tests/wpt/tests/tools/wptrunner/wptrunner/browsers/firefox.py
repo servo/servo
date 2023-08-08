@@ -5,6 +5,7 @@ import os
 import platform
 import signal
 import subprocess
+import sys
 import tempfile
 import time
 from abc import ABCMeta, abstractmethod
@@ -93,33 +94,36 @@ def check_args(**kwargs):
 
 
 def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
-    return {"binary": kwargs["binary"],
-            "webdriver_binary": kwargs["webdriver_binary"],
-            "webdriver_args": kwargs["webdriver_args"],
-            "prefs_root": kwargs["prefs_root"],
-            "extra_prefs": kwargs["extra_prefs"],
-            "test_type": test_type,
-            "debug_info": kwargs["debug_info"],
-            "symbols_path": kwargs["symbols_path"],
-            "stackwalk_binary": kwargs["stackwalk_binary"],
-            "certutil_binary": kwargs["certutil_binary"],
-            "ca_certificate_path": config.ssl_config["ca_cert_path"],
-            "e10s": kwargs["gecko_e10s"],
-            "enable_fission": run_info_data["fission"],
-            "stackfix_dir": kwargs["stackfix_dir"],
-            "binary_args": kwargs["binary_args"],
-            "timeout_multiplier": get_timeout_multiplier(test_type,
-                                                         run_info_data,
-                                                         **kwargs),
-            "leak_check": run_info_data["debug"] and (kwargs["leak_check"] is not False),
-            "asan": run_info_data.get("asan"),
-            "chaos_mode_flags": kwargs["chaos_mode_flags"],
-            "config": config,
-            "browser_channel": kwargs["browser_channel"],
-            "headless": kwargs["headless"],
-            "preload_browser": kwargs["preload_browser"] and not kwargs["pause_after_test"] and not kwargs["num_test_groups"] == 1,
-            "specialpowers_path": kwargs["specialpowers_path"],
-            "debug_test": kwargs["debug_test"]}
+    browser_kwargs = {"binary": kwargs["binary"],
+                      "webdriver_binary": kwargs["webdriver_binary"],
+                      "webdriver_args": kwargs["webdriver_args"],
+                      "prefs_root": kwargs["prefs_root"],
+                      "extra_prefs": kwargs["extra_prefs"],
+                      "test_type": test_type,
+                      "debug_info": kwargs["debug_info"],
+                      "symbols_path": kwargs["symbols_path"],
+                      "stackwalk_binary": kwargs["stackwalk_binary"],
+                      "certutil_binary": kwargs["certutil_binary"],
+                      "ca_certificate_path": config.ssl_config["ca_cert_path"],
+                      "e10s": kwargs["gecko_e10s"],
+                      "enable_fission": run_info_data["fission"],
+                      "stackfix_dir": kwargs["stackfix_dir"],
+                      "binary_args": kwargs["binary_args"],
+                      "timeout_multiplier": get_timeout_multiplier(test_type,
+                                                                   run_info_data,
+                                                                   **kwargs),
+                      "leak_check": run_info_data["debug"] and (kwargs["leak_check"] is not False),
+                      "asan": run_info_data.get("asan"),
+                      "chaos_mode_flags": kwargs["chaos_mode_flags"],
+                      "config": config,
+                      "browser_channel": kwargs["browser_channel"],
+                      "headless": kwargs["headless"],
+                      "preload_browser": kwargs["preload_browser"] and not kwargs["pause_after_test"] and not kwargs["num_test_groups"] == 1,
+                      "specialpowers_path": kwargs["specialpowers_path"],
+                      "debug_test": kwargs["debug_test"]}
+    if test_type == "wdspec" and kwargs["binary"]:
+        browser_kwargs["webdriver_args"].extend(["--binary", kwargs["binary"]])
+    return browser_kwargs
 
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data,
@@ -139,8 +143,6 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     if test_type == "wdspec":
         options = {"args": []}
         if kwargs["binary"]:
-            if "webdriver_args" not in executor_kwargs:
-                executor_kwargs["webdriver_args"] = []
             executor_kwargs["webdriver_args"].extend(["--binary", kwargs["binary"]])
         if kwargs["binary_args"]:
             options["args"] = kwargs["binary_args"]
@@ -244,10 +246,21 @@ def log_gecko_crashes(logger, process, test, profile_dir, symbols_path, stackwal
 
 
 def get_environ(logger, binary, debug_info, headless, chaos_mode_flags=None):
-    env = test_environment(xrePath=os.path.abspath(os.path.dirname(binary)),
-                           debugger=debug_info is not None,
-                           useLSan=True,
-                           log=logger)
+    # Hack: test_environment expects a bin_suffix key in mozinfo that in gecko infrastructure
+    # is set in the build system. Set it manually here.
+    if "bin_suffix" not in mozinfo.info:
+        mozinfo.info["bin_suffix"] = (".exe" if sys.platform in ["win32", "msys", "cygwin"]
+                                      else "")
+
+    # test_environment has started returning None values for some environment variables
+    # that are only set in a gecko checkout
+    env = {key: value for key, value in
+           test_environment(xrePath=os.path.abspath(os.path.dirname(binary)),
+                            debugger=debug_info is not None,
+                            useLSan=True,
+                            log=logger).items()
+           if value is not None}
+
     # Disable window occlusion. Bug 1733955
     env["MOZ_WINDOW_OCCLUSION"] = "0"
     if chaos_mode_flags is not None:

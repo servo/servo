@@ -29,7 +29,7 @@ promise_test(function(t) {
   animate.setAttributeNS(XLINKNS, 'xlink:href', '#rect2');
   assert_equals(animate.targetElement, rect1);
 
-  return waitEvent(animate, 'begin').then(function() {
+  return waitEvent(animate, 'beginEvent').then(function() {
     svg.pauseAnimations();
     svg.setCurrentTime(5);
     assert_equals(rect1.x.animVal.value, 50);
@@ -58,7 +58,7 @@ promise_test(function(t) {
   transform.setAttributeNS(XLINKNS, 'xlink:href', '#rect2');
   assert_equals(transform.targetElement, rect1);
 
-  return waitEvent(transform, 'begin').then(function() {
+  return waitEvent(transform, 'beginEvent').then(function() {
     svg.pauseAnimations();
     svg.setCurrentTime(5);
     assert_equals(rect1.getCTM().e, 50);
@@ -87,7 +87,7 @@ promise_test(function(t) {
   animate.setAttributeNS(XLINKNS, 'xlink:href', '#circle2');
   assert_equals(animate.targetElement, circle1);
 
-  return waitEvent(animate, 'begin').then(function() {
+  return waitEvent(animate, 'beginEvent').then(function() {
     svg.pauseAnimations();
     svg.setCurrentTime(5);
     assert_equals(circle1.cx.animVal.value, 100);
@@ -121,7 +121,7 @@ promise_test(function(t) {
   animate.setAttributeNS(XLINKNS, 'xlink:href', '#circle2');
   assert_equals(animate.targetElement, circle1);
 
-  return waitEvent(animate, 'begin').then(function() {
+  return waitEvent(animate, 'beginEvent').then(function() {
     svg.pauseAnimations();
     svg.setCurrentTime(5);
     assert_equals(circle1.cx.animVal.value, 100);

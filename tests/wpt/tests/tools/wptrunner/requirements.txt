@@ -1,6 +1,6 @@
 html5lib==1.1
 mozdebug==0.3.0
-mozinfo==1.2.2  # https://bugzilla.mozilla.org/show_bug.cgi?id=1621226
+mozinfo==1.2.3  # https://bugzilla.mozilla.org/show_bug.cgi?id=1621226
 mozlog==8.0.0
 mozprocess==1.3.1
 packaging==23.1

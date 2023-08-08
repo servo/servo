@@ -7,15 +7,15 @@
 <script>
   var canvas = document.getElementById('canvas');
   var ctx = canvas.getContext('2d');
-  ctx.filter = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 2});
+  ctx.filter = new CanvasFilter({name: "gaussianBlur", stdDeviation: 2});
   ctx.fillStyle = 'yellow';
   ctx.fillRect(10,10,100,100);
-  ctx.filter = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 5});
+  ctx.filter = new CanvasFilter({name: "gaussianBlur", stdDeviation: 5});
   ctx.fillStyle = 'magenta';
   ctx.fillRect(120, 10, 100, 100);
   ctx.filter = new CanvasFilter([
-    {filter: "gaussianBlur", stdDeviation: 5},
-    {filter: "gaussianBlur", stdDeviation: 10}]);
+    {name: "gaussianBlur", stdDeviation: 5},
+    {name: "gaussianBlur", stdDeviation: 10}]);
   ctx.fillStyle = 'cyan';
   ctx.fillRect(10, 120, 100, 100);
   ctx.filter = 'none';

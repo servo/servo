@@ -4,11 +4,17 @@ var requests = [];
 
 self.addEventListener('install', e => {
   e.registerRouter([
-    {condition: {urlPattern: '*.txt'}, source: 'network'}, {
-      condition: {urlPattern: '*/simple-test-for-condition-main-resource.html'},
+    {
+      condition: {urlPattern: '/**/*.txt??*'},
+      // Note: "??*" is for allowing arbitrary query strings.
+      // Upon my experiment, the URLPattern needs two '?'s for specifying
+      // a coming string as a query.
       source: 'network'
-    }
-  ]);
+    }, {
+      condition: {
+        urlPattern: '/**/simple-test-for-condition-main-resource.html'},
+      source: 'network'
+    }]);
   self.skipWaiting();
 });
 

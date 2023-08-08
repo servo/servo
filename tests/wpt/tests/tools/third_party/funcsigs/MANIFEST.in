@@ -1,7 +1,0 @@
-recursive-include docs *
-recursive-include tests *.py
-include *.py
-include CHANGELOG
-include LICENSE
-include MANIFEST.in
-include README.rst

@@ -20,12 +20,12 @@ t.step(function() {
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({filter: 'gaussianBlur'}); });
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: undefined}); });
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: 'foo'}); });
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: [1,2]}); });
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: NaN}); });
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: {}}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur'}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: undefined}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 'foo'}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: [1,2]}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: NaN}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: {}}); });
   t.done();
 
 });

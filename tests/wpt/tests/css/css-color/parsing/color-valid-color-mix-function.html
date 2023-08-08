@@ -17,7 +17,7 @@
 <script>
     // https://github.com/w3c/csswg-drafts/issues/7302: Specified values shouldn't resolve keyword colors or calc values
     test_valid_value(`color`, `color-mix(in srgb, red, blue)`, `color-mix(in srgb, red, blue)`);
-    test_valid_value(`color`, `color-mix(in srgb, 70% red, 50% blue)`, `color-mix(in srgb, red 70%, blue)`);
+    test_valid_value(`color`, `color-mix(in srgb, 70% red, 50% blue)`, `color-mix(in srgb, red 70%, blue 50%)`);
     test_valid_value(`color`, `color-mix(in hsl, red, blue)`, `color-mix(in hsl, red, blue)`);
     test_valid_value(`color`, `color-mix(in hsl, red calc(20%), blue)`, `color-mix(in hsl, red calc(20%), blue)`);
     test_valid_value(`color`, `color-mix(in hsl, red calc(var(--v)*1%), blue)`, `color-mix(in hsl, red calc(var(--v)*1%), blue)`);

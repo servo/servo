@@ -9,12 +9,10 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
-      // reportWin:
-      null,
-      '',
+      { reportResult:
+          `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
+        reportWin:
+          '' },
       // expectedReportUrls:
       [`${createSellerBeaconUrl(uuid)}, body: `],
       // renderUrlOverride:
@@ -32,12 +30,10 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      '',
-      // reportWin:
-      null,
-      `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});`,
+      { reportResult:
+          '',
+        reportWin:
+          `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});` },
       // expectedReportUrls:
       [`${createBidderBeaconUrl(uuid)}, body: `],
       // renderUrlOverride:
@@ -55,12 +51,10 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
-      // reportWin:
-      null,
-      '',
+      { reportResult:
+          `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
+        reportWin:
+          '' },
       // expectedReportUrls:
       [`${createSellerBeaconUrl(uuid)}, body: body`],
       // renderUrlOverride:
@@ -78,12 +72,10 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      '',
-      // reportWin:
-      null,
-      `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});`,
+      { reportResult:
+          '',
+        reportWin:
+          `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});` },
       // expectedReportUrls:
       [`${createBidderBeaconUrl(uuid)}, body: body`],
       // renderUrlOverride:
@@ -101,12 +93,10 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
-      // reportWin:
-      null,
-      '',
+      { reportResult:
+          `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
+        reportWin:
+          '' },
       // expectedReportUrls:
       [`${createSellerBeaconUrl(uuid)}, body: body1`,
        `${createSellerBeaconUrl(uuid)}, body: body2`],
@@ -130,12 +120,10 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      '',
-      // reportWin:
-      null,
-      `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});`,
+      { reportResult:
+          '',
+        reportWin:
+          `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});` },
       // expectedReportUrls:
       [`${createBidderBeaconUrl(uuid)}, body: body1`,
        `${createBidderBeaconUrl(uuid)}, body: body2`],
@@ -159,13 +147,11 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      `registerAdBeacon({beacon1: '${createSellerBeaconUrl(uuid, '1')}',
-                         beacon2: '${createSellerBeaconUrl(uuid, '2')}'});`,
-      // reportWin:
-      null,
-      '',
+      { reportResult:
+          `registerAdBeacon({beacon1: '${createSellerBeaconUrl(uuid, '1')}',
+                             beacon2: '${createSellerBeaconUrl(uuid, '2')}'});`,
+        reportWin:
+          '' },
       // expectedReportUrls:
       [`${createSellerBeaconUrl(uuid, '1')}, body: body1`,
        `${createSellerBeaconUrl(uuid, '2')}, body: body2`],
@@ -189,13 +175,12 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      '',
-      // reportWin:
-      null,
-      `registerAdBeacon({beacon1: '${createBidderBeaconUrl(uuid, '1')}',
-                         beacon2: '${createBidderBeaconUrl(uuid, '2')}'});`,
+      { reportResult:
+          '',
+        reportWin:
+          `registerAdBeacon({beacon1: '${createBidderBeaconUrl(uuid, '1')}',
+                             beacon2: '${createBidderBeaconUrl(uuid, '2')}'});`
+      },
       // expectedReportUrls:
       [`${createBidderBeaconUrl(uuid, '1')}, body: body1`,
        `${createBidderBeaconUrl(uuid, '2')}, body: body2`],
@@ -219,12 +204,10 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
-      // reportWin:
-      null,
-      `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});`,
+      { reportResult:
+          `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
+        reportWin:
+          `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});` },
       // expectedReportUrls:
       [`${createSellerBeaconUrl(uuid)}, body: body`,
        `${createBidderBeaconUrl(uuid)}, body: body`],
@@ -243,12 +226,10 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
-      // reportWin:
-      null,
-      `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});`,
+      { reportResult:
+          `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
+        reportWin:
+          `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});` },
       // expectedReportUrls:
       [`${createSellerBeaconUrl(uuid)}, body: body1`,
        `${createBidderBeaconUrl(uuid)}, body: body2`],
@@ -272,16 +253,16 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      // Multiple registerAdBeacon() call should result in an exception,
-      // throwing away all beacons and other types of reports.
-      `sendReportTo('${createSellerReportUrl(uuid)}');
-       registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});
-       registerAdBeacon({beacon1: '${createSellerBeaconUrl(uuid)}'});`,
-      // reportWin:
-      'sellerSignals === null',
-      `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});`,
+      { reportResult:
+          // Multiple registerAdBeacon() call should result in an exception,
+          // throwing away all beacons and other types of reports.
+          `sendReportTo('${createSellerReportUrl(uuid)}');
+           registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});
+           registerAdBeacon({beacon1: '${createSellerBeaconUrl(uuid)}'});`,
+        reportWinSuccessCondition:
+          'sellerSignals === null',
+        reportWin:
+          `registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});` },
       // expectedReportUrls:
       [`${createBidderBeaconUrl(uuid)}, body: body`],
       // renderUrlOverride:
@@ -299,16 +280,14 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      // reportResult:
-      null,
-      `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
-      // reportWin:
-      null,
-      // Multiple registerAdBeacon() call should result in an exception,
-      // throwing away all beacons and other types of reports.
-      `sendReportTo('${createBidderReportUrl(uuid)}');
-       registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});
-       registerAdBeacon({beacon1: '${createBidderBeaconUrl(uuid)}'});`,
+      { reportResult:
+          `registerAdBeacon({beacon: '${createSellerBeaconUrl(uuid)}'});`,
+        reportWin:
+          // Multiple registerAdBeacon() call should result in an exception,
+          // throwing away all beacons and other types of reports.
+          `sendReportTo('${createBidderReportUrl(uuid)}');
+           registerAdBeacon({beacon: '${createBidderBeaconUrl(uuid)}'});
+           registerAdBeacon({beacon1: '${createBidderBeaconUrl(uuid)}'});` },
       // expectedReportUrls:
       [`${createSellerBeaconUrl(uuid)}, body: body`],
       // renderUrlOverride:

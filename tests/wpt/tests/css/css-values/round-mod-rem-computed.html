@@ -15,16 +15,24 @@ test_math_used('round(10,10)', '10', {type:'number'});
 test_math_used('mod(1,1)', '0', {type:'number'});
 test_math_used('rem(1,1)', '0', {type:'number'});
 
-//Test basic round
+// Test basic round
 test_math_used('calc(round(100,10))', '100', {type:'number'});
 test_math_used('calc(round(up, 101,10))', '110', {type:'number'});
 test_math_used('calc(round(down, 106,10))', '100', {type:'number'});
-test_math_used('calc(round(to-zero,105, 10))', '100', {type:'number'});
-test_math_used('calc(round(to-zero,-105, 10))', '-100', {type:'number'});
-test_math_used('calc(round(-100,10))', '-100', {type:'number'});
-test_math_used('calc(round(up, -103,10))', '-100', {type:'number'});
+test_math_used('calc(round(to-zero, 105, 10))', '100', {type:'number'});
+test_math_used('calc(round(to-zero, -105, 10))', '-100', {type:'number'});
+test_math_used('calc(round(-100, 10))', '-100', {type:'number'});
+test_math_used('calc(round(up, -103, 10))', '-100', {type:'number'});
 
-//Test basic mod/rem
+// Test round when first number is a multiple of the second number.
+for (let number of [0, 5, -5, 10, -10, 20, -20]) {
+    test_math_used(`round(up, ${number}, 5)`, `${number}`, {type:'number'});
+    test_math_used(`round(down, ${number}, 5)`, `${number}`, {type:'number'});
+    test_math_used(`round(nearest, ${number}, 5)`, `${number}`, {type:'number'});
+    test_math_used(`round(to-zero, ${number}, 5)`, `${number}`, {type:'number'});
+}
+
+// Test basic mod/rem
 test_math_used('mod(18,5)', '3', {type:'number'});
 test_math_used('rem(18,5)', '3', {type:'number'});
 test_math_used('mod(-140,-90)', '-50', {type:'number'});
@@ -33,7 +41,7 @@ test_math_used('rem(-18,5)', '-3', {type:'number'});
 test_math_used('mod(140,-90)', '-40', {type:'number'});
 test_math_used('rem(140,-90)', '50', {type:'number'});
 
-//Test basic calculations
+// Test basic calculations
 test_math_used('calc(round(round(100,10), 10))', '100', {type:'number'});
 test_math_used('calc(round(up, round(100,10) + 1,10))', '110', {type:'number'});
 test_math_used('calc(round(down, round(100,10) + 2 * 3,10))', '100', {type:'number'});
@@ -147,4 +155,60 @@ test_math_used('calc(round(1px + 0%, 1px + 0%))', '1px');
 test_math_used('calc(mod(3px + 0%, 2px + 0%))', '1px');
 test_math_used('calc(rem(3px + 0%, 2px + 0%))', '1px');
 
+// In round(A, B), if B is 0, the result is NaN. If A and B are both infinite, the result is NaN.
+// In mod(A, B) or rem(A, B), if B is 0, the result is NaN. If A is infinite, the result is NaN.
+for (let operator of ['round', 'mod', 'rem']) {
+    test_math_used(`${operator}(0, 0)`, 'calc(NaN)', {type: 'number'});
+    test_math_used(`${operator}(-0, 0)`, 'calc(NaN)', {type: 'number'});
+    test_math_used(`${operator}(Infinity, 0)`, 'calc(NaN)', {type: 'number'});
+    test_math_used(`${operator}(-Infinity, 0)`, 'calc(NaN)', {type: 'number'});
+    test_math_used(`${operator}(-4, 0)`, 'calc(NaN)', {type: 'number'});
+    test_math_used(`${operator}(4, 0)`, 'calc(NaN)', {type: 'number'});
+    test_math_used(`${operator}(Infinity, Infinity)`, 'calc(NaN)', {type: 'number'});
+    test_math_used(`${operator}(-Infinity, -Infinity)`, 'calc(NaN)', {type: 'number'});
+    test_math_used(`${operator}(Infinity, -Infinity)`, 'calc(NaN)', {type: 'number'});
+    test_math_used(`${operator}(-Infinity, Infinity)`, 'calc(NaN)', {type: 'number'});
+}
+
+// In round(A, B), if A is infinite but B is finite, the result is the same infinity.
+for (let roundingStrategy of ['up', 'down', 'nearest', 'to-zero']) {
+    test_math_used(`round(${roundingStrategy}, Infinity, 4)`, 'calc(Infinity)', {type: 'number'});
+    test_math_used(`round(${roundingStrategy}, -Infinity, 4)`, 'calc(-Infinity)', {type: 'number'});
+    test_math_used(`round(${roundingStrategy}, Infinity, -4)`, 'calc(Infinity)', {type: 'number'});
+    test_math_used(`round(${roundingStrategy}, -Infinity, -4)`, 'calc(-Infinity)', {type: 'number'});
+}
+
+// If A is finite but B is infinite, the result depends on the <rounding-strategy> and the sign of A:
+// nearest & to-zero: If A is positive or 0⁺, return 0⁺. Otherwise, return 0⁻.
+for (let roundingStrategy of ['nearest', 'to-zero']) {
+    test_math_used(`round(${roundingStrategy}, 0, Infinity)`, '0', {type: 'number'});
+    test_math_used(`round(${roundingStrategy}, 4, Infinity)`, '0', {type: 'number'});
+    test_math_used(`round(${roundingStrategy}, -0, Infinity)`, 'calc(-0)', {type: 'number'});
+    test_math_used(`round(${roundingStrategy}, -4, Infinity)`, 'calc(-0)', {type: 'number'});
+    test_math_used(`round(${roundingStrategy}, 0, -Infinity)`, '0', {type: 'number'});
+    test_math_used(`round(${roundingStrategy}, 4, -Infinity)`, '0', {type: 'number'});
+    test_math_used(`round(${roundingStrategy}, -0, -Infinity)`, 'calc(-0)', {type: 'number'});
+    test_math_used(`round(${roundingStrategy}, -4, -Infinity)`, 'calc(-0)', {type: 'number'});
+}
+
+// up: If A is positive (not zero), return +∞. If A is 0⁺, return 0⁺. Otherwise, return 0⁻.
+test_math_used('round(up, 1, Infinity)', 'calc(Infinity)', {type: 'number'});
+test_math_used('round(up, 0, Infinity)', '0', {type: 'number'});
+test_math_used('round(up, -1, Infinity)', 'calc(-0)', {type: 'number'});
+test_math_used('round(up, 1, -Infinity)', 'calc(Infinity)', {type: 'number'});
+test_math_used('round(up, 0, -Infinity)', '0', {type: 'number'});
+test_math_used('round(up, -1, -Infinity)', 'calc(-0)', {type: 'number'});
+// down: If A is negative (not zero), return −∞. If A is 0⁻, return 0⁻. Otherwise, return 0⁺.
+test_math_used('round(down, 1, Infinity)', 'calc(-0)', {type: 'number'});
+test_math_used('round(down, 0, Infinity)', '0', {type: 'number'});
+test_math_used('round(down, -1, Infinity)', 'calc(-Infinity)', {type: 'number'});
+test_math_used('round(down, 1, -Infinity)', 'calc(-0)', {type: 'number'});
+test_math_used('round(down, 0, -Infinity)', '0', {type: 'number'});
+test_math_used('round(down, -1, -Infinity)', 'calc(-Infinity)', {type: 'number'});
+
+// In mod(A, B) only, if B is infinite and A has opposite sign to B (including an oppositely-signed zero), the result is NaN.
+test_math_used('mod(-0, Infinity)', 'calc(NaN)', {type: 'number'});
+test_math_used('mod(0, -Infinity)', 'calc(NaN)', {type: 'number'});
+test_math_used('mod(-4, Infinity)', 'calc(NaN)', {type: 'number'});
+test_math_used('mod(4, -Infinity)', 'calc(NaN)', {type: 'number'});
 </script>

@@ -70,6 +70,16 @@ def assert_navigation_info(event, expected_navigation_info):
         assert event["url"] == expected_navigation_info["url"]
 
 
+async def get_document_focus(bidi_session, context: Mapping[str, Any]) -> str:
+    result = await bidi_session.script.call_function(
+        function_declaration="""() => {
+        return document.hasFocus();
+    }""",
+        target=ContextTarget(context["context"]),
+        await_promise=False)
+    return result["value"]
+
+
 async def get_visibility_state(bidi_session, context: Mapping[str, Any]) -> str:
     result = await bidi_session.script.call_function(
         function_declaration="""() => {

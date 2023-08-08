@@ -8,25 +8,43 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
+<style>
+/* Use a font with known metrics so we can verify that from-font
+   computes to the expected value from the font. */
+@font-face {
+    font-family: ahem-ex-500;
+    src: url(ahem-ex-500.otf);
+}
+#target {
+    font-family: ahem-ex-500 !important;
+    font-size: 1000px;
+}
+</style>
 </head>
 <body>
 <div id="target"></div>
 <script>
-test_computed_value('font-size-adjust', 'none');
+promise_test(async (t) => {
+  await document.fonts.load("1000px ahem-ex-500");
 
-test_computed_value('font-size-adjust', '0.5');
-test_computed_value('font-size-adjust', 'ex-height 0.5', '0.5');  // default basis 'ex-height' omitted from serialization
-test_computed_value('font-size-adjust', 'cap-height 0.8');
-test_computed_value('font-size-adjust', 'ch-width 0.4');
-test_computed_value('font-size-adjust', 'ic-width 0.9');
-test_computed_value('font-size-adjust', 'ic-height 1.1');
+  test_computed_value('font-size-adjust', 'none');
 
-test_computed_value('font-size-adjust', 'from-font');
-test_computed_value('font-size-adjust', 'ex-height from-font', 'from-font');  // default basis 'ex-height' omitted from serialization
-test_computed_value('font-size-adjust', 'cap-height from-font');
-test_computed_value('font-size-adjust', 'ch-width from-font');
-test_computed_value('font-size-adjust', 'ic-width from-font');
-test_computed_value('font-size-adjust', 'ic-height from-font');
+  test_computed_value('font-size-adjust', '0.5');
+  test_computed_value('font-size-adjust', 'ex-height 0.5', '0.5');  // default basis 'ex-height' omitted from serialization
+  test_computed_value('font-size-adjust', 'cap-height 0.8');
+  test_computed_value('font-size-adjust', 'ch-width 0.4');
+  test_computed_value('font-size-adjust', 'ic-width 0.9');
+  test_computed_value('font-size-adjust', 'ic-height 1.1');
+
+  // The ahem-ex-500 font has both ex-height and cap-height set at 0.5em, and ch-width is 1em.
+  // Ideographic metrics are not available, so fall back to 1em.
+  test_computed_value('font-size-adjust', 'from-font', '0.5');
+  test_computed_value('font-size-adjust', 'ex-height from-font', '0.5');  // default basis 'ex-height' omitted from serialization
+  test_computed_value('font-size-adjust', 'cap-height from-font', 'cap-height 0.5');
+  test_computed_value('font-size-adjust', 'ch-width from-font', 'ch-width 1');
+  test_computed_value('font-size-adjust', 'ic-width from-font', 'ic-width 1');
+  test_computed_value('font-size-adjust', 'ic-height from-font', 'ic-height 1');
+})
 </script>
 </body>
 </html>

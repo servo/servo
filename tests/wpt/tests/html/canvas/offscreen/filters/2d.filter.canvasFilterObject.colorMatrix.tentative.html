@@ -20,33 +20,33 @@ t.step(function() {
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'colorMatrix', values: undefined}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'colorMatrix', values: 'foo'}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'colorMatrix', values: null}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'colorMatrix', values: [1, 2, 3]}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'colorMatrix', values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 'a']}); });
-  assert_throws_js(TypeError, function() { new CanvasFilter({filter: 'colorMatrix', values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, Infinity]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'colorMatrix', values: undefined}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'colorMatrix', values: 'foo'}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'colorMatrix', values: null}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'colorMatrix', values: [1, 2, 3]}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'colorMatrix', values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 'a']}); });
+  assert_throws_js(TypeError, function() { new CanvasFilter({name: 'colorMatrix', values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, Infinity]}); });
   ctx.fillStyle = '#f00';
-  ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'hueRotate', values: 0});
+  ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'hueRotate', values: 0});
   ctx.fillRect(0, 0, 100, 50);
   _assertPixelApprox(canvas, 10,10, 255,0,0,255, 2);
-  ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'hueRotate', values: 90});
+  ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'hueRotate', values: 90});
   ctx.fillRect(0, 0, 100, 50);
   _assertPixelApprox(canvas, 10,10, 0,91,0,255, 2);
-  ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'hueRotate', values: 180});
+  ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'hueRotate', values: 180});
   ctx.fillRect(0, 0, 100, 50);
   _assertPixelApprox(canvas, 10,10, 0,109,109,255, 2);
-  ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'hueRotate', values: 270});
+  ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'hueRotate', values: 270});
   ctx.fillRect(0, 0, 100, 50);
   _assertPixelApprox(canvas, 10,10, 109,18,255,255, 2);
-  ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'saturate', values: 0.5});
+  ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'saturate', values: 0.5});
   ctx.fillRect(0, 0, 100, 50);
   _assertPixelApprox(canvas, 10,10, 155,27,27,255, 2);
   ctx.clearRect(0, 0, 100, 50);
-  ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'luminanceToAlpha'});
+  ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'luminanceToAlpha'});
   ctx.fillRect(0, 0, 100, 50);
   _assertPixelApprox(canvas, 10,10, 0,0,0,54, 2);
-  ctx.filter = new CanvasFilter({filter: 'colorMatrix', values: [
+  ctx.filter = new CanvasFilter({name: 'colorMatrix', values: [
           0, 0, 0, 0, 0,
           1, 1, 1, 1, 0,
           0, 0, 0, 0, 0,

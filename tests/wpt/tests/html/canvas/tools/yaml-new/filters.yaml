@@ -40,11 +40,11 @@
     @assert ctx.filter == 'none';
     ctx.filter = 'blur(5px)';
     @assert ctx.filter == 'blur(5px)';
-    ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: 5});
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
     @assert ctx.filter.toString() == '[object CanvasFilter]';
     ctx.filter = new CanvasFilter([
-        {filter: 'gaussianBlur', stdDeviation: 5},
-        {filter: 'gaussianBlur', stdDeviation: 10}
+        {name: 'gaussianBlur', stdDeviation: 5},
+        {name: 'gaussianBlur', stdDeviation: 10}
     ]);
     @assert ctx.filter.toString() == '[object CanvasFilter]';
     var canvas2 = document.createElement('canvas');
@@ -55,7 +55,7 @@
     @assert ctx.filter == 'blur(5px)';
     ctx.filter = 'none';
     @assert ctx.filter == 'none';
-    ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: 5});
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
     ctx.filter = 'this string is not a filter and should do nothing';
     @assert ctx.filter.toString() == '[object CanvasFilter]';
 
@@ -66,11 +66,11 @@
     @assert ctx.filter == 'none';
     ctx.filter = 'blur(5px)';
     @assert ctx.filter == 'blur(5px)';
-    ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: 5});
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
     @assert ctx.filter.toString() == '[object CanvasFilter]';
     ctx.filter = new CanvasFilter([
-        {filter: 'gaussianBlur', stdDeviation: 5},
-        {filter: 'gaussianBlur', stdDeviation: 10}
+        {name: 'gaussianBlur', stdDeviation: 5},
+        {name: 'gaussianBlur', stdDeviation: 10}
     ]);
     @assert ctx.filter.toString() == '[object CanvasFilter]';
     var canvas2 = new OffscreenCanvas(100, 50);
@@ -81,50 +81,50 @@
     @assert ctx.filter == 'blur(5px)';
     ctx.filter = 'none';
     @assert ctx.filter == 'none';
-    ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: 5});
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
     ctx.filter = 'this string is not a filter and should do nothing';
     @assert ctx.filter.toString() == '[object CanvasFilter]';
 
 - name: 2d.filter.canvasFilterObject.blur.exceptions.tentative
   desc: Test exceptions on CanvasFilter() blur.object
   code: |
-    @assert throws TypeError ctx.filter = new CanvasFilter({filter: 'gaussianBlur'});
-    @assert throws TypeError ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: undefined});
-    @assert throws TypeError ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: 'foo'});
-    @assert throws TypeError ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: [1,2]});
-    @assert throws TypeError ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: NaN});
-    @assert throws TypeError ctx.filter = new CanvasFilter({filter: 'gaussianBlur', stdDeviation: {}});
+    @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur'});
+    @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: undefined});
+    @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 'foo'});
+    @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: [1,2]});
+    @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: NaN});
+    @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: {}});
 
 - name: 2d.filter.canvasFilterObject.colorMatrix.tentative
   desc: Test the functionality of ColorMatrix filters in CanvasFilter objects
   code: |
-    @assert throws TypeError new CanvasFilter({filter: 'colorMatrix', values: undefined});
-    @assert throws TypeError new CanvasFilter({filter: 'colorMatrix', values: 'foo'});
-    @assert throws TypeError new CanvasFilter({filter: 'colorMatrix', values: null});
-    @assert throws TypeError new CanvasFilter({filter: 'colorMatrix', values: [1, 2, 3]});
-    @assert throws TypeError new CanvasFilter({filter: 'colorMatrix', values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 'a']});
-    @assert throws TypeError new CanvasFilter({filter: 'colorMatrix', values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, Infinity]});
+    @assert throws TypeError new CanvasFilter({name: 'colorMatrix', values: undefined});
+    @assert throws TypeError new CanvasFilter({name: 'colorMatrix', values: 'foo'});
+    @assert throws TypeError new CanvasFilter({name: 'colorMatrix', values: null});
+    @assert throws TypeError new CanvasFilter({name: 'colorMatrix', values: [1, 2, 3]});
+    @assert throws TypeError new CanvasFilter({name: 'colorMatrix', values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 'a']});
+    @assert throws TypeError new CanvasFilter({name: 'colorMatrix', values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, Infinity]});
     ctx.fillStyle = '#f00';
-    ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'hueRotate', values: 0});
+    ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'hueRotate', values: 0});
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 10,10 ==~ 255,0,0,255;
-    ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'hueRotate', values: 90});
+    ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'hueRotate', values: 90});
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 10,10 ==~ 0,91,0,255;
-    ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'hueRotate', values: 180});
+    ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'hueRotate', values: 180});
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 10,10 ==~ 0,109,109,255;
-    ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'hueRotate', values: 270});
+    ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'hueRotate', values: 270});
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 10,10 ==~ 109,18,255,255;
-    ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'saturate', values: 0.5});
+    ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'saturate', values: 0.5});
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 10,10 ==~ 155,27,27,255;
     ctx.clearRect(0, 0, 100, 50);
-    ctx.filter = new CanvasFilter({filter: 'colorMatrix', type: 'luminanceToAlpha'});
+    ctx.filter = new CanvasFilter({name: 'colorMatrix', type: 'luminanceToAlpha'});
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 10,10 ==~ 0,0,0,54;
-    ctx.filter = new CanvasFilter({filter: 'colorMatrix', values: [
+    ctx.filter = new CanvasFilter({name: 'colorMatrix', values: [
             0, 0, 0, 0, 0,
             1, 1, 1, 1, 0,
             0, 0, 0, 0, 0,
@@ -145,23 +145,23 @@
 - name: 2d.filter.canvasFilterObject.convolveMatrix.exceptions.tentative
   desc: Test exceptions on CanvasFilter() convolveMatrix
   code: |
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix'});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', divisor: 2});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: null});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: 1});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1, 0], [0]]});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1, 'a'], [0]]});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1, 0], 0]});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1, 0], [0, Infinity]]});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: []});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [1]});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [1, 2, 3, 4]});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[], []]});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1, 2], []]});
-    @assert throws TypeError new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[], [1, 2]]});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix'});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', divisor: 2});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: null});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: 1});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1, 0], [0]]});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1, 'a'], [0]]});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1, 0], 0]});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1, 0], [0, Infinity]]});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: []});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [1]});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [1, 2, 3, 4]});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[], []]});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1, 2], []]});
+    @assert throws TypeError new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[], [1, 2]]});
     // This should not throw an error
-    ctx.filter = new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[]]});
-    ctx.filter = new CanvasFilter({filter: 'convolveMatrix', kernelMatrix: [[1]]});
+    ctx.filter = new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[]]});
+    ctx.filter = new CanvasFilter({name: 'convolveMatrix', kernelMatrix: [[1]]});
 
 - name: 2d.filter.canvasFilterObject.componentTransfer.linear.tentative
   desc: Test pixels on CanvasFilter() componentTransfer with linear type
@@ -177,7 +177,7 @@
 
     const slopes = [0.5, 1.2, -0.2];
     const intercepts = [0.25, 0, 0.5];
-    ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+    ctx.filter = new CanvasFilter({name: 'componentTransfer',
         funcR: {type: 'linear', slope: slopes[0], intercept: intercepts[0]},
         funcG: {type: 'linear', slope: slopes[1], intercept: intercepts[1]},
         funcB: {type: 'linear', slope: slopes[2], intercept: intercepts[2]},
@@ -201,7 +201,7 @@
 - name: 2d.filter.canvasFilterObject.componentTransfer.identity.tentative
   desc: Test pixels on CanvasFilter() componentTransfer with identity type
   code: |
-    ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+    ctx.filter = new CanvasFilter({name: 'componentTransfer',
         funcR: {type: 'identity'},
         funcG: {type: 'identity'},
         funcB: {type: 'identity'},
@@ -236,7 +236,7 @@
     const amplitudes = [2, 1.1, 0.5];
     const exponents = [5, 3, 1];
     const offsets = [0.25, 0, 0.5];
-    ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+    ctx.filter = new CanvasFilter({name: 'componentTransfer',
         funcR: {type: 'gamma', amplitude: amplitudes[0], exponent: exponents[0], offset: offsets[0]},
         funcG: {type: 'gamma', amplitude: amplitudes[1], exponent: exponents[1], offset: offsets[1]},
         funcB: {type: 'gamma', amplitude: amplitudes[2], exponent: exponents[2], offset: offsets[2]},
@@ -281,7 +281,7 @@
     tableValuesR = [0, 0, 1, 1];
     tableValuesG = [2, 0, 0.5, 3];
     tableValuesB = [1, -1, 5, 0];
-    ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+    ctx.filter = new CanvasFilter({name: 'componentTransfer',
         funcR: {type: 'table', tableValues: tableValuesR},
         funcG: {type: 'table', tableValues: tableValuesG},
         funcB: {type: 'table', tableValues: tableValuesB},
@@ -326,7 +326,7 @@
     tableValuesR = [0, 0, 1, 1];
     tableValuesG = [2, 0, 0.5, 3];
     tableValuesB = [1, -1, 5, 0];
-    ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+    ctx.filter = new CanvasFilter({name: 'componentTransfer',
         funcR: {type: 'discrete', tableValues: tableValuesR},
         funcG: {type: 'discrete', tableValues: tableValuesG},
         funcB: {type: 'discrete', tableValues: tableValuesB},
@@ -360,88 +360,88 @@
     ctx.fillStyle = 'crimson';
 
     // Parameter defaults.
-    ctx.filter = new CanvasFilter({filter: 'dropShadow'});
+    ctx.filter = new CanvasFilter({name: 'dropShadow'});
     ctx.fillRect(10, 10, 80, 80);
 
     // All parameters specified.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
        floodColor: 'purple', floodOpacity: 0.7});
     ctx.fillRect(110, 10, 80, 80);
 
     // Named color.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
        floodColor: 'purple'});
     ctx.fillRect(10, 110, 80, 80);
 
     // System color.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
        floodColor: 'LinkText'});
     ctx.fillRect(110, 110, 80, 80);
 
     // Numerical color.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
        floodColor: 'rgba(20, 50, 130, 1)'});
     ctx.fillRect(210, 110, 80, 80);
 
     // Transparent floodColor.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
        floodColor: 'rgba(20, 50, 130, 0.7)'});
     ctx.fillRect(310, 110, 80, 80);
 
     // Transparent floodColor and floodOpacity.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
        floodColor: 'rgba(20, 50, 130, 0.7)', floodOpacity: 0.7});
     ctx.fillRect(410, 110, 80, 80);
 
     // No blur.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 0,
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 0,
        floodColor: 'purple'});
     ctx.fillRect(10, 210, 80, 80);
 
     // Single float blur.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
        floodColor: 'purple'});
     ctx.fillRect(110, 210, 80, 80);
 
     // Single negative float blur.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: -5,
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: -5,
        floodColor: 'purple'});
     ctx.fillRect(210, 210, 80, 80);
 
     // Two floats (X&Y) blur.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: [3, 5],
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: [3, 5],
        floodColor: 'purple'});
     ctx.fillRect(310, 210, 80, 80);
 
     // Two negative floats (X&Y) blur.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: [-3, -5],
+      {name: 'dropShadow', dx: 9, dy: 12, stdDeviation: [-3, -5],
        floodColor: 'purple'});
     ctx.fillRect(410, 210, 80, 80);
 
     // Degenerate parameter values.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: [-5], dy: [], stdDeviation: null,
+      {name: 'dropShadow', dx: [-5], dy: [], stdDeviation: null,
        floodColor: 'purple', floodOpacity: [2]});
     ctx.fillRect(10, 310, 80, 80);
 
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: null, dy: '5', stdDeviation: [[-5], ['3']],
+      {name: 'dropShadow', dx: null, dy: '5', stdDeviation: [[-5], ['3']],
        floodColor: 'purple', floodOpacity: '0.8'});
     ctx.fillRect(110, 310, 80, 80);
 
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: true, dy: ['10'], stdDeviation: false,
+      {name: 'dropShadow', dx: true, dy: ['10'], stdDeviation: false,
        floodColor: 'purple', floodOpacity: ['0.4']});
     ctx.fillRect(210, 310, 80, 80);
   html_reference: |
@@ -501,32 +501,32 @@
   desc: Test exceptions on CanvasFilter() dropShadow object
   code: |
     @unroll @assert new CanvasFilter({\-
-        filter: 'dropShadow', \-
+        name: 'dropShadow', \-
         <dx | dy | floodOpacity>: \-
         <10 | -1 | 0.5 | null | true | false | [] | [20] | '30'>});
     @unroll @assert new CanvasFilter({\-
-        filter: 'dropShadow', \-
+        name: 'dropShadow', \-
         <stdDeviation>: \-
         <10 | -1 | 0.5 | null | true | false | [] | [20] | '30' | \-
          [10, -1] | [0.5, null] | [true, false] | [[], [20]] | \-
          ['30', ['40']]>});
     @unroll @assert new CanvasFilter({\-
-        filter: 'dropShadow', \-
+        name: 'dropShadow', \-
         <floodColor>: \-
         <'red' | 'canvas' | 'rgba(4, -3, 0.5, 1)' | '#aabbccdd' | '#abcd'>});
 
     @unroll @assert throws TypeError new CanvasFilter({\-
-        filter: 'dropShadow', \-
+        name: 'dropShadow', \-
         <dx | dy | floodOpacity>: \-
         <NaN | Infinity | -Infinity | undefined | 'test' | {} | [1, 2]>});
     @unroll @assert throws TypeError new CanvasFilter({\-
-        filter: 'dropShadow', \-
+        name: 'dropShadow', \-
         <stdDeviation>: \-
         <NaN | Infinity | -Infinity | undefined | 'test' | {} | [1, 2, 3] | \-
          [1, NaN] | [1, Infinity] | [1, -Infinity] | [1, undefined] | \-
          [1, 'test'] | [1, {}] | [1, [2, 3]]>});
     @unroll @assert throws TypeError new CanvasFilter({\-
-        filter: 'dropShadow', \-
+        name: 'dropShadow', \-
         <floodColor>: \-
         <'test' | 'rgba(NaN, 3, 2, 1)' | 10 | undefined | null | NaN>});
 
@@ -629,11 +629,11 @@
     ]
 
     for (testCase of errorTestCases) {
-      const filterOptions = {...{filter: 'turbulence'}, ...testCase};
+      const filterOptions = {...{name: 'turbulence'}, ...testCase};
       @assert throws TypeError new CanvasFilter(filterOptions);
     }
 
     for (testCase of workingTestCases) {
-      const filterOptions = {...{filter: 'turbulence'}, ...testCase};
+      const filterOptions = {...{name: 'turbulence'}, ...testCase};
       @assert new CanvasFilter(filterOptions) != null;
     }

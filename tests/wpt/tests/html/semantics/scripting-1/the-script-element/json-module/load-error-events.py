@@ -7,8 +7,8 @@ def main(request, response):
 
     status = 200
     if test.find(b'_load') >= 0:
-      content = b'import "./module.json" assert { type: "json"}; %s.executed = true;' % test
+      content = b'import "./module.json" with { type: "json"}; %s.executed = true;' % test
     else:
-      content = b'import "./not_found.json" assert { type: "json"}; %s.test.step(function() { assert_unreached("404 script should not be executed"); });' % test
+      content = b'import "./not_found.json" with { type: "json"}; %s.test.step(function() { assert_unreached("404 script should not be executed"); });' % test
 
     return status, headers, content

@@ -25,7 +25,7 @@ promise_test(function(t) {
   mpath.setAttributeNS(XLINKNS, 'xlink:href', '#MyPath2');
   assert_equals(mpath.href.baseVal, '#MyPath1');
 
-  return waitEvent(animateMotion, 'begin').then(function() {
+  return waitEvent(animateMotion, 'beginEvent').then(function() {
     svg.pauseAnimations();
     svg.setCurrentTime(1);
     var ctm = rect.getCTM();
@@ -53,7 +53,7 @@ promise_test(function(t) {
   mpath.setAttribute('href', '#MyPath1');
   mpath.setAttributeNS(XLINKNS, 'xlink:href', '#MyPath2');
 
-  return waitEvent(animateMotion, 'begin').then(function() {
+  return waitEvent(animateMotion, 'beginEvent').then(function() {
     svg.pauseAnimations();
     svg.setCurrentTime(5);
     var ctm = rect.getCTM();
@@ -83,7 +83,7 @@ promise_test(function(t) {
   mpath.setAttribute('href', '#MyPath1');
   mpath.setAttributeNS(XLINKNS, 'xlink:href', '#MyPath2');
 
-  return waitEvent(animateMotion, 'begin').then(function() {
+  return waitEvent(animateMotion, 'beginEvent').then(function() {
     svg.pauseAnimations();
     svg.setCurrentTime(5);
     var ctm = rect.getCTM();

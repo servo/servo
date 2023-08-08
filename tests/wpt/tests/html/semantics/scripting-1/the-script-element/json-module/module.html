@@ -8,7 +8,7 @@
 const t = async_test();
 </script>
 <script type="module" onerror="t.step(() => assert_unreached(event))">
-import v from "./module.json" assert { type: "json" };
+import v from "./module.json" with { type: "json" };
 t.step(() => {
   assert_equals(typeof v, "object");
   assert_array_equals(Object.keys(v), ["test"]);
