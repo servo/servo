@@ -30,8 +30,6 @@ log = { workspace = true }
 servo-media = { git = "https://github.com/servo/media" }
 sparkle = { workspace = true }
 surfman = { workspace = true }
-surfman-chains = { workspace = true }
-surfman-chains-api = { workspace = true }
 webxr = { git = "https://github.com/servo/webxr", features = ["glwindow"] }
 
 [build-dependencies]

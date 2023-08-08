@@ -56,19 +56,11 @@ use std::rc::Rc;
 use std::slice;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use surfman;
-use surfman::Adapter;
-use surfman::Connection;
-use surfman::Context;
-use surfman::ContextAttributeFlags;
-use surfman::ContextAttributes;
-use surfman::Device;
-use surfman::GLVersion;
-use surfman::SurfaceAccess;
-use surfman::SurfaceInfo;
-use surfman::SurfaceType;
-use surfman_chains::SwapChains;
-use surfman_chains_api::SwapChainsAPI;
+use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
+use surfman::{
+    self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,
+    GLVersion, SurfaceAccess, SurfaceInfo, SurfaceType,
+};
 use webrender_api::{
     units::DeviceIntSize, DirtyRect, DocumentId, ExternalImageData, ExternalImageId,
     ExternalImageType, ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
@@ -829,9 +821,9 @@ impl WebGLThread {
                     &mut self.device,
                     &mut data.ctx,
                     if data.attributes.preserve_drawing_buffer {
-                        surfman_chains::PreserveBuffer::Yes(&*data.gl)
+                        PreserveBuffer::Yes(&*data.gl)
                     } else {
-                        surfman_chains::PreserveBuffer::No
+                        PreserveBuffer::No
                     },
                 )
                 .unwrap();

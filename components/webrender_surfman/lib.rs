@@ -9,24 +9,12 @@ use euclid::default::Size2D;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
-use surfman::Adapter;
-use surfman::Connection;
-use surfman::Context;
-use surfman::ContextAttributeFlags;
-use surfman::ContextAttributes;
-use surfman::Device;
-use surfman::Error;
-use surfman::GLApi;
-use surfman::GLVersion;
-use surfman::NativeContext;
-use surfman::NativeDevice;
-use surfman::NativeWidget;
-use surfman::Surface;
-use surfman::SurfaceAccess;
-use surfman::SurfaceInfo;
-use surfman::SurfaceTexture;
-use surfman::SurfaceType;
-use surfman_chains::SwapChain;
+use surfman::chains::{PreserveBuffer, SwapChain};
+use surfman::{
+    Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, Error, GLApi,
+    GLVersion, NativeContext, NativeDevice, NativeWidget, Surface, SurfaceAccess, SurfaceInfo,
+    SurfaceTexture, SurfaceType,
+};
 
 /// A bridge between webrender and surfman
 // TODO: move this into a different crate so that script doesn't depend on surfman
@@ -150,7 +138,7 @@ impl WebrenderSurfman {
         let ref mut device = self.0.device.borrow_mut();
         let ref mut context = self.0.context.borrow_mut();
         if let Some(ref swap_chain) = self.0.swap_chain {
-            return swap_chain.swap_buffers(device, context, surfman_chains::PreserveBuffer::No);
+            return swap_chain.swap_buffers(device, context, PreserveBuffer::No);
         }
         let mut surface = device.unbind_surface_from_context(context)?.unwrap();
         device.present_surface(context, &mut surface)?;

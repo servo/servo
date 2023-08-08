@@ -39,10 +39,7 @@ servo_config = { path = "../config" }
 sparkle = { workspace = true }
 style = { path = "../style" }
 style_traits = { path = "../style_traits" }
-# NOTE: the sm-angle feature only enables angle on windows, not other platforms!
-surfman = { workspace = true, features = ["sm-angle","sm-angle-default"] }
-surfman-chains = { workspace = true }
-surfman-chains-api = { workspace = true }
+surfman = { workspace = true }
 time = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

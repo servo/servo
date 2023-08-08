@@ -10,12 +10,8 @@ use fnv::FnvHashMap;
 use sparkle::gl::GlType;
 use std::default::Default;
 use std::sync::{Arc, Mutex};
-use surfman::Device;
-use surfman::SurfaceInfo;
-use surfman::SurfaceTexture;
-use surfman_chains::SwapChains;
-use surfman_chains_api::SwapChainAPI;
-use surfman_chains_api::SwapChainsAPI;
+use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
+use surfman::{Device, SurfaceInfo, SurfaceTexture};
 use webrender_api::{DocumentId, RenderApiSender};
 use webrender_surfman::WebrenderSurfman;
 use webrender_traits::{
