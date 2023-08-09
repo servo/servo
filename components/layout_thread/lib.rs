@@ -41,10 +41,9 @@ use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
 use layout::query::{
     process_client_rect_query, process_content_box_request, process_content_boxes_request,
-    process_element_inner_text_query, process_node_scroll_area_request,
-    process_node_scroll_id_request, process_offset_parent_query,
-    process_resolved_font_style_request, process_resolved_style_request, LayoutRPCImpl,
-    LayoutThreadData,
+    process_element_inner_text_query, process_node_scroll_id_request, process_offset_parent_query,
+    process_resolved_font_style_request, process_resolved_style_request,
+    process_scrolling_area_request, LayoutRPCImpl, LayoutThreadData,
 };
 use layout::traversal::{
     construct_flows_at_ancestors, ComputeStackingRelativePositions, PreorderFlowTraversal,
@@ -492,7 +491,7 @@ impl LayoutThread {
                 content_boxes_response: Vec::new(),
                 client_rect_response: Rect::zero(),
                 scroll_id_response: None,
-                scroll_area_response: Rect::zero(),
+                scrolling_area_response: Rect::zero(),
                 resolved_style_response: String::new(),
                 resolved_font_style_response: None,
                 offset_parent_response: OffsetParentResponse::empty(),
@@ -1121,8 +1120,8 @@ impl LayoutThread {
                         &QueryMsg::ClientRectQuery(_) => {
                             rw_data.client_rect_response = Rect::zero();
                         },
-                        &QueryMsg::NodeScrollGeometryQuery(_) => {
-                            rw_data.scroll_area_response = Rect::zero();
+                        &QueryMsg::ScrollingAreaQuery(_) => {
+                            rw_data.scrolling_area_response = Rect::zero();
                         },
                         &QueryMsg::NodeScrollIdQuery(_) => {
                             rw_data.scroll_id_response = None;
@@ -1431,9 +1430,9 @@ impl LayoutThread {
                 &QueryMsg::ClientRectQuery(node) => {
                     rw_data.client_rect_response = process_client_rect_query(node, root_flow);
                 },
-                &QueryMsg::NodeScrollGeometryQuery(node) => {
-                    rw_data.scroll_area_response =
-                        process_node_scroll_area_request(node, root_flow);
+                &QueryMsg::ScrollingAreaQuery(node) => {
+                    rw_data.scrolling_area_response =
+                        process_scrolling_area_request(node, root_flow);
                 },
                 &QueryMsg::NodeScrollIdQuery(node) => {
                     let node: ServoLayoutNode<LayoutData> = unsafe { ServoLayoutNode::new(&node) };

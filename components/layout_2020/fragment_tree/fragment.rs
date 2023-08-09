@@ -167,6 +167,15 @@ impl Fragment {
         }
     }
 
+    pub fn scrolling_area(&self, containing_block: &PhysicalRect<Length>) -> PhysicalRect<Length> {
+        match self {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
+                .scrollable_overflow(containing_block)
+                .translate(containing_block.origin.to_vector()),
+            _ => self.scrollable_overflow(containing_block),
+        }
+    }
+
     pub fn scrollable_overflow(
         &self,
         containing_block: &PhysicalRect<Length>,

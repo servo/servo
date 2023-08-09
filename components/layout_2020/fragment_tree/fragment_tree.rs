@@ -172,36 +172,26 @@ impl FragmentTree {
         .unwrap_or_else(Rect::zero)
     }
 
-    pub fn get_scroll_area_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
-        let mut scroll_area: PhysicalRect<Length> = PhysicalRect::zero();
+    pub fn get_scrolling_area_for_viewport(&self) -> PhysicalRect<Length> {
+        let mut scroll_area = self.initial_containing_block;
+        for fragment in self.root_fragments.iter() {
+            scroll_area = fragment
+                .borrow()
+                .scrolling_area(&self.initial_containing_block)
+                .union(&scroll_area);
+        }
+        scroll_area
+    }
+
+    pub fn get_scrolling_area_for_node(&self, requested_node: OpaqueNode) -> PhysicalRect<Length> {
         let tag_to_find = Tag::new(requested_node);
-        self.find(|fragment, _, containing_block| {
-            if fragment.tag() != Some(tag_to_find) {
-                return None::<()>;
+        let scroll_area = self.find(|fragment, _, containing_block| {
+            if fragment.tag() == Some(tag_to_find) {
+                Some(fragment.scrolling_area(&containing_block))
+            } else {
+                None
             }
-
-            scroll_area = match fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
-                    .scrollable_overflow(&containing_block)
-                    .translate(containing_block.origin.to_vector()),
-                Fragment::Text(_) |
-                Fragment::AbsoluteOrFixedPositioned(_) |
-                Fragment::Image(_) |
-                Fragment::IFrame(_) |
-                Fragment::Anonymous(_) => return None,
-            };
-            None::<()>
         });
-
-        Rect::new(
-            Point2D::new(
-                scroll_area.origin.x.px() as i32,
-                scroll_area.origin.y.px() as i32,
-            ),
-            Size2D::new(
-                scroll_area.size.width.px() as i32,
-                scroll_area.size.height.px() as i32,
-            ),
-        )
+        scroll_area.unwrap_or_else(PhysicalRect::<Length>::zero)
     }
 }

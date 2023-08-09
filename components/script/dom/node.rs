@@ -16,7 +16,7 @@ use app_units::Au;
 use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
-use euclid::default::{Point2D, Rect, Size2D, Vector2D};
+use euclid::default::{Rect, Size2D, Vector2D};
 use html5ever::{namespace_url, ns, Namespace, Prefix, QualName};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -808,38 +808,42 @@ impl Node {
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollheight
     pub fn scroll_area(&self) -> Rect<i32> {
-        // Step 1
+        // "1. Let document be the element’s node document.""
         let document = self.owner_doc();
-        // Step 3
+
+        // "2. If document is not the active document, return zero and terminate these steps.""
+        if !document.is_active() {
+            return Rect::zero();
+        }
+
+        // "3. Let viewport width/height be the width of the viewport excluding the width/height of the
+        // scroll bar, if any, or zero if there is no viewport."
         let window = document.window();
+        let viewport = Size2D::new(window.InnerWidth(), window.InnerHeight());
 
-        let html_element = document.GetDocumentElement();
-
+        let in_quirks_mode = document.quirks_mode() == QuirksMode::Quirks;
+        let is_root = self.downcast::<Element>().map_or(false, |e| e.is_root());
         let is_body_element = self
             .downcast::<HTMLBodyElement>()
             .map_or(false, |e| e.is_the_html_body_element());
 
-        let scroll_area = window.scroll_area_query(self);
-
-        match (
-            document != window.Document(),
-            is_body_element,
-            document.quirks_mode(),
-            html_element.as_deref() == self.downcast::<Element>(),
-        ) {
-            // Step 2 && Step 5
-            (true, _, _, _) | (_, false, QuirksMode::Quirks, true) => Rect::zero(),
-            // Step 6 && Step 7
-            (false, false, _, true) | (false, true, QuirksMode::Quirks, _) => Rect::new(
-                Point2D::new(window.ScrollX(), window.ScrollY()),
-                Size2D::new(
-                    cmp::max(window.InnerWidth(), scroll_area.size.width),
-                    cmp::max(window.InnerHeight(), scroll_area.size.height),
-                ),
-            ),
-            // Step 9
-            _ => scroll_area,
+        // "4. If the element is the root element and document is not in quirks mode
+        // return max(viewport scrolling area width/height, viewport width/height)."
+        // "5. If the element is the body element, document is in quirks mode and the
+        // element is not potentially scrollable, return max(viewport scrolling area
+        // width, viewport width)."
+        if (is_root && !in_quirks_mode) || (is_body_element && in_quirks_mode) {
+            let viewport_scrolling_area = window.scrolling_area_query(None);
+            return Rect::new(
+                viewport_scrolling_area.origin,
+                viewport_scrolling_area.size.max(viewport),
+            );
         }
+
+        // "6. If the element does not have any associated box return zero and terminate
+        // these steps."
+        // "7. Return the width of the element’s scrolling area."
+        window.scrolling_area_query(Some(self))
     }
 
     pub fn scroll_offset(&self) -> Vector2D<f32> {

@@ -76,7 +76,7 @@ pub struct LayoutThreadData {
     pub scroll_id_response: Option<ExternalScrollId>,
 
     /// A queued response for the scroll {top, left, width, height} of a node in pixels.
-    pub scroll_area_response: Rect<i32>,
+    pub scrolling_area_response: Rect<i32>,
 
     /// A queued response for the resolved style property of an element.
     pub resolved_style_response: String,
@@ -158,9 +158,9 @@ impl LayoutRPC for LayoutRPCImpl {
         }
     }
 
-    fn node_scroll_area(&self) -> NodeGeometryResponse {
+    fn scrolling_area(&self) -> NodeGeometryResponse {
         NodeGeometryResponse {
-            client_rect: self.0.lock().unwrap().scroll_area_response,
+            client_rect: self.0.lock().unwrap().scrolling_area_response,
         }
     }
 
@@ -730,10 +730,21 @@ pub fn process_node_scroll_id_request<'dom>(
 }
 
 /// https://drafts.csswg.org/cssom-view/#scrolling-area
-pub fn process_node_scroll_area_request(
-    requested_node: OpaqueNode,
+pub fn process_scrolling_area_request(
+    requested_node: Option<OpaqueNode>,
     layout_root: &mut dyn Flow,
 ) -> Rect<i32> {
+    let requested_node = match requested_node {
+        Some(node) => node,
+        None => {
+            let rect = layout_root.base().overflow.scroll;
+            return Rect::new(
+                Point2D::new(rect.origin.x.to_nearest_px(), rect.origin.y.to_nearest_px()),
+                Size2D::new(rect.width().ceil_to_px(), rect.height().ceil_to_px()),
+            );
+        },
+    };
+
     let mut iterator = UnioningFragmentScrollAreaIterator::new(requested_node);
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     match iterator.overflow_direction {

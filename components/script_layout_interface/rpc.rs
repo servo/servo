@@ -27,7 +27,7 @@ pub trait LayoutRPC {
     /// Requests the geometry of this node. Used by APIs such as `clientTop`.
     fn node_geometry(&self) -> NodeGeometryResponse;
     /// Requests the scroll geometry of this node. Used by APIs such as `scrollTop`.
-    fn node_scroll_area(&self) -> NodeGeometryResponse;
+    fn scrolling_area(&self) -> NodeGeometryResponse;
     /// Requests the scroll id of this node. Used by APIs such as `scrollTop`
     fn node_scroll_id(&self) -> NodeScrollIdResponse;
     /// Query layout for the resolved value of a given CSS property
