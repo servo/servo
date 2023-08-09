@@ -21,7 +21,6 @@ fn filename(file: Resource) -> &'static str {
         Resource::BluetoothBlocklist => "gatt_blocklist.txt",
         Resource::DomainList => "public_domains.txt",
         Resource::HstsPreloadList => "hsts_preload.json",
-        Resource::SSLCertificates => "certs",
         Resource::BadCertHTML => "badcert.html",
         Resource::NetErrorHTML => "neterror.html",
         Resource::UserAgentCSS => "user-agent.css",
