@@ -26,7 +26,7 @@ Use `--devtools 6000` to start the devtools server on port 6000.
 
 e.g.
 ```
-./mach run -d --devtools 6000 https://servo.org
+./mach run -d --devtools=6000 https://servo.org
 ```
 
 To connect to the server, follow [this guide](https://developer.mozilla.org/en-US/docs/Tools/Remote_Debugging/Debugging_Firefox_Desktop#Connect).
