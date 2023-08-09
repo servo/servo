@@ -8,7 +8,7 @@ use crate::style_ext::ComputedValuesExt;
 use style::logical_geometry::WritingMode;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage, Percentage};
+use style::values::computed::Length;
 use style::Zero;
 
 #[derive(Clone, Debug, Serialize)]
@@ -46,19 +46,6 @@ impl ContentSizes {
             max_content: self.max_content + other.max_content,
         }
     }
-
-    /// Relevant to outer intrinsic inline sizes, for percentages from padding and margin.
-    pub fn adjust_for_pbm_percentages(&mut self, percentages: Percentage) {
-        // " Note that this may yield an infinite result, but undefined results
-        //   (zero divided by zero) must be treated as zero. "
-        if self.max_content.px() == 0. {
-            // Avoid a potential `NaN`.
-            // Zero is already the result we want regardless of `denominator`.
-        } else {
-            let denominator = (1. - percentages.0).max(0.);
-            self.max_content = Length::new(self.max_content.px() / denominator);
-        }
-    }
 }
 
 impl ContentSizes {
@@ -73,34 +60,23 @@ pub(crate) fn outer_inline(
     containing_block_writing_mode: WritingMode,
     get_content_size: impl FnOnce() -> ContentSizes,
 ) -> ContentSizes {
-    let (mut outer, percentages) =
-        outer_inline_and_percentages(style, containing_block_writing_mode, get_content_size);
-    outer.adjust_for_pbm_percentages(percentages);
-    outer
-}
-
-pub(crate) fn outer_inline_and_percentages(
-    style: &ComputedValues,
-    containing_block_writing_mode: WritingMode,
-    get_content_size: impl FnOnce() -> ContentSizes,
-) -> (ContentSizes, Percentage) {
     let padding = style.padding(containing_block_writing_mode);
     let border = style.border_width(containing_block_writing_mode);
     let margin = style.margin(containing_block_writing_mode);
 
-    let mut pbm_percentages = Percentage::zero();
-    let mut decompose = |x: &LengthPercentage| {
-        pbm_percentages += x.to_percentage().unwrap_or_else(Zero::zero);
-        x.to_length().unwrap_or_else(Zero::zero)
-    };
-    let pb_lengths =
-        border.inline_sum() + decompose(padding.inline_start) + decompose(padding.inline_end);
-    let mut m_lengths = Length::zero();
+    // For margins and paddings, a cyclic percentage is resolved against zero
+    // for determining intrinsic size contributions.
+    // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
+    let zero = Length::zero();
+    let pb_lengths = border.inline_sum() +
+        padding.inline_start.percentage_relative_to(zero) +
+        padding.inline_end.percentage_relative_to(zero);
+    let mut m_lengths = zero;
     if let Some(m) = margin.inline_start.non_auto() {
-        m_lengths += decompose(m)
+        m_lengths += m.percentage_relative_to(zero)
     }
     if let Some(m) = margin.inline_end.non_auto() {
-        m_lengths += decompose(m)
+        m_lengths += m.percentage_relative_to(zero)
     }
 
     let box_sizing = style.get_position().box_sizing;
@@ -114,7 +90,7 @@ pub(crate) fn outer_inline_and_percentages(
         .min_box_size(containing_block_writing_mode)
         .inline
         // Percentages for 'min-width' are treated as zero
-        .percentage_relative_to(Length::zero())
+        .percentage_relative_to(zero)
         // FIXME: 'auto' is not zero in Flexbox
         .auto_is(Length::zero);
     let max_inline_size = style
@@ -145,6 +121,5 @@ pub(crate) fn outer_inline_and_percentages(
         }),
     };
 
-    let outer = border_box_sizes.map(|s| s + m_lengths);
-    (outer, pbm_percentages)
+    border_box_sizes.map(|s| s + m_lengths)
 }
