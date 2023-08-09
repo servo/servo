@@ -109,6 +109,8 @@ pub enum ConstellationMsg {
     ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
+    /// Compositing done, but external code needs to present.
+    ReadyToPresent(TopLevelBrowsingContextId),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -142,6 +144,7 @@ impl fmt::Debug for ConstellationMsg {
             ChangeBrowserVisibility(..) => "ChangeBrowserVisibility",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
+            ReadyToPresent(..) => "ReadyToPresent",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

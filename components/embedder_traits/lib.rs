@@ -212,6 +212,8 @@ pub enum EmbedderMsg {
     MediaSessionEvent(MediaSessionEvent),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
+    /// Compositing done, but external code needs to present.
+    ReadyToPresent,
 }
 
 impl Debug for EmbedderMsg {
@@ -248,6 +250,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
+            EmbedderMsg::ReadyToPresent => write!(f, "ReadyToPresent"),
         }
     }
 }

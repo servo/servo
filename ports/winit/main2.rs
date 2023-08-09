@@ -14,6 +14,7 @@ mod app;
 mod backtrace;
 mod browser;
 mod crash_handler;
+mod egui_glue;
 mod embedder;
 mod events_loop;
 mod headed_window;
