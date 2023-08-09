@@ -13,7 +13,7 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin, FloatFragment};
 use crate::geom::flow_relative::{Rect, Vec2};
 use crate::positioned::PositioningContext;
-use crate::style_ext::{ComputedValuesExt, DisplayInside};
+use crate::style_ext::{ComputedValuesExt, DisplayInside, PaddingBorderMargin};
 use crate::ContainingBlock;
 use euclid::num::Zero;
 use servo_arc::Arc;
@@ -85,6 +85,11 @@ pub(crate) struct PlacementAmongFloats<'a> {
     /// The minimum position in the block direction for the placement. Objects should not
     /// be placed before this point.
     ceiling: Length,
+    /// The inline position where the object would be if there were no floats. The object
+    /// can be placed after it due to floats, but not before it.
+    min_inline_start: Length,
+    /// The maximum inline position that the object can attain when avoiding floats.
+    max_inline_end: Length,
 }
 
 impl<'a> PlacementAmongFloats<'a> {
@@ -92,18 +97,26 @@ impl<'a> PlacementAmongFloats<'a> {
         float_context: &'a FloatContext,
         ceiling: Length,
         object_size: Vec2<Length>,
+        pbm: &PaddingBorderMargin,
     ) -> Self {
         assert!(!ceiling.px().is_infinite());
         let mut current_band = float_context.bands.find(ceiling).unwrap();
         current_band.top = ceiling;
         let current_bands = VecDeque::from([current_band]);
         let next_band = float_context.bands.find_next(ceiling).unwrap();
+        let min_inline_start = float_context.containing_block_info.inline_start +
+            pbm.margin.inline_start.auto_is(Length::zero);
+        let max_inline_end = (float_context.containing_block_info.inline_end -
+            pbm.margin.inline_end.auto_is(Length::zero))
+        .max(min_inline_start + object_size.inline);
         PlacementAmongFloats {
             float_context,
             current_bands,
             next_band,
             object_size,
             ceiling,
+            min_inline_start,
+            max_inline_end,
         }
     }
 
@@ -147,8 +160,8 @@ impl<'a> PlacementAmongFloats<'a> {
     /// Find the start and end of the inline space provided by the current set of bands
     /// under consideration.
     fn calculate_inline_start_and_end(&self) -> (Length, Length) {
-        let mut max_inline_start = self.float_context.containing_block_info.inline_start;
-        let mut min_inline_end = self.float_context.containing_block_info.inline_end;
+        let mut max_inline_start = self.min_inline_start;
+        let mut min_inline_end = self.max_inline_end;
         for band in self.current_bands.iter() {
             if let Some(left) = band.left {
                 max_inline_start = max_inline_start.max(left);
@@ -200,15 +213,14 @@ impl<'a> PlacementAmongFloats<'a> {
         // cleared all floats.
         Rect {
             start_corner: Vec2 {
-                inline: self.float_context.containing_block_info.inline_start,
+                inline: self.min_inline_start,
                 block: self
                     .ceiling
                     .max(self.float_context.clear_left_position)
                     .max(self.float_context.clear_right_position),
             },
             size: Vec2 {
-                inline: self.float_context.containing_block_info.inline_end -
-                    self.float_context.containing_block_info.inline_start,
+                inline: self.max_inline_end - self.min_inline_start,
                 block: Length::new(f32::INFINITY),
             },
         }
@@ -1067,34 +1079,35 @@ impl SequentialLayoutState {
 
     /// A block that is replaced or establishes an independent formatting context can't overlap floats,
     /// it has to be placed next to them, and may get some clearance if there isn't enough space.
-    /// Given such a block with the provided 'clear', 'block_start_margin' and 'object_size',
+    /// Given such a block with the provided 'clear', 'block_start_margin', 'pbm' and 'object_size',
     /// this method finds an area that is big enough and doesn't overlap floats.
     /// It returns a tuple with:
     /// - The clearance amount (if any), which includes both the effect of 'clear'
     ///   and the extra space to avoid floats.
-    /// - The inline offset from the containing block that we need to avoid floats.
+    /// - The Rect in which the block can be placed without overlapping floats.
     pub(crate) fn calculate_clearance_and_inline_adjustment(
         &self,
         clear: Clear,
         block_start_margin: &CollapsedMargin,
+        pbm: &PaddingBorderMargin,
         object_size: Vec2<Length>,
-    ) -> (Option<Length>, Length) {
+    ) -> (Option<Length>, Rect<Length>) {
         // First compute the clear position required by the 'clear' property.
         // The code below may then add extra clearance when the element can't fit
         // next to floats not covered by 'clear'.
         let clear_position = self.calculate_clear_position(clear, &block_start_margin);
         let ceiling =
             clear_position.unwrap_or_else(|| self.position_without_clearance(&block_start_margin));
-        let mut placement = PlacementAmongFloats::new(&self.floats, ceiling, object_size);
-        let position = placement.place().start_corner;
+        let mut placement = PlacementAmongFloats::new(&self.floats, ceiling, object_size, pbm);
+        let placement_rect = placement.place();
+        let position = &placement_rect.start_corner;
         let has_clearance = clear_position.is_some() || position.block > ceiling;
         let clearance = if has_clearance {
             Some(position.block - self.position_with_zero_clearance(&block_start_margin))
         } else {
             None
         };
-        let inline_adjustment = position.inline - self.floats.containing_block_info.inline_start;
-        (clearance, inline_adjustment)
+        (clearance, placement_rect)
     }
 
     /// Adds a new adjoining margin.
