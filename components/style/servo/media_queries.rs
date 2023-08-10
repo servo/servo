@@ -9,7 +9,6 @@ use crate::custom_properties::CssEnvironment;
 use crate::font_metrics::FontMetrics;
 use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
 use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
-use crate::media_queries::media_feature_expression::RangeOrOperator;
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::values::computed::CSSPixelLength;
@@ -235,16 +234,8 @@ impl Device {
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#width
-fn eval_width(
-    device: &Device,
-    value: Option<CSSPixelLength>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
-    RangeOrOperator::evaluate(
-        range_or_operator,
-        value.map(Au::from),
-        device.au_viewport_size().width,
-    )
+fn eval_width(device: &Device) -> CSSPixelLength {
+    CSSPixelLength::new(device.au_viewport_size().width.to_f32_px())
 }
 
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
