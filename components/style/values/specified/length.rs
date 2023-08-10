@@ -290,6 +290,7 @@ pub enum ViewportVariant {
 }
 
 /// https://drafts.csswg.org/css-values/#viewport-relative-units
+#[derive(PartialEq)]
 enum ViewportUnit {
     /// *vw units.
     Vw,
@@ -570,43 +571,21 @@ impl ViewportPercentageLength {
     /// Computes the given viewport-relative length for the given viewport size.
     pub fn to_computed_value(&self, context: &Context) -> CSSPixelLength {
         let (variant, unit, factor) = self.unpack();
+        let size = context.viewport_size_for_viewport_unit_resolution(variant);
         let length = match unit {
-            ViewportUnit::Vw => context.viewport_size_for_viewport_unit_resolution(variant).width,
-            ViewportUnit::Vh => context.viewport_size_for_viewport_unit_resolution(variant).height,
-            ViewportUnit::Vmin => {
-                let base_size =
-                    context.viewport_size_for_viewport_unit_resolution(variant);
-                cmp::min(base_size.width, base_size.height)
-            },
-            ViewportUnit::Vmax => {
-                let base_size =
-                    context.viewport_size_for_viewport_unit_resolution(variant);
-                cmp::max(base_size.width, base_size.height)
-            },
-            ViewportUnit::Vb => {
-                let base_size =
-                    context.viewport_size_for_viewport_unit_resolution(variant);
+            ViewportUnit::Vw => size.width,
+            ViewportUnit::Vh => size.height,
+            ViewportUnit::Vmin => cmp::min(size.width, size.height),
+            ViewportUnit::Vmax => cmp::max(size.width, size.height),
+            ViewportUnit::Vi | ViewportUnit::Vb => {
                 context
                     .rule_cache_conditions
                     .borrow_mut()
                     .set_writing_mode_dependency(context.builder.writing_mode);
-                if context.style().writing_mode.is_vertical() {
-                    base_size.width
+                if (unit == ViewportUnit::Vb) == context.style().writing_mode.is_vertical() {
+                    size.width
                 } else {
-                    base_size.height
-                }
-            },
-            ViewportUnit::Vi => {
-                let base_size =
-                    context.viewport_size_for_viewport_unit_resolution(variant);
-                context
-                    .rule_cache_conditions
-                    .borrow_mut()
-                    .set_writing_mode_dependency(context.builder.writing_mode);
-                if context.style().writing_mode.is_vertical() {
-                    base_size.height
-                } else {
-                    base_size.width
+                    size.height
                 }
             },
         };
