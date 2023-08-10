@@ -17,7 +17,6 @@ use rayon;
 use std::env;
 use std::io;
 use std::thread;
-use std::sync::Mutex;
 
 /// Global style data
 pub struct GlobalStyleData {
@@ -117,7 +116,7 @@ impl StyleThreadPool {
 
 lazy_static! {
     /// Global thread pool
-    pub static ref STYLE_THREAD_POOL: Mutex<StyleThreadPool> = {
+    pub static ref STYLE_THREAD_POOL: std::sync::Mutex<StyleThreadPool> = {
         let stylo_threads = env::var("STYLO_THREADS")
             .map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS value"));
         let mut num_threads = match stylo_threads {
@@ -171,7 +170,7 @@ lazy_static! {
             workers.ok()
         };
 
-        Mutex::new(StyleThreadPool {
+        std::sync::Mutex::new(StyleThreadPool {
             num_threads: if num_threads > 0 {
                 Some(num_threads)
             } else {
