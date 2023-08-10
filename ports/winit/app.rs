@@ -10,7 +10,7 @@ use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
-use egui::{TopBottomPanel, Rect, Pos2, Vec2, Sense};
+use egui::TopBottomPanel;
 use gleam::gl;
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
