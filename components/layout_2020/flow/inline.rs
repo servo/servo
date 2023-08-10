@@ -27,7 +27,7 @@ use servo_arc::Arc;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage, Percentage};
+use style::values::computed::Length;
 use style::values::generics::text::LineHeight;
 use style::values::specified::text::TextAlignKeyword;
 use style::values::specified::text::TextDecorationLine;
@@ -251,7 +251,6 @@ impl InlineFormattingContext {
             containing_block_writing_mode: WritingMode,
             paragraph: ContentSizes,
             current_line: ContentSizes,
-            current_line_percentages: Percentage,
             /// Size for whitepsace pending to be added to this line.
             pending_whitespace: Length,
             /// Whether or not this IFC has seen any non-whitespace content.
@@ -274,11 +273,15 @@ impl InlineFormattingContext {
                             macro_rules! add {
                                 ($condition: ident, $side: ident) => {
                                     if inline_box.$condition {
-                                        self.add_lengthpercentage(padding.$side);
-                                        self.add_length(border.$side);
+                                        // For margins and paddings, a cyclic percentage is resolved against zero
+                                        // for determining intrinsic size contributions.
+                                        // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
+                                        let zero = Length::zero();
+                                        let mut length = padding.$side.percentage_relative_to(zero) + border.$side;
                                         if let Some(lp) = margin.$side.non_auto() {
-                                            self.add_lengthpercentage(lp)
+                                            length += lp.percentage_relative_to(zero)
                                         }
+                                        self.add_length(length);
                                     }
                                 };
                             }
@@ -320,7 +323,7 @@ impl InlineFormattingContext {
                             }
                         },
                         InlineLevelBox::Atomic(atomic) => {
-                            let (outer, pc) = atomic.outer_inline_content_sizes_and_percentages(
+                            let outer = atomic.outer_inline_content_sizes(
                                 self.layout_context,
                                 self.containing_block_writing_mode,
                             );
@@ -328,22 +331,12 @@ impl InlineFormattingContext {
                             self.current_line.min_content +=
                                 self.pending_whitespace + outer.min_content;
                             self.current_line.max_content += outer.max_content;
-                            self.current_line_percentages += pc;
                             self.pending_whitespace = Length::zero();
                             self.had_non_whitespace_content_yet = true;
                         },
                         InlineLevelBox::OutOfFlowFloatBox(_) |
                         InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => {},
                     }
-                }
-            }
-
-            fn add_lengthpercentage(&mut self, lp: &LengthPercentage) {
-                if let Some(l) = lp.to_length() {
-                    self.add_length(l);
-                }
-                if let Some(p) = lp.to_percentage() {
-                    self.current_line_percentages += p;
                 }
             }
 
@@ -360,8 +353,6 @@ impl InlineFormattingContext {
 
             fn forced_line_break(&mut self) {
                 self.line_break_opportunity();
-                self.current_line
-                    .adjust_for_pbm_percentages(take(&mut self.current_line_percentages));
                 self.paragraph
                     .max_content
                     .max_assign(take(&mut self.current_line.max_content));
@@ -375,7 +366,6 @@ impl InlineFormattingContext {
             containing_block_writing_mode,
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
-            current_line_percentages: Percentage::zero(),
             pending_whitespace: Length::zero(),
             had_non_whitespace_content_yet: false,
             linebreaker: None,
