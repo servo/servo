@@ -381,6 +381,11 @@ where
         let wr_document_layer = 0; //TODO
         let webrender_document =
             webrender_api.add_document(coordinates.framebuffer, wr_document_layer);
+        webrender_api.set_document_view(
+            webrender_document,
+            coordinates.get_viewport(),
+            coordinates.hidpi_factor.get(),
+        );
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.

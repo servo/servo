@@ -200,6 +200,13 @@ pub struct EmbedderCoordinates {
 }
 
 impl EmbedderCoordinates {
+    // Get the viewport for webrender usage.
+    pub fn get_viewport(&self) -> DeviceIntRect {
+        DeviceIntRect::from_untyped(&self.viewport.to_untyped())
+    }
+
+    // Get the flipped viewport. This is used when we need to draw directly
+    // since origin of webrender is usually bottom left.
     pub fn get_flipped_viewport(&self) -> DeviceIntRect {
         let fb_height = self.framebuffer.height;
         let mut view = self.viewport.clone();
