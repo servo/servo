@@ -272,6 +272,9 @@ impl App {
                 Some(PumpResult::Shutdown) => {
                     *control_flow = winit::event_loop::ControlFlow::Exit;
                     app.servo.take().unwrap().deinit();
+                    if let Some(mut minibrowser) = app.minibrowser() {
+                        minibrowser.context.destroy();
+                    }
                 },
                 Some(PumpResult::Present) => {
                     if let Some(mut minibrowser) = app.minibrowser() {
