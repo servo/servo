@@ -1496,7 +1496,7 @@ impl<'le> TElement for GeckoElement<'le> {
     ) -> bool {
         use crate::properties::LonghandIdSet;
 
-        let after_change_box_style = after_change_style.get_box();
+        let after_change_ui_style = after_change_style.get_ui();
         let existing_transitions = self.css_transitions_info();
         let mut transitions_to_keep = LonghandIdSet::new();
         for transition_property in after_change_style.transition_properties() {
@@ -1506,7 +1506,7 @@ impl<'le> TElement for GeckoElement<'le> {
             transitions_to_keep.insert(physical_longhand);
             if self.needs_transitions_update_per_property(
                 physical_longhand,
-                after_change_box_style.transition_combined_duration_at(transition_property.index),
+                after_change_ui_style.transition_combined_duration_at(transition_property.index),
                 before_change_style,
                 after_change_style,
                 &existing_transitions,

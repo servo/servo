@@ -626,13 +626,13 @@ impl<E: TElement> StyleSharingCache<E> {
         //
         // These are things we don't check in the candidate match because they
         // are either uncommon or expensive.
-        let box_style = style.style().get_box();
-        if box_style.specifies_transitions() {
+        let ui_style = style.style().get_ui();
+        if ui_style.specifies_transitions() {
             debug!("Failing to insert to the cache: transitions");
             return;
         }
 
-        if box_style.specifies_animations() {
+        if ui_style.specifies_animations() {
             debug!("Failing to insert to the cache: animations");
             return;
         }

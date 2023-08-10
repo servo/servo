@@ -254,8 +254,8 @@ trait PrivateMatchMethods: TElement {
         new_style: &ComputedValues,
         pseudo_element: Option<PseudoElement>,
     ) -> bool {
-        let new_box_style = new_style.get_box();
-        let new_style_specifies_animations = new_box_style.specifies_animations();
+        let new_ui_style = new_style.get_ui();
+        let new_style_specifies_animations = new_ui_style.specifies_animations();
 
         let has_animations = self.has_css_animations(&context.shared, pseudo_element);
         if !new_style_specifies_animations && !has_animations {
@@ -282,7 +282,7 @@ trait PrivateMatchMethods: TElement {
             },
         };
 
-        let old_box_style = old_style.get_box();
+        let old_ui_style = old_style.get_ui();
 
         let keyframes_or_timeline_could_have_changed = context
             .shared
@@ -301,12 +301,12 @@ trait PrivateMatchMethods: TElement {
         }
 
         // If the animations changed, well...
-        if !old_box_style.animations_equals(new_box_style) {
+        if !old_ui_style.animations_equals(new_ui_style) {
             return true;
         }
 
-        let old_display = old_box_style.clone_display();
-        let new_display = new_box_style.clone_display();
+        let old_display = old_style.clone_display();
+        let new_display = new_style.clone_display();
 
         // If we were display: none, we may need to trigger animations.
         if old_display == Display::None && new_display != Display::None {
@@ -341,14 +341,13 @@ trait PrivateMatchMethods: TElement {
             None => return false,
         };
 
-        let new_box_style = new_style.get_box();
         if !self.has_css_transitions(context.shared, pseudo_element) &&
-            !new_box_style.specifies_transitions()
+            !new_style.get_ui().specifies_transitions()
         {
             return false;
         }
 
-        if new_box_style.clone_display().is_none() || old_style.clone_display().is_none() {
+        if new_style.clone_display().is_none() || old_style.clone_display().is_none() {
             return false;
         }
 
@@ -765,8 +764,8 @@ trait PrivateMatchMethods: TElement {
             },
         }
 
-        let old_display = old_values.get_box().clone_display();
-        let new_display = new_values.get_box().clone_display();
+        let old_display = old_values.clone_display();
+        let new_display = new_values.clone_display();
 
         if old_display != new_display {
             // If we used to be a display: none element, and no longer are, our
