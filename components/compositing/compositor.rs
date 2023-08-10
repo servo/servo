@@ -918,7 +918,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         self.webrender_api.set_document_view(
             self.webrender_document,
-            self.embedder_coordinates.get_flipped_viewport(),
+            self.embedder_coordinates.get_viewport(),
             self.embedder_coordinates.hidpi_factor.get(),
         );
 
