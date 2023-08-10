@@ -36,7 +36,7 @@ js_backtrace = ["libservo/js_backtrace"]
 max_log_level = ["log/release_max_level_info"]
 media-dummy = ["libservo/media-dummy"]
 media-gstreamer = ["libservo/media-gstreamer"]
-minibrowser = ["dep:egui", "dep:egui-winit", "dep:egui_glow", "dep:glow"]
+minibrowser = ["dep:egui", "dep:egui-winit", "dep:egui_glow", "dep:gleam", "dep:glow"]
 native-bluetooth = ["libservo/native-bluetooth"]
 no-wgl = ["libservo/no-wgl"]
 profilemozjs = ["libservo/profilemozjs"]
@@ -54,7 +54,7 @@ egui_glow = { version = "0.22.0", optional = true, features = ["winit"] }
 egui-winit = { version = "0.22.0", optional = true, default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 getopts = { workspace = true }
-gleam = "0.12"
+gleam = { version = "0.12", optional = true }
 glow = { version = "0.12.2", optional = true }
 keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
