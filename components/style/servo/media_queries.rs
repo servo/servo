@@ -14,6 +14,7 @@ use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::values::computed::CSSPixelLength;
 use crate::values::specified::font::FONT_MEDIUM_PX;
+use crate::values::specified::ViewportVariant;
 use crate::values::KeyframesName;
 use app_units::Au;
 use cssparser::RGBA;
@@ -143,8 +144,13 @@ impl Device {
     }
 
     /// Like the above, but records that we've used viewport units.
-    pub fn au_viewport_size_for_viewport_unit_resolution(&self) -> UntypedSize2D<Au> {
+    pub fn au_viewport_size_for_viewport_unit_resolution(
+        &self,
+        _: ViewportVariant,
+    ) -> UntypedSize2D<Au> {
         self.used_viewport_units.store(true, Ordering::Relaxed);
+        // Servo doesn't have dynamic UA interfaces that affect the viewport,
+        // so we can just ignore the ViewportVariant.
         self.au_viewport_size()
     }
 
