@@ -315,11 +315,12 @@ fn eval_prefers_reduced_motion(device: &Device, query_value: Option<PrefersReduc
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
 #[repr(u8)]
 pub enum PrefersContrast {
-    /// More contrast is preferred. Corresponds to an accessibility theme
-    /// being enabled or Firefox forcing high contrast colors.
+    /// More contrast is preferred.
     More,
     /// Low contrast is preferred.
     Less,
+    /// Custom (not more, not less).
+    Custom,
     /// The default value if neither high or low contrast is enabled.
     NoPreference,
 }
