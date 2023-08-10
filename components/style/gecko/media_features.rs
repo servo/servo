@@ -8,7 +8,6 @@ use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
 use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
 use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
-use crate::media_queries::media_feature_expression::RangeOrOperator;
 use crate::media_queries::{Device, MediaType};
 use crate::values::computed::CSSPixelLength;
 use crate::values::computed::Ratio;
@@ -26,114 +25,46 @@ fn device_size(device: &Device) -> Size2D<Au> {
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#width
-fn eval_width(
-    device: &Device,
-    value: Option<CSSPixelLength>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
-    RangeOrOperator::evaluate(
-        range_or_operator,
-        value.map(Au::from),
-        device.au_viewport_size().width,
-    )
+fn eval_width(device: &Device) -> CSSPixelLength {
+    CSSPixelLength::new(device.au_viewport_size().width.to_f32_px())
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#device-width
-fn eval_device_width(
-    device: &Device,
-    value: Option<CSSPixelLength>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
-    RangeOrOperator::evaluate(
-        range_or_operator,
-        value.map(Au::from),
-        device_size(device).width,
-    )
+fn eval_device_width(device: &Device) -> CSSPixelLength {
+    CSSPixelLength::new(device_size(device).width.to_f32_px())
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#height
-fn eval_height(
-    device: &Device,
-    value: Option<CSSPixelLength>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
-    RangeOrOperator::evaluate(
-        range_or_operator,
-        value.map(Au::from),
-        device.au_viewport_size().height,
-    )
+fn eval_height(device: &Device) -> CSSPixelLength {
+    CSSPixelLength::new(device.au_viewport_size().height.to_f32_px())
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#device-height
-fn eval_device_height(
-    device: &Device,
-    value: Option<CSSPixelLength>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
-    RangeOrOperator::evaluate(
-        range_or_operator,
-        value.map(Au::from),
-        device_size(device).height,
-    )
+fn eval_device_height(device: &Device) -> CSSPixelLength {
+    CSSPixelLength::new(device_size(device).height.to_f32_px())
 }
 
-fn eval_aspect_ratio_for<F>(
-    device: &Device,
-    query_value: Option<Ratio>,
-    range_or_operator: Option<RangeOrOperator>,
-    get_size: F,
-) -> bool
+fn eval_aspect_ratio_for<F>(device: &Device, get_size: F) -> Ratio
 where
     F: FnOnce(&Device) -> Size2D<Au>,
 {
-    // A ratio of 0/0 behaves as the ratio 1/0, so we need to call used_value()
-    // to convert it if necessary.
-    // FIXME: we may need to update here once
-    // https://github.com/w3c/csswg-drafts/issues/4954 got resolved.
-    let query_value = match query_value {
-        Some(v) => v.used_value(),
-        None => return true,
-    };
-
     let size = get_size(device);
-    let value = Ratio::new(size.width.0 as f32, size.height.0 as f32);
-    RangeOrOperator::evaluate_with_query_value(range_or_operator, query_value, value)
+    Ratio::new(size.width.0 as f32, size.height.0 as f32)
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#aspect-ratio
-fn eval_aspect_ratio(
-    device: &Device,
-    query_value: Option<Ratio>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
-    eval_aspect_ratio_for(
-        device,
-        query_value,
-        range_or_operator,
-        Device::au_viewport_size,
-    )
+fn eval_aspect_ratio(device: &Device) -> Ratio {
+    eval_aspect_ratio_for(device, Device::au_viewport_size)
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#device-aspect-ratio
-fn eval_device_aspect_ratio(
-    device: &Device,
-    query_value: Option<Ratio>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
-    eval_aspect_ratio_for(device, query_value, range_or_operator, device_size)
+fn eval_device_aspect_ratio(device: &Device) -> Ratio {
+    eval_aspect_ratio_for(device, device_size)
 }
 
 /// https://compat.spec.whatwg.org/#css-media-queries-webkit-device-pixel-ratio
-fn eval_device_pixel_ratio(
-    device: &Device,
-    query_value: Option<f32>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
-    eval_resolution(
-        device,
-        query_value.map(Resolution::from_dppx),
-        range_or_operator,
-    )
+fn eval_device_pixel_ratio(device: &Device) -> f32 {
+    eval_resolution(device).dppx()
 }
 
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
@@ -192,17 +123,15 @@ fn eval_display_mode(device: &Device, query_value: Option<DisplayMode>) -> bool 
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#grid
-fn eval_grid(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
+fn eval_grid(_: &Device) -> bool {
     // Gecko doesn't support grid devices (e.g., ttys), so the 'grid' feature
     // is always 0.
-    let supports_grid = false;
-    query_value.map_or(supports_grid, |v| v == supports_grid)
+    false
 }
 
 /// https://compat.spec.whatwg.org/#css-media-queries-webkit-transform-3d
-fn eval_transform_3d(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
-    let supports_transforms = true;
-    query_value.map_or(supports_transforms, |v| v == supports_transforms)
+fn eval_transform_3d(_: &Device) -> bool {
+    true
 }
 
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
@@ -220,51 +149,26 @@ fn eval_scan(_: &Device, _: Option<Scan>) -> bool {
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#color
-fn eval_color(
-    device: &Device,
-    query_value: Option<u32>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
-    let color_bits_per_channel =
-        unsafe { bindings::Gecko_MediaFeatures_GetColorDepth(device.document()) };
-    RangeOrOperator::evaluate(range_or_operator, query_value, color_bits_per_channel)
+fn eval_color(device: &Device) -> u32 {
+    unsafe { bindings::Gecko_MediaFeatures_GetColorDepth(device.document()) }
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#color-index
-fn eval_color_index(
-    _: &Device,
-    query_value: Option<u32>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
+fn eval_color_index(_: &Device) -> u32 {
     // We should return zero if the device does not use a color lookup table.
-    let index = 0;
-    RangeOrOperator::evaluate(range_or_operator, query_value, index)
+    0
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#monochrome
-fn eval_monochrome(
-    device: &Device,
-    query_value: Option<u32>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
+fn eval_monochrome(device: &Device) -> u32 {
     // For color devices we should return 0.
-    let depth =
-        unsafe { bindings::Gecko_MediaFeatures_GetMonochromeBitsPerPixel(device.document()) };
-    RangeOrOperator::evaluate(range_or_operator, query_value, depth)
+    unsafe { bindings::Gecko_MediaFeatures_GetMonochromeBitsPerPixel(device.document()) }
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#resolution
-fn eval_resolution(
-    device: &Device,
-    query_value: Option<Resolution>,
-    range_or_operator: Option<RangeOrOperator>,
-) -> bool {
+fn eval_resolution(device: &Device) -> Resolution {
     let resolution_dppx = unsafe { bindings::Gecko_MediaFeatures_GetResolution(device.document()) };
-    RangeOrOperator::evaluate(
-        range_or_operator,
-        query_value.map(|r| r.dppx()),
-        resolution_dppx,
-    )
+    Resolution::from_dppx(resolution_dppx)
 }
 
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
@@ -540,45 +444,24 @@ fn eval_any_hover(device: &Device, query_value: Option<Hover>) -> bool {
     eval_hover_capabilities(query_value, all_pointer_capabilities(device))
 }
 
-fn eval_moz_is_glyph(
-    device: &Device,
-    query_value: Option<bool>,
-    _: Option<RangeOrOperator>,
-) -> bool {
-    let is_glyph = device.document().mIsSVGGlyphsDocument();
-    query_value.map_or(is_glyph, |v| v == is_glyph)
+fn eval_moz_is_glyph(device: &Device) -> bool {
+    device.document().mIsSVGGlyphsDocument()
 }
 
-fn eval_moz_print_preview(
-    device: &Device,
-    query_value: Option<bool>,
-    _: Option<RangeOrOperator>,
-) -> bool {
+fn eval_moz_print_preview(device: &Device) -> bool {
     let is_print_preview = device.is_print_preview();
     if is_print_preview {
         debug_assert_eq!(device.media_type(), MediaType::print());
     }
-    query_value.map_or(is_print_preview, |v| v == is_print_preview)
+    is_print_preview
 }
 
-fn eval_moz_non_native_content_theme(
-    device: &Device,
-    query_value: Option<bool>,
-    _: Option<RangeOrOperator>,
-) -> bool {
-    let non_native_theme =
-        unsafe { bindings::Gecko_MediaFeatures_ShouldAvoidNativeTheme(device.document()) };
-    query_value.map_or(non_native_theme, |v| v == non_native_theme)
+fn eval_moz_non_native_content_theme(device: &Device) -> bool {
+    unsafe { bindings::Gecko_MediaFeatures_ShouldAvoidNativeTheme(device.document()) }
 }
 
-fn eval_moz_is_resource_document(
-    device: &Device,
-    query_value: Option<bool>,
-    _: Option<RangeOrOperator>,
-) -> bool {
-    let is_resource_doc =
-        unsafe { bindings::Gecko_MediaFeatures_IsResourceDocument(device.document()) };
-    query_value.map_or(is_resource_doc, |v| v == is_resource_doc)
+fn eval_moz_is_resource_document(device: &Device) -> bool {
+    unsafe { bindings::Gecko_MediaFeatures_IsResourceDocument(device.document()) }
 }
 
 /// Allows front-end CSS to discern platform via media queries.
@@ -613,11 +496,7 @@ fn eval_moz_platform(_: &Device, query_value: Option<Platform>) -> bool {
     unsafe { bindings::Gecko_MediaFeatures_MatchesPlatform(query_value) }
 }
 
-fn eval_moz_windows_non_native_menus(
-    device: &Device,
-    query_value: Option<bool>,
-    _: Option<RangeOrOperator>,
-) -> bool {
+fn eval_moz_windows_non_native_menus(device: &Device) -> bool {
     let use_non_native_menus = match static_prefs::pref!("browser.display.windows.non_native_menus")
     {
         0 => false,
@@ -628,17 +507,11 @@ fn eval_moz_windows_non_native_menus(
         },
     };
 
-    query_value.map_or(use_non_native_menus, |v| v == use_non_native_menus)
+    use_non_native_menus
 }
 
-fn eval_moz_overlay_scrollbars(
-    device: &Device,
-    query_value: Option<bool>,
-    _: Option<RangeOrOperator>,
-) -> bool {
-    let use_overlay =
-        unsafe { bindings::Gecko_MediaFeatures_UseOverlayScrollbars(device.document()) };
-    query_value.map_or(use_overlay, |v| v == use_overlay)
+fn eval_moz_overlay_scrollbars(device: &Device) -> bool {
+    unsafe { bindings::Gecko_MediaFeatures_UseOverlayScrollbars(device.document()) }
 }
 
 fn get_lnf_int(int_id: i32) -> i32 {
@@ -667,9 +540,8 @@ fn get_scrollbar_end_forward(int_id: i32) -> bool {
 
 macro_rules! lnf_int_feature {
     ($feature_name:expr, $int_id:ident, $get_value:ident) => {{
-        fn __eval(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
-            let value = $get_value(bindings::LookAndFeel_IntID::$int_id as i32);
-            query_value.map_or(value, |v| v == value)
+        fn __eval(_: &Device) -> bool {
+            $get_value(bindings::LookAndFeel_IntID::$int_id as i32)
         }
 
         feature!(
@@ -695,9 +567,8 @@ macro_rules! lnf_int_feature {
 /// you also need to add them to kMediaQueryPrefs in nsXPLookAndFeel.cpp
 macro_rules! bool_pref_feature {
     ($feature_name:expr, $pref:tt) => {{
-        fn __eval(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
-            let value = static_prefs::pref!($pref);
-            query_value.map_or(value, |v| v == value)
+        fn __eval(_: &Device) -> bool {
+            static_prefs::pref!($pref)
         }
 
         feature!(
