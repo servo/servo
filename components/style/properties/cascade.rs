@@ -296,55 +296,68 @@ where
         rule_cache_conditions: RefCell::new(rule_cache_conditions),
     };
 
-    let using_cached_reset_properties = {
-        let mut cascade = Cascade::new(&mut context, cascade_mode, &referenced_properties);
-        let mut shorthand_cache = ShorthandsWithPropertyReferencesCache::default();
-        if cascade.apply_properties(
-            CanHaveLogicalProperties::No,
-            LonghandIdSet::writing_mode_group(),
-            declarations.iter().cloned(),
-            &mut shorthand_cache,
-        ) {
-            cascade.compute_writing_mode();
+    let using_cached_reset_properties;
+    let mut cascade = Cascade::new(&mut context, cascade_mode, &referenced_properties);
+    let mut shorthand_cache = ShorthandsWithPropertyReferencesCache::default();
+
+    let properties_to_apply = match cascade.cascade_mode {
+        CascadeMode::Visited { writing_mode } => {
+            cascade.context.builder.writing_mode = writing_mode;
+            // We never insert visited styles into the cache so we don't need to
+            // try looking it up. It also wouldn't be super-profitable, only a
+            // handful reset properties are non-inherited.
+            using_cached_reset_properties = false;
+            LonghandIdSet::visited_dependent()
+        },
+        CascadeMode::Unvisited { visited_rules } => {
+            if cascade.apply_properties(
+                CanHaveLogicalProperties::No,
+                LonghandIdSet::writing_mode_group(),
+                declarations.iter().cloned(),
+                &mut shorthand_cache,
+            ) {
+                cascade.compute_writing_mode();
+            }
+
+            if cascade.apply_properties(
+                CanHaveLogicalProperties::No,
+                LonghandIdSet::fonts_and_color_group(),
+                declarations.iter().cloned(),
+                &mut shorthand_cache,
+            ) {
+                cascade.fixup_font_stuff();
+            }
+
+            if let Some(visited_rules) = visited_rules {
+                cascade.compute_visited_style_if_needed(
+                    element,
+                    parent_style,
+                    parent_style_ignoring_first_line,
+                    layout_parent_style,
+                    visited_rules,
+                    guards,
+                );
+            }
+
+            using_cached_reset_properties =
+                cascade.try_to_use_cached_reset_properties(rule_cache, guards);
+
+            if using_cached_reset_properties {
+                LonghandIdSet::late_group_only_inherited()
+            } else {
+                LonghandIdSet::late_group()
+            }
         }
-
-        if cascade.apply_properties(
-            CanHaveLogicalProperties::No,
-            LonghandIdSet::fonts_and_color_group(),
-            declarations.iter().cloned(),
-            &mut shorthand_cache,
-        ) {
-            cascade.fixup_font_stuff();
-        }
-
-        cascade.compute_visited_style_if_needed(
-            element,
-            parent_style,
-            parent_style_ignoring_first_line,
-            layout_parent_style,
-            guards,
-        );
-
-        let using_cached_reset_properties =
-            cascade.try_to_use_cached_reset_properties(rule_cache, guards);
-
-        let properties_to_apply = if using_cached_reset_properties {
-            LonghandIdSet::late_group_only_inherited()
-        } else {
-            LonghandIdSet::late_group()
-        };
-
-        cascade.apply_properties(
-            CanHaveLogicalProperties::Yes,
-            properties_to_apply,
-            declarations.iter().cloned(),
-            &mut shorthand_cache,
-        );
-
-        cascade.finished_applying_properties();
-
-        using_cached_reset_properties
     };
+
+    cascade.apply_properties(
+        CanHaveLogicalProperties::Yes,
+        properties_to_apply,
+        declarations.iter().cloned(),
+        &mut shorthand_cache,
+    );
+
+    cascade.finished_applying_properties();
 
     context.builder.clear_modified_reset();
 
@@ -627,15 +640,6 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 }
             }
 
-            // Only a few properties are allowed to depend on the visited state
-            // of links.  When cascading visited styles, we can save time by
-            // only processing these properties.
-            if matches!(self.cascade_mode, CascadeMode::Visited { .. }) &&
-                !physical_longhand_id.is_visited_dependent()
-            {
-                continue;
-            }
-
             let mut declaration =
                 self.substitute_variables_if_needed(declaration, &mut shorthand_cache);
 
@@ -708,13 +712,9 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     }
 
     fn compute_writing_mode(&mut self) {
-        let writing_mode = match self.cascade_mode {
-            CascadeMode::Unvisited { .. } => {
-                WritingMode::new(self.context.builder.get_inherited_box())
-            },
-            CascadeMode::Visited { writing_mode } => writing_mode,
-        };
-        self.context.builder.writing_mode = writing_mode;
+        debug_assert!(matches!(self.cascade_mode, CascadeMode::Unvisited { .. }));
+        self.context.builder.writing_mode =
+            WritingMode::new(self.context.builder.get_inherited_box())
     }
 
     fn compute_visited_style_if_needed<E>(
@@ -723,20 +723,12 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         parent_style: Option<&ComputedValues>,
         parent_style_ignoring_first_line: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValues>,
+        visited_rules: &StrongRuleNode,
         guards: &StylesheetGuards,
     ) where
         E: TElement,
     {
-        let visited_rules = match self.cascade_mode {
-            CascadeMode::Unvisited { visited_rules } => visited_rules,
-            CascadeMode::Visited { .. } => return,
-        };
-
-        let visited_rules = match visited_rules {
-            Some(rules) => rules,
-            None => return,
-        };
-
+        debug_assert!(matches!(self.cascade_mode, CascadeMode::Unvisited { .. }));
         let is_link = self.context.builder.pseudo.is_none() && element.unwrap().is_link();
 
         macro_rules! visited_parent {
