@@ -1241,22 +1241,26 @@ impl TouchAction {
 
 bitflags! {
     #[derive(MallocSizeOf, Parse, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
-    #[css(bitflags(single = "none,strict,content", mixed="size,layout,paint"))]
+    #[css(bitflags(single = "none,strict,content", mixed="size,layout,paint,inline-size", overlapping_bits))]
     #[repr(C)]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
         /// `none` variant, just for convenience.
         const NONE = 0;
-        /// 'size' variant, turns on size containment
-        const SIZE = 1 << 0;
+        /// `inline-size` variant, turns on single-axis inline size containment
+        const INLINE_SIZE = 1 << 0;
+        /// `block-size` variant, turns on single-axis block size containment, internal only
+        const BLOCK_SIZE = 1 << 1;
         /// `layout` variant, turns on layout containment
-        const LAYOUT = 1 << 1;
+        const LAYOUT = 1 << 2;
         /// `paint` variant, turns on paint containment
-        const PAINT = 1 << 2;
+        const PAINT = 1 << 3;
         /// `strict` variant, turns on all types of containment
-        const STRICT = 1 << 3 | Contain::LAYOUT.bits | Contain::PAINT.bits | Contain::SIZE.bits;
-        /// 'content' variant, turns on layout and paint containment
-        const CONTENT = 1 << 4 | Contain::LAYOUT.bits | Contain::PAINT.bits;
+        const STRICT = 1 << 4 | Contain::LAYOUT.bits | Contain::PAINT.bits | Contain::SIZE.bits;
+        /// `content` variant, turns on layout and paint containment
+        const CONTENT = 1 << 5 | Contain::LAYOUT.bits | Contain::PAINT.bits;
+        /// 'size' variant, turns on size containment
+        const SIZE = 1 << 6 | Contain::INLINE_SIZE.bits | Contain::BLOCK_SIZE.bits;
     }
 }
 
