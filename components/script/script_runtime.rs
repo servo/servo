@@ -22,7 +22,7 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::settings_stack;
-use crate::dom::bindings::trace::{trace_traceables, JSTraceable};
+use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -825,7 +825,6 @@ unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_
     }
     debug!("starting custom root handler");
     trace_thread(tr);
-    trace_traceables(tr);
     trace_roots(tr);
     trace_refcounted_objects(tr);
     settings_stack::trace(tr);

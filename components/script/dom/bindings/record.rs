@@ -81,6 +81,7 @@ impl RecordKey for ByteString {
 /// The `Record` (open-ended dictionary) type.
 #[derive(Clone, JSTraceable)]
 pub struct Record<K: RecordKey, V> {
+    #[custom_trace]
     map: IndexMap<K, V>,
 }
 

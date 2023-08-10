@@ -17,6 +17,7 @@ pub struct XRHand {
     #[ignore_malloc_size_of = "defined in webxr"]
     source: Dom<XRInputSource>,
     #[ignore_malloc_size_of = "partially defind in webxr"]
+    #[custom_trace]
     spaces: Hand<Dom<XRJointSpace>>,
 }
 

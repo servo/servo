@@ -42,6 +42,7 @@ pub struct ShadowRoot {
     document: Dom<Document>,
     host: MutNullableDom<Element>,
     /// List of author styles associated with nodes in this shadow tree.
+    #[custom_trace]
     author_styles: DomRefCell<AuthorStyles<StyleSheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     window: Dom<Window>,

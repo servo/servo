@@ -98,9 +98,7 @@ fn get_must_not_have_traceable(sym: &Symbols, attrs: &[Attribute]) -> Option<usi
 
 fn is_jstraceable<'tcx>(cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {
     // TODO(sagudev): get_trait_def_id is expensive, use lazy and cache it for whole pass
-    if let Some(trait_id) =
-        get_trait_def_id(cx, &["script", "dom", "bindings", "trace", "JSTraceable"])
-    {
+    if let Some(trait_id) = get_trait_def_id(cx, &["mozjs", "gc", "Traceable"]) {
         return implements_trait(cx, ty, trait_id, &[]);
     }
     // when running tests

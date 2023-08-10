@@ -178,6 +178,7 @@ pub struct ModuleTree {
     // By default all maps in web specs are ordered maps
     // (https://infra.spec.whatwg.org/#ordered-map), however we can usually get away with using
     // stdlib maps and sets because we rarely iterate over them.
+    #[custom_trace]
     parent_identities: DomRefCell<IndexSet<ModuleIdentity>>,
     #[no_trace]
     descendant_urls: DomRefCell<IndexSet<ServoUrl>>,

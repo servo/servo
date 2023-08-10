@@ -17,13 +17,12 @@ use js::typedarray::ArrayBufferView;
 use servo_rand::{RngCore, ServoRng};
 use std::ptr::NonNull;
 
-unsafe_no_jsmanaged_fields!(ServoRng);
-
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto
 #[dom_struct]
 pub struct Crypto {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Defined in rand"]
+    #[no_trace]
     rng: DomRefCell<ServoRng>,
 }
 
