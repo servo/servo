@@ -934,6 +934,29 @@ CASCADE_GROUPS = {
 def in_late_group(p):
     return p.name not in CASCADE_GROUPS["writing_mode"] and p.name not in CASCADE_GROUPS["fonts_and_color"]
 
+def is_visited_dependent(p):
+    return p.name in [
+        "column-rule-color",
+        "text-emphasis-color",
+        "-webkit-text-fill-color",
+        "-webkit-text-stroke-color",
+        "text-decoration-color",
+        "fill",
+        "stroke",
+        "caret-color",
+        "background-color",
+        "border-top-color",
+        "border-right-color",
+        "border-bottom-color",
+        "border-left-color",
+        "border-block-start-color",
+        "border-inline-end-color",
+        "border-block-end-color",
+        "border-inline-start-color",
+        "outline-color",
+        "color",
+    ]
+
 %>
 
 impl LonghandIdSet {
@@ -970,6 +993,18 @@ impl LonghandIdSet {
             lambda p: p.ignored_when_colors_disabled
         )}
         &IGNORED_WHEN_COLORS_DISABLED
+    }
+
+    /// Only a few properties are allowed to depend on the visited state of
+    /// links. When cascading visited styles, we can save time by only
+    /// processing these properties.
+    fn visited_dependent() -> &'static Self {
+        ${static_longhand_id_set(
+            "VISITED_DEPENDENT",
+            lambda p: is_visited_dependent(p)
+        )}
+        debug_assert!(Self::late_group().contains_all(&VISITED_DEPENDENT));
+        &VISITED_DEPENDENT
     }
 
     #[inline]
@@ -1402,31 +1437,6 @@ impl LonghandId {
             % endfor
         ];
         PropertyFlags::from_bits_truncate(FLAGS[self as usize])
-    }
-
-    /// Only a few properties are allowed to depend on the visited state of
-    /// links. When cascading visited styles, we can save time by only
-    /// processing these properties.
-    fn is_visited_dependent(&self) -> bool {
-        matches!(*self,
-            % if engine == "gecko":
-            LonghandId::ColumnRuleColor |
-            LonghandId::TextEmphasisColor |
-            LonghandId::WebkitTextFillColor |
-            LonghandId::WebkitTextStrokeColor |
-            LonghandId::TextDecorationColor |
-            LonghandId::Fill |
-            LonghandId::Stroke |
-            LonghandId::CaretColor |
-            % endif
-            LonghandId::BackgroundColor |
-            LonghandId::BorderTopColor |
-            LonghandId::BorderRightColor |
-            LonghandId::BorderBottomColor |
-            LonghandId::BorderLeftColor |
-            LonghandId::OutlineColor |
-            LonghandId::Color
-        )
     }
 
     /// Returns true if the property is one that is ignored when document
