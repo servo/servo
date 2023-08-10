@@ -51,7 +51,7 @@ backtrace = { workspace = true }
 clipboard = "0.5"
 egui = { version = "0.22.0", optional = true }
 egui_glow = { version = "0.22.0", optional = true, features = ["winit"] }
-egui-winit = { version = "0.22.0", optional = true }
+egui-winit = { version = "0.22.0", optional = true, default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 getopts = { workspace = true }
 gleam = "0.12"
