@@ -358,10 +358,6 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
         false
     }
 
-    fn set_selector_flags(&self, flags: ElementSelectorFlags) {
-        self.element.insert_selector_flags(flags);
-    }
-
     fn has_animations(&self, context: &SharedStyleContext) -> bool {
         // This is not used for pseudo elements currently so we can pass None.
         return self.has_css_animations(context, /* pseudo_element = */ None) ||
@@ -569,15 +565,11 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
         false
     }
 
-    fn match_non_ts_pseudo_class<F>(
+    fn match_non_ts_pseudo_class(
         &self,
         pseudo_class: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-        _: &mut F,
-    ) -> bool
-    where
-        F: FnMut(&Self, ElementSelectorFlags),
-    {
+    ) -> bool {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::Link | NonTSPseudoClass::AnyLink => self.is_link(),
@@ -665,6 +657,10 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
 
     fn is_html_element_in_html_document(&self) -> bool {
         self.element.is_html_element() && self.as_node().owner_doc().is_html_document()
+    }
+
+    fn set_selector_flags(&self, flags: ElementSelectorFlags) {
+        self.element.insert_selector_flags(flags);
     }
 }
 
@@ -854,15 +850,11 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
         }
     }
 
-    fn match_non_ts_pseudo_class<F>(
+    fn match_non_ts_pseudo_class(
         &self,
         _: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-        _: &mut F,
-    ) -> bool
-    where
-        F: FnMut(&Self, ElementSelectorFlags),
-    {
+    ) -> bool {
         // NB: This could maybe be implemented
         warn!("ServoThreadSafeLayoutElement::match_non_ts_pseudo_class called");
         false
@@ -902,6 +894,10 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
     fn is_root(&self) -> bool {
         warn!("ServoThreadSafeLayoutElement::is_root called");
         false
+    }
+
+    fn set_selector_flags(&self, flags: ElementSelectorFlags) {
+        self.element.element.insert_selector_flags(flags);
     }
 }
 
