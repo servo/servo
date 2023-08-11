@@ -44,7 +44,7 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo check")
-    @CommandBase.build_like_command_arguments
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def check(self, params, **kwargs):
         if not params:
             params = []
@@ -129,7 +129,7 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo-fix")
-    @CommandBase.build_like_command_arguments
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def cargo_fix(self, params, **kwargs):
         if not params:
             params = []
@@ -144,7 +144,7 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo-clippy")
-    @CommandBase.build_like_command_arguments
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def cargo_clippy(self, params, **kwargs):
         if not params:
             params = []

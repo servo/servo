@@ -30,6 +30,6 @@ jobs:
       - name: Release build
         run: python3 ./mach build --release
       - name: Smoketest
-        run: xvfb-run python3 ./mach smoketest
+        run: xvfb-run python3 ./mach smoketest --release
       - name: Unit tests
         run: python3 ./mach test-unit --release

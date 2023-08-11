@@ -33,10 +33,9 @@ from mach.decorators import (
     Command,
 )
 
-import servo.util
 import tidy
 
-from servo.command_base import CommandBase, call, check_call
+from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.util import delete
 from distutils.dir_util import copy_tree
 
@@ -166,7 +165,7 @@ class MachCommands(CommandBase):
                      help="Run in bench mode")
     @CommandArgument('--nocapture', default=False, action="store_true",
                      help="Run tests with nocapture ( show test stdout )")
-    @CommandBase.build_like_command_arguments
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def test_unit(self, test_name=None, package=None, bench=False, nocapture=False, **kwargs):
         if test_name is None:
             test_name = []
@@ -241,13 +240,6 @@ class MachCommands(CommandBase):
 
         # We are setting is_build here to true, because running `cargo test` can trigger builds.
         env = self.build_env(is_build=True)
-
-        # on MSVC, we need some DLLs in the path. They were copied
-        # in to the servo.exe build dir, so just point PATH to that.
-        # TODO(mrobinson): This should be removed entirely.
-        if "msvc" in servo.platform.host_triple():
-            servo.util.prepend_paths_to_env(
-                env, "PATH", path.dirname(self.get_binary_path(False, False)))
 
         return self.run_cargo_build_like_command(
             "bench" if bench else "test",
@@ -332,57 +324,42 @@ class MachCommands(CommandBase):
              description='Run the tests harness that verifies that the test failures are reported correctly',
              category='testing',
              parser=wpt.create_parser)
-    def test_wpt_failure(self, **kwargs):
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def test_wpt_failure(self, build_type: BuildType, **kwargs):
         kwargs["pause_after_test"] = False
         kwargs["include"] = ["infrastructure/failing-test.html"]
-        return not self._test_wpt(**kwargs)
+        return not self._test_wpt(build_type=build_type, **kwargs)
 
     @Command('test-wpt',
              description='Run the regular web platform test suite',
              category='testing',
              parser=wpt.create_parser)
-    def test_wpt(self, **kwargs):
-        ret = self.run_test_list_or_dispatch(kwargs["test_list"], "wpt", self._test_wpt, **kwargs)
-        if kwargs["always_succeed"]:
-            return 0
-        else:
-            return ret
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def test_wpt(self, build_type: BuildType, **kwargs):
+        return self._test_wpt(build_type=build_type, **kwargs)
 
     @Command('test-wpt-android',
              description='Run the web platform test suite in an Android emulator',
              category='testing',
              parser=wpt.create_parser)
-    def test_wpt_android(self, release=False, dev=False, binary_args=None, **kwargs):
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def test_wpt_android(self, build_type: BuildType, binary_args=None, **kwargs):
         kwargs.update(
-            release=release,
-            dev=dev,
             product="servodriver",
             processes=1,
-            binary_args=self.in_android_emulator(release, dev) + (binary_args or []),
+            binary_args=self.in_android_emulator(build_type) + (binary_args or []),
             binary=sys.executable,
         )
-        return self._test_wpt(android=True, **kwargs)
+        return self._test_wpt(build_type=build_type, android=True, **kwargs)
 
-    def _test_wpt(self, android=False, **kwargs):
+    def _test_wpt(self, build_type: BuildType, android=False, **kwargs):
         if not android:
             os.environ.update(self.build_env())
-        return wpt.run.run_tests(**kwargs)
 
-    # Helper to ensure all specified paths are handled, otherwise dispatch to appropriate test suite.
-    def run_test_list_or_dispatch(self, requested_paths, correct_suite, correct_function, **kwargs):
-        if not requested_paths:
-            return correct_function(**kwargs)
-        # Paths specified on command line. Ensure they can be handled, re-dispatch otherwise.
-        all_handled = True
-        for test_path in requested_paths:
-            suite = self.suite_for_path(test_path)
-            if suite is not None and correct_suite != suite:
-                all_handled = False
-                print("Warning: %s is not a %s test. Delegating to test-%s." % (test_path, correct_suite, suite))
-        if all_handled:
-            return correct_function(**kwargs)
-        # Dispatch each test to the correct suite via test()
-        Registrar.dispatch("test", context=self.context, params=requested_paths)
+        # TODO(mrobinson): Why do we pass the wrong binary path in when running WPT on Android?
+        binary_path = self.get_binary_path(build_type=build_type)
+        return_value = wpt.run.run_tests(binary_path, **kwargs)
+        return return_value if not kwargs["always_succeed"] else 0
 
     @Command('update-manifest',
              description='Run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json',
@@ -411,18 +388,15 @@ class MachCommands(CommandBase):
     @Command('test-android-startup',
              description='Extremely minimal testing of Servo for Android',
              category='testing')
-    @CommandArgument('--release', '-r', action='store_true',
-                     help='Run the release build')
-    @CommandArgument('--dev', '-d', action='store_true',
-                     help='Run the dev build')
-    def test_android_startup(self, release, dev):
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def test_android_startup(self, build_type: BuildType):
         html = """
             <script>
                 window.alert("JavaScript is running!")
             </script>
         """
         url = "data:text/html;base64," + html.encode("base64").replace("\n", "")
-        args = self.in_android_emulator(release, dev)
+        args = self.in_android_emulator(build_type)
         args = [sys.executable] + args + [url]
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         try:
@@ -437,11 +411,7 @@ class MachCommands(CommandBase):
         finally:
             process.terminate()
 
-    def in_android_emulator(self, release, dev):
-        if (release and dev) or not (release or dev):
-            print("Please specify one of --dev or --release.")
-            sys.exit(1)
-
+    def in_android_emulator(self, build_type: BuildType):
         avd = "servo-x86"
         target = "i686-linux-android"
         print("Assuming --target " + target)
@@ -450,42 +420,28 @@ class MachCommands(CommandBase):
         env = self.build_env()
         os.environ["PATH"] = env["PATH"]
         assert self.setup_configuration_for_android_target(target)
-        apk = self.get_apk_path(release)
+        apk = self.get_apk_path(build_type)
 
         py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
         return [py, avd, apk]
 
-    @Command('test-jquery',
-             description='Run the jQuery test suite',
-             category='testing')
-    @CommandArgument('--release', '-r', action='store_true',
-                     help='Run the release build')
-    @CommandArgument('--dev', '-d', action='store_true',
-                     help='Run the dev build')
-    def test_jquery(self, release, dev):
-        return self.jquery_test_runner("test", release, dev)
+    @Command('test-jquery', description='Run the jQuery test suite', category='testing')
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def test_jquery(self, build_type: BuildType):
+        return self.jquery_test_runner("test", build_type)
 
-    @Command('test-dromaeo',
-             description='Run the Dromaeo test suite',
-             category='testing')
-    @CommandArgument('tests', default=["recommended"], nargs="...",
-                     help="Specific tests to run")
-    @CommandArgument('--release', '-r', action='store_true',
-                     help='Run the release build')
-    @CommandArgument('--dev', '-d', action='store_true',
-                     help='Run the dev build')
-    def test_dromaeo(self, tests, release, dev):
-        return self.dromaeo_test_runner(tests, release, dev)
+    @Command('test-dromaeo', description='Run the Dromaeo test suite', category='testing')
+    @CommandArgument('tests', default=["recommended"], nargs="...", help="Specific tests to run")
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def test_dromaeo(self, tests, build_type: BuildType):
+        return self.dromaeo_test_runner(tests, build_type)
 
     @Command('update-jquery',
              description='Update the jQuery test suite expected results',
              category='testing')
-    @CommandArgument('--release', '-r', action='store_true',
-                     help='Run the release build')
-    @CommandArgument('--dev', '-d', action='store_true',
-                     help='Run the dev build')
-    def update_jquery(self, release, dev):
-        return self.jquery_test_runner("update", release, dev)
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def update_jquery(self, build_type: BuildType):
+        return self.jquery_test_runner("update", build_type)
 
     @Command('compare_dromaeo',
              description='Compare outputs of two runs of ./mach test-dromaeo command',
@@ -543,7 +499,7 @@ class MachCommands(CommandBase):
                     print("{}|{}|{}|{}".format(a1.ljust(width_col1), str(b1).ljust(width_col2),
                           str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
 
-    def jquery_test_runner(self, cmd, release, dev):
+    def jquery_test_runner(self, cmd, build_type: BuildType):
         base_dir = path.abspath(path.join("tests", "jquery"))
         jquery_dir = path.join(base_dir, "jquery")
         run_file = path.join(base_dir, "run_jquery.py")
@@ -558,11 +514,11 @@ class MachCommands(CommandBase):
             ["git", "-C", jquery_dir, "pull"])
 
         # Check that a release servo build exists
-        bin_path = path.abspath(self.get_binary_path(release, dev))
+        bin_path = path.abspath(self.get_binary_path(build_type))
 
         return call([run_file, cmd, bin_path, base_dir])
 
-    def dromaeo_test_runner(self, tests, release, dev):
+    def dromaeo_test_runner(self, tests, build_type: BuildType):
         base_dir = path.abspath(path.join("tests", "dromaeo"))
         dromaeo_dir = path.join(base_dir, "dromaeo")
         run_file = path.join(base_dir, "run_dromaeo.py")
@@ -581,7 +537,7 @@ class MachCommands(CommandBase):
             ["make", "-C", dromaeo_dir, "web"])
 
         # Check that a release servo build exists
-        bin_path = path.abspath(self.get_binary_path(release, dev))
+        bin_path = path.abspath(self.get_binary_path(build_type))
 
         return check_call(
             [run_file, "|".join(tests), bin_path, base_dir])
@@ -832,10 +788,10 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
              category='testing')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Servo")
-    def smoketest(self, params):
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def smoketest(self, build_type: BuildType, params):
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.
-        params = params + ['-f', 'tests/html/close-on-load.html']
-        return self.context.commands.dispatch(
-            'run', self.context, params=params)
+        return self.context.commands.dispatch('run', self.context, build_type=build_type,
+                                              params=params + ['-f', 'tests/html/close-on-load.html'])

@@ -35,21 +35,13 @@ from mach.registrar import Registrar
 import servo.platform
 import servo.util
 
-from servo.command_base import CommandBase, call, check_call
+from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
 
 
 @CommandProvider
 class MachCommands(CommandBase):
-    @Command('build',
-             description='Build Servo',
-             category='build')
-    @CommandArgument('--release', '-r',
-                     action='store_true',
-                     help='Build in release mode')
-    @CommandArgument('--dev', '-d',
-                     action='store_true',
-                     help='Build in development mode')
+    @Command('build', description='Build Servo', category='build')
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
@@ -64,41 +56,14 @@ class MachCommands(CommandBase):
                      help='Print very verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
-    @CommandBase.build_like_command_arguments
-    def build(self, release=False, dev=False, jobs=None, params=None, no_package=False,
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
+    def build(self, build_type: BuildType, jobs=None, params=None, no_package=False,
               verbose=False, very_verbose=False, libsimpleservo=False, **kwargs):
         opts = params or []
         has_media_stack = "media-gstreamer" in self.features
 
-        release_path = path.join(self.target_path, "release", "servo")
-        dev_path = path.join(self.target_path, "debug", "servo")
-
-        release_exists = path.exists(release_path)
-        dev_exists = path.exists(dev_path)
-
-        if not (release or dev):
-            if self.config["build"]["mode"] == "dev":
-                dev = True
-            elif self.config["build"]["mode"] == "release":
-                release = True
-            elif release_exists and not dev_exists:
-                release = True
-            elif dev_exists and not release_exists:
-                dev = True
-            else:
-                print("Please specify either --dev (-d) for a development")
-                print("  build, or --release (-r) for an optimized build.")
-                sys.exit(1)
-
-        if release and dev:
-            print("Please specify either --dev or --release.")
-            sys.exit(1)
-
-        if release:
+        if build_type == BuildType.RELEASE:
             opts += ["--release"]
-            servo_path = release_path
-        else:
-            servo_path = dev_path
 
         if jobs is not None:
             opts += ["-j", jobs]
@@ -176,15 +141,14 @@ class MachCommands(CommandBase):
                     flavor = "googlevr"
                 elif "oculusvr" in self.features:
                     flavor = "oculusvr"
-                rv = Registrar.dispatch("package", context=self.context,
-                                        release=release, dev=dev, target=self.cross_compile_target,
-                                        flavor=flavor)
+                rv = Registrar.dispatch("package", context=self.context, build_type=build_type,
+                                        target=self.cross_compile_target, flavor=flavor)
                 if rv:
                     return rv
 
             if sys.platform == "win32":
                 servo_exe_dir = os.path.dirname(
-                    self.get_binary_path(release, dev, target=self.cross_compile_target, simpleservo=libsimpleservo)
+                    self.get_binary_path(build_type, target=self.cross_compile_target, simpleservo=libsimpleservo)
                 )
                 assert os.path.exists(servo_exe_dir)
 
@@ -224,7 +188,7 @@ class MachCommands(CommandBase):
 
             elif sys.platform == "darwin":
                 servo_path = self.get_binary_path(
-                    release, dev, target=self.cross_compile_target, simpleservo=libsimpleservo)
+                    build_type, target=self.cross_compile_target, simpleservo=libsimpleservo)
                 servo_bin_dir = os.path.dirname(servo_path)
                 assert os.path.exists(servo_bin_dir)
 

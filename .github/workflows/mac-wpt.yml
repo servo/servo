@@ -42,7 +42,7 @@ jobs:
           python3 -m pip install --upgrade pip virtualenv
           python3 ./mach bootstrap
       - name: Smoketest
-        run: python3 ./mach smoketest
+        run: python3 ./mach smoketest --release
       - name: Run tests
         run: |
           python3 ./mach test-wpt --with-${{ inputs.layout }} \

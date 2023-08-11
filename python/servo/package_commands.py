@@ -29,6 +29,7 @@ from mach.decorators import (
 from mach.registrar import Registrar
 
 from servo.command_base import (
+    BuildType,
     archive_deterministically,
     BuildNotFound,
     cd,
@@ -112,10 +113,6 @@ class PackageCommands(CommandBase):
     @Command('package',
              description='Package Servo',
              category='package')
-    @CommandArgument('--release', '-r', action='store_true',
-                     help='Package the release build')
-    @CommandArgument('--dev', '-d', action='store_true',
-                     help='Package the dev build')
     @CommandArgument('--android',
                      default=None,
                      action='store_true',
@@ -130,8 +127,8 @@ class PackageCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Create a local Maven repository')
-    def package(self, release=False, dev=False, android=None, target=None,
-                flavor=None, maven=False):
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def package(self, build_type: BuildType, android=None, target=None, flavor=None, maven=False):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -144,26 +141,21 @@ class PackageCommands(CommandBase):
 
         self.cross_compile_target = target
         env = self.build_env()
-        binary_path = self.get_binary_path(
-            release, dev, target=target, android=android,
-        )
+        binary_path = self.get_binary_path(build_type, target=target, android=android)
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
         if android:
             android_target = self.config["android"]["target"]
             if "aarch64" in android_target:
-                build_type = "Arm64"
+                arch_string = "Arm64"
             elif "armv7" in android_target:
-                build_type = "Armv7"
+                arch_string = "Armv7"
             elif "i686" in android_target:
-                build_type = "x86"
+                arch_string = "x86"
             else:
-                build_type = "Arm"
+                arch_string = "Arm"
 
-            if dev:
-                build_mode = "Debug"
-            else:
-                build_mode = "Release"
+            build_type_string = "Debug" if build_type == BuildType.DEV else "Release"
 
             flavor_name = "Main"
             if flavor is not None:
@@ -178,7 +170,7 @@ class PackageCommands(CommandBase):
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
             change_prefs(dir_to_resources, "android", vr=vr)
 
-            variant = ":assemble" + flavor_name + build_type + build_mode
+            variant = ":assemble" + flavor_name + arch_string + build_type_string
             apk_task_name = ":servoapp" + variant
             aar_task_name = ":servoview" + variant
             maven_task_name = ":servoview:uploadArchive"
@@ -354,10 +346,6 @@ class PackageCommands(CommandBase):
     @Command('install',
              description='Install Servo (currently, Android and Windows only)',
              category='package')
-    @CommandArgument('--release', '-r', action='store_true',
-                     help='Install the release build')
-    @CommandArgument('--dev', '-d', action='store_true',
-                     help='Install the dev build')
     @CommandArgument('--android',
                      action='store_true',
                      help='Install on Android')
@@ -370,7 +358,8 @@ class PackageCommands(CommandBase):
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Install the given target platform')
-    def install(self, release=False, dev=False, android=False, emulator=False, usb=False, target=None):
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def install(self, build_type: BuildType, android=False, emulator=False, usb=False, target=None):
         if target and android:
             print("Please specify either --target or --android.")
             sys.exit(1)
@@ -380,21 +369,21 @@ class PackageCommands(CommandBase):
 
         env = self.build_env()
         try:
-            binary_path = self.get_binary_path(release, dev, android=android)
+            binary_path = self.get_binary_path(build_type, android=android)
         except BuildNotFound:
             print("Servo build not found. Building servo...")
             result = Registrar.dispatch(
-                "build", context=self.context, release=release, dev=dev, android=android,
+                "build", context=self.context, build_type=build_type, android=android,
             )
             if result:
                 return result
             try:
-                binary_path = self.get_binary_path(release, dev, android=android)
+                binary_path = self.get_binary_path(build_type, android=android)
             except BuildNotFound:
                 print("Rebuilding Servo did not solve the missing build problem.")
                 return 1
         if android:
-            pkg_path = self.get_apk_path(release)
+            pkg_path = self.get_apk_path(build_type)
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
                 print("Cannot install to both emulator and USB at the same time.")
@@ -411,7 +400,7 @@ class PackageCommands(CommandBase):
         if not path.exists(pkg_path):
             print("Servo package not found. Packaging servo...")
             result = Registrar.dispatch(
-                "package", context=self.context, release=release, dev=dev, android=android,
+                "package", context=self.context, build_type=build_type, android=android,
             )
             if result != 0:
                 return result
