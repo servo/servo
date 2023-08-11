@@ -30,14 +30,14 @@ pub enum FeatureType {
 impl FeatureType {
     fn features(&self) -> &'static [QueryFeatureDescription] {
         #[cfg(feature = "gecko")]
-        use crate::gecko::media_features::MEDIA_FEATURES;
+        let media_features = &crate::gecko::media_features::MEDIA_FEATURES;
         #[cfg(feature = "servo")]
-        use crate::servo::media_queries::MEDIA_FEATURES;
+        let media_features = &*crate::servo::media_queries::MEDIA_FEATURES;
 
         use crate::stylesheets::container_rule::CONTAINER_FEATURES;
 
         match *self {
-            FeatureType::Media => &MEDIA_FEATURES,
+            FeatureType::Media => media_features,
             FeatureType::Container => &CONTAINER_FEATURES,
         }
     }
