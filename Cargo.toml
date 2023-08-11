@@ -71,9 +71,8 @@ smallvec = "1.9"
 sparkle = "0.1.25"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
-surfman = "0.7"
-surfman-chains = "0.8"
-surfman-chains-api = "0.2"
+# NOTE: the sm-angle feature only enables angle on windows, not other platforms!
+surfman = { version = "0.8", features = ["chains", "sm-angle", "sm-angle-default"] }
 thin-slice = "0.1.0"
 time = "0.1.41"
 tokio = "1"
@@ -113,7 +112,6 @@ opt-level = 3
 mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 # fork that bumps crates since the original repo is archived.
 immeta = { git = "https://github.com/fabricedesre/immeta.git" }
-
 
 # This is required because we want all dependencies that use WebRender to
 # use our vendored version.

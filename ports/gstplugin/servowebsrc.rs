@@ -88,13 +88,12 @@ use sparkle::gl;
 use sparkle::gl::types::GLuint;
 use sparkle::gl::Gl;
 
+use surfman::chains::{SwapChain, SwapChainAPI};
 use surfman::Connection;
 use surfman::Context;
 use surfman::Device;
 use surfman::SurfaceAccess;
 use surfman::SurfaceType;
-use surfman_chains::SwapChain;
-use surfman_chains_api::SwapChainAPI;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
