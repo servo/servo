@@ -1924,10 +1924,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
 
         self.gecko.mAnimationNameCount = v.len() as u32;
         for (servo, gecko) in v.zip(self.gecko.mAnimations.iter_mut()) {
-            let atom = match servo.0 {
-                None => atom!(""),
-                Some(ref name) => name.as_atom().clone(),
-            };
+            let atom = servo.0.as_atom().clone();
             unsafe { bindings::Gecko_SetAnimationName(gecko, atom.into_addrefed()); }
         }
     }
@@ -1936,10 +1933,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         use crate::properties::longhands::animation_name::single_value::SpecifiedValue as AnimationName;
 
         let atom = self.gecko.mAnimations[index].mName.mRawPtr;
-        if atom == atom!("").as_ptr() {
-            return AnimationName(None)
-        }
-        AnimationName(Some(KeyframesName::from_atom(unsafe { Atom::from_raw(atom) })))
+        AnimationName(KeyframesName::from_atom(unsafe { Atom::from_raw(atom) }))
     }
     pub fn copy_animation_name_from(&mut self, other: &Self) {
         self.gecko.mAnimationNameCount = other.gecko.mAnimationNameCount;

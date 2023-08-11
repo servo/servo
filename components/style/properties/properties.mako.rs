@@ -2937,7 +2937,7 @@ pub mod style_structs {
             /// Returns whether there is any animation specified with
             /// animation-name other than `none`.
             pub fn specifies_animations(&self) -> bool {
-                self.animation_name_iter().any(|name| name.0.is_some())
+                self.animation_name_iter().any(|name| !name.is_none())
             }
 
             /// Returns whether there are any transitions specified.
