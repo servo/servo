@@ -8,7 +8,7 @@
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
-use crate::queries::QueryCondition;
+use crate::queries::{QueryCondition, FeatureType};
 use crate::values::computed::{self, ToComputedValue};
 use crate::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 use app_units::Au;
@@ -30,7 +30,7 @@ impl Parse for SourceSize {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let condition = QueryCondition::parse(context, input)?;
+        let condition = QueryCondition::parse(context, input, FeatureType::Media)?;
         let value = Length::parse_non_negative(context, input)?;
         Ok(Self { condition, value })
     }

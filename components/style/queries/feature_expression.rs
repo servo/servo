@@ -7,11 +7,7 @@
 
 use super::feature::{Evaluator, QueryFeatureDescription};
 use super::feature::{KeywordDiscriminant, ParsingRequirements};
-#[cfg(feature = "gecko")]
-use crate::gecko::media_features::MEDIA_FEATURES;
 use crate::parser::{Parse, ParserContext};
-#[cfg(feature = "servo")]
-use crate::servo::media_queries::MEDIA_FEATURES;
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use crate::values::computed::{self, Ratio, ToComputedValue};
 use crate::values::specified::{Integer, Length, Number, Resolution};
@@ -21,6 +17,36 @@ use cssparser::{Parser, Token};
 use std::cmp::{Ordering, PartialOrd};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+
+/// Whether we're parsing a media or container query feature.
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
+pub enum FeatureType {
+    /// We're parsing a media feature.
+    Media,
+    /// We're parsing a container feature.
+    Container,
+}
+
+impl FeatureType {
+    fn features(&self) -> &'static [QueryFeatureDescription] {
+        #[cfg(feature = "gecko")]
+        use crate::gecko::media_features::MEDIA_FEATURES;
+        #[cfg(feature = "servo")]
+        use crate::servo::media_queries::MEDIA_FEATURES;
+
+        use crate::stylesheets::container_rule::CONTAINER_FEATURES;
+
+        match *self {
+            FeatureType::Media => &MEDIA_FEATURES,
+            FeatureType::Container => &CONTAINER_FEATURES,
+        }
+    }
+
+    fn find_feature(&self, name: &Atom) -> Option<(usize, &'static QueryFeatureDescription)> {
+        self.features().iter().enumerate().find(|(_, f)| f.name == *name)
+    }
+}
+
 
 /// The kind of matching that should be performed on a feature value.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
@@ -124,6 +150,7 @@ impl RangeOrOperator {
 /// query contained, and the range to evaluate.
 #[derive(Clone, Debug, MallocSizeOf, ToShmem, PartialEq)]
 pub struct QueryFeatureExpression {
+    feature_type: FeatureType,
     feature_index: usize,
     value: Option<QueryExpressionValue>,
     range_or_operator: Option<RangeOrOperator>,
@@ -244,12 +271,14 @@ fn disabled_by_pref(feature: &Atom, context: &ParserContext) -> bool {
 
 impl QueryFeatureExpression {
     fn new(
+        feature_type: FeatureType,
         feature_index: usize,
         value: Option<QueryExpressionValue>,
         range_or_operator: Option<RangeOrOperator>,
     ) -> Self {
-        debug_assert!(feature_index < MEDIA_FEATURES.len());
+        debug_assert!(feature_index < feature_type.features().len());
         Self {
+            feature_type,
             feature_index,
             value,
             range_or_operator,
@@ -257,7 +286,7 @@ impl QueryFeatureExpression {
     }
 
     fn feature(&self) -> &'static QueryFeatureDescription {
-        &MEDIA_FEATURES[self.feature_index]
+        &self.feature_type.features()[self.feature_index]
     }
 
     /// Parse a feature expression of the form:
@@ -268,15 +297,17 @@ impl QueryFeatureExpression {
     pub fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        feature_type: FeatureType,
     ) -> Result<Self, ParseError<'i>> {
         input.expect_parenthesis_block()?;
-        input.parse_nested_block(|input| Self::parse_in_parenthesis_block(context, input))
+        input.parse_nested_block(|input| Self::parse_in_parenthesis_block(context, input, feature_type))
     }
 
     /// Parse a feature expression where we've already consumed the parenthesis.
     pub fn parse_in_parenthesis_block<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        feature_type: FeatureType,
     ) -> Result<Self, ParseError<'i>> {
         let mut requirements = ParsingRequirements::empty();
         let location = input.current_source_location();
@@ -305,11 +336,7 @@ impl QueryFeatureExpression {
 
         let atom = Atom::from(string_as_ascii_lowercase(feature_name));
 
-        let (feature_index, feature) = match MEDIA_FEATURES
-            .iter()
-            .enumerate()
-            .find(|(_, f)| f.name == atom)
-        {
+        let (feature_index, feature) = match feature_type.find_feature(&atom) {
             Some((i, f)) => (i, f),
             None => {
                 return Err(location.new_custom_error(
@@ -341,7 +368,7 @@ impl QueryFeatureExpression {
                     );
                 }
 
-                return Ok(Self::new(feature_index, None, None));
+                return Ok(Self::new(feature_type, feature_index, None, None));
             },
             Ok(operator) => operator,
         };
@@ -372,7 +399,7 @@ impl QueryFeatureExpression {
                 .new_custom_error(StyleParseErrorKind::MediaQueryExpectedFeatureValue)
         })?;
 
-        Ok(Self::new(feature_index, Some(value), range_or_operator))
+        Ok(Self::new(feature_type, feature_index, Some(value), range_or_operator))
     }
 
     /// Returns whether this query evaluates to true for the given device.

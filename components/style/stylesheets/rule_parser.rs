@@ -10,6 +10,7 @@ use crate::font_face::parse_font_face_block;
 use crate::media_queries::MediaList;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::parse_property_declaration_list;
+use crate::queries::FeatureType;
 use crate::selector_parser::{SelectorImpl, SelectorParser};
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::str::starts_with_ignore_ascii_case;
@@ -450,7 +451,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 let name = input.try_parse(|input| {
                     ContainerName::parse(self.context, input)
                 }).ok().unwrap_or_else(ContainerName::none);
-                let condition = ContainerCondition::parse(self.context, input)?;
+                let condition = ContainerCondition::parse(self.context, input, FeatureType::Container)?;
                 AtRulePrelude::Container(name, condition)
             },
             "layer" => {

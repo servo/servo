@@ -11,7 +11,7 @@ use crate::values::generics::size::Size2D;
 
 use crate::values::specified::page as specified;
 pub use generics::page::GenericPageSize;
-pub use generics::page::Orientation;
+pub use generics::page::PageOrientation;
 pub use generics::page::PaperSize;
 pub use specified::PageName;
 
@@ -26,7 +26,7 @@ pub enum PageSize {
     /// Specified size, paper size, or paper size and orientation.
     Size(Size2D<NonNegativeLength>),
     /// `landscape` or `portrait` value, no specified size.
-    Orientation(Orientation),
+    Orientation(PageOrientation),
     /// `auto` value
     Auto,
 }
@@ -37,11 +37,11 @@ impl ToComputedValue for specified::PageSize {
     fn to_computed_value(&self, ctx: &Context) -> Self::ComputedValue {
         match &*self {
             Self::Size(s) => PageSize::Size(s.to_computed_value(ctx)),
-            Self::PaperSize(p, Orientation::Landscape) => PageSize::Size(Size2D {
+            Self::PaperSize(p, PageOrientation::Landscape) => PageSize::Size(Size2D {
                 width: p.long_edge().to_computed_value(ctx),
                 height: p.short_edge().to_computed_value(ctx),
             }),
-            Self::PaperSize(p, Orientation::Portrait) => PageSize::Size(Size2D {
+            Self::PaperSize(p, PageOrientation::Portrait) => PageSize::Size(Size2D {
                 width: p.short_edge().to_computed_value(ctx),
                 height: p.long_edge().to_computed_value(ctx),
             }),

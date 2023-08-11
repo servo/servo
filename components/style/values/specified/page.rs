@@ -11,7 +11,7 @@ use crate::values::{generics, CustomIdent};
 use cssparser::Parser;
 use style_traits::ParseError;
 
-pub use generics::page::Orientation;
+pub use generics::page::PageOrientation;
 pub use generics::page::PaperSize;
 /// Specified value of the @page size descriptor
 pub type PageSize = generics::page::PageSize<Size2D<NonNegativeLength>>;
@@ -24,12 +24,12 @@ impl Parse for PageSize {
         // Try to parse as <page-size> [ <orientation> ]
         if let Ok(paper_size) = input.try_parse(PaperSize::parse) {
             let orientation = input
-                .try_parse(Orientation::parse)
-                .unwrap_or(Orientation::Portrait);
+                .try_parse(PageOrientation::parse)
+                .unwrap_or(PageOrientation::Portrait);
             return Ok(PageSize::PaperSize(paper_size, orientation));
         }
         // Try to parse as <orientation> [ <page-size> ]
-        if let Ok(orientation) = input.try_parse(Orientation::parse) {
+        if let Ok(orientation) = input.try_parse(PageOrientation::parse) {
             if let Ok(paper_size) = input.try_parse(PaperSize::parse) {
                 return Ok(PageSize::PaperSize(paper_size, orientation));
             }

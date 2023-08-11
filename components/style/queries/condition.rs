@@ -7,7 +7,7 @@
 //! https://drafts.csswg.org/mediaqueries-4/#typedef-media-condition
 //! https://drafts.csswg.org/css-contain-3/#typedef-container-condition
 
-use super::QueryFeatureExpression;
+use super::{QueryFeatureExpression, FeatureType};
 use crate::parser::ParserContext;
 use crate::values::computed;
 use cssparser::{Parser, Token};
@@ -80,8 +80,9 @@ impl QueryCondition {
     pub fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        feature_type: FeatureType,
     ) -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowOr::Yes)
+        Self::parse_internal(context, input, feature_type, AllowOr::Yes)
     }
 
     /// Parse a single condition, disallowing `or` expressions.
@@ -90,13 +91,15 @@ impl QueryCondition {
     pub fn parse_disallow_or<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        feature_type: FeatureType,
     ) -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowOr::No)
+        Self::parse_internal(context, input, feature_type, AllowOr::No)
     }
 
     fn parse_internal<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        feature_type: FeatureType,
         allow_or: AllowOr,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
@@ -109,12 +112,12 @@ impl QueryCondition {
         };
 
         if is_negation {
-            let inner_condition = Self::parse_in_parens(context, input)?;
+            let inner_condition = Self::parse_in_parens(context, input, feature_type)?;
             return Ok(QueryCondition::Not(Box::new(inner_condition)));
         }
 
         // ParenthesisBlock.
-        let first_condition = Self::parse_paren_block(context, input)?;
+        let first_condition = Self::parse_paren_block(context, input, feature_type)?;
         let operator = match input.try_parse(Operator::parse) {
             Ok(op) => op,
             Err(..) => return Ok(first_condition),
@@ -126,7 +129,7 @@ impl QueryCondition {
 
         let mut conditions = vec![];
         conditions.push(first_condition);
-        conditions.push(Self::parse_in_parens(context, input)?);
+        conditions.push(Self::parse_in_parens(context, input, feature_type)?);
 
         let delim = match operator {
             Operator::And => "and",
@@ -141,7 +144,7 @@ impl QueryCondition {
                 ));
             }
 
-            conditions.push(Self::parse_in_parens(context, input)?);
+            conditions.push(Self::parse_in_parens(context, input, feature_type)?);
         }
     }
 
@@ -149,21 +152,23 @@ impl QueryCondition {
     pub fn parse_in_parens<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        feature_type: FeatureType,
     ) -> Result<Self, ParseError<'i>> {
         input.expect_parenthesis_block()?;
-        Self::parse_paren_block(context, input)
+        Self::parse_paren_block(context, input, feature_type)
     }
 
     fn parse_paren_block<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        feature_type: FeatureType,
     ) -> Result<Self, ParseError<'i>> {
         input.parse_nested_block(|input| {
             // Base case.
-            if let Ok(inner) = input.try_parse(|i| Self::parse(context, i)) {
+            if let Ok(inner) = input.try_parse(|i| Self::parse(context, i, feature_type)) {
                 return Ok(QueryCondition::InParens(Box::new(inner)));
             }
-            let expr = QueryFeatureExpression::parse_in_parenthesis_block(context, input)?;
+            let expr = QueryFeatureExpression::parse_in_parenthesis_block(context, input, feature_type)?;
             Ok(QueryCondition::Feature(expr))
         })
     }
