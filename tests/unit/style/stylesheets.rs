@@ -4,7 +4,6 @@
 
 use cssparser::SourceLocation;
 use servo_arc::Arc;
-use servo_config::set_pref;
 use servo_url::ServoUrl;
 use std::cell::RefCell;
 use style::context::QuirksMode;
