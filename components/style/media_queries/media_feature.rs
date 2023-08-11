@@ -4,10 +4,8 @@
 
 //! Media features.
 
-use super::Device;
 use crate::parser::ParserContext;
-use crate::values::computed::Ratio;
-use crate::values::computed::{CSSPixelLength, Resolution};
+use crate::values::computed::{self, CSSPixelLength, Resolution, Ratio};
 use crate::Atom;
 use cssparser::Parser;
 use std::fmt;
@@ -16,7 +14,7 @@ use style_traits::ParseError;
 /// A generic discriminant for an enum value.
 pub type KeywordDiscriminant = u8;
 
-type MediaFeatureGetter<T> = fn(device: &Device) -> T;
+type MediaFeatureGetter<T> = fn(device: &computed::Context) -> T;
 
 /// Serializes a given discriminant.
 ///
@@ -54,7 +52,7 @@ pub enum Evaluator {
         serializer: KeywordSerializer,
         /// The evaluator itself. This is guaranteed to be called with a
         /// keyword that `parser` has produced.
-        evaluator: fn(&Device, Option<KeywordDiscriminant>) -> bool,
+        evaluator: fn(&computed::Context, Option<KeywordDiscriminant>) -> bool,
     },
 }
 
@@ -84,14 +82,14 @@ macro_rules! keyword_evaluator {
         }
 
         fn __evaluate(
-            device: &$crate::media_queries::Device,
+            context: &$crate::values::computed::Context,
             value: Option<$crate::media_queries::media_feature::KeywordDiscriminant>,
         ) -> bool {
             // This unwrap is ok because the only discriminants that get
             // back to us is the ones that `parse` produces.
             let value: Option<$keyword_type> =
                 value.map(|kw| ::num_traits::cast::FromPrimitive::from_u8(kw).unwrap());
-            $actual_evaluator(device, value)
+            $actual_evaluator(context, value)
         }
 
         $crate::media_queries::media_feature::Evaluator::Enumerated {
