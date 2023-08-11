@@ -679,33 +679,30 @@ impl AnimationIterationCount {
     PartialEq,
     SpecifiedValueInfo,
     ToComputedValue,
+    ToCss,
     ToResolvedValue,
     ToShmem,
 )]
 #[value_info(other_values = "none")]
-pub struct AnimationName(pub Option<KeyframesName>);
+pub struct AnimationName(pub KeyframesName);
 
 impl AnimationName {
     /// Get the name of the animation as an `Atom`.
     pub fn as_atom(&self) -> Option<&Atom> {
-        self.0.as_ref().map(|n| n.as_atom())
+        if self.is_none() {
+            return None;
+        }
+        Some(self.0.as_atom())
     }
 
     /// Returns the `none` value.
     pub fn none() -> Self {
-        AnimationName(None)
+        AnimationName(KeyframesName::none())
     }
-}
 
-impl ToCss for AnimationName {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match self.0 {
-            Some(ref name) => name.to_css(dest),
-            None => dest.write_str("none"),
-        }
+    /// Returns whether this is the none value.
+    pub fn is_none(&self) -> bool {
+        self.0.is_none()
     }
 }
 
@@ -715,11 +712,11 @@ impl Parse for AnimationName {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(name) = input.try_parse(|input| KeyframesName::parse(context, input)) {
-            return Ok(AnimationName(Some(name)));
+            return Ok(AnimationName(name));
         }
 
         input.expect_ident_matching("none")?;
-        Ok(AnimationName(None))
+        Ok(AnimationName(KeyframesName::none()))
     }
 }
 
@@ -818,8 +815,6 @@ fn is_default<T: Default + PartialEq>(value: &T) -> bool {
 pub enum AnimationTimeline {
     /// Use default timeline. The animation’s timeline is a DocumentTimeline.
     Auto,
-    /// The animation is not associated with a timeline.
-    None,
     /// The scroll-timeline name
     Timeline(TimelineName),
     /// The scroll() notation
@@ -849,16 +844,20 @@ impl Parse for AnimationTimeline {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         // We are using the same parser for TimelineName and KeyframesName, but animation-timeline
-        // accepts "auto", so need to manually parse this. (We can not derive Parse because
-        // TimelineName excludes only "none" keyword.)
+        // accepts "auto", so need to manually parse this. (We can not derive
+        // Parse because TimelineName excludes only the "none" keyword).
+        //
         // FIXME: Bug 1733260: we may drop None based on the spec issue:
-        // Note: https://github.com/w3c/csswg-drafts/issues/6674.
+        // https://github.com/w3c/csswg-drafts/issues/6674
+        //
+        // If `none` is removed, then we could potentially shrink this the same
+        // way we deal with animation-name.
         if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(Self::Auto);
         }
 
         if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(Self::None);
+            return Ok(AnimationTimeline::Timeline(TimelineName::none()));
         }
 
         // https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-notation
