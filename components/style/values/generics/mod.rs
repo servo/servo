@@ -310,3 +310,74 @@ impl<L> ClipRectOrAuto<L> {
 }
 
 pub use page::PageSize;
+
+/// An optional value, much like `Option<T>`, but with a defined struct layout
+/// to be able to use it from C++ as well.
+///
+/// Note that this is relatively inefficient, struct-layout-wise, as you have
+/// one byte for the tag, but padding to the alignment of T. If you have
+/// multiple optional values and care about struct compactness, you might be
+/// better off "coalescing" the combinations into a parent enum. But that
+/// shouldn't matter for most use cases.
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum Optional<T> {
+    #[css(skip)]
+    None,
+    Some(T),
+}
+
+impl<T> Optional<T> {
+    /// Returns whether this value is present.
+    pub fn is_some(&self) -> bool {
+        matches!(*self, Self::Some(..))
+    }
+
+    /// Returns whether this value is not present.
+    pub fn is_none(&self) -> bool {
+        matches!(*self, Self::None)
+    }
+
+    /// Turns this Optional<> into a regular rust Option<>.
+    pub fn into_rust(self) -> Option<T> {
+        match self {
+            Self::Some(v) => Some(v),
+            Self::None => None,
+        }
+    }
+
+    /// Return a reference to the containing value, if any, as a plain rust
+    /// Option<>.
+    pub fn as_ref(&self) -> Option<&T> {
+        match *self {
+            Self::Some(ref v) => Some(v),
+            Self::None => None,
+        }
+    }
+}
+
+impl<T> From<Option<T>> for Optional<T> {
+    fn from(rust: Option<T>) -> Self {
+        match rust {
+            Some(t) => Self::Some(t),
+            None => Self::None,
+        }
+    }
+}
