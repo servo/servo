@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! A media query condition:
+//! A query condition:
 //!
 //! https://drafts.csswg.org/mediaqueries-4/#typedef-media-condition
+//! https://drafts.csswg.org/css-contain-3/#typedef-container-condition
 
-use super::MediaFeatureExpression;
+use super::QueryFeatureExpression;
 use crate::parser::ParserContext;
 use crate::values::computed;
 use cssparser::{Parser, Token};
@@ -28,38 +29,38 @@ enum AllowOr {
     No,
 }
 
-/// Represents a media condition.
+/// Represents a condition.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
-pub enum MediaCondition {
-    /// A simple media feature expression, implicitly parenthesized.
-    Feature(MediaFeatureExpression),
+pub enum QueryCondition {
+    /// A simple feature expression, implicitly parenthesized.
+    Feature(QueryFeatureExpression),
     /// A negation of a condition.
-    Not(Box<MediaCondition>),
+    Not(Box<QueryCondition>),
     /// A set of joint operations.
-    Operation(Box<[MediaCondition]>, Operator),
+    Operation(Box<[QueryCondition]>, Operator),
     /// A condition wrapped in parenthesis.
-    InParens(Box<MediaCondition>),
+    InParens(Box<QueryCondition>),
 }
 
-impl ToCss for MediaCondition {
+impl ToCss for QueryCondition {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: fmt::Write,
     {
         match *self {
-            // NOTE(emilio): MediaFeatureExpression already includes the
+            // NOTE(emilio): QueryFeatureExpression already includes the
             // parenthesis.
-            MediaCondition::Feature(ref f) => f.to_css(dest),
-            MediaCondition::Not(ref c) => {
+            QueryCondition::Feature(ref f) => f.to_css(dest),
+            QueryCondition::Not(ref c) => {
                 dest.write_str("not ")?;
                 c.to_css(dest)
             },
-            MediaCondition::InParens(ref c) => {
+            QueryCondition::InParens(ref c) => {
                 dest.write_char('(')?;
                 c.to_css(dest)?;
                 dest.write_char(')')
             },
-            MediaCondition::Operation(ref list, op) => {
+            QueryCondition::Operation(ref list, op) => {
                 let mut iter = list.iter();
                 iter.next().unwrap().to_css(dest)?;
                 for item in iter {
@@ -74,8 +75,8 @@ impl ToCss for MediaCondition {
     }
 }
 
-impl MediaCondition {
-    /// Parse a single media condition.
+impl QueryCondition {
+    /// Parse a single condition.
     pub fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -83,9 +84,9 @@ impl MediaCondition {
         Self::parse_internal(context, input, AllowOr::Yes)
     }
 
-    /// Parse a single media condition, disallowing `or` expressions.
+    /// Parse a single condition, disallowing `or` expressions.
     ///
-    /// To be used from the legacy media query syntax.
+    /// To be used from the legacy query syntax.
     pub fn parse_disallow_or<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -109,7 +110,7 @@ impl MediaCondition {
 
         if is_negation {
             let inner_condition = Self::parse_in_parens(context, input)?;
-            return Ok(MediaCondition::Not(Box::new(inner_condition)));
+            return Ok(QueryCondition::Not(Box::new(inner_condition)));
         }
 
         // ParenthesisBlock.
@@ -134,7 +135,7 @@ impl MediaCondition {
 
         loop {
             if input.try_parse(|i| i.expect_ident_matching(delim)).is_err() {
-                return Ok(MediaCondition::Operation(
+                return Ok(QueryCondition::Operation(
                     conditions.into_boxed_slice(),
                     operator,
                 ));
@@ -144,7 +145,7 @@ impl MediaCondition {
         }
     }
 
-    /// Parse a media condition in parentheses.
+    /// Parse a condition in parentheses.
     pub fn parse_in_parens<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -160,20 +161,20 @@ impl MediaCondition {
         input.parse_nested_block(|input| {
             // Base case.
             if let Ok(inner) = input.try_parse(|i| Self::parse(context, i)) {
-                return Ok(MediaCondition::InParens(Box::new(inner)));
+                return Ok(QueryCondition::InParens(Box::new(inner)));
             }
-            let expr = MediaFeatureExpression::parse_in_parenthesis_block(context, input)?;
-            Ok(MediaCondition::Feature(expr))
+            let expr = QueryFeatureExpression::parse_in_parenthesis_block(context, input)?;
+            Ok(QueryCondition::Feature(expr))
         })
     }
 
     /// Whether this condition matches the device and quirks mode.
     pub fn matches(&self, context: &computed::Context) -> bool {
         match *self {
-            MediaCondition::Feature(ref f) => f.matches(context),
-            MediaCondition::InParens(ref c) => c.matches(context),
-            MediaCondition::Not(ref c) => !c.matches(context),
-            MediaCondition::Operation(ref conditions, op) => {
+            QueryCondition::Feature(ref f) => f.matches(context),
+            QueryCondition::InParens(ref c) => c.matches(context),
+            QueryCondition::Not(ref c) => !c.matches(context),
+            QueryCondition::Operation(ref conditions, op) => {
                 let mut iter = conditions.iter();
                 match op {
                     Operator::And => iter.all(|c| c.matches(context)),

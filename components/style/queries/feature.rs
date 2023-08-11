@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Media features.
+//! Query features.
 
 use crate::parser::ParserContext;
 use crate::values::computed::{self, CSSPixelLength, Resolution, Ratio};
@@ -14,7 +14,7 @@ use style_traits::ParseError;
 /// A generic discriminant for an enum value.
 pub type KeywordDiscriminant = u8;
 
-type MediaFeatureGetter<T> = fn(device: &computed::Context) -> T;
+type QueryFeatureGetter<T> = fn(device: &computed::Context) -> T;
 
 /// Serializes a given discriminant.
 ///
@@ -28,19 +28,19 @@ pub type KeywordParser = for<'a, 'i, 't> fn(
     input: &'a mut Parser<'i, 't>,
 ) -> Result<KeywordDiscriminant, ParseError<'i>>;
 
-/// An evaluator for a given media feature.
+/// An evaluator for a given feature.
 ///
 /// This determines the kind of values that get parsed, too.
 #[allow(missing_docs)]
 pub enum Evaluator {
-    Length(MediaFeatureGetter<CSSPixelLength>),
-    Integer(MediaFeatureGetter<u32>),
-    Float(MediaFeatureGetter<f32>),
-    BoolInteger(MediaFeatureGetter<bool>),
+    Length(QueryFeatureGetter<CSSPixelLength>),
+    Integer(QueryFeatureGetter<u32>),
+    Float(QueryFeatureGetter<f32>),
+    BoolInteger(QueryFeatureGetter<bool>),
     /// A non-negative number ratio, such as the one from device-pixel-ratio.
-    NumberRatio(MediaFeatureGetter<Ratio>),
+    NumberRatio(QueryFeatureGetter<Ratio>),
     /// A resolution.
-    Resolution(MediaFeatureGetter<Resolution>),
+    Resolution(QueryFeatureGetter<Resolution>),
     /// A keyword value.
     Enumerated {
         /// The parser to get a discriminant given a string.
@@ -67,14 +67,14 @@ macro_rules! keyword_evaluator {
             context: &$crate::parser::ParserContext,
             input: &mut $crate::cssparser::Parser<'i, 't>,
         ) -> Result<
-            $crate::media_queries::media_feature::KeywordDiscriminant,
+            $crate::queries::feature::KeywordDiscriminant,
             ::style_traits::ParseError<'i>,
         > {
             let kw = <$keyword_type as $crate::parser::Parse>::parse(context, input)?;
-            Ok(kw as $crate::media_queries::media_feature::KeywordDiscriminant)
+            Ok(kw as $crate::queries::feature::KeywordDiscriminant)
         }
 
-        fn __serialize(kw: $crate::media_queries::media_feature::KeywordDiscriminant) -> String {
+        fn __serialize(kw: $crate::queries::feature::KeywordDiscriminant) -> String {
             // This unwrap is ok because the only discriminants that get
             // back to us is the ones that `parse` produces.
             let value: $keyword_type = ::num_traits::cast::FromPrimitive::from_u8(kw).unwrap();
@@ -83,7 +83,7 @@ macro_rules! keyword_evaluator {
 
         fn __evaluate(
             context: &$crate::values::computed::Context,
-            value: Option<$crate::media_queries::media_feature::KeywordDiscriminant>,
+            value: Option<$crate::queries::feature::KeywordDiscriminant>,
         ) -> bool {
             // This unwrap is ok because the only discriminants that get
             // back to us is the ones that `parse` produces.
@@ -92,7 +92,7 @@ macro_rules! keyword_evaluator {
             $actual_evaluator(context, value)
         }
 
-        $crate::media_queries::media_feature::Evaluator::Enumerated {
+        $crate::queries::feature::Evaluator::Enumerated {
             parser: __parse,
             serializer: __serialize,
             evaluator: __evaluate,
@@ -111,7 +111,7 @@ bitflags! {
     }
 }
 
-/// Whether a media feature allows ranges or not.
+/// Whether a feature allows ranges or not.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub enum AllowsRanges {
@@ -119,9 +119,9 @@ pub enum AllowsRanges {
     No,
 }
 
-/// A description of a media feature.
-pub struct MediaFeatureDescription {
-    /// The media feature name, in ascii lowercase.
+/// A description of a feature.
+pub struct QueryFeatureDescription {
+    /// The feature name, in ascii lowercase.
     pub name: Atom,
     /// Whether min- / max- prefixes are allowed or not.
     pub allows_ranges: AllowsRanges,
@@ -133,18 +133,18 @@ pub struct MediaFeatureDescription {
     pub requirements: ParsingRequirements,
 }
 
-impl MediaFeatureDescription {
-    /// Whether this media feature allows ranges.
+impl QueryFeatureDescription {
+    /// Whether this feature allows ranges.
     #[inline]
     pub fn allows_ranges(&self) -> bool {
         self.allows_ranges == AllowsRanges::Yes
     }
 }
 
-/// A simple helper to construct a `MediaFeatureDescription`.
+/// A simple helper to construct a `QueryFeatureDescription`.
 macro_rules! feature {
     ($name:expr, $allows_ranges:expr, $evaluator:expr, $reqs:expr,) => {
-        $crate::media_queries::media_feature::MediaFeatureDescription {
+        $crate::queries::feature::QueryFeatureDescription {
             name: $name,
             allows_ranges: $allows_ranges,
             evaluator: $evaluator,
@@ -153,9 +153,9 @@ macro_rules! feature {
     };
 }
 
-impl fmt::Debug for MediaFeatureDescription {
+impl fmt::Debug for QueryFeatureDescription {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("MediaFeatureExpression")
+        f.debug_struct("QueryFeatureDescription")
             .field("name", &self.name)
             .field("allows_ranges", &self.allows_ranges)
             .field("requirements", &self.requirements)

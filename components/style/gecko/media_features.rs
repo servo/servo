@@ -6,8 +6,7 @@
 
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
-use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
-use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
+use crate::queries::feature::{AllowsRanges, Evaluator, ParsingRequirements, QueryFeatureDescription};
 use crate::media_queries::{Device, MediaType};
 use crate::values::computed::{Context, CSSPixelLength, Ratio, Resolution};
 use app_units::Au;
@@ -583,7 +582,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [MediaFeatureDescription; 60] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
