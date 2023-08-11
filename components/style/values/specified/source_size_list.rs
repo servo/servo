@@ -6,8 +6,9 @@
 
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use crate::media_queries::{Device, MediaCondition};
+use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
+use crate::queries::QueryCondition;
 use crate::values::computed::{self, ToComputedValue};
 use crate::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 use app_units::Au;
@@ -20,7 +21,7 @@ use style_traits::ParseError;
 /// https://html.spec.whatwg.org/multipage/#source-size
 #[derive(Debug)]
 pub struct SourceSize {
-    condition: MediaCondition,
+    condition: QueryCondition,
     value: Length,
 }
 
@@ -29,9 +30,8 @@ impl Parse for SourceSize {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let condition = MediaCondition::parse(context, input)?;
+        let condition = QueryCondition::parse(context, input)?;
         let value = Length::parse_non_negative(context, input)?;
-
         Ok(Self { condition, value })
     }
 }
