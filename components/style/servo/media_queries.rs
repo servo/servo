@@ -12,6 +12,7 @@ use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::values::computed::CSSPixelLength;
+use crate::values::computed::Context;
 use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::specified::ViewportVariant;
 use crate::values::KeyframesName;
@@ -234,8 +235,8 @@ impl Device {
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#width
-fn eval_width(device: &Device) -> CSSPixelLength {
-    CSSPixelLength::new(device.au_viewport_size().width.to_f32_px())
+fn eval_width(context: &Context) -> CSSPixelLength {
+    CSSPixelLength::new(context.device().au_viewport_size().width.to_f32_px())
 }
 
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
@@ -246,7 +247,7 @@ enum Scan {
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#scan
-fn eval_scan(_: &Device, _: Option<Scan>) -> bool {
+fn eval_scan(_: &Context, _: Option<Scan>) -> bool {
     // Since we doesn't support the 'tv' media type, the 'scan' feature never
     // matches.
     false
