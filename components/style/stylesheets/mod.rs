@@ -385,16 +385,6 @@ impl CssRule {
         }
     }
 
-    fn rule_state(&self) -> State {
-        match *self {
-            // CssRule::Charset(..) => State::Start,
-            CssRule::Import(..) => State::Imports,
-            CssRule::Namespace(..) => State::Namespaces,
-            // TODO(emilio): Do we need something for EarlyLayers?
-            _ => State::Body,
-        }
-    }
-
     /// Parse a CSS rule.
     ///
     /// Returns a parsed CSS rule and the final state of the parser.
