@@ -4,8 +4,8 @@
 name: Quick check
 on:
   push:
-    branches:
-      ["**", "!master", "!auto", "!try", "!try-linux", "!try-mac", "!try-windows", "!try-wpt", "!try-wpt-2020", "!dependabot/**"]
+    branches-ignore:
+      ["master", "auto", "try", "try-*", "dependabot/**"]
 
 jobs:
   build-linux:

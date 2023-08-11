@@ -3,6 +3,9 @@ name: Mac
 on:
   workflow_call:
     inputs:
+      wpt-layout:
+        required: false
+        type: string
       unit-tests:
         required: false
         default: false
@@ -16,6 +19,10 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      wpt-layout:
+        required: false
+        type: choice
+        options: ["none", "2013", "2020", "all"]
       unit-tests:
         required: false
         default: false
@@ -25,7 +32,7 @@ on:
         default: false
         type: boolean
   push:
-    branches: ["try-mac"]
+    branches: ["try-mac", "try-wpt-mac", "try-wpt-mac-2020"]
 
 env:
   RUST_BACKTRACE: 1
@@ -38,7 +45,7 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v3
         if: github.event_name != 'issue_comment'
@@ -96,68 +103,28 @@ jobs:
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
       - name: Package binary
-        run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib resources
+        run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib target/release/lib/*.dylib resources
       - name: Archive binary
         uses: actions/upload-artifact@v3
         with:
           name: release-binary-macos
           path: target.tar.gz
 
-  # mac-wpt:
-  #   name: Mac WPT Tests
-  #   runs-on: macos-12
-  #   needs: ["build-mac"]
-  #   env:
-  #     max_chunk_id: 20
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #     if: github.event_name != 'issue_comment'
-  #     with:
-  #       fetch-depth: 2
-  #   # This is necessary to checkout the pull request if this run was triggered
-  #   # via an `issue_comment` action on a pull request.
-  #   - uses: actions/checkout@v3
-  #     if: github.event_name == 'issue_comment'
-  #     with:
-  #       ref: refs/pull/${{ github.event.issue.number }}/head
-  #       fetch-depth: 2
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: release-binary-macos
-  #     # TODO: Remove this step when the compatibility issue between mozjs and
-  #     #       Homebrew's Python 3.10 formula (servo/rust-mozjs#559) is fixed
-  #     - name: Select Python 3.9
-  #       run: |
-  #         brew install python@3.9
-  #         cd $(dirname $(which python3.9))
-  #         rm -f python3 pip3
-  #         ln -s python3.9 python3
-  #         ln -s pip3.9 pip3
-  #     - name: Prep test environment
-  #       run: |
-  #         gtar -xzf target.tar.gz
-  #         python3 -m pip install --upgrade pip virtualenv
-  #     - name: Smoketest
-  #       run: python3 ./mach smoketest
-  #     - name: Run tests
-  #       run: |
-  #         python3 ./mach test-wpt \
-  #           --release --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
-  #           --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
-  #           --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-  #           --filter-intermittents=filtered-wpt-summary.${{ matrix.chunk_id }}.log
-  #     - name: Archive logs
-  #       uses: actions/upload-artifact@v3
-  #       if: ${{ failure() }}
-  #       with:
-  #         name: wpt${{ matrix.chunk_id }}-logs-macos
-  #         path: |
-  #           test-wpt.${{ matrix.chunk_id }}.log
-  #           filtered-wpt-summary.${{ matrix.chunk_id }}.log
+  wpt-2020:
+    if: ${{ github.ref_name == 'try-wpt-mac-2020' || inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
+    name: Mac WPT Tests 2020
+    needs: ["build"]
+    uses: ./.github/workflows/mac-wpt.yml
+    with:
+      layout: "layout-2020"
+
+  wpt-2013:
+    if: ${{ github.ref_name == 'try-wpt-mac' || inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
+    name: Mac WPT Tests 2013
+    needs: ["build"]
+    uses: ./.github/workflows/mac-wpt.yml
+    with:
+      layout: "layout-2013"
 
   result:
     name: Result
@@ -166,6 +133,8 @@ jobs:
     # needs all build to detect cancellation
     needs:
       - "build"
+      - "wpt-2020"
+      - "wpt-2013"
 
     steps:
       - name: Mark the job as successful
