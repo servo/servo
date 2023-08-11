@@ -229,11 +229,8 @@ impl PositioningContext {
         new_context.layout_collected_children(layout_context, &mut new_fragment);
 
         // If the new context has any hoisted boxes for the nearest containing block for
-        // all descendants than collect them and pass them up the tree.
-        vec_append_owned(
-            &mut self.for_nearest_containing_block_for_all_descendants,
-            new_context.for_nearest_containing_block_for_all_descendants,
-        );
+        // pass them up the tree.
+        self.append(new_context);
 
         if style.clone_position() == Position::Relative {
             new_fragment.content_rect.start_corner +=
@@ -305,16 +302,38 @@ impl PositioningContext {
             .push(box_)
     }
 
+    fn is_empty(&self) -> bool {
+        self.for_nearest_containing_block_for_all_descendants
+            .is_empty() &&
+            self.for_nearest_positioned_ancestor
+                .as_ref()
+                .map_or(true, |vector| vector.is_empty())
+    }
+
     pub(crate) fn append(&mut self, other: Self) {
+        if other.is_empty() {
+            return;
+        }
+
         vec_append_owned(
             &mut self.for_nearest_containing_block_for_all_descendants,
             other.for_nearest_containing_block_for_all_descendants,
         );
+
         match (
             self.for_nearest_positioned_ancestor.as_mut(),
             other.for_nearest_positioned_ancestor,
         ) {
-            (Some(a), Some(b)) => vec_append_owned(a, b),
+            (Some(us), Some(them)) => vec_append_owned(us, them),
+            (None, Some(them)) => {
+                // This is the case where we have laid out the absolute children in a containing
+                // block for absolutes and we then are passing up the fixed-position descendants
+                // to the containing block for all descendants.
+                vec_append_owned(
+                    &mut self.for_nearest_containing_block_for_all_descendants,
+                    them,
+                );
+            },
             (None, None) => {},
             _ => unreachable!(),
         }
@@ -378,6 +397,7 @@ impl PositioningContext {
 }
 
 /// A data structure which stores the size of a positioning context.
+#[derive(PartialEq)]
 pub(crate) struct PositioningContextLength {
     /// The number of boxes that will be hoisted the the nearest positioned ancestor for
     /// layout.

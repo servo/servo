@@ -299,11 +299,12 @@ impl AnonymousFragment {
 impl TextFragment {
     pub fn print(&self, tree: &mut PrintTree) {
         tree.add_item(format!(
-            "Text num_glyphs={}",
+            "Text num_glyphs={} box={:?}",
             self.glyphs
                 .iter()
                 .map(|glyph_store| glyph_store.len().0)
-                .sum::<isize>()
+                .sum::<isize>(),
+            self.rect,
         ));
     }
 }

@@ -372,6 +372,7 @@ impl BlockContainer {
                 positioning_context,
                 containing_block,
                 sequential_layout_state,
+                collapsible_with_parent_start_margin,
             ),
         }
     }

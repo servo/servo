@@ -55,6 +55,7 @@ pub(crate) enum DisplayInside {
 }
 
 /// Percentages resolved but not `auto` margins
+#[derive(Clone)]
 pub(crate) struct PaddingBorderMargin {
     pub padding: flow_relative::Sides<Length>,
     pub border: flow_relative::Sides<Length>,
