@@ -47,8 +47,6 @@ pub type Gradient = generic::GenericGradient<
 /// Computed values for CSS cross-fade
 /// <https://drafts.csswg.org/css-images-4/#cross-fade-function>
 pub type CrossFade = generic::CrossFade<Image, Color, Percentage>;
-/// A computed percentage or nothing.
-pub type PercentOrNone = generic::PercentOrNone<Percentage>;
 
 /// A computed radial gradient ending shape.
 pub type EndingShape = generic::GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage>;
