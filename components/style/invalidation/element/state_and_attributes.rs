@@ -19,8 +19,7 @@ use crate::selector_parser::Snapshot;
 use crate::stylesheets::origin::OriginSet;
 use crate::{Atom, WeakAtom};
 use selectors::attr::CaseSensitivity;
-use selectors::matching::matches_selector;
-use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
+use selectors::matching::{matches_selector, MatchingContext, MatchingMode, VisitedHandlingMode, NeedsSelectorFlags};
 use selectors::NthIndexCache;
 use smallvec::SmallVec;
 
@@ -67,6 +66,7 @@ impl<'a, 'b: 'a, E: TElement + 'b> StateAndAttrInvalidationProcessor<'a, 'b, E> 
             Some(nth_index_cache),
             VisitedHandlingMode::AllLinksVisitedAndUnvisited,
             shared_context.quirks_mode(),
+            NeedsSelectorFlags::No,
         );
 
         Self {
@@ -84,7 +84,7 @@ pub fn check_dependency<E, W>(
     dependency: &Dependency,
     element: &E,
     wrapper: &W,
-    mut context: &mut MatchingContext<'_, E::Impl>,
+    context: &mut MatchingContext<'_, E::Impl>,
 ) -> bool
 where
     E: TElement,
@@ -95,8 +95,7 @@ where
         dependency.selector_offset,
         None,
         element,
-        &mut context,
-        &mut |_, _| {},
+        context,
     );
 
     let matched_then = matches_selector(
@@ -104,8 +103,7 @@ where
         dependency.selector_offset,
         None,
         wrapper,
-        &mut context,
-        &mut |_, _| {},
+        context,
     );
 
     matched_then != matches_now

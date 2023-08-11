@@ -15,7 +15,7 @@ use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::{PseudoElement, SelectorImpl};
 use crate::stylist::RuleInclusion;
 use log::Level::Trace;
-use selectors::matching::{ElementSelectorFlags, MatchingContext};
+use selectors::matching::{NeedsSelectorFlags, MatchingContext};
 use selectors::matching::{MatchingMode, VisitedHandlingMode};
 use servo_arc::Arc;
 
@@ -459,28 +459,22 @@ where
             Some(nth_index_cache),
             visited_handling,
             self.context.shared.quirks_mode(),
+            NeedsSelectorFlags::Yes,
         );
 
         let stylist = &self.context.shared.stylist;
         let implemented_pseudo = self.element.implemented_pseudo_element();
-        {
-            let mut set_selector_flags = |element: &E, flags: ElementSelectorFlags| {
-                element.apply_selector_flags(flags);
-            };
-
-            // Compute the primary rule node.
-            stylist.push_applicable_declarations(
-                self.element,
-                implemented_pseudo.as_ref(),
-                self.element.style_attribute(),
-                self.element.smil_override(),
-                self.element.animation_declarations(self.context.shared),
-                self.rule_inclusion,
-                &mut applicable_declarations,
-                &mut matching_context,
-                &mut set_selector_flags,
-            );
-        }
+        // Compute the primary rule node.
+        stylist.push_applicable_declarations(
+            self.element,
+            implemented_pseudo.as_ref(),
+            self.element.style_attribute(),
+            self.element.smil_override(),
+            self.element.animation_declarations(self.context.shared),
+            self.rule_inclusion,
+            &mut applicable_declarations,
+            &mut matching_context,
+        );
 
         // FIXME(emilio): This is a hack for animations, and should go away.
         self.element.unset_dirty_style_attribute();
@@ -538,11 +532,8 @@ where
             Some(nth_index_cache),
             visited_handling,
             self.context.shared.quirks_mode(),
+            NeedsSelectorFlags::Yes,
         );
-
-        let mut set_selector_flags = |element: &E, flags: ElementSelectorFlags| {
-            element.apply_selector_flags(flags);
-        };
 
         // NB: We handle animation rules for ::before and ::after when
         // traversing them.
@@ -555,7 +546,6 @@ where
             self.rule_inclusion,
             &mut applicable_declarations,
             &mut matching_context,
-            &mut set_selector_flags,
         );
 
         if applicable_declarations.is_empty() {

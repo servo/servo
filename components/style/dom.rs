@@ -22,7 +22,7 @@ use crate::traversal_flags::TraversalFlags;
 use crate::values::AtomIdent;
 use crate::{LocalName, Namespace, WeakAtom};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
+use selectors::matching::{QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
 use selectors::Element as SelectorsElement;
 use servo_arc::{Arc, ArcBorrow};
@@ -733,31 +733,6 @@ pub trait TElement:
     /// blockification on this element.  (This function exists so that Gecko
     /// native anonymous content can opt out of this style fixup.)
     fn skip_item_display_fixup(&self) -> bool;
-
-    /// Sets selector flags, which indicate what kinds of selectors may have
-    /// matched on this element and therefore what kind of work may need to
-    /// be performed when DOM state changes.
-    ///
-    /// You probably don't want to use this directly and want to use
-    /// apply_selector_flags, since that sets flags on the parent as needed.
-    fn set_selector_flags(&self, flags: ElementSelectorFlags);
-
-    /// Applies selector flags to an element and its parent as needed.
-    fn apply_selector_flags(&self, flags: ElementSelectorFlags) {
-        // Handle flags that apply to the element.
-        let self_flags = flags.for_self();
-        if !self_flags.is_empty() {
-            self.set_selector_flags(self_flags);
-        }
-
-        // Handle flags that apply to the parent.
-        let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = self.parent_element() {
-                p.set_selector_flags(parent_flags);
-            }
-        }
-    }
 
     /// In Gecko, element has a flag that represents the element may have
     /// any type of animations or not to bail out animation stuff early.
