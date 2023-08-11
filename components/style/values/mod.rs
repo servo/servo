@@ -555,13 +555,17 @@ impl TimelineOrKeyframesName {
             return dest.write_str("none")
         }
 
-        self.0.with_str(|s| {
+        let mut serialize = |s: &_| {
             if CustomIdent::is_valid(s, invalid) {
                 serialize_identifier(s, dest)
             } else {
                 s.to_css(dest)
             }
-        })
+        };
+        #[cfg(feature = "gecko")]
+        return self.0.with_str(|s| serialize(s));
+        #[cfg(feature = "servo")]
+        return serialize(self.0.as_ref());
     }
 }
 
@@ -614,6 +618,11 @@ impl KeyframesName {
     #[cfg(feature = "gecko")]
     pub fn from_atom(atom: Atom) -> Self {
         Self(TimelineOrKeyframesName::from_atom(atom))
+    }
+
+    /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
+    pub fn from_ident(value: &str) -> Self {
+        Self(TimelineOrKeyframesName::from_ident(value))
     }
 
     /// Returns the `none` value.
