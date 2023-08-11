@@ -537,6 +537,7 @@ macro_rules! lnf_int_feature {
 /// pref, with `rust: true`. The feature name needs to be defined in
 /// `StaticAtoms.py` just like the others. In order to support dynamic changes,
 /// you also need to add them to kMediaQueryPrefs in nsXPLookAndFeel.cpp
+#[allow(unused)]
 macro_rules! bool_pref_feature {
     ($feature_name:expr, $pref:tt) => {{
         fn __eval(_: &Context) -> bool {
@@ -557,7 +558,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 59] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -846,8 +847,4 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
         GTKCSDReversedPlacement
     ),
     lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
-    bool_pref_feature!(
-        atom!("-moz-proton-places-tooltip"),
-        "browser.proton.places-tooltip.enabled"
-    ),
 ];
