@@ -6,14 +6,20 @@
 //!
 //! [container]: https://drafts.csswg.org/css-contain-3/#container-rule
 
+use crate::logical_geometry::{WritingMode, LogicalSize};
 use crate::queries::QueryCondition;
 use crate::shared_lock::{
     DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
 use crate::values::specified::ContainerName;
+use crate::values::computed::{Context, CSSPixelLength, Ratio};
 use crate::str::CssStringWriter;
 use crate::stylesheets::CssRules;
+use crate::queries::feature::{AllowsRanges, Evaluator, ParsingRequirements, QueryFeatureDescription};
+use crate::queries::values::Orientation;
+use app_units::Au;
 use cssparser::SourceLocation;
+use euclid::default::Size2D;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use servo_arc::Arc;
@@ -77,3 +83,79 @@ impl ToCssWithGuard for ContainerRule {
 
 /// TODO: Factor out the media query code to work with containers.
 pub type ContainerCondition = QueryCondition;
+
+fn get_container(_context: &Context) -> (Size2D<Au>, WritingMode) {
+    unimplemented!("TODO: implement container matching");
+}
+
+fn eval_width(context: &Context) -> CSSPixelLength {
+    let (size, _wm) = get_container(context);
+    CSSPixelLength::new(size.width.to_f32_px())
+}
+
+fn eval_height(context: &Context) -> CSSPixelLength {
+    let (size, _wm) = get_container(context);
+    CSSPixelLength::new(size.height.to_f32_px())
+}
+
+fn eval_inline_size(context: &Context) -> CSSPixelLength {
+    let (size, wm) = get_container(context);
+    CSSPixelLength::new(LogicalSize::from_physical(wm, size).inline.to_f32_px())
+}
+
+fn eval_block_size(context: &Context) -> CSSPixelLength {
+    let (size, wm) = get_container(context);
+    CSSPixelLength::new(LogicalSize::from_physical(wm, size).block.to_f32_px())
+}
+
+fn eval_aspect_ratio(context: &Context) -> Ratio {
+    let (size, _wm) = get_container(context);
+    Ratio::new(size.width.0 as f32, size.height.0 as f32)
+}
+
+fn eval_orientation(context: &Context, value: Option<Orientation>) -> bool {
+    let (size, _wm) = get_container(context);
+    Orientation::eval(size, value)
+}
+
+/// https://drafts.csswg.org/css-contain-3/#container-features
+///
+/// TODO: Support style queries, perhaps.
+pub static CONTAINER_FEATURES: [QueryFeatureDescription; 6] = [
+    feature!(
+        atom!("width"),
+        AllowsRanges::Yes,
+        Evaluator::Length(eval_width),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("height"),
+        AllowsRanges::Yes,
+        Evaluator::Length(eval_height),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("inline-size"),
+        AllowsRanges::Yes,
+        Evaluator::Length(eval_inline_size),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("block-size"),
+        AllowsRanges::Yes,
+        Evaluator::Length(eval_block_size),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("aspect-ratio"),
+        AllowsRanges::Yes,
+        Evaluator::NumberRatio(eval_aspect_ratio),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("orientation"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_orientation, Orientation),
+        ParsingRequirements::empty(),
+    ),
+];

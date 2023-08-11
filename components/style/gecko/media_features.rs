@@ -7,6 +7,7 @@
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
 use crate::queries::feature::{AllowsRanges, Evaluator, ParsingRequirements, QueryFeatureDescription};
+use crate::queries::values::Orientation;
 use crate::media_queries::{Device, MediaType};
 use crate::values::computed::{Context, CSSPixelLength, Ratio, Resolution};
 use app_units::Au;
@@ -64,40 +65,14 @@ fn eval_device_pixel_ratio(context: &Context) -> f32 {
     eval_resolution(context).dppx()
 }
 
-#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
-#[repr(u8)]
-enum Orientation {
-    Landscape,
-    Portrait,
-}
-
-fn eval_orientation_for<F>(context: &Context, value: Option<Orientation>, get_size: F) -> bool
-where
-    F: FnOnce(&Device) -> Size2D<Au>,
-{
-    let query_orientation = match value {
-        Some(v) => v,
-        None => return true,
-    };
-
-    let size = get_size(context.device());
-
-    // Per spec, square viewports should be 'portrait'
-    let is_landscape = size.width > size.height;
-    match query_orientation {
-        Orientation::Landscape => is_landscape,
-        Orientation::Portrait => !is_landscape,
-    }
-}
-
 /// https://drafts.csswg.org/mediaqueries-4/#orientation
 fn eval_orientation(context: &Context, value: Option<Orientation>) -> bool {
-    eval_orientation_for(context, value, Device::au_viewport_size)
+    Orientation::eval(context.device().au_viewport_size(), value)
 }
 
 /// FIXME: There's no spec for `-moz-device-orientation`.
 fn eval_device_orientation(context: &Context, value: Option<Orientation>) -> bool {
-    eval_orientation_for(context, value, device_size)
+    Orientation::eval(device_size(context.device()), value)
 }
 
 /// Values for the display-mode media feature.
