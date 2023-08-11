@@ -7,8 +7,7 @@
 use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
 use crate::font_metrics::FontMetrics;
-use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
-use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
+use crate::queries::feature::{AllowsRanges, Evaluator, ParsingRequirements, QueryFeatureDescription};
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::values::computed::CSSPixelLength;
@@ -255,7 +254,7 @@ fn eval_scan(_: &Context, _: Option<Scan>) -> bool {
 
 lazy_static! {
     /// A list with all the media features that Servo supports.
-    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 2] = [
+    pub static ref MEDIA_FEATURES: [QueryFeatureDescription; 2] = [
         feature!(
             atom!("width"),
             AllowsRanges::Yes,
