@@ -72,6 +72,16 @@ impl ComputeSquaredDistance for Ratio {
     }
 }
 
+impl Zero for Ratio {
+    fn zero() -> Self {
+        Self::new(Zero::zero(), One::one())
+    }
+
+    fn is_zero(&self) -> bool {
+        self.0.is_zero()
+    }
+}
+
 impl Ratio {
     /// Returns a new Ratio.
     #[inline]
