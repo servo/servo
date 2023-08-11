@@ -31,7 +31,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::JSContext;
-use base64::Engine;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
@@ -425,16 +424,17 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         };
 
         // FIXME: Only handle image/png for now.
-        let mut png = Vec::new();
+        let mut url = "data:image/png;base64,".to_owned();
+        let mut encoder = base64::write::EncoderStringWriter::from_consumer(
+            &mut url,
+            &base64::engine::general_purpose::STANDARD,
+        );
         // FIXME(nox): https://github.com/image-rs/image-png/issues/86
         // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-        PngEncoder::new(&mut png)
+        PngEncoder::new(&mut encoder)
             .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8)
             .unwrap();
-        let mut url = "data:image/png;base64,".to_owned();
-        // FIXME(nox): Should this use base64::URL_SAFE?
-        // FIXME(nox): https://github.com/marshallpierce/rust-base64/pull/56
-        base64::engine::general_purpose::STANDARD.encode_string(&png, &mut url);
+        encoder.into_inner();
         Ok(USVString(url))
     }
 
