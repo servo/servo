@@ -48,6 +48,36 @@ pub struct InsertRuleContext<'a> {
     pub index: usize,
 }
 
+impl<'a> InsertRuleContext<'a> {
+    /// Returns the max rule state allowable for insertion at a given index in
+    /// the rule list.
+    pub fn max_rule_state_at_index(&self, index: usize) -> State {
+        let rule = match self.rule_list.get(index) {
+            Some(rule) => rule,
+            None => return State::Body,
+        };
+        match rule {
+            CssRule::Import(..) => State::Imports,
+            CssRule::Namespace(..) => State::Namespaces,
+            CssRule::LayerStatement(..) => {
+                // If there are @import / @namespace after this layer, then
+                // we're in the early-layers phase, otherwise we're in the body
+                // and everything is fair game.
+                let next_non_layer_statement_rule = self.rule_list[index + 1..]
+                    .iter()
+                    .find(|r| !matches!(*r, CssRule::LayerStatement(..)));
+                if let Some(non_layer) = next_non_layer_statement_rule {
+                    if matches!(*non_layer, CssRule::Import(..) | CssRule::Namespace(..)) {
+                        return State::EarlyLayers;
+                    }
+                }
+                State::Body
+            }
+            _ => State::Body,
+        }
+    }
+}
+
 /// The parser for the top-level rules in a stylesheet.
 pub struct TopLevelRuleParser<'a> {
     /// A reference to the lock we need to use to create rules.
@@ -105,12 +135,8 @@ impl<'b> TopLevelRuleParser<'b> {
             None => return true,
         };
 
-        let next_rule_state = match ctx.rule_list.get(ctx.index) {
-            None => return true,
-            Some(rule) => rule.rule_state(),
-        };
-
-        if new_state > next_rule_state {
+        let max_rule_state = ctx.max_rule_state_at_index(ctx.index);
+        if new_state > max_rule_state {
             self.dom_error = Some(RulesMutateError::HierarchyRequest);
             return false;
         }
@@ -267,11 +293,23 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 self.dom_error = Some(RulesMutateError::HierarchyRequest);
                 return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedCharsetRule))
             },
-            _ => {}
-        }
-
-        if !self.check_state(State::Body) {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+            "layer" => {
+                let state_to_check = if self.state <= State::EarlyLayers {
+                    // The real state depends on whether there's a block or not.
+                    // We don't know that yet, but the parse_block check deals
+                    // with that.
+                    State::EarlyLayers
+                } else {
+                    State::Body
+                };
+                if !self.check_state(state_to_check) {
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                }
+            },
+            _ => {
+                // All other rules have blocks, so we do this check early in
+                // parse_block instead.
+            }
         }
 
         AtRuleParser::parse_prelude(&mut self.nested(), name, input)
@@ -284,6 +322,9 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         start: &ParserState,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self::AtRule, ParseError<'i>> {
+        if !self.check_state(State::Body) {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
         let rule = AtRuleParser::parse_block(&mut self.nested(), prelude, start, input)?;
         self.state = State::Body;
         Ok((start.position(), rule))
