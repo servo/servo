@@ -303,12 +303,11 @@ impl QueryFeatureExpression {
         input.parse_nested_block(|input| Self::parse_in_parenthesis_block(context, input, feature_type))
     }
 
-    /// Parse a feature expression where we've already consumed the parenthesis.
-    pub fn parse_in_parenthesis_block<'i, 't>(
+    fn parse_feature_name<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         feature_type: FeatureType,
-    ) -> Result<Self, ParseError<'i>> {
+    ) -> Result<(usize, Option<Range>), ParseError<'i>> {
         let mut requirements = ParsingRequirements::empty();
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
@@ -318,7 +317,6 @@ impl QueryFeatureExpression {
         }
 
         let mut feature_name = &**ident;
-
         if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
             feature_name = &feature_name[8..];
             requirements.insert(ParsingRequirements::WEBKIT_PREFIX);
@@ -335,7 +333,6 @@ impl QueryFeatureExpression {
         };
 
         let atom = Atom::from(string_as_ascii_lowercase(feature_name));
-
         let (feature_index, feature) = match feature_type.find_feature(&atom) {
             Some((i, f)) => (i, f),
             None => {
@@ -354,6 +351,16 @@ impl QueryFeatureExpression {
             ));
         }
 
+        Ok((feature_index, range))
+    }
+
+    /// Parse a feature expression where we've already consumed the parenthesis.
+    pub fn parse_in_parenthesis_block<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        feature_type: FeatureType,
+    ) -> Result<Self, ParseError<'i>> {
+        let (feature_index, range) = Self::parse_feature_name(context, input, feature_type)?;
         let operator = input.try_parse(consume_operation_or_colon);
         let operator = match operator {
             Err(..) => {
@@ -373,6 +380,7 @@ impl QueryFeatureExpression {
             Ok(operator) => operator,
         };
 
+        let feature = &feature_type.features()[feature_index];
         let range_or_operator = match range {
             Some(range) => {
                 if operator.is_some() {
