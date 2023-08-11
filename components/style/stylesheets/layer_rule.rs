@@ -61,17 +61,6 @@ impl LayerOrder {
     }
 }
 
-/// The id of a given layer, a sequentially-increasing identifier.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd, Ord)]
-pub struct LayerId(pub u32);
-
-impl LayerId {
-    /// The id of the root layer.
-    pub const fn root() -> Self {
-        Self(0)
-    }
-}
-
 /// A `<layer-name>`: https://drafts.csswg.org/css-cascade-5/#typedef-layer-name
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
 pub struct LayerName(pub SmallVec<[AtomIdent; 1]>);
