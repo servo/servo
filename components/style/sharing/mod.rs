@@ -75,7 +75,7 @@ use crate::stylist::Stylist;
 use crate::values::AtomIdent;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use owning_ref::OwningHandle;
-use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
+use selectors::matching::{VisitedHandlingMode, NeedsSelectorFlags};
 use selectors::NthIndexCache;
 use servo_arc::Arc;
 use smallbitvec::SmallBitVec;
@@ -222,18 +222,17 @@ impl ValidationData {
     /// Computes the revalidation results if needed, and returns it.
     /// Inline so we know at compile time what bloom_known_valid is.
     #[inline]
-    fn revalidation_match_results<E, F>(
+    fn revalidation_match_results<E>(
         &mut self,
         element: E,
         stylist: &Stylist,
         bloom: &StyleBloom<E>,
         nth_index_cache: &mut NthIndexCache,
         bloom_known_valid: bool,
-        flags_setter: &mut F,
+        needs_selector_flags: NeedsSelectorFlags,
     ) -> &SmallBitVec
     where
         E: TElement,
-        F: FnMut(&E, ElementSelectorFlags),
     {
         self.revalidation_match_results.get_or_insert_with(|| {
             // The bloom filter may already be set up for our element.
@@ -256,7 +255,7 @@ impl ValidationData {
                 element,
                 bloom_to_use,
                 nth_index_cache,
-                flags_setter,
+                needs_selector_flags,
             )
         })
     }
@@ -326,7 +325,9 @@ impl<E: TElement> StyleSharingCandidate<E> {
             bloom,
             nth_index_cache,
             /* bloom_known_valid = */ false,
-            &mut |_, _| {},
+            // The candidate must already have the right bits already, if
+            // needed.
+            NeedsSelectorFlags::No,
         )
     }
 }
@@ -399,17 +400,13 @@ impl<E: TElement> StyleSharingTarget<E> {
         // The style sharing cache will get a hit for the second span. When the
         // child span is subsequently removed from the DOM, missing selector
         // flags would cause us to miss the restyle on the second span.
-        let mut set_selector_flags = |el: &E, flags: ElementSelectorFlags| {
-            el.apply_selector_flags(flags);
-        };
-
         self.validation_data.revalidation_match_results(
             self.element,
             stylist,
             bloom,
             nth_index_cache,
             /* bloom_known_valid = */ true,
-            &mut set_selector_flags,
+            NeedsSelectorFlags::Yes,
         )
     }
 

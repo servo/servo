@@ -14,7 +14,7 @@ use crate::stylist::{CascadeData, Rule};
 use crate::AllocErr;
 use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded, WeakAtom};
 use precomputed_hash::PrecomputedHash;
-use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext};
+use selectors::matching::{matches_selector, MatchingContext};
 use selectors::parser::{Combinator, Component, SelectorIter};
 use smallvec::SmallVec;
 use std::collections::hash_map;
@@ -186,18 +186,16 @@ impl SelectorMap<Rule> {
     ///
     /// Extract matching rules as per element's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    pub fn get_all_matching_rules<E, F>(
+    pub fn get_all_matching_rules<E>(
         &self,
         element: E,
         rule_hash_target: E,
         matching_rules_list: &mut ApplicableDeclarationList,
         context: &mut MatchingContext<E::Impl>,
-        flags_setter: &mut F,
         cascade_level: CascadeLevel,
         cascade_data: &CascadeData,
     ) where
         E: TElement,
-        F: FnMut(&E, ElementSelectorFlags),
     {
         if self.is_empty() {
             return;
@@ -211,7 +209,6 @@ impl SelectorMap<Rule> {
                 &self.root,
                 matching_rules_list,
                 context,
-                flags_setter,
                 cascade_level,
                 cascade_data,
             );
@@ -224,7 +221,6 @@ impl SelectorMap<Rule> {
                     rules,
                     matching_rules_list,
                     context,
-                    flags_setter,
                     cascade_level,
                     cascade_data,
                 )
@@ -238,7 +234,6 @@ impl SelectorMap<Rule> {
                     rules,
                     matching_rules_list,
                     context,
-                    flags_setter,
                     cascade_level,
                     cascade_data,
                 )
@@ -253,7 +248,6 @@ impl SelectorMap<Rule> {
                         rules,
                         matching_rules_list,
                         context,
-                        flags_setter,
                         cascade_level,
                         cascade_data,
                     )
@@ -267,7 +261,6 @@ impl SelectorMap<Rule> {
                 rules,
                 matching_rules_list,
                 context,
-                flags_setter,
                 cascade_level,
                 cascade_data,
             )
@@ -279,7 +272,6 @@ impl SelectorMap<Rule> {
                 rules,
                 matching_rules_list,
                 context,
-                flags_setter,
                 cascade_level,
                 cascade_data,
             )
@@ -290,24 +282,21 @@ impl SelectorMap<Rule> {
             &self.other,
             matching_rules_list,
             context,
-            flags_setter,
             cascade_level,
             cascade_data,
         );
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
-    pub(crate) fn get_matching_rules<E, F>(
+    pub(crate) fn get_matching_rules<E>(
         element: E,
         rules: &[Rule],
         matching_rules: &mut ApplicableDeclarationList,
         context: &mut MatchingContext<E::Impl>,
-        flags_setter: &mut F,
         cascade_level: CascadeLevel,
         cascade_data: &CascadeData,
     ) where
         E: TElement,
-        F: FnMut(&E, ElementSelectorFlags),
     {
         for rule in rules {
             if matches_selector(
@@ -316,7 +305,6 @@ impl SelectorMap<Rule> {
                 Some(&rule.hashes),
                 &element,
                 context,
-                flags_setter,
             ) {
                 matching_rules
                     .push(rule.to_applicable_declaration_block(cascade_level, cascade_data));

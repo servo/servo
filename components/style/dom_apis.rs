@@ -12,7 +12,7 @@ use crate::invalidation::element::invalidator::{DescendantInvalidationLists, Inv
 use crate::invalidation::element::invalidator::{InvalidationProcessor, InvalidationVector};
 use crate::values::AtomIdent;
 use selectors::attr::CaseSensitivity;
-use selectors::matching::{self, MatchingContext, MatchingMode};
+use selectors::matching::{self, MatchingContext, MatchingMode, NeedsSelectorFlags};
 use selectors::parser::{Combinator, Component, LocalName, SelectorImpl};
 use selectors::{Element, NthIndexCache, SelectorList};
 use smallvec::SmallVec;
@@ -26,7 +26,13 @@ pub fn element_matches<E>(
 where
     E: Element,
 {
-    let mut context = MatchingContext::new(MatchingMode::Normal, None, None, quirks_mode);
+    let mut context = MatchingContext::new(
+        MatchingMode::Normal,
+        None,
+        None,
+        quirks_mode,
+        NeedsSelectorFlags::No,
+    );
     context.scope_element = Some(element.opaque());
     context.current_host = element.containing_shadow_host().map(|e| e.opaque());
     matching::matches_selector_list(selector_list, element, &mut context)
@@ -48,6 +54,7 @@ where
         None,
         Some(&mut nth_index_cache),
         quirks_mode,
+        NeedsSelectorFlags::No,
     );
     context.scope_element = Some(element.opaque());
     context.current_host = element.containing_shadow_host().map(|e| e.opaque());
@@ -618,8 +625,8 @@ pub fn query_selector<E, Q>(
         None,
         Some(&mut nth_index_cache),
         quirks_mode,
+        NeedsSelectorFlags::No,
     );
-
     let root_element = root.as_element();
     matching_context.scope_element = root_element.map(|e| e.opaque());
     matching_context.current_host = match root_element {
