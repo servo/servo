@@ -7,8 +7,6 @@
 
 use super::media_feature::{Evaluator, MediaFeatureDescription};
 use super::media_feature::{KeywordDiscriminant, ParsingRequirements};
-use super::Device;
-use crate::context::QuirksMode;
 #[cfg(feature = "gecko")]
 use crate::gecko::media_features::MEDIA_FEATURES;
 use crate::parser::{Parse, ParserContext};
@@ -381,7 +379,7 @@ impl MediaFeatureExpression {
     }
 
     /// Returns whether this media query evaluates to true for the given device.
-    pub fn matches(&self, device: &Device, quirks_mode: QuirksMode) -> bool {
+    pub fn matches(&self, context: &computed::Context) -> bool {
         let value = self.value.as_ref();
 
         macro_rules! expect {
@@ -396,21 +394,19 @@ impl MediaFeatureExpression {
         match self.feature().evaluator {
             Evaluator::Length(eval) => {
                 let computed = expect!(Length).map(|specified| {
-                    computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
-                        specified.to_computed_value(context)
-                    })
+                    specified.to_computed_value(context)
                 });
-                let length = eval(device);
+                let length = eval(context);
                 RangeOrOperator::evaluate(self.range_or_operator, computed, length)
             },
             Evaluator::Integer(eval) => {
                 let computed = expect!(Integer).cloned();
-                let integer = eval(device);
+                let integer = eval(context);
                 RangeOrOperator::evaluate(self.range_or_operator, computed, integer)
             },
             Evaluator::Float(eval) => {
                 let computed = expect!(Float).cloned();
-                let float = eval(device);
+                let float = eval(context);
                 RangeOrOperator::evaluate(self.range_or_operator, computed, float)
             }
             Evaluator::NumberRatio(eval) => {
@@ -422,26 +418,24 @@ impl MediaFeatureExpression {
                     Some(ratio) => ratio.used_value(),
                     None => return true,
                 };
-                let ratio = eval(device);
+                let ratio = eval(context);
                 RangeOrOperator::evaluate_with_query_value(self.range_or_operator, computed, ratio)
             },
             Evaluator::Resolution(eval) => {
                 let computed = expect!(Resolution).map(|specified| {
-                    computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
-                        specified.to_computed_value(context).dppx()
-                    })
+                    specified.to_computed_value(context).dppx()
                 });
-                let resolution = eval(device).dppx();
+                let resolution = eval(context).dppx();
                 RangeOrOperator::evaluate(self.range_or_operator, computed, resolution)
             },
             Evaluator::Enumerated { evaluator, .. } => {
                 debug_assert!(self.range_or_operator.is_none(), "Ranges with keywords?");
-                evaluator(device, expect!(Enumerated).cloned())
+                evaluator(context, expect!(Enumerated).cloned())
             },
             Evaluator::BoolInteger(eval) => {
                 debug_assert!(self.range_or_operator.is_none(), "Ranges with bools?");
                 let computed = expect!(BoolInteger).cloned();
-                let boolean = eval(device);
+                let boolean = eval(context);
                 computed.map_or(boolean, |v| v == boolean)
             },
         }

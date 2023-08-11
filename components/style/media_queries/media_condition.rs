@@ -6,9 +6,9 @@
 //!
 //! https://drafts.csswg.org/mediaqueries-4/#typedef-media-condition
 
-use super::{Device, MediaFeatureExpression};
-use crate::context::QuirksMode;
+use super::MediaFeatureExpression;
 use crate::parser::ParserContext;
+use crate::values::computed;
 use cssparser::{Parser, Token};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -168,16 +168,16 @@ impl MediaCondition {
     }
 
     /// Whether this condition matches the device and quirks mode.
-    pub fn matches(&self, device: &Device, quirks_mode: QuirksMode) -> bool {
+    pub fn matches(&self, context: &computed::Context) -> bool {
         match *self {
-            MediaCondition::Feature(ref f) => f.matches(device, quirks_mode),
-            MediaCondition::InParens(ref c) => c.matches(device, quirks_mode),
-            MediaCondition::Not(ref c) => !c.matches(device, quirks_mode),
+            MediaCondition::Feature(ref f) => f.matches(context),
+            MediaCondition::InParens(ref c) => c.matches(context),
+            MediaCondition::Not(ref c) => !c.matches(context),
             MediaCondition::Operation(ref conditions, op) => {
                 let mut iter = conditions.iter();
                 match op {
-                    Operator::And => iter.all(|c| c.matches(device, quirks_mode)),
-                    Operator::Or => iter.any(|c| c.matches(device, quirks_mode)),
+                    Operator::And => iter.all(|c| c.matches(context)),
+                    Operator::Or => iter.any(|c| c.matches(context)),
                 }
             },
         }
