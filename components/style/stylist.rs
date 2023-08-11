@@ -29,7 +29,7 @@ use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
 use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
 use crate::stylesheets::keyframes_rule::KeyframesAnimation;
-use crate::stylesheets::layer_rule::{LayerId, LayerName, LayerOrder};
+use crate::stylesheets::layer_rule::{LayerName, LayerOrder};
 use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 #[cfg(feature = "gecko")]
 use crate::stylesheets::{
@@ -545,6 +545,47 @@ impl From<StyleRuleInclusion> for RuleInclusion {
             StyleRuleInclusion::All => RuleInclusion::All,
             StyleRuleInclusion::DefaultOnly => RuleInclusion::DefaultOnly,
         }
+    }
+}
+
+/// A struct containing state from ancestor rules like @layer / @import /
+/// @container.
+struct ContainingRuleState {
+    layer_name: LayerName,
+    layer_id: LayerId,
+    container_condition_id: ContainerConditionId,
+}
+
+impl Default for ContainingRuleState {
+    fn default() -> Self {
+        Self {
+            layer_name: LayerName::new_empty(),
+            layer_id: LayerId::root(),
+            container_condition_id: ContainerConditionId::none(),
+        }
+    }
+}
+
+struct SavedContainingRuleState {
+    layer_name_len: usize,
+    layer_id: LayerId,
+    container_condition_id: ContainerConditionId,
+}
+
+impl ContainingRuleState {
+    fn save(&self) -> SavedContainingRuleState {
+        SavedContainingRuleState {
+            layer_name_len: self.layer_name.0.len(),
+            layer_id: self.layer_id,
+            container_condition_id: self.container_condition_id,
+        }
+    }
+
+    fn restore(&mut self, saved: &SavedContainingRuleState) {
+        debug_assert!(self.layer_name.0.len() >= saved.layer_name_len);
+        self.layer_name.0.truncate(saved.layer_name_len);
+        self.layer_id = saved.layer_id;
+        self.container_condition_id = saved.container_condition_id;
     }
 }
 
@@ -2029,6 +2070,17 @@ impl PartElementAndPseudoRules {
     }
 }
 
+/// The id of a given layer, a sequentially-increasing identifier.
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd, Ord)]
+pub struct LayerId(u16);
+
+impl LayerId {
+    /// The id of the root layer.
+    pub const fn root() -> Self {
+        Self(0)
+    }
+}
+
 #[derive(Clone, Debug, MallocSizeOf)]
 struct CascadeLayer {
     id: LayerId,
@@ -2042,6 +2094,33 @@ impl CascadeLayer {
             id: LayerId::root(),
             order: LayerOrder::root(),
             children: vec![],
+        }
+    }
+}
+
+/// The id of a given container condition, a sequentially-increasing identifier
+/// for a given style set.
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd, Ord)]
+pub struct ContainerConditionId(u16);
+
+impl ContainerConditionId {
+    /// A special id that represents no container rule all.
+    pub const fn none() -> Self {
+        Self(0)
+    }
+}
+
+
+#[derive(Clone, Debug, MallocSizeOf)]
+struct ContainerCondition {
+    parent: ContainerConditionId,
+    // TODO: condition: Option<Arc<ContainerCondition>> (or so).
+}
+
+impl ContainerCondition {
+    const fn none() -> Self {
+        Self {
+            parent: ContainerConditionId::none(),
         }
     }
 }
@@ -2117,6 +2196,9 @@ pub struct CascadeData {
     /// The list of cascade layers, indexed by their layer id.
     layers: SmallVec<[CascadeLayer; 1]>,
 
+    /// The list of container conditions, indexed by their id.
+    container_conditions: SmallVec<[ContainerCondition; 1]>,
+
     /// Effective media query results cached from the last rebuild.
     effective_media_query_results: EffectiveMediaQueryResults,
 
@@ -2159,6 +2241,7 @@ impl CascadeData {
             animations: Default::default(),
             layer_id: Default::default(),
             layers: smallvec::smallvec![CascadeLayer::root()],
+            container_conditions: smallvec::smallvec![ContainerCondition::none()],
             extra_data: ExtraStyleData::default(),
             effective_media_query_results: EffectiveMediaQueryResults::new(),
             rules_source_order: 0,
@@ -2394,8 +2477,7 @@ impl CascadeData {
         stylesheet: &S,
         guard: &SharedRwLockReadGuard,
         rebuild_kind: SheetRebuildKind,
-        mut current_layer: &mut LayerName,
-        current_layer_id: LayerId,
+        containing_rule_state: &mut ContainingRuleState,
         mut precomputed_pseudo_element_decls: Option<&mut PrecomputedPseudoElementDeclarations>,
     ) -> Result<(), AllocErr>
     where
@@ -2418,7 +2500,7 @@ impl CascadeData {
                             if pseudo.is_precomputed() {
                                 debug_assert!(selector.is_universal());
                                 debug_assert_eq!(stylesheet.contents().origin, Origin::UserAgent);
-                                debug_assert_eq!(current_layer_id, LayerId::root());
+                                debug_assert_eq!(containing_rule_state.layer_id, LayerId::root());
 
                                 precomputed_pseudo_element_decls
                                     .as_mut()
@@ -2445,7 +2527,8 @@ impl CascadeData {
                             hashes,
                             locked.clone(),
                             self.rules_source_order,
-                            current_layer_id,
+                            containing_rule_state.layer_id,
+                            containing_rule_state.container_condition_id,
                         );
 
                         if rebuild_kind.should_rebuild_invalidation() {
@@ -2523,7 +2606,7 @@ impl CascadeData {
                     self.animations.try_insert_with(
                         name,
                         animation,
-                        current_layer_id,
+                        containing_rule_state.layer_id,
                         compare_keyframes_in_same_layer,
                     )?;
                 },
@@ -2532,25 +2615,35 @@ impl CascadeData {
                     // Note: Bug 1733260: we may drop @scroll-timeline rule once this spec issue
                     // https://github.com/w3c/csswg-drafts/issues/6674 gets landed.
                     self.extra_data
-                        .add_scroll_timeline(guard, rule, current_layer_id)?;
+                        .add_scroll_timeline(guard, rule, containing_rule_state.layer_id)?;
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::FontFace(ref rule) => {
-                    self.extra_data.add_font_face(rule, current_layer_id);
+                    // NOTE(emilio): We don't care about container_condition_id
+                    // because:
+                    //
+                    //     Global, name-defining at-rules such as @keyframes or
+                    //     @font-face or @layer that are defined inside container
+                    //     queries are not constrained by the container query
+                    //     conditions.
+                    //
+                    // https://drafts.csswg.org/css-contain-3/#container-rule
+                    // (Same elsewhere)
+                    self.extra_data.add_font_face(rule, containing_rule_state.layer_id);
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::FontFeatureValues(ref rule) => {
                     self.extra_data
-                        .add_font_feature_values(rule, current_layer_id);
+                        .add_font_feature_values(rule, containing_rule_state.layer_id);
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::CounterStyle(ref rule) => {
                     self.extra_data
-                        .add_counter_style(guard, rule, current_layer_id)?;
+                        .add_counter_style(guard, rule, containing_rule_state.layer_id)?;
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::Page(ref rule) => {
-                    self.extra_data.add_page(guard, rule, current_layer_id)?;
+                    self.extra_data.add_page(guard, rule, containing_rule_state.layer_id)?;
                 },
                 CssRule::Viewport(..) => {},
                 _ => {
@@ -2591,7 +2684,7 @@ impl CascadeData {
                 if let Some(id) = data.layer_id.get(layer) {
                     return *id;
                 }
-                let id = LayerId(data.layers.len() as u32);
+                let id = LayerId(data.layers.len() as u16);
 
                 let parent_layer_id = if layer.layer_names().len() > 1 {
                     let mut parent = layer.clone();
@@ -2622,9 +2715,8 @@ impl CascadeData {
             fn maybe_register_layers(
                 data: &mut CascadeData,
                 name: Option<&LayerName>,
-                current_layer: &mut LayerName,
-                pushed_layers: &mut usize,
-            ) -> LayerId {
+                containing_rule_state: &mut ContainingRuleState,
+            ) {
                 let anon_name;
                 let name = match name {
                     Some(name) => name,
@@ -2633,19 +2725,14 @@ impl CascadeData {
                         &anon_name
                     },
                 };
-
-                let mut id = LayerId::root();
                 for name in name.layer_names() {
-                    current_layer.0.push(name.clone());
-                    id = maybe_register_layer(data, &current_layer);
-                    *pushed_layers += 1;
+                    containing_rule_state.layer_name.0.push(name.clone());
+                    containing_rule_state.layer_id = maybe_register_layer(data, &containing_rule_state.layer_name);
                 }
-                debug_assert_ne!(id, LayerId::root());
-                id
+                debug_assert_ne!(containing_rule_state.layer_id, LayerId::root());
             }
 
-            let mut layer_names_to_pop = 0;
-            let mut children_layer_id = current_layer_id;
+            let saved_containing_rule_state = containing_rule_state.save();
             match *rule {
                 CssRule::Import(ref lock) => {
                     let import_rule = lock.read_with(guard);
@@ -2654,11 +2741,10 @@ impl CascadeData {
                             .saw_effective(import_rule);
                     }
                     if let Some(ref layer) = import_rule.layer {
-                        children_layer_id = maybe_register_layers(
+                        maybe_register_layers(
                             self,
                             layer.name.as_ref(),
-                            &mut current_layer,
-                            &mut layer_names_to_pop,
+                            containing_rule_state
                         );
                     }
                 },
@@ -2670,24 +2756,27 @@ impl CascadeData {
                 },
                 CssRule::LayerBlock(ref lock) => {
                     let layer_rule = lock.read_with(guard);
-                    children_layer_id = maybe_register_layers(
+                    maybe_register_layers(
                         self,
                         layer_rule.name.as_ref(),
-                        &mut current_layer,
-                        &mut layer_names_to_pop,
+                        containing_rule_state,
                     );
                 },
                 CssRule::LayerStatement(ref lock) => {
                     let layer_rule = lock.read_with(guard);
                     for name in &*layer_rule.names {
-                        let mut pushed = 0;
                         // There are no children, so we can ignore the
                         // return value.
-                        maybe_register_layers(self, Some(name), &mut current_layer, &mut pushed);
-                        for _ in 0..pushed {
-                            current_layer.0.pop();
-                        }
+                        maybe_register_layers(self, Some(name), containing_rule_state);
                     }
+                },
+                CssRule::Container(ref lock) => {
+                    let _container_rule = lock.read_with(guard);
+                    let id = ContainerConditionId(self.container_conditions.len() as u16);
+                    self.container_conditions.push(ContainerCondition {
+                        parent: containing_rule_state.container_condition_id,
+                    });
+                    containing_rule_state.container_condition_id = id;
                 },
                 // We don't care about any other rule.
                 _ => {},
@@ -2701,15 +2790,12 @@ impl CascadeData {
                     stylesheet,
                     guard,
                     rebuild_kind,
-                    current_layer,
-                    children_layer_id,
+                    containing_rule_state,
                     precomputed_pseudo_element_decls.as_deref_mut(),
                 )?;
             }
 
-            for _ in 0..layer_names_to_pop {
-                current_layer.0.pop();
-            }
+            containing_rule_state.restore(&saved_containing_rule_state);
         }
 
         Ok(())
@@ -2738,7 +2824,7 @@ impl CascadeData {
             self.effective_media_query_results.saw_effective(contents);
         }
 
-        let mut current_layer = LayerName::new_empty();
+        let mut state = ContainingRuleState::default();
         self.add_rule_list(
             contents.rules(guard).iter(),
             device,
@@ -2746,8 +2832,7 @@ impl CascadeData {
             stylesheet,
             guard,
             rebuild_kind,
-            &mut current_layer,
-            LayerId::root(),
+            &mut state,
             precomputed_pseudo_element_decls.as_deref_mut(),
         )?;
 
@@ -2873,6 +2958,8 @@ impl CascadeData {
         self.layer_id.clear();
         self.layers.clear();
         self.layers.push(CascadeLayer::root());
+        self.container_conditions.clear();
+        self.container_conditions.push(ContainerCondition::none());
         #[cfg(feature = "gecko")]
         {
             self.extra_data.clear();
@@ -2967,6 +3054,9 @@ pub struct Rule {
     /// The current layer id of this style rule.
     pub layer_id: LayerId,
 
+    /// The current @container rule id.
+    pub container_condition_id: ContainerConditionId,
+
     /// The actual style rule.
     #[cfg_attr(
         feature = "gecko",
@@ -3012,6 +3102,7 @@ impl Rule {
         style_rule: Arc<Locked<StyleRule>>,
         source_order: u32,
         layer_id: LayerId,
+        container_condition_id: ContainerConditionId,
     ) -> Self {
         Rule {
             selector,
@@ -3019,6 +3110,7 @@ impl Rule {
             style_rule,
             source_order,
             layer_id,
+            container_condition_id,
         }
     }
 }
