@@ -723,6 +723,80 @@ impl Parse for AnimationName {
     }
 }
 
+/// A value for the <Scroller> used in scroll().
+///
+/// https://drafts.csswg.org/scroll-animations-1/rewrite#typedef-scroller
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum Scroller {
+    /// The nearest ancestor scroll container. (Default.)
+    Nearest,
+    /// The document viewport as the scroll container.
+    Root,
+    // FIXME: Bug 1764450: Once we support container-name CSS property (Bug 1744224), we may add
+    // <custom-ident> here, based on the result of the spec issue:
+    // https://github.com/w3c/csswg-drafts/issues/7046
+}
+
+impl Default for Scroller {
+    fn default() -> Self {
+        Self::Nearest
+    }
+}
+
+/// A value for the <Axis> used in scroll().
+///
+/// https://drafts.csswg.org/scroll-animations-1/rewrite#typedef-axis
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum ScrollAxis {
+    /// The block axis of the scroll container. (Default.)
+    Block,
+    /// The inline axis of the scroll container.
+    Inline,
+    /// The vertical block axis of the scroll container.
+    Vertical,
+    /// The horizontal axis of the scroll container.
+    Horizontal,
+}
+
+impl Default for ScrollAxis {
+    fn default() -> Self {
+        Self::Block
+    }
+}
+
+#[inline]
+fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    *value == Default::default()
+}
+
 /// A value for the <single-animation-timeline>.
 ///
 /// https://drafts.csswg.org/css-animations-2/#typedef-single-animation-timeline
@@ -748,6 +822,13 @@ pub enum AnimationTimeline {
     None,
     /// The scroll-timeline name
     Timeline(TimelineName),
+    /// The scroll() notation
+    /// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-notation
+    #[css(function)]
+    Scroll(
+        #[css(skip_if = "is_default")] ScrollAxis,
+        #[css(skip_if = "is_default")] Scroller,
+    ),
 }
 
 impl AnimationTimeline {
@@ -778,6 +859,16 @@ impl Parse for AnimationTimeline {
 
         if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(Self::None);
+        }
+
+        // https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-notation
+        if input.try_parse(|i| i.expect_function_matching("scroll")).is_ok() {
+            return input.parse_nested_block(|i| {
+                Ok(Self::Scroll(
+                    i.try_parse(ScrollAxis::parse).unwrap_or(ScrollAxis::Block),
+                    i.try_parse(Scroller::parse).unwrap_or(Scroller::Nearest),
+                ))
+            });
         }
 
         TimelineName::parse(context, input).map(AnimationTimeline::Timeline)
