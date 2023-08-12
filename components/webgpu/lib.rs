@@ -1072,7 +1072,7 @@ impl<'a> WGPU<'a> {
                             layout: wgt::ImageDataLayout {
                                 offset: 0,
                                 bytes_per_row: Some(buffer_stride),
-                                rows_per_image: Some(0), //TODO(sagudev): verfy not none
+                                rows_per_image: None,
                             },
                         };
                         let texture_cv = ImageCopyTexture {
