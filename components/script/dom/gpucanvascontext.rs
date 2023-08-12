@@ -108,9 +108,6 @@ pub struct GPUCanvasContext {
     channel: WebGPU,
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas
     canvas: HTMLCanvasElementOrOffscreenCanvas,
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configuration-slot
-    #[ignore_malloc_size_of = "Binding"]
-    config: DomRefCell<Option<GPUCanvasConfiguration>>,
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-drawingbuffer-slot
     // We need use webrender image not wgpu surface,
     // because this is a canvas that must be able to be rendered (transformations)
@@ -137,7 +134,6 @@ impl GPUCanvasContext {
             canvas,
             webrender_image: Cell::new(None),
             context_id: WebGPUContextId(external_id.0),
-            config: DomRefCell::new(None),
             texture: DomRefCell::new(None),
         }
     }
@@ -282,8 +278,6 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         };
 
         // Step 5
-        let mut config = self.config.borrow_mut();
-        *config = Some(descriptor.clone());
 
         // Step 6
 
@@ -336,9 +330,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             .expect("Failed to create WebGPU SwapChain");
 
         *self.texture.borrow_mut() = Some(Dom::from_ref(
-            &*&descriptor
-                .device
-                .CreateTexture(&text_desc),
+            &*&descriptor.device.CreateTexture(&text_desc),
         ));
 
         self.webrender_image.set(Some(receiver.recv().unwrap()));
