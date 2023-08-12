@@ -120,8 +120,6 @@ pub struct GPUCanvasContext {
     #[no_trace]
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     context_id: WebGPUContextId,
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-texturedescriptor-slot
-    texture_desc: DomRefCell<Option<GPUTextureDescriptor>>,
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot
     texture: DomRefCell<Option<Dom<GPUTexture>>>, // TODO(sagudev): sea of MutNullableDom ???
 }
@@ -141,7 +139,6 @@ impl GPUCanvasContext {
             context_id: WebGPUContextId(external_id.0),
             config: DomRefCell::new(None),
             texture: DomRefCell::new(None),
-            texture_desc: DomRefCell::new(None),
         }
     }
 
@@ -289,8 +286,6 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         *config = Some(descriptor.clone());
 
         // Step 6
-        let mut texture_desc = self.texture_desc.borrow_mut();
-        *texture_desc = Some(text_desc);
 
         // Step 7
         //self.replace_drawing_buffer();
@@ -343,7 +338,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         *self.texture.borrow_mut() = Some(Dom::from_ref(
             &*&descriptor
                 .device
-                .CreateTexture(texture_desc.as_ref().unwrap()),
+                .CreateTexture(&text_desc),
         ));
 
         self.webrender_image.set(Some(receiver.recv().unwrap()));
@@ -366,7 +361,6 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             }
         }
         self.texture.borrow_mut().take();
-        self.texture_desc.borrow_mut().take();
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture
