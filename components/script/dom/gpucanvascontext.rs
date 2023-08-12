@@ -25,6 +25,7 @@ use ipc_channel::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::cell::Cell;
 use std::ops::DerefMut;
+use webgpu::WebGPUTexture;
 use webgpu::{wgpu::id, wgt, WebGPU, WebGPURequest, PRESENTATION_BUFFER_COUNT};
 use webrender_api::{
     units, ExternalImageData, ExternalImageId, ExternalImageType, ImageData, ImageDescriptor,
@@ -122,7 +123,7 @@ pub struct GPUCanvasContext {
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-texturedescriptor-slot
     texture_desc: DomRefCell<Option<GPUTextureDescriptor>>,
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot
-    texture: MutNullableDom<GPUTexture>,
+    texture: DomRefCell<Option<Dom<GPUTexture>>>, // TODO(sagudev): sea of MutNullableDom ???
 }
 
 impl GPUCanvasContext {
@@ -139,7 +140,7 @@ impl GPUCanvasContext {
             webrender_image: Cell::new(None),
             context_id: WebGPUContextId(external_id.0),
             config: DomRefCell::new(None),
-            texture: MutNullableDom::default(),
+            texture: DomRefCell::new(None),
             texture_desc: DomRefCell::new(None),
         }
     }
@@ -166,7 +167,7 @@ impl GPUCanvasContext {
     }
 
     pub fn send_swap_chain_present(&self) {
-        let texture_id = self.texture.get().unwrap().id().0;
+        let texture_id = self.texture_id().unwrap().0;
         let encoder_id = self
             .global()
             .wgpu_id_hub()
@@ -189,6 +190,10 @@ impl GPUCanvasContext {
 
     pub fn context_id(&self) -> WebGPUContextId {
         self.context_id
+    }
+
+    pub fn texture_id(&self) -> Option<WebGPUTexture> {
+        self.texture.borrow().as_ref().map(|t| t.id())
     }
 
     pub fn mark_as_dirty(&self) {
@@ -222,7 +227,7 @@ impl GPUCanvasContext {
     /// https://gpuweb.github.io/gpuweb/#abstract-opdef-replace-the-drawing-buffer
     fn replace_drawing_buffer(&self) {
         // Step 1
-        self.expire_current_texture();
+        //self.expire_current_texture();
 
         // Step 2&3
         /*if let Some(configuration) = self.config.borrow() {
@@ -232,13 +237,13 @@ impl GPUCanvasContext {
         }*/
     }
 
-    /// https://gpuweb.github.io/gpuweb/#abstract-opdef-expire-the-current-texture
-    fn expire_current_texture(&self) {
+    // /// https://gpuweb.github.io/gpuweb/#abstract-opdef-expire-the-current-texture
+    /*fn expire_current_texture(&self) {
         // Step 1
-        if let Some(texture) = self.texture.take() {
+        if let Some(texture) = self.texture.borrow_mut().take() {
             drop(texture); // Calls destroy on drop
         }
-    }
+    }*/
 }
 
 impl GPUCanvasContextMethods for GPUCanvasContext {
@@ -335,8 +340,8 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             ))
             .expect("Failed to create WebGPU SwapChain");
 
-        self.texture.set(Some(
-            &descriptor
+        *self.texture.borrow_mut() = Some(Dom::from_ref(
+            &*&descriptor
                 .device
                 .CreateTexture(texture_desc.as_ref().unwrap()),
         ));
@@ -360,10 +365,8 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
                 );
             }
         }
-        self.webrender_image.set(None);
-        self.texture.set(None);
-        let mut texture_desc = self.texture_desc.borrow_mut();
-        *texture_desc = None;
+        self.texture.borrow_mut().take();
+        self.texture_desc.borrow_mut().take();
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture
@@ -377,7 +380,11 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         // Step 5.
         self.mark_as_dirty();
         // Step 6.
-        self.texture.get().ok_or(Error::InvalidState)
+        self.texture
+            .borrow()
+            .as_ref()
+            .map(|t| DomRoot::from_ref(&**t))
+            .ok_or(Error::InvalidState)
     }
 }
 
