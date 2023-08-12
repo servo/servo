@@ -36,6 +36,7 @@ use super::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureAspect;
 use super::bindings::codegen::UnionTypes::DoubleSequenceOrGPUColorDict;
 use super::gputextureview::GPUTextureView;
 
+// TODO(sagudev): this is different now
 // https://gpuweb.github.io/gpuweb/#enumdef-encoder-state
 #[derive(MallocSizeOf, PartialEq)]
 pub enum GPUCommandEncoderState {

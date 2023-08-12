@@ -66,7 +66,6 @@ impl Clone for HTMLCanvasElementOrOffscreenCanvas {
 
 impl malloc_size_of::MallocSizeOf for GPUTextureDescriptor {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        let mut sum = 0;
         match self {
             Self {
                 parent,
@@ -78,10 +77,16 @@ impl malloc_size_of::MallocSizeOf for GPUTextureDescriptor {
                 usage,
                 viewFormats,
             } => {
-                sum += dimension.size_of(ops);
+                parent.size_of(ops) +
+                    dimension.size_of(ops) +
+                    format.size_of(ops) +
+                    mipLevelCount.size_of(ops) +
+                    sampleCount.size_of(ops) +
+                    size.size_of(ops) +
+                    usage.size_of(ops) +
+                    viewFormats.size_of(ops)
             },
         }
-        sum
     }
 }
 
@@ -93,8 +98,6 @@ impl malloc_size_of::MallocSizeOf for HTMLCanvasElementOrOffscreenCanvas {
         }
     }
 }
-
-pub type SurfaceConfiguration = wgt::SurfaceConfiguration<Vec<wgt::TextureFormat>>;
 
 #[dom_struct]
 pub struct GPUCanvasContext {

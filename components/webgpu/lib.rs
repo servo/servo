@@ -421,7 +421,7 @@ impl<'a> WGPU<'a> {
                             external_id: None,
                         };
                         self.buffer_maps.insert(buffer_id, Rc::new(map_info));
-
+                        // TODO(sagudev): replace with safe callback
                         unsafe extern "C" fn callback(
                             status: BufferMapAsyncStatus,
                             userdata: *mut u8,
@@ -1110,6 +1110,7 @@ impl<'a> WGPU<'a> {
                         };
                         self.present_buffer_maps
                             .insert(buffer_id, Rc::new(map_info));
+                        // TODO(sagudev): replace with safe callback
                         unsafe extern "C" fn callback(
                             status: BufferMapAsyncStatus,
                             userdata: *mut u8,

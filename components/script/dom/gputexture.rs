@@ -131,9 +131,10 @@ impl GPUTextureMethods for GPUTexture {
     /// https://gpuweb.github.io/gpuweb/#dom-gputexture-createview
     fn CreateView(&self, descriptor: &GPUTextureViewDescriptor) -> DomRoot<GPUTextureView> {
         let scope_id = self.device.use_current_scope();
-        let mut valid = true;
 
-        let desc = if valid {
+        let desc = if !matches!(descriptor.mipLevelCount, Some(0)) &&
+            !matches!(descriptor.arrayLayerCount, Some(0))
+        {
             Some(resource::TextureViewDescriptor {
                 label: convert_label(&descriptor.parent),
                 format: descriptor.format.map(convert_texture_format),
@@ -145,9 +146,9 @@ impl GPUTextureMethods for GPUTexture {
                         GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
                     },
                     base_mip_level: descriptor.baseMipLevel,
-                    mip_level_count: descriptor.mipLevelCount, // TODO(sagudev): nonzero
+                    mip_level_count: descriptor.mipLevelCount,
                     base_array_layer: descriptor.baseArrayLayer,
-                    array_layer_count: descriptor.arrayLayerCount, // TODO(sagudev): nonzero
+                    array_layer_count: descriptor.arrayLayerCount,
                 },
             })
         } else {
