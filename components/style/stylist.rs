@@ -2765,9 +2765,9 @@ impl CascadeData {
                 CssRule::LayerStatement(ref lock) => {
                     let layer_rule = lock.read_with(guard);
                     for name in &*layer_rule.names {
-                        // There are no children, so we can ignore the
-                        // return value.
                         maybe_register_layers(self, Some(name), containing_rule_state);
+                        // Register each layer individually.
+                        containing_rule_state.restore(&saved_containing_rule_state);
                     }
                 },
                 CssRule::Container(ref lock) => {
