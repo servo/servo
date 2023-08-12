@@ -14,7 +14,7 @@ use webgpu::{WebGPUDevice, WebGPUSampler};
 #[dom_struct]
 pub struct GPUSampler {
     reflector_: Reflector,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     device: WebGPUDevice,
     compare_enable: bool,
@@ -27,7 +27,7 @@ impl GPUSampler {
         device: WebGPUDevice,
         compare_enable: bool,
         sampler: WebGPUSampler,
-        label: Option<USVString>,
+        label: USVString,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -43,7 +43,7 @@ impl GPUSampler {
         device: WebGPUDevice,
         compare_enable: bool,
         sampler: WebGPUSampler,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUSampler::new_inherited(
@@ -65,12 +65,12 @@ impl GPUSampler {
 
 impl GPUSamplerMethods for GPUSampler {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 }

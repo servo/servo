@@ -30,7 +30,7 @@ pub struct GPUTexture {
     reflector_: Reflector,
     #[no_trace]
     texture: WebGPUTexture,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     device: Dom<GPUDevice>,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -56,7 +56,7 @@ impl GPUTexture {
         dimension: GPUTextureDimension,
         format: GPUTextureFormat,
         texture_usage: u32,
-        label: Option<USVString>,
+        label: USVString,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -85,7 +85,7 @@ impl GPUTexture {
         dimension: GPUTextureDimension,
         format: GPUTextureFormat,
         texture_usage: u32,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUTexture::new_inherited(
@@ -119,12 +119,12 @@ impl GPUTexture {
 
 impl GPUTextureMethods for GPUTexture {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
@@ -186,7 +186,7 @@ impl GPUTextureMethods for GPUTexture {
             &self.global(),
             texture_view,
             &self,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 

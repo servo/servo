@@ -19,13 +19,13 @@ use super::promise::Promise;
 #[dom_struct]
 pub struct GPUShaderModule {
     reflector_: Reflector,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     shader_module: WebGPUShaderModule,
 }
 
 impl GPUShaderModule {
-    fn new_inherited(shader_module: WebGPUShaderModule, label: Option<USVString>) -> Self {
+    fn new_inherited(shader_module: WebGPUShaderModule, label: USVString) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
@@ -36,7 +36,7 @@ impl GPUShaderModule {
     pub fn new(
         global: &GlobalScope,
         shader_module: WebGPUShaderModule,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUShaderModule::new_inherited(shader_module, label)),
@@ -53,12 +53,12 @@ impl GPUShaderModule {
 
 impl GPUShaderModuleMethods for GPUShaderModule {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 

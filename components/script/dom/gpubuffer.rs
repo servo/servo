@@ -61,7 +61,7 @@ pub struct GPUBuffer {
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     state: Cell<GPUBufferState>,
     #[no_trace]
     buffer: WebGPUBuffer,
@@ -80,7 +80,7 @@ impl GPUBuffer {
         state: GPUBufferState,
         size: GPUSize64,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
-        label: Option<USVString>,
+        label: USVString,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -104,7 +104,7 @@ impl GPUBuffer {
         state: GPUBufferState,
         size: GPUSize64,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
@@ -334,12 +334,12 @@ impl GPUBufferMethods for GPUBuffer {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 }

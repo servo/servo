@@ -183,10 +183,10 @@ impl GPUAdapterMethods for GPUAdapter {
                 WebGPURequest::RequestDevice {
                     sender,
                     adapter_id: self.adapter,
+                    label: desc.label.clone(), // TODO(sagudev)
                     descriptor: desc,
                     device_id: id,
                     pipeline_id,
-                    label: None, // TODO(sagudev)
                 },
             ))
             .is_err()
@@ -242,7 +242,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     wgt::Limits::default(), // TODO use real limits
                     device_id,
                     queue_id,
-                    label,
+                    label.unwrap_or_default(),
                 );
                 self.global().add_gpu_device(&device);
                 promise.resolve_native(&device);

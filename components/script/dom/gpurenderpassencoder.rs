@@ -30,7 +30,7 @@ pub struct GPURenderPassEncoder {
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[ignore_malloc_size_of = "defined in wgpu-core"]
     #[no_trace]
     render_pass: DomRefCell<Option<RenderPass>>,
@@ -42,7 +42,7 @@ impl GPURenderPassEncoder {
         channel: WebGPU,
         render_pass: Option<RenderPass>,
         parent: &GPUCommandEncoder,
-        label: Option<USVString>,
+        label: USVString,
     ) -> Self {
         Self {
             channel,
@@ -58,7 +58,7 @@ impl GPURenderPassEncoder {
         channel: WebGPU,
         render_pass: Option<RenderPass>,
         parent: &GPUCommandEncoder,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderPassEncoder::new_inherited(
@@ -74,12 +74,12 @@ impl GPURenderPassEncoder {
 
 impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 

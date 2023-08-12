@@ -52,7 +52,7 @@ pub struct GPUCommandEncoder {
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     encoder: webgpu::WebGPUCommandEncoder,
     buffers: DomRefCell<HashSet<DomRoot<GPUBuffer>>>,
@@ -66,7 +66,7 @@ impl GPUCommandEncoder {
         channel: WebGPU,
         device: &GPUDevice,
         encoder: webgpu::WebGPUCommandEncoder,
-        label: Option<USVString>,
+        label: USVString,
     ) -> Self {
         Self {
             channel,
@@ -85,7 +85,7 @@ impl GPUCommandEncoder {
         channel: WebGPU,
         device: &GPUDevice,
         encoder: webgpu::WebGPUCommandEncoder,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCommandEncoder::new_inherited(
@@ -113,12 +113,12 @@ impl GPUCommandEncoder {
 
 impl GPUCommandEncoderMethods for GPUCommandEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
@@ -152,7 +152,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             &self,
             compute_pass,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 
@@ -278,7 +278,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             render_pass,
             &self,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 
@@ -431,7 +431,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             buffer,
             self.buffers.borrow_mut().drain().collect(),
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 }

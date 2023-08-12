@@ -31,7 +31,7 @@ pub struct GPUQueue {
     #[no_trace]
     channel: WebGPU,
     device: DomRefCell<Option<Dom<GPUDevice>>>,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     queue: WebGPUQueue,
 }
@@ -42,7 +42,7 @@ impl GPUQueue {
             channel,
             reflector_: Reflector::new(),
             device: DomRefCell::new(None),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(USVString::default()),
             queue,
         }
     }
@@ -60,12 +60,12 @@ impl GPUQueue {
 
 impl GPUQueueMethods for GPUQueue {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 

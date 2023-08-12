@@ -120,7 +120,7 @@ pub struct GPUDevice {
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
     limits: Dom<GPUSupportedLimits>,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     device: webgpu::WebGPUDevice,
     default_queue: Dom<GPUQueue>,
@@ -137,7 +137,7 @@ impl GPUDevice {
         limits: &GPUSupportedLimits,
         device: webgpu::WebGPUDevice,
         queue: &GPUQueue,
-        label: Option<String>,
+        label: String,
     ) -> Self {
         Self {
             eventtarget: EventTarget::new_inherited(),
@@ -145,7 +145,7 @@ impl GPUDevice {
             adapter: Dom::from_ref(adapter),
             extensions,
             limits: Dom::from_ref(limits),
-            label: DomRefCell::new(label.map(|l| USVString::from(l))),
+            label: DomRefCell::new(USVString::from(label)),
             device,
             default_queue: Dom::from_ref(queue),
             scope_context: DomRefCell::new(ScopeContext {
@@ -165,7 +165,7 @@ impl GPUDevice {
         limits: wgt::Limits,
         device: webgpu::WebGPUDevice,
         queue: webgpu::WebGPUQueue,
-        label: Option<String>,
+        label: String,
     ) -> DomRoot<Self> {
         let queue = GPUQueue::new(global, channel.clone(), queue);
         let limits = GPUSupportedLimits::new(global, limits);
@@ -336,12 +336,12 @@ impl GPUDeviceMethods for GPUDevice {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
@@ -413,7 +413,7 @@ impl GPUDeviceMethods for GPUDevice {
             state,
             descriptor.size,
             map_info,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         ))
     }
 
@@ -534,7 +534,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUBindGroupLayout::new(
             &self.global(),
             bgl,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 
@@ -583,7 +583,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUPipelineLayout::new(
             &self.global(),
             pipeline_layout,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
             bgls,
         )
     }
@@ -645,7 +645,7 @@ impl GPUDeviceMethods for GPUDevice {
             bind_group,
             self.device,
             &*descriptor.layout,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 
@@ -678,7 +678,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUShaderModule::new(
             &self.global(),
             shader_module,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 
@@ -722,7 +722,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUComputePipeline::new(
             &self.global(),
             compute_pipeline,
-            descriptor.parent.parent.label.as_ref().cloned(),
+            descriptor.parent.parent.label.clone().unwrap_or_default(),
             bgls,
             &self,
         )
@@ -758,7 +758,7 @@ impl GPUDeviceMethods for GPUDevice {
             self.channel.clone(),
             &self,
             encoder,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 
@@ -824,7 +824,7 @@ impl GPUDeviceMethods for GPUDevice {
             descriptor.dimension,
             descriptor.format,
             descriptor.usage,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 
@@ -873,7 +873,7 @@ impl GPUDeviceMethods for GPUDevice {
             self.device,
             compare_enable,
             sampler,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 
@@ -1059,7 +1059,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPURenderPipeline::new(
             &self.global(),
             render_pipeline,
-            descriptor.parent.parent.label.as_ref().cloned(),
+            descriptor.parent.parent.label.clone().unwrap_or_default(),
             bgls,
             &self,
         )
@@ -1098,7 +1098,7 @@ impl GPUDeviceMethods for GPUDevice {
             render_bundle_encoder,
             &self,
             self.channel.clone(),
-            descriptor.parent.parent.label.as_ref().cloned(),
+            descriptor.parent.parent.label.clone().unwrap_or_default(),
         )
     }
 

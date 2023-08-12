@@ -5,7 +5,7 @@
 // https://gpuweb.github.io/gpuweb/#gpuobjectbase
 [Exposed=(Window)]
 interface mixin GPUObjectBase {
-    attribute USVString? label;
+    attribute USVString label;
 };
 
 dictionary GPUObjectDescriptorBase {
