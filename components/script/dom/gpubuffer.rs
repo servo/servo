@@ -184,7 +184,7 @@ impl GPUBufferMethods for GPUBuffer {
         let state = self.state.get();
         match state {
             GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
-                self.Unmap();
+                self.Unmap()?;
             },
             GPUBufferState::Destroyed => return Ok(()),
             _ => {},
