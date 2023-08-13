@@ -1,0 +1,18 @@
+<!doctype html>
+<title>image-set() is an invalid image if all options are invalid</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#invalid-image">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#border-image-source">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<style>
+  #target {
+      width: 100px;
+      height: 100px;
+      box-sizing: border-box;
+      background-color: red;
+      border: 50px solid green;
+      border-image: 1 / 10px image-set(url('data:image/png;base64,') type('image/unknown'));
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="target"></div>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Canvas Test: the 'fontVariantCaps' property</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-fontvariantcaps">
+<link rel="match" href="2d.text.fontVariantCaps4-expected.html">
+<meta name="assert" content="text rendering respects the fontVariantCaps property">
+
+<canvas id="c"></canvas>
+
+<script>
+let ctx = c.getContext("2d");
+ctx.font = "small-caps 32px serif";
+// fontVariantCaps overrides the small-caps setting from the font attribute
+// (spec unclear, cf. https://github.com/whatwg/html/issues/8103)
+ctx.fontVariantCaps = "all-small-caps";
+ctx.fillText("Hello World", 20, 100);
+</script>

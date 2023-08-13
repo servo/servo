@@ -453,11 +453,11 @@ def check_parsed(repo_root: Text, path: Text, f: IO[bytes]) -> List[rules.Error]
                 errors.append(rules.VariantMissing.error(path))
             else:
                 variant = element.attrib["content"]
-                if variant != "":
-                    if (variant[0] not in ("?", "#") or
-                        len(variant) == 1 or
-                        (variant[0] == "?" and variant[1] == "#")):
-                        errors.append(rules.MalformedVariant.error(path, (path,)))
+                if (variant == "" or
+                    variant[0] not in ("?", "#") or
+                    len(variant) == 1 or
+                    (variant[0] == "?" and variant[1] == "#")):
+                    errors.append(rules.MalformedVariant.error(path, (path,)))
 
         required_elements.extend(key for key, value in {"testharness": True,
                                                         "testharnessreport": len(testharnessreport_nodes) > 0,

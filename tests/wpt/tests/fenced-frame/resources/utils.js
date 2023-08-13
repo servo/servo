@@ -36,10 +36,11 @@ async function runSelectRawURL(href, resolve_to_config = false) {
     // gracefully fail rather than bring the whole test down.
   }
   return await sharedStorage.selectURL(
-      'test-url-selection-operation', [{url: href}], {
+      'test-url-selection-operation', [{url: href,
+          reportingMetadata: {'reserved.top_navigation': BEACON_URL}}], {
         data: {'mockResult': 0},
         resolveToConfig: resolve_to_config,
-        keepAlive: true
+        keepAlive: true,
       });
 }
 
@@ -93,12 +94,16 @@ async function generateURNFromFledgeRawURL(
         adComponents: ad_components_list,
       };
 
-  let params = new URLSearchParams(interestGroup.biddingLogicUrl.search);
+  let biddingUrlParams =
+      new URLSearchParams(interestGroup.biddingLogicUrl.search);
+  if (requested_size)
+    biddingUrlParams.set(
+        'requested-size', requested_size[0] + '-' + requested_size[1]);
   if (ad_with_size)
-    params.set('ad-with-size', 1);
+    biddingUrlParams.set('ad-with-size', 1);
   if (automatic_beacon)
-    params.set('automatic-beacon', 1);
-  interestGroup.biddingLogicUrl.search = params;
+    biddingUrlParams.set('automatic-beacon', 1);
+  interestGroup.biddingLogicUrl.search = biddingUrlParams;
 
   if (ad_with_size) {
     interestGroup.ads[0].sizeGroup = 'group1';
@@ -117,9 +122,17 @@ async function generateURNFromFledgeRawURL(
     auctionSignals: {biddingToken: bidding_token, sellerToken: seller_token},
     resolveToConfig: resolve_to_config
   };
+
   if (requested_size) {
+    let decisionUrlParams =
+      new URLSearchParams(auctionConfig.decisionLogicUrl.search);
+    decisionUrlParams.set(
+        'requested-size', requested_size[0] + '-' + requested_size[1]);
+    auctionConfig.decisionLogicUrl.search = decisionUrlParams;
+
     auctionConfig['requestedSize'] = {width: requested_size[0], height: requested_size[1]};
   }
+
   return navigator.runAdAuction(auctionConfig);
 }
 

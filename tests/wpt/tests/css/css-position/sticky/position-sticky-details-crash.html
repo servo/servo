@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1470149">
+<details>
+  <div id="target" style="position: sticky; top: 0px;"></div>
+</details>
+<script>
+document.execCommand('selectAll');
+document.getElementById('target').remove();
+document.body.style.height = '100%';
+</script>

@@ -36,7 +36,7 @@ promise_test(async t => {
   await animation.ready;
 
   // Animation current time is at 20% because scroller was scrolled to 20%
-  assert_equals(animation.currentTime.value, 20);
+  assert_percents_equal(animation.currentTime, 20);
   assert_equals(scroller.scrollTop, 180);
   assert_equals(maxScroll, 900);
 
@@ -52,9 +52,10 @@ promise_test(async t => {
 
   const expected_progress = (scroller.scrollTop / maxScroll) * 100;
   assert_true(expected_progress > initial_progress)
-  assert_equals(animation.currentTime.value, expected_progress); // 45%
-  assert_equals(animation.timeline.currentTime.value, expected_progress); // 45%
-  assert_equals(animation.effect.getComputedTiming().localTime.value, expected_progress); // 45%
+  // @ 45%
+  assert_percents_equal(animation.currentTime, expected_progress);
+  assert_percents_equal(animation.timeline.currentTime, expected_progress);
+  assert_percents_equal(animation.effect.getComputedTiming().localTime, expected_progress);
 }, 'Animation current time and effect local time are updated after scroller ' +
    'content size changes.');
 
@@ -72,7 +73,7 @@ promise_test(async t => {
 
   // Animation current time is at 20% because scroller was scrolled to 20%
   // assert_equals(animation.currentTime.value, 20);
-  assert_equals(animation.currentTime.value, 20);
+  assert_percents_equal(animation.currentTime, 20);
   assert_equals(scroller.scrollTop, scrollOffset);
   assert_equals(maxScroll, 900);
 
@@ -86,9 +87,11 @@ promise_test(async t => {
 
   const expected_progress = (scroller.scrollTop / maxScroll) * 100;
   assert_true(expected_progress > initial_progress);
-  assert_equals(animation.currentTime.value, expected_progress); // 45%
-  assert_equals(animation.timeline.currentTime.value, expected_progress); // 45%
-  assert_equals(animation.effect.getComputedTiming().localTime.value, expected_progress); // 45%
+  // @ 45%
+  assert_percents_equal(animation.currentTime, expected_progress);
+  assert_percents_equal(animation.timeline.currentTime, expected_progress);
+  assert_percents_equal(animation.effect.getComputedTiming().localTime,
+                        expected_progress);
 }, 'Animation current time and effect local time are updated after scroller ' +
    'size changes.');
 

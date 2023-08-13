@@ -212,7 +212,7 @@ Use `// META: timeout=long` at the beginning of the resource.
 Use `// META: variant=url-suffix` at the beginning of the resource. For example,
 
 ```
-// META: variant=
+// META: variant=?default
 // META: variant=?wss
 ```
 
@@ -222,7 +222,7 @@ A test file can have multiple variants by including `meta` elements,
 for example:
 
 ```html
-<meta name="variant" content="">
+<meta name="variant" content="?default">
 <meta name="variant" content="?wss">
 ```
 

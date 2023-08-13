@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop">
+<link rel="match" href="font-size-adjust-reload-ref.html">
+<style>
+body {
+    margin: 0;
+    padding: 0;
+}
+</style>
+</head>
+<body>
+    <iframe id="iframe" width=400 height=400 frameBorder=0 src="font-size-adjust-reload-ref.html"></iframe>
+</body>
+<script>
+    const iframe = document.getElementById('iframe');
+    // Forcing reload
+    iframe.src += '';
+    iframe.contentWindow.onload = function(){
+        document.documentElement.classList.remove("reftest-wait");
+    };
+</script>
+</html>

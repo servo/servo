@@ -82,12 +82,21 @@ validButUnsupportedConfigs.forEach(entry => {
 });
 
 validButUnsupportedConfigs.forEach(entry => {
-  async_test(
-      t => {
-        let codec = new VideoDecoder(getDefaultCodecInit(t));
-        assert_throws_dom('NotSupportedError', () => {
-          codec.configure(entry.config);
+  promise_test(
+    async t => {
+        const callbacks = {
+          output: t.unreached_func('unexpected output'),
+        };
+        const error = new Promise(resolve => callbacks.error = e => {
+          resolve(e);
         });
+        let codec = new VideoDecoder(callbacks);
+        codec.configure(entry.config);
+        let e = await error;
+        assert_true(e instanceof DOMException);
+        assert_equals(e.name, 'NotSupportedError');
+        assert_equals(codec.state, 'closed', 'state');
+
         t.done();
       },
       'Test that VideoDecoder.configure() doesn\'t support config: ' +
@@ -109,3 +118,23 @@ promise_test(t => {
 
   return endAfterEventLoopTurn();
 }, 'Test VideoDecoder construction');
+
+const validConfigs = [
+  {
+    comment: 'valid codec with spaces',
+    config: {codec: '  vp09.00.10.08  '},
+  },
+];  // validConfigs
+
+validConfigs.forEach(entry => {
+  promise_test(
+    async t => {
+      try {
+        await VideoDecoder.isConfigSupported(entry.config);
+      } catch (e) {
+        assert_true(false, entry.comment + ' should not throw');
+      }
+    },
+    'Test that VideoDecoder.isConfigSupported() accepts config:' +
+        entry.comment);
+});

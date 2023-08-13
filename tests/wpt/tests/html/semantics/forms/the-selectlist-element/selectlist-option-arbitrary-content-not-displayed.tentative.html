@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<title>HTMLSelectListElement Test: option arbitrary content not displayed</title>
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<link rel=match href="selectlist-option-arbitrary-content-not-displayed-ref.tentative.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<option>
+  option with image not displayed
+  <img src="/images/green-256x256.png">
+</option>
+
+<selectlist id="selectList0">
+  <option id="selectList0-option">
+    option with image not displayed
+    <img src="/images/green-256x256.png">
+  </option>
+</selectlist>
+
+<script>
+  const selectList0Option = document.getElementById("selectList0-option");
+
+  // removing an option from <selectlist> should revert back to its original display behavior
+  selectList0Option.remove();
+  document.body.append(selectList0Option);
+</script>

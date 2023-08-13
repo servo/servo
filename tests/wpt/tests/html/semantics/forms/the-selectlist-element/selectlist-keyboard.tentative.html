@@ -1,0 +1,123 @@
+<!doctype html>
+<title>HTMLSelectListElement Test: keyboard accessibility</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+  <selectlist id="selectList0">
+    <div id="selectList0-button0" slot="button" behavior="button" tabindex="0">button</div>
+    <option>one</option>
+    <option>two</option>
+    <option>three</option>
+  </selectlist>
+
+  <selectlist id="selectList1">
+    <option id="selectList1-child0">one</option>
+  </selectlist>
+
+  <selectlist id="selectList2" disabled>
+    <div id="selectList2-button0" slot="button" behavior="button" tabindex="0">button</div>
+    <option disabled>one</option>
+    <option>two</option>
+    <option>three</option>
+  </selectlist>
+
+  <selectlist id="selectList3">
+    <div id="selectList3-button0" slot="button" behavior="button" tabindex="0">button</div>
+    <option>one</option>
+    <option disabled>two</option>
+    <option>three</option>
+  </selectlist>
+<script>
+// See https://w3c.github.io/webdriver/#keyboard-actions
+const KEY_CODE_MAP = {
+  'Enter':      '\uE007',
+  'Space':      '\uE00D',
+  'ArrowUp':    '\uE013',
+  'ArrowDown':  '\uE015'
+};
+
+function clickOn(element) {
+    const actions = new test_driver.Actions();
+    return actions.pointerMove(0, 0, {origin: element})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  }
+
+promise_test(async t => {
+  const selectList = document.querySelector("#selectList0");
+  const button = document.querySelector("#selectList0-button0");
+  assert_false(selectList.open, "selectlist should not be initially open");
+
+  await test_driver.send_keys(button, KEY_CODE_MAP.Enter);
+  assert_true(selectList.open, "Enter key should open selectlist");
+  assert_equals(selectList.value, "one");
+
+  await test_driver.send_keys(selectList, KEY_CODE_MAP.ArrowDown);
+  assert_equals(selectList.value, "two", "Down arrow should go to next option");
+
+  await test_driver.send_keys(selectList, KEY_CODE_MAP.ArrowDown);
+  assert_equals(selectList.value, "three", "Down arrow should go to next option");
+
+  await test_driver.send_keys(selectList, KEY_CODE_MAP.ArrowDown);
+  assert_equals(selectList.value, "three", "Down arrow should do nothing if already at the last option");
+
+  await test_driver.send_keys(selectList, KEY_CODE_MAP.ArrowUp);
+  assert_equals(selectList.value, "two", "Up arrow should go to the previous option");
+
+  await test_driver.send_keys(selectList, KEY_CODE_MAP.ArrowUp);
+  assert_equals(selectList.value, "one", "Up arrow should go to the previous option");
+
+  await test_driver.send_keys(selectList, KEY_CODE_MAP.ArrowUp);
+  assert_equals(selectList.value, "one", "Up arrow should do nothing if already at the first option");
+
+  await test_driver.send_keys(selectList, KEY_CODE_MAP.Enter);
+  assert_false(selectList.open, "Enter key should close selectlist");
+
+  await test_driver.send_keys(selectList, " ");
+  assert_true(selectList.open, "Space key should open selectlist");
+
+  // This behavior is suspicious (since Space key can open the selectlist),
+  // but it maches <select>. See https://github.com/openui/open-ui/issues/386
+  await test_driver.send_keys(selectList, " ");
+  assert_true(selectList.open, "Space key should *not* close selectlist");
+
+  await test_driver.send_keys(selectList, KEY_CODE_MAP.Enter);
+  assert_false(selectList.open, "Enter key should close selectlist");
+}, "Validate Enter, Up/Down Arrow, and Space keyboard accessibility support for <selectlist>");
+
+promise_test(async t => {
+  const selectListOption = document.getElementById("selectList1-child0");
+  const event = document.createEvent("Event");
+  event.initEvent("keydown");
+  selectListOption.dispatchEvent(event);
+}, "Firing a synthetic event at a selectlist's option doesn't crash");
+
+promise_test(async t => {
+  const selectList2 = document.querySelector("#selectList2");
+  const selectList2Button = document.querySelector("#selectList2-button0");
+  assert_false(selectList2.open, "selectlist should not be initially open");
+
+  await test_driver.send_keys(selectList2Button, KEY_CODE_MAP.Enter);
+  assert_false(selectList2.open, "Enter key should not open a disabled selectlist");
+  await clickOn(selectList2);
+  assert_false(selectList2.open, "Click should not open a disabled selectlist");
+  assert_equals(selectList2.value, "one");
+
+  const selectList3 = document.querySelector("#selectList3");
+  const selectList3Button = document.querySelector("#selectList3-button0");
+  assert_false(selectList3.open, "selectlist should not be initially open");
+
+  await test_driver.send_keys(selectList3Button, KEY_CODE_MAP.Enter);
+  assert_true(selectList3.open, "Enter key should open selectlist");
+  assert_equals(selectList3.value, "one");
+
+  await test_driver.send_keys(selectList3, KEY_CODE_MAP.ArrowDown);
+  assert_equals(selectList3.value, "three", "Down arrow should go to next non-disabled option");
+
+  await test_driver.send_keys(selectList3, KEY_CODE_MAP.ArrowUp);
+  assert_equals(selectList3.value, "one", "Up arrow should go to the previous non-disabled option");
+}, "Validate Enter, Up/Down Arrow keyboard accessibility support for disabled <selectlist>");
+</script>

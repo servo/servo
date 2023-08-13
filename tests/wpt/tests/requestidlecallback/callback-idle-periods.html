@@ -16,7 +16,7 @@ async_test(function() {
     var remaining = deadline.timeRemaining();
     var new_deadline = now + remaining;
     if (previous_deadline != undefined) {
-      assert_true(new_deadline > previous_deadline, "A requestIdleCallback scheduled during an idle period should be called back with a deadline greater than that in the current idle period.");
+      assert_true(new_deadline >= previous_deadline, "A requestIdleCallback scheduled during an idle period should be called back with a deadline greater than or equal to that in the current idle period.");
     }
 
     // Schedule a new requestIdleCallback.

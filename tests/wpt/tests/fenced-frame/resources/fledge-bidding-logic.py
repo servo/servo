@@ -5,6 +5,8 @@
 # so we leave `reportWin` empty unless we need to call registerAdBeacon(). See
 # `generateURNFromFledge` in "utils.js" to see how this file is used.
 
+from wptserve.utils import isomorphic_decode
+
 def main(request, response):
   # Set up response headers.
   headers = [
@@ -13,10 +15,28 @@ def main(request, response):
   ]
 
   # Parse URL params.
+  requested_size = request.GET.first(b"requested-size", None)
   ad_with_size = request.GET.first(b"ad-with-size", None)
   automatic_beacon = request.GET.first(b"automatic-beacon", None)
 
-  # Use URL params to modify JS
+  # Use URL params to modify Javascript.
+  requested_size_check = ''
+  if requested_size is not None:
+    # request.GET stores URL keys and values in iso-8859-1 binary encoding. We
+    # have to decode the values back to a string to parse width/height. Don't
+    # bother sanitizing the size, because it is sanitized before auction logic
+    # runs already.
+    width, height = isomorphic_decode(requested_size).split('-')
+
+    requested_size_check = (
+      f'''
+        if (!(browserSignals.requestedSize.width === '{width}') &&
+             (browserSignals.requestedSize.height === '{height}')) {{
+          throw new Error('requestedSize missing/incorrect in browserSignals');
+        }}
+      '''
+    )
+
   render_obj = 'ad.renderUrl'
   if ad_with_size is not None:
     render_obj = '{ url: ad.renderUrl, width: "100px", height: "50px" }'
@@ -53,6 +73,7 @@ def main(request, response):
       perBuyerSignals,
       trustedBiddingSignals,
       browserSignals) {{
+        {requested_size_check}
         const ad = interestGroup.ads[0];
 
         // `auctionSignals` controls whether or not component auctions are

@@ -49,8 +49,7 @@
     t.add_cleanup(() => pc.close());
 
     const transceiver = pc.addTransceiver(kind);
-    const trackEnded = new Promise(
-        r => { transceiver.receiver.track.onended = () => { r(); } });
+    const trackEnded = new Promise(r => transceiver.receiver.track.onended = r);
     assert_equals(transceiver.receiver.track.readyState, 'live');
     transceiver.stop();
     // Stopping triggers ending the track, but this happens asynchronously.
@@ -79,6 +78,10 @@
     // Applying the remote offer immediately ends the track, we don't need to
     // create or apply an answer.
     await pc2.setRemoteDescription(pc1.localDescription);
+    // sRD just resolved, so we're in the success task for sRD. The transition
+    // from live -> ended is queued right now.
+    assert_equals(pc2Transceiver.receiver.track.readyState, 'live');
+    await new Promise(r => pc2Transceiver.receiver.track.onended = r);
     assert_equals(pc2Transceiver.receiver.track.readyState, 'ended');
   }, `[${kind}] Remotely stopping a transceiver ends the track`);
 
@@ -152,8 +155,12 @@
     const [pc2Transceiver] = pc2.getTransceivers();
 
     // Rollback such that the transceiver is removed.
-    await pc2.setLocalDescription({type:'rollback'});
+    await pc2.setRemoteDescription({type:'rollback'});
     assert_equals(pc2.getTransceivers().length, 0);
+    // sRD just resolved, so we're in the success task for sRD. The transition
+    // from live -> ended is queued right now.
+    assert_equals(pc2Transceiver.receiver.track.readyState, 'live');
+    await new Promise(r => pc2Transceiver.receiver.track.onended = r);
     assert_equals(pc2Transceiver.receiver.track.readyState, 'ended');
   }, `[${kind}] Rollback when removing transceiver does end the track`);
 
@@ -172,7 +179,7 @@
     const [pc2Transceiver] = pc2.getTransceivers();
 
     // Rollback such that the transceiver is removed.
-    await pc2.setLocalDescription({type:'rollback'});
+    await pc2.setRemoteDescription({type:'rollback'});
     assert_equals(pc2.getTransceivers().length, 0);
     // The removed transceiver is stopped.
     assert_equals(pc2Transceiver.currentDirection, 'stopped',

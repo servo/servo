@@ -8,28 +8,35 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <style>
-input {
+:is(input:not([type=submit], [type=reset]), textarea) {
   border: 2px solid black;
 }
 
-input:user-valid {
+:is(input:not([type=submit], [type=reset]), textarea):user-valid {
   border-color: green;
 }
 
-input:user-invalid {
+:is(input:not([type=submit], [type=reset]), textarea):user-invalid {
   border-color: red;
 }
 </style>
 
 <input id="initially-valid" type="email">
 
+<p>Test form interactions (reset / submit):</p>
+<form id="form">
+  <input placeholder="Optional field" id="optional-input"><br>
+  <textarea placeholder="Optional field" id="optional-textarea"></textarea><br>
+  <input required placeholder="Required field"> <!-- Prevent the form from navigating with this invalid input -->
+  <input type="submit" id="submit-button">
+  <input type="reset" id="reset-button">
+</form>
+
 <script>
 promise_test(async () => {
   const input = document.querySelector("#initially-valid");
   assert_true(input.validity.valid);
   // The selector can't match because no interaction has happened.
-  assert_false(input.matches(':user-valid'));
-
   assert_false(input.matches(":user-valid"), "Initially does not match :user-valid");
   assert_false(input.matches(":user-invalid"), "Initially does not match :user-invalid");
 
@@ -52,4 +59,37 @@ promise_test(async () => {
   assert_false(input.matches(":user-valid"), "Cleared required input, :user-valid no longer matches");
   assert_true(input.matches(":user-invalid"), "Cleared required input, :user-invalid now matches");
 }, ":user-valid selector should respond to user action");
+
+promise_test(async () => {
+  const form = document.querySelector("#form");
+  const optionalInput = document.querySelector("#optional-input");
+  const optionalTextarea = document.querySelector("#optional-textarea");
+  const submitButton = document.querySelector("#submit-button");
+  const resetButton = document.querySelector("#reset-button");
+
+  assert_true(optionalInput.validity.valid);
+  assert_true(optionalTextarea.validity.valid);
+  // The selector can't match because no interaction has happened.
+  assert_false(optionalInput.matches(":user-valid"), "Initially does not match :user-valid");
+  assert_false(optionalInput.matches(":user-invalid"), "Initially does not match :user-invalid");
+
+  assert_false(optionalTextarea.matches(":user-valid"), "Initially does not match :user-valid");
+  assert_false(optionalTextarea.matches(":user-invalid"), "Initially does not match :user-invalid");
+
+  await test_driver.click(submitButton);
+
+  assert_true(optionalInput.matches(":user-valid"), "Submitted the form, input is validated");
+  assert_false(optionalInput.matches(":user-invalid"), "Submitted the form, input is validated");
+
+  assert_true(optionalTextarea.matches(":user-valid"), "Submitted the form, textarea is validated");
+  assert_false(optionalTextarea.matches(":user-invalid"), "Submitted the form, textarea is validated");
+
+  await test_driver.click(resetButton);
+
+  assert_false(optionalInput.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
+  assert_false(optionalInput.matches(":user-invalid"), "Reset the form, user-interacted flag is reset");
+
+  assert_false(optionalTextarea.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
+  assert_false(optionalTextarea.matches(":user-invalid"), "Reset the form, user-interacted flag is reset");
+}, ":user-valid selector properly interacts with submit & reset buttons");
 </script>

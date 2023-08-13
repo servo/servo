@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<selectlist id="selectList0">
+  <option>option with image displayed</option>
+</selectlist>
+<div id=fakelistbox>
+  option with image displayed
+  <img src="/images/green-256x256.png">
+</div>
+
+<style>
+  html,selectlist {
+    font-family: Ahem;
+  }
+  #fakelistbox {
+    /* Per spec: */
+    display: block;
+    position: fixed;
+    top: 30px;
+    left: 0;
+    font-size: 0.765625em /* 0.875 * 0.875 */;
+    /* Per settings in test file: */
+    width: fit-content;
+    height: fit-content;
+    background: -internal-light-dark(white, black);
+    color: -internal-light-dark(black, white);
+    border: 1px solid rgba(0, 0, 0, 1);
+    border-radius: 0px;
+    box-shadow: 0px 12.8px 28.8px rgba(0, 0, 0, 0.13), 0px 0px 9.2px rgba(0, 0, 0, 0.11);
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 4px;
+  }
+
+  selectlist {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 30px;
+  }
+</style>

@@ -50,7 +50,7 @@ def main(request, response):
     body = None
 
     contentType = "application/json"
-    xAllowFledge = "true"
+    adAuctionAllowed = "true"
     dataVersion = None
     if keys:
         for key in keys:
@@ -74,14 +74,12 @@ def main(request, response):
                 contentType = None
             elif key == "wrong-content-type":
                 contentType = 'text/plain'
-            elif key == "wrongContentType":
-                contentType = 'text/plain'
-            elif key == "bad-allow-fledge":
-                xAllowFledge = "sometimes"
-            elif key == "fledge-not-allowed":
-                xAllowFledge = "false"
-            elif key == "no-allow-fledge":
-                xAllowFledge = None
+            elif key == "bad-ad-auction-allowed":
+                adAuctionAllowed = "sometimes"
+            elif key == "ad-auction-not-allowed":
+                adAuctionAllowed = "false"
+            elif key == "no-ad-auction-allow":
+                adAuctionAllowed = None
             elif key == "no-value":
                 continue
             elif key == "wrong-value":
@@ -108,8 +106,8 @@ def main(request, response):
 
     if contentType:
         response.headers.set("Content-Type", contentType)
-    if xAllowFledge:
-        response.headers.set("X-Allow-FLEDGE", xAllowFledge)
+    if adAuctionAllowed:
+        response.headers.set("Ad-Auction-Allowed", adAuctionAllowed)
     if dataVersion:
         response.headers.set("Data-Version", dataVersion)
     response.headers.set("X-fledge-bidding-signals-format-version", "2")

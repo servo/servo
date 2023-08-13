@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/9462">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/helpers.js"></script>
+
+<button id=b0>button</button>
+
+<dialog id=dialog>
+  <button id=b1>button</button>
+  <div id=popover popover=auto>popover</div>
+</dialog>
+
+<script>
+const waitForPotentialCloseEvent = () => {
+  // CloseWatchers fire close events synchronously, but dialog elements wait
+  // for a rAF before firing them.
+  return new Promise(resolve => requestAnimationFrame(resolve));
+};
+
+promise_test(async t => {
+  const events = [];
+  const closeWatcher = createRecordingCloseWatcher(t, events, 'CloseWatcher', 'CloseWatcher');
+  const dialog = createRecordingCloseWatcher(t, events, 'dialog', 'dialog');
+  const popover = createRecordingCloseWatcher(t, events, 'popover', 'popover');
+  assert_true(dialog.hasAttribute('open'), 'The dialog should be open.');
+  assert_true(popover.matches(':popover-open'), 'The popover should be open.');
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+
+  assert_false(popover.matches(':popover-open'), 'The popover should be closed.');
+  assert_false(dialog.hasAttribute('open'), 'The dialog should be closed.');
+  assert_array_equals(events, ['CloseWatcher close', 'dialog close']);
+}, 'Opening a CloseWatcher, modal dialog, and popover without user activation causes them all to be closed with one close request.');
+
+promise_test(async t => {
+  const events = [];
+  const closeWatcher = await createBlessedRecordingCloseWatcher(t, events, 'CloseWatcher', 'CloseWatcher');
+  const dialog = await createBlessedRecordingCloseWatcher(t, events, 'dialog', 'dialog');
+  const popover = await createBlessedRecordingCloseWatcher(t, events, 'popover', 'popover', dialog);
+  assert_true(dialog.hasAttribute('open'), 'The dialog should be open.');
+  assert_true(popover.matches(':popover-open'), 'The popover should be open.');
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_false(popover.matches(':popover-open'), 'First close request: The popover should be closed.');
+  assert_true(dialog.hasAttribute('open'), 'First close request: The dialog should be open.');
+  assert_array_equals(events, []);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_false(popover.matches(':popover-open'), 'Second close request: The popover should be closed.');
+  assert_false(dialog.hasAttribute('open'), 'Second close request: The dialog should be closed.');
+  assert_array_equals(events, ['dialog close']);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_false(popover.matches(':popover-open'), 'Third close request: The popover should be closed.');
+  assert_false(dialog.hasAttribute('open'), 'Third close request: The dialog should be closed.');
+  assert_array_equals(events, ['dialog close', 'CloseWatcher close']);
+}, 'Opening a CloseWatcher, modal dialog, and popover with user activation for each should close one at a time with close requests.');
+
+promise_test(async t => {
+  const events = [];
+  const closeWatcher = await createBlessedRecordingCloseWatcher(t, events, 'CloseWatcher', 'CloseWatcher');
+  const dialog = await createBlessedRecordingCloseWatcher(t, events, 'dialog', 'dialog');
+  const popover = await createBlessedRecordingCloseWatcher(t, events, 'popover', 'popover', dialog);
+  assert_true(dialog.hasAttribute('open'), 'The dialog should be open.');
+  assert_true(popover.matches(':popover-open'), 'The popover should be open.');
+
+  await dialogResilientBless(popover, () => sendCloseRequest());
+  await waitForPotentialCloseEvent();
+  assert_false(popover.matches(':popover-open'), 'First close request: The popover should be closed.');
+  assert_true(dialog.hasAttribute('open'), 'First close request: The dialog should be open.');
+  assert_array_equals(events, []);
+
+  await dialogResilientBless(dialog, () => sendCloseRequest());
+  await waitForPotentialCloseEvent();
+  assert_false(popover.matches(':popover-open'), 'Second close request: The popover should be closed.');
+  assert_false(dialog.hasAttribute('open'), 'Second close request: The dialog should be closed.');
+  assert_array_equals(events, ['dialog cancel', 'dialog close']);
+
+  await dialogResilientBless(closeWatcher, () => sendCloseRequest());
+  await waitForPotentialCloseEvent();
+  assert_false(popover.matches(':popover-open'), 'Third close request: The popover should be closed.');
+  assert_false(dialog.hasAttribute('open'), 'Third close request: The dialog should be closed.');
+  assert_array_equals(events, ['dialog cancel', 'dialog close', 'CloseWatcher cancel', 'CloseWatcher close']);
+}, 'Opening a CloseWatcher, modal dialog, and popover with user activation for each and sending close requests with user activation should close one at a time and have cancel events.');
+</script>

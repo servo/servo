@@ -2,13 +2,13 @@
 <link rel=author href="mailto:jarhar@chromium.org">
 <link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1291169">
 
-<selectmenu></selectmenu>
+<selectlist></selectlist>
 <div></div>
 
 <script>
   (async () => {
-    const selectmenu = document.querySelector('selectmenu');
+    const selectlist = document.querySelector('selectlist');
     await getComputedAccessibleNode(document.querySelector('div'));
-    selectmenu.style.setProperty('content-visibility', 'hidden');
+    selectlist.style.setProperty('content-visibility', 'hidden');
   })();
 </script>

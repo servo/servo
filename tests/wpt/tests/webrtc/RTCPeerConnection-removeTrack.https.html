@@ -301,6 +301,8 @@
     const sender = pc.addTrack(track, stream);
 
     pc.getTransceivers()[0].stop();
+    // TODO: Spec says this only sets [[Stopping]], not [[Stopped]]. Spec
+    // might change: https://github.com/w3c/webrtc-pc/issues/2874
     pc.removeTrack(sender);
     assert_equals(sender.track, track);
   }, "Calling removeTrack on a stopped transceiver should be a no-op");

@@ -57,7 +57,7 @@ async def get_physical_element_dimensions(bidi_session, context, element):
     """
     element_dimensions = await get_element_dimensions(bidi_session, context, element)
     dpr = await get_device_pixel_ratio(bidi_session, context)
-    return (element_dimensions["width"] * dpr, element_dimensions["height"] * dpr)
+    return (floor(element_dimensions["width"] * dpr), floor(element_dimensions["height"] * dpr))
 
 
 async def get_physical_viewport_dimensions(bidi_session, context):

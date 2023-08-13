@@ -1,7 +1,5 @@
 - name: 2d.reset.basic
   desc: reset clears to transparent black
-  canvasType:
-    ['HTMLCanvas']
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -13,3 +11,155 @@
     @assert pixel 0,50 == 0,0,0,0;
     @assert pixel 100,0 == 0,0,0,0;
     t.done();
+
+- name: 2d.reset.state
+  desc: check that the state is reset
+  code: |
+    const default_value = ctx.{{ state_name }};
+
+    ctx.{{ state_name }} = {{ new_value }};
+    @assert ctx.{{ state_name }} == {{ new_value }};
+
+    ctx.reset();
+    @assert ctx.{{ state_name }} == default_value;
+
+  variants:
+    letter_spacing:
+      state_name: letterSpacing
+      new_value: "'12px'"
+
+    word_spacing:
+      state_name: wordSpacing
+      new_value: "'12px'"
+
+    fill_style:
+      state_name: fillStyle
+      new_value: "'#ffffff'"
+
+    stroke_style:
+      state_name: strokeStyle
+      new_value: "'#ffffff'"
+
+    filter:
+      state_name: filter
+      new_value: "'blur(10px)'"
+
+    font:
+      state_name: font
+      new_value: "'25px sans-serif'"
+
+    global_alpha:
+      state_name: globalAlpha
+      new_value: 0.5
+
+    global_composite_operation:
+      state_name: globalCompositeOperation
+      new_value: "'destination-over'"
+
+    line_width:
+      state_name: lineWidth
+      new_value: 1
+
+    line_cap:
+      state_name: lineCap
+      new_value: "'square'"
+
+    line_join:
+      state_name: lineJoin
+      new_value: "'bevel'"
+
+    miter_limit:
+      state_name: miterLimit
+      new_value: 1.0
+
+    line_dash_offset:
+      state_name: lineDashOffset
+      new_value: 1.0
+
+    shadow_offset_x:
+      state_name: shadowOffsetX
+      new_value: 10.0
+
+    shadow_offset_y:
+      state_name: shadowOffsetY
+      new_value: 10.0
+
+    shadow_blur:
+      state_name: shadowBlur
+      new_value: 10.0
+
+    shadow_color:
+      state_name: shadowColor
+      new_value: "'#ff0000'"
+
+    font:
+      state_name: font
+      new_value: "'16px sans-serif'"
+
+    text_align:
+      state_name: textAlign
+      new_value: "'end'"
+
+    text_baseline:
+      state_name: textBaseline
+      new_value: "'middle'"
+
+    direction:
+      state_name: direction
+      new_value: "'rtl'"
+
+    font_kerning:
+      state_name: fontKerning
+      new_value: "'normal'"
+
+    font_stretch:
+      state_name: fontStretch
+      new_value: "'ultra-condensed'"
+
+    font_variant_caps:
+      state_name: fontVariantCaps
+      new_value: "'unicase'"
+
+    text_rendering:
+      state_name: textRendering
+      new_value: "'geometricPrecision'"
+
+    image_smoothing_enabled:
+      state_name: imageSmoothingEnabled
+      new_value: "false"
+
+    image_smoothing_quality:
+      state_name: imageSmoothingQuality
+      new_value: "'high'"
+
+- name: 2d.reset.state.transformation_matrix
+  desc: check that the state is reset
+  code: |
+    ctx.scale(2, 2);
+
+    ctx.reset();
+    @assert ctx.getTransform().isIdentity;
+
+- name: 2d.reset.state.clip
+  desc: check that the clip is reset
+  size: [200, 200]
+  code: |
+    ctx.beginPath();
+    ctx.rect(0, 0, 100, 100);
+    ctx.clip();
+
+    ctx.fillRect(0, 0, 200, 200);
+
+    ctx.reset();
+
+    ctx.fillRect(0, 0, 200, 200);
+  reference: |
+    ctx.fillRect(0, 0, 200, 200);
+
+- name: 2d.reset.state.line_dash
+  desc: check that the line dash is reset
+  code: |
+    ctx.setLineDash([1, 2]);
+
+    ctx.reset();
+    @assert ctx.getLineDash().length == 0;

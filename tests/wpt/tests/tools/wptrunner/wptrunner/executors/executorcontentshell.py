@@ -279,6 +279,12 @@ class ContentShellPrintRefTestExecutor(ContentShellRefTestExecutor):
 
 
 class ContentShellTestharnessExecutor(TestharnessExecutor, _SanitizerMixin):  # type: ignore
+    # Chromium's `testdriver-vendor.js` partially implements testdriver support
+    # with internal APIs [1].
+    #
+    # [1]: https://chromium.googlesource.com/chromium/src/+/HEAD/docs/testing/writing_web_tests.md#Relying-on-Blink_Specific-Testing-APIs
+    supports_testdriver = True
+
     def __init__(self, logger, browser, server_config, timeout_multiplier=1, debug_info=None,
             **kwargs):
         super().__init__(logger, browser, server_config, timeout_multiplier, debug_info, **kwargs)

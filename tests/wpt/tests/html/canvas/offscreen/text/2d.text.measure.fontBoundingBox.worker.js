@@ -15,15 +15,14 @@ promise_test(async t => {
   f.load();
   self.fonts.add(f);
   await self.fonts.ready;
-  ctx.font = '50px CanvasTest';
+  ctx.font = '40px CanvasTest';
   ctx.direction = 'ltr';
   ctx.align = 'left'
-  // approx_equals because font metrics may be rounded slightly differently by different platforms/browsers.
-  assert_approx_equals(ctx.measureText('A').fontBoundingBoxAscent, 50 * 1745 / 1024, 1, "unexpected fontBoundingBoxAscent");
-  assert_approx_equals(ctx.measureText('A').fontBoundingBoxDescent, 50 * 805 / 1024, 1, "unexpected fontBoundingBoxDescent");
+  _assertSame(ctx.measureText('A').fontBoundingBoxAscent, 30, "ctx.measureText('A').fontBoundingBoxAscent", "30");
+  _assertSame(ctx.measureText('A').fontBoundingBoxDescent, 10, "ctx.measureText('A').fontBoundingBoxDescent", "10");
 
-  assert_approx_equals(ctx.measureText('ABCD').fontBoundingBoxAscent, 50 * 1745 / 1024, 1, "unexpected fontBoundingBoxAscent");
-  assert_approx_equals(ctx.measureText('ABCD').fontBoundingBoxDescent, 50 * 805 / 1024, 1, "unexpected fontBoundingBoxDescent");
+  _assertSame(ctx.measureText('ABCD').fontBoundingBoxAscent, 30, "ctx.measureText('ABCD').fontBoundingBoxAscent", "30");
+  _assertSame(ctx.measureText('ABCD').fontBoundingBoxDescent, 10, "ctx.measureText('ABCD').fontBoundingBoxDescent", "10");
   t.done();
 }, "Testing fontBoundingBox measurements");
 done();

@@ -1,7 +1,9 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>CSS Motion Path test: &lt;basic-shape&gt; ellipse() path with offset-distance</title>
-<meta name=fuzzy content="0-25;0-450">
+<!-- Chrome currently passes with 13 max pixel difference and 473 total different pixels -->
+<!-- You can increase the numbers to handle anti-aliasing -->
+<meta name=fuzzy content="0-25;0-473">
 <link rel="author" title="Daniil Sakhapov" href="sakhapov@google.com">
 <link rel="match" href="offset-path-shape-ellipse-003-ref.html">
 <link rel="help" href="https://drafts.fxtf.org/motion/#valdef-offset-path-basic-shape">

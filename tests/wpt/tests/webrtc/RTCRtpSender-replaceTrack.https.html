@@ -79,7 +79,6 @@
     const transceiver = pc.addTransceiver('audio');
     const { sender } = transceiver;
     transceiver.stop();
-
     return promise_rejects_dom(t, 'InvalidStateError',
       sender.replaceTrack(track));
   }, 'Calling replaceTrack on stopped sender should reject with InvalidStateError');

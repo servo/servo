@@ -1,0 +1,75 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/helpers.js"></script>
+
+<!-- The dialog element does not support requestClose(), so these tests
+     are not shared between dialog elements and CloseWatchers. -->
+
+<body>
+<script>
+promise_test(async t => {
+  const events = [];
+  const freeWatcher = createRecordingCloseWatcher(t, events, "freeWatcher");
+
+  await test_driver.bless("call requestClose()", () => freeWatcher.requestClose());
+
+  assert_array_equals(events, ["freeWatcher cancel", "freeWatcher close"]);
+}, "CloseWatchers created without user activation, but requestClose()d via user activation, fires cancel");
+
+promise_test(async t => {
+  const events = [];
+  const freeWatcher = createRecordingCloseWatcher(t, events, "freeWatcher");
+  freeWatcher.addEventListener("cancel", e => e.preventDefault());
+
+  await test_driver.bless("call requestClose()", () => freeWatcher.requestClose());
+
+  assert_array_equals(events, ["freeWatcher cancel"]);
+}, "CloseWatchers created without user activation, but requestClose()d via user activation, fires cancel, which can be preventDefault()ed");
+
+promise_test(async t => {
+  const events = [];
+  const freeWatcher = createRecordingCloseWatcher(t, events, "freeWatcher");
+  const activationWatcher = await createBlessedRecordingCloseWatcher(t, events, "activationWatcher");
+
+  await test_driver.bless("call activationWatcher.requestClose()", () => activationWatcher.requestClose());
+  assert_array_equals(events, ["activationWatcher cancel", "activationWatcher close"]);
+
+  await test_driver.bless("call freeWatcher.requestClose()", () => freeWatcher.requestClose());
+  assert_array_equals(events, ["activationWatcher cancel", "activationWatcher close", "freeWatcher cancel", "freeWatcher close"]);
+}, "Creating a CloseWatcher from user activation, and requestClose()ing CloseWatchers with user activation, fires cancel");
+
+promise_test(async t => {
+  const events = [];
+  const freeWatcher = createRecordingCloseWatcher(t, events, "freeWatcher");
+  const activationWatcher1 = await createBlessedRecordingCloseWatcher(t, events, "activationWatcher1");
+  activationWatcher1.addEventListener("cancel", e => e.preventDefault());
+
+  await test_driver.bless("call activationWatcher1.requestClose()", () => activationWatcher1.requestClose());
+  assert_array_equals(events, ["activationWatcher1 cancel"]);
+
+  // This time we go straight to close, without a second cancel.
+  activationWatcher1.requestClose();
+  assert_array_equals(events, ["activationWatcher1 cancel", "activationWatcher1 close"]);
+
+  freeWatcher.requestClose();
+  assert_array_equals(events, ["activationWatcher1 cancel", "activationWatcher1 close", "freeWatcher close"]);
+}, "3 user activations let you have 2 close watchers with 1 cancel event, even if the first cancel event is prevented");
+
+promise_test(async t => {
+  const events = [];
+  const freeWatcher1 = createRecordingCloseWatcher(t, events, "freeWatcher1");
+
+  freeWatcher1.requestClose();
+  assert_array_equals(events, ["freeWatcher1 close"]);
+
+  const freeWatcher2 = createRecordingCloseWatcher(t, events, "freeWatcher2");
+
+  await sendCloseRequest();
+  assert_array_equals(events, ["freeWatcher1 close", "freeWatcher2 close"]);
+}, "requestClose()ing the free CloseWatcher allows a new free one to be created without user activation, and it receives the close request");
+
+</script>
