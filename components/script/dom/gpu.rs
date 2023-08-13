@@ -118,7 +118,7 @@ impl GPUMethods for GPU {
                 wgpu::instance::RequestAdapterOptions {
                     power_preference,
                     compatible_surface: None,
-                    force_fallback_adapter: false,
+                    force_fallback_adapter: options.forceFallbackAdapter,
                 },
                 ids,
             ))
