@@ -140,15 +140,22 @@ impl AsyncWGPUListener for GPU {
     fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
         match response {
             Ok(WebGPUResponse::RequestAdapter {
-                adapter_name,
+                adapter_info,
                 adapter_id,
+                limits,
                 channel,
             }) => {
                 let adapter = GPUAdapter::new(
                     &self.global(),
                     channel,
-                    DOMString::from(format!("{} ({:?})", adapter_name, adapter_id.0.backend())),
+                    DOMString::from(format!(
+                        "{} ({:?})",
+                        adapter_info.name,
+                        adapter_id.0.backend()
+                    )),
                     Heap::default(),
+                    limits,
+                    adapter_info,
                     adapter_id,
                 );
                 promise.resolve_native(&adapter);

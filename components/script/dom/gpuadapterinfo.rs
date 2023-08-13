@@ -2,25 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use super::bindings::codegen::Bindings::GPUAdapterInfoBinding::GPUAdapterInfoMethods;
+use super::bindings::reflector::reflect_dom_object;
+use super::bindings::root::DomRoot;
 use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::globalscope::GlobalScope;
 use crate::test::DOMString;
 use dom_struct::dom_struct;
-use js::jsapi::JSTracer;
-
-use webgpu::{
-    identity::WebGPUOpResult, wgpu::resource, wgt, WebGPU, WebGPURequest, WebGPUTexture,
-    WebGPUTextureView,
-};
-
-use super::bindings::codegen::Bindings::GPUAdapterInfoBinding::GPUAdapterInfoMethods;
+use webgpu::wgt::AdapterInfo;
 
 #[dom_struct]
 pub struct GPUAdapterInfo {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in wgpu-types"]
     #[no_trace]
-    info: wgt::AdapterInfo,
+    info: AdapterInfo,
+}
+
+impl GPUAdapterInfo {
+    fn new_inherited(info: AdapterInfo) -> Self {
+        Self {
+            reflector_: Reflector::new(),
+            info,
+        }
+    }
+
+    pub fn new(global: &GlobalScope, info: AdapterInfo) -> DomRoot<Self> {
+        reflect_dom_object(Box::new(Self::new_inherited(info)), global)
+    }
 }
 
 // TODO: wgpu does not expose right fields right now

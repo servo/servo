@@ -62,8 +62,9 @@ pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPUResponse {
     RequestAdapter {
-        adapter_name: String,
+        adapter_info: wgt::AdapterInfo,
         adapter_id: WebGPUAdapter,
+        limits: wgt::Limits,
         channel: WebGPU,
     },
     RequestDevice {
@@ -897,9 +898,12 @@ impl<'a> WGPU<'a> {
                         let global = &self.global;
                         let info =
                             gfx_select!(adapter_id => global.adapter_get_info(adapter_id)).unwrap();
+                        let limits =
+                            gfx_select!(adapter_id => global.adapter_limits(adapter_id)).unwrap();
                         if let Err(e) = sender.send(Ok(WebGPUResponse::RequestAdapter {
-                            adapter_name: info.name,
+                            adapter_info: info,
                             adapter_id: adapter,
+                            limits,
                             channel: WebGPU(self.sender.clone()),
                         })) {
                             warn!(

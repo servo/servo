@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpu::response_async;
@@ -15,13 +15,13 @@ use crate::dom::gpu::AsyncWGPUListener;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use std::convert::TryFrom;
-use std::ptr::NonNull;
 use std::rc::Rc;
 use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+
+use super::types::{GPUAdapterInfo, GPUSupportedLimits};
 
 #[dom_struct]
 pub struct GPUAdapter {
@@ -32,6 +32,8 @@ pub struct GPUAdapter {
     name: DOMString,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
+    limits: Dom<GPUSupportedLimits>,
+    info: Dom<GPUAdapterInfo>,
     #[no_trace]
     adapter: WebGPUAdapter,
 }
@@ -41,6 +43,8 @@ impl GPUAdapter {
         channel: WebGPU,
         name: DOMString,
         extensions: Heap<*mut JSObject>,
+        limits: &GPUSupportedLimits,
+        info: &GPUAdapterInfo,
         adapter: WebGPUAdapter,
     ) -> Self {
         Self {
@@ -48,6 +52,8 @@ impl GPUAdapter {
             channel,
             name,
             extensions,
+            limits: Dom::from_ref(limits),
+            info: Dom::from_ref(info),
             adapter,
         }
     }
@@ -57,11 +63,15 @@ impl GPUAdapter {
         channel: WebGPU,
         name: DOMString,
         extensions: Heap<*mut JSObject>,
+        limits: wgt::Limits,
+        info: wgt::AdapterInfo,
         adapter: WebGPUAdapter,
     ) -> DomRoot<Self> {
+        let limits = GPUSupportedLimits::new(global, limits);
+        let info = GPUAdapterInfo::new(global, info);
         reflect_dom_object(
             Box::new(GPUAdapter::new_inherited(
-                channel, name, extensions, adapter,
+                channel, name, extensions, &limits, &info, adapter,
             )),
             global,
         )
@@ -204,24 +214,21 @@ impl GPUAdapterMethods for GPUAdapter {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestadapterinfo
     fn RequestAdapterInfo(&self, unmaskHints: Vec<DOMString>, comp: InRealm) -> Rc<Promise> {
+        // XXX: Adapter info should be generated here ...
+        // Step 1
         let promise = Promise::new_in_current_realm(comp);
-        let sender = response_async(&promise, self);
-        todo!("Implemnt WPU adapter info");
-        /*if self
-            .channel
-            .0
-            .send((
-                None,
-                WebGPURequest::RequestAdapterInfo {
-                    sender,
-                    adapter_id: self.adapter,
-                },
-            ))
-            .is_err()
-        {
-            promise.reject_error(Error::Operation);
-        }*/
+        // Step 4
+        if !unmaskHints.is_empty() {
+            todo!("unmaskHints on RequestAdapterInfo");
+        }
+        promise.resolve_native(&*self.info);
+        // Step 5
         promise
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-limits
+    fn Limits(&self) -> DomRoot<GPUSupportedLimits> {
+        DomRoot::from_ref(&self.limits)
     }
 }
 
