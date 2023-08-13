@@ -71,7 +71,6 @@ pub enum WebGPUResponse {
         device_id: WebGPUDevice,
         queue_id: WebGPUQueue,
         descriptor: wgt::DeviceDescriptor<Option<String>>,
-        label: Option<String>,
     },
     BufferMapAsync(IpcSharedMemory),
 }
@@ -217,7 +216,6 @@ pub enum WebGPURequest {
         descriptor: wgt::DeviceDescriptor<Option<String>>,
         device_id: id::DeviceId,
         pipeline_id: PipelineId,
-        label: Option<String>,
     },
     RunComputePass {
         command_encoder_id: id::CommandEncoderId,
@@ -830,7 +828,6 @@ impl<'a> WGPU<'a> {
                     WebGPURequest::DestroyTexture(texture) => {
                         let global = &self.global;
                         gfx_select!(texture => global.texture_drop(texture, true));
-                        //TODO(sagudev):verfy
                     },
                     WebGPURequest::Exit(sender) => {
                         if let Err(e) = self.script_sender.send(WebGPUMsg::Exit) {
@@ -918,7 +915,6 @@ impl<'a> WGPU<'a> {
                         descriptor,
                         device_id,
                         pipeline_id,
-                        label,
                     } => {
                         let desc = DeviceDescriptor {
                             label: descriptor.label.as_ref().map(|l| crate::Cow::from(l)),
@@ -954,7 +950,6 @@ impl<'a> WGPU<'a> {
                             device_id: device,
                             queue_id: queue,
                             descriptor,
-                            label,
                         })) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestDevice ({})",
@@ -1166,7 +1161,7 @@ impl<'a> WGPU<'a> {
                                 gfx_select!(buffer_id => global.buffer_get_mapped_range(
                                     buffer_id,
                                     offset,
-                                    Some(size) //TODO(sagudev): verfy; here used to be Option<Nonzero>
+                                    Some(size)
                                 ))
                                 .unwrap();
                             unsafe {

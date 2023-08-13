@@ -104,10 +104,6 @@ pub struct GPUCanvasContext {
     channel: WebGPU,
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas
     canvas: HTMLCanvasElementOrOffscreenCanvas,
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-drawingbuffer-slot
-    // We need use webrender image not wgpu surface,
-    // because this is a canvas that must be able to be rendered (transformations)
-    // more info: https://servo.org/blog/2020/08/30/gsoc-webgpu/#presentation
     // TODO: can we have wgpu surface that is hw accelerated inside wr ...
     #[ignore_malloc_size_of = "Defined in webrender"]
     #[no_trace]

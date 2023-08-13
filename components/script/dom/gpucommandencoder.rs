@@ -168,34 +168,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             None
         } else {
             let depth_stencil = descriptor.depthStencilAttachment.as_ref().map(|depth| {
-                /*let (depth_load_op, clear_depth) = match depth.depthLoadValue {
-                    GPULoadOpOrFloat::GPULoadOp(_) => (wgpu_com::LoadOp::Load, 0.0f32),
-                    GPULoadOpOrFloat::Float(f) => (wgpu_com::LoadOp::Clear, *f),
-                };
-                let (stencil_load_op, clear_stencil) = match depth.stencilLoadValue {
-                    GPUStencilLoadValue::GPULoadOp(_) => (wgpu_com::LoadOp::Load, 0u32),
-                    GPUStencilLoadValue::RangeEnforcedUnsignedLong(l) => {
-                        (wgpu_com::LoadOp::Clear, l)
-                    },
-                };
-                let depth_channel = wgpu_com::PassChannel {
-                    load_op: depth_load_op,
-                    store_op: match depth.depthStoreOp {
-                        GPUStoreOp::Store => wgpu_com::StoreOp::Store,
-                        GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
-                    },
-                    clear_value: clear_depth,
-                    read_only: depth.depthReadOnly,
-                };
-                let stencil_channel = wgpu_com::PassChannel {
-                    load_op: stencil_load_op,
-                    store_op: match depth.stencilStoreOp {
-                        GPUStoreOp::Store => wgpu_com::StoreOp::Store,
-                        GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
-                    },
-                    clear_value: clear_stencil,
-                    read_only: depth.stencilReadOnly,
-                };*/
                 wgpu_com::RenderPassDepthStencilAttachment {
                     depth: wgpu_com::PassChannel {
                         load_op: convert_load_op(depth.depthLoadOp),
@@ -266,7 +238,11 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                         .collect::<Vec<_>>(),
                 ),
                 depth_stencil_attachment: depth_stencil.as_ref(),
-                label: None, //TODO(sagudev)
+                label: descriptor
+                    .parent
+                    .label
+                    .as_ref()
+                    .map(|l| Cow::Borrowed(&**l)),
             };
             Some(wgpu_com::RenderPass::new(self.encoder.0, &desc))
         };

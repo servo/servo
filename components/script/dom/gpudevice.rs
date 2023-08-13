@@ -882,24 +882,7 @@ impl GPUDeviceMethods for GPUDevice {
     ) -> DomRoot<GPURenderPipeline> {
         let scope_id = self.use_current_scope();
         let mut valid = true;
-        /*let color_states = Cow::Owned(
-            descriptor
-                .colorStates
-                .iter()
-                .map(|state| wgt::ColorTargetState {
-                    format: convert_texture_format(state.format),
-                    alpha_blend: convert_blend_descriptor(&state.alphaBlend),
-                    color_blend: convert_blend_descriptor(&state.colorBlend),
-                    write_mask: match wgt::ColorWrite::from_bits(state.writeMask) {
-                        Some(mask) => mask,
-                        None => {
-                            valid = false;
-                            wgt::ColorWrite::empty()
-                        },
-                    },
-                })
-                .collect::<Vec<_>>(),
-        );*/
+
         let (layout, implicit_ids, bgls) = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = if valid {
@@ -970,24 +953,7 @@ impl GPUDeviceMethods for GPUDevice {
                                 .collect::<Vec<_>>(),
                         ),
                     }),
-                /*rasterization_state: Some(wgt::RasterizationStateDescriptor {
-                    front_face: match rs_desc.frontFace {
-                        GPUFrontFace::Ccw => wgt::FrontFace::Ccw,
-                        GPUFrontFace::Cw => wgt::FrontFace::Cw,
-                    },
-                    cull_mode: match rs_desc.cullMode {
-                        GPUCullMode::None => wgt::CullMode::None,
-                        GPUCullMode::Front => wgt::CullMode::Front,
-                        GPUCullMode::Back => wgt::CullMode::Back,
-                    },
-                    clamp_depth: rs_desc.clampDepth,
-                    depth_bias: rs_desc.depthBias,
-                    depth_bias_slope_scale: *rs_desc.depthBiasSlopeScale,
-                    depth_bias_clamp: *rs_desc.depthBiasClamp,
-                    ..Default::default()
-                }),*/
                 primitive: convert_primitive_state(&descriptor.primitive),
-                //color: color_state,
                 depth_stencil: descriptor.depthStencil.as_ref().map(|dss_desc| {
                     wgt::DepthStencilState {
                         format: convert_texture_format(dss_desc.format),
@@ -1075,7 +1041,7 @@ impl GPUDeviceMethods for GPUDevice {
                     .parent
                     .colorFormats
                     .iter()
-                    .map(|f| Some(convert_texture_format(*f))) // TODO(sagudev): fix webidls
+                    .map(|f| Some(convert_texture_format(*f)))
                     .collect::<Vec<_>>(),
             ),
             depth_stencil: Some(wgt::RenderBundleDepthStencil {
@@ -1084,7 +1050,7 @@ impl GPUDeviceMethods for GPUDevice {
                 stencil_read_only: descriptor.stencilReadOnly,
             }),
             sample_count: descriptor.parent.sampleCount,
-            multiview: None, //TODO(sagudev): verify
+            multiview: None,
         };
 
         // Handle error gracefully

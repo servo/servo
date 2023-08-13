@@ -81,6 +81,7 @@ impl GPUAdapter {
 impl GPUAdapterMethods for GPUAdapter {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice
     fn RequestDevice(&self, descriptor: &GPUDeviceDescriptor, comp: InRealm) -> Rc<Promise> {
+        // Step 2
         let promise = Promise::new_in_current_realm(comp);
         let sender = response_async(&promise, self);
         let mut features = wgt::Features::empty();
@@ -175,7 +176,10 @@ impl GPUAdapterMethods for GPUAdapter {
                     "maxComputeWorkgroupsPerDimension" => {
                         desc.limits.max_compute_workgroups_per_dimension = v
                     },
-                    _ => { /* no-op */ },
+                    _ => {
+                        error!("Unknown required limit: {k} with value {v}");
+                        promise.reject_error(Error::Operation);
+                    },
                 }
             }
         }
@@ -193,7 +197,6 @@ impl GPUAdapterMethods for GPUAdapter {
                 WebGPURequest::RequestDevice {
                     sender,
                     adapter_id: self.adapter,
-                    label: desc.label.clone(), // TODO(sagudev)
                     descriptor: desc,
                     device_id: id,
                     pipeline_id,
@@ -203,6 +206,7 @@ impl GPUAdapterMethods for GPUAdapter {
         {
             promise.reject_error(Error::Operation);
         }
+        // Step 5
         promise
     }
 
@@ -239,7 +243,6 @@ impl AsyncWGPUListener for GPUAdapter {
                 device_id,
                 queue_id,
                 descriptor,
-                label,
             }) => {
                 let device = GPUDevice::new(
                     &self.global(),
@@ -249,7 +252,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     descriptor.limits,
                     device_id,
                     queue_id,
-                    label.unwrap_or_default(),
+                    descriptor.label.unwrap_or_default(),
                 );
                 self.global().add_gpu_device(&device);
                 promise.resolve_native(&device);

@@ -125,6 +125,7 @@ enum GPUStoreOp {
 };
 
 dictionary GPURenderPassLayout: GPUObjectDescriptorBase {
+    // TODO: We don't support nullable enumerated arguments yet
     required sequence<GPUTextureFormat> colorFormats;
     GPUTextureFormat depthStencilFormat;
     GPUSize32 sampleCount = 1;
