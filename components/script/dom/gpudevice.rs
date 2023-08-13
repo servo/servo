@@ -61,14 +61,12 @@ use crate::dom::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::dom::gpuvalidationerror::GPUValidationError;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::num::NonZeroU64;
-use std::ptr::{self, NonNull};
 use std::rc::Rc;
 use webgpu::wgpu::{
     binding_model as wgpu_bind, command as wgpu_com,
@@ -1161,12 +1159,15 @@ impl GPUDeviceMethods for GPUDevice {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipelineasync
-    fn CreateComputePipelineAsync(&self, descriptor: &GPUComputePipelineDescriptor) -> Rc<Promise> {
+    fn CreateComputePipelineAsync(
+        &self,
+        _descriptor: &GPUComputePipelineDescriptor,
+    ) -> Rc<Promise> {
         todo!()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync
-    fn CreateRenderPipelineAsync(&self, descriptor: &GPURenderPipelineDescriptor) -> Rc<Promise> {
+    fn CreateRenderPipelineAsync(&self, _descriptor: &GPURenderPipelineDescriptor) -> Rc<Promise> {
         todo!()
     }
 }

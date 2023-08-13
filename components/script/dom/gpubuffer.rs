@@ -128,7 +128,7 @@ impl GPUBuffer {
 impl Drop for GPUBuffer {
     fn drop(&mut self) {
         if let Err(e) = self.Destroy() {
-            error!("GPUBuffer destruction failed!"); // TODO: should we allow panic here?
+            error!("GPUBuffer destruction failed with {e:?}!"); // TODO: should we allow panic here?
         };
     }
 }

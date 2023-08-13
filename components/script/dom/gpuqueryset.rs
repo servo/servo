@@ -2,13 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(dead_code)] // this file is stub
+
 use crate::dom::bindings::reflector::Reflector;
 use dom_struct::dom_struct;
-
-use webgpu::{
-    identity::WebGPUOpResult, wgpu::resource, wgt, WebGPU, WebGPURequest, WebGPUTexture,
-    WebGPUTextureView,
-};
 
 use super::bindings::codegen::Bindings::GPUQuerySetBinding::GPUQuerySetMethods;
 use super::bindings::str::USVString;
@@ -32,7 +29,7 @@ impl GPUQuerySetMethods for GPUQuerySet {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: USVString) {
+    fn SetLabel(&self, _value: USVString) {
         todo!()
     }
 }

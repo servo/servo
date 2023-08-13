@@ -24,7 +24,6 @@ use euclid::default::Size2D;
 use ipc_channel::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::cell::Cell;
-use std::ops::DerefMut;
 use webgpu::WebGPUTexture;
 use webgpu::{wgpu::id, wgt, WebGPU, WebGPURequest, PRESENTATION_BUFFER_COUNT};
 use webrender_api::{
@@ -35,10 +34,7 @@ use webrender_api::{
 use super::bindings::codegen::Bindings::GPUTextureUsageBinding::GPUTextureUsageConstants;
 use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use super::bindings::error::{Error, Fallible};
-use super::bindings::root::MutNullableDom;
-use super::gpudevice::convert_texture_format;
 use super::gputexture::GPUTexture;
-use super::offscreencanvas::OffscreenCanvas;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct WebGPUContextId(pub u64);
@@ -215,30 +211,6 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
     }
 }
 
-// Abstract ops
-impl GPUCanvasContext {
-    /// https://gpuweb.github.io/gpuweb/#abstract-opdef-replace-the-drawing-buffer
-    fn replace_drawing_buffer(&self) {
-        // Step 1
-        //self.expire_current_texture();
-
-        // Step 2&3
-        /*if let Some(configuration) = self.config.borrow() {
-
-        } else {
-
-        }*/
-    }
-
-    // /// https://gpuweb.github.io/gpuweb/#abstract-opdef-expire-the-current-texture
-    /*fn expire_current_texture(&self) {
-        // Step 1
-        if let Some(texture) = self.texture.borrow_mut().take() {
-            drop(texture); // Calls destroy on drop
-        }
-    }*/
-}
-
 impl GPUCanvasContextMethods for GPUCanvasContext {
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas
     fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
@@ -357,12 +329,6 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture
     fn GetCurrentTexture(&self) -> Fallible<DomRoot<GPUTexture>> {
-        /*// Step 1.
-        if self.config.is_none() {
-            return Err(Error::InvalidState)
-        }
-        // Step 2,3,4 are implicit
-        */
         // Step 5.
         self.mark_as_dirty();
         // Step 6.

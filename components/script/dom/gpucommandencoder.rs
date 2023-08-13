@@ -25,7 +25,6 @@ use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashSet;
 use webgpu::wgpu::command as wgpu_com;
-use webgpu::wgpu::resource::TextureView;
 use webgpu::{self, wgt, WebGPU, WebGPURequest};
 
 use super::bindings::codegen::Bindings::GPUCommandBufferBinding::GPUCommandBufferDescriptor;
@@ -34,7 +33,6 @@ use super::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
 };
 use super::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureAspect;
 use super::bindings::codegen::UnionTypes::DoubleSequenceOrGPUColorDict;
-use super::gputextureview::GPUTextureView;
 
 // TODO(sagudev): this is different now
 // https://gpuweb.github.io/gpuweb/#enumdef-encoder-state

@@ -213,12 +213,12 @@ impl GPUAdapterMethods for GPUAdapter {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestadapterinfo
-    fn RequestAdapterInfo(&self, unmaskHints: Vec<DOMString>, comp: InRealm) -> Rc<Promise> {
+    fn RequestAdapterInfo(&self, unmask_hints: Vec<DOMString>, comp: InRealm) -> Rc<Promise> {
         // XXX: Adapter info should be generated here ...
         // Step 1
         let promise = Promise::new_in_current_realm(comp);
         // Step 4
-        if !unmaskHints.is_empty() {
+        if !unmask_hints.is_empty() {
             todo!("unmaskHints on RequestAdapterInfo");
         }
         promise.resolve_native(&*self.info);
@@ -246,7 +246,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     self.channel.clone(),
                     &self,
                     Heap::default(),
-                    wgt::Limits::default(), // TODO use real limits
+                    descriptor.limits,
                     device_id,
                     queue_id,
                     label.unwrap_or_default(),
