@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input id="input1">
+<selectlist id="selectlist" tabindex="2">
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+</selectlist>
+<input id="input3" tabindex="1">
+
+<script>
+promise_test(async () => {
+  const TAB_KEY = "\uE004";
+
+  const input1 = document.getElementById("input1");
+  const input3 = document.getElementById("input3");
+
+  input1.focus();
+  assert_equals(document.activeElement.id, "input1", "input1 should be active");
+
+  await test_driver.send_keys(input1, TAB_KEY);
+  assert_equals(document.activeElement.id, "input3", "input3 should be active");
+
+  await test_driver.send_keys(input3, TAB_KEY);
+  assert_equals(document.activeElement.id, "selectlist", "selectlist should be active");
+}, "Check that tabindex applies to <selectlist>");
+</script>
+

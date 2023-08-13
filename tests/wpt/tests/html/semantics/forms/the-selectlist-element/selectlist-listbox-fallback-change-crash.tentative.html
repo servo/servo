@@ -1,0 +1,35 @@
+<!doctype html>
+<html class="test-wait">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1400522">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+
+<selectlist id="selectList" style="position: absolute;">
+    <div slot="button">
+        <button id="b1" behavior="button"></button>
+    </div>
+    <selectlist>
+        <div slot="button">
+            <button id="b2" behavior="button">x</button>
+        </div>
+        <div id="listbox" popover slot="listbox" behavior="listbox">
+            <option>y</option>
+        </div>
+    </selectlist>
+</selectlist>
+
+<script type="module">
+    const raf = () => new Promise(resolve => requestAnimationFrame(resolve));
+
+    document.querySelector('#b1').click();
+    document.querySelector('#b2').click();
+
+    document.querySelector('#selectList').style.top = '-25px';
+
+    await raf();
+    await raf();
+
+    document.querySelector('#selectList').style.top = '0px';
+
+    document.documentElement.classList.remove('test-wait');
+</script>
+</html>

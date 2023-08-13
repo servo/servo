@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+  <html blocking=render>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/utils.js"></script>
+  <title>`blocking=render` defers frames until complete document parsed</title>
+  <script>
+    assert_implements(document.documentElement.blocking, "no blocking attribute");
+
+    promise_test(() => {
+      return new Promise((resolve, reject) => {
+        requestAnimationFrame(() => {
+          if (document.getElementById("last"))
+            resolve();
+          else
+            reject();
+        });
+      });
+    }, "blocking defers frames until full parsing");
+  </script>
+  </head>
+  <body>
+    <div id="first"></div>
+    <script>
+      jankMany(100, 10);
+    </script>
+    <div id="second"></div>
+    <script>
+      jankMany(100, 10);
+    </script>
+    <div id="last"></div>
+  </body>
+</html>

@@ -235,7 +235,7 @@ test()"""
 
 
 def test_worker_with_variants():
-    contents = b"""// META: variant=
+    contents = b"""// META: variant=?default
 // META: variant=?wss
 test()"""
 
@@ -255,7 +255,7 @@ test()"""
 
     expected_urls = [
         "/html/test.worker.html" + suffix
-        for suffix in ["", "?wss"]
+        for suffix in ["?default", "?wss"]
     ]
     assert len(items) == len(expected_urls)
 
@@ -265,7 +265,7 @@ test()"""
 
 
 def test_window_with_variants():
-    contents = b"""// META: variant=
+    contents = b"""// META: variant=?default
 // META: variant=?wss
 test()"""
 
@@ -285,7 +285,7 @@ test()"""
 
     expected_urls = [
         "/html/test.window.html" + suffix
-        for suffix in ["", "?wss"]
+        for suffix in ["?default", "?wss"]
     ]
     assert len(items) == len(expected_urls)
 
@@ -429,7 +429,7 @@ test()"""
 
 def test_multi_global_with_variants():
     contents = b"""// META: global=window,worker
-// META: variant=
+// META: variant=?default
 // META: variant=?wss
 test()"""
 
@@ -456,7 +456,7 @@ test()"""
     expected_urls = sorted(
         urls[ty] + suffix
         for ty in ["dedicatedworker", "serviceworker", "sharedworker", "window"]
-        for suffix in ["", "?wss"]
+        for suffix in ["?default", "?wss"]
     )
     assert len(items) == len(expected_urls)
 
@@ -859,7 +859,7 @@ def test_spec_links_complex(input, expected):
 
 def test_url_base():
     contents = b"""// META: global=window,worker
-// META: variant=
+// META: variant=?default
 // META: variant=?wss
 test()"""
 
@@ -868,13 +868,13 @@ test()"""
 
     assert item_type == "testharness"
 
-    assert [item.url for item in items] == ['/_fake_base/html/test.any.html',
+    assert [item.url for item in items] == ['/_fake_base/html/test.any.html?default',
                                             '/_fake_base/html/test.any.html?wss',
-                                            '/_fake_base/html/test.any.serviceworker.html',
+                                            '/_fake_base/html/test.any.serviceworker.html?default',
                                             '/_fake_base/html/test.any.serviceworker.html?wss',
-                                            '/_fake_base/html/test.any.sharedworker.html',
+                                            '/_fake_base/html/test.any.sharedworker.html?default',
                                             '/_fake_base/html/test.any.sharedworker.html?wss',
-                                            '/_fake_base/html/test.any.worker.html',
+                                            '/_fake_base/html/test.any.worker.html?default',
                                             '/_fake_base/html/test.any.worker.html?wss']
 
     assert items[0].url_base == "/_fake_base/"

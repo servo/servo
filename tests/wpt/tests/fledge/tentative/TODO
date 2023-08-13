@@ -18,8 +18,7 @@ Need tests for (likely not a complete list):
     loading URNs in fencedframes in other frames, loading component
     ad URNs in fenced frames of other frames, etc)
 * adAuctionConfig passed to reportResult().
-* trusted scoring signals.
-* Component ads.
+* Component ads (including scoring signals fetches).
 * Component auctions.
 * browserSignals fields in scoring/bidding methods.
 * In reporting methods, browserSignals fields: dataVersion, topLevelSeller,

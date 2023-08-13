@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<!-- Tests that <selectlist> marker is end-aligned -->
+<link rel=author href="mailto:pkotwicz@chromium.org">
+<link rel="match" href="selectlist-marker-end-aligned-ref.tentative.html">
+
+<style>
+div {
+  width:300px;
+  display:flex;
+  justify-content:flex-end;
+}
+selectlist {
+  width:200px;
+}
+selectlist::part(button) {
+  border-style:none;
+  background-color:rgba(0,0,0,0)
+}
+</style>
+<div>
+<selectlist>
+  <option></option>
+</selectlist>

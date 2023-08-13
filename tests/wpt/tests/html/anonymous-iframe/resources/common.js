@@ -33,16 +33,15 @@ const newPopup = (test, origin) => {
 
 // Create a fenced frame. The new document will execute any scripts sent
 // toward the token it returns.
-const newFencedFrame = (child_origin) => {
+const newFencedFrame = async (child_origin) => {
   const support_loading_mode_fenced_frame =
     "|header(Supports-Loading-Mode,fenced-frame)";
   const sub_document_token = token();
-  const fencedframe = document.createElement('fencedframe');
   const url = child_origin + executor_path +
     support_loading_mode_fenced_frame +
     `&uuid=${sub_document_token}`;
-  fencedframe.config = new FencedFrameConfig(url);
-  document.body.appendChild(fencedframe);
+  const urn = await generateURNFromFledge(url, []);
+  attachFencedFrame(urn);
   return sub_document_token;
 };
 

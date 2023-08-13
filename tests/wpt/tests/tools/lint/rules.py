@@ -198,8 +198,8 @@ class VariantMissing(Rule):
 class MalformedVariant(Rule):
     name = "MALFORMED-VARIANT"
     description = collapse("""
-        %s `<meta name=variant>` 'content' attribute must be the empty string
-        or start with '?' or '#'
+        %s `<meta name=variant>` 'content' attribute must be a non empty string
+        and start with '?' or '#'
     """)
 
 

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/openui/open-ui/issues/687">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<selectlist id=useragent>
+  <option id=useragentoptionone>one</option>
+  <option id=useragentoptiontwo>two</option>
+</selectlist>
+
+<selectlist id=custom>
+  <div id=custombutton slot=button behavior=button>button</div>
+  <div id=customlistbox popover=auto slot=listbox behavior=listbox>listbox</div>
+</selectlist>
+
+<selectlist id=customwithselection style="user-select:auto">
+  <div id=custombuttonwithselection slot=button behavior=button>button</div>
+  <div id=customlistboxwithselection popover=auto slot=listbox behavior=listbox>listbox</div>
+</selectlist>
+
+<selectlist id=customwithmixedselection>
+  <div id=custombuttonwithmixedselection slot=button behavior=button style="user-select:auto">button</div>
+  <div id=customlistboxwithmixedselection popover=auto slot=listbox behavior=listbox style="user-select:auto">listbox</div>
+</selectlist>
+
+<script>
+test(() => {
+  assert_equals(getComputedStyle(useragent).userSelect, 'none',
+    'The selectlist should have user-select:none.');
+  assert_equals(getComputedStyle(useragentoptionone).userSelect, 'none',
+    'The first option should have user-select:none.');
+  assert_equals(getComputedStyle(useragentoptiontwo).userSelect, 'none',
+    'The second option should have user-select:none.');
+}, 'Option elements should have user-select:none without slotting buttons or listboxes.');
+
+test(() => {
+  assert_equals(getComputedStyle(custom).userSelect, 'none',
+    'The selectlist should have user-select:none.');
+  assert_equals(getComputedStyle(custombutton).userSelect, 'none',
+    'The custom button should have user-select:none.');
+  assert_equals(getComputedStyle(customlistbox).userSelect, 'none',
+    'The custom listbox should have user-select:none.');
+}, 'Slotted in buttons and listboxes should have user-select:none.');
+
+test(() => {
+  assert_equals(getComputedStyle(customwithselection).userSelect, 'auto',
+    'The selectlist should have user-select:auto.');
+  assert_equals(getComputedStyle(custombuttonwithselection).userSelect, 'auto',
+    'The custom button should have user-select:auto.');
+  assert_equals(getComputedStyle(customlistboxwithselection).userSelect, 'auto',
+    'The custom listbox should have user-select:auto.');
+}, 'Setting user-select:auto on selectlists should re-enable selection.');
+
+test(() => {
+  assert_equals(getComputedStyle(customwithmixedselection).userSelect, 'none',
+    'The selectlist should have user-select:none.');
+  assert_equals(getComputedStyle(custombuttonwithmixedselection).userSelect, 'auto',
+    'The custom button should have user-select:auto.');
+  assert_equals(getComputedStyle(customlistboxwithmixedselection).userSelect, 'auto',
+    'The custom listbox should have user-select:auto.');
+}, 'Children of selectlist should be able to opt-in to user-select.');
+</script>

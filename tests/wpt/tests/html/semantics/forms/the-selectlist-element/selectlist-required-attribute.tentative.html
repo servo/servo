@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>HTMLSelectListElement Test: required attribute</title>
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  selectlist:required {
+    border: 3px dashed rgb(255, 0, 0);
+  }
+
+  selectlist:optional {
+    border: 1px solid rgb(128, 128, 128);
+  }
+</style>
+
+<selectlist id="selectlist0" required>
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+</selectlist>
+
+<selectlist id="selectlist1">
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+</selectlist>
+
+<selectlist id="selectlist2">
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+</selectlist>
+
+<script>
+function checkRequired(style) {
+  assert_equals(style.borderWidth, '3px');
+  assert_equals(style.borderStyle, 'dashed');
+  assert_equals(style.borderColor, 'rgb(255, 0, 0)');
+}
+
+function checkOptional(style) {
+  assert_equals(style.borderWidth, '1px');
+  assert_equals(style.borderStyle, 'solid');
+  assert_equals(style.borderColor, 'rgb(128, 128, 128)');
+}
+
+test(() => {
+  const selectList0 = document.getElementById("selectlist0");
+  const selectList1 = document.getElementById("selectlist1");
+  const selectList2 = document.getElementById("selectlist2");
+
+  checkRequired(window.getComputedStyle(selectList0));
+  checkOptional(window.getComputedStyle(selectList1));
+  checkOptional(window.getComputedStyle(selectList2));
+  selectList2.required = true;
+  checkRequired(window.getComputedStyle(selectList2));
+}, "Test required attribute");
+
+</script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Test window.fence.setReportEventDataForAutomaticBeacons from
+    SharedStorage</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext(
+      {generator_api: 'sharedstorage'});
+  const new_url = new URL("resources/dummy.html", location.href);
+  const beacon_data = "This is the beacon data!";
+
+  await fencedframe.execute((new_url, beacon_data) => {
+    addEventListener("click", (event) => {
+      let beacon_event = {
+        eventType: "reserved.top_navigation",
+        eventData: beacon_data,
+        destination: ["shared-storage-select-url"],
+      }
+      window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
+      window.open(new_url, "_blank");
+    });
+  }, [new_url, beacon_data]);
+
+  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+               .pointerDown()
+               .pointerUp()
+               .send();
+
+  const received_beacon_data = await nextAutomaticBeacon();
+  assert_equals(received_beacon_data, beacon_data);
+}, 'Set and trigger an automatic beacon in a click handler for SharedStorage');
+
+</script>
+</body>

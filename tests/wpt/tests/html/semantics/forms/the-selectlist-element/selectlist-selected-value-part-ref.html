@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script src="support/fake-selectlist.js"></script>
+<body>
+<script>
+  const selectlist = createFakeSelectlist('hello world');
+  document.body.appendChild(selectlist);
+  selectlist.querySelector('.fake-selectlist-selected-value')
+    .style.backgroundColor = 'red';
+</script>

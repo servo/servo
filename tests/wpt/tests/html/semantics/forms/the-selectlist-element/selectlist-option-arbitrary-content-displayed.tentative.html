@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>HTMLSelectListElement Test: option arbitrary content displayed</title>
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<link rel=match href="selectlist-option-arbitrary-content-displayed-ref.tentative.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  html,selectlist {
+    font-family: Ahem;
+  }
+  selectlist {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 30px;
+  }
+
+  [popover] {
+    width: fit-content;
+    height: fit-content;
+    background: white;
+    color: black;
+    border: 1px solid rgba(0, 0, 0, 1);
+    border-radius: 0px;
+    box-shadow: 0px 12.8px 28.8px rgba(0, 0, 0, 0.13), 0px 0px 9.2px rgba(0, 0, 0, 0.11);
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 4px;
+  }
+
+  option {
+    background-color: white !important;
+    padding: 0px;
+  }
+</style>
+
+<selectlist id="selectList0">
+  <div popover slot="listbox" behavior="listbox">
+    <option>
+      option with image displayed
+      <img src="/images/green-256x256.png">
+    </option>
+  </div>
+</selectlist>
+
+<script>
+  function clickOn(element) {
+    const actions = new test_driver.Actions();
+    return actions.pointerMove(0, 0, {origin: element})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  }
+
+  async function test() {
+    const selectList0 = document.getElementById("selectList0");
+
+    await clickOn(selectList0);
+    document.documentElement.classList.remove('reftest-wait');
+  }
+
+  test();
+</script>

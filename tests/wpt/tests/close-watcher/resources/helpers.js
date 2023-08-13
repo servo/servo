@@ -1,16 +1,40 @@
-window.createRecordingCloseWatcher = (t, events, name) => {
-  const prefix = name === undefined ? "" : name + " ";;
+window.createRecordingCloseWatcher = (t, events, name, type, parent) => {
+  let watcher = null;
+  if (type === 'dialog') {
+    watcher = document.createElement('dialog');
+    watcher.textContent = 'hello world';
+    t.add_cleanup(() => watcher.remove());
+    if (parent) {
+      parent.appendChild(watcher);
+    } else {
+      document.body.appendChild(watcher);
+    }
+    watcher.showModal();
+  } else if (type === 'popover') {
+    watcher = document.createElement('div');
+    watcher.setAttribute('popover', 'auto');
+    watcher.textContent = 'hello world';
+    t.add_cleanup(() => watcher.remove());
+    if (parent) {
+      parent.appendChild(watcher);
+    } else {
+      document.body.appendChild(watcher);
+    }
+    watcher.showPopover();
+  } else {
+    watcher = new CloseWatcher();
+    t.add_cleanup(() => watcher.destroy());
+  }
 
-  const watcher = new CloseWatcher();
-  t.add_cleanup(() => watcher.destroy());
-  watcher.addEventListener("cancel", () => events.push(prefix + "cancel"));
-  watcher.addEventListener("close", () => events.push(prefix + "close"));
+  const prefix = name === undefined ? "" : name + " ";
+  watcher.addEventListener('cancel', () => events.push(prefix + "cancel"));
+  watcher.addEventListener('close', () => events.push(prefix + "close"));
 
   return watcher;
 };
 
-window.createBlessedRecordingCloseWatcher = (t, events, name) => {
-  return test_driver.bless("create " + name, () => createRecordingCloseWatcher(t, events, name));
+window.createBlessedRecordingCloseWatcher = async (t, events, name, type, dialog) => {
+  return dialogResilientBless(dialog, () => createRecordingCloseWatcher(t, events, name, type, dialog));
 };
 
 window.sendEscKey = () => {
@@ -27,3 +51,21 @@ window.sendEscKey = () => {
 // with different close requests. In that case, we'd update this
 // function, but not update the sendEscKey function above.
 window.sendCloseRequest = window.sendEscKey;
+
+// This function is a version of test_driver.bless which works on dialog elements:
+// https://github.com/web-platform-tests/wpt/issues/41218
+window.dialogResilientBless = async (watcher, fn) => {
+  if (watcher instanceof HTMLElement) {
+    const button = document.createElement('button');
+    watcher.appendChild(button);
+    await test_driver.click(button);
+    button.remove();
+    if (typeof fn === 'function') {
+      return fn();
+    } else {
+      return null;
+    }
+  } else {
+    return await test_driver.bless('dialogResilientBless', fn);
+  }
+};

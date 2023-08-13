@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<!-- Tests that the marker is visible when the <selectlist> contains more text than it can show -->
+<link rel=author href="mailto:pkotwicz@chromium.org">
+<link rel="match" href="selectlist-marker-visible-overflow-ref.tentative.html">
+
+<style>
+selectlist {
+  width:100px;
+}
+</style>
+<div>
+<selectlist>
+  <option>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>
+</selectlist>

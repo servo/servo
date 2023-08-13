@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>HTMLSelectListElement Test: ask-for-reset</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form name="fm1" id="form1">
+  <selectlist id="selectlist1">
+    <option>one</option>
+    <option>two</option>
+  </selectlist>
+
+  <selectlist id="selectlist2">
+    <option>one</option>
+    <option selected>two</option>
+  </selectlist>
+
+  <selectlist id="selectlist3">
+    <option>one</option>
+    <option selected>two</option>
+    <option selected>three</option>
+  </selectlist>
+</form>
+
+<script>
+function createSelectList(numberOfOptions) {
+  let selectList = document.createElement("selectlist");
+  for (let i = 0; i < numberOfOptions; i++) {
+    let option = document.createElement("option");
+    option.value = i;
+    selectList.appendChild(option);
+  }
+  return selectList;
+}
+
+function checkSelection(selectList, selectedOptionIndex, msg) {
+  for (let i = 0; i < selectList.children.length; i++) {
+    if (i != selectedOptionIndex) {
+      assert_false(selectList.children[i].selected);
+    }
+  }
+  assert_true(selectList.children[selectedOptionIndex].selected, msg);
+  assert_equals(selectList.value, selectList.children[selectedOptionIndex].value);
+}
+
+test(() => {
+  let selectList = createSelectList(5);
+
+  selectList.children[4].selected = true;
+  checkSelection(selectList, 4);
+
+  selectList.children[4].remove();
+  checkSelection(selectList, 0, "After removing the selected option, selection should default to first option.");
+
+  selectList.children[3].selected = true;
+  checkSelection(selectList, 3);
+  selectList.children[0].remove();
+  checkSelection(selectList, 2, "Removing non-selected option should have no effect.");
+}, "ask-for-reset when removing option");
+
+test(() => {
+  let selectList = createSelectList(3);
+  selectList.children[1].selected = true;
+
+  let newOption = document.createElement("option");
+  newOption.selected = true;
+  selectList.appendChild(newOption);
+  checkSelection(selectList, 3, "Inserting a selected option should update selection.");
+
+  let newOption2 = document.createElement("option");
+  newOption2.selected = true;
+  selectList.prepend(newOption2);
+  checkSelection(selectList, 0, "Inserting a selected option should update selection, even though it's not last in tree order.");
+
+  let newOption3 = document.createElement("option");
+  selectList.appendChild(newOption3);
+  checkSelection(selectList, 0, "Inserting a non-selected option should have no effect.");
+}, "ask-for-reset when inserting option");
+
+test(() => {
+  let selectList = createSelectList(3);
+  let options = selectList.children;
+
+  // select options from first to last
+  for (let i = 0; i < options.length; i++) {
+    options[i].selected = true;
+    checkSelection(selectList, i);
+  }
+
+  // select options from last to first
+  for (let i = options.length - 1; i >= 0; i--) {
+    options[i].selected = true;
+    checkSelection(selectList, i);
+  }
+
+  options[2].selected = true;
+  checkSelection(selectList, 2);
+  options[2].selected = false;
+  checkSelection(selectList, 0, "First non-disabled option should be selected.");
+
+  options[0].disabled = true;
+  options[2].selected = true;
+  checkSelection(selectList, 2);
+  options[2].selected = false;
+  checkSelection(selectList, 1, "First non-disabled option should be selected.");
+}, "ask-for-reset when changing selectedness of option");
+
+test(() => {
+  let selectList1 = document.getElementById("selectlist1");
+  let selectList2 = document.getElementById("selectlist2");
+  let selectList3 = document.getElementById("selectlist3");
+
+  document.getElementById("form1").reset();
+
+  assert_equals(selectList1.value, "one", "First non-disabled option should be selected.");
+  assert_equals(selectList2.value, "two", "The selected option should be selected.");
+  assert_equals(selectList3.value, "three", "Last selected option should be selected.")
+}, "ask-for-reset for form");
+</script>

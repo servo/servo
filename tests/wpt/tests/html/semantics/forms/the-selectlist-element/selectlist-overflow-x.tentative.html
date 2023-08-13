@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<!-- Tests that selectlist button part text is truncated by the button. -->
+<link rel=author href="mailto:pkotwicz@chromium.org">
+<link rel="match" href="selectlist-overflow-x-ref.tentative.html">
+<style>
+selectlist {
+  width:30px;
+  height:20px;
+}
+selectlist::part(button) {
+  background-color:blue;
+}
+</style>
+<selectlist>
+  <option>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</option>
+</selectlist>

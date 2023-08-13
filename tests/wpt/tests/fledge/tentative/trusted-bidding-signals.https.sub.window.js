@@ -111,23 +111,23 @@ promise_test(async test => {
 promise_test(async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
-      { trustedBiddingSignalsKeys: ['fledge-not-allowed'],
+      { trustedBiddingSignalsKeys: ['ad-auction-not-allowed'],
         trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response does not allow fledge.');
 
 promise_test(async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
-      { trustedBiddingSignalsKeys: ['bad-allow-fledge'],
+      { trustedBiddingSignalsKeys: ['bad-ad-auction-allowed'],
         trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
-}, 'Trusted bidding signals response has wrong X-Allow-FLEDGE header.');
+}, 'Trusted bidding signals response has wrong Ad-Auction-Allowed header.');
 
 promise_test(async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
-      { trustedBiddingSignalsKeys: ['no-allow-fledge'],
+      { trustedBiddingSignalsKeys: ['no-ad-auction-allow'],
         trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
-}, 'Trusted bidding signals response has no X-Allow-FLEDGE header.');
+}, 'Trusted bidding signals response has no Ad-Auction-Allowed header.');
 
 promise_test(async test => {
   await runTrustedBiddingSignalsTest(
@@ -197,7 +197,7 @@ promise_test(async test => {
       test, 'trustedBiddingSignals["null-value"] === null',
       { trustedBiddingSignalsKeys: ['null-value'],
         trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
-}, 'Trusted bidding signals response null value for key.');
+}, 'Trusted bidding signals response has null value for key.');
 
 promise_test(async test => {
   await runTrustedBiddingSignalsTest(
@@ -316,7 +316,7 @@ promise_test(async test => {
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['num-value'],
         trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
-}, 'Trusted bidding signals response has no data-version.');
+}, 'Trusted bidding signals response has no Data-Version.');
 
 promise_test(async test => {
   await runTrustedBiddingSignalsDataVersionTest(

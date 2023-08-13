@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Motion Path: offset-path:url() to ellipses</title>
+    <link rel="help" href="https://drafts.fxtf.org/motion/#valdef-offset-path-url">
+    <link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#EllipseElement">
+    <link rel="match" href="offset-path-url-004-ref.html">
+    <meta name=fuzzy content="0-15;0-65">
+    <meta name="assert" content="This tests that url() referenced to an ellipse
+      generates a rotation and translation.">
+    <style>
+      #outer {
+        width: 400px;
+        height: 200px;
+      }
+      #target {
+        width: 50px;
+        height: 50px;
+        background-color: green;
+        offset-path: url(#svgEllipse);
+        offset-distance: 25%;
+        border-radius: 50% 50% 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="outer">
+      <div id="target"></div>
+    </div>
+    <svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <ellipse id="svgEllipse" cx="200" cy="100" rx="100" ry="50"/>
+      </defs>
+    </svg>
+  </body>
+</html>

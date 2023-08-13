@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input id="input1">
+<selectlist id="selectlist">
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+</selectlist>
+<input id="input3">
+
+<script>
+promise_test(async () => {
+  const TAB_KEY = "\uE004";
+
+  const input1 = document.getElementById("input1");
+  const selectlist = document.getElementById("selectlist");
+
+  input1.focus();
+  assert_equals(document.activeElement.id, "input1", "input1 should be active");
+
+  await test_driver.send_keys(input1, TAB_KEY);
+  assert_equals(document.activeElement.id, "selectlist", "selectlist should be active");
+
+  await test_driver.send_keys(selectlist, TAB_KEY);
+  assert_equals(document.activeElement.id, "input3", "input3 should be active");
+}, "Check that <selectlist> occupies just one slot in tab navigation.");
+</script>
+

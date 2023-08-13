@@ -55,6 +55,7 @@
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+        ctx.shadowBlur = 3;
     alpha.blending:
       render_states: |-
         ctx.globalAlpha = 0.6;
@@ -69,6 +70,7 @@
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+        ctx.shadowBlur = 3;
     alpha.blending.shadow:
       render_states: |-
         ctx.globalAlpha = 0.6;
@@ -76,6 +78,7 @@
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+        ctx.shadowBlur = 3;
     alpha.composite.shadow:
       render_states: |-
         ctx.globalAlpha = 0.6;
@@ -83,18 +86,21 @@
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+        ctx.shadowBlur = 3;
     blending.shadow:
       render_states: |-
         ctx.globalCompositeOperation = 'multiply';
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+        ctx.shadowBlur = 3;
     composite.shadow:
       render_states: |-
         ctx.globalCompositeOperation = 'source-in';
         ctx.shadowOffsetX = -10;
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+        ctx.shadowBlur = 3;
 
 
 - name: 2d.layer.global-states.filter
@@ -164,6 +170,27 @@
     img.src = 'data:image/svg+xml;base64,' + btoa(svg);
   variants: *global-state-variants
 
+- name: 2d.layer.global-filter
+  desc: Tests that layers ignore the global context filter.
+  size: [150, 100]
+  code: |
+    ctx.filter = 'blur(5px)'
+
+    ctx.beginLayer();
+    ctx.fillRect(10, 10, 30, 30);  // `ctx.filter` applied to draw call.
+    ctx.endLayer();
+
+    ctx.beginLayer();
+    ctx.filter = 'none';
+    ctx.fillRect(60, 10, 30, 30);  // Should not be filted by the layer.
+    ctx.endLayer();
+
+    ctx.fillRect(110, 10, 30, 30);  // `ctx.filter` is still set.
+  reference: |
+    ctx.fillRect(60, 10, 30, 30);
+    ctx.filter = 'blur(5px)'
+    ctx.fillRect(10, 10, 30, 30);
+    ctx.fillRect(110, 10, 30, 30);
 
 - name: 2d.layer.nested
   desc: Tests nested canvas layers.
@@ -246,6 +273,40 @@
 
     ctx.fillRect(70, 70, 75, 50);
 
+- name: 2d.layer.layer-rendering-state-reset-in-layer
+  desc: Tests that layers ignore the global context filter.
+  code: |
+    ctx.globalAlpha = 0.5;
+    ctx.globalCompositeOperation = 'xor';
+    ctx.shadowColor = '#0000ff';
+    ctx.shadowOffsetX = 10;
+    ctx.shadowOffsetY = 20;
+    ctx.shadowBlur = 30;
+
+    @assert ctx.globalAlpha === 0.5;
+    @assert ctx.globalCompositeOperation === 'xor';
+    @assert ctx.shadowColor === '#0000ff';
+    @assert ctx.shadowOffsetX === 10;
+    @assert ctx.shadowOffsetY === 20;
+    @assert ctx.shadowBlur === 30;
+
+    ctx.beginLayer();
+
+    @assert ctx.globalAlpha === 1.0;
+    @assert ctx.globalCompositeOperation === 'source-over';
+    @assert ctx.shadowColor === 'rgba(0, 0, 0, 0)';
+    @assert ctx.shadowOffsetX === 0;
+    @assert ctx.shadowOffsetY === 0;
+    @assert ctx.shadowBlur === 0;
+
+    ctx.endLayer();
+
+    @assert ctx.globalAlpha === 0.5;
+    @assert ctx.globalCompositeOperation === 'xor';
+    @assert ctx.shadowColor === '#0000ff';
+    @assert ctx.shadowOffsetX === 10;
+    @assert ctx.shadowOffsetY === 20;
+    @assert ctx.shadowBlur === 30;
 
 - name: 2d.layer.unclosed
   desc: Check that layers are rendered even if not closed.
@@ -435,7 +496,7 @@
     ctx.shadowOffsetX = -10;
     ctx.shadowOffsetY = 10;
     ctx.shadowColor = 'orange';
-
+    ctx.shadowBlur = 3
 
     for (let i = 0; i < 5; i++) {
       ctx.beginLayer();
@@ -455,6 +516,7 @@
     ctx.shadowOffsetX = -10;
     ctx.shadowOffsetY = 10;
     ctx.shadowColor = 'orange';
+    ctx.shadowBlur = 3;
 
     var canvas2 = [5];
     var ctx2 = [5];
@@ -479,6 +541,7 @@
     ctx.shadowOffsetX = -3;
     ctx.shadowOffsetY = 3;
     ctx.shadowColor = 'rgba(0, 30, 0, 0.3)';
+    ctx.shadowBlur = 3;
 
     ctx.beginLayer({filter: {name: 'dropShadow', dx: -3, dy: 3}});
 
@@ -488,6 +551,7 @@
     ctx.shadowOffsetX = -6;
     ctx.shadowOffsetY = 6;
     ctx.shadowColor = 'rgba(0, 60, 0, 0.6)';
+    ctx.shadowBlur = 3;
 
     ctx.reset();
 

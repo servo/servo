@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>HTMLSelectListElement Test: form.elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<form id="form0">
+<selectlist id="selectlist0">
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+</selectlist>
+<form>
+
+<script>
+promise_test(async t => {
+  // TODO: Move test to /the-form-element/form-elements-filter.html once
+  // <selectlist> becomes part of the HTML spec.
+  const formElements = document.querySelector("#form0").elements;
+  assert_equals(formElements.length, 1);
+  assert_equals(formElements[0].id, "selectlist0");
+}, "Check that <selectlist> is exposed in form.elements");
+</script>

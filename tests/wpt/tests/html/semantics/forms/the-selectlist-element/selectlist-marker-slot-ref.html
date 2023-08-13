@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="support/fake-selectlist.js"></script>
+<body>
+<script>
+  const selectlist = createFakeSelectlist('hello world');
+  document.body.appendChild(selectlist);
+
+  const oldMarker = selectlist.querySelector('.fake-selectlist-internal-selectlist-button-icon');
+  const newMarker = document.createElement('div');
+  newMarker.textContent = 'marker';
+
+  replaceChildElement(newMarker, oldMarker);
+</script>

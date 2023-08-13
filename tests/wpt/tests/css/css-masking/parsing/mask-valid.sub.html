@@ -29,12 +29,11 @@ test_valid_value('mask', 'url("https://{{host}}/") 1px 2px / contain');
 test_valid_value('mask', 'repeat-y');
 
 // <geometry-box> = <shape-box> | fill-box | stroke-box | view-box
-// <shape-box> = <box> | margin-box
+// <shape-box> = <box>
 // <box> = border-box | padding-box | content-box
 test_valid_value('mask', 'border-box', 'none');
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) padding-box');
 test_valid_value('mask', 'content-box');
-test_valid_value('mask', 'margin-box');
 test_valid_value('mask', 'url("https://{{host}}/") fill-box');
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) stroke-box');
 test_valid_value('mask', 'view-box');

@@ -8,20 +8,28 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <style>
-input {
+:is(input:not([type=submit], [type=reset]), textarea) {
   border: 2px solid black;
 }
 
-input:user-valid {
+:is(input:not([type=submit], [type=reset]), textarea):user-valid {
   border-color: green;
 }
 
-input:user-invalid {
+:is(input:not([type=submit], [type=reset]), textarea):user-invalid {
   border-color: red;
 }
 </style>
 
 <input id="initially-invalid" type="email" value="foo">
+
+<p>Test form interactions (reset / submit):</p>
+<form id="form">
+  <input placeholder="Required field" required id="required-input"><br>
+  <textarea placeholder="Required field" required id="required-textarea"></textarea><br>
+  <input type="submit" id="submit-button">
+  <input type="reset" id="reset-button">
+</form>
 
 <script>
 promise_test(async () => {
@@ -54,6 +62,39 @@ promise_test(async () => {
   assert_true(input.matches(":user-valid"), "Put a valid email, :user-valid now matches");
   assert_false(input.matches(":user-invalid"), "Put an valid email, :user-invalid no longer matches");
 }, ':user-invalid selector should respond to user action');
+
+promise_test(async () => {
+  const form = document.querySelector("#form");
+  const requiredInput = document.querySelector("#required-input");
+  const requiredTextarea = document.querySelector("#required-textarea");
+  const submitButton = document.querySelector("#submit-button");
+  const resetButton = document.querySelector("#reset-button");
+
+  assert_false(requiredInput.validity.valid);
+  assert_false(requiredTextarea.validity.valid);
+  // The selector can't match because no interaction has happened.
+  assert_false(requiredInput.matches(":user-valid"), "Initially does not match :user-valid");
+  assert_false(requiredInput.matches(":user-invalid"), "Initially does not match :user-invalid");
+
+  assert_false(requiredTextarea.matches(":user-valid"), "Initially does not match :user-valid");
+  assert_false(requiredTextarea.matches(":user-invalid"), "Initially does not match :user-invalid");
+
+  await test_driver.click(submitButton);
+
+  assert_true(requiredInput.matches(":user-invalid"), "Submitted the form, input is validated");
+  assert_false(requiredInput.matches(":user-valid"), "Submitted the form, input is validated");
+
+  assert_true(requiredTextarea.matches(":user-invalid"), "Submitted the form, textarea is validated");
+  assert_false(requiredTextarea.matches(":user-valid"), "Submitted the form, textarea is validated");
+
+  await test_driver.click(resetButton);
+
+  assert_false(requiredInput.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
+  assert_false(requiredInput.matches(":user-invalid"), "Reset the form, user-interacted flag is reset");
+
+  assert_false(requiredTextarea.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
+  assert_false(requiredTextarea.matches(":user-invalid"), "Reset the form, user-interacted flag is reset");
+}, ":user-invalid selector properly interacts with submit & reset buttons");
 
 // historical: https://github.com/w3c/csswg-drafts/issues/1329
 test(() => {

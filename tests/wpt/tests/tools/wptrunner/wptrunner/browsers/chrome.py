@@ -62,7 +62,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
                 }
             },
             "excludeSwitches": ["enable-automation"],
-            "w3c": True
+            "w3c": True,
         }
     }
 
@@ -93,6 +93,8 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     # on Linux as it hasn't shipped there yet, but in WPT we enable virtual
     # authenticator devices anyway for testing and so SPC works.
     chrome_options["args"].append("--enable-features=SecurePaymentConfirmationBrowser")
+    # For WebTransport tests.
+    chrome_options["args"].append("--webtransport-developer-mode")
 
     # Classify `http-private`, `http-public` and https variants in the
     # appropriate IP address spaces.
@@ -122,21 +124,16 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     if kwargs["enable_experimental"]:
         chrome_options["args"].extend(["--enable-experimental-web-platform-features"])
 
-    # Copy over any other flags that were passed in via --binary_args
-    if kwargs["binary_args"] is not None:
-        chrome_options["args"].extend(kwargs["binary_args"])
-
     # Pass the --headless flag to Chrome if WPT's own --headless flag was set
     # or if we're running print reftests because of crbug.com/753118
     if ((kwargs["headless"] or test_type == "print-reftest") and
         "--headless" not in chrome_options["args"]):
         chrome_options["args"].append("--headless")
 
-    # For WebTransport tests.
-    webtranport_h3_port = test_environment.config.ports.get('webtransport-h3')
-    if webtranport_h3_port is not None:
-        chrome_options["args"].append(
-            f"--origin-to-force-quic-on=web-platform.test:{webtranport_h3_port[0]}")
+    # Copy over any other flags that were passed in via `--binary-arg`
+    for arg in kwargs.get("binary_args", []):
+        if arg not in chrome_options["args"]:
+            chrome_options["args"].append(arg)
 
     if test_type == "wdspec":
         executor_kwargs["binary_args"] = chrome_options["args"]

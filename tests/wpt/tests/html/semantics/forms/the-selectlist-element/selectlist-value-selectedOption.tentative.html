@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<title>HTMLSelectListElement Test: value and selectedOption</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<selectlist id="selectList0"></selectlist>
+
+<selectlist id="selectList1">
+  <option>one</option>
+  <option>two</option>
+  <div>I'm a div with no part attr</div>
+  <option id="selectList1-option3">three</option>
+  <option>four</option>
+</selectlist>
+
+<selectlist id="selectList2">
+  <div behavior="option">one</div>
+  <div behavior="option">two</div>
+  <div>I'm a div with no part attr</div>
+  <div behavior="option">three</div>
+  <div behavior="option">four</div>
+</selectlist>
+
+<selectlist id="selectList3">
+  <div>I'm a div with no part attr</div>
+  <option id="selectList3-child1">one</option>
+  <option id="selectList3-child2">two</option>
+  <option id="selectList3-child3">three</option>
+</selectlist>
+
+<selectlist id="selectList4">
+  <div slot="button" behavior="button">
+    <div behavior="selected-value" id="selectList4-custom-selected-value">Default custom selected-value text</div>
+  </div>
+  <option id="selectList4-option1">one</option>
+  <option id="selectList4-option2">two</option>
+</selectlist>
+
+<selectlist id="selectList5">
+  <div slot="button" behavior="button">
+    <div behavior="selected-value" id="selectList5-custom-selected-value">Default custom selected-value text</div>
+  </div>
+  <div popover slot="listbox" behavior="listbox">
+    <option id="selectList5-option1">one</option>
+    <option id="selectList5-option2">two</option>
+  </div>
+</selectlist>
+
+<selectlist id="selectList6">
+  <option id="selectList6-option1">one</option>
+  <option id="selectList6-option2" selected>two</option>
+  <option id="selectList6-option3">three</option>
+</selectlist>
+
+<selectlist id="selectList7">
+  <option id="selectList7-option1">one</option>
+  <option id="selectList7-option2" selected value="test">two</option>
+  <option>three</option>
+</selectlist>
+
+<script>
+
+test(() => {
+  const selectList0 = document.getElementById("selectList0");
+  assert_equals(selectList0.value, "");
+  assert_equals(selectList0.selectedOption, null);
+  selectList0.value = "something";
+  assert_equals(selectList0.value, "", "If there is no matching option, selectlist should be cleared");
+  assert_equals(selectList0.selectedOption, null);
+}, "Test that HTMLSelectList with no options has empty string for value and null for selectedOption");
+
+test(() => {
+  const selectList1 = document.getElementById("selectList1");
+  assert_equals(selectList1.value, "one", "value should start with the text of the first option part");
+
+  selectList1.value = "three";
+  assert_equals(selectList1.value, "three", "value can be set to the text of an option part");
+  assert_equals(selectList1.selectedOption, document.getElementById("selectList1-option3"));
+
+  selectList1.value = "I'm a div with no part attr";
+  assert_equals(selectList1.value, "", "If there is no matching option selectlist should be cleared");
+  assert_equals(selectList1.selectedOption, null);
+}, "Test value and selectedOption with HTMLOptionElement element option parts");
+
+test(() => {
+  const selectList1 = document.getElementById("selectList1");
+  selectList1.value = "one";
+  assert_equals(selectList1.value, "one");
+
+  selectList1.value = null;
+  assert_equals(selectList1.value, "");
+  assert_equals(selectList1.selectedOption, null);
+}, "Test value and selectedOption when value is null");
+
+test(() => {
+  const selectList1 = document.getElementById("selectList1");
+  selectList1.value = "one";
+  assert_equals(selectList1.value, "one");
+
+  selectList1.value = undefined;
+  assert_equals(selectList1.value, "");
+  assert_equals(selectList1.selectedOption, null);
+}, "Test value and selectedOption when value is undefined");
+
+test(() => {
+  const selectList2 = document.getElementById("selectList2");
+  assert_equals(selectList2.value, "", "Non-HTMLOptionElements shouldn't be treated as option parts");
+  assert_equals(selectList2.selectedOption, null);
+
+  selectList2.value = "three";
+  assert_equals(selectList2.value, "", "value can't be set when there are no option parts'");
+  assert_equals(selectList2.selectedOption, null);
+}, "Test value with non-HTMLOptionElement elements labeled as parts");
+
+test(() => {
+  const selectList3 = document.getElementById("selectList3");
+  assert_equals(selectList3.value, "one", "value should start with the text of the first option part");
+  assert_equals(selectList3.selectedOption, document.getElementById("selectList3-child1"));
+
+  document.getElementById("selectList3-child3").remove();
+  assert_equals(selectList3.value, "one", "Removing a non-selected option should not change the value");
+  assert_equals(selectList3.selectedOption, document.getElementById("selectList3-child1"));
+
+  document.getElementById("selectList3-child1").remove();
+  assert_equals(selectList3.value, "two", "When the selected option is removed, the new first option should become selected");
+  assert_equals(selectList3.selectedOption, document.getElementById("selectList3-child2"));
+
+  document.getElementById("selectList3-child2").remove();
+  assert_equals(selectList3.value, "", "When all options are removed, value should be the empty string");
+  assert_equals(selectList3.selectedOption, null);
+}, "Test that value and selectedOption are updated when options are removed");
+
+test(() => {
+  const selectList4 = document.getElementById("selectList4");
+  let customSelectedValuePart = document.getElementById("selectList4-custom-selected-value");
+  assert_equals(selectList4.value, "one", "value should start with the text of the first option part");
+  assert_equals(selectList4.selectedOption, document.getElementById("selectList4-option1"));
+  assert_equals(customSelectedValuePart.innerText, "one", "Custom selected value part should be set to initial value of selectlist");
+
+  selectList4.value = "two";
+  assert_equals(customSelectedValuePart.innerText, "two", "Custom selected value part should be updated when value of selectlist changes");
+  assert_equals(selectList4.selectedOption, document.getElementById("selectList4-option2"));
+}, "Test that slotted-in selected-value part is updated to value of selectlist");
+
+test(() => {
+  const selectList5 = document.getElementById("selectList5");
+  let customSelectedValuePart = document.getElementById("selectList5-custom-selected-value");
+  assert_equals(selectList5.value, "one", "value should start with the text of the first option part");
+  assert_equals(selectList5.selectedOption, document.getElementById("selectList5-option1"));
+  assert_equals(customSelectedValuePart.innerText, "one", "Custom selected value part should be set to initial value of selectlist");
+
+  selectList5.value = "two";
+  assert_equals(customSelectedValuePart.innerText, "two", "Custom selected value part should be updated when value of selectlist changes");
+  assert_equals(selectList5.selectedOption, document.getElementById("selectList5-option2"));
+}, "Test that option parts in a slotted-in listbox are reflected in the value property");
+
+test(() => {
+  let selectList = document.createElement('selectlist');
+  assert_equals(selectList.value, "");
+  let option = document.createElement('option');
+  option.innerText = "one";
+  selectList.appendChild(option);
+  assert_equals(selectList.value, "one");
+  assert_equals(selectList.selectedOption, option);
+
+  let newOption = document.createElement('option');
+  newOption.innerText = 'two';
+  selectList.appendChild(newOption);
+  selectList.value = "two";
+  assert_equals(selectList.value, "two");
+  assert_equals(selectList.selectedOption, newOption);
+
+  option.click();
+  assert_equals(selectList.value, "one");
+  assert_equals(selectList.selectedOption, option);
+}, "Test that value and selectedOption are correctly updated");
+
+test(() => {
+  const selectList = document.getElementById("selectList6");
+  let selectListOption1 = document.getElementById("selectList6-option1");
+
+  assert_equals(selectList.value, "two");
+  assert_equals(selectList.selectedOption, document.getElementById("selectList6-option2"));
+  assert_false(selectListOption1.selected);
+  selectListOption1.selected = true;
+  assert_equals(selectList.value, "one");
+  assert_equals(selectList.selectedOption, selectListOption1);
+
+  let newOption = document.createElement("option");
+  newOption.innerText = "four";
+  newOption.selected = true;
+  selectList.appendChild(newOption);
+  assert_equals(selectList.value, "four");
+  assert_equals(selectList.selectedOption, newOption);
+  assert_false(selectListOption1.selected);
+
+  selectList.value = "three";
+  assert_equals(selectList.selectedOption, document.getElementById("selectList6-option3"));
+  assert_false(newOption.selected);
+}, "Test that HTMLOption.selected updates selectlist.value and selectlist.selectedOption");
+
+test(() => {
+  const selectList = document.getElementById("selectList7");
+  let selectListOption1 = document.getElementById("selectList7-option1");
+
+  assert_equals(selectList.value, "test");
+  assert_equals(selectList.selectedOption, document.getElementById("selectList7-option2"));
+  assert_false(selectListOption1.selected);
+  selectListOption1.selected = true;
+  assert_equals(selectList.value, "one");
+  assert_equals(selectList.selectedOption, selectListOption1);
+
+  selectListOption1.value = "new test";
+  assert_equals(selectList.value, "new test");
+  assert_equals(selectList.selectedOption, selectListOption1);
+  selectListOption1.removeAttribute("value");
+  assert_equals(selectList.value, "one");
+  assert_equals(selectList.selectedOption, selectListOption1);
+  selectListOption1.value = "";
+  assert_equals(selectList.value, "");
+  assert_equals(selectList.selectedOption, selectListOption1);
+}, "Test that HTMLOption.value updates selectlist.value");
+
+</script>

@@ -1060,15 +1060,14 @@
   - CanvasTest
   code: |
     {{ load_font }}
-    ctx.font = '50px CanvasTest';
+    ctx.font = '40px CanvasTest';
     ctx.direction = 'ltr';
     ctx.align = 'left'
-    // approx_equals because font metrics may be rounded slightly differently by different platforms/browsers.
-    assert_approx_equals(ctx.measureText('A').fontBoundingBoxAscent, 50 * 1745 / 1024, 1, "unexpected fontBoundingBoxAscent");
-    assert_approx_equals(ctx.measureText('A').fontBoundingBoxDescent, 50 * 805 / 1024, 1, "unexpected fontBoundingBoxDescent");
+    @assert ctx.measureText('A').fontBoundingBoxAscent === 30;
+    @assert ctx.measureText('A').fontBoundingBoxDescent === 10;
 
-    assert_approx_equals(ctx.measureText('ABCD').fontBoundingBoxAscent, 50 * 1745 / 1024, 1, "unexpected fontBoundingBoxAscent");
-    assert_approx_equals(ctx.measureText('ABCD').fontBoundingBoxDescent, 50 * 805 / 1024, 1, "unexpected fontBoundingBoxDescent");
+    @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 30;
+    @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
   variants: *load-font-variant-definition
 
 - name: 2d.text.measure.fontBoundingBox.ahem
@@ -1087,6 +1086,40 @@
     @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
   variants: *load-font-variant-definition
 
+- name: 2d.text.measure.fontBoundingBox-reduced-ascent
+  desc: Testing fontBoundingBox for OffscreenCanvas with reduced ascent metric
+  test_type: promise
+  fonts:
+  - CanvasTest-ascent256
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest-ascent256';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').fontBoundingBoxAscent === 10;
+    @assert ctx.measureText('A').fontBoundingBoxDescent === 10;
+
+    @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 10;
+    @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
+  variants: *load-font-variant-definition
+
+- name: 2d.text.measure.fontBoundingBox-zero-descent
+  desc: Testing fontBoundingBox for OffscreenCanvas with zero descent metric
+  test_type: promise
+  fonts:
+  - CanvasTest-descent0
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest-descent0';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').fontBoundingBoxAscent === 30;
+    @assert ctx.measureText('A').fontBoundingBoxDescent === 0;
+
+    @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 30;
+    @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 0;
+  variants: *load-font-variant-definition
+
 - name: 2d.text.measure.emHeights
   desc: Testing emHeights
   test_type: promise
@@ -1094,16 +1127,54 @@
   - CanvasTest
   code: |
     {{ load_font }}
-    ctx.font = '50px CanvasTest';
+    ctx.font = '40px CanvasTest';
     ctx.direction = 'ltr';
     ctx.align = 'left'
-    @assert ctx.measureText('A').emHeightAscent === 37.5;
-    @assert ctx.measureText('A').emHeightDescent === 12.5;
-    @assert ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent === 50;
+    @assert ctx.measureText('A').emHeightAscent === 30;
+    @assert ctx.measureText('A').emHeightDescent === 10;
+    @assert ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent === 40;
 
-    @assert ctx.measureText('ABCD').emHeightAscent === 37.5;
-    @assert ctx.measureText('ABCD').emHeightDescent === 12.5;
-    @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 50;
+    @assert ctx.measureText('ABCD').emHeightAscent === 30;
+    @assert ctx.measureText('ABCD').emHeightDescent === 10;
+    @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 40;
+  variants: *load-font-variant-definition
+
+- name: 2d.text.measure.emHeights-low-ascent
+  desc: Testing emHeights with reduced ascent metric
+  test_type: promise
+  fonts:
+  - CanvasTest-ascent256
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest-ascent256';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').emHeightAscent === 20;
+    @assert ctx.measureText('A').emHeightDescent === 20;
+    @assert ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent === 40;
+
+    @assert ctx.measureText('ABCD').emHeightAscent === 20;
+    @assert ctx.measureText('ABCD').emHeightDescent === 20;
+    @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 40;
+  variants: *load-font-variant-definition
+
+- name: 2d.text.measure.emHeights-zero-descent
+  desc: Testing emHeights with zero descent metric
+  test_type: promise
+  fonts:
+  - CanvasTest-descent0
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest-descent0';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    @assert ctx.measureText('A').emHeightAscent === 40;
+    @assert ctx.measureText('A').emHeightDescent === 0;
+    @assert ctx.measureText('A').emHeightDescent + ctx.measureText('A').emHeightAscent === 40;
+
+    @assert ctx.measureText('ABCD').emHeightAscent === 40;
+    @assert ctx.measureText('ABCD').emHeightDescent === 0;
+    @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 40;
   variants: *load-font-variant-definition
 
 - name: 2d.text.measure.baselines

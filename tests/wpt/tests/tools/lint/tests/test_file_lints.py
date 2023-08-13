@@ -610,8 +610,7 @@ def test_variant_missing():
 # A corresponding "positive" test cannot be written because the manifest
 # SourceFile implementation raises a runtime exception for the condition this
 # linting rule describes
-@pytest.mark.parametrize("content", ["",
-                                     "?foo"
+@pytest.mark.parametrize("content", ["?foo"
                                      "#bar"])
 def test_variant_malformed_negative(content):
     code = """\

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="support/fake-selectlist.js"></script>
+<body>
+<script>
+  const selectlist = createFakeSelectlist('hello world');
+  document.body.appendChild(selectlist);
+
+  const oldSelectedValue = selectlist.querySelector('.fake-selectlist-selected-value');
+  const newSelectedValue = document.createElement('div');
+  newSelectedValue.textContent = 'new selected value';
+
+  replaceChildElement(newSelectedValue, oldSelectedValue);
+</script>
