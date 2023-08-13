@@ -1184,7 +1184,7 @@ impl<'a> WGPU<'a> {
                     } => {
                         let global = &self.global;
                         let (slice_pointer, range_size) = gfx_select!(buffer_id =>
-                            global.buffer_get_mapped_range(buffer_id, 0, None))
+                            global.buffer_get_mapped_range(buffer_id, 0, Some(buffer_size as u64)))
                         .unwrap();
                         let data =
                             unsafe { slice::from_raw_parts(slice_pointer, range_size as usize) }
