@@ -78,11 +78,13 @@ use webgpu::{self, identity::WebGPUOpResult, wgt, ErrorScopeId, WebGPU, WebGPURe
 use super::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
     GPUBufferBindingType, GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType,
 };
+use super::bindings::codegen::Bindings::GPUDeviceLostInfoBinding::GPUDeviceLostReason;
 use super::bindings::codegen::Bindings::GPURenderPipelineBinding::{
     GPUBlendComponent, GPUPrimitiveState, GPUVertexStepMode,
 };
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
+use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpusupportedlimits::GPUSupportedLimits;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -125,6 +127,7 @@ pub struct GPUDevice {
     scope_context: DomRefCell<ScopeContext>,
     #[ignore_malloc_size_of = "promises are hard"]
     lost_promise: DomRefCell<Option<Rc<Promise>>>,
+    valid: Cell<bool>,
 }
 
 impl GPUDevice {
@@ -152,6 +155,7 @@ impl GPUDevice {
                 next_scope_id: ErrorScopeId::new(1).unwrap(),
             }),
             lost_promise: DomRefCell::new(None),
+            valid: Cell::new(true),
         }
     }
 
@@ -318,6 +322,21 @@ impl GPUDevice {
                 bgl_ids.push(bgl);
             }
             (None, Some((layout_id, bgl_ids)), bgls)
+        }
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#lose-the-device
+    pub fn lose(&self, reason: GPUDeviceLostReason) {
+        if let Some(ref lost_promise) = *self.lost_promise.borrow() {
+            let global = GlobalScope::current().unwrap();
+            let msg = match reason {
+                GPUDeviceLostReason::Unknown => "Unknown reason for your device loss.",
+                GPUDeviceLostReason::Destroyed => {
+                    "Device self-destruction sequence activated sucessfuly!"
+                },
+            };
+            let lost = GPUDeviceLostInfo::new(&*global, msg.into(), reason);
+            lost_promise.resolve_native(&*lost);
         }
     }
 }
@@ -1121,7 +1140,19 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-destroy
     fn Destroy(&self) {
-        todo!()
+        if self.valid.get() {
+            self.valid.set(false);
+
+            self.lose(GPUDeviceLostReason::Destroyed);
+
+            if let Err(e) = self
+                .channel
+                .0
+                .send((None, WebGPURequest::DestroyDevice(self.device.0)))
+            {
+                warn!("Failed to send DestroyDevice ({:?}) ({})", self.device.0, e);
+            }
+        }
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipelineasync
@@ -1135,6 +1166,13 @@ impl GPUDeviceMethods for GPUDevice {
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync
     fn CreateRenderPipelineAsync(&self, _descriptor: &GPURenderPipelineDescriptor) -> Rc<Promise> {
         todo!()
+    }
+}
+
+impl Drop for GPUDevice {
+    // not sure about this but this is non failable version of destroy
+    fn drop(&mut self) {
+        self.Destroy()
     }
 }
 

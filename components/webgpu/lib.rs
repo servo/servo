@@ -191,6 +191,7 @@ pub enum WebGPURequest {
         descriptor: Option<TextureViewDescriptor<'static>>,
     },
     DestroyBuffer(id::BufferId),
+    DestroyDevice(id::DeviceId),
     DestroySwapChain {
         external_id: u64,
         image_key: ImageKey,
@@ -797,6 +798,10 @@ impl<'a> WGPU<'a> {
                     WebGPURequest::DestroyBuffer(buffer) => {
                         let global = &self.global;
                         gfx_select!(buffer => global.buffer_drop(buffer, false));
+                    },
+                    WebGPURequest::DestroyDevice(device) => {
+                        let global = &self.global;
+                        gfx_select!(device => global.device_drop(device));
                     },
                     WebGPURequest::DestroySwapChain {
                         external_id,
