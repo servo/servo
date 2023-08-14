@@ -5,7 +5,7 @@ on:
       wpt:
         required: false
         type: string
-      layout:
+      wpt-layout:
         required: false
         type: string
       unit-tests:
@@ -26,7 +26,7 @@ on:
         required: false
         type: choice
         options: ["test", "sync"]
-      layout:
+      wpt-layout:
         required: false
         type: choice
         options: ["none", "2013", "2020", "all"]
@@ -38,8 +38,6 @@ on:
         required: false
         default: false
         type: boolean
-  push:
-    branches: ["try-linux", "try-wpt", "try-wpt-2020"]
 
 env:
   RUST_BACKTRACE: 1
@@ -84,7 +82,7 @@ jobs:
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
-        if: ${{ inputs.unit-tests || github.ref_name == 'try-linux' }}
+        if: ${{ inputs.unit-tests }}
         run: python3 ./mach test-unit --release
       - name: Rename build timing
         run: cp -r target/cargo-timings target/cargo-timings-linux
@@ -122,7 +120,7 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
-    if: ${{ github.ref_name == 'try-wpt-2020' || inputs.layout == '2020' || inputs.layout == 'all' }}
+    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
     name: Linux WPT Tests 2020
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
@@ -131,7 +129,7 @@ jobs:
       layout: "layout-2020"
 
   wpt-2013:
-    if: ${{ github.ref_name == 'try-wpt' || inputs.layout == '2013' || inputs.layout == 'all' }}
+    if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
     name: Linux WPT Tests 2013
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml

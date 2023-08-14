@@ -56,12 +56,13 @@ jobs:
       - name: Run tests
         if: ${{ inputs.wpt != 'sync' }}
         run: |
+          mkdir linux-${{ inputs.layout }}
           python3 ./mach test-wpt --with-${{ inputs.layout }} \
             --release --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-            --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
-            --filter-intermittents filtered-test-wpt.${{ matrix.chunk_id }}.json
+            --log-raw-unexpected linux-${{ inputs.layout }}/unexpected-test-wpt.${{ matrix.chunk_id }}.log \
+            --filter-intermittents linux-${{ inputs.layout }}/filtered-test-wpt.${{ matrix.chunk_id }}.json
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET }}
@@ -77,10 +78,12 @@ jobs:
         uses: actions/upload-artifact@v3
         if: ${{ always() && inputs.wpt != 'sync' }}
         with:
-          name: wpt-filtered-results-linux-${{ inputs.layout }}
+          name: wpt-filtered-results
+          # The wildcard here ensures that the relative path is preserved in the archive:
+          # See https://github.com/actions/upload-artifact/issues/174
           path: |
-            filtered-test-wpt.${{ matrix.chunk_id }}.json
-            unexpected-test-wpt.${{ matrix.chunk_id }}.log
+            ./*linux-${{ inputs.layout }}/filtered-test-wpt.${{ matrix.chunk_id }}.json
+            ./*linux-${{ inputs.layout }}/unexpected-test-wpt.${{ matrix.chunk_id }}.log
       - name: Archive logs
         uses: actions/upload-artifact@v3
         if: ${{ failure() && inputs.wpt != 'sync' }}
@@ -96,34 +99,3 @@ jobs:
           path: |
             test-wpt.${{ matrix.chunk_id }}.log
             wpt-jsonsummary.${{ matrix.chunk_id }}.log
-
-  report-test-results:
-    name: Report WPT Results
-    runs-on: ubuntu-latest
-    if: ${{ always() && !cancelled() && (github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt == 'test') }}
-    needs:
-      - "linux-wpt"
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - uses: actions/download-artifact@v3
-        with:
-          name: wpt-filtered-results-linux-${{ inputs.layout }}
-          path: wpt-filtered-results-linux
-      - name: Create aggregated unexpected results
-        run: |
-          cat wpt-filtered-results-linux/*.log > unexpected-test-wpt-${{ inputs.layout }}.log
-      - name: Archive aggregate results
-        uses: actions/upload-artifact@v3
-        with:
-          name: wpt-filtered-results-linux
-          path: |
-            unexpected-test-wpt-${{ inputs.layout }}.log
-      - name: Comment on PR with results
-        run: |
-          etc/ci/report_aggregated_expected_results.py --tag="linux-wpt-${{ inputs.layout }}" wpt-filtered-results-linux/*.json
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RESULTS: ${{ toJson(needs.*.result) }}
