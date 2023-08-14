@@ -330,7 +330,6 @@ impl Pipeline {
                     unprivileged_pipeline_content.start_all::<Message, LTF, STF>(
                         false,
                         register,
-                        state.event_loop_waker,
                     );
                     None
                 };
@@ -527,7 +526,6 @@ impl UnprivilegedPipelineContent {
         self,
         wait_for_completion: bool,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-        event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     ) where
         LTF: LayoutThreadFactory<Message = Message>,
         STF: ScriptThreadFactory<Message = Message>,
@@ -574,7 +572,7 @@ impl UnprivilegedPipelineContent {
                 webrender_api_sender: self.webrender_api_sender.clone(),
                 layout_is_busy: layout_thread_busy_flag.clone(),
                 player_context: self.player_context.clone(),
-                event_loop_waker,
+                event_loop_waker: None,
                 inherited_secure_context: self.load_data.inherited_secure_context.clone(),
             },
             self.load_data.clone(),

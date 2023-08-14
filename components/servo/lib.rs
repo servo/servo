@@ -454,8 +454,6 @@ where
 
         webrender.set_external_image_handler(external_image_handlers);
 
-        let event_loop_waker = None;
-
         // The division by 1 represents the page's default zoom of 100%,
         // and gives us the appropriate CSSPixel type for the viewport.
         let window_size = WindowSizeData {
@@ -480,7 +478,6 @@ where
             player_context,
             Some(webgl_threads),
             glplayer_threads,
-            event_loop_waker,
             window_size,
             external_images,
             wgpu_image_map,
@@ -843,7 +840,6 @@ fn create_constellation(
     player_context: WindowGLContext,
     webgl_threads: Option<WebGLThreads>,
     glplayer_threads: Option<GLPlayerThreads>,
-    event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     initial_window_size: WindowSizeData,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     wgpu_image_map: Arc<Mutex<HashMap<u64, webgpu::PresentationData>>>,
@@ -891,7 +887,6 @@ fn create_constellation(
         webgl_threads,
         glplayer_threads,
         player_context,
-        event_loop_waker,
         user_agent,
         webrender_external_images: external_images,
         wgpu_image_map,
@@ -1038,7 +1033,6 @@ pub fn run_content_process(token: String) {
                                     script::script_thread::ScriptThread>(
                                         true,
                                         background_hang_monitor_register,
-                                        None,
                                     );
             } else {
                 content.start_all::<script_layout_interface::message::Msg,
@@ -1046,7 +1040,6 @@ pub fn run_content_process(token: String) {
                                     script::script_thread::ScriptThread>(
                                         true,
                                         background_hang_monitor_register,
-                                        None,
                                     );
             }
         },

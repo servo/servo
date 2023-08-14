@@ -115,7 +115,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
 };
-use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy, EventLoopWaker};
+use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy};
 use embedder_traits::{MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::{default::Size2D as UntypedSize2D, Size2D};
 use gfx::font_cache_thread::FontCacheThread;
@@ -504,9 +504,6 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     /// Application window's GL Context for Media player
     player_context: WindowGLContext,
 
-    /// Mechanism to force the compositor to process events.
-    event_loop_waker: Option<Box<dyn EventLoopWaker>>,
-
     /// Pipeline ID of the active media session.
     active_media_session: Option<PipelineId>,
 
@@ -562,9 +559,6 @@ pub struct InitialConstellationState {
 
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
-
-    /// Mechanism to force the compositor to process events.
-    pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,
@@ -827,7 +821,6 @@ where
                     enable_canvas_antialiasing,
                     glplayer_threads: state.glplayer_threads,
                     player_context: state.player_context,
-                    event_loop_waker: state.event_loop_waker,
                     active_media_session: None,
                     user_agent: state.user_agent,
                 };
@@ -1078,7 +1071,7 @@ where
                 .map(|threads| threads.pipeline()),
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
-            event_loop_waker: self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
+            event_loop_waker: None,
             user_agent: self.user_agent.clone(),
         });
 
