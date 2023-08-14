@@ -16,6 +16,13 @@ use crate::stylist::RuleInclusion;
 use crate::traversal_flags::TraversalFlags;
 use selectors::NthIndexCache;
 use smallvec::SmallVec;
+use std::collections::HashMap;
+
+/// A cache from element reference to known-valid computed style.
+pub type UndisplayedStyleCache = HashMap<
+    selectors::OpaqueElement,
+    servo_arc::Arc<crate::properties::ComputedValues>,
+>;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
 /// currently only holds the dom depth for the bloom filter.
@@ -294,6 +301,7 @@ pub fn resolve_style<E>(
     element: E,
     rule_inclusion: RuleInclusion,
     pseudo: Option<&PseudoElement>,
+    mut undisplayed_style_cache: Option<&mut UndisplayedStyleCache>,
 ) -> ElementStyles
 where
     E: TElement,
@@ -304,6 +312,11 @@ where
             element.borrow_data().map_or(true, |d| !d.has_styles()),
         "Why are we here?"
     );
+    debug_assert!(
+        rule_inclusion == RuleInclusion::All || undisplayed_style_cache.is_none(),
+        "can't use the cache for default styles only"
+    );
+
     let mut ancestors_requiring_style_resolution = SmallVec::<[E; 16]>::new();
 
     // Clear the bloom filter, just in case the caller is reusing TLS.
@@ -318,6 +331,12 @@ where
                     style = Some(ancestor_style.clone());
                     break;
                 }
+            }
+        }
+        if let Some(ref mut cache) = undisplayed_style_cache {
+            if let Some(s) = cache.get(&current.opaque()) {
+                style = Some(s.clone());
+                break;
             }
         }
         ancestors_requiring_style_resolution.push(current);
@@ -337,7 +356,9 @@ where
         }
 
         ancestor = ancestor.unwrap().traversal_parent();
-        layout_parent_style = ancestor.map(|a| a.borrow_data().unwrap().styles.primary().clone());
+        layout_parent_style = ancestor.and_then(|a| {
+            a.borrow_data().map(|data| data.styles.primary().clone())
+        });
     }
 
     for ancestor in ancestors_requiring_style_resolution.iter().rev() {
@@ -360,18 +381,27 @@ where
             layout_parent_style = style.clone();
         }
 
+        if let Some(ref mut cache) = undisplayed_style_cache {
+            cache.insert(ancestor.opaque(), style.clone().unwrap());
+        }
         context.thread_local.bloom_filter.push(*ancestor);
     }
 
     context.thread_local.bloom_filter.assert_complete(element);
-    StyleResolverForElement::new(
+    let styles: ElementStyles = StyleResolverForElement::new(
         element,
         context,
         rule_inclusion,
         PseudoElementResolution::Force,
     )
     .resolve_style(style.as_deref(), layout_parent_style.as_deref())
-    .into()
+    .into();
+
+    if let Some(ref mut cache) = undisplayed_style_cache {
+        cache.insert(element.opaque(), styles.primary().clone());
+    }
+
+    styles
 }
 
 /// Calculates the style for a single node.
