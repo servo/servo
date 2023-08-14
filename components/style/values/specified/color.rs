@@ -131,14 +131,6 @@ fn allow_color_mix() -> bool {
     return false;
 }
 
-#[inline]
-fn allow_color_mix_color_spaces() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.color-mix.color-spaces.enabled");
-    #[cfg(feature = "servo")]
-    return false;
-}
-
 impl Parse for ColorMix {
     fn parse<'i, 't>(
         context: &ParserContext,
