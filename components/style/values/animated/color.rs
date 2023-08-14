@@ -432,9 +432,9 @@ fn adjust_hue(left: &mut f32, right: &mut f32, hue_interpolation: HueInterpolati
             let delta = *right - *left;
 
             if delta > PI {
-                *left += PI;
-            } else if delta < -1. * PI {
-                *right += PI;
+                *left += TAU;
+            } else if delta < -PI {
+                *right += TAU;
             }
         },
         // https://drafts.csswg.org/css-color/#longer
