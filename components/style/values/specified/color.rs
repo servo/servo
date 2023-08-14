@@ -26,20 +26,30 @@ use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
 pub enum ColorSpace {
     /// The sRGB color space.
     Srgb,
+    /// The linear-sRGB color space.
+    LinearSrgb,
     /// The CIEXYZ color space.
+    #[parse(aliases = "xyz-d65")]
     Xyz,
+    /// https://drafts.csswg.org/css-color-4/#valdef-color-xyz
+    XyzD50,
     /// The CIELAB color space.
     Lab,
+    /// https://drafts.csswg.org/css-color-4/#valdef-hsl-hsl
+    Hsl,
+    /// https://drafts.csswg.org/css-color-4/#valdef-hwb-hwb
+    Hwb,
     /// The CIELAB color space, expressed in cylindrical coordinates.
     Lch,
+    // TODO: Oklab, Lch
 }
 
 impl ColorSpace {
     /// Returns whether this is a `<polar-color-space>`.
     pub fn is_polar(self) -> bool {
         match self {
-            Self::Srgb | Self::Xyz | Self::Lab => false,
-            Self::Lch => true,
+            Self::Srgb | Self::LinearSrgb | Self::Xyz | Self::XyzD50 | Self::Lab => false,
+            Self::Hsl | Self::Hwb | Self::Lch => true,
         }
     }
 }
