@@ -900,8 +900,6 @@ class CommandBase(object):
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
 
-            features.append("native-bluetooth")
-
             if with_frame_pointer:
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
                 features.append("profilemozjs")
