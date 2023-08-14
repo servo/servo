@@ -10,6 +10,7 @@
 from __future__ import print_function
 
 import contextlib
+from enum import Enum
 from typing import Dict, List, Optional
 import functools
 import gzip
@@ -42,8 +43,13 @@ import servo.platform
 import servo.util as util
 from servo.util import download_file, get_default_cache_dir
 
-BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
+
+
+class BuildType(Enum):
+    """ The build type of this Servo build. Either `DEV` or `RELEASE`."""
+    DEV = 1
+    RELEASE = 2
 
 
 @contextlib.contextmanager
@@ -281,26 +287,22 @@ class CommandBase(object):
     def get_top_dir(self):
         return self.context.topdir
 
-    def get_apk_path(self, release):
+    def get_apk_path(self, build_type: BuildType):
         base_path = util.get_target_dir()
         base_path = path.join(base_path, "android", self.config["android"]["target"])
         apk_name = "servoapp.apk"
-        build_type = "release" if release else "debug"
-        return path.join(base_path, build_type, apk_name)
+        build_type_string = "release" if build_type == BuildType.RELEASE else "debug"
+        return path.join(base_path, build_type_string, apk_name)
 
-    def get_binary_path(self, release, dev, target=None, android=False, simpleservo=False):
-        # TODO(autrilla): this function could still use work - it shouldn't
-        # handle quitting, or printing. It should return the path, or an error.
+    def get_binary_path(self, build_type: BuildType, target=None, android=False, simpleservo=False):
         base_path = util.get_target_dir()
-
-        binary_name = "servo" + BIN_SUFFIX
-
         if android:
             base_path = path.join(base_path, "android", self.config["android"]["target"])
             simpleservo = True
         elif target:
             base_path = path.join(base_path, target)
 
+        binary_name = f"servo{servo.platform.get().executable_suffix()}"
         if simpleservo:
             if sys.platform == "win32":
                 binary_name = "simpleservo.dll"
@@ -309,41 +311,12 @@ class CommandBase(object):
             else:
                 binary_name = "libsimpleservo.so"
 
-        release_path = path.join(base_path, "release", binary_name)
-        dev_path = path.join(base_path, "debug", binary_name)
+        build_type_string = "release" if build_type == BuildType.RELEASE else "debug"
+        binary_path = path.join(base_path, build_type_string, binary_name)
 
-        # Prefer release if both given
-        if release and dev:
-            dev = False
-
-        release_exists = path.exists(release_path)
-        dev_exists = path.exists(dev_path)
-
-        if not release_exists and not dev_exists:
-            raise BuildNotFound('No Servo binary found.'
-                                ' Perhaps you forgot to run `./mach build`?')
-
-        if release and release_exists:
-            return release_path
-
-        if dev and dev_exists:
-            return dev_path
-
-        if not dev and not release and release_exists and dev_exists:
-            print("You have multiple profiles built. Please specify which "
-                  "one to run with '--release' or '--dev'.")
-            sys.exit()
-
-        if not dev and not release:
-            if release_exists:
-                return release_path
-            else:
-                return dev_path
-
-        print("The %s profile is not built. Please run './mach build%s' "
-              "and try again." % ("release" if release else "dev",
-                                  " --release" if release else ""))
-        sys.exit()
+        if not path.exists(binary_path):
+            raise BuildNotFound('No Servo binary found. Perhaps you forgot to run `./mach build`?')
+        return binary_path
 
     def detach_volume(self, mounted_volume):
         print("Detaching volume {}".format(mounted_volume))
@@ -739,72 +712,115 @@ class CommandBase(object):
         env['PKG_CONFIG_ALLOW_CROSS'] = "1"
 
     @staticmethod
-    def build_like_command_arguments(original_function):
-        decorators = [
-            CommandArgumentGroup('Cross Compilation'),
-            CommandArgument(
-                '--target', '-t',
-                group="Cross Compilation",
-                default=None,
-                help='Cross compile for given target platform',
-            ),
-            CommandArgument(
-                '--android', default=None, action='store_true',
-                help='Build for Android. If --target is not specified, this '
-                     'will choose a default target architecture.',
-            ),
-            CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target"),
-            CommandArgumentGroup('Feature Selection'),
-            CommandArgument(
-                '--features', default=None, group="Feature Selection", nargs='+',
-                help='Space-separated list of features to also build',
-            ),
-            CommandArgument(
-                '--media-stack', default=None, group="Feature Selection",
-                choices=["gstreamer", "dummy"], help='Which media stack to use',
-            ),
-            CommandArgument(
-                '--libsimpleservo',
-                default=None,
-                group="Feature Selection",
-                action='store_true',
-                help='Build the libsimpleservo library instead of the servo executable',
-            ),
-            CommandArgument(
-                '--debug-mozjs',
-                default=False,
-                group="Feature Selection",
-                action='store_true',
-                help='Enable debug assertions in mozjs',
-            ),
-            CommandArgument(
-                '--with-debug-assertions',
-                default=False,
-                group="Feature Selection",
-                action='store_true',
-                help='Enable debug assertions in release',
-            ),
-            CommandArgument(
-                '--with-frame-pointer',
-                default=None, group="Feature Selection",
-                action='store_true',
-                help='Build with frame pointer enabled, used by the background hang monitor.',
-            ),
-            CommandArgument('--without-wgl', group="Feature Selection", default=None, action='store_true'),
-        ]
+    def common_command_arguments(build_configuration=False, build_type=False):
+        decorators = []
+        if build_type:
+            decorators += [
+                CommandArgumentGroup('Build Type'),
+                CommandArgument('--release', '-r', group="Build Type",
+                                action='store_true',
+                                help='Build in release mode'),
+                CommandArgument('--dev', '--debug', '-d', group="Build Type",
+                                action='store_true',
+                                help='Build in development mode'),
+            ]
 
-        def configuration_decorator(self, *args, **kwargs):
-            self.configure_cross_compilation(kwargs['target'], kwargs['android'], kwargs['win_arm64'])
+        if build_configuration:
+            decorators += [
+                CommandArgumentGroup('Cross Compilation'),
+                CommandArgument(
+                    '--target', '-t',
+                    group="Cross Compilation",
+                    default=None,
+                    help='Cross compile for given target platform',
+                ),
+                CommandArgument(
+                    '--android', default=None, action='store_true',
+                    help='Build for Android. If --target is not specified, this '
+                         'will choose a default target architecture.',
+                ),
+                CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target"),
+                CommandArgumentGroup('Feature Selection'),
+                CommandArgument(
+                    '--features', default=None, group="Feature Selection", nargs='+',
+                    help='Space-separated list of features to also build',
+                ),
+                CommandArgument(
+                    '--media-stack', default=None, group="Feature Selection",
+                    choices=["gstreamer", "dummy"], help='Which media stack to use',
+                ),
+                CommandArgument(
+                    '--libsimpleservo',
+                    default=None,
+                    group="Feature Selection",
+                    action='store_true',
+                    help='Build the libsimpleservo library instead of the servo executable',
+                ),
+                CommandArgument(
+                    '--debug-mozjs',
+                    default=False,
+                    group="Feature Selection",
+                    action='store_true',
+                    help='Enable debug assertions in mozjs',
+                ),
+                CommandArgument(
+                    '--with-debug-assertions',
+                    default=False,
+                    group="Feature Selection",
+                    action='store_true',
+                    help='Enable debug assertions in release',
+                ),
+                CommandArgument(
+                    '--with-frame-pointer',
+                    default=None, group="Feature Selection",
+                    action='store_true',
+                    help='Build with frame pointer enabled, used by the background hang monitor.',
+                ),
+                CommandArgument('--without-wgl', group="Feature Selection", default=None, action='store_true'),
+            ]
 
-            self.features = kwargs.get("features", None) or []
-            self.configure_media_stack(kwargs['media_stack'])
-            return original_function(self, *args, **kwargs)
+        def decorator_function(original_function):
+            def configuration_decorator(self, *args, **kwargs):
+                if build_type:
+                    # If `build_type` already exists in kwargs we are doing a recursive dispatch.
+                    if 'build_type' not in kwargs:
+                        kwargs['build_type'] = self.configure_build_type(kwargs['release'], kwargs['dev'])
+                    kwargs.pop('release', None)
+                    kwargs.pop('dev', None)
 
-        decorators.reverse()
-        decorated_function = configuration_decorator
-        for decorator in decorators:
-            decorated_function = decorator(decorated_function)
-        return decorated_function
+                if build_configuration:
+                    self.configure_cross_compilation(kwargs['target'], kwargs['android'], kwargs['win_arm64'])
+                    self.features = kwargs.get("features", None) or []
+                    self.configure_media_stack(kwargs['media_stack'])
+
+                return original_function(self, *args, **kwargs)
+
+            decorators.reverse()
+            for decorator in decorators:
+                decorator(configuration_decorator)
+
+            return configuration_decorator
+
+        return decorator_function
+
+    def configure_build_type(self, release: bool, dev: bool) -> BuildType:
+        if release and dev:
+            print("Please specify either --dev (-d) for a development")
+            print("  build, or --release (-r) for an optimized build.")
+            sys.exit(1)
+
+        if not release and not dev:
+            if self.config["build"]["mode"] == "dev":
+                print("No build type specified, but .servobuild specified `--dev`.")
+                dev = True
+            elif self.config["build"]["mode"] == "release":
+                print("No build type specified, but .servobuild specified `--release`.")
+                release = True
+            else:
+                print("No build type specified so assuming `--dev`.")
+                dev = True
+
+        return BuildType.DEV if dev else BuildType.RELEASE
 
     def configure_cross_compilation(
             self,
@@ -972,7 +988,7 @@ class CommandBase(object):
     def ensure_rustup_version(self):
         try:
             version_line = subprocess.check_output(
-                ["rustup" + BIN_SUFFIX, "--version"],
+                ["rustup" + servo.platform.get().executable_suffix(), "--version"],
                 # Silence "info: This is the version for the rustup toolchain manager,
                 # not the rustc compiler."
                 stderr=open(os.devnull, "wb")

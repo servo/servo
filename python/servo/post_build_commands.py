@@ -16,7 +16,7 @@ import subprocess
 from shutil import copytree, rmtree, copy2
 from typing import List
 
-import servo.util
+import mozdebug
 
 from mach.decorators import (
     CommandArgument,
@@ -24,9 +24,13 @@ from mach.decorators import (
     Command,
 )
 
+import servo.util
+import servo.platform
+
 from servo.command_base import (
+    BuildType,
     CommandBase,
-    check_call, check_output, BIN_SUFFIX,
+    check_call, check_output,
     is_linux,
 )
 
@@ -50,10 +54,6 @@ class PostBuildCommands(CommandBase):
     @Command('run',
              description='Run Servo',
              category='post-build')
-    @CommandArgument('--release', '-r', action='store_true',
-                     help='Run the release build')
-    @CommandArgument('--dev', '-d', action='store_true',
-                     help='Run the dev build')
     @CommandArgument('--android', action='store_true', default=None,
                      help='Run on an Android device through `adb shell`')
     @CommandArgument('--emulator',
@@ -62,12 +62,12 @@ class PostBuildCommands(CommandBase):
     @CommandArgument('--usb',
                      action='store_true',
                      help='For Android, run in the only USB device')
-    @CommandArgument('--debug', action='store_true',
+    @CommandArgument('--debugger', action='store_true',
                      help='Enable the debugger. Not specifying a '
-                          '--debugger option will result in the default '
+                          '--debugger-cmd option will result in the default '
                           'debugger being used. The following arguments '
                           'have no effect without this.')
-    @CommandArgument('--debugger', default=None, type=str,
+    @CommandArgument('--debugger-cmd', default=None, type=str,
                      help='Name of debugger to use.')
     @CommandArgument('--headless', '-z', action='store_true',
                      help='Launch in headless mode')
@@ -80,7 +80,8 @@ class PostBuildCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None,
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def run(self, params, build_type: BuildType, android=None, debugger=False, debugger_cmd=None,
             headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
@@ -92,15 +93,15 @@ class PostBuildCommands(CommandBase):
             env['LIBGL_ALWAYS_SOFTWARE'] = "1"
         os.environ.update(env)
 
-        # Make --debugger imply --debug
-        if debugger:
-            debug = True
+        # Make --debugger-cmd imply --debugger
+        if debugger_cmd:
+            debugger = True
 
         if android is None:
             android = self.config["build"]["android"]
 
         if android:
-            if debug:
+            if debugger:
                 print("Android on-device debugging is not supported by mach yet. See")
                 print("https://github.com/servo/servo/wiki/Building-for-Android#debugging-on-device")
                 return
@@ -133,55 +134,54 @@ class PostBuildCommands(CommandBase):
             shell.communicate("\n".join(script) + "\n")
             return shell.wait()
 
-        args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(release, dev)]
+        args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(build_type)]
 
         if headless:
             args.append('-z')
 
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
-        if debug:
-            import mozdebug
-            if not debugger:
+        if debugger:
+            if not debugger_cmd:
                 # No debugger name was provided. Look for the default ones on
                 # current OS.
-                debugger = mozdebug.get_default_debugger_name(
+                debugger_cmd = mozdebug.get_default_debugger_name(
                     mozdebug.DebuggerSearch.KeepLooking)
 
-            self.debuggerInfo = mozdebug.get_debugger_info(debugger)
-            if not self.debuggerInfo:
+            debugger_info = mozdebug.get_debugger_info(debugger_cmd)
+            if not debugger_info:
                 print("Could not find a suitable debugger in your PATH.")
                 return 1
 
-            command = self.debuggerInfo.path
-            if debugger == 'gdb' or debugger == 'lldb':
-                rustCommand = 'rust-' + debugger
+            command = debugger_info.path
+            if debugger_cmd == 'gdb' or debugger_cmd == 'lldb':
+                rust_command = 'rust-' + debugger_cmd
                 try:
-                    subprocess.check_call([rustCommand, '--version'], env=env, stdout=open(os.devnull, 'w'))
+                    subprocess.check_call([rust_command, '--version'], env=env, stdout=open(os.devnull, 'w'))
                 except (OSError, subprocess.CalledProcessError):
                     pass
                 else:
-                    command = rustCommand
+                    command = rust_command
 
             # Prepend the debugger args.
-            args = ([command] + self.debuggerInfo.args + args + params)
+            args = ([command] + debugger_info.args + args + params)
         else:
             args = args + params
 
         try:
             check_call(args, env=env)
-        except subprocess.CalledProcessError as e:
-            if e.returncode < 0:
-                print(f"Servo was terminated by signal {-e.returncode}")
+        except subprocess.CalledProcessError as exception:
+            if exception.returncode < 0:
+                print(f"Servo was terminated by signal {-exception.returncode}")
             else:
-                print(f"Servo exited with non-zero status {e.returncode}")
-            return e.returncode
-        except OSError as e:
-            if e.errno == 2:
+                print(f"Servo exited with non-zero status {exception.returncode}")
+            return exception.returncode
+        except OSError as exception:
+            if exception.errno == 2:
                 print("Servo Binary can't be found! Run './mach build'"
                       " and try again!")
             else:
-                raise e
+                raise exception
 
     @Command('android-emulator',
              description='Run the Android emulator',
@@ -198,10 +198,6 @@ class PostBuildCommands(CommandBase):
     @Command('rr-record',
              description='Run Servo whilst recording execution with rr',
              category='post-build')
-    @CommandArgument('--release', '-r', action='store_true',
-                     help='Use release build')
-    @CommandArgument('--dev', '-d', action='store_true',
-                     help='Use dev build')
     @CommandArgument('--bin', default=None,
                      help='Launch with specific binary')
     @CommandArgument('--nightly', '-n', default=None,
@@ -209,12 +205,13 @@ class PostBuildCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def rr_record(self, release=False, dev=False, bin=None, nightly=None, params=[]):
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    def rr_record(self, build_type: BuildType, bin=None, nightly=None, params=[]):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
         servo_cmd = [bin or self.get_nightly_binary_path(nightly)
-                     or self.get_binary_path(release, dev)] + params
+                     or self.get_binary_path(build_type)] + params
         rr_cmd = ['rr', '--fatal-errors', 'record']
         try:
             check_call(rr_cmd + servo_cmd)
@@ -242,11 +239,11 @@ class PostBuildCommands(CommandBase):
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
-    @CommandBase.build_like_command_arguments
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def doc(self, params: List[str], **kwargs):
         self.ensure_bootstrapped()
         rustc_path = check_output(
-            ["rustup" + BIN_SUFFIX, "which", "rustc"],
+            [f"rustup{servo.platform.get().executable_suffix()}", "which", "rustc"],
             cwd=self.context.topdir).decode("utf-8")
         assert path.basename(path.dirname(rustc_path)) == "bin"
         toolchain_path = path.dirname(path.dirname(rustc_path))

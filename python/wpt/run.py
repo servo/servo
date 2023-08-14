@@ -33,24 +33,13 @@ TRACKER_API_ENV_VAR = "INTERMITTENT_TRACKER_API"
 TRACKER_DASHBOARD_SECRET_ENV_VAR = "INTERMITTENT_TRACKER_DASHBOARD_SECRET"
 
 
-def determine_build_type(kwargs: dict, target_dir: str):
-    if kwargs["release"]:
-        return "release"
-    elif kwargs["debug"]:
-        return "debug"
-    elif os.path.exists(os.path.join(target_dir, "debug")):
-        return "debug"
-    elif os.path.exists(os.path.join(target_dir, "release")):
-        return "release"
-    return "debug"
-
-
 def set_if_none(args: dict, key: str, value):
     if key not in args or args[key] is None:
         args[key] = value
 
 
-def run_tests(**kwargs):
+def run_tests(default_binary_path: str, **kwargs):
+    print(default_binary_path)
     # By default, Rayon selects the number of worker threads based on the
     # available CPU count. This doesn't work very well when running tests on CI,
     # since we run so many Servo processes in parallel. The result is a lot of
@@ -78,17 +67,6 @@ def run_tests(**kwargs):
     set_if_none(kwargs, "chunk_type", "id_hash")
 
     kwargs["user_stylesheets"].append(os.path.join(SERVO_ROOT, "resources", "ahem.css"))
-
-    if "CARGO_TARGET_DIR" in os.environ:
-        target_dir = os.path.join(os.environ["CARGO_TARGET_DIR"])
-    else:
-        target_dir = os.path.join(SERVO_ROOT, "target")
-
-    binary_name = ("servo.exe" if sys.platform == "win32" else "servo")
-
-    default_binary_path = os.path.join(
-        target_dir, determine_build_type(kwargs, target_dir), binary_name
-    )
 
     set_if_none(kwargs, "binary", default_binary_path)
     set_if_none(kwargs, "webdriver_binary", default_binary_path)
