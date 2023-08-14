@@ -7,6 +7,7 @@
 use crate::values::animated::color::RGBA as AnimatedRGBA;
 use crate::values::animated::ToAnimatedValue;
 use crate::values::generics::color::{GenericCaretColor, GenericColor, GenericColorOrAuto};
+use crate::values::computed::percentage::Percentage;
 use cssparser::{Color as CSSParserColor, RGBA};
 use std::fmt;
 use style_traits::{CssWriter, ToCss};
@@ -20,7 +21,20 @@ pub type ColorPropertyValue = RGBA;
 pub type MozFontSmoothingBackgroundColor = RGBA;
 
 /// A computed value for `<color>`.
-pub type Color = GenericColor<RGBA>;
+pub type Color = GenericColor<RGBA, Percentage>;
+
+impl ToCss for Color {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        match *self {
+            Self::Numeric(ref c) => c.to_css(dest),
+            Self::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
+            Self::ColorMix(ref m) => m.to_css(dest),
+        }
+    }
+}
 
 impl Color {
     /// Returns a complex color value representing transparent.
@@ -28,67 +42,21 @@ impl Color {
         Color::rgba(RGBA::transparent())
     }
 
-    /// Combine this complex color with the given foreground color into
-    /// a numeric RGBA color. It currently uses linear blending.
-    pub fn to_rgba(&self, fg_color: RGBA) -> RGBA {
-        // Common cases that the complex color is either pure numeric color or
-        // pure currentcolor.
-        if self.is_numeric() {
-            return self.color;
-        }
-
-        if self.is_currentcolor() {
-            return fg_color;
-        }
-
-        let ratios = &self.ratios;
-        let color = &self.color;
-
-        // For the more complicated case that the alpha value differs,
-        // we use the following formula to compute the components:
-        // alpha = self_alpha * bg_ratio + fg_alpha * fg_ratio
-        // color = (self_color * self_alpha * bg_ratio +
-        //          fg_color * fg_alpha * fg_ratio) / alpha
-
-        let p1 = ratios.bg;
-        let a1 = color.alpha_f32();
-        let r1 = a1 * color.red_f32();
-        let g1 = a1 * color.green_f32();
-        let b1 = a1 * color.blue_f32();
-
-        let p2 = ratios.fg;
-        let a2 = fg_color.alpha_f32();
-        let r2 = a2 * fg_color.red_f32();
-        let g2 = a2 * fg_color.green_f32();
-        let b2 = a2 * fg_color.blue_f32();
-
-        let a = p1 * a1 + p2 * a2;
-        if a <= 0. {
-            return RGBA::transparent();
-        }
-        let a = a.min(1.);
-
-        let inv = 1. / a;
-
-        let r = (p1 * r1 + p2 * r2) * inv;
-        let g = (p1 * g1 + p2 * g2) * inv;
-        let b = (p1 * b1 + p2 * b2) * inv;
-        RGBA::from_floats(r, g, b, a)
+    /// Returns opaque black.
+    pub fn black() -> Color {
+        Color::rgba(RGBA::new(0, 0, 0, 255))
     }
-}
 
-impl ToCss for Color {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: fmt::Write,
-    {
-        if self.is_currentcolor() {
-            return CSSParserColor::CurrentColor.to_css(dest);
-        }
-        if self.is_numeric() {
-            return self.color.to_css(dest);
-        }
-        Ok(())
+    /// Returns opaque white.
+    pub fn white() -> Color {
+        Color::rgba(RGBA::new(255, 255, 255, 255))
+    }
+
+    /// Combine this complex color with the given foreground color into
+    /// a numeric RGBA color.
+    pub fn into_rgba(mut self, current_color: RGBA) -> RGBA {
+        self.simplify(Some(&current_color));
+        *self.as_numeric().unwrap()
     }
 }
 

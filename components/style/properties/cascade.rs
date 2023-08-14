@@ -418,7 +418,7 @@ fn tweak_when_ignoring_colors(
 
     fn alpha_channel(color: &Color, context: &computed::Context) -> u8 {
         // We assume here currentColor is opaque.
-        let color = color.to_computed_value(context).to_rgba(RGBA::new(0, 0, 0, 255));
+        let color = color.to_computed_value(context).into_rgba(RGBA::new(0, 0, 0, 255));
         color.alpha
     }
 

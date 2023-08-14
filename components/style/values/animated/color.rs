@@ -5,9 +5,11 @@
 //! Animated types for CSS colors.
 
 use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
+use crate::values::computed::Percentage;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
-use crate::values::generics::color::{Color as GenericColor, ComplexColorRatios};
-use crate::values::specified::color::{ColorInterpolationMethod, ColorSpace, HueInterpolationMethod};
+use crate::values::generics::color::{
+    GenericColor, GenericColorMix, ColorInterpolationMethod, ColorSpace, HueInterpolationMethod,
+};
 use euclid::default::{Transform3D, Vector3D};
 use std::f32::consts::PI;
 
@@ -15,7 +17,7 @@ use std::f32::consts::PI;
 ///
 /// Unlike in computed values, each component value may exceed the
 /// range `[0.0, 1.0]`.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedZero)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedZero, ToAnimatedValue)]
 #[repr(C)]
 pub struct RGBA {
     /// The red component.
@@ -48,44 +50,20 @@ impl RGBA {
             alpha,
         }
     }
-
-    /// Returns whether or not the colour is in gamut for sRGB.
-    pub fn in_gamut(&self) -> bool {
-        0. <= self.red &&
-            self.red <= 1. &&
-            0. <= self.green &&
-            self.green <= 1. &&
-            0. <= self.blue &&
-            self.blue <= 1.
-    }
-
-    /// Returns the colour with coordinates clamped to the sRGB range.
-    pub fn clamp(&self) -> Self {
-        Self {
-            red: self.red.max(0.).min(1.),
-            green: self.green.max(0.).min(1.),
-            blue: self.blue.max(0.).min(1.),
-            alpha: self.alpha,
-        }
-    }
 }
 
 impl Animate for RGBA {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let mut alpha = self.alpha.animate(&other.alpha, procedure)?;
-        if alpha <= 0. {
-            // Ideally we should return color value that only alpha component is
-            // 0, but this is what current gecko does.
-            return Ok(RGBA::transparent());
-        }
-
-        alpha = alpha.min(1.);
-        let red = (self.red * self.alpha).animate(&(other.red * other.alpha), procedure)?;
-        let green = (self.green * self.alpha).animate(&(other.green * other.alpha), procedure)?;
-        let blue = (self.blue * self.alpha).animate(&(other.blue * other.alpha), procedure)?;
-        let inv = 1. / alpha;
-        Ok(RGBA::new(red * inv, green * inv, blue * inv, alpha))
+        let (left_weight, right_weight) = procedure.weights();
+        Ok(Color::mix(
+            &ColorInterpolationMethod::srgb(),
+            self,
+            left_weight as f32,
+            other,
+            right_weight as f32,
+            /* normalize_weights = */ false,
+        ))
     }
 }
 
@@ -113,41 +91,38 @@ impl ComputeSquaredDistance for RGBA {
 }
 
 /// An animated value for `<color>`.
-pub type Color = GenericColor<RGBA>;
+pub type Color = GenericColor<RGBA, Percentage>;
+
+/// An animated value for `<color-mix>`.
+pub type ColorMix = GenericColorMix<Color, Percentage>;
 
 impl Color {
-    fn effective_intermediate_rgba(&self) -> RGBA {
-        if self.ratios.bg == 0. {
-            return RGBA::transparent();
-        }
-
-        if self.ratios.bg == 1. {
-            return self.color;
-        }
-
-        RGBA {
-            alpha: self.color.alpha * self.ratios.bg,
-            ..self.color
-        }
+    fn to_rgba(&self, current_color: RGBA) -> RGBA {
+        let mut clone = self.clone();
+        clone.simplify(Some(&current_color));
+        *clone.as_numeric().unwrap()
     }
 
     /// Mix two colors into one.
     pub fn mix(
         interpolation: &ColorInterpolationMethod,
-        left_color: &Color,
+        left_color: &RGBA,
         mut left_weight: f32,
-        right_color: &Color,
+        right_color: &RGBA,
         mut right_weight: f32,
-    ) -> Self {
+        normalize_weights: bool,
+    ) -> RGBA {
         // https://drafts.csswg.org/css-color-5/#color-mix-percent-norm
-        let sum = left_weight + right_weight;
         let mut alpha_multiplier = 1.0;
-        if sum != 1.0 {
-            let scale = 1.0 / sum;
-            left_weight *= scale;
-            right_weight *= scale;
-            if sum < 1.0 {
-                alpha_multiplier = sum;
+        if normalize_weights {
+            let sum = left_weight + right_weight;
+            if sum != 1.0 {
+                let scale = 1.0 / sum;
+                left_weight *= scale;
+                right_weight *= scale;
+                if sum < 1.0 {
+                    alpha_multiplier = sum;
+                }
             }
         }
 
@@ -161,202 +136,77 @@ impl Color {
             ColorSpace::Hsl => Self::mix_in::<HSLA>,
             ColorSpace::Lch => Self::mix_in::<LCHA>,
         };
-        mix_function(left_color, left_weight, right_color, right_weight, interpolation.hue, alpha_multiplier)
+        mix_function(
+            left_color,
+            left_weight,
+            right_color,
+            right_weight,
+            interpolation.hue,
+            alpha_multiplier,
+        )
     }
 
     fn mix_in<S>(
-        left_color: &Color,
+        left_color: &RGBA,
         left_weight: f32,
-        right_color: &Color,
+        right_color: &RGBA,
         right_weight: f32,
         hue_interpolation: HueInterpolationMethod,
         alpha_multiplier: f32,
-    ) -> Self
+    ) -> RGBA
     where
         S: ModelledColor,
     {
-        let left_bg = S::from(left_color.scaled_rgba());
-        let right_bg = S::from(right_color.scaled_rgba());
+        let left = S::from(*left_color);
+        let right = S::from(*right_color);
 
-        let color = S::lerp(&left_bg, left_weight, &right_bg, right_weight, hue_interpolation);
-        let rgba: RGBA = color.into();
-        let mut rgba = if !rgba.in_gamut() {
-            // TODO: Better gamut mapping.
-            rgba.clamp()
-        } else {
-            rgba
-        };
-
+        let color = S::lerp(
+            &left,
+            left_weight,
+            &right,
+            right_weight,
+            hue_interpolation,
+        );
+        let mut rgba = RGBA::from(color.into());
         if alpha_multiplier != 1.0 {
             rgba.alpha *= alpha_multiplier;
         }
 
-        let fg = left_color.ratios.fg * left_weight + right_color.ratios.fg * right_weight;
-        Self::new(rgba, ComplexColorRatios { bg: 1., fg })
-    }
-
-    fn scaled_rgba(&self) -> RGBA {
-        if self.ratios.bg == 0. {
-            return RGBA::transparent();
-        }
-
-        if self.ratios.bg == 1. {
-            return self.color;
-        }
-
-        RGBA {
-            red: self.color.red * self.ratios.bg,
-            green: self.color.green * self.ratios.bg,
-            blue: self.color.blue * self.ratios.bg,
-            alpha: self.color.alpha * self.ratios.bg,
-        }
+        rgba
     }
 }
 
 impl Animate for Color {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let self_numeric = self.is_numeric();
-        let other_numeric = other.is_numeric();
-
-        if self_numeric && other_numeric {
-            return Ok(Self::rgba(self.color.animate(&other.color, procedure)?));
-        }
-
-        let self_currentcolor = self.is_currentcolor();
-        let other_currentcolor = other.is_currentcolor();
-
-        if self_currentcolor && other_currentcolor {
-            let (self_weight, other_weight) = procedure.weights();
-            return Ok(Self::new(
-                RGBA::transparent(),
-                ComplexColorRatios {
-                    bg: 0.,
-                    fg: (self_weight + other_weight) as f32,
-                },
-            ));
-        }
-
-        // FIXME(emilio): Without these special cases tests fail, looks fairly
-        // sketchy!
-        if (self_currentcolor && other_numeric) || (self_numeric && other_currentcolor) {
-            let (self_weight, other_weight) = procedure.weights();
-            return Ok(if self_numeric {
-                Self::new(
-                    self.color,
-                    ComplexColorRatios {
-                        bg: self_weight as f32,
-                        fg: other_weight as f32,
-                    },
-                )
-            } else {
-                Self::new(
-                    other.color,
-                    ComplexColorRatios {
-                        bg: other_weight as f32,
-                        fg: self_weight as f32,
-                    },
-                )
-            });
-        }
-
-        // Compute the "scaled" contribution for `color`.
-        // Each `Color`, represents a complex combination of foreground color and
-        // background color where fg and bg represent the overall
-        // contributions. ie:
-        //
-        //    color = { bg * mColor, fg * foreground }
-        //          =   { bg_color , fg_color }
-        //          =     bg_color + fg_color
-        //
-        // where `foreground` is `currentcolor`, and `bg_color`,
-        // `fg_color` are the scaled background and foreground
-        // contributions.
-        //
-        // Each operation, lerp, addition, or accumulate, can be
-        // represented as a scaled-addition each complex color. ie:
-        //
-        //    p * col1 + q * col2
-        //
-        // where p = (1 - a), q = a for lerp(a), p = 1, q = 1 for
-        // addition, etc.
-        //
-        // Therefore:
-        //
-        //    col1 op col2
-        //    = p * col1 + q * col2
-        //    = p * { bg_color1, fg_color1 } + q * { bg_color2, fg_color2 }
-        //    = p * (bg_color1 + fg_color1) + q * (bg_color2 + fg_color2)
-        //    = p * bg_color1 + p * fg_color1 + q * bg_color2 + p * fg_color2
-        //    = (p * bg_color1 + q * bg_color2) + (p * fg_color1 + q * fg_color2)
-        //    = (bg_color1 op bg_color2) + (fg_color1 op fg_color2)
-        //
-        // fg_color1 op fg_color2 is equivalent to (fg1 op fg2) * foreground,
-        // so the final color is:
-        //
-        //    = { bg_color, fg_color }
-        //    = { 1 * (bg_color1 op bg_color2), (fg1 op fg2) * foreground }
-        //
-        // To perform the operation on two complex colors, we need to
-        // generate the scaled contributions of each background color
-        // component.
-        let bg_color1 = self.scaled_rgba();
-        let bg_color2 = other.scaled_rgba();
-
-        // Perform bg_color1 op bg_color2
-        let bg_color = bg_color1.animate(&bg_color2, procedure)?;
-
-        // Calculate the final foreground color ratios; perform
-        // animation on effective fg ratios.
-        let fg = self.ratios.fg.animate(&other.ratios.fg, procedure)?;
-
-        Ok(Self::new(bg_color, ComplexColorRatios { bg: 1., fg }))
+        let (left_weight, right_weight) = procedure.weights();
+        let mut color = Color::ColorMix(Box::new(ColorMix {
+            interpolation: ColorInterpolationMethod::srgb(),
+            left: self.clone(),
+            left_percentage: Percentage(left_weight as f32),
+            right: other.clone(),
+            right_percentage: Percentage(right_weight as f32),
+            // See https://github.com/w3c/csswg-drafts/issues/7324
+            normalize_weights: false,
+        }));
+        color.simplify(None);
+        Ok(color)
     }
 }
 
 impl ComputeSquaredDistance for Color {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        // All comments from the Animate impl also apply here.
-        let self_numeric = self.is_numeric();
-        let other_numeric = other.is_numeric();
-
-        if self_numeric && other_numeric {
-            return self.color.compute_squared_distance(&other.color);
-        }
-
-        let self_currentcolor = self.is_currentcolor();
-        let other_currentcolor = other.is_currentcolor();
-        if self_currentcolor && other_currentcolor {
-            return Ok(SquaredDistance::from_sqrt(0.));
-        }
-
-        if (self_currentcolor && other_numeric) || (self_numeric && other_currentcolor) {
-            let color = if self_numeric {
-                &self.color
-            } else {
-                &other.color
-            };
-            // `computed_squared_distance` is symmetric.
-            return Ok(color.compute_squared_distance(&RGBA::transparent())? +
-                SquaredDistance::from_sqrt(1.));
-        }
-
-        let self_color = self.effective_intermediate_rgba();
-        let other_color = other.effective_intermediate_rgba();
-        let self_ratios = self.ratios;
-        let other_ratios = other.ratios;
-
-        Ok(self_color.compute_squared_distance(&other_color)? +
-            self_ratios.bg.compute_squared_distance(&other_ratios.bg)? +
-            self_ratios.fg.compute_squared_distance(&other_ratios.fg)?)
+        let current_color = RGBA::transparent();
+        self.to_rgba(current_color)
+            .compute_squared_distance(&other.to_rgba(current_color))
     }
 }
 
 impl ToAnimatedZero for Color {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(RGBA::transparent().into())
+        Ok(Color::rgba(RGBA::transparent()))
     }
 }
 
@@ -488,9 +338,23 @@ fn interpolate_premultiplied(
     for i in 0..3 {
         let is_hue = hue_index == Some(i);
         result[i] = if is_hue {
-            interpolate_hue(left[i], left_weight, right[i], right_weight, hue_interpolation)
+            interpolate_hue(
+                left[i],
+                left_weight,
+                right[i],
+                right_weight,
+                hue_interpolation,
+            )
         } else {
-            interpolate_premultiplied_component(left[i], left_weight, left_alpha, right[i], right_weight, right_alpha, inverse_of_result_alpha)
+            interpolate_premultiplied_component(
+                left[i],
+                left_weight,
+                left_alpha,
+                right[i],
+                right_weight,
+                right_alpha,
+                inverse_of_result_alpha,
+            )
         };
     }
     result[3] = result_alpha;
@@ -524,7 +388,7 @@ macro_rules! impl_lerp {
                 }
             }
         }
-    }
+    };
 }
 
 impl_lerp!(RGBA, None);
@@ -614,7 +478,12 @@ impl_lerp!(HSLA, Some(0));
 //
 // We also return min/max for the hwb conversion.
 fn rgb_to_hsl(rgba: RGBA) -> (HSLA, f32, f32) {
-    let RGBA { red, green, blue, alpha } = rgba;
+    let RGBA {
+        red,
+        green,
+        blue,
+        alpha,
+    } = rgba;
     let max = red.max(green).max(blue);
     let min = red.min(green).min(blue);
     let mut hue = std::f32::NAN;
@@ -640,7 +509,16 @@ fn rgb_to_hsl(rgba: RGBA) -> (HSLA, f32, f32) {
         hue *= 60.;
     }
 
-    (HSLA { hue, sat, light, alpha }, min, max)
+    (
+        HSLA {
+            hue,
+            sat,
+            light,
+            alpha,
+        },
+        min,
+        max,
+    )
 }
 
 impl From<RGBA> for HSLA {
@@ -750,7 +628,7 @@ impl From<XYZD50A> for XYZD65A {
             0.0632593086610217,    0.021041398966943008,  1.3303659366080753,    0.,
             0.,                    0.,                    0.,                    1.,
         );
-        let d65  = BRADFORD_INVERSE.transform_vector3d(Vector3D::new(d50.x, d50.y, d50.z));
+        let d65 = BRADFORD_INVERSE.transform_vector3d(Vector3D::new(d50.x, d50.y, d50.z));
         Self {
             x: d65.x,
             y: d65.y,
