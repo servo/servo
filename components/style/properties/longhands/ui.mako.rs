@@ -98,6 +98,16 @@ ${helpers.predefined_type(
     enabled_in="chrome",
 )}
 
+${helpers.predefined_type(
+    "-moz-window-input-region-margin",
+    "Length",
+    "computed::Length::zero()",
+    engines="gecko",
+    animation_value_type="ComputedValue",
+    spec="None (Nonstandard internal property)",
+    enabled_in="chrome",
+)}
+
 // TODO(emilio): Probably also should be hidden from content.
 ${helpers.predefined_type(
     "-moz-force-broken-image-icon",
