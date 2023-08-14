@@ -1911,10 +1911,6 @@ pub enum Appearance {
     MozMacSourceList,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozMacSourceListSelection,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozMacVibrantTitlebarDark,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozMacVibrantTitlebarLight,
 
     /// A themed focus outline (for outline:auto).
     ///
