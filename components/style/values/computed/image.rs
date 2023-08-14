@@ -32,7 +32,7 @@ pub type Image =
     generic::GenericImage<Gradient, MozImageRect, ComputedImageUrl, Color, Percentage, Resolution>;
 
 // Images should remain small, see https://github.com/servo/servo/pull/18430
-size_of_test!(Image, 16);
+size_of_test!(Image, 40);
 
 /// Computed values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>

@@ -16,7 +16,6 @@ extern crate serde_json;
 extern crate servo_arc;
 extern crate servo_atoms;
 extern crate servo_url;
-#[macro_use]
 extern crate style;
 extern crate style_traits;
 extern crate test;
@@ -28,7 +27,6 @@ mod logical_geometry;
 mod parsing;
 mod properties;
 mod rule_tree;
-mod size_of;
 mod str;
 mod stylesheets;
 mod stylist;

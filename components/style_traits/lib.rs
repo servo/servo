@@ -10,6 +10,9 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code, missing_docs)]
 
+#[macro_use]
+extern crate size_of_test;
+
 use bitflags::bitflags;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -81,9 +84,11 @@ pub use crate::values::{
 
 /// The error type for all CSS parsing routines.
 pub type ParseError<'i> = cssparser::ParseError<'i, StyleParseErrorKind<'i>>;
+size_of_test!(ParseError, 64);
 
 /// Error in property value parsing
 pub type ValueParseError<'i> = cssparser::ParseError<'i, ValueParseErrorKind<'i>>;
+size_of_test!(ValueParseError, 48);
 
 #[derive(Clone, Debug, PartialEq)]
 /// Errors that can be encountered while parsing CSS values.
@@ -148,6 +153,7 @@ pub enum StyleParseErrorKind<'i> {
     /// The property is not allowed within a page rule.
     NotAllowedInPageRule,
 }
+size_of_test!(StyleParseErrorKind, 56);
 
 impl<'i> From<ValueParseErrorKind<'i>> for StyleParseErrorKind<'i> {
     fn from(this: ValueParseErrorKind<'i>) -> Self {
@@ -169,6 +175,7 @@ pub enum ValueParseErrorKind<'i> {
     /// An invalid filter value was encountered.
     InvalidFilter(Token<'i>),
 }
+size_of_test!(ValueParseErrorKind, 40);
 
 impl<'i> StyleParseErrorKind<'i> {
     /// Create an InvalidValue parse error
