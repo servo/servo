@@ -1328,10 +1328,9 @@ impl From<NoCalcLength> for LengthPercentage {
 impl From<Percentage> for LengthPercentage {
     #[inline]
     fn from(pc: Percentage) -> Self {
-        if pc.is_calc() {
-            // FIXME(emilio): Hard-coding the clamping mode is suspect.
+        if let Some(clamping_mode) = pc.calc_clamping_mode() {
             LengthPercentage::Calc(Box::new(CalcLengthPercentage {
-                clamping_mode: AllowedNumericType::All,
+                clamping_mode,
                 node: CalcNode::Leaf(calc::Leaf::Percentage(pc.get())),
             }))
         } else {
@@ -1362,6 +1361,12 @@ impl LengthPercentage {
     /// Returns a `0%` value.
     pub fn zero_percent() -> LengthPercentage {
         LengthPercentage::Percentage(computed::Percentage::zero())
+    }
+
+    #[inline]
+    /// Returns a `100%` value.
+    pub fn hundred_percent() -> LengthPercentage {
+        LengthPercentage::Percentage(computed::Percentage::hundred())
     }
 
     fn parse_internal<'i, 't>(

@@ -733,12 +733,12 @@ impl Gradient {
         if items.is_empty() {
             items = vec![
                 generic::GradientItem::ComplexColorStop {
-                    color: Color::transparent().into(),
-                    position: Percentage::zero().into(),
+                    color: Color::transparent(),
+                    position: LengthPercentage::zero_percent(),
                 },
                 generic::GradientItem::ComplexColorStop {
-                    color: Color::transparent().into(),
-                    position: Percentage::hundred().into(),
+                    color: Color::transparent(),
+                    position: LengthPercentage::hundred_percent(),
                 },
             ];
         } else if items.len() == 1 {
