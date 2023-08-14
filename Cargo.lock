@@ -5864,6 +5864,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
 
 [[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
 name = "std_test_override"
 version = "0.0.1"
 dependencies = [
@@ -5960,6 +5966,7 @@ dependencies = [
  "servo_url",
  "smallbitvec",
  "smallvec",
+ "static_assertions",
  "string_cache",
  "style_derive",
  "style_traits",
