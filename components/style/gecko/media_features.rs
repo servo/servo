@@ -284,6 +284,34 @@ fn eval_overflow_inline(context: &Context, query_value: Option<OverflowInline>) 
     }
 }
 
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
+#[repr(u8)]
+enum Update {
+    None,
+    Slow,
+    Fast,
+}
+
+/// https://drafts.csswg.org/mediaqueries-4/#update
+fn eval_update(context: &Context, query_value: Option<Update>) -> bool {
+    // This has similar caveats to those described in eval_overflow_block.
+    // For now, we report that print (incl. print media simulation,
+    // which can in fact update but is limited to the developer tools)
+    // is `update: none` and that all other contexts are `update: fast`,
+    // which may not be true for future platforms, like e-ink devices.
+    let can_update = context.device().media_type() != MediaType::print();
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return can_update,
+    };
+
+    match query_value {
+        Update::None => !can_update,
+        Update::Slow => false,
+        Update::Fast => can_update,
+    }
+}
+
 fn do_eval_prefers_color_scheme(
     context: &Context,
     use_content: bool,
@@ -558,7 +586,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 59] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -703,6 +731,12 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 59] = [
         atom!("overflow-inline"),
         AllowsRanges::No,
         keyword_evaluator!(eval_overflow_inline, OverflowInline),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("update"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_update, Update),
         ParsingRequirements::empty(),
     ),
     feature!(
