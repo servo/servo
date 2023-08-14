@@ -928,6 +928,9 @@ pub trait TElement:
     /// Returns element's namespace.
     fn namespace(&self)
         -> &<SelectorImpl as selectors::parser::SelectorImpl>::BorrowedNamespaceUrl;
+
+    /// Returns the size of the primary box of the element.
+    fn primary_box_size(&self) -> euclid::default::Size2D<app_units::Au>;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

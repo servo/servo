@@ -7,7 +7,7 @@
 //! https://drafts.csswg.org/mediaqueries-4/#typedef-media-condition
 //! https://drafts.csswg.org/css-contain-3/#typedef-container-condition
 
-use super::{QueryFeatureExpression, FeatureType};
+use super::{QueryFeatureExpression, FeatureType, FeatureFlags};
 use crate::parser::ParserContext;
 use crate::values::computed;
 use cssparser::{Parser, Token};
@@ -83,6 +83,35 @@ impl QueryCondition {
         feature_type: FeatureType,
     ) -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, feature_type, AllowOr::Yes)
+    }
+
+    fn visit<F>(&self, visitor: &mut F)
+    where
+        F: FnMut(&Self),
+    {
+        visitor(self);
+        match *self {
+            Self::Feature(..) => {},
+            Self::Not(ref cond) => cond.visit(visitor),
+            Self::Operation(ref conds, _op) => {
+                for cond in conds.iter() {
+                    cond.visit(visitor);
+                }
+            },
+            Self::InParens(ref cond) => cond.visit(visitor),
+        }
+    }
+
+    /// Returns the union of all flags in the expression. This is useful for
+    /// container queries.
+    pub fn cumulative_flags(&self) -> FeatureFlags {
+        let mut result = FeatureFlags::empty();
+        self.visit(&mut |condition| {
+            if let Self::Feature(ref f) = condition {
+                result.insert(f.feature_flags())
+            }
+        });
+        result
     }
 
     /// Parse a single condition, disallowing `or` expressions.

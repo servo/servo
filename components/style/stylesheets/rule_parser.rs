@@ -10,7 +10,6 @@ use crate::font_face::parse_font_face_block;
 use crate::media_queries::MediaList;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::parse_property_declaration_list;
-use crate::queries::FeatureType;
 use crate::selector_parser::{SelectorImpl, SelectorParser};
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::str::starts_with_ignore_ascii_case;
@@ -30,7 +29,6 @@ use crate::stylesheets::{
 };
 use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, KeyframesName, TimelineName};
-use crate::values::specified::ContainerName;
 use crate::{Namespace, Prefix};
 use cssparser::{
     AtRuleParser, BasicParseError, BasicParseErrorKind, CowRcStr, Parser, ParserState,
@@ -192,7 +190,7 @@ pub enum AtRulePrelude {
     /// A @media rule prelude, with its media queries.
     Media(Arc<Locked<MediaList>>),
     /// A @container rule prelude.
-    Container(ContainerName, ContainerCondition),
+    Container(Arc<ContainerCondition>),
     /// An @supports rule, with its conditional
     Supports(SupportsCondition),
     /// A @viewport rule prelude.
@@ -487,13 +485,8 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 AtRulePrelude::FontFace
             },
             "container" if container_queries_enabled() => {
-                // FIXME: This is a bit ambiguous:
-                // https://github.com/w3c/csswg-drafts/issues/7203
-                let name = input.try_parse(|input| {
-                    ContainerName::parse(self.context, input)
-                }).ok().unwrap_or_else(ContainerName::none);
-                let condition = ContainerCondition::parse(self.context, input, FeatureType::Container)?;
-                AtRulePrelude::Container(name, condition)
+                let condition = Arc::new(ContainerCondition::parse(self.context, input)?);
+                AtRulePrelude::Container(condition)
             },
             "layer" => {
                 let names = input.try_parse(|input| {
@@ -676,10 +669,9 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     },
                 ))))
             },
-            AtRulePrelude::Container(name, condition) => {
+            AtRulePrelude::Container(condition) => {
                 Ok(CssRule::Container(Arc::new(self.shared_lock.wrap(
                     ContainerRule {
-                        name,
                         condition,
                         rules: self.parse_nested_rules(input, CssRuleType::Container),
                         source_location: start.source_location(),

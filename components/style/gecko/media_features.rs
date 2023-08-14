@@ -6,7 +6,7 @@
 
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
-use crate::queries::feature::{AllowsRanges, Evaluator, ParsingRequirements, QueryFeatureDescription};
+use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
 use crate::queries::values::Orientation;
 use crate::media_queries::{Device, MediaType};
 use crate::values::computed::{Context, CSSPixelLength, Ratio, Resolution};
@@ -548,7 +548,7 @@ macro_rules! lnf_int_feature {
             $feature_name,
             AllowsRanges::No,
             Evaluator::BoolInteger(__eval),
-            ParsingRequirements::CHROME_AND_UA_ONLY,
+            FeatureFlags::CHROME_AND_UA_ONLY,
         )
     }};
     ($feature_name:expr, $int_id:ident) => {{
@@ -576,7 +576,7 @@ macro_rules! bool_pref_feature {
             $feature_name,
             AllowsRanges::No,
             Evaluator::BoolInteger(__eval),
-            ParsingRequirements::CHROME_AND_UA_ONLY,
+            FeatureFlags::CHROME_AND_UA_ONLY,
         )
     }};
 }
@@ -591,49 +591,49 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
         atom!("width"),
         AllowsRanges::Yes,
         Evaluator::Length(eval_width),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("height"),
         AllowsRanges::Yes,
         Evaluator::Length(eval_height),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("aspect-ratio"),
         AllowsRanges::Yes,
         Evaluator::NumberRatio(eval_aspect_ratio),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("orientation"),
         AllowsRanges::No,
         keyword_evaluator!(eval_orientation, Orientation),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("device-width"),
         AllowsRanges::Yes,
         Evaluator::Length(eval_device_width),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("device-height"),
         AllowsRanges::Yes,
         Evaluator::Length(eval_device_height),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("device-aspect-ratio"),
         AllowsRanges::Yes,
         Evaluator::NumberRatio(eval_device_aspect_ratio),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("-moz-device-orientation"),
         AllowsRanges::No,
         keyword_evaluator!(eval_device_orientation, Orientation),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     // Webkit extensions that we support for de-facto web compatibility.
     // -webkit-{min|max}-device-pixel-ratio (controlled with its own pref):
@@ -641,68 +641,68 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
         atom!("device-pixel-ratio"),
         AllowsRanges::Yes,
         Evaluator::Float(eval_device_pixel_ratio),
-        ParsingRequirements::WEBKIT_PREFIX,
+        FeatureFlags::WEBKIT_PREFIX,
     ),
     // -webkit-transform-3d.
     feature!(
         atom!("transform-3d"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_transform_3d),
-        ParsingRequirements::WEBKIT_PREFIX,
+        FeatureFlags::WEBKIT_PREFIX,
     ),
     feature!(
         atom!("-moz-device-pixel-ratio"),
         AllowsRanges::Yes,
         Evaluator::Float(eval_device_pixel_ratio),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("resolution"),
         AllowsRanges::Yes,
         Evaluator::Resolution(eval_resolution),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("display-mode"),
         AllowsRanges::No,
         keyword_evaluator!(eval_display_mode, DisplayMode),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("grid"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_grid),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("scan"),
         AllowsRanges::No,
         keyword_evaluator!(eval_scan, Scan),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("color"),
         AllowsRanges::Yes,
         Evaluator::Integer(eval_color),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("color-index"),
         AllowsRanges::Yes,
         Evaluator::Integer(eval_color_index),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("monochrome"),
         AllowsRanges::Yes,
         Evaluator::Integer(eval_monochrome),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("prefers-reduced-motion"),
         AllowsRanges::No,
         keyword_evaluator!(eval_prefers_reduced_motion, PrefersReducedMotion),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("prefers-contrast"),
@@ -713,49 +713,49 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
         // layout.css.prefers-contrast.enabled preference. See
         // disabed_by_pref in media_feature_expression.rs for how that
         // is done.
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("forced-colors"),
         AllowsRanges::No,
         keyword_evaluator!(eval_forced_colors, ForcedColors),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("overflow-block"),
         AllowsRanges::No,
         keyword_evaluator!(eval_overflow_block, OverflowBlock),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("overflow-inline"),
         AllowsRanges::No,
         keyword_evaluator!(eval_overflow_inline, OverflowInline),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("update"),
         AllowsRanges::No,
         keyword_evaluator!(eval_update, Update),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("prefers-color-scheme"),
         AllowsRanges::No,
         keyword_evaluator!(eval_prefers_color_scheme, PrefersColorScheme),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("dynamic-range"),
         AllowsRanges::No,
         keyword_evaluator!(eval_dynamic_range, DynamicRange),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("video-dynamic-range"),
         AllowsRanges::No,
         keyword_evaluator!(eval_video_dynamic_range, DynamicRange),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     // Evaluates to the preferred color scheme for content. Only useful in
     // chrome context, where the chrome color-scheme and the content
@@ -764,31 +764,31 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
         atom!("-moz-content-prefers-color-scheme"),
         AllowsRanges::No,
         keyword_evaluator!(eval_content_prefers_color_scheme, PrefersColorScheme),
-        ParsingRequirements::CHROME_AND_UA_ONLY,
+        FeatureFlags::CHROME_AND_UA_ONLY,
     ),
     feature!(
         atom!("pointer"),
         AllowsRanges::No,
         keyword_evaluator!(eval_pointer, Pointer),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("any-pointer"),
         AllowsRanges::No,
         keyword_evaluator!(eval_any_pointer, Pointer),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("hover"),
         AllowsRanges::No,
         keyword_evaluator!(eval_hover, Hover),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     feature!(
         atom!("any-hover"),
         AllowsRanges::No,
         keyword_evaluator!(eval_any_hover, Hover),
-        ParsingRequirements::empty(),
+        FeatureFlags::empty(),
     ),
     // Internal -moz-is-glyph media feature: applies only inside SVG glyphs.
     // Internal because it is really only useful in the user agent anyway
@@ -797,43 +797,43 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
         atom!("-moz-is-glyph"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_moz_is_glyph),
-        ParsingRequirements::CHROME_AND_UA_ONLY,
+        FeatureFlags::CHROME_AND_UA_ONLY,
     ),
     feature!(
         atom!("-moz-is-resource-document"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_moz_is_resource_document),
-        ParsingRequirements::CHROME_AND_UA_ONLY,
+        FeatureFlags::CHROME_AND_UA_ONLY,
     ),
     feature!(
         atom!("-moz-platform"),
         AllowsRanges::No,
         keyword_evaluator!(eval_moz_platform, Platform),
-        ParsingRequirements::CHROME_AND_UA_ONLY,
+        FeatureFlags::CHROME_AND_UA_ONLY,
     ),
     feature!(
         atom!("-moz-print-preview"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_moz_print_preview),
-        ParsingRequirements::CHROME_AND_UA_ONLY,
+        FeatureFlags::CHROME_AND_UA_ONLY,
     ),
     feature!(
         atom!("-moz-non-native-content-theme"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_moz_non_native_content_theme),
-        ParsingRequirements::CHROME_AND_UA_ONLY,
+        FeatureFlags::CHROME_AND_UA_ONLY,
     ),
     feature!(
         atom!("-moz-windows-non-native-menus"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_moz_windows_non_native_menus),
-        ParsingRequirements::CHROME_AND_UA_ONLY,
+        FeatureFlags::CHROME_AND_UA_ONLY,
     ),
     feature!(
         atom!("-moz-overlay-scrollbars"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_moz_overlay_scrollbars),
-        ParsingRequirements::CHROME_AND_UA_ONLY,
+        FeatureFlags::CHROME_AND_UA_ONLY,
     ),
     lnf_int_feature!(
         atom!("-moz-scrollbar-start-backward"),

@@ -66,6 +66,8 @@ use crate::stylist::CascadeData;
 use crate::values::{AtomIdent, AtomString};
 use crate::CaseSensitivityExt;
 use crate::LocalName;
+use app_units::Au;
+use euclid::default::Size2D;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use fxhash::FxHashMap;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
@@ -319,6 +321,11 @@ impl<'ln> GeckoNode<'ln> {
     fn is_in_shadow_tree(&self) -> bool {
         use crate::gecko_bindings::structs::NODE_IS_IN_SHADOW_TREE;
         self.flags() & (NODE_IS_IN_SHADOW_TREE as u32) != 0
+    }
+
+    #[inline]
+    fn is_connected(&self) -> bool {
+        self.get_bool_flag(nsINode_BooleanFlag::IsConnected)
     }
 
     /// WARNING: This logic is duplicated in Gecko's FlattenedTreeParentIsParent.
@@ -1027,6 +1034,21 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe {
             let namespace_manager = structs::nsNameSpaceManager_sInstance.mRawPtr;
             WeakNamespace::new((*namespace_manager).mURIArray[self.namespace_id() as usize].mRawPtr)
+        }
+    }
+
+    #[inline]
+    fn primary_box_size(&self) -> Size2D<Au> {
+        if !self.as_node().is_connected() {
+            return Size2D::zero();
+        }
+
+        unsafe {
+            let frame = self.0._base._base._base.__bindgen_anon_1.mPrimaryFrame.as_ref();
+            if frame.is_null() {
+                return Size2D::zero();
+            }
+            Size2D::new(Au((**frame).mRect.width), Au((**frame).mRect.height))
         }
     }
 

@@ -225,6 +225,7 @@ where
             &mut self.context,
             cascade_level,
             cascade_data,
+            &self.stylist,
         );
     }
 
@@ -243,6 +244,7 @@ where
             &mut self.context,
             cascade_level,
             cascade_data,
+            &self.stylist,
         );
     }
 

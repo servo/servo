@@ -15,4 +15,5 @@ pub mod feature_expression;
 pub mod values;
 
 pub use self::condition::QueryCondition;
+pub use self::feature::FeatureFlags;
 pub use self::feature_expression::{QueryFeatureExpression, FeatureType};

@@ -62,7 +62,6 @@ pub use servo_arc;
 #[cfg(feature = "servo")]
 #[macro_use]
 extern crate servo_atoms;
-#[cfg(target_pointer_width = "64")]
 #[macro_use]
 extern crate static_assertions;
 #[macro_use]
