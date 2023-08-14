@@ -159,6 +159,9 @@ pub struct ElementStyles {
     pub pseudos: EagerPseudoStyles,
 }
 
+// There's one of these per rendered elements so it better be small.
+size_of_test!(ElementStyles, 16);
+
 impl ElementStyles {
     /// Returns the primary style.
     pub fn get_primary(&self) -> Option<&Arc<ComputedValues>> {
@@ -248,6 +251,9 @@ pub struct ElementData {
     /// Flags.
     pub flags: ElementDataFlags,
 }
+
+// There's one of these per rendered elements so it better be small.
+size_of_test!(ElementData, 24);
 
 /// The kind of restyle that a single element should do.
 #[derive(Debug)]

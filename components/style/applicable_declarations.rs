@@ -208,3 +208,6 @@ impl ApplicableDeclarationBlock {
         (self.source, self.cascade_priority)
     }
 }
+
+// Size of this struct determines sorting and selector-matching performance.
+size_of_test!(ApplicableDeclarationBlock, 24);

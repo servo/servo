@@ -3115,6 +3115,12 @@ impl Rule {
     }
 }
 
+// The size of this is critical to performance on the bloom-basic
+// microbenchmark.
+// When iterating over a large Rule array, we want to be able to fast-reject
+// selectors (with the inline hashes) with as few cache misses as possible.
+size_of_test!(Rule, 40);
+
 /// A function to be able to test the revalidation stuff.
 pub fn needs_revalidation_for_testing(s: &Selector<SelectorImpl>) -> bool {
     let mut attribute_dependencies = Default::default();
