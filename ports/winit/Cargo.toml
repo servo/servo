@@ -30,13 +30,12 @@ ProductName = "Servo"
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["webdriver", "max_log_level", "minibrowser"]
+default = ["webdriver", "max_log_level"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 max_log_level = ["log/release_max_level_info"]
 media-dummy = ["libservo/media-dummy"]
 media-gstreamer = ["libservo/media-gstreamer"]
-minibrowser = ["dep:egui", "dep:egui-winit", "dep:egui_glow", "dep:gleam", "dep:glow"]
 native-bluetooth = ["libservo/native-bluetooth"]
 no-wgl = ["libservo/no-wgl"]
 profilemozjs = ["libservo/profilemozjs"]
@@ -49,13 +48,13 @@ xr-profile = ["libservo/xr-profile"]
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
 clipboard = "0.5"
-egui = { version = "0.22.0", optional = true }
-egui_glow = { version = "0.22.0", optional = true, features = ["winit"] }
-egui-winit = { version = "0.22.0", optional = true, default-features = false, features = ["clipboard", "wayland"] }
+egui = "0.22.0"
+egui_glow = { version = "0.22.0", features = ["winit"] }
+egui-winit = { version = "0.22.0", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 getopts = { workspace = true }
-gleam = { version = "0.12", optional = true }
-glow = { version = "0.12.2", optional = true }
+gleam = "0.12"
+glow = "0.12.2"
 keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
