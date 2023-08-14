@@ -3219,7 +3219,7 @@ impl ComputedValues {
     ///   style.resolve_color(style.get_border().clone_border_top_color());
     #[inline]
     pub fn resolve_color(&self, color: computed::Color) -> RGBA {
-        color.to_rgba(self.get_inherited_text().clone_color())
+        color.into_rgba(self.get_inherited_text().clone_color())
     }
 
     /// Returns which longhand properties have different values in the two

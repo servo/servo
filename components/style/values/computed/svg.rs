@@ -8,7 +8,6 @@ use crate::values::computed::color::Color;
 use crate::values::computed::url::ComputedUrl;
 use crate::values::computed::{LengthPercentage, NonNegativeLengthPercentage, Opacity};
 use crate::values::generics::svg as generic;
-use crate::values::RGBA;
 use crate::Zero;
 
 pub use crate::values::specified::{DProperty, MozContextProperties, SVGPaintOrder};
@@ -22,9 +21,8 @@ pub type SVGPaintKind = generic::GenericSVGPaintKind<Color, ComputedUrl>;
 impl SVGPaint {
     /// Opaque black color
     pub fn black() -> Self {
-        let rgba = RGBA::from_floats(0., 0., 0., 1.).into();
         SVGPaint {
-            kind: generic::SVGPaintKind::Color(rgba),
+            kind: generic::SVGPaintKind::Color(Color::black()),
             fallback: generic::SVGPaintFallback::Unset,
         }
     }
