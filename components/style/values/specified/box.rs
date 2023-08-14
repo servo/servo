@@ -1097,6 +1097,28 @@ impl ToCss for ScrollSnapAlign {
     ToShmem,
 )]
 #[repr(u8)]
+pub enum ScrollSnapStop {
+    Normal,
+    Always,
+}
+
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
 pub enum OverscrollBehavior {
     Auto,
     Contain,
