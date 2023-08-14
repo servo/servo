@@ -267,6 +267,9 @@ pub enum PropertyDeclaration {
     % endfor
 }
 
+// There's one of these for each parsed declaration so it better be small.
+size_of_test!(PropertyDeclaration, 32);
+
 #[repr(C)]
 struct PropertyDeclarationVariantRepr<T> {
     tag: u16,
@@ -2604,6 +2607,10 @@ pub struct SourcePropertyDeclaration {
     all_shorthand: AllShorthand,
 }
 
+// This is huge, but we allocate it on the stack and then never move it,
+// we only pass `&mut SourcePropertyDeclaration` references around.
+size_of_test!(SourcePropertyDeclaration, 600);
+
 impl SourcePropertyDeclaration {
     /// Create one. It’s big, try not to move it around.
     #[inline]
@@ -4233,6 +4240,11 @@ macro_rules! longhand_properties_idents {
         }
     }
 }
+
+// Large pages generate tens of thousands of ComputedValues.
+size_of_test!(ComputedValues, 232);
+// FFI relies on this.
+size_of_test!(Option<Arc<ComputedValues>>, 8);
 
 // There are two reasons for this test to fail:
 //

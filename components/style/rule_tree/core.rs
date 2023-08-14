@@ -203,9 +203,6 @@ impl RuleTree {
 /// where it likely did not result from a rigorous performance analysis.)
 const RULE_TREE_GC_INTERVAL: usize = 300;
 
-/// Used for some size assertions.
-pub const RULE_NODE_SIZE: usize = std::mem::size_of::<RuleNode>();
-
 /// A node in the rule tree.
 struct RuleNode {
     /// The root node. Only the root has no root pointer, for obvious reasons.
@@ -768,3 +765,8 @@ impl hash::Hash for StrongRuleNode {
         (&*self.p as *const RuleNode).hash(state)
     }
 }
+
+// Large pages generate thousands of RuleNode objects.
+size_of_test!(RuleNode, 80);
+// StrongRuleNode should be pointer-sized even inside an option.
+size_of_test!(Option<StrongRuleNode>, 8);

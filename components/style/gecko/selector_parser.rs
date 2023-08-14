@@ -445,3 +445,9 @@ unsafe impl HasFFI for SelectorList<SelectorImpl> {
 }
 unsafe impl HasSimpleFFI for SelectorList<SelectorImpl> {}
 unsafe impl HasBoxFFI for SelectorList<SelectorImpl> {}
+
+// Selector and component sizes are important for matching performance.
+size_of_test!(selectors::parser::Selector<SelectorImpl>, 8);
+size_of_test!(selectors::parser::Component<SelectorImpl>, 24);
+size_of_test!(PseudoElement, 16);
+size_of_test!(NonTSPseudoClass, 16);
