@@ -1416,7 +1416,7 @@ impl ScriptThread {
             replace_surrogates: opts.debug.replace_surrogates,
             user_agent,
             player_context: state.player_context,
-            event_loop_waker: state.event_loop_waker,
+            event_loop_waker: None,
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
