@@ -99,8 +99,8 @@ impl Minibrowser {
     /// started editing it without clicking Go.
     pub fn update_location_in_toolbar(&mut self, browser: &mut Browser<dyn WindowPortsMethods>) -> bool {
         if !self.location_dirty.get() {
-            if let Some(current_url) = browser.take_top_level_url_change() {
-                self.location = RefCell::new(ServoUrl::into_string(current_url));
+            if let Some(location) = browser.current_url_string() {
+                self.location = RefCell::new(location.to_owned());
                 return true;
             }
         }
