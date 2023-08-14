@@ -134,10 +134,22 @@ impl Color {
     pub fn mix(
         interpolation: &ColorInterpolationMethod,
         left_color: &Color,
-        left_weight: f32,
+        mut left_weight: f32,
         right_color: &Color,
-        right_weight: f32,
+        mut right_weight: f32,
     ) -> Self {
+        // https://drafts.csswg.org/css-color-5/#color-mix-percent-norm
+        let sum = left_weight + right_weight;
+        let mut alpha_multiplier = 1.0;
+        if sum != 1.0 {
+            let scale = 1.0 / sum;
+            left_weight *= scale;
+            right_weight *= scale;
+            if sum < 1.0 {
+                alpha_multiplier = sum;
+            }
+        }
+
         let mix_function = match interpolation.space {
             ColorSpace::Srgb => Self::mix_in::<RGBA>,
             ColorSpace::LinearSrgb => Self::mix_in::<LinearRGBA>,
@@ -148,7 +160,7 @@ impl Color {
             ColorSpace::Hsl => Self::mix_in::<HSLA>,
             ColorSpace::Lch => Self::mix_in::<LCHA>,
         };
-        mix_function(left_color, left_weight, right_color, right_weight, interpolation.hue)
+        mix_function(left_color, left_weight, right_color, right_weight, interpolation.hue, alpha_multiplier)
     }
 
     fn mix_in<S>(
@@ -157,6 +169,7 @@ impl Color {
         right_color: &Color,
         right_weight: f32,
         hue_interpolation: HueInterpolationMethod,
+        alpha_multiplier: f32,
     ) -> Self
     where
         S: ModelledColor,
@@ -166,12 +179,16 @@ impl Color {
 
         let color = S::lerp(&left_bg, left_weight, &right_bg, right_weight, hue_interpolation);
         let rgba: RGBA = color.into();
-        let rgba = if !rgba.in_gamut() {
+        let mut rgba = if !rgba.in_gamut() {
             // TODO: Better gamut mapping.
             rgba.clamp()
         } else {
             rgba
         };
+
+        if alpha_multiplier != 1.0 {
+            rgba.alpha *= alpha_multiplier;
+        }
 
         let fg = left_color.ratios.fg * left_weight + right_color.ratios.fg * right_weight;
         Self::new(rgba, ComplexColorRatios { bg: 1., fg })
