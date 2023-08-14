@@ -20,6 +20,7 @@ mod events_loop;
 mod headed_window;
 mod headless_window;
 mod keyutils;
+mod minibrowser;
 mod prefs;
 mod resources;
 mod window_trait;

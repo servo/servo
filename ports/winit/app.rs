@@ -5,12 +5,11 @@
 //! Application entry point, runs the event loop.
 
 use crate::browser::Browser;
-use crate::egui_glue;
 use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
+use crate::minibrowser::Minibrowser;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
-use egui::TopBottomPanel;
 use gleam::gl;
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
@@ -24,7 +23,6 @@ use std::collections::HashMap;
 use std::env;
 
 use std::rc::Rc;
-use std::sync::Arc;
 use surfman::GLApi;
 use webxr::glwindow::GlWindowDiscovery;
 
@@ -37,59 +35,10 @@ pub struct App {
     minibrowser: Option<RefCell<Minibrowser>>,
 }
 
-struct Minibrowser {
-    context: egui_glue::EguiGlow,
-    event_queue: RefCell<Vec<MinibrowserEvent>>,
-    toolbar_height: Cell<f32>,
-    location: RefCell<String>,
-
-    /// Whether the location has been edited by the user without clicking Go.
-    location_dirty: Cell<bool>,
-}
-
-enum MinibrowserEvent {
-    /// Go button clicked.
-    Go,
-}
-
 /// Action to be taken by the caller of [`App::handle_events`].
 enum PumpResult {
     Shutdown,
     Present,
-}
-
-impl Minibrowser {
-    /// Update the minibrowser, but don’t paint.
-    fn update(&mut self, window: &winit::window::Window) {
-        let Self { context, event_queue, location, location_dirty, toolbar_height } = self;
-        let _duration = context.run(window, |ctx| {
-            TopBottomPanel::top("toolbar").show(ctx, |ui| {
-                ui.allocate_ui_with_layout(
-                    ui.available_size(),
-                    egui::Layout::right_to_left(egui::Align::Center),
-                    |ui| {
-                        if ui.button("go").clicked() {
-                            event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                            location_dirty.set(false);
-                        }
-                        if ui.add_sized(
-                            ui.available_size(),
-                            egui::TextEdit::singleline(&mut *location.borrow_mut()),
-                        ).changed() {
-                            location_dirty.set(true);
-                        }
-                    },
-                );
-            });
-
-            toolbar_height.set(ctx.used_rect().height());
-        });
-    }
-
-    /// Paint the minibrowser, as of the last update.
-    fn paint(&mut self, window: &winit::window::Window) {
-        self.context.paint(window);
-    }
 }
 
 impl App {
@@ -133,23 +82,12 @@ impl App {
                     gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
                 },
             };
-            let gl = unsafe {
-                glow::Context::from_loader_function(|s| {
-                    webrender_surfman.get_proc_address(s)
-                })
-            };
             webrender_surfman.make_gl_context_current().unwrap();
             debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
             // Set up egui context for minibrowser ui
             // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
-            app.minibrowser = Some(Minibrowser {
-                context: egui_glue::EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
-                event_queue: RefCell::new(vec![]),
-                toolbar_height: 0f32.into(),
-                location: RefCell::new(ServoUrl::into_string(get_default_url())),
-                location_dirty: false.into(),
-            }.into());
+            app.minibrowser = Some(Minibrowser::new(&webrender_surfman, &events_loop).into());
         }
 
         if let Some(mut minibrowser) = app.minibrowser() {
@@ -260,8 +198,10 @@ impl App {
 
             // Consume and handle any events from the Minibrowser.
             if let Some(mut minibrowser) = app.minibrowser() {
-                app.queue_embedder_events_for_minibrowser_events(&mut minibrowser);
-                if app.update_location_in_toolbar(&mut minibrowser) {
+                let browser = &mut app.browser.borrow_mut();
+                let app_event_queue = &mut app.event_queue.borrow_mut();
+                minibrowser.queue_embedder_events_for_minibrowser_events(browser, app_event_queue);
+                if minibrowser.update_location_in_toolbar(browser) {
                     // Update the minibrowser immediately. While we could update by requesting a
                     // redraw, doing so would delay the location update by two frames.
                     minibrowser.update(window.winit_window().unwrap());
@@ -335,37 +275,6 @@ impl App {
             winit::event::Event::MainEventsCleared |
             winit::event::Event::RedrawEventsCleared => {},
         }
-    }
-
-    /// Takes any outstanding events from the [Minibrowser], converting them to [EmbedderEvent] and
-    /// routing those to the App event queue.
-    fn queue_embedder_events_for_minibrowser_events(&self, minibrowser: &mut RefMut<Minibrowser>) {
-        for event in minibrowser.event_queue.borrow_mut().drain(..) {
-            match event {
-                MinibrowserEvent::Go => {
-                    let browser_id = self.browser.borrow().browser_id().unwrap();
-                    let location = minibrowser.location.borrow();
-                    let Ok(url) = ServoUrl::parse(&location) else {
-                        warn!("failed to parse location");
-                        break;
-                    };
-                    self.event_queue.borrow_mut().push(EmbedderEvent::LoadUrl(browser_id, url));
-                },
-            }
-        }
-    }
-
-    /// Updates the location field when the [Browser] says it has changed, unless the user has
-    /// started editing it without clicking Go.
-    fn update_location_in_toolbar(&self, minibrowser: &mut RefMut<Minibrowser>) -> bool {
-        if !minibrowser.location_dirty.get() {
-            if let Some(current_url) = self.browser.borrow_mut().take_top_level_url_change() {
-                minibrowser.location = RefCell::new(ServoUrl::into_string(current_url));
-                return true;
-            }
-        }
-
-        false
     }
 
     /// Pumps events and messages between the embedder and Servo, where embedder events flow
