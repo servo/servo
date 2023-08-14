@@ -36,7 +36,7 @@ ${helpers.two_properties_shorthand(
 <%helpers:shorthand
     engines="gecko"
     name="container"
-    sub_properties="container-type container-name"
+    sub_properties="container-name container-type"
     gecko_pref="layout.css.container-queries.enabled",
     spec="https://drafts.csswg.org/css-contain-3/#container-shorthand"
 >
@@ -48,24 +48,24 @@ ${helpers.two_properties_shorthand(
         use crate::values::specified::box_::{ContainerName, ContainerType};
         // See https://github.com/w3c/csswg-drafts/issues/7180 for why we don't
         // match the spec.
-        let container_type = ContainerType::parse(context, input)?;
-        let container_name = if input.try_parse(|input| input.expect_delim('/')).is_ok() {
-            ContainerName::parse(context, input)?
+        let container_name = ContainerName::parse(context, input)?;
+        let container_type = if input.try_parse(|input| input.expect_delim('/')).is_ok() {
+            ContainerType::parse(context, input)?
         } else {
-            ContainerName::none()
+            ContainerType::NONE
         };
         Ok(expanded! {
-            container_type: container_type,
             container_name: container_name,
+            container_type: container_type,
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            self.container_type.to_css(dest)?;
-            if !self.container_name.is_none() {
+            self.container_name.to_css(dest)?;
+            if !self.container_type.is_empty() {
                 dest.write_str(" / ")?;
-                self.container_name.to_css(dest)?;
+                self.container_type.to_css(dest)?;
             }
             Ok(())
         }
