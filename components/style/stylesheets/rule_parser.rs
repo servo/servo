@@ -458,7 +458,10 @@ fn container_queries_enabled() -> bool {
     #[cfg(feature = "gecko")]
     return static_prefs::pref!("layout.css.container-queries.enabled");
     #[cfg(feature = "servo")]
-    return false;
+    return servo_config::prefs::pref_map()
+        .get("layout.container-queries.enabled")
+        .as_bool()
+        .unwrap_or(false);
 }
 
 impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {

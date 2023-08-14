@@ -452,6 +452,10 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
     fn namespace(&self) -> &Namespace {
         self.element.namespace()
     }
+
+    fn primary_box_size(&self) -> euclid::default::Size2D<app_units::Au> {
+        todo!();
+    }
 }
 
 impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element

@@ -221,7 +221,6 @@ impl<'a> Context<'a> {
         F: FnOnce(&Context) -> R,
     {
         let mut conditions = RuleCacheConditions::default();
-        let provider = get_metrics_provider_for_product();
 
         let (container_info, style) = match container_info_and_style {
             Some((ci, s)) => (Some(ci), Some(s)),
@@ -232,7 +231,6 @@ impl<'a> Context<'a> {
         let quirks_mode = device.quirks_mode();
         let context = Context {
             builder: StyleBuilder::for_inheritance(device, style, None),
-            font_metrics_provider: &provider,
             cached_system_font: None,
             in_media_query: true,
             quirks_mode,

@@ -7,7 +7,7 @@
 use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
 use crate::font_metrics::FontMetrics;
-use crate::queries::feature::{AllowsRanges, Evaluator, ParsingRequirements, QueryFeatureDescription};
+use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::values::computed::CSSPixelLength;
@@ -259,13 +259,13 @@ lazy_static! {
             atom!("width"),
             AllowsRanges::Yes,
             Evaluator::Length(eval_width),
-            ParsingRequirements::empty(),
+            FeatureFlags::empty(),
         ),
         feature!(
             atom!("scan"),
             AllowsRanges::No,
             keyword_evaluator!(eval_scan, Scan),
-            ParsingRequirements::empty(),
+            FeatureFlags::empty(),
         ),
     ];
 }
