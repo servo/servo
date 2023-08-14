@@ -83,7 +83,7 @@ impl App {
                 },
             };
             webrender_surfman.make_gl_context_current().unwrap();
-            debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
+            debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
 
             // Set up egui context for minibrowser ui
             // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
