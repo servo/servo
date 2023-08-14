@@ -101,13 +101,42 @@ macro_rules! keyword_evaluator {
 }
 
 bitflags! {
-    /// Different requirements or toggles that change how a expression is
-    /// parsed.
-    pub struct ParsingRequirements: u8 {
+    /// Different flags or toggles that change how a expression is parsed or
+    /// evaluated.
+    #[derive(ToShmem)]
+    pub struct FeatureFlags : u8 {
         /// The feature should only be parsed in chrome and ua sheets.
         const CHROME_AND_UA_ONLY = 1 << 0;
         /// The feature requires a -webkit- prefix.
         const WEBKIT_PREFIX = 1 << 1;
+        /// The feature requires the inline-axis containment.
+        const CONTAINER_REQUIRES_INLINE_AXIS = 1 << 2;
+        /// The feature requires the block-axis containment.
+        const CONTAINER_REQUIRES_BLOCK_AXIS = 1 << 3;
+        /// The feature requires containment in the physical width axis.
+        const CONTAINER_REQUIRES_WIDTH_AXIS = 1 << 4;
+        /// The feature requires containment in the physical height axis.
+        const CONTAINER_REQUIRES_HEIGHT_AXIS = 1 << 5;
+    }
+}
+
+impl FeatureFlags {
+    /// Returns parsing requirement flags.
+    pub fn parsing_requirements(self) -> Self {
+        self.intersection(Self::CHROME_AND_UA_ONLY | Self::WEBKIT_PREFIX)
+    }
+
+    /// Returns all the container axis flags.
+    pub fn all_container_axes() -> Self {
+        Self::CONTAINER_REQUIRES_INLINE_AXIS |
+            Self::CONTAINER_REQUIRES_BLOCK_AXIS |
+            Self::CONTAINER_REQUIRES_WIDTH_AXIS |
+            Self::CONTAINER_REQUIRES_HEIGHT_AXIS
+    }
+
+    /// Returns our subset of container axis flags.
+    pub fn container_axes(self) -> Self {
+        self.intersection(Self::all_container_axes())
     }
 }
 
@@ -128,9 +157,8 @@ pub struct QueryFeatureDescription {
     /// The evaluator, which we also use to determine which kind of value to
     /// parse.
     pub evaluator: Evaluator,
-    /// Different requirements that need to hold for the feature to be
-    /// successfully parsed.
-    pub requirements: ParsingRequirements,
+    /// Different feature-specific flags.
+    pub flags: FeatureFlags,
 }
 
 impl QueryFeatureDescription {
@@ -143,12 +171,12 @@ impl QueryFeatureDescription {
 
 /// A simple helper to construct a `QueryFeatureDescription`.
 macro_rules! feature {
-    ($name:expr, $allows_ranges:expr, $evaluator:expr, $reqs:expr,) => {
+    ($name:expr, $allows_ranges:expr, $evaluator:expr, $flags:expr,) => {
         $crate::queries::feature::QueryFeatureDescription {
             name: $name,
             allows_ranges: $allows_ranges,
             evaluator: $evaluator,
-            requirements: $reqs,
+            flags: $flags,
         }
     };
 }
@@ -158,7 +186,7 @@ impl fmt::Debug for QueryFeatureDescription {
         f.debug_struct("QueryFeatureDescription")
             .field("name", &self.name)
             .field("allows_ranges", &self.allows_ranges)
-            .field("requirements", &self.requirements)
+            .field("flags", &self.flags)
             .finish()
     }
 }
