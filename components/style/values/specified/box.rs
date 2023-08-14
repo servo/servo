@@ -1285,7 +1285,9 @@ impl Parse for WillChange {
                 &["will-change", "none", "all", "auto"],
             )?;
 
-            if ident.0 == atom!("scroll-position") {
+            if context.in_ua_sheet() && ident.0 == atom!("-moz-fixed-pos-containing-block") {
+                bits |= WillChangeBits::FIXPOS_CB_NON_SVG;
+            } else if ident.0 == atom!("scroll-position") {
                 bits |= WillChangeBits::SCROLL;
             } else {
                 bits |= change_bits_for_maybe_property(&parser_ident, context);
