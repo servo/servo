@@ -361,7 +361,13 @@ pub fn process_resolved_style_request_for_unstyled_node<'dom>(
     };
 
     let element = node.as_element().unwrap();
-    let styles = resolve_style(&mut context, element, RuleInclusion::All, pseudo.as_ref());
+    let styles = resolve_style(
+        &mut context,
+        element,
+        RuleInclusion::All,
+        pseudo.as_ref(),
+        None,
+    );
     let style = styles.primary();
     let longhand_id = match *property {
         PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,

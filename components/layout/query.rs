@@ -860,7 +860,7 @@ where
                 shared: &context.style_context,
                 thread_local: &mut tlc,
             };
-            let styles = resolve_style(&mut context, element, RuleInclusion::All, None);
+            let styles = resolve_style(&mut context, element, RuleInclusion::All, None, None);
             styles.primary().clone()
         }
     } else {
@@ -916,7 +916,13 @@ pub fn process_resolved_style_request<'dom>(
         thread_local: &mut tlc,
     };
 
-    let styles = resolve_style(&mut context, element, RuleInclusion::All, pseudo.as_ref());
+    let styles = resolve_style(
+        &mut context,
+        element,
+        RuleInclusion::All,
+        pseudo.as_ref(),
+        None,
+    );
     let style = styles.primary();
     let longhand_id = match *property {
         PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
