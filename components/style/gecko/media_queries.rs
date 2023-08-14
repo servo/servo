@@ -411,6 +411,11 @@ impl Device {
         self.used_font_metrics.load(Ordering::Relaxed)
     }
 
+    /// Returns whether visited styles are enabled.
+    pub fn visited_styles_enabled(&self) -> bool {
+        unsafe { bindings::Gecko_VisitedStylesEnabled(self.document()) }
+    }
+
     /// Returns the device pixel ratio.
     pub fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         let pc = match self.pres_context() {

@@ -129,6 +129,12 @@ impl StylesheetInDocument for GeckoStyleSheet {
 pub struct PerDocumentStyleDataImpl {
     /// Rule processor.
     pub stylist: Stylist,
+
+    /// A cache from element to resolved style.
+    pub undisplayed_style_cache: crate::traversal::UndisplayedStyleCache,
+
+    /// The generation for which our cache is valid.
+    pub undisplayed_style_cache_generation: u64,
 }
 
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
@@ -143,6 +149,8 @@ impl PerDocumentStyleData {
 
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
             stylist: Stylist::new(device, quirks_mode.into()),
+            undisplayed_style_cache: Default::default(),
+            undisplayed_style_cache_generation: 0,
         }))
     }
 
@@ -175,12 +183,6 @@ impl PerDocumentStyleDataImpl {
     /// Get the default computed values for this document.
     pub fn default_computed_values(&self) -> &Arc<ComputedValues> {
         self.stylist.device().default_computed_values_arc()
-    }
-
-    /// Returns whether visited styles are enabled.
-    #[inline]
-    pub fn visited_styles_enabled(&self) -> bool {
-        unsafe { bindings::Gecko_VisitedStylesEnabled(self.stylist.device().document()) }
     }
 
     /// Measure heap usage.
