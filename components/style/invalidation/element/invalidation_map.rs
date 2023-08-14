@@ -67,6 +67,8 @@ pub struct Dependency {
     pub parent: Option<Box<Dependency>>,
 }
 
+size_of_test!(Dependency, 24);
+
 /// The kind of elements down the tree this dependency may affect.
 #[derive(Debug, Eq, PartialEq)]
 pub enum DependencyInvalidationKind {

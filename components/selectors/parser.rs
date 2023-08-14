@@ -160,6 +160,8 @@ impl SelectorParsingState {
 
 pub type SelectorParseError<'i> = ParseError<'i, SelectorParseErrorKind<'i>>;
 
+size_of_test!(SelectorParseError, 48);
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum SelectorParseErrorKind<'i> {
     NoQualifiedNameInAttributeSelector(Token<'i>),
@@ -183,6 +185,8 @@ pub enum SelectorParseErrorKind<'i> {
     ExplicitNamespaceUnexpectedToken(Token<'i>),
     ClassNeedsIdent(Token<'i>),
 }
+
+size_of_test!(SelectorParseErrorKind, 40);
 
 macro_rules! with_all_bounds {
     (

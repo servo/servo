@@ -2609,7 +2609,7 @@ pub struct SourcePropertyDeclaration {
 
 // This is huge, but we allocate it on the stack and then never move it,
 // we only pass `&mut SourcePropertyDeclaration` references around.
-size_of_test!(SourcePropertyDeclaration, 600);
+size_of_test!(SourcePropertyDeclaration, 568);
 
 impl SourcePropertyDeclaration {
     /// Create one. It’s big, try not to move it around.
@@ -4242,7 +4242,7 @@ macro_rules! longhand_properties_idents {
 }
 
 // Large pages generate tens of thousands of ComputedValues.
-size_of_test!(ComputedValues, 232);
+size_of_test!(ComputedValues, 192);
 // FFI relies on this.
 size_of_test!(Option<Arc<ComputedValues>>, 8);
 

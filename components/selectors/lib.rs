@@ -5,6 +5,9 @@
 // Make |cargo bench| work.
 #![cfg_attr(feature = "bench", feature(test))]
 
+#[macro_use]
+extern crate size_of_test;
+
 pub mod attr;
 pub mod bloom;
 mod builder;

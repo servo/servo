@@ -44,6 +44,7 @@ servo_atoms = { path = "../atoms" }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
+size_of_test = { path = "../size_of_test" }
 smallvec = { workspace = true, features = ["union"] }
 style = { path = "../style", features = ["servo"] }
 style_traits = { path = "../style_traits" }
@@ -51,7 +52,4 @@ unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }
 xi-unicode = { workspace = true }
-
-[dev-dependencies]
-size_of_test = { path = "../size_of_test" }
 

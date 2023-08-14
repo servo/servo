@@ -5372,6 +5372,7 @@ dependencies = [
  "phf_codegen",
  "precomputed-hash",
  "servo_arc",
+ "size_of_test",
  "smallvec",
  "to_shmem",
  "to_shmem_derive",
@@ -5915,6 +5916,9 @@ checksum = "fa8f3741c7372e75519bd9346068370c9cdaabcc1f9599cbcf2a2719352286b7"
 [[package]]
 name = "size_of_test"
 version = "0.0.1"
+dependencies = [
+ "static_assertions",
+]
 
 [[package]]
 name = "slab"
@@ -6193,7 +6197,6 @@ dependencies = [
  "servo_atoms",
  "servo_config",
  "servo_url",
- "size_of_test",
  "std_test_override",
  "style",
  "style_traits",
@@ -6215,6 +6218,7 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_url",
+ "size_of_test",
  "to_shmem",
  "to_shmem_derive",
  "webrender_api",
