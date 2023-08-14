@@ -54,7 +54,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-styleeditor-transitioning", MozStyleeditorTransitioning, IN_STYLEEDITOR_TRANSITIONING_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("fullscreen", Fullscreen, IN_FULLSCREEN_STATE, _),
                 ("-moz-modal-dialog", MozModalDialog, IN_MODAL_DIALOG_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
-                ("-moz-topmost-modal-dialog", MozTopmostModalDialog, IN_TOPMOST_MODAL_DIALOG_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
+                ("-moz-topmost-modal", MozTopmostModal, IN_TOPMOST_MODAL_TOP_LAYER_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-broken", MozBroken, IN_BROKEN_STATE, _),
                 ("-moz-loading", MozLoading, IN_LOADING_STATE, _),
                 ("-moz-has-dir-attr", MozHasDirAttr, IN_HAS_DIR_ATTR_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
