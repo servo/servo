@@ -97,6 +97,11 @@ impl Percentage {
         self.calc_clamping_mode.is_some()
     }
 
+    /// Returns the calc() clamping mode for this percentage.
+    pub fn calc_clamping_mode(&self) -> Option<AllowedNumericType> {
+        self.calc_clamping_mode
+    }
+
     /// Reverses this percentage, preserving calc-ness.
     ///
     /// For example: If it was 20%, convert it into 80%.
