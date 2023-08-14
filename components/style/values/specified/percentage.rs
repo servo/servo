@@ -138,6 +138,15 @@ impl Percentage {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
 
+    /// Parses a percentage token, but rejects it if it's negative or more than
+    /// 100%.
+    pub fn parse_zero_to_a_hundred<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::ZeroToOne)
+    }
+
     /// Clamp to 100% if the value is over 100%.
     #[inline]
     pub fn clamp_to_hundred(self) -> Self {
