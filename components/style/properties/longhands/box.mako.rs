@@ -285,6 +285,15 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
 )}
 
+${helpers.predefined_type(
+    "scroll-snap-stop",
+    "ScrollSnapStop",
+    "computed::ScrollSnapStop::Normal",
+    engines="gecko",
+    spec="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-stop",
+    animation_value_type="discrete",
+)}
+
 % for (axis, logical) in ALL_AXES:
     ${helpers.predefined_type(
         "overscroll-behavior-" + axis,
