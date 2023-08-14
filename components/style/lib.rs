@@ -63,6 +63,8 @@ pub use servo_arc;
 #[macro_use]
 extern crate servo_atoms;
 #[macro_use]
+extern crate static_assertions;
+#[macro_use]
 extern crate style_derive;
 #[macro_use]
 extern crate to_shmem_derive;
@@ -186,7 +188,7 @@ pub mod gecko_properties {
 }
 
 macro_rules! reexport_computed_values {
-    ( $( { $name: ident, $boxed: expr } )+ ) => {
+    ( $( { $name: ident } )+ ) => {
         /// Types for [computed values][computed].
         ///
         /// [computed]: https://drafts.csswg.org/css-cascade/#computed
@@ -200,7 +202,6 @@ macro_rules! reexport_computed_values {
     }
 }
 longhand_properties_idents!(reexport_computed_values);
-
 #[cfg(feature = "gecko")]
 use crate::gecko_string_cache::WeakAtom;
 #[cfg(feature = "servo")]

@@ -4218,7 +4218,7 @@ macro_rules! css_properties_accessors {
 /// Call the given macro with tokens like this for each longhand properties:
 ///
 /// ```
-/// { snake_case_ident, true }
+/// { snake_case_ident }
 /// ```
 ///
 /// … where the boolean indicates whether the property value type
@@ -4228,11 +4228,33 @@ macro_rules! longhand_properties_idents {
     ($macro_name: ident) => {
         $macro_name! {
             % for property in data.longhands:
-                { ${property.ident}, ${"true" if property.boxed else "false"} }
+                { ${property.ident} }
             % endfor
         }
     }
 }
+
+// There are two reasons for this test to fail:
+//
+//   * Your changes made a specified value type for a given property go
+//     over the threshold. In that case, you should try to shrink it again
+//     or, if not possible, mark the property as boxed in the property
+//     definition.
+//
+//   * Your changes made a specified value type smaller, so that it no
+//     longer needs to be boxed. In this case you just need to remove
+//     boxed=True from the property definition. Nice job!
+#[cfg(target_pointer_width = "64")]
+#[allow(dead_code)] // https://github.com/rust-lang/rust/issues/96952
+const BOX_THRESHOLD: usize = 24;
+% for longhand in data.longhands:
+#[cfg(target_pointer_width = "64")]
+% if longhand.boxed:
+const_assert!(std::mem::size_of::<longhands::${longhand.ident}::SpecifiedValue>() > BOX_THRESHOLD);
+% else:
+const_assert!(std::mem::size_of::<longhands::${longhand.ident}::SpecifiedValue>() <= BOX_THRESHOLD);
+% endif
+% endfor
 
 % if engine == "servo":
 % for effect_name in ["repaint", "reflow_out_of_flow", "reflow", "rebuild_and_reflow_inline", "rebuild_and_reflow"]:
