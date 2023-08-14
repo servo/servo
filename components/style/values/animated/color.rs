@@ -7,7 +7,7 @@
 use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::color::{Color as GenericColor, ComplexColorRatios};
-use crate::values::specified::color::{ColorSpaceKind, HueAdjuster};
+use crate::values::specified::color::{ColorInterpolationMethod, ColorSpace, HueInterpolationMethod};
 use euclid::default::{Transform3D, Vector3D};
 
 /// An animated RGBA color.
@@ -128,41 +128,40 @@ impl Color {
 
     /// Mix two colors into one.
     pub fn mix(
-        color_space: ColorSpaceKind,
+        interpolation: &ColorInterpolationMethod,
         left_color: &Color,
         left_weight: f32,
         right_color: &Color,
         right_weight: f32,
-        hue_adjuster: HueAdjuster,
     ) -> Self {
-        match color_space {
-            ColorSpaceKind::Srgb => Self::mix_in::<RGBA>(
+        match interpolation.space {
+            ColorSpace::Srgb => Self::mix_in::<RGBA>(
                 left_color,
                 left_weight,
                 right_color,
                 right_weight,
-                hue_adjuster,
+                interpolation.hue,
             ),
-            ColorSpaceKind::Xyz => Self::mix_in::<XYZA>(
+            ColorSpace::Xyz => Self::mix_in::<XYZA>(
                 left_color,
                 left_weight,
                 right_color,
                 right_weight,
-                hue_adjuster,
+                interpolation.hue,
             ),
-            ColorSpaceKind::Lab => Self::mix_in::<LABA>(
+            ColorSpace::Lab => Self::mix_in::<LABA>(
                 left_color,
                 left_weight,
                 right_color,
                 right_weight,
-                hue_adjuster,
+                interpolation.hue,
             ),
-            ColorSpaceKind::Lch => Self::mix_in::<LCHA>(
+            ColorSpace::Lch => Self::mix_in::<LCHA>(
                 left_color,
                 left_weight,
                 right_color,
                 right_weight,
-                hue_adjuster,
+                interpolation.hue,
             ),
         }
     }
@@ -172,7 +171,7 @@ impl Color {
         left_weight: f32,
         right_color: &Color,
         right_weight: f32,
-        hue_adjuster: HueAdjuster,
+        hue_interpolation: HueInterpolationMethod,
     ) -> Self
     where
         S: ModelledColor,
@@ -180,7 +179,7 @@ impl Color {
         let left_bg = S::from(left_color.scaled_rgba());
         let right_bg = S::from(right_color.scaled_rgba());
 
-        let color = S::lerp(left_bg, left_weight, right_bg, right_weight, hue_adjuster);
+        let color = S::lerp(left_bg, left_weight, right_bg, right_weight, hue_interpolation);
         let rgba: RGBA = color.into();
         let rgba = if !rgba.in_gamut() {
             // TODO: Better gamut mapping.
@@ -365,14 +364,14 @@ impl ToAnimatedZero for Color {
 trait ModelledColor: Clone + Copy + From<RGBA> + Into<RGBA> {
     /// Linearly interpolate between the left and right colors.
     ///
-    /// The HueAdjuster parameter is only for color spaces where the hue is
+    /// The HueInterpolationMethod parameter is only for color spaces where the hue is
     /// represented as an angle (e.g., CIE LCH).
     fn lerp(
         left_bg: Self,
         left_weight: f32,
         right_bg: Self,
         right_weight: f32,
-        hue_adjuster: HueAdjuster,
+        hue_interpolation: HueInterpolationMethod,
     ) -> Self;
 }
 
@@ -382,7 +381,7 @@ impl ModelledColor for RGBA {
         left_weight: f32,
         right_bg: Self,
         right_weight: f32,
-        _: HueAdjuster,
+        _: HueInterpolationMethod,
     ) -> Self {
         // Interpolation with alpha, as per
         // https://drafts.csswg.org/css-color/#interpolation-alpha.
@@ -440,7 +439,7 @@ impl ModelledColor for XYZA {
         left_weight: f32,
         right_bg: Self,
         right_weight: f32,
-        _: HueAdjuster,
+        _: HueInterpolationMethod,
     ) -> Self {
         // Interpolation with alpha, as per
         // https://drafts.csswg.org/css-color/#interpolation-alpha.
@@ -503,7 +502,7 @@ impl ModelledColor for LABA {
         left_weight: f32,
         right_bg: Self,
         right_weight: f32,
-        _: HueAdjuster,
+        _: HueInterpolationMethod,
     ) -> Self {
         // Interpolation with alpha, as per
         // https://drafts.csswg.org/css-color/#interpolation-alpha.
@@ -561,7 +560,7 @@ impl LCHA {
 }
 
 impl LCHA {
-    fn adjust(left_bg: Self, right_bg: Self, hue_adjuster: HueAdjuster) -> (Self, Self) {
+    fn adjust(left_bg: Self, right_bg: Self, hue_interpolation: HueInterpolationMethod) -> (Self, Self) {
         use std::f32::consts::{PI, TAU};
 
         let mut left_bg = left_bg;
@@ -583,7 +582,7 @@ impl LCHA {
             }
         }
 
-        if hue_adjuster != HueAdjuster::Specified {
+        if hue_interpolation != HueInterpolationMethod::Specified {
             // Normalize hue into [0, 2 * PI)
             while left_bg.hue < 0. {
                 left_bg.hue += TAU;
@@ -600,8 +599,8 @@ impl LCHA {
             }
         }
 
-        match hue_adjuster {
-            HueAdjuster::Shorter => {
+        match hue_interpolation {
+            HueInterpolationMethod::Shorter => {
                 let delta = right_bg.hue - left_bg.hue;
 
                 if delta > PI {
@@ -611,7 +610,7 @@ impl LCHA {
                 }
             },
 
-            HueAdjuster::Longer => {
+            HueInterpolationMethod::Longer => {
                 let delta = right_bg.hue - left_bg.hue;
                 if 0. < delta && delta < PI {
                     left_bg.hue += TAU;
@@ -620,13 +619,13 @@ impl LCHA {
                 }
             },
 
-            HueAdjuster::Increasing => {
+            HueInterpolationMethod::Increasing => {
                 if right_bg.hue < left_bg.hue {
                     right_bg.hue += TAU;
                 }
             },
 
-            HueAdjuster::Decreasing => {
+            HueInterpolationMethod::Decreasing => {
                 if left_bg.hue < right_bg.hue {
                     left_bg.hue += TAU;
                 }
@@ -634,7 +633,7 @@ impl LCHA {
 
             //Angles are not adjusted. They are interpolated like any other
             //component.
-            HueAdjuster::Specified => {},
+            HueInterpolationMethod::Specified => {},
         }
 
         (left_bg, right_bg)
@@ -647,11 +646,11 @@ impl ModelledColor for LCHA {
         left_weight: f32,
         right_bg: Self,
         right_weight: f32,
-        hue_adjuster: HueAdjuster,
+        hue_interpolation: HueInterpolationMethod,
     ) -> Self {
         // Interpolation with alpha, as per
         // https://drafts.csswg.org/css-color/#interpolation-alpha.
-        let (left_bg, right_bg) = Self::adjust(left_bg, right_bg, hue_adjuster);
+        let (left_bg, right_bg) = Self::adjust(left_bg, right_bg, hue_interpolation);
 
         let mut lightness = 0.;
         let mut chroma = 0.;
