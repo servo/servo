@@ -2593,9 +2593,11 @@ impl PropertyDeclaration {
     }
 }
 
-type SubpropertiesVec<T> = ArrayVec<T, ${max(len(s.sub_properties) \
-    for s in data.shorthands_except_all()) \
-          if data.shorthands_except_all() else 0}>;
+const SUB_PROPERTIES_ARRAY_CAP: usize =
+    ${max(len(s.sub_properties) for s in data.shorthands_except_all()) \
+          if data.shorthands_except_all() else 0};
+
+type SubpropertiesVec<T> = ArrayVec<T, SUB_PROPERTIES_ARRAY_CAP>;
 
 /// A stack-allocated vector of `PropertyDeclaration`
 /// large enough to parse one CSS `key: value` declaration.
@@ -2655,11 +2657,7 @@ impl SourcePropertyDeclaration {
 
 /// Return type of SourcePropertyDeclaration::drain
 pub struct SourcePropertyDeclarationDrain<'a> {
-    declarations: ArrayVecDrain<
-        'a, PropertyDeclaration,
-        ${max(len(s.sub_properties) for s in data.shorthands_except_all()) \
-            if data.shorthands_except_all() else 0}
-    >,
+    declarations: ArrayVecDrain<'a, PropertyDeclaration, SUB_PROPERTIES_ARRAY_CAP>,
     all_shorthand: AllShorthand,
 }
 
