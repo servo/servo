@@ -509,7 +509,7 @@ impl Window {
     pub(crate) fn webgl_chan(&self) -> Option<WebGLCommandSender> {
         self.webgl_chan
             .as_ref()
-            .map(|chan| WebGLCommandSender::new(chan.clone(), None))
+            .map(|chan| WebGLCommandSender::new(chan.clone()))
     }
 
     pub fn webxr_registry(&self) -> webxr_api::Registry {
