@@ -327,10 +327,7 @@ impl Pipeline {
                     let register = state
                         .background_monitor_register
                         .expect("Couldn't start content, no background monitor has been initiated");
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(
-                        false,
-                        register,
-                    );
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, register);
                     None
                 };
 
