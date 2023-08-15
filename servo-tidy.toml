@@ -27,7 +27,6 @@ packages = [
   "cookie",
   "fixedbitset",
   "getrandom",
-  "half",
   "image",
   "itoa",
   "libloading",

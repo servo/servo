@@ -26,7 +26,7 @@ font-kit = "0.11"
 fnv = { workspace = true }
 gfx = { path = "../gfx" }
 gleam = { workspace = true }
-half = "1"
+half = "2"
 ipc-channel = { workspace = true }
 log = { workspace = true }
 lyon_geom = "1.0.4"

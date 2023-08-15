@@ -626,7 +626,7 @@ dependencies = [
  "font-kit",
  "gfx",
  "gleam",
- "half 1.8.2",
+ "half",
  "ipc-channel",
  "log",
  "lyon_geom 1.0.4",
@@ -1576,7 +1576,7 @@ checksum = "bdd2162b720141a91a054640662d3edce3d50a944a50ffca5313cd951abb35b4"
 dependencies = [
  "bit_field",
  "flume",
- "half 2.2.1",
+ "half",
  "lebe",
  "miniz_oxide 0.6.2",
  "rayon-core",
@@ -2543,12 +2543,6 @@ dependencies = [
  "tokio-util",
  "tracing",
 ]
-
-[[package]]
-name = "half"
-version = "1.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eabb4a44450da02c90444cf74558da904edde8fb4e9035a9a6a4e15445af0bd7"
 
 [[package]]
 name = "half"
