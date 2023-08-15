@@ -4,9 +4,6 @@
 
 # Tool options
 [tools]
-# If rustc-with-gold is true, will try to find and use gold linker with rustc.
-# Defaults to true
-rustc-with-gold = true
 
 # If uncommented, this command is used instead of the platform’s default
 # to notify at the end of a compilation that took a long time.

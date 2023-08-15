@@ -509,9 +509,11 @@ class CommandBase(object):
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
 
-        if self.config["tools"]["rustc-with-gold"]:
-            if shutil.which('ld.gold'):
-                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C link-args=-fuse-ld=gold"
+        # Turn on rust's version of lld if we are on x86 Linux.
+        # TODO(mrobinson): Gradually turn this on for more platforms, when support stabilizes.
+        # See https://github.com/rust-lang/rust/issues/39915
+        if not self.cross_compile_target and effective_target == "x86_64-unknown-linux-gnu":
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -Zgcc-ld=lld"
 
         if not (self.config["build"]["ccache"] == ""):
             env['CCACHE'] = self.config["build"]["ccache"]
