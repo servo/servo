@@ -58,8 +58,8 @@ def update_args_for_legacy_layout(kwargs: dict):
         kwargs["test_paths"]["/_mozilla/"]["metadata_path"] = os.path.join(
             WPT_PATH, "mozilla", "meta-legacy-layout"
         )
-        kwargs["include_manifest"] = os.path.join(
-            WPT_PATH, "include-legacy-layout.ini"
+        kwargs["test_paths"]["/_webgl/"]["metadata_path"] = os.path.join(
+            WPT_PATH, "webgl", "meta-legacy-layout"
         )
 
 
