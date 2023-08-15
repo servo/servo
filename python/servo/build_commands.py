@@ -79,15 +79,10 @@ class MachCommands(CommandBase):
         build_start = time()
 
         host = servo.platform.host_triple()
-        target_triple = self.cross_compile_target or servo.platform.host_triple()
-        if 'apple-darwin' in host and target_triple == host:
-            if 'CXXFLAGS' not in env:
-                env['CXXFLAGS'] = ''
-            env["CXXFLAGS"] += "-mmacosx-version-min=10.10"
-
         if 'windows' in host:
             vs_dirs = self.vs_dirs()
 
+        target_triple = self.cross_compile_target or servo.platform.host_triple()
         if host != target_triple and 'windows' in target_triple:
             if os.environ.get('VisualStudioVersion') or os.environ.get('VCINSTALLDIR'):
                 print("Can't cross-compile for Windows inside of a Visual Studio shell.\n"
