@@ -653,7 +653,7 @@ impl Fragment {
         absolute_bounds: Rect<Au>,
     ) {
         let background = style.get_background();
-        let background_color = style.resolve_color(background.background_color);
+        let background_color = style.resolve_color(background.background_color.clone());
         // XXXManishearth the below method should ideally use an iterator over
         // backgrounds
         self.build_display_list_for_background_if_applicable_with_background(
@@ -1037,7 +1037,9 @@ impl Fragment {
                 webrender_api::BoxShadowDisplayItem {
                     common: items::empty_common_item_properties(),
                     box_bounds: absolute_bounds.to_layout(),
-                    color: style.resolve_color(box_shadow.base.color).to_layout(),
+                    color: style
+                        .resolve_color(box_shadow.base.color.clone())
+                        .to_layout(),
                     offset: LayoutVector2D::new(
                         box_shadow.base.horizontal.px(),
                         box_shadow.base.vertical.px(),
@@ -1083,10 +1085,10 @@ impl Fragment {
 
         let border_style_struct = style.get_border();
         let mut colors = SideOffsets2D::new(
-            border_style_struct.border_top_color,
-            border_style_struct.border_right_color,
-            border_style_struct.border_bottom_color,
-            border_style_struct.border_left_color,
+            border_style_struct.border_top_color.clone(),
+            border_style_struct.border_right_color.clone(),
+            border_style_struct.border_bottom_color.clone(),
+            border_style_struct.border_left_color.clone(),
         );
         let mut border_style = SideOffsets2D::new(
             border_style_struct.border_top_style,
@@ -1316,7 +1318,7 @@ impl Fragment {
 
         // Append the outline to the display list.
         let color = style
-            .resolve_color(style.get_outline().outline_color)
+            .resolve_color(style.get_outline().outline_color.clone())
             .to_layout();
         let base = state.create_base_display_item(
             clip,
@@ -1451,7 +1453,8 @@ impl Fragment {
         // TODO: Allow non-text fragments to be selected too.
         if scanned_text_fragment_info.selected() {
             let style = self.selected_style();
-            let background_color = style.resolve_color(style.get_background().background_color);
+            let background_color =
+                style.resolve_color(style.get_background().background_color.clone());
             let base = state.create_base_display_item(
                 stacking_relative_border_box,
                 self.node,
@@ -2055,7 +2058,7 @@ impl Fragment {
                     base: base.clone(),
                     shadow: webrender_api::Shadow {
                         offset: LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
-                        color: self.style.resolve_color(shadow.color).to_layout(),
+                        color: self.style.resolve_color(shadow.color.clone()).to_layout(),
                         blur_radius: shadow.blur.px(),
                     },
                 },

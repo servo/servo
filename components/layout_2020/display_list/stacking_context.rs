@@ -404,7 +404,7 @@ impl StackingContext {
             .union(&fragment_tree.scrollable_overflow)
             .to_webrender();
 
-        let background_color = style.resolve_color(style.get_background().background_color);
+        let background_color = style.resolve_color(style.get_background().background_color.clone());
         if background_color.alpha > 0 {
             let common = builder.common_properties(painting_area, &style);
             let color = super::rgba(background_color);
