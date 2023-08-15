@@ -715,10 +715,6 @@ pub struct ScriptThread {
     #[no_trace]
     player_context: WindowGLContext,
 
-    /// A mechanism to force the compositor's event loop to process events.
-    #[no_trace]
-    event_loop_waker: Option<Box<dyn EventLoopWaker>>,
-
     /// A set of all nodes ever created in this script thread
     node_ids: DomRefCell<HashSet<String>>,
 
@@ -1416,7 +1412,6 @@ impl ScriptThread {
             replace_surrogates: opts.debug.replace_surrogates,
             user_agent,
             player_context: state.player_context,
-            event_loop_waker: None,
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
@@ -3295,6 +3290,7 @@ impl ScriptThread {
             self.timer_task_source(incomplete.pipeline_id),
             self.websocket_task_source(incomplete.pipeline_id),
         );
+
         // Create the window and document objects.
         let window = Window::new(
             self.js_runtime.clone(),
@@ -3333,7 +3329,7 @@ impl ScriptThread {
             self.replace_surrogates,
             self.user_agent.clone(),
             self.player_context.clone(),
-            self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
+            None,
             self.gpu_id_hub.clone(),
             incomplete.inherited_secure_context,
         );
