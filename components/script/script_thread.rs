@@ -3329,7 +3329,6 @@ impl ScriptThread {
             self.replace_surrogates,
             self.user_agent.clone(),
             self.player_context.clone(),
-            None,
             self.gpu_id_hub.clone(),
             incomplete.inherited_secure_context,
         );

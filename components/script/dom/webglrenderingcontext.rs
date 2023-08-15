@@ -236,10 +236,7 @@ impl WebGLRenderingContext {
             let max_vertex_attribs = ctx_data.limits.max_vertex_attribs as usize;
             Self {
                 reflector_: Reflector::new(),
-                webgl_sender: WebGLMessageSender::new(
-                    ctx_data.sender,
-                    window.get_event_loop_waker(),
-                ),
+                webgl_sender: WebGLMessageSender::new(ctx_data.sender, None),
                 webrender_image: ctx_data.image_key,
                 webgl_version,
                 glsl_version: ctx_data.glsl_version,

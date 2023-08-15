@@ -371,11 +371,6 @@ pub struct Window {
     #[no_trace]
     player_context: WindowGLContext,
 
-    /// A mechanism to force the compositor to process events.
-    #[ignore_malloc_size_of = "traits are cumbersome"]
-    #[no_trace]
-    event_loop_waker: Option<Box<dyn EventLoopWaker>>,
-
     visible: Cell<bool>,
 
     /// A shared marker for the validity of any cached layout values. A value of true
@@ -514,7 +509,7 @@ impl Window {
     pub(crate) fn webgl_chan(&self) -> Option<WebGLCommandSender> {
         self.webgl_chan
             .as_ref()
-            .map(|chan| WebGLCommandSender::new(chan.clone(), self.get_event_loop_waker()))
+            .map(|chan| WebGLCommandSender::new(chan.clone(), None))
     }
 
     pub fn webxr_registry(&self) -> webxr_api::Registry {
@@ -568,10 +563,6 @@ impl Window {
 
     pub fn get_player_context(&self) -> WindowGLContext {
         self.player_context.clone()
-    }
-
-    pub fn get_event_loop_waker(&self) -> Option<Box<dyn EventLoopWaker>> {
-        self.event_loop_waker.as_ref().map(|w| (*w).clone_box())
     }
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
@@ -2587,7 +2578,6 @@ impl Window {
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
-        event_loop_waker: Option<Box<dyn EventLoopWaker>>,
         gpu_id_hub: Arc<ParkMutex<Identities>>,
         inherited_secure_context: Option<bool>,
     ) -> DomRoot<Self> {
@@ -2673,7 +2663,6 @@ impl Window {
             userscripts_path,
             replace_surrogates,
             player_context,
-            event_loop_waker,
             visible: Cell::new(true),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
