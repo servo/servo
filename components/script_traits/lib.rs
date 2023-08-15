@@ -38,7 +38,7 @@ use canvas_traits::webgl::WebGLPipeline;
 use compositor::ScrollTreeNodeId;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{Cursor, EventLoopWaker};
+use embedder_traits::Cursor;
 use euclid::{default::Point2D, Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use gfx_traits::Epoch;
 use http::HeaderMap;
@@ -687,8 +687,6 @@ pub struct InitialScriptState {
     pub layout_is_busy: Arc<AtomicBool>,
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
-    /// Mechanism to force the compositor to process events.
-    pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`

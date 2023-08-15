@@ -327,11 +327,7 @@ impl Pipeline {
                     let register = state
                         .background_monitor_register
                         .expect("Couldn't start content, no background monitor has been initiated");
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(
-                        false,
-                        register,
-                        state.event_loop_waker,
-                    );
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, register);
                     None
                 };
 
@@ -527,7 +523,6 @@ impl UnprivilegedPipelineContent {
         self,
         wait_for_completion: bool,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-        event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     ) where
         LTF: LayoutThreadFactory<Message = Message>,
         STF: ScriptThreadFactory<Message = Message>,
@@ -574,7 +569,6 @@ impl UnprivilegedPipelineContent {
                 webrender_api_sender: self.webrender_api_sender.clone(),
                 layout_is_busy: layout_thread_busy_flag.clone(),
                 player_context: self.player_context.clone(),
-                event_loop_waker,
                 inherited_secure_context: self.load_data.inherited_secure_context.clone(),
             },
             self.load_data.clone(),
