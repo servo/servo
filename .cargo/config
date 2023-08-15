@@ -36,3 +36,6 @@ linker = "lld-link.exe"
 
 [target.aarch64-uwp-windows-msvc]
 linker = "lld-link.exe"
+
+[env]
+MACOSX_DEPLOYMENT_TARGET = "10.10"
