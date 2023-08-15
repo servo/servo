@@ -10,11 +10,11 @@ use crate::context::QuirksMode;
 use crate::dom::TElement;
 use crate::rule_tree::CascadeLevel;
 use crate::selector_parser::SelectorImpl;
-use crate::stylist::{CascadeData, Rule};
+use crate::stylist::{Stylist, CascadeData, Rule, ContainerConditionId};
 use crate::AllocErr;
 use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded, WeakAtom};
 use precomputed_hash::PrecomputedHash;
-use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext};
+use selectors::matching::{matches_selector, MatchingContext};
 use selectors::parser::{Combinator, Component, SelectorIter};
 use smallvec::SmallVec;
 use std::collections::hash_map;
@@ -186,34 +186,33 @@ impl SelectorMap<Rule> {
     ///
     /// Extract matching rules as per element's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    pub fn get_all_matching_rules<E, F>(
+    pub fn get_all_matching_rules<E>(
         &self,
         element: E,
         rule_hash_target: E,
         matching_rules_list: &mut ApplicableDeclarationList,
-        context: &mut MatchingContext<E::Impl>,
-        flags_setter: &mut F,
+        matching_context: &mut MatchingContext<E::Impl>,
         cascade_level: CascadeLevel,
         cascade_data: &CascadeData,
+        stylist: &Stylist,
     ) where
         E: TElement,
-        F: FnMut(&E, ElementSelectorFlags),
     {
         if self.is_empty() {
             return;
         }
 
-        let quirks_mode = context.quirks_mode();
+        let quirks_mode = matching_context.quirks_mode();
 
         if rule_hash_target.is_root() {
             SelectorMap::get_matching_rules(
                 element,
                 &self.root,
                 matching_rules_list,
-                context,
-                flags_setter,
+                matching_context,
                 cascade_level,
                 cascade_data,
+                stylist,
             );
         }
 
@@ -223,10 +222,10 @@ impl SelectorMap<Rule> {
                     element,
                     rules,
                     matching_rules_list,
-                    context,
-                    flags_setter,
+                    matching_context,
                     cascade_level,
                     cascade_data,
+                    stylist,
                 )
             }
         }
@@ -237,10 +236,10 @@ impl SelectorMap<Rule> {
                     element,
                     rules,
                     matching_rules_list,
-                    context,
-                    flags_setter,
+                    matching_context,
                     cascade_level,
                     cascade_data,
+                    stylist,
                 )
             }
         });
@@ -252,10 +251,10 @@ impl SelectorMap<Rule> {
                         element,
                         rules,
                         matching_rules_list,
-                        context,
-                        flags_setter,
+                        matching_context,
                         cascade_level,
                         cascade_data,
+                        stylist,
                     )
                 }
             });
@@ -266,10 +265,10 @@ impl SelectorMap<Rule> {
                 element,
                 rules,
                 matching_rules_list,
-                context,
-                flags_setter,
+                matching_context,
                 cascade_level,
                 cascade_data,
+                stylist,
             )
         }
 
@@ -278,10 +277,10 @@ impl SelectorMap<Rule> {
                 element,
                 rules,
                 matching_rules_list,
-                context,
-                flags_setter,
+                matching_context,
                 cascade_level,
                 cascade_data,
+                stylist,
             )
         }
 
@@ -289,38 +288,44 @@ impl SelectorMap<Rule> {
             element,
             &self.other,
             matching_rules_list,
-            context,
-            flags_setter,
+            matching_context,
             cascade_level,
             cascade_data,
+            stylist,
         );
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
-    pub(crate) fn get_matching_rules<E, F>(
+    pub(crate) fn get_matching_rules<E>(
         element: E,
         rules: &[Rule],
         matching_rules: &mut ApplicableDeclarationList,
-        context: &mut MatchingContext<E::Impl>,
-        flags_setter: &mut F,
+        matching_context: &mut MatchingContext<E::Impl>,
         cascade_level: CascadeLevel,
         cascade_data: &CascadeData,
+        stylist: &Stylist,
     ) where
         E: TElement,
-        F: FnMut(&E, ElementSelectorFlags),
     {
         for rule in rules {
-            if matches_selector(
+            if !matches_selector(
                 &rule.selector,
                 0,
                 Some(&rule.hashes),
                 &element,
-                context,
-                flags_setter,
+                matching_context,
             ) {
-                matching_rules
-                    .push(rule.to_applicable_declaration_block(cascade_level, cascade_data));
+                continue;
             }
+
+            if rule.container_condition_id != ContainerConditionId::none() {
+                if !cascade_data.container_condition_matches(rule.container_condition_id, stylist, element) {
+                    continue;
+                }
+            }
+
+            matching_rules
+                .push(rule.to_applicable_declaration_block(cascade_level, cascade_data));
         }
     }
 }

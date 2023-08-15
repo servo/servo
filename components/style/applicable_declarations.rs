@@ -42,13 +42,7 @@ pub struct CascadePriority {
     layer_order: LayerOrder,
 }
 
-#[allow(dead_code)]
-fn size_assert() {
-    #[allow(unsafe_code)]
-    unsafe {
-        std::mem::transmute::<u32, CascadePriority>(0u32)
-    };
-}
+const_assert_eq!(std::mem::size_of::<CascadePriority>(), std::mem::size_of::<u32>());
 
 impl PartialOrd for CascadePriority {
     #[inline]
@@ -208,3 +202,6 @@ impl ApplicableDeclarationBlock {
         (self.source, self.cascade_priority)
     }
 }
+
+// Size of this struct determines sorting and selector-matching performance.
+size_of_test!(ApplicableDeclarationBlock, 24);

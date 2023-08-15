@@ -88,6 +88,10 @@ where
                 }
                 Some(doc_rule.rules.read_with(guard).0.iter())
             },
+            CssRule::Container(ref lock) => {
+                let container_rule = lock.read_with(guard);
+                Some(container_rule.rules.read_with(guard).0.iter())
+            },
             CssRule::Media(ref lock) => {
                 let media_rule = lock.read_with(guard);
                 if !C::process_media(guard, device, quirks_mode, media_rule) {

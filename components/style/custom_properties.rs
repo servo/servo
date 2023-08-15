@@ -64,6 +64,27 @@ fn get_safearea_inset_right(device: &Device) -> VariableValue {
     VariableValue::pixels(device.safe_area_insets().right)
 }
 
+#[cfg(feature = "gecko")]
+fn get_content_preferred_color_scheme(device: &Device) -> VariableValue {
+    use crate::gecko::media_features::PrefersColorScheme;
+    let prefers_color_scheme = unsafe {
+        crate::gecko_bindings::bindings::Gecko_MediaFeatures_PrefersColorScheme(
+            device.document(),
+            /* use_content = */ true,
+        )
+    };
+    VariableValue::ident(match prefers_color_scheme {
+        PrefersColorScheme::Light => "light",
+        PrefersColorScheme::Dark => "dark",
+    })
+}
+
+#[cfg(feature = "servo")]
+fn get_content_preferred_color_scheme(_device: &Device) -> VariableValue {
+    // TODO: implement this.
+    VariableValue::ident("light")
+}
+
 static ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
     make_variable!(atom!("safe-area-inset-top"), get_safearea_inset_top),
     make_variable!(atom!("safe-area-inset-bottom"), get_safearea_inset_bottom),
@@ -99,7 +120,7 @@ macro_rules! lnf_int_variable {
     }};
 }
 
-static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 5] = [
+static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 6] = [
     lnf_int_variable!(
         atom!("-moz-gtk-csd-titlebar-radius"),
         TitlebarRadius,
@@ -121,6 +142,7 @@ static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 5] = [
         GTKCSDMaximizeButtonPosition,
         integer
     ),
+    make_variable!(atom!("-moz-content-preferred-color-scheme"), get_content_preferred_color_scheme),
 ];
 
 impl CssEnvironment {
@@ -326,6 +348,11 @@ impl VariableValue {
             value: number as f32,
             int_value: Some(number),
         })
+    }
+
+    /// Create VariableValue from an int.
+    fn ident(ident: &'static str) -> Self {
+        Self::from_token(Token::Ident(ident.into()))
     }
 
     /// Create VariableValue from a float amount of CSS pixels.

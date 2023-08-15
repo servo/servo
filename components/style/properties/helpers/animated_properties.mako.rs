@@ -799,7 +799,7 @@ impl<'a> TransitionPropertyIterator<'a> {
     pub fn from_style(style: &'a ComputedValues) -> Self {
         Self {
             style,
-            index_range: 0..style.get_box().transition_property_count(),
+            index_range: 0..style.get_ui().transition_property_count(),
             longhand_iterator: None,
         }
     }
@@ -832,7 +832,7 @@ impl<'a> Iterator for TransitionPropertyIterator<'a> {
             }
 
             let index = self.index_range.next()?;
-            match self.style.get_box().transition_property_at(index) {
+            match self.style.get_ui().transition_property_at(index) {
                 TransitionProperty::Longhand(longhand_id) => {
                     return Some(TransitionPropertyIteration {
                         longhand_id,

@@ -16,6 +16,7 @@ use super::specified;
 use super::{CSSFloat, CSSInteger};
 use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::QuirksMode;
+use crate::stylesheets::container_rule::ContainerInfo;
 use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
 use crate::media_queries::Device;
 #[cfg(feature = "gecko")]
@@ -44,11 +45,12 @@ pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderImageSlice, BorderImageWidth};
-pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, Contain};
+pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, Contain, ContainerName, ContainerType};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, ContentVisibility, Float};
 pub use self::box_::{Display, Overflow, OverflowAnchor, TransitionProperty};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
-pub use self::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness, ScrollSnapType};
+pub use self::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
+pub use self::box_::{ScrollSnapStrictness, ScrollSnapType};
 pub use self::box_::{TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, ColorScheme, PrintColorAdjust};
 pub use self::column::ColumnCount;
@@ -72,7 +74,7 @@ pub use self::list::ListStyleType;
 pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
-pub use self::page::{Orientation, PageName, PageSize, PaperSize};
+pub use self::page::{PageOrientation, PageName, PageSize, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::AspectRatio;
 pub use self::position::{
@@ -97,6 +99,7 @@ pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 pub use self::ui::CursorImage;
 pub use self::ui::{Cursor, MozForceBrokenImageIcon, UserSelect};
 pub use super::specified::TextTransform;
+pub use super::specified::ViewportVariant;
 pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use super::{Auto, Either, None_};
 pub use app_units::Au;
@@ -169,6 +172,9 @@ pub struct Context<'a> {
     /// values, which SMIL allows.
     pub for_smil_animation: bool,
 
+    /// Returns the container information to evaluate a given container query.
+    pub container_info: Option<ContainerInfo>,
+
     /// The property we are computing a value for, if it is a non-inherited
     /// property.  None if we are computed a value for an inherited property
     /// or not computing for a property at all (e.g. in a media query
@@ -197,6 +203,40 @@ impl<'a> Context<'a> {
             in_media_query: true,
             quirks_mode,
             for_smil_animation: false,
+            container_info: None,
+            for_non_inherited_property: None,
+            rule_cache_conditions: RefCell::new(&mut conditions),
+        };
+
+        f(&context)
+    }
+
+    /// Creates a suitable context for container query evaluation for the style
+    /// specified.
+    pub fn for_container_query_evaluation<F, R>(
+        device: &Device,
+        container_info_and_style: Option<(ContainerInfo, Arc<ComputedValues>)>,
+        f: F,
+    ) -> R
+    where
+        F: FnOnce(&Context) -> R,
+    {
+        let mut conditions = RuleCacheConditions::default();
+
+        let (container_info, style) = match container_info_and_style {
+            Some((ci, s)) => (Some(ci), Some(s)),
+            None => (None, None),
+        };
+
+        let style = style.as_ref().map(|s| &**s);
+        let quirks_mode = device.quirks_mode();
+        let context = Context {
+            builder: StyleBuilder::for_inheritance(device, style, None),
+            cached_system_font: None,
+            in_media_query: true,
+            quirks_mode,
+            for_smil_animation: false,
+            container_info,
             for_non_inherited_property: None,
             rule_cache_conditions: RefCell::new(&mut conditions),
         };
@@ -253,10 +293,13 @@ impl<'a> Context<'a> {
     }
 
     /// The current viewport size, used to resolve viewport units.
-    pub fn viewport_size_for_viewport_unit_resolution(&self) -> default::Size2D<Au> {
+    pub fn viewport_size_for_viewport_unit_resolution(
+        &self,
+        variant: ViewportVariant,
+    ) -> default::Size2D<Au> {
         self.builder
             .device
-            .au_viewport_size_for_viewport_unit_resolution()
+            .au_viewport_size_for_viewport_unit_resolution(variant)
     }
 
     /// The default computed style we're getting our reset style from.
@@ -300,8 +343,8 @@ impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> ComputedVecIter<'a, 'cx, 'cx_
     /// Construct an iterator from a slice of specified values and a context
     pub fn new(cx: &'cx Context<'cx_a>, values: &'a [S]) -> Self {
         ComputedVecIter {
-            cx: cx,
-            values: values,
+            cx,
+            values,
         }
     }
 }

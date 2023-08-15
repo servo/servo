@@ -13,7 +13,7 @@ use crate::selector_parser::PseudoElement;
 use crate::shared_lock::Locked;
 use crate::stylesheets::{layer_rule::LayerOrder, Origin};
 use crate::stylist::{AuthorStylesEnabled, CascadeData, Rule, RuleInclusion, Stylist};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
+use selectors::matching::{MatchingContext, MatchingMode};
 use servo_arc::ArcBorrow;
 use smallvec::SmallVec;
 
@@ -59,7 +59,7 @@ pub fn containing_shadow_ignoring_svg_use<E: TElement>(
 ///
 /// This is done basically to be able to organize the cascade in smaller
 /// functions, and be able to reason about it easily.
-pub struct RuleCollector<'a, 'b: 'a, E, F: 'a>
+pub struct RuleCollector<'a, 'b: 'a, E>
 where
     E: TElement,
 {
@@ -73,16 +73,14 @@ where
     rule_inclusion: RuleInclusion,
     rules: &'a mut ApplicableDeclarationList,
     context: &'a mut MatchingContext<'b, E::Impl>,
-    flags_setter: &'a mut F,
     matches_user_and_author_rules: bool,
     matches_document_author_rules: bool,
     in_sort_scope: bool,
 }
 
-impl<'a, 'b: 'a, E, F: 'a> RuleCollector<'a, 'b, E, F>
+impl<'a, 'b: 'a, E> RuleCollector<'a, 'b, E>
 where
     E: TElement,
-    F: FnMut(&E, ElementSelectorFlags),
 {
     /// Trivially construct a new collector.
     pub fn new(
@@ -95,7 +93,6 @@ where
         rule_inclusion: RuleInclusion,
         rules: &'a mut ApplicableDeclarationList,
         context: &'a mut MatchingContext<'b, E::Impl>,
-        flags_setter: &'a mut F,
     ) -> Self {
         // When we're matching with matching_mode =
         // `ForStatelessPseudoeElement`, the "target" for the rule hash is the
@@ -125,7 +122,6 @@ where
             animation_declarations,
             rule_inclusion,
             context,
-            flags_setter,
             rules,
             matches_user_and_author_rules,
             matches_document_author_rules: matches_user_and_author_rules,
@@ -227,9 +223,9 @@ where
             part_rules,
             &mut self.rules,
             &mut self.context,
-            &mut self.flags_setter,
             cascade_level,
             cascade_data,
+            &self.stylist,
         );
     }
 
@@ -246,9 +242,9 @@ where
             self.rule_hash_target,
             &mut self.rules,
             &mut self.context,
-            &mut self.flags_setter,
             cascade_level,
             cascade_data,
+            &self.stylist,
         );
     }
 

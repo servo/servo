@@ -118,8 +118,8 @@ bitflags! {
         const IN_MODAL_DIALOG_STATE = 1 << 42;
         /// <https://html.spec.whatwg.org/multipage/#inert-subtrees>
         const IN_MOZINERT_STATE = 1 << 43;
-        /// State for the topmost dialog element in top layer
-        const IN_TOPMOST_MODAL_DIALOG_STATE = 1 << 44;
+        /// State for the topmost modal element in top layer
+        const IN_TOPMOST_MODAL_TOP_LAYER_STATE = 1 << 44;
         /// Initially used for the devtools highlighter, but now somehow only
         /// used for the devtools accessibility inspector.
         const IN_DEVTOOLS_HIGHLIGHTED_STATE = 1 << 45;
@@ -148,9 +148,5 @@ bitflags! {
         const LTR_LOCALE = 1 << 2;
         /// LWTheme status
         const LWTHEME = 1 << 3;
-        /// LWTheme status
-        const LWTHEME_BRIGHTTEXT = 1 << 4;
-        /// LWTheme status
-        const LWTHEME_DARKTEXT = 1 << 5;
     }
 }

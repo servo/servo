@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! An [`@media`][media] urle.
+//! An [`@media`][media] rule.
 //!
 //! [media]: https://drafts.csswg.org/css-conditional/#at-ruledef-media
 
@@ -18,7 +18,7 @@ use servo_arc::Arc;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
-/// An [`@media`][media] urle.
+/// An [`@media`][media] rule.
 ///
 /// [media]: https://drafts.csswg.org/css-conditional/#at-ruledef-media
 #[derive(Debug, ToShmem)]

@@ -68,6 +68,14 @@ impl VisitedHandlingMode {
     }
 }
 
+/// Whether we need to set selector invalidation flags on elements for this
+/// match request.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum NeedsSelectorFlags {
+    No,
+    Yes,
+}
+
 /// Which quirks mode is this document in.
 ///
 /// See: https://quirks.spec.whatwg.org/
@@ -140,6 +148,7 @@ where
     pub extra_data: Impl::ExtraMatchingData,
 
     quirks_mode: QuirksMode,
+    needs_selector_flags: NeedsSelectorFlags,
     classes_and_ids_case_sensitivity: CaseSensitivity,
     _impl: ::std::marker::PhantomData<Impl>,
 }
@@ -154,6 +163,7 @@ where
         bloom_filter: Option<&'a BloomFilter>,
         nth_index_cache: Option<&'a mut NthIndexCache>,
         quirks_mode: QuirksMode,
+        needs_selector_flags: NeedsSelectorFlags,
     ) -> Self {
         Self::new_for_visited(
             matching_mode,
@@ -161,6 +171,7 @@ where
             nth_index_cache,
             VisitedHandlingMode::AllLinksUnvisited,
             quirks_mode,
+            needs_selector_flags,
         )
     }
 
@@ -171,6 +182,7 @@ where
         nth_index_cache: Option<&'a mut NthIndexCache>,
         visited_handling: VisitedHandlingMode,
         quirks_mode: QuirksMode,
+        needs_selector_flags: NeedsSelectorFlags,
     ) -> Self {
         Self {
             matching_mode,
@@ -179,6 +191,7 @@ where
             nth_index_cache,
             quirks_mode,
             classes_and_ids_case_sensitivity: quirks_mode.classes_and_ids_case_sensitivity(),
+            needs_selector_flags,
             scope_element: None,
             current_host: None,
             nesting_level: 0,
@@ -211,6 +224,12 @@ where
     #[inline]
     pub fn matching_mode(&self) -> MatchingMode {
         self.matching_mode
+    }
+
+    /// Whether we need to set selector flags.
+    #[inline]
+    pub fn needs_selector_flags(&self) -> bool {
+        self.needs_selector_flags == NeedsSelectorFlags::Yes
     }
 
     /// The case-sensitivity for class and ID selectors

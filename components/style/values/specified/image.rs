@@ -39,6 +39,9 @@ use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 pub type Image =
     generic::Image<Gradient, MozImageRect, SpecifiedImageUrl, Color, Percentage, Resolution>;
 
+// Images should remain small, see https://github.com/servo/servo/pull/18430
+size_of_test!(Image, 40);
+
 /// Specified values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
 pub type Gradient = generic::Gradient<
@@ -60,8 +63,6 @@ pub type CrossFade = generic::CrossFade<Image, Color, Percentage>;
 pub type CrossFadeElement = generic::CrossFadeElement<Image, Color, Percentage>;
 /// CrossFadeImage = image | color
 pub type CrossFadeImage = generic::CrossFadeImage<Image, Color>;
-/// A specified percentage or nothing.
-pub type PercentOrNone = generic::PercentOrNone<Percentage>;
 
 /// `image-set()`
 pub type ImageSet = generic::ImageSet<Image, Resolution>;
@@ -315,6 +316,16 @@ impl CrossFade {
 }
 
 impl CrossFadeElement {
+    fn parse_percentage<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Option<Percentage> {
+        // We clamp our values here as this is the way that Safari and Chrome's
+        // implementation handle out-of-bounds percentages but whether or not
+        // this behavior follows the specification is still being discussed.
+        // See: <https://github.com/w3c/csswg-drafts/issues/5333>
+        input.try_parse(|input| Percentage::parse_non_negative(context, input))
+            .ok()
+            .map(|p| p.clamp_to_hundred())
+    }
+
     /// <cf-image> = <percentage>? && [ <image> | <color> ]
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -322,14 +333,17 @@ impl CrossFadeElement {
         cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         // Try and parse a leading percent sign.
-        let mut percent = PercentOrNone::parse_or_none(context, input);
+        let mut percent = Self::parse_percentage(context, input);
         // Parse the image
         let image = CrossFadeImage::parse(context, input, cors_mode)?;
         // Try and parse a trailing percent sign.
-        if percent == PercentOrNone::None {
-            percent = PercentOrNone::parse_or_none(context, input);
+        if percent.is_none() {
+            percent = Self::parse_percentage(context, input);
         }
-        Ok(Self { percent, image })
+        Ok(Self {
+            percent: percent.into(),
+            image,
+        })
     }
 }
 
@@ -348,22 +362,6 @@ impl CrossFadeImage {
             return Ok(Self::Image(image));
         }
         Ok(Self::Color(Color::parse(context, input)?))
-    }
-}
-
-impl PercentOrNone {
-    fn parse_or_none<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Self {
-        // We clamp our values here as this is the way that Safari and
-        // Chrome's implementation handle out-of-bounds percentages
-        // but whether or not this behavior follows the specification
-        // is still being discussed. See:
-        // <https://github.com/w3c/csswg-drafts/issues/5333>
-        if let Ok(percent) = input.try_parse(|input| Percentage::parse_non_negative(context, input))
-        {
-            Self::Percent(percent.clamp_to_hundred())
-        } else {
-            Self::None
-        }
     }
 }
 
@@ -735,12 +733,12 @@ impl Gradient {
         if items.is_empty() {
             items = vec![
                 generic::GradientItem::ComplexColorStop {
-                    color: Color::transparent().into(),
-                    position: Percentage::zero().into(),
+                    color: Color::transparent(),
+                    position: LengthPercentage::zero_percent(),
                 },
                 generic::GradientItem::ComplexColorStop {
-                    color: Color::transparent().into(),
-                    position: Percentage::hundred().into(),
+                    color: Color::transparent(),
+                    position: LengthPercentage::hundred_percent(),
                 },
             ];
         } else if items.len() == 1 {

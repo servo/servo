@@ -370,6 +370,7 @@ impl SanitizationKind {
             CssRule::Media(..) |
             CssRule::Supports(..) |
             CssRule::Import(..) |
+            CssRule::Container(..) |
             // TODO(emilio): Perhaps Layer should not be always sanitized? But
             // we sanitize @media and co, so this seems safer for now.
             CssRule::LayerStatement(..) |

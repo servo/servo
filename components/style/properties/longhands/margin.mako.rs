@@ -28,6 +28,16 @@
     )}
 % endfor
 
+${helpers.predefined_type(
+    "overflow-clip-margin",
+    "Length",
+    "computed::Length::zero()",
+    parse_method="parse_non_negative",
+    engines="gecko",
+    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-clip-margin",
+    animation_value_type="ComputedValue",
+)}
+
 % for side in ALL_SIDES:
     ${helpers.predefined_type(
         "scroll-margin-%s" % side[0],

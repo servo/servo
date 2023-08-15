@@ -267,6 +267,9 @@ pub enum PropertyDeclaration {
     % endfor
 }
 
+// There's one of these for each parsed declaration so it better be small.
+size_of_test!(PropertyDeclaration, 32);
+
 #[repr(C)]
 struct PropertyDeclarationVariantRepr<T> {
     tag: u16,
@@ -474,9 +477,10 @@ impl NonCustomPropertyId {
         self.0
     }
 
+    /// Convert a `NonCustomPropertyId` into a `nsCSSPropertyID`.
     #[cfg(feature = "gecko")]
     #[inline]
-    fn to_nscsspropertyid(self) -> nsCSSPropertyID {
+    pub fn to_nscsspropertyid(self) -> nsCSSPropertyID {
         // unsafe: guaranteed by static_assert_nscsspropertyid above.
         unsafe { std::mem::transmute(self.0 as i32) }
     }
@@ -892,6 +896,72 @@ impl<'a> Iterator for LonghandIdSetIterator<'a> {
     }
 }
 
+<%
+
+CASCADE_GROUPS = {
+    # The writing-mode group has the most priority of all property groups, as
+    # sizes like font-size can depend on it.
+    "writing_mode": [
+        "writing-mode",
+        "direction",
+        "text-orientation",
+    ],
+    # The fonts and colors group has the second priority, as all other lengths
+    # and colors depend on them.
+    #
+    # There are some interdependencies between these, but we fix them up in
+    # Cascade::fixup_font_stuff.
+    "fonts_and_color": [
+        # Needed to properly compute the zoomed font-size.
+        # FIXME(emilio): This could probably just be a cascade flag
+        # like IN_SVG_SUBTREE or such, and we could nuke this property.
+        "-x-text-zoom",
+        # Needed to do font-size computation in a language-dependent way.
+        "-x-lang",
+        # Needed for ruby to respect language-dependent min-font-size
+        # preferences properly, see bug 1165538.
+        "-moz-min-font-size-ratio",
+        # font-size depends on math-depth's computed value.
+        "math-depth",
+        # Needed to compute the first available font, in order to
+        # compute font-relative units correctly.
+        "font-size",
+        "font-weight",
+        "font-stretch",
+        "font-style",
+        "font-family",
+        # color-scheme affects how system colors resolve.
+        "color-scheme",
+    ],
+}
+def in_late_group(p):
+    return p.name not in CASCADE_GROUPS["writing_mode"] and p.name not in CASCADE_GROUPS["fonts_and_color"]
+
+def is_visited_dependent(p):
+    return p.name in [
+        "column-rule-color",
+        "text-emphasis-color",
+        "-webkit-text-fill-color",
+        "-webkit-text-stroke-color",
+        "text-decoration-color",
+        "fill",
+        "stroke",
+        "caret-color",
+        "background-color",
+        "border-top-color",
+        "border-right-color",
+        "border-bottom-color",
+        "border-left-color",
+        "border-block-start-color",
+        "border-inline-end-color",
+        "border-block-end-color",
+        "border-inline-start-color",
+        "outline-color",
+        "color",
+    ]
+
+%>
+
 impl LonghandIdSet {
     #[inline]
     fn reset() -> &'static Self {
@@ -920,12 +990,54 @@ impl LonghandIdSet {
     /// Returns the set of longhands that are ignored when document colors are
     /// disabled.
     #[inline]
-    pub fn ignored_when_colors_disabled() -> &'static Self {
+    fn ignored_when_colors_disabled() -> &'static Self {
         ${static_longhand_id_set(
             "IGNORED_WHEN_COLORS_DISABLED",
             lambda p: p.ignored_when_colors_disabled
         )}
         &IGNORED_WHEN_COLORS_DISABLED
+    }
+
+    /// Only a few properties are allowed to depend on the visited state of
+    /// links. When cascading visited styles, we can save time by only
+    /// processing these properties.
+    fn visited_dependent() -> &'static Self {
+        ${static_longhand_id_set(
+            "VISITED_DEPENDENT",
+            lambda p: is_visited_dependent(p)
+        )}
+        debug_assert!(Self::late_group().contains_all(&VISITED_DEPENDENT));
+        &VISITED_DEPENDENT
+    }
+
+    #[inline]
+    fn writing_mode_group() -> &'static Self {
+        ${static_longhand_id_set(
+            "WRITING_MODE_GROUP",
+            lambda p: p.name in CASCADE_GROUPS["writing_mode"]
+        )}
+        &WRITING_MODE_GROUP
+    }
+
+    #[inline]
+    fn fonts_and_color_group() -> &'static Self {
+        ${static_longhand_id_set(
+            "FONTS_AND_COLOR_GROUP",
+            lambda p: p.name in CASCADE_GROUPS["fonts_and_color"]
+        )}
+        &FONTS_AND_COLOR_GROUP
+    }
+
+    #[inline]
+    fn late_group_only_inherited() -> &'static Self {
+        ${static_longhand_id_set("LATE_GROUP_ONLY_INHERITED", lambda p: p.style_struct.inherited and in_late_group(p))}
+        &LATE_GROUP_ONLY_INHERITED
+    }
+
+    #[inline]
+    fn late_group() -> &'static Self {
+        ${static_longhand_id_set("LATE_GROUP", lambda p: in_late_group(p))}
+        &LATE_GROUP
     }
 
     /// Returns the set of properties that are declared as having no effect on
@@ -1330,90 +1442,11 @@ impl LonghandId {
         PropertyFlags::from_bits_truncate(FLAGS[self as usize])
     }
 
-    /// Only a few properties are allowed to depend on the visited state of
-    /// links. When cascading visited styles, we can save time by only
-    /// processing these properties.
-    fn is_visited_dependent(&self) -> bool {
-        matches!(*self,
-            % if engine == "gecko":
-            LonghandId::ColumnRuleColor |
-            LonghandId::TextEmphasisColor |
-            LonghandId::WebkitTextFillColor |
-            LonghandId::WebkitTextStrokeColor |
-            LonghandId::TextDecorationColor |
-            LonghandId::Fill |
-            LonghandId::Stroke |
-            LonghandId::CaretColor |
-            % endif
-            LonghandId::BackgroundColor |
-            LonghandId::BorderTopColor |
-            LonghandId::BorderRightColor |
-            LonghandId::BorderBottomColor |
-            LonghandId::BorderLeftColor |
-            LonghandId::OutlineColor |
-            LonghandId::Color
-        )
-    }
-
     /// Returns true if the property is one that is ignored when document
     /// colors are disabled.
     #[inline]
     fn ignored_when_document_colors_disabled(self) -> bool {
         LonghandIdSet::ignored_when_colors_disabled().contains(self)
-    }
-
-    /// The computed value of some properties depends on the (sometimes
-    /// computed) value of *other* properties.
-    ///
-    /// So we classify properties into "early" and "other", such that the only
-    /// dependencies can be from "other" to "early".
-    ///
-    /// Unfortunately, it’s not easy to check that this classification is
-    /// correct.
-    fn is_early_property(&self) -> bool {
-        matches!(*self,
-            % if engine == "gecko":
-
-            // Needed to properly compute the writing mode, to resolve logical
-            // properties, and similar stuff. In this block instead of along
-            // `WritingMode` and `Direction` just for convenience, since it's
-            // Gecko-only (for now at least).
-            //
-            // see WritingMode::new.
-            LonghandId::TextOrientation |
-
-            // Needed to properly compute the zoomed font-size.
-            //
-            // FIXME(emilio): This could probably just be a cascade flag like
-            // IN_SVG_SUBTREE or such, and we could nuke this property.
-            LonghandId::XTextZoom |
-
-            // Needed to do font-size computation in a language-dependent way.
-            LonghandId::XLang |
-            // Needed for ruby to respect language-dependent min-font-size
-            // preferences properly, see bug 1165538.
-            LonghandId::MozMinFontSizeRatio |
-
-            // font-size depends on math-depth's computed value.
-            LonghandId::MathDepth |
-
-            // color-scheme affects how system colors resolve.
-            LonghandId::ColorScheme |
-            % endif
-
-            // Needed to compute the first available font, in order to
-            // compute font-relative units correctly.
-            LonghandId::FontSize |
-            LonghandId::FontWeight |
-            LonghandId::FontStretch |
-            LonghandId::FontStyle |
-            LonghandId::FontFamily |
-
-            // Needed to properly compute the writing mode, to resolve logical
-            // properties, and similar stuff.
-            LonghandId::WritingMode |
-            LonghandId::Direction
-        )
     }
 }
 
@@ -2560,9 +2593,11 @@ impl PropertyDeclaration {
     }
 }
 
-type SubpropertiesVec<T> = ArrayVec<T, ${max(len(s.sub_properties) \
-    for s in data.shorthands_except_all()) \
-          if data.shorthands_except_all() else 0}>;
+const SUB_PROPERTIES_ARRAY_CAP: usize =
+    ${max(len(s.sub_properties) for s in data.shorthands_except_all()) \
+          if data.shorthands_except_all() else 0};
+
+type SubpropertiesVec<T> = ArrayVec<T, SUB_PROPERTIES_ARRAY_CAP>;
 
 /// A stack-allocated vector of `PropertyDeclaration`
 /// large enough to parse one CSS `key: value` declaration.
@@ -2573,6 +2608,10 @@ pub struct SourcePropertyDeclaration {
     /// Stored separately to keep SubpropertiesVec smaller.
     all_shorthand: AllShorthand,
 }
+
+// This is huge, but we allocate it on the stack and then never move it,
+// we only pass `&mut SourcePropertyDeclaration` references around.
+size_of_test!(SourcePropertyDeclaration, 568);
 
 impl SourcePropertyDeclaration {
     /// Create one. It’s big, try not to move it around.
@@ -2618,11 +2657,7 @@ impl SourcePropertyDeclaration {
 
 /// Return type of SourcePropertyDeclaration::drain
 pub struct SourcePropertyDeclarationDrain<'a> {
-    declarations: ArrayVecDrain<
-        'a, PropertyDeclaration,
-        ${max(len(s.sub_properties) for s in data.shorthands_except_all()) \
-            if data.shorthands_except_all() else 0}
-    >,
+    declarations: ArrayVecDrain<'a, PropertyDeclaration, SUB_PROPERTIES_ARRAY_CAP>,
     all_shorthand: AllShorthand,
 }
 
@@ -2903,11 +2938,11 @@ pub mod style_structs {
             % endif
         % endfor
 
-        % if style_struct.name == "Box":
+        % if style_struct.name == "UI":
             /// Returns whether there is any animation specified with
             /// animation-name other than `none`.
             pub fn specifies_animations(&self) -> bool {
-                self.animation_name_iter().any(|name| name.0.is_some())
+                self.animation_name_iter().any(|name| !name.is_none())
             }
 
             /// Returns whether there are any transitions specified.
@@ -3035,7 +3070,7 @@ impl ComputedValues {
 
     /// Returns whether this style's display value is equal to contents.
     pub fn is_display_contents(&self) -> bool {
-        self.get_box().clone_display().is_contents()
+        self.clone_display().is_contents()
     }
 
     /// Gets a reference to the rule node. Panic if no rule node exists.
@@ -3184,7 +3219,7 @@ impl ComputedValues {
     ///   style.resolve_color(style.get_border().clone_border_top_color());
     #[inline]
     pub fn resolve_color(&self, color: computed::Color) -> RGBA {
-        color.to_rgba(self.get_inherited_text().clone_color())
+        color.into_rgba(self.get_inherited_text().clone_color())
     }
 
     /// Returns which longhand properties have different values in the two
@@ -4188,7 +4223,7 @@ macro_rules! css_properties_accessors {
 /// Call the given macro with tokens like this for each longhand properties:
 ///
 /// ```
-/// { snake_case_ident, true }
+/// { snake_case_ident }
 /// ```
 ///
 /// … where the boolean indicates whether the property value type
@@ -4198,11 +4233,38 @@ macro_rules! longhand_properties_idents {
     ($macro_name: ident) => {
         $macro_name! {
             % for property in data.longhands:
-                { ${property.ident}, ${"true" if property.boxed else "false"} }
+                { ${property.ident} }
             % endfor
         }
     }
 }
+
+// Large pages generate tens of thousands of ComputedValues.
+size_of_test!(ComputedValues, 192);
+// FFI relies on this.
+size_of_test!(Option<Arc<ComputedValues>>, 8);
+
+// There are two reasons for this test to fail:
+//
+//   * Your changes made a specified value type for a given property go
+//     over the threshold. In that case, you should try to shrink it again
+//     or, if not possible, mark the property as boxed in the property
+//     definition.
+//
+//   * Your changes made a specified value type smaller, so that it no
+//     longer needs to be boxed. In this case you just need to remove
+//     boxed=True from the property definition. Nice job!
+#[cfg(target_pointer_width = "64")]
+#[allow(dead_code)] // https://github.com/rust-lang/rust/issues/96952
+const BOX_THRESHOLD: usize = 24;
+% for longhand in data.longhands:
+#[cfg(target_pointer_width = "64")]
+% if longhand.boxed:
+const_assert!(std::mem::size_of::<longhands::${longhand.ident}::SpecifiedValue>() > BOX_THRESHOLD);
+% else:
+const_assert!(std::mem::size_of::<longhands::${longhand.ident}::SpecifiedValue>() <= BOX_THRESHOLD);
+% endif
+% endfor
 
 % if engine == "servo":
 % for effect_name in ["repaint", "reflow_out_of_flow", "reflow", "rebuild_and_reflow_inline", "rebuild_and_reflow"]:

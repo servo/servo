@@ -22,7 +22,7 @@ use crate::traversal_flags::TraversalFlags;
 use crate::values::AtomIdent;
 use crate::{LocalName, Namespace, WeakAtom};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
+use selectors::matching::{QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
 use selectors::Element as SelectorsElement;
 use servo_arc::{Arc, ArcBorrow};
@@ -734,19 +734,6 @@ pub trait TElement:
     /// native anonymous content can opt out of this style fixup.)
     fn skip_item_display_fixup(&self) -> bool;
 
-    /// Sets selector flags, which indicate what kinds of selectors may have
-    /// matched on this element and therefore what kind of work may need to
-    /// be performed when DOM state changes.
-    ///
-    /// This is unsafe, like all the flag-setting methods, because it's only safe
-    /// to call with exclusive access to the element. When setting flags on the
-    /// parent during parallel traversal, we use SequentialTask to queue up the
-    /// set to run after the threads join.
-    unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags);
-
-    /// Returns true if the element has all the specified selector flags.
-    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
-
     /// In Gecko, element has a flag that represents the element may have
     /// any type of animations or not to bail out animation stuff early.
     /// Whereas Servo doesn't have such flag.
@@ -941,6 +928,9 @@ pub trait TElement:
     /// Returns element's namespace.
     fn namespace(&self)
         -> &<SelectorImpl as selectors::parser::SelectorImpl>::BorrowedNamespaceUrl;
+
+    /// Returns the size of the primary box of the element.
+    fn primary_box_size(&self) -> euclid::default::Size2D<app_units::Au>;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

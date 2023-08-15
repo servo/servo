@@ -17,7 +17,6 @@ use crate::values::{CustomIdent, KeyframesName, TimelineName};
 use crate::Atom;
 use cssparser::Parser;
 use num_traits::FromPrimitive;
-use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Formatter, Write};
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
@@ -680,33 +679,30 @@ impl AnimationIterationCount {
     PartialEq,
     SpecifiedValueInfo,
     ToComputedValue,
+    ToCss,
     ToResolvedValue,
     ToShmem,
 )]
 #[value_info(other_values = "none")]
-pub struct AnimationName(pub Option<KeyframesName>);
+pub struct AnimationName(pub KeyframesName);
 
 impl AnimationName {
     /// Get the name of the animation as an `Atom`.
     pub fn as_atom(&self) -> Option<&Atom> {
-        self.0.as_ref().map(|n| n.as_atom())
+        if self.is_none() {
+            return None;
+        }
+        Some(self.0.as_atom())
     }
 
     /// Returns the `none` value.
     pub fn none() -> Self {
-        AnimationName(None)
+        AnimationName(KeyframesName::none())
     }
-}
 
-impl ToCss for AnimationName {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        match self.0 {
-            Some(ref name) => name.to_css(dest),
-            None => dest.write_str("none"),
-        }
+    /// Returns whether this is the none value.
+    pub fn is_none(&self) -> bool {
+        self.0.is_none()
     }
 }
 
@@ -716,12 +712,86 @@ impl Parse for AnimationName {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(name) = input.try_parse(|input| KeyframesName::parse(context, input)) {
-            return Ok(AnimationName(Some(name)));
+            return Ok(AnimationName(name));
         }
 
         input.expect_ident_matching("none")?;
-        Ok(AnimationName(None))
+        Ok(AnimationName(KeyframesName::none()))
     }
+}
+
+/// A value for the <Scroller> used in scroll().
+///
+/// https://drafts.csswg.org/scroll-animations-1/rewrite#typedef-scroller
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum Scroller {
+    /// The nearest ancestor scroll container. (Default.)
+    Nearest,
+    /// The document viewport as the scroll container.
+    Root,
+    // FIXME: Bug 1764450: Once we support container-name CSS property (Bug 1744224), we may add
+    // <custom-ident> here, based on the result of the spec issue:
+    // https://github.com/w3c/csswg-drafts/issues/7046
+}
+
+impl Default for Scroller {
+    fn default() -> Self {
+        Self::Nearest
+    }
+}
+
+/// A value for the <Axis> used in scroll().
+///
+/// https://drafts.csswg.org/scroll-animations-1/rewrite#typedef-axis
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum ScrollAxis {
+    /// The block axis of the scroll container. (Default.)
+    Block,
+    /// The inline axis of the scroll container.
+    Inline,
+    /// The vertical block axis of the scroll container.
+    Vertical,
+    /// The horizontal axis of the scroll container.
+    Horizontal,
+}
+
+impl Default for ScrollAxis {
+    fn default() -> Self {
+        Self::Block
+    }
+}
+
+#[inline]
+fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    *value == Default::default()
 }
 
 /// A value for the <single-animation-timeline>.
@@ -745,10 +815,15 @@ impl Parse for AnimationName {
 pub enum AnimationTimeline {
     /// Use default timeline. The animation’s timeline is a DocumentTimeline.
     Auto,
-    /// The animation is not associated with a timeline.
-    None,
     /// The scroll-timeline name
     Timeline(TimelineName),
+    /// The scroll() notation
+    /// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-notation
+    #[css(function)]
+    Scroll(
+        #[css(skip_if = "is_default")] ScrollAxis,
+        #[css(skip_if = "is_default")] Scroller,
+    ),
 }
 
 impl AnimationTimeline {
@@ -769,16 +844,30 @@ impl Parse for AnimationTimeline {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         // We are using the same parser for TimelineName and KeyframesName, but animation-timeline
-        // accepts "auto", so need to manually parse this. (We can not derive Parse because
-        // TimelineName excludes only "none" keyword.)
+        // accepts "auto", so need to manually parse this. (We can not derive
+        // Parse because TimelineName excludes only the "none" keyword).
+        //
         // FIXME: Bug 1733260: we may drop None based on the spec issue:
-        // Note: https://github.com/w3c/csswg-drafts/issues/6674.
+        // https://github.com/w3c/csswg-drafts/issues/6674
+        //
+        // If `none` is removed, then we could potentially shrink this the same
+        // way we deal with animation-name.
         if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(Self::Auto);
         }
 
         if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(Self::None);
+            return Ok(AnimationTimeline::Timeline(TimelineName::none()));
+        }
+
+        // https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-notation
+        if input.try_parse(|i| i.expect_function_matching("scroll")).is_ok() {
+            return input.parse_nested_block(|i| {
+                Ok(Self::Scroll(
+                    i.try_parse(ScrollAxis::parse).unwrap_or(ScrollAxis::Block),
+                    i.try_parse(Scroller::parse).unwrap_or(Scroller::Nearest),
+                ))
+            });
         }
 
         TimelineName::parse(context, input).map(AnimationTimeline::Timeline)
@@ -1008,6 +1097,28 @@ impl ToCss for ScrollSnapAlign {
     ToShmem,
 )]
 #[repr(u8)]
+pub enum ScrollSnapStop {
+    Normal,
+    Always,
+}
+
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
 pub enum OverscrollBehavior {
     Auto,
     Contain,
@@ -1196,7 +1307,9 @@ impl Parse for WillChange {
                 &["will-change", "none", "all", "auto"],
             )?;
 
-            if ident.0 == atom!("scroll-position") {
+            if context.in_ua_sheet() && ident.0 == atom!("-moz-fixed-pos-containing-block") {
+                bits |= WillChangeBits::FIXPOS_CB_NON_SVG;
+            } else if ident.0 == atom!("scroll-position") {
                 bits |= WillChangeBits::SCROLL;
             } else {
                 bits |= change_bits_for_maybe_property(&parser_ident, context);
@@ -1213,9 +1326,8 @@ impl Parse for WillChange {
 
 bitflags! {
     /// Values for the `touch-action` property.
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
-    /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
-    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y,pinch-zoom")]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem, Parse)]
+    #[css(bitflags(single = "none,auto,manipulation", mixed = "pan-x,pan-y,pinch-zoom"))]
     #[repr(C)]
     pub struct TouchAction: u8 {
         /// `none` variant
@@ -1241,178 +1353,32 @@ impl TouchAction {
     }
 }
 
-impl ToCss for TouchAction {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.contains(TouchAction::AUTO) {
-            return dest.write_str("auto");
-        }
-        if self.contains(TouchAction::NONE) {
-            return dest.write_str("none");
-        }
-        if self.contains(TouchAction::MANIPULATION) {
-            return dest.write_str("manipulation");
-        }
-
-        let mut has_any = false;
-        macro_rules! maybe_write_value {
-            ($ident:path => $str:expr) => {
-                if self.contains($ident) {
-                    if has_any {
-                        dest.write_str(" ")?;
-                    }
-                    has_any = true;
-                    dest.write_str($str)?;
-                }
-            };
-        }
-        maybe_write_value!(TouchAction::PAN_X => "pan-x");
-        maybe_write_value!(TouchAction::PAN_Y => "pan-y");
-        maybe_write_value!(TouchAction::PINCH_ZOOM => "pinch-zoom");
-
-        debug_assert!(has_any);
-        Ok(())
-    }
-}
-
-impl Parse for TouchAction {
-    /// auto | none | [ pan-x || pan-y || pinch-zoom ] | manipulation
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<TouchAction, ParseError<'i>> {
-        let mut result = TouchAction::empty();
-        while let Ok(name) = input.try_parse(|i| i.expect_ident_cloned()) {
-            let flag = match_ignore_ascii_case! { &name,
-                "pan-x" => Some(TouchAction::PAN_X),
-                "pan-y" => Some(TouchAction::PAN_Y),
-                "pinch-zoom" => Some(TouchAction::PINCH_ZOOM),
-                "none" if result.is_empty() => return Ok(TouchAction::NONE),
-                "manipulation" if result.is_empty() => return Ok(TouchAction::MANIPULATION),
-                "auto" if result.is_empty() => return Ok(TouchAction::AUTO),
-                _ => None
-            };
-
-            let flag = match flag {
-                Some(flag) if !result.contains(flag) => flag,
-                _ => {
-                    return Err(
-                        input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name))
-                    );
-                },
-            };
-            result.insert(flag);
-        }
-
-        if !result.is_empty() {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-}
-
 bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
-    #[value_info(other_values = "none,strict,content,size,layout,paint")]
+    #[derive(MallocSizeOf, Parse, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+    #[css(bitflags(single = "none,strict,content", mixed="size,layout,paint,inline-size", overlapping_bits))]
     #[repr(C)]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
         /// `none` variant, just for convenience.
         const NONE = 0;
-        /// 'size' variant, turns on size containment
-        const SIZE = 1 << 0;
+        /// `inline-size` variant, turns on single-axis inline size containment
+        const INLINE_SIZE = 1 << 0;
+        /// `block-size` variant, turns on single-axis block size containment, internal only
+        const BLOCK_SIZE = 1 << 1;
         /// `layout` variant, turns on layout containment
-        const LAYOUT = 1 << 1;
+        const LAYOUT = 1 << 2;
         /// `paint` variant, turns on paint containment
-        const PAINT = 1 << 2;
+        const PAINT = 1 << 3;
+        /// 'size' variant, turns on size containment
+        const SIZE = 1 << 4 | Contain::INLINE_SIZE.bits | Contain::BLOCK_SIZE.bits;
+        /// `content` variant, turns on layout and paint containment
+        const CONTENT = 1 << 5 | Contain::LAYOUT.bits | Contain::PAINT.bits;
         /// `strict` variant, turns on all types of containment
-        const STRICT = 1 << 3;
-        /// 'content' variant, turns on layout and paint containment
-        const CONTENT = 1 << 4;
-        /// variant with all the bits that contain: strict turns on
-        const STRICT_BITS = Contain::LAYOUT.bits | Contain::PAINT.bits | Contain::SIZE.bits;
-        /// variant with all the bits that contain: content turns on
-        const CONTENT_BITS = Contain::LAYOUT.bits | Contain::PAINT.bits;
+        const STRICT = 1 << 6 | Contain::LAYOUT.bits | Contain::PAINT.bits | Contain::SIZE.bits;
     }
 }
 
-impl ToCss for Contain {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_empty() {
-            return dest.write_str("none");
-        }
-        if self.contains(Contain::STRICT) {
-            return dest.write_str("strict");
-        }
-        if self.contains(Contain::CONTENT) {
-            return dest.write_str("content");
-        }
-
-        let mut has_any = false;
-        macro_rules! maybe_write_value {
-            ($ident:path => $str:expr) => {
-                if self.contains($ident) {
-                    if has_any {
-                        dest.write_str(" ")?;
-                    }
-                    has_any = true;
-                    dest.write_str($str)?;
-                }
-            };
-        }
-        maybe_write_value!(Contain::SIZE => "size");
-        maybe_write_value!(Contain::LAYOUT => "layout");
-        maybe_write_value!(Contain::PAINT => "paint");
-
-        debug_assert!(has_any);
-        Ok(())
-    }
-}
-
-impl Parse for Contain {
-    /// none | strict | content | [ size || layout || paint ]
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Contain, ParseError<'i>> {
-        let mut result = Contain::empty();
-        while let Ok(name) = input.try_parse(|i| i.expect_ident_cloned()) {
-            let flag = match_ignore_ascii_case! { &name,
-                "size" => Some(Contain::SIZE),
-                "layout" => Some(Contain::LAYOUT),
-                "paint" => Some(Contain::PAINT),
-                "strict" if result.is_empty() => return Ok(Contain::STRICT | Contain::STRICT_BITS),
-                "content" if result.is_empty() => return Ok(Contain::CONTENT | Contain::CONTENT_BITS),
-                "none" if result.is_empty() => return Ok(result),
-                _ => None
-            };
-
-            let flag = match flag {
-                Some(flag) if !result.contains(flag) => flag,
-                _ => {
-                    return Err(
-                        input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name))
-                    );
-                },
-            };
-            result.insert(flag);
-        }
-
-        if !result.is_empty() {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-}
-
-#[allow(missing_docs)]
+/// https://drafts.csswg.org/css-contain-2/#content-visibility
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Clone,
@@ -1438,6 +1404,61 @@ pub enum ContentVisibility {
     Hidden,
     /// 'visible' variant, no effect
     Visible,
+}
+
+bitflags! {
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToCss, Parse, ToResolvedValue, ToShmem)]
+    #[repr(C)]
+    #[allow(missing_docs)]
+    #[css(bitflags(single="none", mixed="style,size,inline-size", overlapping_bits))]
+    /// https://drafts.csswg.org/css-contain-3/#container-type
+    ///
+    /// TODO: block-size is on the spec but it seems it was removed? WPTs don't
+    /// support it, see https://github.com/w3c/csswg-drafts/issues/7179.
+    pub struct ContainerType: u8 {
+        /// The `none` variant.
+        const NONE = 0;
+        /// The `style` variant.
+        const STYLE = 1 << 0;
+        /// The `inline-size` variant.
+        const INLINE_SIZE = 1 << 1;
+        /// The `size` variant, exclusive with `inline-size` (they sharing bits
+        /// guarantees this).
+        const SIZE = 1 << 2 | Self::INLINE_SIZE.bits;
+    }
+}
+
+/// https://drafts.csswg.org/css-contain-3/#container-name
+#[repr(transparent)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+pub struct ContainerName(#[css(iterable, if_empty = "none")] pub crate::OwnedSlice<CustomIdent>);
+
+impl ContainerName {
+    /// Return the `none` value.
+    pub fn none() -> Self {
+        Self(Default::default())
+    }
+
+    /// Returns whether this is the `none` value.
+    pub fn is_none(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl Parse for ContainerName {
+    fn parse<'i, 't>( _: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let mut idents = vec![];
+        let location = input.current_source_location();
+        let first = input.expect_ident()?;
+        if first.eq_ignore_ascii_case("none") {
+            return Ok(Self::none())
+        }
+        idents.push(CustomIdent::from_ident(location, first, &["none"])?);
+        while let Ok(ident) = input.try_parse(|input| input.expect_ident_cloned()) {
+            idents.push(CustomIdent::from_ident(location, &ident, &["none"])?);
+        }
+        Ok(ContainerName(idents.into()))
+    }
 }
 
 /// A specified value for the `perspective` property.
@@ -1890,10 +1911,6 @@ pub enum Appearance {
     MozMacSourceList,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozMacSourceListSelection,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozMacVibrantTitlebarDark,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozMacVibrantTitlebarLight,
 
     /// A themed focus outline (for outline:auto).
     ///
@@ -2101,9 +2118,9 @@ impl Overflow {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
-    #[value_info(other_values = "auto,stable,both-edges")]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToCss, ToComputedValue, ToResolvedValue, ToShmem, Parse)]
     #[repr(C)]
+    #[css(bitflags(single = "auto", mixed = "stable,both-edges", validate_mixed="Self::has_stable"))]
     /// Values for scrollbar-gutter:
     /// <https://drafts.csswg.org/css-overflow-3/#scrollbar-gutter-property>
     pub struct ScrollbarGutter: u8 {
@@ -2116,56 +2133,9 @@ bitflags! {
     }
 }
 
-impl ToCss for ScrollbarGutter {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_empty() {
-            return dest.write_str("auto");
-        }
-
-        debug_assert!(
-            self.contains(ScrollbarGutter::STABLE),
-            "We failed to parse the syntax!"
-        );
-        dest.write_str("stable")?;
-        if self.contains(ScrollbarGutter::BOTH_EDGES) {
-            dest.write_str(" both-edges")?;
-        }
-
-        Ok(())
-    }
-}
-
-impl Parse for ScrollbarGutter {
-    /// auto | stable && both-edges?
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<ScrollbarGutter, ParseError<'i>> {
-        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(ScrollbarGutter::AUTO);
-        }
-
-        let mut result = ScrollbarGutter::empty();
-        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
-            let flag = match_ignore_ascii_case! { &ident,
-                "stable" => Some(ScrollbarGutter::STABLE),
-                "both-edges" => Some(ScrollbarGutter::BOTH_EDGES),
-                _ => None
-            };
-
-            match flag {
-                Some(flag) if !result.contains(flag) => result.insert(flag),
-                _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-            }
-        }
-
-        if result.contains(ScrollbarGutter::STABLE) {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
+impl ScrollbarGutter {
+    #[inline]
+    fn has_stable(self) -> bool {
+        self.intersects(Self::STABLE)
     }
 }

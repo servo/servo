@@ -139,15 +139,6 @@ impl NonTSPseudoClass {
     /// Returns whether the pseudo-class is enabled in content sheets.
     #[inline]
     fn is_enabled_in_content(&self) -> bool {
-        if matches!(
-            *self,
-            Self::MozLWTheme | Self::MozLWThemeBrightText | Self::MozLWThemeDarkText
-        ) {
-            return static_prefs::pref!("layout.css.moz-lwtheme.content.enabled");
-        }
-        if let NonTSPseudoClass::MozLocaleDir(..) = *self {
-            return static_prefs::pref!("layout.css.moz-locale-dir.content.enabled");
-        }
         !self.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME)
     }
 
@@ -184,8 +175,6 @@ impl NonTSPseudoClass {
             },
             NonTSPseudoClass::MozWindowInactive => DocumentState::WINDOW_INACTIVE,
             NonTSPseudoClass::MozLWTheme => DocumentState::LWTHEME,
-            NonTSPseudoClass::MozLWThemeBrightText => DocumentState::LWTHEME_BRIGHTTEXT,
-            NonTSPseudoClass::MozLWThemeDarkText => DocumentState::LWTHEME_DARKTEXT,
             _ => DocumentState::empty(),
         }
     }
@@ -208,15 +197,13 @@ impl NonTSPseudoClass {
                       NonTSPseudoClass::MozNativeAnonymous |
                       // :-moz-placeholder is parsed but never matches.
                       NonTSPseudoClass::MozPlaceholder |
-                      // :-moz-locale-dir and :-moz-window-inactive depend only on
-                      // the state of the document, which is invariant across all
-                      // the elements involved in a given style cache.
-                      NonTSPseudoClass::MozLocaleDir(_) |
-                      NonTSPseudoClass::MozWindowInactive |
-                      // Similar for the document themes.
+                      // :-moz-lwtheme, :-moz-locale-dir and
+                      // :-moz-window-inactive depend only on the state of the
+                      // document, which is invariant across all the elements
+                      // involved in a given style cache.
                       NonTSPseudoClass::MozLWTheme |
-                      NonTSPseudoClass::MozLWThemeBrightText |
-                      NonTSPseudoClass::MozLWThemeDarkText
+                      NonTSPseudoClass::MozLocaleDir(_) |
+                      NonTSPseudoClass::MozWindowInactive
             )
     }
 }
@@ -458,3 +445,9 @@ unsafe impl HasFFI for SelectorList<SelectorImpl> {
 }
 unsafe impl HasSimpleFFI for SelectorList<SelectorImpl> {}
 unsafe impl HasBoxFFI for SelectorList<SelectorImpl> {}
+
+// Selector and component sizes are important for matching performance.
+size_of_test!(selectors::parser::Selector<SelectorImpl>, 8);
+size_of_test!(selectors::parser::Component<SelectorImpl>, 24);
+size_of_test!(PseudoElement, 16);
+size_of_test!(NonTSPseudoClass, 16);

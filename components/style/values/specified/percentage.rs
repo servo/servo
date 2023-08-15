@@ -92,9 +92,9 @@ impl Percentage {
         Number::new_with_clamping_mode(self.value, self.calc_clamping_mode)
     }
 
-    /// Returns whether this percentage is a `calc()` value.
-    pub fn is_calc(&self) -> bool {
-        self.calc_clamping_mode.is_some()
+    /// Returns the calc() clamping mode for this percentage.
+    pub fn calc_clamping_mode(&self) -> Option<AllowedNumericType> {
+        self.calc_clamping_mode
     }
 
     /// Reverses this percentage, preserving calc-ness.
@@ -138,6 +138,15 @@ impl Percentage {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
 
+    /// Parses a percentage token, but rejects it if it's negative or more than
+    /// 100%.
+    pub fn parse_zero_to_a_hundred<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::ZeroToOne)
+    }
+
     /// Clamp to 100% if the value is over 100%.
     #[inline]
     pub fn clamp_to_hundred(self) -> Self {
@@ -173,6 +182,24 @@ impl ToComputedValue for Percentage {
 }
 
 impl SpecifiedValueInfo for Percentage {}
+
+/// Turns the percentage into a plain float.
+pub trait ToPercentage {
+    /// Returns whether this percentage used to be a calc().
+    fn is_calc(&self) -> bool { false }
+    /// Turns the percentage into a plain float.
+    fn to_percentage(&self) -> CSSFloat;
+}
+
+impl ToPercentage for Percentage {
+    fn is_calc(&self) -> bool {
+        self.calc_clamping_mode.is_some()
+    }
+
+    fn to_percentage(&self) -> CSSFloat {
+        self.get()
+    }
+}
 
 /// A wrapper of Percentage, whose value must be >= 0.
 pub type NonNegativePercentage = NonNegative<Percentage>;

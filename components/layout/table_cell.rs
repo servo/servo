@@ -375,7 +375,7 @@ impl fmt::Debug for TableCellFlow {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct CollapsedBordersForCell {
     pub inline_start_border: CollapsedBorder,
     pub inline_end_border: CollapsedBorder,
@@ -494,10 +494,10 @@ impl CollapsedBordersForCell {
     ) {
         let logical_border_colors = LogicalMargin::new(
             writing_mode,
-            self.block_start_border.color,
-            self.inline_end_border.color,
-            self.block_end_border.color,
-            self.inline_start_border.color,
+            self.block_start_border.color.clone(),
+            self.inline_end_border.color.clone(),
+            self.block_end_border.color.clone(),
+            self.inline_start_border.color.clone(),
         );
         *border_colors = logical_border_colors.to_physical(writing_mode);
 

@@ -8,7 +8,7 @@
 #![deny(missing_docs)]
 
 use crate::computed_value_flags::ComputedValueFlags;
-use crate::context::{CascadeInputs, ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
+use crate::context::{CascadeInputs, ElementCascadeInputs, QuirksMode};
 use crate::context::{SharedStyleContext, StyleContext};
 use crate::data::{ElementData, ElementStyles};
 use crate::dom::TElement;
@@ -26,7 +26,6 @@ use crate::style_resolver::{PseudoElementResolution, StyleResolverForElement};
 use crate::stylesheets::layer_rule::LayerOrder;
 use crate::stylist::RuleInclusion;
 use crate::traversal_flags::TraversalFlags;
-use selectors::matching::ElementSelectorFlags;
 use servo_arc::{Arc, ArcBorrow};
 
 /// Represents the result of comparing an element's old and new style.
@@ -255,8 +254,8 @@ trait PrivateMatchMethods: TElement {
         new_style: &ComputedValues,
         pseudo_element: Option<PseudoElement>,
     ) -> bool {
-        let new_box_style = new_style.get_box();
-        let new_style_specifies_animations = new_box_style.specifies_animations();
+        let new_ui_style = new_style.get_ui();
+        let new_style_specifies_animations = new_ui_style.specifies_animations();
 
         let has_animations = self.has_css_animations(&context.shared, pseudo_element);
         if !new_style_specifies_animations && !has_animations {
@@ -283,7 +282,7 @@ trait PrivateMatchMethods: TElement {
             },
         };
 
-        let old_box_style = old_style.get_box();
+        let old_ui_style = old_style.get_ui();
 
         let keyframes_or_timeline_could_have_changed = context
             .shared
@@ -302,12 +301,12 @@ trait PrivateMatchMethods: TElement {
         }
 
         // If the animations changed, well...
-        if !old_box_style.animations_equals(new_box_style) {
+        if !old_ui_style.animations_equals(new_ui_style) {
             return true;
         }
 
-        let old_display = old_box_style.clone_display();
-        let new_display = new_box_style.clone_display();
+        let old_display = old_style.clone_display();
+        let new_display = new_style.clone_display();
 
         // If we were display: none, we may need to trigger animations.
         if old_display == Display::None && new_display != Display::None {
@@ -342,14 +341,13 @@ trait PrivateMatchMethods: TElement {
             None => return false,
         };
 
-        let new_box_style = new_style.get_box();
         if !self.has_css_transitions(context.shared, pseudo_element) &&
-            !new_box_style.specifies_transitions()
+            !new_style.get_ui().specifies_transitions()
         {
             return false;
         }
 
-        if new_box_style.clone_display().is_none() || old_style.clone_display().is_none() {
+        if new_style.clone_display().is_none() || old_style.clone_display().is_none() {
             return false;
         }
 
@@ -766,8 +764,8 @@ trait PrivateMatchMethods: TElement {
             },
         }
 
-        let old_display = old_values.get_box().clone_display();
-        let new_display = new_values.get_box().clone_display();
+        let old_display = old_values.clone_display();
+        let new_display = new_values.clone_display();
 
         if old_display != new_display {
             // If we used to be a display: none element, and no longer are, our
@@ -1005,51 +1003,6 @@ pub trait MatchMethods: TElement {
         }
 
         cascade_requirement
-    }
-
-    /// Applies selector flags to an element, deferring mutations of the parent
-    /// until after the traversal.
-    ///
-    /// TODO(emilio): This is somewhat inefficient, because it doesn't take
-    /// advantage of us knowing that the traversal is sequential.
-    fn apply_selector_flags(
-        &self,
-        map: &mut SelectorFlagsMap<Self>,
-        element: &Self,
-        flags: ElementSelectorFlags,
-    ) {
-        // Handle flags that apply to the element.
-        let self_flags = flags.for_self();
-        if !self_flags.is_empty() {
-            if element == self {
-                // If this is the element we're styling, we have exclusive
-                // access to the element, and thus it's fine inserting them,
-                // even from the worker.
-                unsafe {
-                    element.set_selector_flags(self_flags);
-                }
-            } else {
-                // Otherwise, this element is an ancestor of the current element
-                // we're styling, and thus multiple children could write to it
-                // if we did from here.
-                //
-                // Instead, we can read them, and post them if necessary as a
-                // sequential task in order for them to be processed later.
-                if !element.has_selector_flags(self_flags) {
-                    map.insert_flags(*element, self_flags);
-                }
-            }
-        }
-
-        // Handle flags that apply to the parent.
-        let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = element.parent_element() {
-                if !p.has_selector_flags(parent_flags) {
-                    map.insert_flags(p, parent_flags);
-                }
-            }
-        }
     }
 
     /// Updates the rule nodes without re-running selector matching, using just

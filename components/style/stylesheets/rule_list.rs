@@ -153,21 +153,17 @@ impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
             }
 
             // Computes the parser state at the given index
+            let insert_rule_context = InsertRuleContext {
+                rule_list: &rules.0,
+                index,
+            };
+
             let state = if nested {
                 State::Body
             } else if index == 0 {
                 State::Start
             } else {
-                rules
-                    .0
-                    .get(index - 1)
-                    .map(CssRule::rule_state)
-                    .unwrap_or(State::Body)
-            };
-
-            let insert_rule_context = InsertRuleContext {
-                rule_list: &rules.0,
-                index,
+                insert_rule_context.max_rule_state_at_index(index - 1)
             };
 
             // Steps 3, 4, 5, 6

@@ -44,6 +44,36 @@ use std::fmt::{self, Write};
 /// * `#[css(represents_keyword)]` can be used on bool fields in order to
 ///   serialize the field name if the field is true, or nothing otherwise.  It
 ///   also collects those keywords for `SpecifiedValueInfo`.
+/// * `#[css(bitflags(single="", mixed="", validate="", overlapping_bits)]` can
+///   be used to derive parse / serialize / etc on bitflags. The rules for parsing
+///   bitflags are the following:
+///
+///     * `single` flags can only appear on their own. It's common that bitflags
+///       properties at least have one such value like `none` or `auto`.
+///     * `mixed` properties can appear mixed together, but not along any other
+///       flag that shares a bit with itself. For example, if you have three
+///       bitflags like:
+///
+///         FOO = 1 << 0;
+///         BAR = 1 << 1;
+///         BAZ = 1 << 2;
+///         BAZZ = BAR | BAZ;
+///
+///       Then the following combinations won't be valid:
+///
+///         * foo foo: (every flag shares a bit with itself)
+///         * bar bazz: (bazz shares a bit with bar)
+///
+///       But `bar baz` will be valid, as they don't share bits, and so would
+///       `foo` with any other flag, or `bazz` on its own.
+///    * `overlapping_bits` enables some tracking during serialization of mixed
+///       flags to avoid serializing variants that can subsume other variants.
+///       In the example above, you could do:
+///         mixed="foo,bazz,bar,baz", overlapping_bits
+///       to ensure that if bazz is serialized, bar and baz aren't, even though
+///       their bits are set. Note that the serialization order is canonical,
+///       and thus depends on the order you specify the flags in.
+///
 /// * finally, one can put `#[css(derive_debug)]` on the whole type, to
 ///   implement `Debug` by a single call to `ToCss::to_css`.
 pub trait ToCss {
@@ -557,6 +587,8 @@ pub mod specified {
         NonNegative,
         /// Allow only numeric values greater or equal to 1.0.
         AtLeastOne,
+        /// Allow only numeric values from 0 to 1.0.
+        ZeroToOne,
     }
 
     impl Default for AllowedNumericType {
@@ -577,6 +609,7 @@ pub mod specified {
                 AllowedNumericType::All => true,
                 AllowedNumericType::NonNegative => val >= 0.0,
                 AllowedNumericType::AtLeastOne => val >= 1.0,
+                AllowedNumericType::ZeroToOne => val >= 0.0 && val <= 1.0,
             }
         }
 
@@ -584,9 +617,10 @@ pub mod specified {
         #[inline]
         pub fn clamp(&self, val: f32) -> f32 {
             match *self {
-                AllowedNumericType::NonNegative if val < 0. => 0.,
-                AllowedNumericType::AtLeastOne if val < 1. => 1.,
-                _ => val,
+                AllowedNumericType::All => val,
+                AllowedNumericType::NonNegative => val.max(0.),
+                AllowedNumericType::AtLeastOne => val.max(1.),
+                AllowedNumericType::ZeroToOne => val.max(0.).min(1.),
             }
         }
     }

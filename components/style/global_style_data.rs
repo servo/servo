@@ -12,11 +12,11 @@ use crate::shared_lock::SharedRwLock;
 use crate::thread_state;
 #[cfg(feature = "gecko")]
 use gecko_profiler;
-use parking_lot::{RwLock, RwLockReadGuard};
+use parking_lot::{Mutex, RwLock, RwLockReadGuard};
 use rayon;
 use std::env;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Mutex;
+use std::io;
+use std::thread;
 
 /// Global style data
 pub struct GlobalStyleData {
@@ -43,12 +43,32 @@ fn thread_name(index: usize) -> String {
     format!("Style#{}", index)
 }
 
-// A counter so that we can wait for shutdown of all threads. See
-// StyleThreadPool::shutdown.
-static ALIVE_WORKER_THREADS: AtomicUsize = AtomicUsize::new(0);
+lazy_static! {
+    /// JoinHandles for spawned style threads. These will be joined during
+    /// StyleThreadPool::shutdown() after exiting the thread pool.
+    ///
+    /// This would be quite inefficient if rayon destroyed and re-created
+    /// threads regularly during threadpool operation in response to demand,
+    /// however rayon actually never destroys its threads until the entire
+    /// thread pool is shut-down, so the size of this list is bounded.
+    static ref STYLE_THREAD_JOIN_HANDLES: Mutex<Vec<thread::JoinHandle<()>>> =
+        Mutex::new(Vec::new());
+}
+
+fn thread_spawn(options: rayon::ThreadBuilder) -> io::Result<()> {
+    let mut b = thread::Builder::new();
+    if let Some(name) = options.name() {
+        b = b.name(name.to_owned());
+    }
+    if let Some(stack_size) = options.stack_size() {
+        b = b.stack_size(stack_size);
+    }
+    let join_handle = b.spawn(|| options.run())?;
+    STYLE_THREAD_JOIN_HANDLES.lock().push(join_handle);
+    Ok(())
+}
 
 fn thread_startup(_index: usize) {
-    ALIVE_WORKER_THREADS.fetch_add(1, Ordering::Relaxed);
     thread_state::initialize_layout_worker_thread();
     #[cfg(feature = "gecko")]
     unsafe {
@@ -64,33 +84,24 @@ fn thread_shutdown(_: usize) {
         gecko_profiler::unregister_thread();
         bindings::Gecko_SetJemallocThreadLocalArena(false);
     }
-    ALIVE_WORKER_THREADS.fetch_sub(1, Ordering::Relaxed);
 }
 
 impl StyleThreadPool {
     /// Shuts down the thread pool, waiting for all work to complete.
     pub fn shutdown() {
-        if ALIVE_WORKER_THREADS.load(Ordering::Relaxed) == 0 {
+        if STYLE_THREAD_JOIN_HANDLES.lock().is_empty() {
             return;
         }
         {
             // Drop the pool.
             let _ = STYLE_THREAD_POOL.lock().unwrap().style_thread_pool.write().take();
         }
-        // Spin until all our threads are done. This will usually be pretty
-        // fast, as on shutdown there should be basically no threads left
-        // running.
-        //
-        // This still _technically_ doesn't give us the guarantee of TLS
-        // destructors running on the worker threads. For that we'd need help
-        // from rayon to properly join the threads.
-        //
-        // See https://github.com/rayon-rs/rayon/issues/688
-        //
-        // So we instead intentionally leak TLS stuff (see BLOOM_KEY and co) for
-        // now until that's fixed.
-        while ALIVE_WORKER_THREADS.load(Ordering::Relaxed) != 0 {
-            std::thread::yield_now();
+
+        // Join spawned threads until all of the threads have been joined. This
+        // will usually be pretty fast, as on shutdown there should be basically
+        // no threads left running.
+        while let Some(join_handle) = STYLE_THREAD_JOIN_HANDLES.lock().pop() {
+            let _ = join_handle.join();
         }
     }
 
@@ -105,7 +116,7 @@ impl StyleThreadPool {
 
 lazy_static! {
     /// Global thread pool
-    pub static ref STYLE_THREAD_POOL: Mutex<StyleThreadPool> = {
+    pub static ref STYLE_THREAD_POOL: std::sync::Mutex<StyleThreadPool> = {
         let stylo_threads = env::var("STYLO_THREADS")
             .map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS value"));
         let mut num_threads = match stylo_threads {
@@ -149,6 +160,7 @@ lazy_static! {
             None
         } else {
             let workers = rayon::ThreadPoolBuilder::new()
+                .spawn_handler(thread_spawn)
                 .num_threads(num_threads)
                 .thread_name(thread_name)
                 .start_handler(thread_startup)
@@ -158,7 +170,7 @@ lazy_static! {
             workers.ok()
         };
 
-        Mutex::new(StyleThreadPool {
+        std::sync::Mutex::new(StyleThreadPool {
             num_threads: if num_threads > 0 {
                 Some(num_threads)
             } else {

@@ -158,6 +158,11 @@ pub struct Fragment {
     pub established_reference_frame: Option<ClipScrollNodeIndex>,
 }
 
+#[cfg(debug_assertions)]
+size_of_test!(Fragment, 176);
+#[cfg(not(debug_assertions))]
+size_of_test!(Fragment, 152);
+
 impl Serialize for Fragment {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut serializer = serializer.serialize_struct("fragment", 3)?;
@@ -211,6 +216,8 @@ pub enum SpecificFragmentInfo {
     /// Other fragments can only be totally truncated or not truncated at all.
     TruncatedFragment(Box<TruncatedFragmentInfo>),
 }
+
+size_of_test!(SpecificFragmentInfo, 24);
 
 impl SpecificFragmentInfo {
     fn restyle_damage(&self) -> RestyleDamage {

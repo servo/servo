@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! A [`@layer`][layer] urle.
+//! A [`@layer`][layer] rule.
 //!
 //! [layer]: https://drafts.csswg.org/css-cascade-5/#layering
 
@@ -58,17 +58,6 @@ impl LayerOrder {
         if self.0 != std::u16::MAX - 1 {
             self.0 += 1;
         }
-    }
-}
-
-/// The id of a given layer, a sequentially-increasing identifier.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd, Ord)]
-pub struct LayerId(pub u32);
-
-impl LayerId {
-    /// The id of the root layer.
-    pub const fn root() -> Self {
-        Self(0)
     }
 }
 

@@ -66,9 +66,8 @@
 
 use crate::applicable_declarations::ApplicableDeclarationBlock;
 use crate::bloom::StyleBloom;
-use crate::context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
+use crate::context::{SharedStyleContext, StyleContext};
 use crate::dom::{SendElement, TElement};
-use crate::matching::MatchMethods;
 use crate::properties::ComputedValues;
 use crate::rule_tree::StrongRuleNode;
 use crate::style_resolver::{PrimaryStyle, ResolvedElementStyles};
@@ -76,7 +75,7 @@ use crate::stylist::Stylist;
 use crate::values::AtomIdent;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use owning_ref::OwningHandle;
-use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
+use selectors::matching::{VisitedHandlingMode, NeedsSelectorFlags};
 use selectors::NthIndexCache;
 use servo_arc::Arc;
 use smallbitvec::SmallBitVec;
@@ -223,18 +222,17 @@ impl ValidationData {
     /// Computes the revalidation results if needed, and returns it.
     /// Inline so we know at compile time what bloom_known_valid is.
     #[inline]
-    fn revalidation_match_results<E, F>(
+    fn revalidation_match_results<E>(
         &mut self,
         element: E,
         stylist: &Stylist,
         bloom: &StyleBloom<E>,
         nth_index_cache: &mut NthIndexCache,
         bloom_known_valid: bool,
-        flags_setter: &mut F,
+        needs_selector_flags: NeedsSelectorFlags,
     ) -> &SmallBitVec
     where
         E: TElement,
-        F: FnMut(&E, ElementSelectorFlags),
     {
         self.revalidation_match_results.get_or_insert_with(|| {
             // The bloom filter may already be set up for our element.
@@ -257,7 +255,7 @@ impl ValidationData {
                 element,
                 bloom_to_use,
                 nth_index_cache,
-                flags_setter,
+                needs_selector_flags,
             )
         })
     }
@@ -327,7 +325,9 @@ impl<E: TElement> StyleSharingCandidate<E> {
             bloom,
             nth_index_cache,
             /* bloom_known_valid = */ false,
-            &mut |_, _| {},
+            // The candidate must already have the right bits already, if
+            // needed.
+            NeedsSelectorFlags::No,
         )
     }
 }
@@ -384,7 +384,6 @@ impl<E: TElement> StyleSharingTarget<E> {
         stylist: &Stylist,
         bloom: &StyleBloom<E>,
         nth_index_cache: &mut NthIndexCache,
-        selector_flags_map: &mut SelectorFlagsMap<E>,
     ) -> &SmallBitVec {
         // It's important to set the selector flags. Otherwise, if we succeed in
         // sharing the style, we may not set the slow selector flags for the
@@ -401,18 +400,13 @@ impl<E: TElement> StyleSharingTarget<E> {
         // The style sharing cache will get a hit for the second span. When the
         // child span is subsequently removed from the DOM, missing selector
         // flags would cause us to miss the restyle on the second span.
-        let element = self.element;
-        let mut set_selector_flags = |el: &E, flags: ElementSelectorFlags| {
-            element.apply_selector_flags(selector_flags_map, el, flags);
-        };
-
         self.validation_data.revalidation_match_results(
             self.element,
             stylist,
             bloom,
             nth_index_cache,
             /* bloom_known_valid = */ true,
-            &mut set_selector_flags,
+            NeedsSelectorFlags::Yes,
         )
     }
 
@@ -423,7 +417,6 @@ impl<E: TElement> StyleSharingTarget<E> {
     ) -> Option<ResolvedElementStyles> {
         let cache = &mut context.thread_local.sharing_cache;
         let shared_context = &context.shared;
-        let selector_flags_map = &mut context.thread_local.selector_flags;
         let bloom_filter = &context.thread_local.bloom_filter;
         let nth_index_cache = &mut context.thread_local.nth_index_cache;
 
@@ -443,7 +436,6 @@ impl<E: TElement> StyleSharingTarget<E> {
 
         cache.share_style_if_possible(
             shared_context,
-            selector_flags_map,
             bloom_filter,
             nth_index_cache,
             self,
@@ -631,13 +623,13 @@ impl<E: TElement> StyleSharingCache<E> {
         //
         // These are things we don't check in the candidate match because they
         // are either uncommon or expensive.
-        let box_style = style.style().get_box();
-        if box_style.specifies_transitions() {
+        let ui_style = style.style().get_ui();
+        if ui_style.specifies_transitions() {
             debug!("Failing to insert to the cache: transitions");
             return;
         }
 
-        if box_style.specifies_animations() {
+        if ui_style.specifies_animations() {
             debug!("Failing to insert to the cache: animations");
             return;
         }
@@ -667,7 +659,6 @@ impl<E: TElement> StyleSharingCache<E> {
     fn share_style_if_possible(
         &mut self,
         shared_context: &SharedStyleContext,
-        selector_flags_map: &mut SelectorFlagsMap<E>,
         bloom_filter: &StyleBloom<E>,
         nth_index_cache: &mut NthIndexCache,
         target: &mut StyleSharingTarget<E>,
@@ -700,7 +691,6 @@ impl<E: TElement> StyleSharingCache<E> {
                 &shared_context,
                 bloom_filter,
                 nth_index_cache,
-                selector_flags_map,
                 shared_context,
             )
         })
@@ -712,7 +702,6 @@ impl<E: TElement> StyleSharingCache<E> {
         shared: &SharedStyleContext,
         bloom: &StyleBloom<E>,
         nth_index_cache: &mut NthIndexCache,
-        selector_flags_map: &mut SelectorFlagsMap<E>,
         shared_context: &SharedStyleContext,
     ) -> Option<ResolvedElementStyles> {
         debug_assert!(!target.is_in_native_anonymous_subtree());
@@ -817,7 +806,6 @@ impl<E: TElement> StyleSharingCache<E> {
             shared,
             bloom,
             nth_index_cache,
-            selector_flags_map,
         ) {
             trace!("Miss: Revalidation");
             return None;

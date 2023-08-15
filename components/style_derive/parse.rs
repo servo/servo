@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::to_css::CssVariantAttrs;
+use crate::to_css::{CssBitflagAttrs, CssVariantAttrs};
 use darling::FromField;
 use darling::FromVariant;
 use derive_common::cg;
-use proc_macro2::TokenStream;
-use quote::quote;
+use proc_macro2::{TokenStream, Span};
+use quote::{quote, TokenStreamExt};
 use syn::parse_quote;
-use syn::{self, DeriveInput, Path};
+use syn::{self, Ident, DeriveInput, Path};
 use synstructure::{Structure, VariantInfo};
 
 #[derive(Default, FromVariant)]
@@ -23,6 +23,70 @@ pub struct ParseVariantAttrs {
 #[darling(attributes(parse), default)]
 pub struct ParseFieldAttrs {
     field_bound: bool,
+}
+
+fn parse_bitflags(bitflags: &CssBitflagAttrs) -> TokenStream {
+    let mut match_arms = TokenStream::new();
+    for (rust_name, css_name) in bitflags.single_flags() {
+        let rust_ident = Ident::new(&rust_name, Span::call_site());
+        match_arms.append_all(quote! {
+            #css_name if result.is_empty() => {
+                single_flag = true;
+                Self::#rust_ident
+            },
+        });
+    }
+
+    for (rust_name, css_name) in bitflags.mixed_flags() {
+        let rust_ident = Ident::new(&rust_name, Span::call_site());
+        match_arms.append_all(quote! {
+            #css_name => Self::#rust_ident,
+        });
+    }
+
+    let mut validate_condition = quote! { !result.is_empty() };
+    if let Some(ref function) = bitflags.validate_mixed {
+        validate_condition.append_all(quote! {
+            && #function(result)
+        });
+    }
+
+    // NOTE(emilio): this loop has this weird structure because we run this code
+    // to parse stuff like text-decoration-line in the text-decoration
+    // shorthand, so we need to be a bit careful that we don't error if we don't
+    // consume the whole thing because we find an invalid identifier or other
+    // kind of token. Instead, we should leave it unconsumed.
+    quote! {
+        let mut result = Self::empty();
+        loop {
+            let mut single_flag = false;
+            let flag: Result<_, style_traits::ParseError<'i>> = input.try_parse(|input| {
+                Ok(try_match_ident_ignore_ascii_case! { input,
+                    #match_arms
+                })
+            });
+
+            let flag = match flag {
+                Ok(flag) => flag,
+                Err(..) => break,
+            };
+
+            if single_flag {
+                return Ok(flag);
+            }
+
+            if result.intersects(flag) {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+            }
+
+            result.insert(flag);
+        }
+        if #validate_condition {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(style_traits::StyleParseErrorKind::UnspecifiedError))
+        }
+    }
 }
 
 fn parse_non_keyword_variant(
@@ -45,6 +109,13 @@ fn parse_non_keyword_variant(
     let variant_name = &variant.ast().ident;
     let binding_ast = &bindings[0].ast();
     let ty = &binding_ast.ty;
+
+    if let Some(ref bitflags) = variant_attrs.bitflags {
+        assert!(skip_try, "Should be the only variant");
+        assert!(parse_attrs.condition.is_none(), "Should be the only variant");
+        assert!(where_clause.is_none(), "Generic bitflags?");
+        return parse_bitflags(bitflags)
+    }
 
     let field_attrs = cg::parse_field_attrs::<ParseFieldAttrs>(binding_ast);
     if field_attrs.field_bound {

@@ -40,7 +40,7 @@ impl ToComputedValue for specified::NoCalcLength {
                 context
                     .builder
                     .add_flags(ComputedValueFlags::USES_VIEWPORT_UNITS);
-                length.to_computed_value(context.viewport_size_for_viewport_unit_resolution())
+                length.to_computed_value(context)
             },
             specified::NoCalcLength::ServoCharacterWidth(length) => {
                 length.to_computed_value(context.style().get_font().clone_font_size().size())

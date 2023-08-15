@@ -206,7 +206,6 @@ impl Default for ScrollDirection {
     }
 }
 
-// Avoid name collision in cbindgen with StyleOrientation.
 pub use self::ScrollDirection as Orientation;
 
 /// Scroll-timeline offsets. We treat None as an empty vector.

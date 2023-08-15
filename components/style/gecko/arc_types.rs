@@ -15,7 +15,7 @@ use crate::gecko_bindings::structs::{
     RawServoKeyframesRule, RawServoLayerBlockRule, RawServoLayerStatementRule, RawServoMediaList,
     RawServoMediaRule, RawServoMozDocumentRule, RawServoNamespaceRule, RawServoPageRule,
     RawServoScrollTimelineRule, RawServoStyleRule, RawServoStyleSheetContents,
-    RawServoSupportsRule, ServoCssRules,
+    RawServoSupportsRule, RawServoContainerRule, ServoCssRules,
 };
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
 use crate::media_queries::MediaList;
@@ -26,7 +26,7 @@ use crate::stylesheets::keyframes_rule::Keyframe;
 use crate::stylesheets::{
     CounterStyleRule, CssRules, DocumentRule, FontFaceRule, FontFeatureValuesRule, ImportRule,
     KeyframesRule, LayerBlockRule, LayerStatementRule, MediaRule, NamespaceRule, PageRule,
-    ScrollTimelineRule, StyleRule, StylesheetContents, SupportsRule,
+    ScrollTimelineRule, StyleRule, StylesheetContents, SupportsRule, ContainerRule,
 };
 use servo_arc::{Arc, ArcBorrow};
 use std::{mem, ptr};
@@ -97,6 +97,9 @@ impl_arc_ffi!(Locked<ScrollTimelineRule> => RawServoScrollTimelineRule
 
 impl_arc_ffi!(Locked<SupportsRule> => RawServoSupportsRule
               [Servo_SupportsRule_AddRef, Servo_SupportsRule_Release]);
+
+impl_arc_ffi!(Locked<ContainerRule> => RawServoContainerRule
+              [Servo_ContainerRule_AddRef, Servo_ContainerRule_Release]);
 
 impl_arc_ffi!(Locked<DocumentRule> => RawServoMozDocumentRule
               [Servo_DocumentRule_AddRef, Servo_DocumentRule_Release]);

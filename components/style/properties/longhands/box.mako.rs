@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import ALL_AXES, DEFAULT_RULES_EXCEPT_KEYFRAME, Keyword, Method, to_rust_ident, to_camel_case%>
+<% from data import ALL_AXES, Keyword, Method, to_rust_ident, to_camel_case%>
 
 <% data.new_style_struct("Box",
                          inherited=False,
@@ -150,193 +150,6 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
 )}
 
-<% transition_extra_prefixes = "moz:layout.css.prefixes.transitions webkit" %>
-
-${helpers.predefined_type(
-    "transition-duration",
-    "Time",
-    "computed::Time::zero()",
-    engines="gecko servo",
-    initial_specified_value="specified::Time::zero()",
-    parse_method="parse_non_negative",
-    vector=True,
-    need_index=True,
-    animation_value_type="none",
-    extra_prefixes=transition_extra_prefixes,
-    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration",
-)}
-
-${helpers.predefined_type(
-    "transition-timing-function",
-    "TimingFunction",
-    "computed::TimingFunction::ease()",
-    engines="gecko servo",
-    initial_specified_value="specified::TimingFunction::ease()",
-    vector=True,
-    need_index=True,
-    animation_value_type="none",
-    extra_prefixes=transition_extra_prefixes,
-    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function",
-)}
-
-${helpers.predefined_type(
-    "transition-property",
-    "TransitionProperty",
-    "computed::TransitionProperty::all()",
-    engines="gecko servo",
-    initial_specified_value="specified::TransitionProperty::all()",
-    vector=True,
-    allow_empty="NotInitial",
-    need_index=True,
-    animation_value_type="none",
-    extra_prefixes=transition_extra_prefixes,
-    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property",
-)}
-
-${helpers.predefined_type(
-    "transition-delay",
-    "Time",
-    "computed::Time::zero()",
-    engines="gecko servo",
-    initial_specified_value="specified::Time::zero()",
-    vector=True,
-    need_index=True,
-    animation_value_type="none",
-    extra_prefixes=transition_extra_prefixes,
-    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay",
-)}
-
-<% animation_extra_prefixes = "moz:layout.css.prefixes.animations webkit" %>
-
-${helpers.predefined_type(
-    "animation-name",
-    "AnimationName",
-    "computed::AnimationName::none()",
-    engines="gecko servo",
-    initial_specified_value="specified::AnimationName::none()",
-    vector=True,
-    need_index=True,
-    animation_value_type="none",
-    extra_prefixes=animation_extra_prefixes,
-    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
-    spec="https://drafts.csswg.org/css-animations/#propdef-animation-name",
-)}
-
-${helpers.predefined_type(
-    "animation-duration",
-    "Time",
-    "computed::Time::zero()",
-    engines="gecko servo",
-    initial_specified_value="specified::Time::zero()",
-    parse_method="parse_non_negative",
-    vector=True,
-    need_index=True,
-    animation_value_type="none",
-    extra_prefixes=animation_extra_prefixes,
-    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration",
-)}
-
-// animation-timing-function is the exception to the rule for allowed_in_keyframe_block:
-// https://drafts.csswg.org/css-animations/#keyframes
-${helpers.predefined_type(
-    "animation-timing-function",
-    "TimingFunction",
-    "computed::TimingFunction::ease()",
-    engines="gecko servo",
-    initial_specified_value="specified::TimingFunction::ease()",
-    vector=True,
-    need_index=True,
-    animation_value_type="none",
-    extra_prefixes=animation_extra_prefixes,
-    spec="https://drafts.csswg.org/css-transitions/#propdef-animation-timing-function",
-)}
-
-${helpers.predefined_type(
-    "animation-iteration-count",
-    "AnimationIterationCount",
-    "computed::AnimationIterationCount::one()",
-    engines="gecko servo",
-    initial_specified_value="specified::AnimationIterationCount::one()",
-    vector=True,
-    need_index=True,
-    animation_value_type="none",
-    extra_prefixes=animation_extra_prefixes,
-    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
-    spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
-)}
-
-<% animation_direction_custom_consts = { "alternate-reverse": "Alternate_reverse" } %>
-${helpers.single_keyword(
-    "animation-direction",
-    "normal reverse alternate alternate-reverse",
-    engines="gecko servo",
-    need_index=True,
-    animation_value_type="none",
-    vector=True,
-    gecko_enum_prefix="PlaybackDirection",
-    custom_consts=animation_direction_custom_consts,
-    extra_prefixes=animation_extra_prefixes,
-    gecko_inexhaustive=True,
-    spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
-    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
-)}
-
-${helpers.single_keyword(
-    "animation-play-state",
-    "running paused",
-    engines="gecko servo",
-    need_index=True,
-    animation_value_type="none",
-    vector=True,
-    extra_prefixes=animation_extra_prefixes,
-    gecko_enum_prefix="StyleAnimationPlayState",
-    spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
-    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
-)}
-
-${helpers.single_keyword(
-    "animation-fill-mode",
-    "none forwards backwards both",
-    engines="gecko servo",
-    need_index=True,
-    animation_value_type="none",
-    vector=True,
-    gecko_enum_prefix="FillMode",
-    extra_prefixes=animation_extra_prefixes,
-    gecko_inexhaustive=True,
-    spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
-    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
-)}
-
-${helpers.predefined_type(
-    "animation-delay",
-    "Time",
-    "computed::Time::zero()",
-    engines="gecko servo",
-    initial_specified_value="specified::Time::zero()",
-    vector=True,
-    need_index=True,
-    animation_value_type="none",
-    extra_prefixes=animation_extra_prefixes,
-    spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
-    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
-)}
-
-${helpers.predefined_type(
-    "animation-timeline",
-    "AnimationTimeline",
-    "computed::AnimationTimeline::auto()",
-    engines="gecko servo",
-    servo_pref="layout.unimplemented",
-    initial_specified_value="specified::AnimationTimeline::auto()",
-    vector=True,
-    need_index=True,
-    animation_value_type="none",
-    gecko_pref="layout.css.scroll-linked-animations.enabled",
-    spec="https://drafts.csswg.org/css-animations-2/#propdef-animation-timeline",
-    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
-)}
-
 <% transform_extra_prefixes = "moz:layout.css.prefixes.transforms webkit" %>
 
 ${helpers.predefined_type(
@@ -469,6 +282,15 @@ ${helpers.predefined_type(
     "computed::ScrollSnapType::none()",
     engines="gecko",
     spec="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type",
+    animation_value_type="discrete",
+)}
+
+${helpers.predefined_type(
+    "scroll-snap-stop",
+    "ScrollSnapStop",
+    "computed::ScrollSnapStop::Normal",
+    engines="gecko",
+    spec="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-stop",
     animation_value_type="discrete",
 )}
 
@@ -621,6 +443,28 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-contain/#content-visibility",
     gecko_pref="layout.css.content-visibility.enabled",
     animation_value_type="none",
+)}
+
+${helpers.predefined_type(
+    "container-type",
+    "ContainerType",
+    "computed::ContainerType::NONE",
+    engines="gecko servo",
+    animation_value_type="none",
+    gecko_pref="layout.css.container-queries.enabled",
+    servo_pref="layout.container-queries.enabled",
+    spec="https://drafts.csswg.org/css-contain-3/#container-type",
+)}
+
+${helpers.predefined_type(
+    "container-name",
+    "ContainerName",
+    "computed::ContainerName::none()",
+    engines="gecko servo",
+    animation_value_type="none",
+    gecko_pref="layout.css.container-queries.enabled",
+    servo_pref="layout.container-queries.enabled",
+    spec="https://drafts.csswg.org/css-contain-3/#container-name",
 )}
 
 ${helpers.predefined_type(
