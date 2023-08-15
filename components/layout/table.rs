@@ -794,7 +794,7 @@ fn perform_border_collapse_for_row(
         child_table_row
             .final_collapsed_borders
             .inline
-            .push_or_set(i, *this_inline_border);
+            .push_or_set(i, this_inline_border.clone());
         if i == 0 {
             child_table_row.final_collapsed_borders.inline[i].combine(&table_inline_borders.start);
         } else if i + 1 == number_of_borders_inline_direction {
@@ -821,7 +821,7 @@ fn perform_border_collapse_for_row(
                     this_border.combine(&previous_block_borders[i]);
                 }
             },
-            PreviousBlockCollapsedBorders::FromTable(table_border) => {
+            PreviousBlockCollapsedBorders::FromTable(ref table_border) => {
                 this_border.combine(&table_border);
             },
         }
@@ -837,7 +837,7 @@ fn perform_border_collapse_for_row(
         .iter()
         .enumerate()
     {
-        let next_block = next_block.push_or_set(i, *this_block_border);
+        let next_block = next_block.push_or_set(i, this_block_border.clone());
         match next_block_borders {
             NextBlockCollapsedBorders::FromNextRow(next_block_borders) => {
                 if next_block_borders.len() > i {
@@ -1358,7 +1358,7 @@ impl<'table> TableCellStyleInfo<'table> {
                 if background as *const Background == initial.get_background() as *const _ {
                     return;
                 }
-                let background_color = sty.resolve_color(background.background_color);
+                let background_color = sty.resolve_color(background.background_color.clone());
                 cell_flow.build_display_list_for_background_if_applicable_with_background(
                     state,
                     background,

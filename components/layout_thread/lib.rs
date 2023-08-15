@@ -1796,7 +1796,8 @@ fn get_root_flow_background_color(flow: &mut dyn Flow) -> ColorF {
             .fragment
             .style
             .get_background()
-            .background_color,
+            .background_color
+            .clone(),
     );
     ColorF::new(
         color.red_f32(),

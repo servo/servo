@@ -275,11 +275,11 @@ fn fixup_stops(
     for item in items {
         match item {
             GradientItem::SimpleColorStop(color) => stops.push(ColorStop {
-                color: super::rgba(style.resolve_color(*color)),
+                color: super::rgba(style.resolve_color(color.clone())),
                 position: None,
             }),
             GradientItem::ComplexColorStop { color, position } => stops.push(ColorStop {
-                color: super::rgba(style.resolve_color(*color)),
+                color: super::rgba(style.resolve_color(color.clone())),
                 position: Some(if gradient_line_length.px() == 0. {
                     0.
                 } else {
