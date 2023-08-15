@@ -31,6 +31,8 @@ use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
 pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
+    current_url_string: Option<String>,
+
     /// id of the top level browsing context. It is unique as tabs
     /// are not supported yet. None until created.
     browser_id: Option<BrowserId>,
@@ -57,6 +59,7 @@ where
         Browser {
             title: None,
             current_url: None,
+            current_url_string: None,
             browser_id: None,
             browsers: Vec::new(),
             window,
@@ -70,6 +73,14 @@ where
             event_queue: Vec::new(),
             shutdown_requested: false,
         }
+    }
+
+    pub fn browser_id(&self) -> Option<BrowserId> {
+        self.browser_id
+    }
+
+    pub fn current_url_string(&self) -> Option<&str> {
+        self.current_url_string.as_deref()
     }
 
     pub fn get_events(&mut self) -> Vec<EmbedderEvent> {
@@ -264,7 +275,9 @@ where
         self.event_queue.push(event);
     }
 
-    pub fn handle_servo_events(&mut self, events: Vec<(Option<BrowserId>, EmbedderMsg)>) {
+    /// Returns true iff the caller needs to manually present a new frame.
+    pub fn handle_servo_events(&mut self, events: Vec<(Option<BrowserId>, EmbedderMsg)>) -> bool {
+        let mut need_present = false;
         for (browser_id, msg) in events {
             match msg {
                 EmbedderMsg::Status(_status) => {
@@ -437,6 +450,7 @@ where
                 },
                 EmbedderMsg::HistoryChanged(urls, current) => {
                     self.current_url = Some(urls[current].clone());
+                    self.current_url_string = Some(urls[current].clone().into_string());
                 },
                 EmbedderMsg::SetFullscreenState(state) => {
                     self.window.set_fullscreen(state);
@@ -511,8 +525,13 @@ where
                 EmbedderMsg::ShowContextMenu(sender, ..) => {
                     let _ = sender.send(ContextMenuResult::Ignored);
                 },
+                EmbedderMsg::ReadyToPresent => {
+                    need_present = true;
+                },
             }
         }
+
+        need_present
     }
 }
 

@@ -108,6 +108,14 @@ impl WindowPortsMethods for Window {
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         unimplemented!()
     }
+
+    fn winit_window(&self) -> Option<&winit::window::Window> {
+        None
+    }
+
+    fn set_toolbar_height(&self, _height: f32) {
+        unimplemented!("headless Window only")
+    }
 }
 
 impl WindowMethods for Window {

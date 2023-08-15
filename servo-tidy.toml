@@ -79,6 +79,9 @@ packages = [
 
   # Temporarily duplicated until gleam can be upgrded.
   "uuid",
+
+  # winit port minibrowser (servo/servo#30049)
+  "clipboard-win",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

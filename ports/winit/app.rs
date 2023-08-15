@@ -7,8 +7,10 @@
 use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
+use crate::minibrowser::Minibrowser;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
+use gleam::gl;
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
 use servo::compositing::windowing::EmbedderEvent;
@@ -16,11 +18,12 @@ use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::Servo;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, RefMut};
 use std::collections::HashMap;
 use std::env;
 
 use std::rc::Rc;
+use surfman::GLApi;
 use webxr::glwindow::GlWindowDiscovery;
 
 pub struct App {
@@ -29,6 +32,13 @@ pub struct App {
     event_queue: RefCell<Vec<EmbedderEvent>>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
+    minibrowser: Option<RefCell<Minibrowser>>,
+}
+
+/// Action to be taken by the caller of [`App::handle_events`].
+enum PumpResult {
+    Shutdown,
+    Present,
 }
 
 impl App {
@@ -60,51 +70,96 @@ impl App {
             servo: None,
             suspended: Cell::new(false),
             windows: HashMap::new(),
+            minibrowser: None,
         };
+
+        if opts::get().minibrowser && window.winit_window().is_some() {
+            // Make sure the gl context is made current.
+            let webrender_surfman = window.webrender_surfman();
+            let webrender_gl = match webrender_surfman.connection().gl_api() {
+                GLApi::GL => unsafe { gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s)) },
+                GLApi::GLES => unsafe {
+                    gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
+                },
+            };
+            webrender_surfman.make_gl_context_current().unwrap();
+            debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
+
+            // Set up egui context for minibrowser ui
+            // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
+            app.minibrowser = Some(Minibrowser::new(&webrender_surfman, &events_loop).into());
+        }
+
+        if let Some(mut minibrowser) = app.minibrowser() {
+            minibrowser.update(window.winit_window().unwrap());
+            window.set_toolbar_height(minibrowser.toolbar_height.get());
+        }
 
         let ev_waker = events_loop.create_event_loop_waker();
         events_loop.run_forever(move |e, w, control_flow| {
-            if let winit::event::Event::NewEvents(winit::event::StartCause::Init) = e {
-                let surfman = window.webrender_surfman();
+            match e {
+                winit::event::Event::NewEvents(winit::event::StartCause::Init) => {
+                    let surfman = window.webrender_surfman();
 
-                let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && ! opts::get().headless {
-                    let window = window.clone();
-                    // This should be safe because run_forever does, in fact,
-                    // run forever. The event loop window target doesn't get
-                    // moved, and does outlast this closure, and we won't
-                    // ever try to make use of it once shutdown begins and
-                    // it stops being valid.
-                    let w = unsafe {
-                        std::mem::transmute::<
-                            &EventLoopWindowTarget<WakerEvent>,
-                            &'static EventLoopWindowTarget<WakerEvent>
-                        >(w.unwrap())
+                    let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && ! opts::get().headless {
+                        let window = window.clone();
+                        // This should be safe because run_forever does, in fact,
+                        // run forever. The event loop window target doesn't get
+                        // moved, and does outlast this closure, and we won't
+                        // ever try to make use of it once shutdown begins and
+                        // it stops being valid.
+                        let w = unsafe {
+                            std::mem::transmute::<
+                                &EventLoopWindowTarget<WakerEvent>,
+                                &'static EventLoopWindowTarget<WakerEvent>
+                            >(w.unwrap())
+                        };
+                        let factory = Box::new(move || Ok(window.new_glwindow(w)));
+                        Some(GlWindowDiscovery::new(
+                            surfman.connection(),
+                            surfman.adapter(),
+                            surfman.context_attributes(),
+                            factory,
+                        ))
+                    } else {
+                        None
                     };
-                    let factory = Box::new(move || Ok(window.new_glwindow(w)));
-                    Some(GlWindowDiscovery::new(
-                        surfman.connection(),
-                        surfman.adapter(),
-                        surfman.context_attributes(),
-                        factory,
-                    ))
-                } else {
-                    None
-                };
 
-                let window = window.clone();
-                // Implements embedder methods, used by libservo and constellation.
-                let embedder = Box::new(EmbedderCallbacks::new(
-                    ev_waker.clone(),
-                    xr_discovery,
-                ));
+                    let window = window.clone();
+                    // Implements embedder methods, used by libservo and constellation.
+                    let embedder = Box::new(EmbedderCallbacks::new(
+                        ev_waker.clone(),
+                        xr_discovery,
+                    ));
 
-                let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
-                let mut servo = servo_data.servo;
-                servo.handle_events(vec![EmbedderEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
-                servo.setup_logging();
+                    let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
+                    let mut servo = servo_data.servo;
 
-                app.windows.insert(window.id(), window.clone());
-                app.servo = Some(servo);
+                    // If we have a minibrowser, ask the compositor to notify us when a new frame
+                    // is ready to present, so that we can paint the minibrowser then present.
+                    servo.set_external_present(app.minibrowser.is_some());
+
+                    servo.handle_events(vec![EmbedderEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
+                    servo.setup_logging();
+
+                    app.windows.insert(window.id(), window.clone());
+                    app.servo = Some(servo);
+                }
+
+                // TODO does windows still need this workaround?
+                // https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs#L203
+                // winit::event::Event::RedrawEventsCleared => todo!(),
+                winit::event::Event::RedrawRequested(_) => {
+                    if let Some(mut minibrowser) = app.minibrowser() {
+                        minibrowser.update(window.winit_window().unwrap());
+
+                        // Tell Servo to repaint, which will in turn allow us to repaint the
+                        // minibrowser and present a complete frame without partial updates.
+                        app.event_queue.borrow_mut().push(EmbedderEvent::Refresh);
+                    }
+                }
+
+                _ => {}
             }
 
             // If self.servo is None here, it means that we're in the process of shutting down,
@@ -114,7 +169,23 @@ impl App {
             }
 
             // Handle the event
-            app.queue_embedder_events_for_winit_event(e);
+            let mut consumed = false;
+            if let Some(mut minibrowser) = app.minibrowser() {
+                if let winit::event::Event::WindowEvent { ref event, .. } = e {
+                    let response = minibrowser.context.on_event(&event);
+                    if response.repaint {
+                        // Request a redraw event that will in turn trigger a minibrowser update.
+                        // This allows us to coalesce minibrowser updates across multiple events.
+                        window.winit_window().unwrap().request_redraw();
+                    }
+
+                    // TODO how do we handle the tab key? (see doc for consumed)
+                    consumed = response.consumed;
+                }
+            }
+            if !consumed {
+                app.queue_embedder_events_for_winit_event(e);
+            }
 
             let animating = app.is_animating();
 
@@ -125,10 +196,33 @@ impl App {
                 *control_flow = winit::event_loop::ControlFlow::Poll;
             }
 
-            let stop = app.handle_events();
-            if stop {
-                *control_flow = winit::event_loop::ControlFlow::Exit;
-                app.servo.take().unwrap().deinit();
+            // Consume and handle any events from the Minibrowser.
+            if let Some(mut minibrowser) = app.minibrowser() {
+                let browser = &mut app.browser.borrow_mut();
+                let app_event_queue = &mut app.event_queue.borrow_mut();
+                minibrowser.queue_embedder_events_for_minibrowser_events(browser, app_event_queue);
+                if minibrowser.update_location_in_toolbar(browser) {
+                    // Update the minibrowser immediately. While we could update by requesting a
+                    // redraw, doing so would delay the location update by two frames.
+                    minibrowser.update(window.winit_window().unwrap());
+                }
+            }
+
+            match app.handle_events() {
+                Some(PumpResult::Shutdown) => {
+                    *control_flow = winit::event_loop::ControlFlow::Exit;
+                    app.servo.take().unwrap().deinit();
+                    if let Some(mut minibrowser) = app.minibrowser() {
+                        minibrowser.context.destroy();
+                    }
+                },
+                Some(PumpResult::Present) => {
+                    if let Some(mut minibrowser) = app.minibrowser() {
+                        minibrowser.paint(window.winit_window().unwrap());
+                    }
+                    app.servo.as_mut().unwrap().present();
+                },
+                None => {},
             }
         });
     }
@@ -190,7 +284,7 @@ impl App {
     /// Window queues to the Browser queue, and from the Browser queue to Servo. We receive and
     /// collect embedder messages from the various Servo components, then take them out of the
     /// Servo interface so that the Browser can handle them.
-    fn handle_events(&mut self) -> bool {
+    fn handle_events(&mut self) -> Option<PumpResult> {
         let mut browser = self.browser.borrow_mut();
 
         // FIXME:
@@ -212,16 +306,17 @@ impl App {
         // Take any new embedder messages from Servo itself.
         let mut embedder_messages = self.servo.as_mut().unwrap().get_events();
         let mut need_resize = false;
+        let mut need_present = false;
         loop {
             // Consume and handle those embedder messages.
-            browser.handle_servo_events(embedder_messages);
+            need_present |= browser.handle_servo_events(embedder_messages);
 
             // Route embedder events from the Browser to the relevant Servo components,
             // receives and collects embedder messages from various Servo components,
             // and runs the compositor.
             need_resize |= self.servo.as_mut().unwrap().handle_events(browser.get_events());
             if browser.shutdown_requested() {
-                return true;
+                return Some(PumpResult::Shutdown);
             }
 
             // Take any new embedder messages from Servo itself.
@@ -233,8 +328,17 @@ impl App {
 
         if need_resize {
             self.servo.as_mut().unwrap().repaint_synchronously();
+            need_present = true;
         }
-        false
+        if need_present {
+            Some(PumpResult::Present)
+        } else {
+            None
+        }
+    }
+
+    fn minibrowser(&self) -> Option<RefMut<Minibrowser>> {
+        self.minibrowser.as_ref().map(|x| x.borrow_mut())
     }
 }
 

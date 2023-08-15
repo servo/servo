@@ -51,6 +51,7 @@ pub struct Window {
     webrender_surfman: WebrenderSurfman,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<Size2D<u32, DeviceIndependentPixel>>,
+    toolbar_height: Cell<f32>,
     mouse_down_button: Cell<Option<winit::event::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
     primary_monitor: winit::monitor::MonitorHandle,
@@ -156,6 +157,7 @@ impl Window {
             device_pixels_per_px,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
+            toolbar_height: Cell::new(0.0),
         }
     }
 
@@ -405,8 +407,9 @@ impl WindowPortsMethods for Window {
                 }
             },
             winit::event::WindowEvent::CursorMoved { position, .. } => {
-                let (x, y): (i32, i32) = position.into();
-                self.mouse_pos.set(Point2D::new(x, y));
+                let (x, y): (f64, f64) = position.into();
+                let y = y - f64::from(self.toolbar_height.get());
+                self.mouse_pos.set(Point2D::new(x, y).to_i32());
                 self.event_queue
                     .borrow_mut()
                     .push(EmbedderEvent::MouseWindowMoveEventClass(Point2D::new(
@@ -504,6 +507,14 @@ impl WindowPortsMethods for Window {
         self.xr_window_poses.borrow_mut().push(pose.clone());
         Box::new(XRWindow { winit_window, pose })
     }
+
+    fn winit_window(&self) -> Option<&winit::window::Window> {
+        Some(&self.winit_window)
+    }
+
+    fn set_toolbar_height(&self, height: f32) {
+        self.toolbar_height.set(height);
+    }
 }
 
 impl WindowMethods for Window {
@@ -525,8 +536,14 @@ impl WindowMethods for Window {
         let PhysicalSize { width, height } = self
             .winit_window
             .inner_size();
-        let inner_size = (Size2D::new(width as f32, height as f32) * dpr).to_i32();
-        let viewport = DeviceIntRect::new(Point2D::zero(), inner_size);
+
+        // Subtract the minibrowser toolbar height if any
+        let toolbar_height = self.toolbar_height.get();
+        let inner_size = Size2D::new(width as f32, height as f32) * dpr;
+        let viewport_size = inner_size - Size2D::new(0f32, toolbar_height);
+        let viewport_origin = DeviceIntPoint::zero(); // bottom left
+        let viewport = DeviceIntRect::new(viewport_origin, viewport_size.to_i32());
+
         let framebuffer = DeviceIntSize::from_untyped(viewport.size.to_untyped());
         EmbedderCoordinates {
             viewport,

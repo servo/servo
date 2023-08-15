@@ -1551,6 +1551,12 @@ where
             FromCompositorMsg::ChangeBrowserVisibility(top_level_browsing_context_id, visible) => {
                 self.handle_change_browser_visibility(top_level_browsing_context_id, visible);
             },
+            FromCompositorMsg::ReadyToPresent(top_level_browsing_context_id) => {
+                self.embedder_proxy.send((
+                    Some(top_level_browsing_context_id),
+                    EmbedderMsg::ReadyToPresent,
+                ));
+            },
         }
     }
 
