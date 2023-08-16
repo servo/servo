@@ -13,10 +13,7 @@ fn test_font_template_descriptor() {
     use gfx::font_context::FontContextHandle;
     use gfx::font_template::{FontTemplate, FontTemplateDescriptor};
     use servo_atoms::Atom;
-    use style::values::computed::font::{FontStretch, FontWeight};
-    use style::values::computed::Percentage;
-    use style::values::generics::font::FontStyle;
-    use style::values::generics::NonNegative;
+    use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 
     fn descriptor(filename: &str) -> FontTemplateDescriptor {
         let mut path: PathBuf = [
@@ -46,36 +43,36 @@ fn test_font_template_descriptor() {
     assert_eq!(
         descriptor("DejaVuSans"),
         FontTemplateDescriptor {
-            weight: FontWeight::normal(),
+            weight: FontWeight::NORMAL,
             stretch: FontStretch::hundred(),
-            style: FontStyle::Normal,
+            style: FontStyle::NORMAL,
         }
     );
 
     assert_eq!(
         descriptor("DejaVuSans-Bold"),
         FontTemplateDescriptor {
-            weight: FontWeight::bold(),
+            weight: FontWeight::BOLD,
             stretch: FontStretch::hundred(),
-            style: FontStyle::Normal,
+            style: FontStyle::NORMAL,
         }
     );
 
     assert_eq!(
         descriptor("DejaVuSans-Oblique"),
         FontTemplateDescriptor {
-            weight: FontWeight::normal(),
+            weight: FontWeight::NORMAL,
             stretch: FontStretch::hundred(),
-            style: FontStyle::Italic,
+            style: FontStyle::ITALIC,
         }
     );
 
     assert_eq!(
         descriptor("DejaVuSansCondensed-BoldOblique"),
         FontTemplateDescriptor {
-            weight: FontWeight::bold(),
-            stretch: FontStretch(NonNegative(Percentage(0.875))),
-            style: FontStyle::Italic,
+            weight: FontWeight::BOLD,
+            stretch: FontStretch::from_percentage(0.875),
+            style: FontStyle::ITALIC,
         }
     );
 }

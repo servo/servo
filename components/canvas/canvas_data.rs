@@ -1412,15 +1412,15 @@ fn load_system_font_from_style(font_style: Option<&FontStyleStruct>) -> Option<F
         .collect::<Vec<_>>();
     let properties = properties
         .style(match style.font_style {
-            font::FontStyle::Normal => Style::Normal,
-            font::FontStyle::Italic => Style::Italic,
-            font::FontStyle::Oblique(..) => {
+            font::FontStyle::NORMAL => Style::Normal,
+            font::FontStyle::ITALIC => Style::Italic,
+            _ => {
                 // TODO: support oblique angle.
                 Style::Oblique
             },
         })
-        .weight(Weight(style.font_weight.0))
-        .stretch(Stretch(style.font_stretch.value()));
+        .weight(Weight(style.font_weight.value()))
+        .stretch(Stretch(style.font_stretch.to_percentage().0));
     let font_handle = match SystemSource::new().select_best_match(&family_names, &properties) {
         Ok(handle) => handle,
         Err(e) => {
