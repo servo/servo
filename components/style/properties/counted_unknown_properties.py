@@ -73,6 +73,7 @@ COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-perspective-origin-y",
     "-webkit-margin-before-collapse",
     "-webkit-border-before-style",
+    "scroll-snap-stop",
     "-webkit-margin-bottom-collapse",
     "-webkit-ruby-position",
     "-webkit-column-break-after",

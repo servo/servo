@@ -10,7 +10,6 @@ use super::{Device, MediaQuery, Qualifier};
 use crate::context::QuirksMode;
 use crate::error_reporting::ContextualParseError;
 use crate::parser::ParserContext;
-use crate::values::computed;
 use cssparser::{Delimiter, Parser};
 use cssparser::{ParserInput, Token};
 
@@ -75,17 +74,15 @@ impl MediaList {
     pub fn evaluate(&self, device: &Device, quirks_mode: QuirksMode) -> bool {
         // Check if it is an empty media query list or any queries match.
         // https://drafts.csswg.org/mediaqueries-4/#mq-list
-        if self.media_queries.is_empty() {
-            return true;
-        }
-
-        computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
+        self.media_queries.is_empty() ||
             self.media_queries.iter().any(|mq| {
                 let media_match = mq.media_type.matches(device.media_type());
 
                 // Check if the media condition match.
                 let query_match = media_match &&
-                    mq.condition.as_ref().map_or(true, |c| c.matches(context));
+                    mq.condition
+                        .as_ref()
+                        .map_or(true, |c| c.matches(device, quirks_mode));
 
                 // Apply the logical NOT qualifier to the result
                 match mq.qualifier {
@@ -93,7 +90,6 @@ impl MediaList {
                     _ => query_match,
                 }
             })
-        })
     }
 
     /// Whether this `MediaList` contains no media queries.

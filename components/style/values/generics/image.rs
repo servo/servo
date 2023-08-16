@@ -8,7 +8,6 @@
 
 use crate::custom_properties;
 use crate::values::generics::position::PositionComponent;
-use crate::values::generics::Optional;
 use crate::values::serialize_atom_identifier;
 use crate::Atom;
 use crate::Zero;
@@ -72,6 +71,20 @@ pub struct GenericCrossFade<Image, Color, Percentage> {
     pub elements: crate::OwnedSlice<GenericCrossFadeElement<Image, Color, Percentage>>,
 }
 
+/// A `<percent> | none` value. Represents optional percentage values
+/// assosicated with cross-fade images.
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
+)]
+#[repr(C, u8)]
+pub enum PercentOrNone<Percentage> {
+    /// `none` variant.
+    #[css(skip)]
+    None,
+    /// A percentage variant.
+    Percent(Percentage),
+}
+
 /// An optional percent and a cross fade image.
 #[derive(
     Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
@@ -79,7 +92,7 @@ pub struct GenericCrossFade<Image, Color, Percentage> {
 #[repr(C)]
 pub struct GenericCrossFadeElement<Image, Color, Percentage> {
     /// The percent of the final image that `image` will be.
-    pub percent: Optional<Percentage>,
+    pub percent: PercentOrNone<Percentage>,
     /// A color or image that will be blended when cross-fade is
     /// evaluated.
     pub image: GenericCrossFadeImage<Image, Color>,

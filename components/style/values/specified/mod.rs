@@ -37,11 +37,10 @@ pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle};
 pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, Contain, Display};
-pub use self::box_::{Appearance, BreakBetween, BreakWithin, ContainerName, ContainerType};
+pub use self::box_::{Appearance, BreakBetween, BreakWithin};
 pub use self::box_::{Clear, ContentVisibility, Float, Overflow, OverflowAnchor};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
-pub use self::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
-pub use self::box_::{ScrollSnapStrictness, ScrollSnapType};
+pub use self::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness, ScrollSnapType};
 pub use self::box_::{TouchAction, TransitionProperty, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, ColorScheme, PrintColorAdjust};
 pub use self::column::ColumnCount;
@@ -61,7 +60,7 @@ pub use self::length::{AbsoluteLength, CalcLengthPercentage, CharacterWidth};
 pub use self::length::{FontRelativeLength, Length, LengthOrNumber, NonNegativeLengthOrNumber};
 pub use self::length::{LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 pub use self::length::{MaxSize, Size};
-pub use self::length::{NoCalcLength, ViewportPercentageLength, ViewportVariant};
+pub use self::length::{NoCalcLength, ViewportPercentageLength};
 pub use self::length::{
     NonNegativeLength, NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto,
 };
@@ -70,7 +69,7 @@ pub use self::list::ListStyleType;
 pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
-pub use self::page::{PageOrientation, PageName, PageSize, PaperSize};
+pub use self::page::{Orientation, PageName, PageSize, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::AspectRatio;
 pub use self::position::{

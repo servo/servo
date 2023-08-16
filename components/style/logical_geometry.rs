@@ -168,11 +168,6 @@ impl WritingMode {
         flags
     }
 
-    /// Returns the `horizontal-tb` value.
-    pub fn horizontal_tb() -> Self {
-        Self::from_bits_truncate(0)
-    }
-
     #[inline]
     pub fn is_vertical(&self) -> bool {
         self.intersects(WritingMode::VERTICAL)
@@ -877,10 +872,10 @@ impl<T> LogicalMargin<T> {
         inline_start: T,
     ) -> LogicalMargin<T> {
         LogicalMargin {
-            block_start,
-            inline_end,
-            block_end,
-            inline_start,
+            block_start: block_start,
+            inline_end: inline_end,
+            block_end: block_end,
+            inline_start: inline_start,
             debug_writing_mode: DebugWritingMode::new(mode),
         }
     }
@@ -1056,18 +1051,6 @@ impl<T: Copy> LogicalMargin<T> {
     }
 
     #[inline]
-    pub fn convert(&self, mode_from: WritingMode, mode_to: WritingMode) -> LogicalMargin<T> {
-        if mode_from == mode_to {
-            self.debug_writing_mode.check(mode_from);
-            *self
-        } else {
-            LogicalMargin::from_physical(mode_to, self.to_physical(mode_from))
-        }
-    }
-}
-
-impl<T: Clone> LogicalMargin<T> {
-    #[inline]
     pub fn to_physical(&self, mode: WritingMode) -> SideOffsets2D<T> {
         self.debug_writing_mode.check(mode);
         let top;
@@ -1076,31 +1059,41 @@ impl<T: Clone> LogicalMargin<T> {
         let left;
         if mode.is_vertical() {
             if mode.is_vertical_lr() {
-                left = self.block_start.clone();
-                right = self.block_end.clone();
+                left = self.block_start;
+                right = self.block_end;
             } else {
-                right = self.block_start.clone();
-                left = self.block_end.clone();
+                right = self.block_start;
+                left = self.block_end;
             }
             if mode.is_inline_tb() {
-                top = self.inline_start.clone();
-                bottom = self.inline_end.clone();
+                top = self.inline_start;
+                bottom = self.inline_end;
             } else {
-                bottom = self.inline_start.clone();
-                top = self.inline_end.clone();
+                bottom = self.inline_start;
+                top = self.inline_end;
             }
         } else {
-            top = self.block_start.clone();
-            bottom = self.block_end.clone();
+            top = self.block_start;
+            bottom = self.block_end;
             if mode.is_bidi_ltr() {
-                left = self.inline_start.clone();
-                right = self.inline_end.clone();
+                left = self.inline_start;
+                right = self.inline_end;
             } else {
-                right = self.inline_start.clone();
-                left = self.inline_end.clone();
+                right = self.inline_start;
+                left = self.inline_end;
             }
         }
         SideOffsets2D::new(top, right, bottom, left)
+    }
+
+    #[inline]
+    pub fn convert(&self, mode_from: WritingMode, mode_to: WritingMode) -> LogicalMargin<T> {
+        if mode_from == mode_to {
+            self.debug_writing_mode.check(mode_from);
+            *self
+        } else {
+            LogicalMargin::from_physical(mode_to, self.to_physical(mode_from))
+        }
     }
 }
 
