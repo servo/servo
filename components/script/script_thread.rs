@@ -89,7 +89,7 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{NavigationState, ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{EmbedderMsg, EventLoopWaker};
+use embedder_traits::EmbedderMsg;
 use euclid::default::{Point2D, Rect};
 use euclid::Vector2D;
 use headers::ReferrerPolicy as ReferrerPolicyHeader;
