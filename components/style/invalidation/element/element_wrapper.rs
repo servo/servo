@@ -166,11 +166,15 @@ where
 {
     type Impl = SelectorImpl;
 
-    fn match_non_ts_pseudo_class(
+    fn match_non_ts_pseudo_class<F>(
         &self,
         pseudo_class: &NonTSPseudoClass,
         context: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
+        _setter: &mut F,
+    ) -> bool
+    where
+        F: FnMut(&Self, ElementSelectorFlags),
+    {
         // Some pseudo-classes need special handling to evaluate them against
         // the snapshot.
         match *pseudo_class {
@@ -228,18 +232,14 @@ where
         if flag.is_empty() {
             return self
                 .element
-                .match_non_ts_pseudo_class(pseudo_class, context);
+                .match_non_ts_pseudo_class(pseudo_class, context, &mut |_, _| {});
         }
         match self.snapshot().and_then(|s| s.state()) {
             Some(snapshot_state) => snapshot_state.intersects(flag),
             None => self
                 .element
-                .match_non_ts_pseudo_class(pseudo_class, context),
+                .match_non_ts_pseudo_class(pseudo_class, context, &mut |_, _| {}),
         }
-    }
-
-    fn set_selector_flags(&self, _flags: ElementSelectorFlags) {
-        debug_assert!(false, "Shouldn't need selector flags for invalidation");
     }
 
     fn match_pseudo_element(

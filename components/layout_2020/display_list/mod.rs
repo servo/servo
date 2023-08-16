@@ -352,7 +352,7 @@ impl Fragment {
         let text_decoration_color = fragment
             .parent_style
             .clone_text_decoration_color()
-            .into_rgba(color);
+            .to_rgba(color);
         let text_decoration_style = fragment.parent_style.clone_text_decoration_style();
         if text_decoration_style == ComputedTextDecorationStyle::MozNone {
             return;
@@ -535,7 +535,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         let source = background::Source::Fragment;
         let style = &self.fragment.style;
         let b = style.get_background();
-        let background_color = style.resolve_color(b.background_color.clone());
+        let background_color = style.resolve_color(b.background_color);
         if background_color.alpha > 0 {
             // https://drafts.csswg.org/css-backgrounds/#background-color
             // “The background color is clipped according to the background-clip
@@ -685,15 +685,10 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
         let common = builder.common_properties(self.border_rect, &self.fragment.style);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
-            top: self.build_border_side(border.border_top_style, border.border_top_color.clone()),
-            right: self
-                .build_border_side(border.border_right_style, border.border_right_color.clone()),
-            bottom: self.build_border_side(
-                border.border_bottom_style,
-                border.border_bottom_color.clone(),
-            ),
-            left: self
-                .build_border_side(border.border_left_style, border.border_left_color.clone()),
+            top: self.build_border_side(border.border_top_style, border.border_top_color),
+            right: self.build_border_side(border.border_right_style, border.border_right_color),
+            bottom: self.build_border_side(border.border_bottom_style, border.border_bottom_color),
+            left: self.build_border_side(border.border_left_style, border.border_left_color),
             radius: self.border_radius,
             do_aa: true,
         });
@@ -723,7 +718,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             OutlineStyle::Auto => BorderStyle::Solid,
             OutlineStyle::BorderStyle(s) => s,
         };
-        let side = self.build_border_side(style, outline.outline_color.clone());
+        let side = self.build_border_side(style, outline.outline_color);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: side,
             right: side,

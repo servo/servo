@@ -1,4 +1,3 @@
--moz-content-preferred-color-scheme
 -moz-gtk-csd-close-button-position
 -moz-gtk-csd-maximize-button-position
 -moz-gtk-csd-menu-radius
@@ -13,9 +12,7 @@ animationcancel
 animationend
 animationiteration
 animationstart
-aspect-ratio
 beforeunload
-block-size
 button
 canplay
 canplaythrough
@@ -53,13 +50,11 @@ fullscreenchange
 fullscreenerror
 gattserverdisconnected
 hashchange
-height
 hidden
 icecandidate
 iceconnectionstatechange
 icegatheringstatechange
 image
-inline-size
 input
 inputsourceschange
 invalid
@@ -87,7 +82,6 @@ none
 number
 onchange
 open
-orientation
 pagehide
 pageshow
 password

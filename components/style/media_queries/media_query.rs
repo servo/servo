@@ -6,7 +6,7 @@
 //!
 //! https://drafts.csswg.org/mediaqueries/#typedef-media-query
 
-use crate::queries::{QueryCondition, FeatureType};
+use super::media_condition::MediaCondition;
 use crate::parser::ParserContext;
 use crate::str::string_as_ascii_lowercase;
 use crate::values::CustomIdent;
@@ -66,7 +66,7 @@ pub struct MediaQuery {
     pub media_type: MediaQueryType,
     /// The condition that this media query contains. This cannot have `or`
     /// in the first level.
-    pub condition: Option<QueryCondition>,
+    pub condition: Option<MediaCondition>,
 }
 
 impl ToCss for MediaQuery {
@@ -134,9 +134,9 @@ impl MediaQuery {
             .unwrap_or_default();
 
         let condition = if explicit_media_type.is_none() {
-            Some(QueryCondition::parse(context, input, FeatureType::Media)?)
+            Some(MediaCondition::parse(context, input)?)
         } else if input.try_parse(|i| i.expect_ident_matching("and")).is_ok() {
-            Some(QueryCondition::parse_disallow_or(context, input, FeatureType::Media)?)
+            Some(MediaCondition::parse_disallow_or(context, input)?)
         } else {
             None
         };

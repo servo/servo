@@ -86,7 +86,7 @@ fn convert_gradient_stops(
     // Only keep the color stops, discard the color interpolation hints.
     let mut stop_items = gradient_items
         .iter()
-        .filter_map(|item| match item {
+        .filter_map(|item| match *item {
             GradientItem::SimpleColorStop(color) => Some(ColorStop {
                 color,
                 position: None,
@@ -191,7 +191,7 @@ fn convert_gradient_stops(
         assert!(offset.is_finite());
         stops.push(GradientStop {
             offset: offset,
-            color: style.resolve_color(stop.color.clone()).to_layout(),
+            color: style.resolve_color(stop.color).to_layout(),
         })
     }
     stops

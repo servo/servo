@@ -27,7 +27,6 @@ serde = "1.0"
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms", optional = true }
 servo_url = { path = "../url", optional = true }
-size_of_test = { path = "../size_of_test" }
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
 webrender_api = { workspace = true, optional = true }

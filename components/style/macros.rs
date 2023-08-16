@@ -128,11 +128,3 @@ macro_rules! local_name {
         $crate::values::AtomIdent(atom!($s))
     };
 }
-
-/// Asserts the size of a type at compile time.
-macro_rules! size_of_test {
-    ($t: ty, $expected_size: expr) => {
-        #[cfg(target_pointer_width = "64")]
-        const_assert_eq!(std::mem::size_of::<$t>(), $expected_size);
-    };
-}

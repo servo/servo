@@ -12,7 +12,6 @@ pub mod font_feature_values_rule;
 pub mod import_rule;
 pub mod keyframes_rule;
 pub mod layer_rule;
-pub mod container_rule;
 mod loader;
 mod media_rule;
 mod namespace_rule;
@@ -54,7 +53,6 @@ pub use self::import_rule::ImportRule;
 pub use self::keyframes_rule::KeyframesRule;
 pub use self::layer_rule::{LayerBlockRule, LayerStatementRule};
 pub use self::loader::StylesheetLoader;
-pub use self::container_rule::ContainerRule;
 pub use self::media_rule::MediaRule;
 pub use self::namespace_rule::NamespaceRule;
 pub use self::origin::{Origin, OriginSet, OriginSetIterator, PerOrigin, PerOriginIter};
@@ -255,7 +253,6 @@ pub enum CssRule {
     Import(Arc<Locked<ImportRule>>),
     Style(Arc<Locked<StyleRule>>),
     Media(Arc<Locked<MediaRule>>),
-    Container(Arc<Locked<ContainerRule>>),
     FontFace(Arc<Locked<FontFaceRule>>),
     FontFeatureValues(Arc<Locked<FontFeatureValuesRule>>),
     CounterStyle(Arc<Locked<CounterStyleRule>>),
@@ -287,10 +284,6 @@ impl CssRule {
             },
 
             CssRule::Media(ref lock) => {
-                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
-            },
-
-            CssRule::Container(ref lock) => {
                 lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
             },
 
@@ -351,7 +344,6 @@ pub enum CssRuleType {
     LayerBlock = 16,
     LayerStatement = 17,
     ScrollTimeline = 18,
-    Container = 19,
 }
 
 #[allow(missing_docs)]
@@ -381,7 +373,16 @@ impl CssRule {
             CssRule::LayerBlock(_) => CssRuleType::LayerBlock,
             CssRule::LayerStatement(_) => CssRuleType::LayerStatement,
             CssRule::ScrollTimeline(_) => CssRuleType::ScrollTimeline,
-            CssRule::Container(_) => CssRuleType::Container,
+        }
+    }
+
+    fn rule_state(&self) -> State {
+        match *self {
+            // CssRule::Charset(..) => State::Start,
+            CssRule::Import(..) => State::Imports,
+            CssRule::Namespace(..) => State::Namespaces,
+            // TODO(emilio): Do we need something for EarlyLayers?
+            _ => State::Body,
         }
     }
 
@@ -456,12 +457,6 @@ impl DeepCloneWithLock for CssRule {
             CssRule::Style(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::Style(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
-                ))
-            },
-            CssRule::Container(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::Container(Arc::new(
                     lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
                 ))
             },
@@ -550,7 +545,6 @@ impl ToCssWithGuard for CssRule {
             CssRule::LayerBlock(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::LayerStatement(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::ScrollTimeline(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::Container(ref lock) => lock.read_with(guard).to_css(guard, dest),
         }
     }
 }

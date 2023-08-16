@@ -16,8 +16,6 @@ extern crate log;
 extern crate range;
 #[macro_use]
 extern crate serde;
-#[macro_use]
-extern crate size_of_test;
 
 #[macro_use]
 pub mod layout_debug;
