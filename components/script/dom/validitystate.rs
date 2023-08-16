@@ -8,7 +8,7 @@ use std::fmt;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use itertools::Itertools;
-use style::element_state::ElementState;
+use style_traits::dom::ElementState;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
@@ -137,14 +137,11 @@ impl ValidityState {
         if let Some(validatable) = self.element.as_maybe_validatable() {
             if validatable.is_instance_validatable() {
                 let is_valid = self.invalid_flags.get().is_empty();
-                self.element
-                    .set_state(ElementState::IN_VALID_STATE, is_valid);
-                self.element
-                    .set_state(ElementState::IN_INVALID_STATE, !is_valid);
+                self.element.set_state(ElementState::VALID, is_valid);
+                self.element.set_state(ElementState::INVALID, !is_valid);
             } else {
-                self.element.set_state(ElementState::IN_VALID_STATE, false);
-                self.element
-                    .set_state(ElementState::IN_INVALID_STATE, false);
+                self.element.set_state(ElementState::VALID, false);
+                self.element.set_state(ElementState::INVALID, false);
             }
         }
 

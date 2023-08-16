@@ -38,7 +38,6 @@ use servo_atoms::Atom;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
-use style::element_state::ElementState;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::longhands::{
     self, background_image, border_spacing, font_family, font_size,
@@ -58,6 +57,7 @@ use style::stylesheets::CssRuleType;
 use style::values::generics::NonNegative;
 use style::values::{computed, specified, AtomIdent, AtomString, CSSFloat};
 use style::{dom_apis, thread_state, CaseSensitivityExt};
+use style_traits::dom::ElementState;
 use xml5ever::serialize as xmlSerialize;
 use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
@@ -351,7 +351,7 @@ impl Element {
             CustomElementState::Uncustomized | CustomElementState::Custom => true,
             _ => false,
         };
-        self.set_state(ElementState::IN_DEFINED_STATE, in_defined_state)
+        self.set_state(ElementState::DEFINED, in_defined_state)
     }
 
     pub fn get_custom_element_state(&self) -> CustomElementState {
@@ -637,12 +637,7 @@ pub trait LayoutElementHelpers<'dom> {
 impl<'dom> LayoutDom<'dom, Element> {
     #[allow(unsafe_code)]
     pub(super) fn focus_state(self) -> bool {
-        unsafe {
-            self.unsafe_get()
-                .state
-                .get()
-                .contains(ElementState::IN_FOCUS_STATE)
-        }
+        unsafe { self.unsafe_get().state.get().contains(ElementState::FOCUS) }
     }
 }
 
@@ -3523,7 +3518,7 @@ impl Element {
 
     /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
     pub fn set_active_state(&self, value: bool) {
-        self.set_state(ElementState::IN_ACTIVE_STATE, value);
+        self.set_state(ElementState::ACTIVE, value);
 
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
             parent.set_active_state(value);
@@ -3531,65 +3526,63 @@ impl Element {
     }
 
     pub fn focus_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_FOCUS_STATE)
+        self.state.get().contains(ElementState::FOCUS)
     }
 
     pub fn set_focus_state(&self, value: bool) {
-        self.set_state(ElementState::IN_FOCUS_STATE, value);
+        self.set_state(ElementState::FOCUS, value);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     pub fn hover_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_HOVER_STATE)
+        self.state.get().contains(ElementState::HOVER)
     }
 
     pub fn set_hover_state(&self, value: bool) {
-        self.set_state(ElementState::IN_HOVER_STATE, value)
+        self.set_state(ElementState::HOVER, value)
     }
 
     pub fn enabled_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_ENABLED_STATE)
+        self.state.get().contains(ElementState::ENABLED)
     }
 
     pub fn set_enabled_state(&self, value: bool) {
-        self.set_state(ElementState::IN_ENABLED_STATE, value)
+        self.set_state(ElementState::ENABLED, value)
     }
 
     pub fn disabled_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_DISABLED_STATE)
+        self.state.get().contains(ElementState::DISABLED)
     }
 
     pub fn set_disabled_state(&self, value: bool) {
-        self.set_state(ElementState::IN_DISABLED_STATE, value)
+        self.set_state(ElementState::DISABLED, value)
     }
 
     pub fn read_write_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_READWRITE_STATE)
+        self.state.get().contains(ElementState::READWRITE)
     }
 
     pub fn set_read_write_state(&self, value: bool) {
-        self.set_state(ElementState::IN_READWRITE_STATE, value)
+        self.set_state(ElementState::READWRITE, value)
     }
 
     pub fn placeholder_shown_state(&self) -> bool {
-        self.state
-            .get()
-            .contains(ElementState::IN_PLACEHOLDER_SHOWN_STATE)
+        self.state.get().contains(ElementState::PLACEHOLDER_SHOWN)
     }
 
     pub fn set_placeholder_shown_state(&self, value: bool) {
         if self.placeholder_shown_state() != value {
-            self.set_state(ElementState::IN_PLACEHOLDER_SHOWN_STATE, value);
+            self.set_state(ElementState::PLACEHOLDER_SHOWN, value);
             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
     }
 
     pub fn set_target_state(&self, value: bool) {
-        self.set_state(ElementState::IN_TARGET_STATE, value)
+        self.set_state(ElementState::URLTARGET, value)
     }
 
     pub fn set_fullscreen_state(&self, value: bool) {
-        self.set_state(ElementState::IN_FULLSCREEN_STATE, value)
+        self.set_state(ElementState::FULLSCREEN, value)
     }
 
     /// <https://dom.spec.whatwg.org/#connected>

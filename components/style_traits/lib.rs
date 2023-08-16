@@ -8,7 +8,6 @@
 
 #![crate_name = "style_traits"]
 #![crate_type = "rlib"]
-#![deny(unsafe_code, missing_docs)]
 
 use bitflags::bitflags;
 use cssparser::{CowRcStr, Token};

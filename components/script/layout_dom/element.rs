@@ -25,7 +25,6 @@ use style::attr::AttrValue;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, TDocument, TElement, TNode, TShadowRoot};
-use style::element_state::*;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{
     extended_filtering, AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement,
@@ -34,6 +33,7 @@ use style::selector_parser::{
 use style::shared_lock::Locked as StyleLocked;
 use style::values::{AtomIdent, AtomString};
 use style::CaseSensitivityExt;
+use style_traits::dom::ElementState;
 
 use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{

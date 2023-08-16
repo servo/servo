@@ -11,12 +11,12 @@ use crate::selector_map::{
 use crate::selector_parser::SelectorImpl;
 use crate::AllocErr;
 use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded};
-use dom::{DocumentState, ElementState};
 use selectors::attr::NamespaceConstraint;
 use selectors::parser::{Combinator, Component};
 use selectors::parser::{Selector, SelectorIter};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
+use style_traits::dom::{DocumentState, ElementState};
 
 /// Mapping between (partial) CompoundSelectors (and the combinator to their
 /// right) and the states and attributes they depend on.

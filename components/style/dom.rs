@@ -21,7 +21,6 @@ use crate::traversal_flags::TraversalFlags;
 use crate::values::AtomIdent;
 use crate::{LocalName, Namespace, WeakAtom};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use dom::ElementState;
 use selectors::matching::{QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
 use selectors::Element as SelectorsElement;
@@ -30,6 +29,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
+use style_traits::dom::ElementState;
 
 pub use style_traits::dom::OpaqueNode;
 
