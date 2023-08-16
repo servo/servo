@@ -15,7 +15,7 @@ use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::{PseudoElement, SelectorImpl};
 use crate::stylist::RuleInclusion;
 use log::Level::Trace;
-use selectors::matching::{NeedsSelectorFlags, MatchingContext};
+use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::matching::{MatchingMode, VisitedHandlingMode};
 use servo_arc::Arc;
 
@@ -451,6 +451,7 @@ where
         );
         let mut applicable_declarations = ApplicableDeclarationList::new();
 
+        let map = &mut self.context.thread_local.selector_flags;
         let bloom_filter = self.context.thread_local.bloom_filter.filter();
         let nth_index_cache = &mut self.context.thread_local.nth_index_cache;
         let mut matching_context = MatchingContext::new_for_visited(
@@ -459,22 +460,29 @@ where
             Some(nth_index_cache),
             visited_handling,
             self.context.shared.quirks_mode(),
-            NeedsSelectorFlags::Yes,
         );
 
         let stylist = &self.context.shared.stylist;
         let implemented_pseudo = self.element.implemented_pseudo_element();
-        // Compute the primary rule node.
-        stylist.push_applicable_declarations(
-            self.element,
-            implemented_pseudo.as_ref(),
-            self.element.style_attribute(),
-            self.element.smil_override(),
-            self.element.animation_declarations(self.context.shared),
-            self.rule_inclusion,
-            &mut applicable_declarations,
-            &mut matching_context,
-        );
+        {
+            let resolving_element = self.element;
+            let mut set_selector_flags = |element: &E, flags: ElementSelectorFlags| {
+                resolving_element.apply_selector_flags(map, element, flags);
+            };
+
+            // Compute the primary rule node.
+            stylist.push_applicable_declarations(
+                self.element,
+                implemented_pseudo.as_ref(),
+                self.element.style_attribute(),
+                self.element.smil_override(),
+                self.element.animation_declarations(self.context.shared),
+                self.rule_inclusion,
+                &mut applicable_declarations,
+                &mut matching_context,
+                &mut set_selector_flags,
+            );
+        }
 
         // FIXME(emilio): This is a hack for animations, and should go away.
         self.element.unset_dirty_style_attribute();
@@ -532,8 +540,13 @@ where
             Some(nth_index_cache),
             visited_handling,
             self.context.shared.quirks_mode(),
-            NeedsSelectorFlags::Yes,
         );
+
+        let map = &mut self.context.thread_local.selector_flags;
+        let resolving_element = self.element;
+        let mut set_selector_flags = |element: &E, flags: ElementSelectorFlags| {
+            resolving_element.apply_selector_flags(map, element, flags);
+        };
 
         // NB: We handle animation rules for ::before and ::after when
         // traversing them.
@@ -546,6 +559,7 @@ where
             self.rule_inclusion,
             &mut applicable_declarations,
             &mut matching_context,
+            &mut set_selector_flags,
         );
 
         if applicable_declarations.is_empty() {

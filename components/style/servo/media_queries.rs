@@ -7,13 +7,13 @@
 use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
 use crate::font_metrics::FontMetrics;
-use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
+use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
+use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
+use crate::media_queries::media_feature_expression::RangeOrOperator;
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::values::computed::CSSPixelLength;
-use crate::values::computed::Context;
 use crate::values::specified::font::FONT_MEDIUM_PX;
-use crate::values::specified::ViewportVariant;
 use crate::values::KeyframesName;
 use app_units::Au;
 use cssparser::RGBA;
@@ -143,13 +143,8 @@ impl Device {
     }
 
     /// Like the above, but records that we've used viewport units.
-    pub fn au_viewport_size_for_viewport_unit_resolution(
-        &self,
-        _: ViewportVariant,
-    ) -> UntypedSize2D<Au> {
+    pub fn au_viewport_size_for_viewport_unit_resolution(&self) -> UntypedSize2D<Au> {
         self.used_viewport_units.store(true, Ordering::Relaxed);
-        // Servo doesn't have dynamic UA interfaces that affect the viewport,
-        // so we can just ignore the ViewportVariant.
         self.au_viewport_size()
     }
 
@@ -234,8 +229,16 @@ impl Device {
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#width
-fn eval_width(context: &Context) -> CSSPixelLength {
-    CSSPixelLength::new(context.device().au_viewport_size().width.to_f32_px())
+fn eval_width(
+    device: &Device,
+    value: Option<CSSPixelLength>,
+    range_or_operator: Option<RangeOrOperator>,
+) -> bool {
+    RangeOrOperator::evaluate(
+        range_or_operator,
+        value.map(Au::from),
+        device.au_viewport_size().width,
+    )
 }
 
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
@@ -246,7 +249,7 @@ enum Scan {
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#scan
-fn eval_scan(_: &Context, _: Option<Scan>) -> bool {
+fn eval_scan(_: &Device, _: Option<Scan>) -> bool {
     // Since we doesn't support the 'tv' media type, the 'scan' feature never
     // matches.
     false
@@ -254,18 +257,18 @@ fn eval_scan(_: &Context, _: Option<Scan>) -> bool {
 
 lazy_static! {
     /// A list with all the media features that Servo supports.
-    pub static ref MEDIA_FEATURES: [QueryFeatureDescription; 2] = [
+    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 2] = [
         feature!(
             atom!("width"),
             AllowsRanges::Yes,
             Evaluator::Length(eval_width),
-            FeatureFlags::empty(),
+            ParsingRequirements::empty(),
         ),
         feature!(
             atom!("scan"),
             AllowsRanges::No,
             keyword_evaluator!(eval_scan, Scan),
-            FeatureFlags::empty(),
+            ParsingRequirements::empty(),
         ),
     ];
 }

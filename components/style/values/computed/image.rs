@@ -31,9 +31,6 @@ pub use specified::ImageRendering;
 pub type Image =
     generic::GenericImage<Gradient, MozImageRect, ComputedImageUrl, Color, Percentage, Resolution>;
 
-// Images should remain small, see https://github.com/servo/servo/pull/18430
-size_of_test!(Image, 40);
-
 /// Computed values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
 pub type Gradient = generic::GenericGradient<
@@ -50,6 +47,8 @@ pub type Gradient = generic::GenericGradient<
 /// Computed values for CSS cross-fade
 /// <https://drafts.csswg.org/css-images-4/#cross-fade-function>
 pub type CrossFade = generic::CrossFade<Image, Color, Percentage>;
+/// A computed percentage or nothing.
+pub type PercentOrNone = generic::PercentOrNone<Percentage>;
 
 /// A computed radial gradient ending shape.
 pub type EndingShape = generic::GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage>;

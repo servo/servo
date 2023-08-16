@@ -6,7 +6,6 @@
 
 use crate::values::animated::ToAnimatedValue;
 use crate::values::generics::NonNegative;
-use crate::values::specified::percentage::ToPercentage;
 use crate::values::{serialize_percentage, CSSFloat};
 use crate::Zero;
 use std::fmt;
@@ -62,12 +61,6 @@ impl Zero for Percentage {
 
     fn is_zero(&self) -> bool {
         self.0 == 0.
-    }
-}
-
-impl ToPercentage for Percentage {
-    fn to_percentage(&self) -> CSSFloat {
-        self.0
     }
 }
 

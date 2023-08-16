@@ -198,9 +198,6 @@ pub struct PipelineNamespaceId(pub u32);
 
 namespace_id! {PipelineId, PipelineIndex}
 
-size_of_test!(PipelineId, 8);
-size_of_test!(Option<PipelineId>, 8);
-
 impl PipelineId {
     pub fn new() -> PipelineId {
         PIPELINE_NAMESPACE.with(|tls| {
@@ -243,9 +240,6 @@ impl fmt::Display for PipelineId {
 
 namespace_id! {BrowsingContextId, BrowsingContextIndex}
 
-size_of_test!(BrowsingContextId, 8);
-size_of_test!(Option<BrowsingContextId>, 8);
-
 impl BrowsingContextId {
     pub fn new() -> BrowsingContextId {
         PIPELINE_NAMESPACE.with(|tls| {
@@ -274,9 +268,6 @@ thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrow
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
 pub struct TopLevelBrowsingContextId(pub BrowsingContextId);
-
-size_of_test!(TopLevelBrowsingContextId, 8);
-size_of_test!(Option<TopLevelBrowsingContextId>, 8);
 
 impl TopLevelBrowsingContextId {
     pub fn new() -> TopLevelBrowsingContextId {

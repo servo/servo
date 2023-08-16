@@ -28,8 +28,34 @@ use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
 
+/// We split the cascade in two phases: 'early' properties, and 'late'
+/// properties.
+///
+/// Early properties are the ones that don't have dependencies _and_ other
+/// properties depend on, for example, writing-mode related properties, color
+/// (for currentColor), or font-size (for em, etc).
+///
+/// Late properties are all the others.
+trait CascadePhase {
+    fn is_early() -> bool;
+}
+
+struct EarlyProperties;
+impl CascadePhase for EarlyProperties {
+    fn is_early() -> bool {
+        true
+    }
+}
+
+struct LateProperties;
+impl CascadePhase for LateProperties {
+    fn is_early() -> bool {
+        false
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum CanHaveLogicalProperties {
+enum ApplyResetProperties {
     No,
     Yes,
 }
@@ -257,7 +283,6 @@ where
     let inherited_style = parent_style.unwrap_or(device.default_computed_values());
 
     let mut declarations = SmallVec::<[(&_, CascadePriority); 32]>::new();
-    let mut referenced_properties = LonghandIdSet::default();
     let custom_properties = {
         let mut builder = CustomPropertiesBuilder::new(inherited_style.custom_properties(), device);
 
@@ -265,8 +290,6 @@ where
             declarations.push((declaration, priority));
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
                 builder.cascade(declaration, priority);
-            } else {
-                referenced_properties.insert(declaration.id().as_longhand().unwrap());
             }
         }
 
@@ -292,73 +315,45 @@ where
         in_media_query: false,
         for_smil_animation: false,
         for_non_inherited_property: None,
-        container_info: None,
         quirks_mode,
         rule_cache_conditions: RefCell::new(rule_cache_conditions),
     };
 
-    let using_cached_reset_properties;
-    let mut cascade = Cascade::new(&mut context, cascade_mode, &referenced_properties);
-    let mut shorthand_cache = ShorthandsWithPropertyReferencesCache::default();
+    let using_cached_reset_properties = {
+        let mut cascade = Cascade::new(&mut context, cascade_mode);
+        let mut shorthand_cache = ShorthandsWithPropertyReferencesCache::default();
 
-    let properties_to_apply = match cascade.cascade_mode {
-        CascadeMode::Visited { writing_mode } => {
-            cascade.context.builder.writing_mode = writing_mode;
-            // We never insert visited styles into the cache so we don't need to
-            // try looking it up. It also wouldn't be super-profitable, only a
-            // handful reset properties are non-inherited.
-            using_cached_reset_properties = false;
-            LonghandIdSet::visited_dependent()
-        },
-        CascadeMode::Unvisited { visited_rules } => {
-            if cascade.apply_properties(
-                CanHaveLogicalProperties::No,
-                LonghandIdSet::writing_mode_group(),
-                declarations.iter().cloned(),
-                &mut shorthand_cache,
-            ) {
-                cascade.compute_writing_mode();
-            }
+        cascade.apply_properties::<EarlyProperties, _>(
+            ApplyResetProperties::Yes,
+            declarations.iter().cloned(),
+            &mut shorthand_cache,
+        );
 
-            if cascade.apply_properties(
-                CanHaveLogicalProperties::No,
-                LonghandIdSet::fonts_and_color_group(),
-                declarations.iter().cloned(),
-                &mut shorthand_cache,
-            ) {
-                cascade.fixup_font_stuff();
-            }
+        cascade.compute_visited_style_if_needed(
+            element,
+            parent_style,
+            parent_style_ignoring_first_line,
+            layout_parent_style,
+            guards,
+        );
 
-            if let Some(visited_rules) = visited_rules {
-                cascade.compute_visited_style_if_needed(
-                    element,
-                    parent_style,
-                    parent_style_ignoring_first_line,
-                    layout_parent_style,
-                    visited_rules,
-                    guards,
-                );
-            }
+        let using_cached_reset_properties =
+            cascade.try_to_use_cached_reset_properties(rule_cache, guards);
 
-            using_cached_reset_properties =
-                cascade.try_to_use_cached_reset_properties(rule_cache, guards);
+        let apply_reset = if using_cached_reset_properties {
+            ApplyResetProperties::No
+        } else {
+            ApplyResetProperties::Yes
+        };
 
-            if using_cached_reset_properties {
-                LonghandIdSet::late_group_only_inherited()
-            } else {
-                LonghandIdSet::late_group()
-            }
-        }
+        cascade.apply_properties::<LateProperties, _>(
+            apply_reset,
+            declarations.iter().cloned(),
+            &mut shorthand_cache,
+        );
+
+        using_cached_reset_properties
     };
-
-    cascade.apply_properties(
-        CanHaveLogicalProperties::Yes,
-        properties_to_apply,
-        declarations.iter().cloned(),
-        &mut shorthand_cache,
-    );
-
-    cascade.finished_applying_properties();
 
     context.builder.clear_modified_reset();
 
@@ -418,7 +413,7 @@ fn tweak_when_ignoring_colors(
 
     fn alpha_channel(color: &Color, context: &computed::Context) -> u8 {
         // We assume here currentColor is opaque.
-        let color = color.to_computed_value(context).into_rgba(RGBA::new(0, 0, 0, 255));
+        let color = color.to_computed_value(context).to_rgba(RGBA::new(0, 0, 0, 255));
         color.alpha
     }
 
@@ -433,17 +428,14 @@ fn tweak_when_ignoring_colors(
             // otherwise, this is needed to preserve semi-transparent
             // backgrounds.
             //
-            // NOTE(emilio): We honor transparent unconditionally, like we do
-            // for color, even though it causes issues like bug 1625036. The
-            // reasoning is that the conditions that trigger that (having
-            // mismatched widget and default backgrounds) are both uncommon, and
-            // broken in other applications as well, and not honoring
-            // transparent makes stuff uglier or break unconditionally
+            // NOTE(emilio): We revert even for alpha == 0. Not doing so would
+            // be a bit special casey, even though it causes issues like
+            // bug 1625036. The reasoning is that the conditions that trigger
+            // that (having mismatched widget and default backgrounds) are both
+            // uncommon, and broken in other applications as well, and not
+            // honoring transparent makes stuff uglier or break unconditionally
             // (bug 1666059, bug 1755713).
             let alpha = alpha_channel(color, context);
-            if alpha == 0 {
-                return;
-            }
             let mut color = context.builder.device.default_background_color();
             color.alpha = alpha;
             declarations_to_apply_unless_overriden
@@ -505,8 +497,6 @@ fn tweak_when_ignoring_colors(
 struct Cascade<'a, 'b: 'a> {
     context: &'a mut computed::Context<'b>,
     cascade_mode: CascadeMode<'a>,
-    /// All the properties that have a declaration in the cascade.
-    referenced: &'a LonghandIdSet,
     seen: LonghandIdSet,
     author_specified: LonghandIdSet,
     reverted_set: LonghandIdSet,
@@ -514,15 +504,10 @@ struct Cascade<'a, 'b: 'a> {
 }
 
 impl<'a, 'b: 'a> Cascade<'a, 'b> {
-    fn new(
-        context: &'a mut computed::Context<'b>,
-        cascade_mode: CascadeMode<'a>,
-        referenced: &'a LonghandIdSet,
-    ) -> Self {
+    fn new(context: &'a mut computed::Context<'b>, cascade_mode: CascadeMode<'a>) -> Self {
         Self {
             context,
             cascade_mode,
-            referenced,
             seen: LonghandIdSet::default(),
             author_specified: LonghandIdSet::default(),
             reverted_set: Default::default(),
@@ -590,21 +575,23 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         (CASCADE_PROPERTY[discriminant])(declaration, &mut self.context);
     }
 
-    fn apply_properties<'decls, I>(
+    fn apply_properties<'decls, Phase, I>(
         &mut self,
-        can_have_logical_properties: CanHaveLogicalProperties,
-        properties_to_apply: &'a LonghandIdSet,
+        apply_reset: ApplyResetProperties,
         declarations: I,
         mut shorthand_cache: &mut ShorthandsWithPropertyReferencesCache,
-    ) -> bool
-    where
+    ) where
+        Phase: CascadePhase,
         I: Iterator<Item = (&'decls PropertyDeclaration, CascadePriority)>,
     {
-        if !self.referenced.contains_any(properties_to_apply) {
-            return false;
-        }
+        let apply_reset = apply_reset == ApplyResetProperties::Yes;
 
-        let can_have_logical_properties = can_have_logical_properties == CanHaveLogicalProperties::Yes;
+        debug_assert!(
+            !Phase::is_early() || apply_reset,
+            "Should always apply reset properties in the early phase, since we \
+             need to know font-size / writing-mode to decide whether to use the \
+             cached reset properties"
+        );
 
         let ignore_colors = !self.context.builder.device.use_document_colors();
         let mut declarations_to_apply_unless_overriden = DeclarationsToApplyUnlessOverriden::new();
@@ -618,15 +605,20 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 PropertyDeclarationId::Custom(..) => continue,
             };
 
-            if !properties_to_apply.contains(longhand_id) {
+            let inherited = longhand_id.inherited();
+            if !apply_reset && !inherited {
                 continue;
             }
 
-            debug_assert!(can_have_logical_properties || !longhand_id.is_logical());
-            let physical_longhand_id = if can_have_logical_properties {
-                longhand_id.to_physical(self.context.builder.writing_mode)
-            } else {
+            if Phase::is_early() != longhand_id.is_early_property() {
+                continue;
+            }
+
+            debug_assert!(!Phase::is_early() || !longhand_id.is_logical());
+            let physical_longhand_id = if Phase::is_early() {
                 longhand_id
+            } else {
+                longhand_id.to_physical(self.context.builder.writing_mode)
             };
 
             if self.seen.contains(physical_longhand_id) {
@@ -639,6 +631,15 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                         continue;
                     }
                 }
+            }
+
+            // Only a few properties are allowed to depend on the visited state
+            // of links.  When cascading visited styles, we can save time by
+            // only processing these properties.
+            if matches!(self.cascade_mode, CascadeMode::Visited { .. }) &&
+                !physical_longhand_id.is_visited_dependent()
+            {
+                continue;
             }
 
             let mut declaration =
@@ -674,8 +675,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                         continue;
                     },
                     CSSWideKeyword::Unset => true,
-                    CSSWideKeyword::Inherit => longhand_id.inherited(),
-                    CSSWideKeyword::Initial => !longhand_id.inherited(),
+                    CSSWideKeyword::Inherit => inherited,
+                    CSSWideKeyword::Initial => !inherited,
                 },
                 None => false,
             };
@@ -709,13 +710,22 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             }
         }
 
-        true
+        if Phase::is_early() {
+            self.fixup_font_stuff();
+            self.compute_writing_mode();
+        } else {
+            self.finished_applying_properties();
+        }
     }
 
     fn compute_writing_mode(&mut self) {
-        debug_assert!(matches!(self.cascade_mode, CascadeMode::Unvisited { .. }));
-        self.context.builder.writing_mode =
-            WritingMode::new(self.context.builder.get_inherited_box())
+        let writing_mode = match self.cascade_mode {
+            CascadeMode::Unvisited { .. } => {
+                WritingMode::new(self.context.builder.get_inherited_box())
+            },
+            CascadeMode::Visited { writing_mode } => writing_mode,
+        };
+        self.context.builder.writing_mode = writing_mode;
     }
 
     fn compute_visited_style_if_needed<E>(
@@ -724,12 +734,20 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         parent_style: Option<&ComputedValues>,
         parent_style_ignoring_first_line: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValues>,
-        visited_rules: &StrongRuleNode,
         guards: &StylesheetGuards,
     ) where
         E: TElement,
     {
-        debug_assert!(matches!(self.cascade_mode, CascadeMode::Unvisited { .. }));
+        let visited_rules = match self.cascade_mode {
+            CascadeMode::Unvisited { visited_rules } => visited_rules,
+            CascadeMode::Visited { .. } => return,
+        };
+
+        let visited_rules = match visited_rules {
+            Some(rules) => rules,
+            None => return,
+        };
+
         let is_link = self.context.builder.pseudo.is_none() && element.unwrap().is_link();
 
         macro_rules! visited_parent {

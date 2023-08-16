@@ -79,9 +79,7 @@ use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, 
 use script_layout_interface::{SVGSVGData, StyleAndOpaqueLayoutData, TrustedNodeAddress};
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
-use selectors::matching::{
-    matches_selector_list, MatchingContext, MatchingMode, NeedsSelectorFlags,
-};
+use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode};
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -475,7 +473,6 @@ impl<'a> Iterator for QuerySelectorIterator {
                     None,
                     None,
                     node.owner_doc().quirks_mode(),
-                    NeedsSelectorFlags::No,
                 );
                 if let Some(element) = DomRoot::downcast(node) {
                     if matches_selector_list(selectors, &element, &mut ctx) {
@@ -959,13 +956,8 @@ impl Node {
             // Step 3.
             Ok(selectors) => {
                 // FIXME(bholley): Consider an nth-index cache here.
-                let mut ctx = MatchingContext::new(
-                    MatchingMode::Normal,
-                    None,
-                    None,
-                    doc.quirks_mode(),
-                    NeedsSelectorFlags::No,
-                );
+                let mut ctx =
+                    MatchingContext::new(MatchingMode::Normal, None, None, doc.quirks_mode());
                 Ok(self
                     .traverse_preorder(ShadowIncluding::No)
                     .filter_map(DomRoot::downcast)

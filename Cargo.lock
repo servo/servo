@@ -5372,7 +5372,6 @@ dependencies = [
  "phf_codegen",
  "precomputed-hash",
  "servo_arc",
- "size_of_test",
  "smallvec",
  "to_shmem",
  "to_shmem_derive",
@@ -5916,9 +5915,6 @@ checksum = "fa8f3741c7372e75519bd9346068370c9cdaabcc1f9599cbcf2a2719352286b7"
 [[package]]
 name = "size_of_test"
 version = "0.0.1"
-dependencies = [
- "static_assertions",
-]
 
 [[package]]
 name = "slab"
@@ -6047,12 +6043,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
 
 [[package]]
-name = "static_assertions"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-
-[[package]]
 name = "std_test_override"
 version = "0.0.1"
 dependencies = [
@@ -6155,7 +6145,6 @@ dependencies = [
  "servo_url",
  "smallbitvec",
  "smallvec",
- "static_assertions",
  "string_cache",
  "style_derive",
  "style_traits",
@@ -6197,6 +6186,7 @@ dependencies = [
  "servo_atoms",
  "servo_config",
  "servo_url",
+ "size_of_test",
  "std_test_override",
  "style",
  "style_traits",
@@ -6218,7 +6208,6 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_url",
- "size_of_test",
  "to_shmem",
  "to_shmem_derive",
  "webrender_api",
@@ -6702,9 +6691,9 @@ checksum = "9e79c4d996edb816c91e4308506774452e55e95c3c9de07b6729e17e15a5ef81"
 
 [[package]]
 name = "uluru"
-version = "3.0.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "794a32261a1f5eb6a4462c81b59cec87b5c27d5deea7dd1ac8fc781c41d226db"
+checksum = "308dcc9d947b227796f851adb99936fb060681a89c002c9c1928404a3b6c2d72"
 dependencies = [
  "arrayvec 0.7.1",
 ]

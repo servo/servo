@@ -111,7 +111,6 @@ use std::cell::Cell;
 use std::default::Default;
 use std::fmt;
 use std::mem;
-use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -3219,11 +3218,15 @@ impl<'a> SelectorsElement for DomRoot<Element> {
             Element::namespace(self) == Element::namespace(other)
     }
 
-    fn match_non_ts_pseudo_class(
+    fn match_non_ts_pseudo_class<F>(
         &self,
         pseudo_class: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
+        _: &mut F,
+    ) -> bool
+    where
+        F: FnMut(&Self, ElementSelectorFlags),
+    {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::Link | NonTSPseudoClass::AnyLink => self.is_link(),
@@ -3303,15 +3306,6 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 
     fn is_html_slot_element(&self) -> bool {
         self.is_html_element() && self.local_name() == &local_name!("slot")
-    }
-
-    fn set_selector_flags(&self, flags: ElementSelectorFlags) {
-        #[allow(unsafe_code)]
-        unsafe {
-            Dom::from_ref(self.deref())
-                .to_layout()
-                .insert_selector_flags(flags);
-        }
     }
 }
 

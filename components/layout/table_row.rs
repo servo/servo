@@ -718,7 +718,7 @@ impl CollapsedBorderSpacingForRow {
 }
 
 /// All aspects of a border that can collapse with adjacent borders. See CSS 2.1 § 17.6.2.1.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct CollapsedBorder {
     /// The style of the border.
     pub style: BorderStyle,
@@ -771,7 +771,7 @@ impl CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_top_style,
             width: Au::from(css_style.get_border().border_top_width),
-            color: css_style.get_border().border_top_color.clone(),
+            color: css_style.get_border().border_top_color,
             provenance: provenance,
         }
     }
@@ -782,7 +782,7 @@ impl CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_right_style,
             width: Au::from(css_style.get_border().border_right_width),
-            color: css_style.get_border().border_right_color.clone(),
+            color: css_style.get_border().border_right_color,
             provenance: provenance,
         }
     }
@@ -796,7 +796,7 @@ impl CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_bottom_style,
             width: Au::from(css_style.get_border().border_bottom_width),
-            color: css_style.get_border().border_bottom_color.clone(),
+            color: css_style.get_border().border_bottom_color,
             provenance: provenance,
         }
     }
@@ -807,7 +807,7 @@ impl CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_left_style,
             width: Au::from(css_style.get_border().border_left_width),
-            color: css_style.get_border().border_left_color.clone(),
+            color: css_style.get_border().border_left_color,
             provenance: provenance,
         }
     }
@@ -883,18 +883,18 @@ impl CollapsedBorder {
         match (self.style, other.style) {
             // Step 1.
             (BorderStyle::Hidden, _) => {},
-            (_, BorderStyle::Hidden) => *self = other.clone(),
+            (_, BorderStyle::Hidden) => *self = *other,
             // Step 2.
-            (BorderStyle::None, _) => *self = other.clone(),
+            (BorderStyle::None, _) => *self = *other,
             (_, BorderStyle::None) => {},
             // Step 3.
             _ if self.width > other.width => {},
-            _ if self.width < other.width => *self = other.clone(),
+            _ if self.width < other.width => *self = *other,
             (this_style, other_style) if this_style > other_style => {},
-            (this_style, other_style) if this_style < other_style => *self = other.clone(),
+            (this_style, other_style) if this_style < other_style => *self = *other,
             // Step 4.
             _ if (self.provenance as i8) >= other.provenance as i8 => {},
-            _ => *self = other.clone(),
+            _ => *self = *other,
         }
     }
 }
@@ -1013,22 +1013,22 @@ fn set_inline_position_of_child_flow(
                     .collapsed_borders_for_row
                     .inline
                     .get(child_index)
-                    .map_or(CollapsedBorder::new(), |x| x.clone()),
+                    .map_or(CollapsedBorder::new(), |x| *x),
                 inline_end_border: border_collapse_info
                     .collapsed_borders_for_row
                     .inline
                     .get(child_index + 1)
-                    .map_or(CollapsedBorder::new(), |x| x.clone()),
+                    .map_or(CollapsedBorder::new(), |x| *x),
                 block_start_border: border_collapse_info
                     .collapsed_borders_for_row
                     .block_start
                     .get(child_index)
-                    .map_or(CollapsedBorder::new(), |x| x.clone()),
+                    .map_or(CollapsedBorder::new(), |x| *x),
                 block_end_border: border_collapse_info
                     .collapsed_borders_for_row
                     .block_end
                     .get(child_index)
-                    .map_or(CollapsedBorder::new(), |x| x.clone()),
+                    .map_or(CollapsedBorder::new(), |x| *x),
                 inline_start_width: border_collapse_info
                     .collapsed_border_spacing_for_row
                     .inline

@@ -8,6 +8,3 @@ publish = false
 
 [lib]
 path = "lib.rs"
-
-[dependencies]
-static_assertions = "1.1"
