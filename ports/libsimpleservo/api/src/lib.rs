@@ -802,6 +802,7 @@ impl ServoGlue {
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
+                EmbedderMsg::ReadyToPresent |
                 EmbedderMsg::ReportProfile(..) => {},
             }
         }
