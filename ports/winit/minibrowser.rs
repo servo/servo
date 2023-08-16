@@ -4,7 +4,7 @@
 
  use std::{cell::{RefCell, Cell}, sync::Arc};
 
-use egui::TopBottomPanel;
+use egui::{TopBottomPanel, Modifiers, Key};
 use servo::{servo_url::ServoUrl, compositing::windowing::EmbedderEvent};
 use servo::webrender_surfman::WebrenderSurfman;
 
@@ -51,15 +51,20 @@ impl Minibrowser {
                     ui.available_size(),
                     egui::Layout::right_to_left(egui::Align::Center),
                     |ui| {
+                        let response = ui.add_sized(
+                            ui.available_size(),
+                            egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                        );
+
                         if ui.button("go").clicked() {
                             event_queue.borrow_mut().push(MinibrowserEvent::Go);
                             location_dirty.set(false);
                         }
-                        if ui.add_sized(
-                            ui.available_size(),
-                            egui::TextEdit::singleline(&mut *location.borrow_mut()),
-                        ).changed() {
+                        if response.changed() {
                             location_dirty.set(true);
+                        }
+                        if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
+                            response.request_focus();
                         }
                     },
                 );
