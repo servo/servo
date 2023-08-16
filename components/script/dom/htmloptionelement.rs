@@ -8,8 +8,8 @@ use std::convert::TryInto;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
 use js::rust::HandleObject;
-use style::element_state::ElementState;
 use style::str::{split_html_space_chars, str_join};
+use style_traits::dom::ElementState;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -55,7 +55,7 @@ impl HTMLOptionElement {
     ) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::IN_ENABLED_STATE,
+                ElementState::ENABLED,
                 local_name,
                 prefix,
                 document,

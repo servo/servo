@@ -11,7 +11,7 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use script_layout_interface::message::QueryMsg;
 use style::attr::AttrValue;
-use style::element_state::*;
+use style_traits::dom::ElementState;
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;

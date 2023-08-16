@@ -18,8 +18,8 @@ use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
 use servo_atoms::Atom;
 use servo_rand::random;
 use style::attr::AttrValue;
-use style::element_state::ElementState;
 use style::str::split_html_space_chars;
+use style_traits::dom::ElementState;
 use time::{now, Duration, Tm};
 
 use super::bindings::trace::{HashMapTracedValues, NoTrace};
@@ -107,7 +107,7 @@ impl HTMLFormElement {
     ) -> HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::IN_VALID_STATE,
+                ElementState::VALID,
                 local_name,
                 prefix,
                 document,
@@ -693,9 +693,9 @@ impl HTMLFormElement {
             });
 
         self.upcast::<Element>()
-            .set_state(ElementState::IN_VALID_STATE, !is_any_invalid);
+            .set_state(ElementState::VALID, !is_any_invalid);
         self.upcast::<Element>()
-            .set_state(ElementState::IN_INVALID_STATE, is_any_invalid);
+            .set_state(ElementState::INVALID, is_any_invalid);
     }
 
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)

@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use html5ever::{local_name, LocalName, Prefix};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
-use style::element_state::ElementState;
+use style_traits::dom::ElementState;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -79,7 +79,7 @@ impl HTMLSelectElement {
     ) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::IN_ENABLED_STATE | ElementState::IN_VALID_STATE,
+                ElementState::ENABLED | ElementState::VALID,
                 local_name,
                 prefix,
                 document,

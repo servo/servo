@@ -17,7 +17,7 @@ use crate::selector_parser::{PseudoElementCascadeType, SelectorParser};
 use crate::values::{AtomIdent, AtomString};
 use crate::{Atom, CaseSensitivityExt, LocalName, Namespace, Prefix};
 use cssparser::{serialize_identifier, CowRcStr, Parser as CssParser, SourceLocation, ToCss};
-use dom::{DocumentState, ElementState};
+use style_traits::dom::{DocumentState, ElementState};
 use fxhash::FxHashMap;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::parser::SelectorParseErrorKind;
@@ -367,20 +367,20 @@ impl NonTSPseudoClass {
     pub fn state_flag(&self) -> ElementState {
         use self::NonTSPseudoClass::*;
         match *self {
-            Active => ElementState::IN_ACTIVE_STATE,
-            Focus => ElementState::IN_FOCUS_STATE,
-            Fullscreen => ElementState::IN_FULLSCREEN_STATE,
-            Hover => ElementState::IN_HOVER_STATE,
-            Defined => ElementState::IN_DEFINED_STATE,
-            Enabled => ElementState::IN_ENABLED_STATE,
-            Disabled => ElementState::IN_DISABLED_STATE,
-            Checked => ElementState::IN_CHECKED_STATE,
-            Valid => ElementState::IN_VALID_STATE,
-            Invalid => ElementState::IN_INVALID_STATE,
-            Indeterminate => ElementState::IN_INDETERMINATE_STATE,
-            ReadOnly | ReadWrite => ElementState::IN_READWRITE_STATE,
-            PlaceholderShown => ElementState::IN_PLACEHOLDER_SHOWN_STATE,
-            Target => ElementState::IN_TARGET_STATE,
+            Active => ElementState::ACTIVE,
+            Focus => ElementState::FOCUS,
+            Fullscreen => ElementState::FULLSCREEN,
+            Hover => ElementState::HOVER,
+            Defined => ElementState::DEFINED,
+            Enabled => ElementState::ENABLED,
+            Disabled => ElementState::DISABLED,
+            Checked => ElementState::CHECKED,
+            Valid => ElementState::VALID,
+            Invalid => ElementState::INVALID,
+            Indeterminate => ElementState::INDETERMINATE,
+            ReadOnly | ReadWrite => ElementState::READWRITE,
+            PlaceholderShown => ElementState::PLACEHOLDER_SHOWN,
+            Target => ElementState::URLTARGET,
 
             AnyLink | Lang(_) | Link | Visited | ServoNonZeroBorder => ElementState::empty(),
         }

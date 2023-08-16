@@ -17,11 +17,11 @@ use crate::selector_map::SelectorMap;
 use crate::selector_parser::Snapshot;
 use crate::stylesheets::origin::OriginSet;
 use crate::{Atom, WeakAtom};
-use dom::ElementState;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{matches_selector, MatchingContext, MatchingMode, VisitedHandlingMode, NeedsSelectorFlags};
 use selectors::NthIndexCache;
 use smallvec::SmallVec;
+use style_traits::dom::ElementState;
 
 /// The collector implementation.
 struct Collector<'a, 'b: 'a, 'selectors: 'a, E>

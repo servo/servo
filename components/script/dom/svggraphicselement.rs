@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
-use style::element_state::ElementState;
+use style_traits::dom::ElementState;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::document::Document;

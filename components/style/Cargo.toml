@@ -43,7 +43,6 @@ bitflags = "1.0"
 byteorder = "1.0"
 cssparser = "0.29"
 derive_more = "0.99"
-dom = { path = "../../../dom/base/rust" }
 encoding_rs = { version = "0.8", optional = true }
 euclid = "0.22"
 fxhash = "0.2"

@@ -10,12 +10,12 @@ use crate::selector_parser::{AttrValue, NonTSPseudoClass, PseudoElement, Selecto
 use crate::selector_parser::{Snapshot, SnapshotMap};
 use crate::values::AtomIdent;
 use crate::{CaseSensitivityExt, LocalName, Namespace, WeakAtom};
-use dom::ElementState;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::{Element, OpaqueElement};
 use std::cell::Cell;
 use std::fmt;
+use style_traits::dom::ElementState;
 
 /// In order to compute restyle hints, we perform a selector match against a
 /// list of partial selectors whose rightmost simple selector may be sensitive
