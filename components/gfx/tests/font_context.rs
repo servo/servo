@@ -21,10 +21,9 @@ use servo_atoms::Atom;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
-    FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSize, FontStretch,
+    FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSize, FontStretch, FontStyle,
     FontWeight, SingleFontFamily,
 };
-use style::values::generics::font::FontStyle;
 use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
 
 struct TestFontSource {
@@ -95,7 +94,7 @@ impl FontSource for TestFontSource {
 fn style() -> FontStyleStruct {
     let mut style = FontStyleStruct {
         font_family: FontFamily::serif(),
-        font_style: FontStyle::Normal,
+        font_style: FontStyle::NORMAL,
         font_variant_caps: FontVariantCaps::Normal,
         font_weight: FontWeight::normal(),
         font_size: FontSize::medium(),
@@ -134,7 +133,7 @@ fn test_font_group_is_cached_by_style() {
     let style1 = style();
 
     let mut style2 = style();
-    style2.set_font_style(FontStyle::Italic);
+    style2.set_font_style(FontStyle::ITALIC);
 
     assert_eq!(
         context.font_group(Arc::new(style1.clone())).as_ptr(),
@@ -231,7 +230,7 @@ fn test_font_template_is_cached() {
         template_descriptor: FontTemplateDescriptor {
             weight: FontWeight::normal(),
             stretch: FontStretch::hundred(),
-            style: FontStyle::Normal,
+            style: FontStyle::normal(),
         },
         variant: FontVariantCaps::Normal,
         pt_size: Au(10),

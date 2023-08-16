@@ -48,8 +48,9 @@ pub use crate::values::specified::Integer as SpecifiedInteger;
 /// cbindgen:derive-gte
 #[repr(C)]
 #[derive(
-    Clone, ComputeSquaredDistance, Copy, Debug, Hash, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue,
+    Clone, ComputeSquaredDistance, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FixedPoint<T, const FRACTION_BITS: u16> {
     value: T,
 }
@@ -901,8 +902,9 @@ pub type FontStyleFixedPoint = FixedPoint<i16, FONT_STYLE_FRACTION_BITS>;
 /// cbindgen:derive-gt
 /// cbindgen:derive-gte
 #[derive(
-    Clone, ComputeSquaredDistance, Copy, Debug, Hash, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue,
+    Clone, ComputeSquaredDistance, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct FontStyle(FontStyleFixedPoint);
 
@@ -1012,6 +1014,7 @@ pub type FontStretchFixedPoint = FixedPoint<u16, FONT_STRETCH_FRACTION_BITS>;
 #[derive(
     Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Hash, Serialize))]
 #[repr(C)]
 pub struct FontStretch(pub FontStretchFixedPoint);
 

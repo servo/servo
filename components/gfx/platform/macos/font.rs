@@ -207,11 +207,10 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn style(&self) -> FontStyle {
-        use style::values::generics::font::FontStyle::*;
         if self.ctfont.symbolic_traits().is_italic() {
-            Italic
+            FontStyle::ITALIC
         } else {
-            Normal
+            FontStyle::NORMAL
         }
     }
 
@@ -225,15 +224,12 @@ impl FontHandleMethods for FontHandle {
         } else {
             4.0 + normalized * 5.0 // [4.0, 9.0]
         }; // [1.0, 9.0], centered on 4.0
-        FontWeight(normalized as f32 * 100.)
+        FontWeight::from_float(normalized as f32 * 100.)
     }
 
     fn stretchiness(&self) -> FontStretch {
-        use style::values::computed::Percentage;
-        use style::values::generics::NonNegative;
-
         let normalized = self.ctfont.all_traits().normalized_width(); // [-1.0, 1.0]
-        FontStretch(NonNegative(Percentage(normalized as f32 + 1.0)))
+        FontStretch::from_percentage(normalized as f32 + 1.0)
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {

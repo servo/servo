@@ -1779,7 +1779,7 @@ fn serialize_font<W>(style: &Font, dest: &mut W) -> fmt::Result
 where
     W: fmt::Write,
 {
-    if style.font_style == FontStyle::Italic {
+    if style.font_style == FontStyle::ITALIC {
         write!(dest, "{} ", style.font_style.to_css_string())?;
     }
     if style.font_weight.is_bold() {

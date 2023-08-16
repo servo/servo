@@ -34,12 +34,10 @@ pub struct FontTemplateDescriptor {
 impl Eq for FontTemplateDescriptor {}
 
 fn style_to_number(s: &FontStyle) -> f32 {
-    use style::values::generics::font::FontStyle as GenericFontStyle;
-
     match *s {
-        GenericFontStyle::Normal => 0.,
-        GenericFontStyle::Italic => FontStyle::default_angle().0.degrees(),
-        GenericFontStyle::Oblique(ref angle) => angle.0.degrees(),
+        FontStyle::NORMAL => 0.,
+        FontStyle::ITALIC => FontStyle::DEFAULT_OBLIQUE_DEGREES as f32,
+        _ => s.oblique_degrees(),
     }
 }
 
@@ -66,9 +64,9 @@ impl FontTemplateDescriptor {
         // between -90 and +90deg.
         let style_part = (style_to_number(&self.style) - style_to_number(&other.style)).abs();
         // 0 <= weightPart <= 800
-        let weight_part = (self.weight.0 - other.weight.0).abs();
+        let weight_part = (self.weight.value() - other.weight.value()).abs();
         // 0 <= stretchPart <= 8
-        let stretch_part = (self.stretch.value() - other.stretch.value()).abs();
+        let stretch_part = (self.stretch.to_percentage().0 - other.stretch.to_percentage().0).abs();
         style_part + weight_part + stretch_part
     }
 }
