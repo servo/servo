@@ -466,40 +466,25 @@ class CommandBase(object):
                 env, cross_compilation_target=self.cross_compile_target,
                 check_installation=is_build)
 
-        extra_path = []
         effective_target = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in effective_target:
-            extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
-            env.setdefault("CC", "clang-cl.exe")
-            env.setdefault("CXX", "clang-cl.exe")
+            util.append_paths_to_env(env, "PATH", path.join(self.msvc_package_dir("llvm"), "bin"))
 
-            # Link moztools, used for building SpiderMonkey
-            moztools_paths = [
-                path.join(self.msvc_package_dir("moztools"), "bin"),
-                path.join(self.msvc_package_dir("moztools"), "msys", "bin"),
-            ]
-            # In certain cases we need to ensure that tools with conflicting MSYS versions
-            # can be placed in the PATH ahead of the moztools directories.
-            moztools_path_prepend = env.get("MOZTOOLS_PATH_PREPEND", None)
-            if moztools_path_prepend:
-                moztools_paths.insert(0, moztools_path_prepend)
-            env["MOZTOOLS_PATH"] = os.pathsep.join(moztools_paths)
-            # Link autoconf 2.13, used for building SpiderMonkey
-            env["AUTOCONF"] = path.join(self.msvc_package_dir("moztools"), "msys", "local", "bin", "autoconf-2.13")
-            # Link LLVM
+            # These two environment variables are necessary for building mozjs. It would
+            # be nice to be able to set them in the cargo configuration somehow, but they
+            # are platform-dependent.
             env["LIBCLANG_PATH"] = path.join(self.msvc_package_dir("llvm"), "lib")
+            env["MOZILLA_BUILD"] = path.join(self.msvc_package_dir("moztools"))
 
-            if not os.environ.get("NATIVE_WIN32_PYTHON"):
-                env["NATIVE_WIN32_PYTHON"] = sys.executable
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
         if sys.platform != "win32":
             env.setdefault("CC", "clang")
             env.setdefault("CXX", "clang++")
-
-        if extra_path:
-            util.append_paths_to_env(env, "PATH", extra_path)
+        else:
+            env.setdefault("CC", "clang-cl.exe")
+            env.setdefault("CXX", "clang-cl.exe")
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
