@@ -397,7 +397,8 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         }
 
         // Step 16, 16.3
-        if let Some(promise) = self.when_defined.borrow_mut().remove(&name) {
+        let promise = self.when_defined.borrow_mut().remove(&name);
+        if let Some(promise) = promise {
             unsafe {
                 rooted!(in(*cx) let mut constructor = UndefinedValue());
                 definition
