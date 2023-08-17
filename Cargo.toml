@@ -74,7 +74,7 @@ string_cache_codegen = "0.5"
 # NOTE: the sm-angle feature only enables angle on windows, not other platforms!
 surfman = { version = "0.8", features = ["chains", "sm-angle", "sm-angle-default"] }
 thin-slice = "0.1.0"
-time = "0.1.41"
+time = "0.3.23"
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.19"
