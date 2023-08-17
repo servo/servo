@@ -83,6 +83,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         ProcessTestExecutor.teardown(self)
 
     def do_test(self, test):
+        self.test = test
         self.result_data = None
         self.result_flag = threading.Event()
 
@@ -156,7 +157,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
             else:
                 self.logger.process_output(self.proc.pid,
                                            line,
-                                           " ".join(self.command))
+                                           " ".join(self.command), self.test.url)
 
     def on_finish(self):
         self.result_flag.set()
@@ -270,6 +271,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
                 return True, [base64.b64encode(data).decode()]
 
     def do_test(self, test):
+        self.test = test
         result = self.implementation.run_test(test)
 
         return self.convert_result(test, result)
@@ -281,7 +283,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
         else:
             self.logger.process_output(self.proc.pid,
                                        line,
-                                       " ".join(self.command))
+                                   " ".join(self.command), self.test.url)
 
 
 class ServoTimedRunner(TimedRunner):
@@ -342,21 +344,22 @@ class ServoCrashtestExecutor(ProcessTestExecutor):
         env["HOST_FILE"] = self.hosts_path
         env["RUST_BACKTRACE"] = "1"
 
-        command = build_servo_command(self.test,
-                                      self.test_url,
-                                      self.browser,
-                                      self.binary,
-                                      False,
-                                      self.debug_info,
-                                      extra_args=["-x"])
+        self.command = build_servo_command(self.test,
+                                           self.test_url,
+                                           self.browser,
+                                           self.binary,
+                                           False,
+                                           self.debug_info,
+                                           extra_args=["-x"])
 
         if not self.interactive:
-            self.proc = ProcessHandler(command,
+            self.proc = ProcessHandler(self.command,
                                        env=env,
+                                       processOutputLine=[self.on_output],
                                        storeOutput=False)
             self.proc.run()
         else:
-            self.proc = subprocess.Popen(command, env=env)
+            self.proc = subprocess.Popen(self.command, env=env)
 
         self.proc.wait()
 
@@ -364,3 +367,9 @@ class ServoCrashtestExecutor(ProcessTestExecutor):
             return {"status": "PASS", "message": None}
 
         return {"status": "CRASH", "message": None}
+
+    def on_output(self, line):
+        line = line.decode("utf8", "replace")
+        self.logger.process_output(self.proc.pid,
+                                   line,
+                                   " ".join(self.command), self.test.url)
