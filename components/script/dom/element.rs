@@ -3178,6 +3178,10 @@ impl<'a> SelectorsElement for DomRoot<Element> {
             .next()
     }
 
+    fn first_element_child(&self) -> Option<DomRoot<Element>> {
+        self.GetFirstElementChild()
+    }
+
     fn attr_matches(
         &self,
         ns: &NamespaceConstraint<&style::Namespace>,
