@@ -13,4 +13,3 @@ path = "lib.rs"
 [dependencies]
 euclid = { workspace = true }
 surfman = { workspace = true }
-

@@ -52,4 +52,3 @@ unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }
 xi-unicode = { workspace = true }
-

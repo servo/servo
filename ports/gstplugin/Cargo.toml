@@ -34,4 +34,3 @@ webxr = { git = "https://github.com/servo/webxr", features = ["glwindow"] }
 
 [build-dependencies]
 gst-plugin-version-helper = "0.2"
-

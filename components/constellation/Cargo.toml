@@ -37,7 +37,7 @@ profile_traits = { path = "../profile_traits" }
 script_traits = { path = "../script_traits" }
 serde = { workspace = true }
 servo_config = { path = "../config" }
-servo_rand = {path = "../rand" }
+servo_rand = { path = "../rand" }
 servo_remutex = { path = "../remutex" }
 servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }

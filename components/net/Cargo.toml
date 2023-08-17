@@ -5,7 +5,7 @@ authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2018"
 publish = false
-autotests = false  # Inhibit lookup for tests/*.rs without [[test]] sections
+autotests = false # Inhibit lookup for tests/*.rs without [[test]] sections
 
 [lib]
 name = "net"
@@ -27,7 +27,7 @@ devtools_traits = { path = "../devtools_traits" }
 embedder_traits = { path = "../embedder_traits" }
 flate2 = "1"
 futures = { version = "0.3", package = "futures" }
-futures-util = { version  = "0.3" }
+futures-util = { version = "0.3" }
 generic-array = "0.14"
 headers = { workspace = true }
 http = { workspace = true }
@@ -69,7 +69,7 @@ webrender_api = { workspace = true }
 webpki-roots = { workspace = true }
 
 [dev-dependencies]
-futures = {version = "0.3", features = ["compat"]}
+futures = { version = "0.3", features = ["compat"] }
 std_test_override = { path = "../std_test_override" }
 tokio-test = "0.4"
 tokio-stream = { version = "0.1", features = ["net"] }

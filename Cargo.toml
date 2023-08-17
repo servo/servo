@@ -22,7 +22,7 @@ byteorder = "1.0"
 encoding_rs = "0.8"
 euclid = "0.22"
 cookie = "0.12"
-content-security-policy = { version = "0.5", features = ["serde"]}
+content-security-policy = { version = "0.5", features = ["serde"] }
 crossbeam-channel = "0.5"
 cssparser = "0.29"
 darling = { version = "0.13", default-features = false }

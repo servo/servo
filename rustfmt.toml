@@ -1,4 +1,4 @@
 match_block_trailing_comma = true
 binop_separator = "Back"
 reorder_imports = true
-ignore = [ "third_party" ]
+ignore = ["third_party"]

@@ -12,8 +12,8 @@ wrong-key = true
 
 [ignore]
 files = [
-  "./fake/file.html",
+    "./fake/file.html",
 ]
 directories = [
-  "./fake/dir",
+    "./fake/dir",
 ]
