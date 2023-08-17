@@ -6,4 +6,3 @@ documentation_style = "c99"
 
 [export]
 exclude = ["OutputDebugStringA"]
-

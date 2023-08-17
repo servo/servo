@@ -15,4 +15,4 @@ unrooted_must_root_lint = []
 trace_in_no_trace_lint = []
 
 [package.metadata.rust-analyzer]
-rustc_private=true
+rustc_private = true

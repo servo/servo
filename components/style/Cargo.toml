@@ -18,10 +18,20 @@ doctest = false
 
 [features]
 gecko = ["style_traits/gecko", "bindgen", "regex", "toml", "num_cpus", "mozbuild"]
-servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
-         "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "servo_url",
-         "string_cache", "to_shmem/servo",
-         "servo_arc/servo"]
+servo = [
+    "serde",
+    "style_traits/servo",
+    "servo_atoms",
+    "servo_config",
+    "html5ever",
+    "cssparser/serde",
+    "encoding_rs",
+    "malloc_size_of/servo",
+    "servo_url",
+    "string_cache",
+    "to_shmem/servo",
+    "servo_arc/servo",
+]
 gecko_debug = []
 gecko_refcount_logging = []
 
@@ -54,7 +64,7 @@ owning_ref = "0.4"
 parking_lot = "0.11"
 precomputed-hash = "0.1.1"
 rayon = "1"
-selectors = { path = "../selectors", features = ["shmem"]  }
+selectors = { path = "../selectors", features = ["shmem"] }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms", optional = true }
@@ -78,7 +88,7 @@ void = "1.0.2"
 bindgen = { version = "0.62", optional = true, default-features = false }
 lazy_static = "1"
 log = "0.4"
-mozbuild = {version = "0.1", optional = true}
+mozbuild = { version = "0.1", optional = true }
 regex = { version = "1.1", optional = true }
 toml = { version = "0.5", optional = true, default-features = false }
 walkdir = "2.1.4"
