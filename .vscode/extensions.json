@@ -1,7 +1,6 @@
 {
     // See http://go.microsoft.com/fwlink/?LinkId=827846 to learn about workspace recommendations.
     // Extension identifier format: ${publisher}.${name}. Example: vscode.csharp
-
     // List of extensions which should be recommended for users of this workspace.
     "recommendations": [
         // Trim only touched lines.
@@ -15,6 +14,8 @@
         // CSS support for HTML documents.
         "ecmel.vscode-html-css",
         // IDL language support
-        "mythmon.idl"
+        "mythmon.idl",
+        // TOML files
+        "tamasfe.even-better-toml"
     ]
 }
