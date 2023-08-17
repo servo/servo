@@ -506,6 +506,12 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
         None
     }
 
+    fn first_element_child(&self) -> Option<Self> {
+        self.as_node()
+            .dom_children()
+            .find_map(|child| child.as_element())
+    }
+
     fn attr_matches(
         &self,
         ns: &NamespaceConstraint<&style::Namespace>,
@@ -798,6 +804,12 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
     // Skips non-element nodes
     fn next_sibling_element(&self) -> Option<Self> {
         warn!("ServoThreadSafeLayoutElement::next_sibling_element called");
+        None
+    }
+
+    // Skips non-element nodes
+    fn first_element_child(&self) -> Option<Self> {
+        warn!("ServoThreadSafeLayoutElement::first_element_child called");
         None
     }
 
