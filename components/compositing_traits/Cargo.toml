@@ -1,45 +1,35 @@
 [package]
-name = "compositing"
+name = "compositing_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2018"
 publish = false
-build = "build.rs"
 
 [lib]
-name = "compositing"
+name = "compositing_traits"
 path = "lib.rs"
 
 [features]
 default = []
-gl = ["dep:gleam", "dep:pixels", "compositing_traits/gl"]
+gl = ["dep:gleam"]
 
 [dependencies]
 canvas = { path = "../canvas" }
-compositing_traits = { path = "../compositing_traits" }
 crossbeam-channel = { workspace = true }
 embedder_traits = { path = "../embedder_traits" }
 euclid = { workspace = true }
-fnv = { workspace = true }
 gfx_traits = { path = "../gfx_traits" }
 gleam = { workspace = true, optional = true }
-image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
-libc = { workspace = true }
 log = { workspace = true }
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
-num-traits = { workspace = true }
-pixels = { path = "../pixels", optional = true }
 profile_traits = { path = "../profile_traits" }
 script_traits = { path = "../script_traits" }
-servo-media = { git = "https://github.com/servo/media" }
-servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }
-time = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_surfman = { path = "../webrender_surfman" }

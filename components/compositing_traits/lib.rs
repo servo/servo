@@ -4,8 +4,13 @@
 
 //! Communication with the compositor thread.
 
-use crate::compositor::CompositingReason;
-use crate::{ConstellationMsg, SendableFrameTree};
+#[macro_use]
+extern crate log;
+
+mod constellation_msg;
+
+pub use constellation_msg::ConstellationMsg;
+
 use canvas::canvas_paint_thread::ImageUpdate;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::EventLoopWaker;
@@ -16,6 +21,8 @@ use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
+use script_traits::ConstellationControlMsg;
+use script_traits::LayoutControlMsg;
 use script_traits::{AnimationState, EventResult, MouseButton, MouseEventType};
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
@@ -23,6 +30,33 @@ use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use webrender_api::{self, DocumentId, FontInstanceKey, FontKey, ImageKey, RenderApi};
 use webrender_surfman::WebrenderSurfman;
+
+/// Why we performed a composite. This is used for debugging.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum CompositingReason {
+    /// We hit the delayed composition timeout. (See `delayed_composition.rs`.)
+    DelayedCompositeTimeout,
+    /// The window has been scrolled and we're starting the first recomposite.
+    Scroll,
+    /// A scroll has continued and we need to recomposite again.
+    ContinueScroll,
+    /// We're performing the single composite in headless mode.
+    Headless,
+    /// We're performing a composite to run an animation.
+    Animation,
+    /// A new frame tree has been loaded.
+    NewFrameTree,
+    /// New painted buffers have been received.
+    NewPaintedBuffers,
+    /// The window has been zoomed.
+    Zoom,
+    /// A new WebRender frame has arrived.
+    NewWebRenderFrame,
+    /// WebRender has processed a scroll event and has generated a new frame.
+    NewWebRenderScrollFrame,
+    /// The window has been resized and will need to be synchronously repainted.
+    Resize,
+}
 
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
@@ -121,6 +155,20 @@ pub enum Msg {
 
     /// Webrender operations requested from non-compositor threads.
     Webrender(WebrenderMsg),
+}
+
+pub struct SendableFrameTree {
+    pub pipeline: CompositionPipeline,
+    pub children: Vec<SendableFrameTree>,
+}
+
+/// The subset of the pipeline that is needed for layer composition.
+#[derive(Clone)]
+pub struct CompositionPipeline {
+    pub id: PipelineId,
+    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub script_chan: IpcSender<ConstellationControlMsg>,
+    pub layout_chan: IpcSender<LayoutControlMsg>,
 }
 
 pub enum WebrenderFontMsg {

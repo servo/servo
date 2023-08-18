@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::compositor_thread::CompositorReceiver;
-use crate::compositor_thread::{
-    InitialCompositorState, Msg, WebrenderCanvasMsg, WebrenderFontMsg, WebrenderMsg,
-};
 #[cfg(feature = "gl")]
 use crate::gl;
 use crate::touch::{TouchAction, TouchHandler};
 use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
 };
-use crate::{CompositionPipeline, ConstellationMsg, SendableFrameTree};
 use canvas::canvas_paint_thread::ImageUpdate;
+use compositing_traits::{
+    CompositingReason, CompositionPipeline, CompositorReceiver, ConstellationMsg,
+    InitialCompositorState, Msg, SendableFrameTree, WebrenderCanvasMsg, WebrenderFontMsg,
+    WebrenderMsg,
+};
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Vector2D};
@@ -1954,31 +1954,4 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     pub fn set_external_present(&mut self, value: bool) {
         self.external_present = value;
     }
-}
-
-/// Why we performed a composite. This is used for debugging.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum CompositingReason {
-    /// We hit the delayed composition timeout. (See `delayed_composition.rs`.)
-    DelayedCompositeTimeout,
-    /// The window has been scrolled and we're starting the first recomposite.
-    Scroll,
-    /// A scroll has continued and we need to recomposite again.
-    ContinueScroll,
-    /// We're performing the single composite in headless mode.
-    Headless,
-    /// We're performing a composite to run an animation.
-    Animation,
-    /// A new frame tree has been loaded.
-    NewFrameTree,
-    /// New painted buffers have been received.
-    NewPaintedBuffers,
-    /// The window has been zoomed.
-    Zoom,
-    /// A new WebRender frame has arrived.
-    NewWebRenderFrame,
-    /// WebRender has processed a scroll event and has generated a new frame.
-    NewWebRenderScrollFrame,
-    /// The window has been resized and will need to be synchronously repainted.
-    Resize,
 }

@@ -68,12 +68,12 @@ use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::{self, CanvasPaintThread};
 use canvas::WebGLComm;
 use canvas_traits::webgl::WebGLThreads;
-use compositing::compositor_thread::{
-    CompositorProxy, CompositorReceiver, InitialCompositorState, Msg, WebrenderCanvasMsg,
-    WebrenderFontMsg, WebrenderMsg,
-};
 use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
-use compositing::{CompositingReason, ConstellationMsg, IOCompositor, ShutdownState};
+use compositing::{IOCompositor, ShutdownState};
+use compositing_traits::{
+    CompositingReason, CompositorProxy, CompositorReceiver, ConstellationMsg,
+    InitialCompositorState, Msg, WebrenderCanvasMsg, WebrenderFontMsg, WebrenderMsg,
+};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),

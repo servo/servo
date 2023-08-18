@@ -106,10 +106,10 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use canvas_traits::ConstellationCanvasMsg;
-use compositing::compositor_thread::CompositorProxy;
-use compositing::compositor_thread::Msg as ToCompositorMsg;
-use compositing::compositor_thread::WebrenderMsg;
-use compositing::{ConstellationMsg as FromCompositorMsg, SendableFrameTree};
+use compositing_traits::CompositorProxy;
+use compositing_traits::Msg as ToCompositorMsg;
+use compositing_traits::WebrenderMsg;
+use compositing_traits::{ConstellationMsg as FromCompositorMsg, SendableFrameTree};
 use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::Handler;
-use compositing::ConstellationMsg;
+use compositing_traits::ConstellationMsg;
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use script_traits::webdriver_msg::WebDriverScriptCommand;

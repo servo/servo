@@ -915,6 +915,7 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "canvas",
+ "compositing_traits",
  "crossbeam-channel",
  "embedder_traits",
  "euclid",
@@ -945,6 +946,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "compositing_traits"
+version = "0.0.1"
+dependencies = [
+ "canvas",
+ "crossbeam-channel",
+ "embedder_traits",
+ "euclid",
+ "gfx_traits",
+ "gleam",
+ "ipc-channel",
+ "keyboard-types",
+ "log",
+ "msg",
+ "net_traits",
+ "profile_traits",
+ "script_traits",
+ "servo_url",
+ "style_traits",
+ "toml",
+ "webrender",
+ "webrender_api",
+ "webrender_surfman",
+ "webxr",
+]
+
+[[package]]
 name = "const-cstr"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -958,7 +985,7 @@ dependencies = [
  "backtrace",
  "bluetooth_traits",
  "canvas_traits",
- "compositing",
+ "compositing_traits",
  "crossbeam-channel",
  "devtools_traits",
  "embedder_traits",
@@ -3437,6 +3464,7 @@ dependencies = [
  "canvas",
  "canvas_traits",
  "compositing",
+ "compositing_traits",
  "constellation",
  "crossbeam-channel",
  "devtools",
@@ -7099,7 +7127,7 @@ name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
  "base64 0.21.2",
- "compositing",
+ "compositing_traits",
  "cookie 0.12.0",
  "crossbeam-channel",
  "euclid",
