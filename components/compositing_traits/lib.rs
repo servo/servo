@@ -19,9 +19,10 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
-use script_traits::ConstellationControlMsg;
-use script_traits::LayoutControlMsg;
-use script_traits::{AnimationState, EventResult, MouseButton, MouseEventType};
+use script_traits::{
+    AnimationState, ConstellationControlMsg, EventResult, LayoutControlMsg, MouseButton,
+    MouseEventType,
+};
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};

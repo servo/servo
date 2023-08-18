@@ -10,9 +10,7 @@ extern crate log;
 pub use crate::compositor::IOCompositor;
 pub use crate::compositor::ShutdownState;
 
-use compositing_traits::CompositorProxy;
-use compositing_traits::CompositorReceiver;
-use compositing_traits::ConstellationMsg;
+use compositing_traits::{CompositorProxy, CompositorReceiver, ConstellationMsg};
 use crossbeam_channel::Sender;
 use profile_traits::mem;
 use profile_traits::time;
