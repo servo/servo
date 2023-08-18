@@ -51,20 +51,20 @@ impl Minibrowser {
                     ui.available_size(),
                     egui::Layout::right_to_left(egui::Align::Center),
                     |ui| {
-                        let response = ui.add_sized(
-                            ui.available_size(),
-                            egui::TextEdit::singleline(&mut *location.borrow_mut()),
-                        );
-
                         if ui.button("go").clicked() {
                             event_queue.borrow_mut().push(MinibrowserEvent::Go);
                             location_dirty.set(false);
                         }
-                        if response.changed() {
+
+                        let location_field = ui.add_sized(
+                            ui.available_size(),
+                            egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                        );
+                        if location_field.changed() {
                             location_dirty.set(true);
                         }
                         if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
-                            response.request_focus();
+                            location_field.request_focus();
                         }
                     },
                 );
