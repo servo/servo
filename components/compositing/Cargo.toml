@@ -17,6 +17,7 @@ gl = ["gleam", "pixels"]
 
 [dependencies]
 canvas = { path = "../canvas" }
+compositing_traits = { path = "../compositing_traits" }
 crossbeam-channel = { workspace = true }
 embedder_traits = { path = "../embedder_traits" }
 euclid = { workspace = true }

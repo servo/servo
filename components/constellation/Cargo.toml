@@ -15,7 +15,7 @@ background_hang_monitor = { path = "../background_hang_monitor" }
 backtrace = { workspace = true }
 bluetooth_traits = { path = "../bluetooth_traits" }
 canvas_traits = { path = "../canvas_traits" }
-compositing = { path = "../compositing" }
+compositing_traits = { path = "../compositing_traits" }
 crossbeam-channel = { workspace = true }
 devtools_traits = { path = "../devtools_traits" }
 embedder_traits = { path = "../embedder_traits" }

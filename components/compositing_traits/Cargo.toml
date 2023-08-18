@@ -1,5 +1,5 @@
 [package]
-name = "webdriver_server"
+name = "compositing_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
@@ -7,29 +7,23 @@ edition = "2018"
 publish = false
 
 [lib]
-name = "webdriver_server"
+name = "compositing_traits"
 path = "lib.rs"
 
 [dependencies]
-base64 = { workspace = true }
-compositing_traits = { path = "../compositing_traits" }
-cookie = { workspace = true }
+canvas = { path = "../canvas" }
 crossbeam-channel = { workspace = true }
+embedder_traits = { path = "../embedder_traits" }
 euclid = { workspace = true }
-headers = { workspace = true }
-http = { workspace = true }
-image = { workspace = true }
+gfx_traits = { path = "../gfx_traits" }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
-pixels = { path = "../pixels" }
+profile_traits = { path = "../profile_traits" }
 script_traits = { path = "../script_traits" }
-serde = { workspace = true }
-serde_json = { workspace = true }
-servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }
-uuid = { workspace = true }
-webdriver = { workspace = true }
+webrender_api = { workspace = true }
+webrender_surfman = { path = "../webrender_surfman" }
