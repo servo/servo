@@ -17,6 +17,7 @@ clangStdenv.mkDerivation rec {
     gst_all_1.gst-plugins-bad
 
     rustup
+    llvmPackages.bintools # provides lld
 
     # Build utilities
     cmake dbus gcc git pkg-config which llvm autoconf213 perl yasm m4

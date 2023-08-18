@@ -498,7 +498,7 @@ class CommandBase(object):
         # TODO(mrobinson): Gradually turn this on for more platforms, when support stabilizes.
         # See https://github.com/rust-lang/rust/issues/39915
         if not self.cross_compile_target and effective_target == "x86_64-unknown-linux-gnu":
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -Zgcc-ld=lld"
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + servo.platform.get().linker_flag()
 
         if not (self.config["build"]["ccache"] == ""):
             env['CCACHE'] = self.config["build"]["ccache"]

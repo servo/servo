@@ -67,7 +67,10 @@ class Base:
     def library_path_variable_name(self):
         raise NotImplementedError("Do not know how to set library path for platform.")
 
-    def executable_suffix(self):
+    def linker_flag(self) -> str:
+        return ""
+
+    def executable_suffix(self) -> str:
         return ""
 
     def _platform_bootstrap(self, _force: bool) -> bool:

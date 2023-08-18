@@ -127,6 +127,17 @@ class Linux(Base):
         installed_something |= self._platform_bootstrap_gstreamer(force)
         return installed_something
 
+    def linker_flag(self) -> str:
+        # the rust-lld binary downloaded by rustup
+        # doesn't respect NIX_LDFLAGS and also needs
+        # other patches to work correctly. Use system
+        # version of lld for now. See
+        # https://github.com/NixOS/nixpkgs/issues/220717
+        if self.distro.lower() == 'nixos':
+            return '-C link-arg=-fuse-ld=lld'
+        else:
+            return '-Zgcc-ld=lld'
+
     def install_non_gstreamer_dependencies(self, force: bool) -> bool:
         install = False
         pkgs = []
