@@ -216,10 +216,8 @@ class ServoHandler(mozlog.reader.LogHandler):
         ))
 
     def process_output(self, data):
-        if data['thread'] not in self.running_tests:
-            return
-        test_name = self.running_tests[data['thread']]
-        self.test_output[test_name] += data['data'] + "\n"
+        if 'test' in data:
+            self.test_output[data['test']] += data['data'] + "\n"
 
     def log(self, _):
         pass

@@ -117,11 +117,11 @@ pub fn main() {
         };
         let current_thread = thread::current();
         let name = current_thread.name().unwrap_or("<unnamed>");
-        let stdout = std::io::stdout();
-        let mut stdout = stdout.lock();
+        let stderr = std::io::stderr();
+        let mut stderr = stderr.lock();
         if let Some(location) = info.location() {
             let _ = writeln!(
-                &mut stdout,
+                &mut stderr,
                 "{} (thread {}, at {}:{})",
                 msg,
                 name,
@@ -129,12 +129,16 @@ pub fn main() {
                 location.line()
             );
         } else {
-            let _ = writeln!(&mut stdout, "{} (thread {})", msg, name);
+            let _ = writeln!(&mut stderr, "{} (thread {})", msg, name);
         }
         if env::var("RUST_BACKTRACE").is_ok() {
-            let _ = backtrace::print(&mut stdout);
+            let _ = backtrace::print(&mut stderr);
         }
-        drop(stdout);
+        drop(stderr);
+
+        if opts::get().hard_fail && !opts::get().multiprocess {
+            std::process::exit(1);
+        }
 
         error!("{}", msg);
     }));

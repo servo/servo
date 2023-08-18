@@ -1484,11 +1484,10 @@ where
             // Panic a top level browsing context.
             FromCompositorMsg::SendError(top_level_browsing_context_id, error) => {
                 debug!("constellation got SendError message");
-                if let Some(id) = top_level_browsing_context_id {
-                    self.handle_panic(id, error, None);
-                } else {
+                if top_level_browsing_context_id.is_none() {
                     warn!("constellation got a SendError message without top level id");
                 }
+                self.handle_panic(top_level_browsing_context_id, error, None);
             },
             // Send frame tree to WebRender. Make it visible.
             FromCompositorMsg::SelectBrowser(top_level_browsing_context_id) => {
@@ -2752,15 +2751,13 @@ where
             .pipelines
             .get(&pipeline_id)
             .map(|pipeline| pipeline.top_level_browsing_context_id);
-        if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
-            let reason = format!("Send failed ({})", err);
-            self.handle_panic(top_level_browsing_context_id, reason, None);
-        }
+        let reason = format!("Send failed ({})", err);
+        self.handle_panic(top_level_browsing_context_id, reason, None);
     }
 
     fn handle_panic(
         &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
         reason: String,
         backtrace: Option<String>,
     ) {
@@ -2770,6 +2767,11 @@ where
             println!("Pipeline failed in hard-fail mode.  Crashing!");
             process::exit(1);
         }
+
+        let top_level_browsing_context_id = match top_level_browsing_context_id {
+            Some(id) => id,
+            None => return,
+        };
 
         debug!(
             "Panic handler for top-level browsing context {}: {}.",
@@ -2852,13 +2854,16 @@ where
         entry: LogEntry,
     ) {
         debug!("Received log entry {:?}.", entry);
-        match (entry, top_level_browsing_context_id) {
-            (LogEntry::Panic(reason, backtrace), Some(top_level_browsing_context_id)) => {
-                self.handle_panic(top_level_browsing_context_id, reason, Some(backtrace));
-            },
-            (LogEntry::Panic(reason, _), _) |
-            (LogEntry::Error(reason), _) |
-            (LogEntry::Warn(reason), _) => {
+        if let LogEntry::Panic(ref reason, ref backtrace) = entry {
+            self.handle_panic(
+                top_level_browsing_context_id,
+                reason.clone(),
+                Some(backtrace.clone()),
+            );
+        }
+
+        match entry {
+            LogEntry::Panic(reason, _) | LogEntry::Error(reason) | LogEntry::Warn(reason) => {
                 // VecDeque::truncate is unstable
                 if WARNINGS_BUFFER_SIZE <= self.handled_warnings.len() {
                     self.handled_warnings.pop_front();
