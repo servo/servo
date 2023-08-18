@@ -10,17 +10,12 @@ publish = false
 name = "compositing_traits"
 path = "lib.rs"
 
-[features]
-default = []
-gl = ["dep:gleam"]
-
 [dependencies]
 canvas = { path = "../canvas" }
 crossbeam-channel = { workspace = true }
 embedder_traits = { path = "../embedder_traits" }
 euclid = { workspace = true }
 gfx_traits = { path = "../gfx_traits" }
-gleam = { workspace = true, optional = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
@@ -30,10 +25,5 @@ profile_traits = { path = "../profile_traits" }
 script_traits = { path = "../script_traits" }
 servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }
-webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_surfman = { path = "../webrender_surfman" }
-webxr = { git = "https://github.com/servo/webxr" }
-
-[build-dependencies]
-toml = "0.5"

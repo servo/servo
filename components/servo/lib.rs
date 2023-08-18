@@ -69,10 +69,10 @@ use canvas::canvas_paint_thread::{self, CanvasPaintThread};
 use canvas::WebGLComm;
 use canvas_traits::webgl::WebGLThreads;
 use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
-use compositing::{IOCompositor, ShutdownState};
+use compositing::{IOCompositor, InitialCompositorState, ShutdownState};
 use compositing_traits::{
-    CompositingReason, CompositorProxy, CompositorReceiver, ConstellationMsg,
-    InitialCompositorState, Msg, WebrenderCanvasMsg, WebrenderFontMsg, WebrenderMsg,
+    CompositingReason, CompositorProxy, CompositorReceiver, ConstellationMsg, Msg,
+    WebrenderCanvasMsg, WebrenderFontMsg, WebrenderMsg,
 };
 #[cfg(all(
     not(target_os = "windows"),

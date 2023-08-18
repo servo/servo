@@ -10,8 +10,40 @@ extern crate log;
 pub use crate::compositor::IOCompositor;
 pub use crate::compositor::ShutdownState;
 
+use compositing_traits::CompositorProxy;
+use compositing_traits::CompositorReceiver;
+use compositing_traits::ConstellationMsg;
+use crossbeam_channel::Sender;
+use profile_traits::mem;
+use profile_traits::time;
+use std::rc::Rc;
+use webrender_api::DocumentId;
+use webrender_api::RenderApi;
+use webrender_surfman::WebrenderSurfman;
+
 mod compositor;
 #[cfg(feature = "gl")]
 mod gl;
 mod touch;
 pub mod windowing;
+
+/// Data used to construct a compositor.
+pub struct InitialCompositorState {
+    /// A channel to the compositor.
+    pub sender: CompositorProxy,
+    /// A port on which messages inbound to the compositor can be received.
+    pub receiver: CompositorReceiver,
+    /// A channel to the constellation.
+    pub constellation_chan: Sender<ConstellationMsg>,
+    /// A channel to the time profiler thread.
+    pub time_profiler_chan: time::ProfilerChan,
+    /// A channel to the memory profiler thread.
+    pub mem_profiler_chan: mem::ProfilerChan,
+    /// Instance of webrender API
+    pub webrender: webrender::Renderer,
+    pub webrender_document: DocumentId,
+    pub webrender_api: RenderApi,
+    pub webrender_surfman: WebrenderSurfman,
+    pub webrender_gl: Rc<dyn gleam::gl::Gl>,
+    pub webxr_main_thread: webxr::MainThreadRegistry,
+}

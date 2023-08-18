@@ -8,11 +8,11 @@ use crate::touch::{TouchAction, TouchHandler};
 use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
 };
+use crate::InitialCompositorState;
 use canvas::canvas_paint_thread::ImageUpdate;
 use compositing_traits::{
-    CompositingReason, CompositionPipeline, CompositorReceiver, ConstellationMsg,
-    InitialCompositorState, Msg, SendableFrameTree, WebrenderCanvasMsg, WebrenderFontMsg,
-    WebrenderMsg,
+    CompositingReason, CompositionPipeline, CompositorReceiver, ConstellationMsg, Msg,
+    SendableFrameTree, WebrenderCanvasMsg, WebrenderFontMsg, WebrenderMsg,
 };
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;

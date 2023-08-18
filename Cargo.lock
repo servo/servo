@@ -954,7 +954,6 @@ dependencies = [
  "embedder_traits",
  "euclid",
  "gfx_traits",
- "gleam",
  "ipc-channel",
  "keyboard-types",
  "log",
@@ -964,11 +963,8 @@ dependencies = [
  "script_traits",
  "servo_url",
  "style_traits",
- "toml",
- "webrender",
  "webrender_api",
  "webrender_surfman",
- "webxr",
 ]
 
 [[package]]
