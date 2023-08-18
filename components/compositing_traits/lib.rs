@@ -19,17 +19,13 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
-use profile_traits::mem;
-use profile_traits::time;
 use script_traits::ConstellationControlMsg;
 use script_traits::LayoutControlMsg;
 use script_traits::{AnimationState, EventResult, MouseButton, MouseEventType};
 use std::fmt::{Debug, Error, Formatter};
-use std::rc::Rc;
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
-use webrender_api::{self, DocumentId, FontInstanceKey, FontKey, ImageKey, RenderApi};
-use webrender_surfman::WebrenderSurfman;
+use webrender_api::{self, FontInstanceKey, FontKey, ImageKey};
 
 /// Why we performed a composite. This is used for debugging.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -60,12 +56,12 @@ pub enum CompositingReason {
 
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
-    pub sender: Sender<Msg>,
+    pub sender: Sender<CompositorMsg>,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
 impl CompositorProxy {
-    pub fn send(&self, msg: Msg) {
+    pub fn send(&self, msg: CompositorMsg) {
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }
@@ -84,26 +80,26 @@ impl Clone for CompositorProxy {
 
 /// The port that the compositor receives messages on.
 pub struct CompositorReceiver {
-    pub receiver: Receiver<Msg>,
+    pub receiver: Receiver<CompositorMsg>,
 }
 
 impl CompositorReceiver {
-    pub fn try_recv_compositor_msg(&mut self) -> Option<Msg> {
+    pub fn try_recv_compositor_msg(&mut self) -> Option<CompositorMsg> {
         self.receiver.try_recv().ok()
     }
-    pub fn recv_compositor_msg(&mut self) -> Msg {
+    pub fn recv_compositor_msg(&mut self) -> CompositorMsg {
         self.receiver.recv().unwrap()
     }
 }
 
 impl CompositorProxy {
     pub fn recomposite(&self, reason: CompositingReason) {
-        self.send(Msg::Recomposite(reason));
+        self.send(CompositorMsg::Recomposite(reason));
     }
 }
 
-/// Messages from the painting thread and the constellation thread to the compositor thread.
-pub enum Msg {
+/// Messages from (or via) the constellation thread to the compositor.
+pub enum CompositorMsg {
     /// Informs the compositor that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
     /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
@@ -188,30 +184,30 @@ pub enum WebrenderMsg {
     Canvas(WebrenderCanvasMsg),
 }
 
-impl Debug for Msg {
+impl Debug for CompositorMsg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
-            Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
-            Msg::ChangeRunningAnimationsState(_, state) => {
+            CompositorMsg::ShutdownComplete => write!(f, "ShutdownComplete"),
+            CompositorMsg::ChangeRunningAnimationsState(_, state) => {
                 write!(f, "ChangeRunningAnimationsState({:?})", state)
             },
-            Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
-            Msg::Recomposite(..) => write!(f, "Recomposite"),
-            Msg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
-            Msg::CreatePng(..) => write!(f, "CreatePng"),
-            Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
-            Msg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
-            Msg::PipelineExited(..) => write!(f, "PipelineExited"),
-            Msg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
-            Msg::Dispatch(..) => write!(f, "Dispatch"),
-            Msg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
-            Msg::LoadComplete(..) => write!(f, "LoadComplete"),
-            Msg::WebDriverMouseButtonEvent(..) => write!(f, "WebDriverMouseButtonEvent"),
-            Msg::WebDriverMouseMoveEvent(..) => write!(f, "WebDriverMouseMoveEvent"),
-            Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
-            Msg::GetScreenSize(..) => write!(f, "GetScreenSize"),
-            Msg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
-            Msg::Webrender(..) => write!(f, "Webrender"),
+            CompositorMsg::SetFrameTree(..) => write!(f, "SetFrameTree"),
+            CompositorMsg::Recomposite(..) => write!(f, "Recomposite"),
+            CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
+            CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),
+            CompositorMsg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
+            CompositorMsg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
+            CompositorMsg::PipelineExited(..) => write!(f, "PipelineExited"),
+            CompositorMsg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
+            CompositorMsg::Dispatch(..) => write!(f, "Dispatch"),
+            CompositorMsg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
+            CompositorMsg::LoadComplete(..) => write!(f, "LoadComplete"),
+            CompositorMsg::WebDriverMouseButtonEvent(..) => write!(f, "WebDriverMouseButtonEvent"),
+            CompositorMsg::WebDriverMouseMoveEvent(..) => write!(f, "WebDriverMouseMoveEvent"),
+            CompositorMsg::GetClientWindow(..) => write!(f, "GetClientWindow"),
+            CompositorMsg::GetScreenSize(..) => write!(f, "GetScreenSize"),
+            CompositorMsg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
+            CompositorMsg::Webrender(..) => write!(f, "Webrender"),
         }
     }
 }

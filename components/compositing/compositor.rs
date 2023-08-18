@@ -11,7 +11,7 @@ use crate::windowing::{
 use crate::InitialCompositorState;
 use canvas::canvas_paint_thread::ImageUpdate;
 use compositing_traits::{
-    CompositingReason, CompositionPipeline, CompositorReceiver, ConstellationMsg, Msg,
+    CompositingReason, CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg,
     SendableFrameTree, WebrenderCanvasMsg, WebrenderFontMsg, WebrenderMsg,
 };
 use crossbeam_channel::Sender;
@@ -475,40 +475,40 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
     }
 
-    fn handle_browser_message(&mut self, msg: Msg) -> bool {
+    fn handle_browser_message(&mut self, msg: CompositorMsg) -> bool {
         match (msg, self.shutdown_state) {
             (_, ShutdownState::FinishedShuttingDown) => {
                 error!("compositor shouldn't be handling messages after shutting down");
                 return false;
             },
 
-            (Msg::ShutdownComplete, _) => {
+            (CompositorMsg::ShutdownComplete, _) => {
                 self.finish_shutting_down();
                 return false;
             },
 
             (
-                Msg::ChangeRunningAnimationsState(pipeline_id, animation_state),
+                CompositorMsg::ChangeRunningAnimationsState(pipeline_id, animation_state),
                 ShutdownState::NotShuttingDown,
             ) => {
                 self.change_running_animations_state(pipeline_id, animation_state);
             },
 
-            (Msg::SetFrameTree(frame_tree), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::SetFrameTree(frame_tree), ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree);
                 self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
             },
 
-            (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
                 self.waiting_on_pending_frame = false;
                 self.composition_request = CompositionRequest::CompositeNow(reason)
             },
 
-            (Msg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
                 self.touch_handler.on_event_processed(result);
             },
 
-            (Msg::CreatePng(rect, reply), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::CreatePng(rect, reply), ShutdownState::NotShuttingDown) => {
                 let res = self.composite_specific_target(CompositeTarget::WindowAndPng, rect);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
@@ -519,7 +519,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (Msg::IsReadyToSaveImageReply(is_ready), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::IsReadyToSaveImageReply(is_ready), ShutdownState::NotShuttingDown) => {
                 assert_eq!(
                     self.ready_to_save_state,
                     ReadyState::WaitingForConstellationReply
@@ -540,20 +540,23 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (
-                Msg::PipelineVisibilityChanged(pipeline_id, visible),
+                CompositorMsg::PipelineVisibilityChanged(pipeline_id, visible),
                 ShutdownState::NotShuttingDown,
             ) => {
                 self.pipeline_details(pipeline_id).visible = visible;
                 self.process_animations();
             },
 
-            (Msg::PipelineExited(pipeline_id, sender), _) => {
+            (CompositorMsg::PipelineExited(pipeline_id, sender), _) => {
                 debug!("Compositor got pipeline exited: {:?}", pipeline_id);
                 self.remove_pipeline_root_layer(pipeline_id);
                 let _ = sender.send(());
             },
 
-            (Msg::NewScrollFrameReady(recomposite_needed), ShutdownState::NotShuttingDown) => {
+            (
+                CompositorMsg::NewScrollFrameReady(recomposite_needed),
+                ShutdownState::NotShuttingDown,
+            ) => {
                 self.waiting_for_results_of_scroll = false;
                 if let Some(result) = self.hit_test_at_device_point(self.cursor_pos) {
                     self.update_cursor(result);
@@ -565,13 +568,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (Msg::Dispatch(func), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::Dispatch(func), ShutdownState::NotShuttingDown) => {
                 // The functions sent here right now are really dumb, so they can't panic.
                 // But if we start running more complex code here, we should really catch panic here.
                 func();
             },
 
-            (Msg::LoadComplete(_), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::LoadComplete(_), ShutdownState::NotShuttingDown) => {
                 // If we're painting in headless mode, schedule a recomposite.
                 if self.output_file.is_some() || self.exit_after_load {
                     self.composite_if_necessary(CompositingReason::Headless);
@@ -579,7 +582,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (
-                Msg::WebDriverMouseButtonEvent(mouse_event_type, mouse_button, x, y),
+                CompositorMsg::WebDriverMouseButtonEvent(mouse_event_type, mouse_button, x, y),
                 ShutdownState::NotShuttingDown,
             ) => {
                 let dppx = self.device_pixels_per_page_px();
@@ -591,29 +594,29 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 });
             },
 
-            (Msg::WebDriverMouseMoveEvent(x, y), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::WebDriverMouseMoveEvent(x, y), ShutdownState::NotShuttingDown) => {
                 let dppx = self.device_pixels_per_page_px();
                 let point = dppx.transform_point(Point2D::new(x, y));
                 self.on_mouse_window_move_event_class(DevicePoint::new(point.x, point.y));
             },
 
-            (Msg::PendingPaintMetric(pipeline_id, epoch), _) => {
+            (CompositorMsg::PendingPaintMetric(pipeline_id, epoch), _) => {
                 self.pending_paint_metrics.insert(pipeline_id, epoch);
             },
 
-            (Msg::GetClientWindow(req), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::GetClientWindow(req), ShutdownState::NotShuttingDown) => {
                 if let Err(e) = req.send(self.embedder_coordinates.window) {
                     warn!("Sending response to get client window failed ({:?}).", e);
                 }
             },
 
-            (Msg::GetScreenSize(req), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::GetScreenSize(req), ShutdownState::NotShuttingDown) => {
                 if let Err(e) = req.send(self.embedder_coordinates.screen) {
                     warn!("Sending response to get screen size failed ({:?}).", e);
                 }
             },
 
-            (Msg::GetScreenAvailSize(req), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::GetScreenAvailSize(req), ShutdownState::NotShuttingDown) => {
                 if let Err(e) = req.send(self.embedder_coordinates.screen_avail) {
                     warn!(
                         "Sending response to get screen avail size failed ({:?}).",
@@ -622,7 +625,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (Msg::Webrender(msg), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::Webrender(msg), ShutdownState::NotShuttingDown) => {
                 self.handle_webrender_message(msg);
             },
 
@@ -1807,8 +1810,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let mut found_recomposite_msg = false;
         while let Some(msg) = self.port.try_recv_compositor_msg() {
             match msg {
-                Msg::Recomposite(_) if found_recomposite_msg => {},
-                Msg::Recomposite(_) => {
+                CompositorMsg::Recomposite(_) if found_recomposite_msg => {},
+                CompositorMsg::Recomposite(_) => {
                     found_recomposite_msg = true;
                     compositor_messages.push(msg)
                 },
@@ -1858,7 +1861,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         while self.shutdown_state != ShutdownState::ShuttingDown {
             let msg = self.port.recv_compositor_msg();
             let need_recomposite = match msg {
-                Msg::Recomposite(_) => true,
+                CompositorMsg::Recomposite(_) => true,
                 _ => false,
             };
             let keep_going = self.handle_browser_message(msg);
