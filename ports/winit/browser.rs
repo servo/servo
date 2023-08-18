@@ -113,17 +113,19 @@ where
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'L', || {
-                let url: String = if let Some(ref current_url) = self.current_url {
-                    current_url.to_string()
-                } else {
-                    String::from("")
-                };
-                let title = "URL or search query";
-                let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
-                if let Some(input) = input {
-                    if let Some(url) = sanitize_url(&input) {
-                        if let Some(id) = self.browser_id {
-                            self.event_queue.push(EmbedderEvent::LoadUrl(id, url));
+                if !opts::get().minibrowser {
+                    let url: String = if let Some(ref current_url) = self.current_url {
+                        current_url.to_string()
+                    } else {
+                        String::from("")
+                    };
+                    let title = "URL or search query";
+                    let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
+                    if let Some(input) = input {
+                        if let Some(url) = sanitize_url(&input) {
+                            if let Some(id) = self.browser_id {
+                                self.event_queue.push(EmbedderEvent::LoadUrl(id, url));
+                            }
                         }
                     }
                 }
