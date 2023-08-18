@@ -13,7 +13,7 @@ path = "lib.rs"
 
 [features]
 default = []
-gl = ["dep:gleam", "dep:pixels"]
+gl = ["gleam", "pixels"]
 
 [dependencies]
 canvas = { path = "../canvas" }
