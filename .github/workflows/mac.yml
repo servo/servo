@@ -31,8 +31,6 @@ on:
         required: false
         default: false
         type: boolean
-  push:
-    branches: ["try-mac", "try-wpt-mac", "try-wpt-mac-2020"]
 
 env:
   RUST_BACKTRACE: 1
@@ -73,7 +71,7 @@ jobs:
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
-        if: ${{ inputs.unit-tests || github.ref_name == 'try-mac' }}
+        if: ${{ inputs.unit-tests }}
         run: python3 ./mach test-unit --release
       - name: Package
         run: python3 ./mach package --release
@@ -111,7 +109,7 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
-    if: ${{ github.ref_name == 'try-wpt-mac-2020' || inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
+    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
     name: Mac WPT Tests 2020
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
@@ -119,7 +117,7 @@ jobs:
       layout: "layout-2020"
 
   wpt-2013:
-    if: ${{ github.ref_name == 'try-wpt-mac' || inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
+    if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
     name: Mac WPT Tests 2013
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml

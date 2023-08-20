@@ -12,12 +12,13 @@
 # This allows using types that are defined later in the file.
 from __future__ import annotations
 from datetime import datetime
+import glob
 
 import json
 import os
 import re
 import subprocess
-import argparse
+import sys
 import textwrap
 import xml.etree.ElementTree as ElementTree
 
@@ -73,7 +74,8 @@ class Item:
 
     def to_html(self, level: int = 0) -> ElementTree.Element:
         if level == 0:
-            title = result = ElementTree.Element("span")
+            result = ElementTree.Element("span")
+            title = ElementTree.SubElement(result, "h4")
         elif level == 1:
             result = ElementTree.Element("details")
             title = ElementTree.SubElement(result, "summary")
@@ -176,7 +178,7 @@ def get_pr_number() -> Optional[str]:
     return None
 
 
-def create_check_run(body: str, tag: str = ""):
+def create_check_run(body: str):
     # This process is based on the documentation here:
     # https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-runs
     results = json.loads(os.environ.get("RESULTS", "{}"))
@@ -197,14 +199,14 @@ def create_check_run(body: str, tag: str = ""):
         return None
     repo = github_context["repository"]
     data = {
-        'name': tag,
+        'name': 'wpt-results-report',
         'head_sha': github_context["sha"],
         'status': 'completed',
         'started_at': datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
         'conclusion': conclusion,
         'completed_at': datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
         'output': {
-            'title': f'Aggregated {tag} report',
+            'title': 'WPT Results Report',
             'summary': body,
             'images': [{'alt': 'WPT logo', 'image_url': 'https://avatars.githubusercontent.com/u/37226233'}]
         },
@@ -222,23 +224,34 @@ def create_check_run(body: str, tag: str = ""):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--tag", default="wpt", action="store",
-                        help="A string tag used to distinguish the results.")
-    args, filenames = parser.parse_known_args()
-    results = get_results(filenames, args.tag)
+    if len(sys.argv) < 2:
+        print("Must pass the directory containing filtered WPT results as an argument.")
+        sys.exit(1)
+
+    results = []
+    for dir in os.listdir(sys.argv[1]):
+        if not os.path.isdir(dir):
+            continue
+        new_results = get_results(
+            glob.glob(os.path.join(dir, "*.json")),
+            os.path.basename(dir))
+        if new_results:
+            results.append(new_results)
+
     if not results:
         print("Did not find any unexpected results.")
-        create_check_run("Did not find any unexpected results.", args.tag)
+        create_check_run("Did not find any unexpected results.")
         return
 
-    print(results.to_string())
+    for result in results:
+        print(result.to_string() + "\n")
+
+    html_string = "\n".join(
+        [ElementTree.tostring(result.to_html(), encoding="unicode") for result in results])
+    print(html_string)
+    create_check_run(html_string)
 
     pr_number = get_pr_number()
-    html_string = ElementTree.tostring(
-        results.to_html(), encoding="unicode")
-    create_check_run(html_string, args.tag)
-
     if pr_number:
         process = subprocess.Popen(
             ['gh', 'pr', 'comment', pr_number, '-F', '-'], stdin=subprocess.PIPE)

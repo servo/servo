@@ -24,8 +24,6 @@ on:
         required: false
         default: false
         type: boolean
-  push:
-    branches: ["try-windows"]
 
 env:
   RUST_BACKTRACE: 1
@@ -69,7 +67,7 @@ jobs:
       - name: Smoketest
         run: python mach smoketest --angle --release
       - name: Unit tests
-        if: ${{ inputs.unit-tests || github.ref_name == 'try-windows' }}
+        if: ${{ inputs.unit-tests }}
         run: python mach test-unit --release
       - name: Rename build timing
         run: cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse

@@ -45,20 +45,23 @@ jobs:
         run: python3 ./mach smoketest --release
       - name: Run tests
         run: |
+          mkdir macos-${{ inputs.layout }}
           python3 ./mach test-wpt --with-${{ inputs.layout }} \
             --release --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-            --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
-            --filter-intermittents filtered-test-wpt.${{ matrix.chunk_id }}.json
+            --log-raw-unexpected macos-${{ inputs.layout }}/unexpected-test-wpt.${{ matrix.chunk_id }}.log \
+            --filter-intermittents macos-${{ inputs.layout }}/filtered-test-wpt.${{ matrix.chunk_id }}.json
       - name: Archive filtered results
         uses: actions/upload-artifact@v3
         if: always()
         with:
           name: wpt-filtered-results-mac-${{ inputs.layout }}
+          # The wildcard here ensures that the relative path is preserved in the archive:
+          # See https://github.com/actions/upload-artifact/issues/174
           path: |
-            filtered-test-wpt.${{ matrix.chunk_id }}.json
-            unexpected-test-wpt.${{ matrix.chunk_id }}.log
+            ./*macos-${{ inputs.layout }}/filtered-test-wpt.${{ matrix.chunk_id }}.json
+            ./*macos-${{ inputs.layout }}/unexpected-test-wpt.${{ matrix.chunk_id }}.log
       - name: Archive logs
         uses: actions/upload-artifact@v3
         if: failure()
@@ -67,32 +70,3 @@ jobs:
           path: |
             test-wpt.${{ matrix.chunk_id }}.log
             filtered-wpt-results.${{ matrix.chunk_id }}.json
-
-  report-test-results:
-    name: Reporting test results
-    runs-on: ubuntu-latest
-    if: ${{ always() && !cancelled() }}
-    needs: [ mac-wpt ]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - uses: actions/download-artifact@v3
-        with:
-          name: wpt-filtered-results-mac-${{ inputs.layout }}
-          path: wpt-filtered-results-mac
-      - name: Create aggregated unexpected results
-        run: cat wpt-filtered-results-mac/*.log > unexpected-test-wpt.log
-      - name: Archive aggregate results
-        uses: actions/upload-artifact@v3
-        with:
-          name: wpt-filtered-results-mac-${{ inputs.layout }}
-          path: |
-            unexpected-test-wpt.log
-      - name: Comment on PR with results
-        run: etc/ci/report_aggregated_expected_results.py --tag="mac-wpt-${{ inputs.layout }}"
-          wpt-filtered-results-mac/*.json
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RESULTS: ${{ toJson(needs.*.result) }}
