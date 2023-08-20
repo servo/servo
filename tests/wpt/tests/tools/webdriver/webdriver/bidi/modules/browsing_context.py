@@ -99,6 +99,19 @@ class BrowsingContext(BidiModule):
         return result["contexts"]
 
     @command
+    def handle_user_prompt(self,
+                           context: str,
+                           accept: Optional[bool] = None,
+                           user_text: Optional[str] = None) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {"context": context}
+
+        if accept is not None:
+            params["accept"] = accept
+        if user_text is not None:
+            params["userText"] = user_text
+        return params
+
+    @command
     def navigate(self,
                  context: str,
                  url: str,

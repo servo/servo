@@ -64,6 +64,8 @@ scheme host and port.""")
                         "directory")
     parser.add_argument("--processes", action="store", type=int, default=None,
                         help="Number of simultaneous processes to use")
+    parser.add_argument("--max-restarts", action="store", type=int, default=5,
+                        help="Maximum number of browser restart retries")
 
     parser.add_argument("--no-capture-stdio", action="store_true", default=False,
                         help="Don't capture stdio and write to logging")

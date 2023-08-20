@@ -270,7 +270,9 @@ def run_test_iteration(test_status, test_loader, test_source_kwargs, test_source
                           kwargs["debug_info"],
                           not kwargs["no_capture_stdio"],
                           kwargs["restart_on_new_group"],
-                          recording=recording) as manager_group:
+                          recording=recording,
+                          max_restarts=kwargs["max_restarts"],
+                          ) as manager_group:
             try:
                 handle_interrupt_signals()
                 manager_group.run(tests_to_run)

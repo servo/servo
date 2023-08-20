@@ -17,6 +17,12 @@
     }
   }
 
+  .does-not-exist {
+    :is(.test-2, :unknown(div,&)) {
+      background-color: green;
+    }
+  }
+
   body * + * {
     margin-top: 8px;
   }
@@ -24,4 +30,5 @@
 <body>
   <p>Tests pass if <strong>block is green</strong></p>
   <div class="test test-1"></div>
+  <div class="test test-2"></div>
 </body>

@@ -72,6 +72,17 @@ def get_timeout_multiplier(test_type, run_info_data, **kwargs):
             return 4 * multiplier
         else:
             return 2 * multiplier
+    elif test_type == "wdspec":
+        if (run_info_data.get("asan") or
+            run_info_data.get("ccov") or
+            run_info_data.get("debug")):
+            return 4 * multiplier
+        elif run_info_data.get("tsan"):
+            return 8 * multiplier
+
+        if run_info_data["os"] == "android":
+            return 4 * multiplier
+        return 1 * multiplier
     elif (run_info_data["debug"] or
           run_info_data.get("asan") or
           run_info_data.get("tsan")):
@@ -226,7 +237,7 @@ def run_info_browser_version(**kwargs):
 
 
 def update_properties():
-    return (["os", "debug", "fission", "processor", "swgl", "domstreams", "editorLegacyDirectionMode"],
+    return (["os", "debug", "fission", "processor", "swgl", "asan", "tsan", "editorLegacyDirectionMode"],
             {"os": ["version"], "processor": ["bits"]})
 
 
@@ -668,7 +679,6 @@ class ProfileCreator:
             # TODO: Remove preferences once Firefox 64 is stable (Bug 905404)
             "network.proxy.type": 0,
             "places.history.enabled": False,
-            "network.preload": True,
         })
         if self.e10s:
             profile.set_preferences({"browser.tabs.remote.autostart": True})

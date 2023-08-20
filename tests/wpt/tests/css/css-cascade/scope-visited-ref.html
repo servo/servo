@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<title>@scope - :visited</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-styles">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#link">
+
+<style>
+    /* The visited background-color magically gets the alpha of the
+     unvisited color, which by default is rgba(0, 0, 0, 0). Set alpha to
+     255 so that visited colors also gets this alpha. */
+  * { background-color: rgba(255, 255, 255, 255); }
+</style>
+
+<!-- :visited via :scope in subject -->
+<div>
+  <a id=visited href="" style="background-color:coral">
+    Visited <span>Span</span>
+  </a>
+</div>
+
+<!-- :link via :scope in subject -->
+<div>
+  <a id=unvisited href="x" style="background-color:skyblue">
+    Unvisited <span>Span</span>
+  </a>
+</div>
+
+<!-- :visited via :scope in non-subject -->
+<div>
+  <a id=visited href="">
+    Visited <span style="background-color:coral">Span</span>
+  </a>
+</div>
+
+<!-- :link via :scope in non-subject -->
+<div>
+  <a id=unvisited href="x">
+    Unvisited <span style="background-color:skyblue">Span</span>
+  </a>
+</div>
+
+<!-- :visited in scope-end -->
+<div>
+  <main>
+    Main
+    <a id=visited href="">
+      Visited <span>Span</span>
+    </a>
+  </main>
+</div>
+
+<!-- :visited in scope-end, unvisited link -->
+<div>
+  <main>
+    Main
+    <a id=unvisited href="x" style="background-color:skyblue">
+      Unvisited <span>Span</span>
+    </a>
+  </main>
+</div>
+
+<!-- :link in scope-end -->
+<div>
+  <main>
+    Main
+    <a id=unvisited href="x">
+      Unvisited <span>Span</span>
+    </a>
+  </main>
+</div>
+
+<!-- :link in scope-end, visited link -->
+<div>
+  <main>
+    Main
+    <a id=visited href="" style="background-color:coral">
+      Visited <span>Span</span>
+    </a>
+  </main>
+</div>
+
+<!-- :link in scope-end, visited link -->
+<div>
+  <main>
+    Main
+    <a id=outer_visited href="">
+      Visited1
+    </a>
+  </main>
+</div>
+<script>
+  // Insert inner <a> with JS, since the parser can't produce this result.
+  let inner_a = document.createElement('a');
+  inner_a.setAttribute('href', '');
+  inner_a.textContent = 'Visited2';
+  outer_visited.append(inner_a);
+</script>

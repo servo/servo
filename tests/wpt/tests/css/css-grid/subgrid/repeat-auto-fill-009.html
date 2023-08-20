@@ -10,7 +10,7 @@ html,body {
 
 .wrapper {
   display: inline-block;
-  width: 100px;
+  width: 110px;
   border: 1px solid;
 }
 
@@ -100,11 +100,11 @@ html,body {
 
 <script>
   const expectedResults = [
-    "none",
-    "none",
-    "none",
-    "none",
-    "none",
+    "10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px",
+    "10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px",
+    "10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px",
+    "10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px",
+    "10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px",
   ];
   [...document.querySelectorAll('.grid')].forEach(function(grid, i) {
     let actual = window.getComputedStyle(grid)['grid-template-columns'];

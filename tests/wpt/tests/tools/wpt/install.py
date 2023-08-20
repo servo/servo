@@ -7,7 +7,7 @@ latest_channels = {
     'android_weblayer': 'dev',
     'android_webview': 'dev',
     'firefox': 'nightly',
-    'chrome': 'nightly',
+    'chrome': 'canary',
     'chrome_android': 'dev',
     'chromium': 'nightly',
     'edgechromium': 'dev',

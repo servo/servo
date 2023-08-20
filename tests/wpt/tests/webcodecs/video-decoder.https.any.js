@@ -35,10 +35,20 @@ invalidConfigs.forEach(entry => {
           entry.comment);
 });
 
+const arrayBuffer = new ArrayBuffer(12583);
+const arrayBufferView = new DataView(arrayBuffer);
+
 const validButUnsupportedConfigs = [
   {
     comment: 'Unrecognized codec',
     config: {codec: 'bogus'},
+  },
+  {
+    comment: 'Unrecognized codec with dataview description',
+    config: {
+      codec: '7󠎢ﷺ۹.9',
+      description: arrayBufferView,
+    },
   },
   {
     comment: 'Audio codec',
