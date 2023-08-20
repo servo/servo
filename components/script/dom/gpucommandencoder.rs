@@ -192,14 +192,8 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                         .iter()
                         .map(|color| {
                             let channel = wgpu_com::PassChannel {
-                                load_op: match color.loadOp {
-                                    GPULoadOp::Load => wgpu_com::LoadOp::Load,
-                                    GPULoadOp::Clear => wgpu_com::LoadOp::Clear,
-                                },
-                                store_op: match color.storeOp {
-                                    GPUStoreOp::Store => wgpu_com::StoreOp::Store,
-                                    GPUStoreOp::Discard => wgpu_com::StoreOp::Discard,
-                                },
+                                load_op: convert_load_op(Some(color.loadOp)),
+                                store_op: convert_store_op(Some(color.storeOp)),
                                 clear_value: if let Some(clear_val) = &color.clearValue {
                                     match clear_val {
                                         DoubleSequenceOrGPUColorDict::DoubleSequence(s) => {

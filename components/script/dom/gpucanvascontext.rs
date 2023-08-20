@@ -245,15 +245,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             dimension: GPUTextureDimension::_2d,
         };
 
-        // Step 5
-
-        // Step 6
-
-        // Step 7
-        //self.replace_drawing_buffer();
-
         // Step 8
-
         let image_desc = ImageDescriptor {
             format,
             size: units::DeviceIntSize::new(size.width as i32, size.height as i32),

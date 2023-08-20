@@ -90,7 +90,11 @@ impl GPUAdapterMethods for GPUAdapter {
                 GPUFeatureName::Depth_clip_control => {
                     features.insert(wgt::Features::DEPTH_CLIP_CONTROL)
                 },
-                GPUFeatureName::Depth24unorm_stencil8 => { /* not implemented in wgpu */ },
+                GPUFeatureName::Depth24unorm_stencil8 => {
+                    promise.reject_error(Error::Type(String::from(
+                        "depth24unorm_stencil8 is not supported by wgpu",
+                    )));
+                },
                 GPUFeatureName::Depth32float_stencil8 => {
                     features.insert(wgt::Features::DEPTH32FLOAT_STENCIL8)
                 },

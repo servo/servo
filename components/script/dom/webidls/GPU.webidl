@@ -5,7 +5,6 @@
 // https://gpuweb.github.io/gpuweb/#gpu-interface
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPU {
-    // May reject with DOMException
     [NewObject]
     Promise<GPUAdapter?> requestAdapter(optional GPURequestAdapterOptions options = {});
     GPUTextureFormat getPreferredCanvasFormat();
