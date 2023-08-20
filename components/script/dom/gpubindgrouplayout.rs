@@ -14,13 +14,13 @@ use webgpu::WebGPUBindGroupLayout;
 #[dom_struct]
 pub struct GPUBindGroupLayout {
     reflector_: Reflector,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     bind_group_layout: WebGPUBindGroupLayout,
 }
 
 impl GPUBindGroupLayout {
-    fn new_inherited(bind_group_layout: WebGPUBindGroupLayout, label: Option<USVString>) -> Self {
+    fn new_inherited(bind_group_layout: WebGPUBindGroupLayout, label: USVString) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
@@ -31,7 +31,7 @@ impl GPUBindGroupLayout {
     pub fn new(
         global: &GlobalScope,
         bind_group_layout: WebGPUBindGroupLayout,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBindGroupLayout::new_inherited(bind_group_layout, label)),
@@ -48,12 +48,12 @@ impl GPUBindGroupLayout {
 
 impl GPUBindGroupLayoutMethods for GPUBindGroupLayout {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 }

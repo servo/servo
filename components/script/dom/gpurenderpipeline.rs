@@ -18,7 +18,7 @@ use webgpu::{WebGPUBindGroupLayout, WebGPURenderPipeline};
 #[dom_struct]
 pub struct GPURenderPipeline {
     reflector_: Reflector,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     render_pipeline: WebGPURenderPipeline,
     #[no_trace]
@@ -29,7 +29,7 @@ pub struct GPURenderPipeline {
 impl GPURenderPipeline {
     fn new_inherited(
         render_pipeline: WebGPURenderPipeline,
-        label: Option<USVString>,
+        label: USVString,
         bgls: Vec<WebGPUBindGroupLayout>,
         device: &GPUDevice,
     ) -> Self {
@@ -45,7 +45,7 @@ impl GPURenderPipeline {
     pub fn new(
         global: &GlobalScope,
         render_pipeline: WebGPURenderPipeline,
-        label: Option<USVString>,
+        label: USVString,
         bgls: Vec<WebGPUBindGroupLayout>,
         device: &GPUDevice,
     ) -> DomRoot<Self> {
@@ -69,12 +69,12 @@ impl GPURenderPipeline {
 
 impl GPURenderPipelineMethods for GPURenderPipeline {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
@@ -86,7 +86,7 @@ impl GPURenderPipelineMethods for GPURenderPipeline {
         Ok(GPUBindGroupLayout::new(
             &self.global(),
             self.bind_group_layouts[index as usize],
-            None,
+            USVString::default(),
         ))
     }
 }

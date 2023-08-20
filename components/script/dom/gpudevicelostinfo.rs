@@ -11,22 +11,33 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
+use super::bindings::codegen::Bindings::GPUDeviceLostInfoBinding::GPUDeviceLostReason;
+
 #[dom_struct]
 pub struct GPUDeviceLostInfo {
     reflector_: Reflector,
     message: DOMString,
+    reason: GPUDeviceLostReason,
 }
 
 impl GPUDeviceLostInfo {
-    fn new_inherited(message: DOMString) -> Self {
+    fn new_inherited(message: DOMString, reason: GPUDeviceLostReason) -> Self {
         Self {
             reflector_: Reflector::new(),
             message,
+            reason,
         }
     }
 
-    pub fn new(global: &GlobalScope, message: DOMString) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(GPUDeviceLostInfo::new_inherited(message)), global)
+    pub fn new(
+        global: &GlobalScope,
+        message: DOMString,
+        reason: GPUDeviceLostReason,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(GPUDeviceLostInfo::new_inherited(message, reason)),
+            global,
+        )
     }
 }
 
@@ -34,5 +45,10 @@ impl GPUDeviceLostInfoMethods for GPUDeviceLostInfo {
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevicelostinfo-message
     fn Message(&self) -> DOMString {
         self.message.clone()
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevicelostinfo-reason
+    fn Reason(&self) -> GPUDeviceLostReason {
+        self.reason
     }
 }

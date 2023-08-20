@@ -14,7 +14,7 @@ use webgpu::{WebGPUBindGroupLayout, WebGPUPipelineLayout};
 #[dom_struct]
 pub struct GPUPipelineLayout {
     reflector_: Reflector,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     pipeline_layout: WebGPUPipelineLayout,
     #[no_trace]
@@ -24,7 +24,7 @@ pub struct GPUPipelineLayout {
 impl GPUPipelineLayout {
     fn new_inherited(
         pipeline_layout: WebGPUPipelineLayout,
-        label: Option<USVString>,
+        label: USVString,
         bgls: Vec<WebGPUBindGroupLayout>,
     ) -> Self {
         Self {
@@ -38,7 +38,7 @@ impl GPUPipelineLayout {
     pub fn new(
         global: &GlobalScope,
         pipeline_layout: WebGPUPipelineLayout,
-        label: Option<USVString>,
+        label: USVString,
         bgls: Vec<WebGPUBindGroupLayout>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
@@ -64,12 +64,12 @@ impl GPUPipelineLayout {
 
 impl GPUPipelineLayoutMethods for GPUPipelineLayout {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 }

@@ -10,8 +10,8 @@ use wgpu::{
     hub::{GlobalIdentityHandlerFactory, IdentityHandler, IdentityHandlerFactory},
     id::{
         AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePipelineId,
-        DeviceId, PipelineLayoutId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId,
-        SurfaceId, SwapChainId, TextureId, TextureViewId, TypedId,
+        DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPipelineId, SamplerId,
+        ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId, TypedId,
     },
 };
 use wgt::Backend;
@@ -28,7 +28,6 @@ pub enum WebGPUMsg {
     FreeAdapter(AdapterId),
     FreeDevice(DeviceId),
     FreeBuffer(BufferId),
-    FreeSwapChain(SwapChainId),
     FreePipelineLayout(PipelineLayoutId),
     FreeComputePipeline(ComputePipelineId),
     FreeRenderPipeline(RenderPipelineId),
@@ -41,6 +40,8 @@ pub enum WebGPUMsg {
     FreeSurface(SurfaceId),
     FreeShaderModule(ShaderModuleId),
     FreeRenderBundle(RenderBundleId),
+    FreeStagingBuffer(StagingBufferId),
+    FreeQuerySet(QuerySetId),
     WebGPUOpResult {
         device: WebGPUDevice,
         scope_id: Option<ErrorScopeId>,
@@ -92,9 +93,14 @@ impl_identity_handler!(TextureId, "texture", WebGPUMsg::FreeTexture);
 impl_identity_handler!(TextureViewId, "texture_view", WebGPUMsg::FreeTextureView);
 impl_identity_handler!(BufferId, "buffer", WebGPUMsg::FreeBuffer);
 impl_identity_handler!(BindGroupId, "bind_group", WebGPUMsg::FreeBindGroup);
-impl_identity_handler!(SwapChainId, "swap_chain", WebGPUMsg::FreeSwapChain);
 impl_identity_handler!(ShaderModuleId, "shader_module", WebGPUMsg::FreeShaderModule);
 impl_identity_handler!(RenderBundleId, "render_bundle", WebGPUMsg::FreeRenderBundle);
+impl_identity_handler!(
+    StagingBufferId,
+    "staging_buffer",
+    WebGPUMsg::FreeStagingBuffer
+);
+impl_identity_handler!(QuerySetId, "quary_set", WebGPUMsg::FreeQuerySet);
 impl_identity_handler!(
     RenderPipelineId,
     "render_pipeline",
@@ -149,7 +155,7 @@ where
     IdentityRecycler: IdentityHandler<I>,
 {
     type Filter = IdentityRecycler;
-    fn spawn(&self, _min_index: u32) -> Self::Filter {
+    fn spawn(&self) -> Self::Filter {
         IdentityRecycler {
             sender: self.sender.clone(),
             self_sender: self.self_sender.clone(),

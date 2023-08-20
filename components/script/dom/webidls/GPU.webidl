@@ -5,15 +5,16 @@
 // https://gpuweb.github.io/gpuweb/#gpu-interface
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPU {
+    [NewObject]
     Promise<GPUAdapter?> requestAdapter(optional GPURequestAdapterOptions options = {});
+    GPUTextureFormat getPreferredCanvasFormat();
 };
 
-// https://gpuweb.github.io/gpuweb/#dictdef-gpurequestadapteroptions
 dictionary GPURequestAdapterOptions {
     GPUPowerPreference powerPreference;
+    boolean forceFallbackAdapter = false;
 };
 
-// https://gpuweb.github.io/gpuweb/#enumdef-gpupowerpreference
 enum GPUPowerPreference {
     "low-power",
     "high-performance"

@@ -19,7 +19,6 @@ use crate::dom::gpudevice::{
 use crate::dom::gputextureview::GPUTextureView;
 use dom_struct::dom_struct;
 use std::cell::Cell;
-use std::num::NonZeroU32;
 use std::string::String;
 use webgpu::{
     identity::WebGPUOpResult, wgpu::resource, wgt, WebGPU, WebGPURequest, WebGPUTexture,
@@ -31,7 +30,7 @@ pub struct GPUTexture {
     reflector_: Reflector,
     #[no_trace]
     texture: WebGPUTexture,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     device: Dom<GPUDevice>,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -57,7 +56,7 @@ impl GPUTexture {
         dimension: GPUTextureDimension,
         format: GPUTextureFormat,
         texture_usage: u32,
-        label: Option<USVString>,
+        label: USVString,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -86,7 +85,7 @@ impl GPUTexture {
         dimension: GPUTextureDimension,
         format: GPUTextureFormat,
         texture_usage: u32,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUTexture::new_inherited(
@@ -120,46 +119,37 @@ impl GPUTexture {
 
 impl GPUTextureMethods for GPUTexture {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gputexture-createview
     fn CreateView(&self, descriptor: &GPUTextureViewDescriptor) -> DomRoot<GPUTextureView> {
         let scope_id = self.device.use_current_scope();
-        let mut valid = true;
-        let level_count = descriptor.mipLevelCount.and_then(|count| {
-            if count == 0 {
-                valid = false;
-            }
-            NonZeroU32::new(count)
-        });
-        let array_layer_count = descriptor.arrayLayerCount.and_then(|count| {
-            if count == 0 {
-                valid = false;
-            }
-            NonZeroU32::new(count)
-        });
 
-        let desc = if valid {
+        let desc = if !matches!(descriptor.mipLevelCount, Some(0)) &&
+            !matches!(descriptor.arrayLayerCount, Some(0))
+        {
             Some(resource::TextureViewDescriptor {
                 label: convert_label(&descriptor.parent),
                 format: descriptor.format.map(convert_texture_format),
                 dimension: descriptor.dimension.map(convert_texture_view_dimension),
-                aspect: match descriptor.aspect {
-                    GPUTextureAspect::All => wgt::TextureAspect::All,
-                    GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
-                    GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
+                range: wgt::ImageSubresourceRange {
+                    aspect: match descriptor.aspect {
+                        GPUTextureAspect::All => wgt::TextureAspect::All,
+                        GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
+                        GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
+                    },
+                    base_mip_level: descriptor.baseMipLevel,
+                    mip_level_count: descriptor.mipLevelCount,
+                    base_array_layer: descriptor.baseArrayLayer,
+                    array_layer_count: descriptor.arrayLayerCount,
                 },
-                base_mip_level: descriptor.baseMipLevel,
-                level_count,
-                base_array_layer: descriptor.baseArrayLayer,
-                array_layer_count,
             })
         } else {
             self.device.handle_server_msg(
@@ -196,7 +186,7 @@ impl GPUTextureMethods for GPUTexture {
             &self.global(),
             texture_view,
             &self,
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 

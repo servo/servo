@@ -9,19 +9,23 @@ interface GPUComputePipeline {
 GPUComputePipeline includes GPUObjectBase;
 GPUComputePipeline includes GPUPipelineBase;
 
-dictionary GPUPipelineDescriptorBase : GPUObjectDescriptorBase {
-    GPUPipelineLayout layout;
+enum GPUAutoLayoutMode {
+    "auto"
 };
 
-dictionary GPUProgrammableStageDescriptor {
-    required GPUShaderModule module;
-    required DOMString entryPoint;
+dictionary GPUPipelineDescriptorBase : GPUObjectDescriptorBase {
+    required (GPUPipelineLayout or GPUAutoLayoutMode) layout;
 };
 
 dictionary GPUComputePipelineDescriptor : GPUPipelineDescriptorBase {
-    required GPUProgrammableStageDescriptor computeStage;
+    required GPUProgrammableStage compute;
 };
 
 interface mixin GPUPipelineBase {
     [Throws] GPUBindGroupLayout getBindGroupLayout(unsigned long index);
+};
+
+dictionary GPUProgrammableStage {
+    required GPUShaderModule module;
+    required USVString entryPoint;
 };

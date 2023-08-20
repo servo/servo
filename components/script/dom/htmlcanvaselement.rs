@@ -269,9 +269,8 @@ impl HTMLCanvasElement {
             .script_to_constellation_chan()
             .send(ScriptMsg::GetWebGPUChan(sender));
         let window = window_from_node(self);
-        let size = self.get_size();
         let channel = receiver.recv().expect("Failed to get WebGPU channel");
-        let context = GPUCanvasContext::new(window.upcast::<GlobalScope>(), self, size, channel);
+        let context = GPUCanvasContext::new(window.upcast::<GlobalScope>(), self, channel);
         *self.context.borrow_mut() = Some(CanvasContext::WebGPU(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -374,7 +373,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
             "webgl2" | "experimental-webgl2" => self
                 .get_or_init_webgl2_context(cx, options)
                 .map(RenderingContext::WebGL2RenderingContext),
-            "gpupresent" => self
+            "webgpu" => self
                 .get_or_init_webgpu_context()
                 .map(RenderingContext::GPUCanvasContext),
             _ => None,

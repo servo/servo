@@ -5,9 +5,16 @@
 // https://gpuweb.github.io/gpuweb/#gpudevicelostinfo
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUDeviceLostInfo {
+    readonly attribute GPUDeviceLostReason reason;
     readonly attribute DOMString message;
 };
 
+enum GPUDeviceLostReason {
+    "unknown",
+    "destroyed",
+};
+
 partial interface GPUDevice {
+    [Throws]
     readonly attribute Promise<GPUDeviceLostInfo> lost;
 };

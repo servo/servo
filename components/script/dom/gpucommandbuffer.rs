@@ -28,7 +28,7 @@ pub struct GPUCommandBuffer {
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     command_buffer: WebGPUCommandBuffer,
     buffers: DomRefCell<HashSet<Dom<GPUBuffer>>>,
@@ -39,7 +39,7 @@ impl GPUCommandBuffer {
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
         buffers: HashSet<DomRoot<GPUBuffer>>,
-        label: Option<USVString>,
+        label: USVString,
     ) -> Self {
         Self {
             channel,
@@ -55,7 +55,7 @@ impl GPUCommandBuffer {
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
         buffers: HashSet<DomRoot<GPUBuffer>>,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCommandBuffer::new_inherited(
@@ -95,12 +95,12 @@ impl GPUCommandBuffer {
 
 impl GPUCommandBufferMethods for GPUCommandBuffer {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 }

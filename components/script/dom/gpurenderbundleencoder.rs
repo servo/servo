@@ -20,6 +20,8 @@ use webgpu::{
     wgt, WebGPU, WebGPURenderBundle, WebGPURequest,
 };
 
+use super::bindings::codegen::Bindings::GPURenderPipelineBinding::GPUIndexFormat;
+
 #[dom_struct]
 pub struct GPURenderBundleEncoder {
     reflector_: Reflector,
@@ -30,7 +32,7 @@ pub struct GPURenderBundleEncoder {
     #[ignore_malloc_size_of = "defined in wgpu-core"]
     #[no_trace]
     render_bundle_encoder: DomRefCell<Option<RenderBundleEncoder>>,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
 }
 
 impl GPURenderBundleEncoder {
@@ -38,7 +40,7 @@ impl GPURenderBundleEncoder {
         render_bundle_encoder: RenderBundleEncoder,
         device: &GPUDevice,
         channel: WebGPU,
-        label: Option<USVString>,
+        label: USVString,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -54,7 +56,7 @@ impl GPURenderBundleEncoder {
         render_bundle_encoder: RenderBundleEncoder,
         device: &GPUDevice,
         channel: WebGPU,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderBundleEncoder::new_inherited(
@@ -70,12 +72,12 @@ impl GPURenderBundleEncoder {
 
 impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
@@ -103,11 +105,21 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setindexbuffer
-    fn SetIndexBuffer(&self, buffer: &GPUBuffer, offset: u64, size: u64) {
+    fn SetIndexBuffer(
+        &self,
+        buffer: &GPUBuffer,
+        index_format: GPUIndexFormat,
+        offset: u64,
+        size: u64,
+    ) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_set_index_buffer(
                 encoder,
                 buffer.id().0,
+                match index_format {
+                    GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
+                    GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
+                },
                 offset,
                 wgt::BufferSize::new(size),
             );
@@ -175,7 +187,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect
     fn DrawIndexedIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
-            wgpu_bundle::wgpu_render_pass_bundle_indexed_indirect(
+            wgpu_bundle::wgpu_render_bundle_draw_indexed_indirect(
                 encoder,
                 indirect_buffer.id().0,
                 indirect_offset,
@@ -214,7 +226,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
             render_bundle,
             self.device.id(),
             self.channel.clone(),
-            descriptor.parent.label.as_ref().cloned(),
+            descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
 }

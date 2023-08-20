@@ -6,25 +6,27 @@
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPURenderPassEncoder {
     undefined setViewport(float x, float y,
-                     float width, float height,
-                     float minDepth, float maxDepth);
+                          float width, float height,
+                          float minDepth, float maxDepth);
 
     undefined setScissorRect(GPUIntegerCoordinate x, GPUIntegerCoordinate y,
-                        GPUIntegerCoordinate width, GPUIntegerCoordinate height);
+                             GPUIntegerCoordinate width, GPUIntegerCoordinate height);
 
-    undefined setBlendColor(GPUColor color);
+    undefined setBlendConstant(GPUColor color);
     undefined setStencilReference(GPUStencilValue reference);
 
-    //void beginOcclusionQuery(GPUSize32 queryIndex);
-    //void endOcclusionQuery();
+    //undefined beginOcclusionQuery(GPUSize32 queryIndex);
+    //undefined endOcclusionQuery();
 
-    //void beginPipelineStatisticsQuery(GPUQuerySet querySet, GPUSize32 queryIndex);
-    //void endPipelineStatisticsQuery();
+    //undefined beginPipelineStatisticsQuery(GPUQuerySet querySet, GPUSize32 queryIndex);
+    //undefined endPipelineStatisticsQuery();
 
-    //void writeTimestamp(GPUQuerySet querySet, GPUSize32 queryIndex);
+    //undefined writeTimestamp(GPUQuerySet querySet, GPUSize32 queryIndex);
 
     undefined executeBundles(sequence<GPURenderBundle> bundles);
-    undefined endPass();
+
+    [Throws]
+    undefined end();
 };
 GPURenderPassEncoder includes GPUObjectBase;
 GPURenderPassEncoder includes GPUProgrammablePassEncoder;
