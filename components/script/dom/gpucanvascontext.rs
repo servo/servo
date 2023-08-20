@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::{
     GPUCanvasConfiguration, GPUCanvasContextMethods,
 };
@@ -14,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
@@ -34,6 +33,7 @@ use webrender_api::{
 use super::bindings::codegen::Bindings::GPUTextureUsageBinding::GPUTextureUsageConstants;
 use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use super::bindings::error::{Error, Fallible};
+use super::bindings::root::MutNullableDom;
 use super::gputexture::GPUTexture;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
@@ -110,7 +110,7 @@ pub struct GPUCanvasContext {
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     context_id: WebGPUContextId,
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot
-    texture: DomRefCell<Option<Dom<GPUTexture>>>, // TODO(sagudev): sea of MutNullableDom ???
+    texture: MutNullableDom<GPUTexture>,
 }
 
 impl GPUCanvasContext {
@@ -126,7 +126,7 @@ impl GPUCanvasContext {
             canvas,
             webrender_image: Cell::new(None),
             context_id: WebGPUContextId(external_id.0),
-            texture: DomRefCell::new(None),
+            texture: MutNullableDom::default(),
         }
     }
 
@@ -178,7 +178,7 @@ impl GPUCanvasContext {
     }
 
     pub fn texture_id(&self) -> Option<WebGPUTexture> {
-        self.texture.borrow().as_ref().map(|t| t.id())
+        self.texture.get().map(|t| t.id())
     }
 
     pub fn mark_as_dirty(&self) {
@@ -289,9 +289,8 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             ))
             .expect("Failed to create WebGPU SwapChain");
 
-        *self.texture.borrow_mut() = Some(Dom::from_ref(
-            &*&descriptor.device.CreateTexture(&text_desc),
-        ));
+        self.texture
+            .set(Some(&descriptor.device.CreateTexture(&text_desc)));
 
         self.webrender_image.set(Some(receiver.recv().unwrap()));
     }
@@ -312,7 +311,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
                 );
             }
         }
-        self.texture.borrow_mut().take();
+        self.texture.take();
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture
@@ -320,11 +319,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         // Step 5.
         self.mark_as_dirty();
         // Step 6.
-        self.texture
-            .borrow()
-            .as_ref()
-            .map(|t| DomRoot::from_ref(&**t))
-            .ok_or(Error::InvalidState)
+        self.texture.get().ok_or(Error::InvalidState)
     }
 }
 
