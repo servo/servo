@@ -94,6 +94,7 @@ impl GPUAdapterMethods for GPUAdapter {
                     promise.reject_error(Error::Type(String::from(
                         "depth24unorm_stencil8 is not supported by wgpu",
                     )));
+                    return promise;
                 },
                 GPUFeatureName::Depth32float_stencil8 => {
                     features.insert(wgt::Features::DEPTH32FLOAT_STENCIL8)
@@ -183,6 +184,7 @@ impl GPUAdapterMethods for GPUAdapter {
                     _ => {
                         error!("Unknown required limit: {k} with value {v}");
                         promise.reject_error(Error::Operation);
+                        return promise;
                     },
                 }
             }
