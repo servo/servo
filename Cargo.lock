@@ -493,7 +493,7 @@ dependencies = [
  "log",
  "servo_config",
  "servo_rand",
- "uuid 1.3.4",
+ "uuid 1.4.1",
 ]
 
 [[package]]
@@ -1437,7 +1437,7 @@ dependencies = [
  "servo_rand",
  "servo_url",
  "time 0.1.45",
- "uuid 1.3.4",
+ "uuid 1.4.1",
 ]
 
 [[package]]
@@ -1454,7 +1454,7 @@ dependencies = [
  "serde",
  "servo_url",
  "time 0.1.45",
- "uuid 1.3.4",
+ "uuid 1.4.1",
 ]
 
 [[package]]
@@ -3032,7 +3032,7 @@ dependencies = [
  "rand 0.7.3",
  "serde",
  "tempfile",
- "uuid 1.3.4",
+ "uuid 1.4.1",
  "winapi",
 ]
 
@@ -3598,7 +3598,7 @@ dependencies = [
  "time 0.1.45",
  "tokio",
  "url",
- "uuid 1.3.4",
+ "uuid 1.4.1",
  "void",
  "webrender_api",
  "xml5ever",
@@ -4038,7 +4038,7 @@ dependencies = [
  "tokio-test",
  "tungstenite",
  "url",
- "uuid 1.3.4",
+ "uuid 1.4.1",
  "webpki-roots",
  "webrender_api",
 ]
@@ -4084,7 +4084,7 @@ dependencies = [
  "std_test_override",
  "time 0.1.45",
  "url",
- "uuid 1.3.4",
+ "uuid 1.4.1",
  "webrender_api",
 ]
 
@@ -5249,7 +5249,7 @@ dependencies = [
  "unicode-segmentation",
  "url",
  "utf-8",
- "uuid 1.3.4",
+ "uuid 1.4.1",
  "webdriver",
  "webgpu",
  "webrender_api",
@@ -5344,7 +5344,7 @@ dependencies = [
  "std_test_override",
  "style_traits",
  "time 0.1.45",
- "uuid 1.3.4",
+ "uuid 1.4.1",
  "webdriver",
  "webgpu",
  "webrender_api",
@@ -5776,7 +5776,7 @@ dependencies = [
  "rand 0.7.3",
  "rand_core 0.5.1",
  "rand_isaac",
- "uuid 1.3.4",
+ "uuid 1.4.1",
 ]
 
 [[package]]
@@ -5797,7 +5797,7 @@ dependencies = [
  "servo_rand",
  "to_shmem",
  "url",
- "uuid 1.3.4",
+ "uuid 1.4.1",
 ]
 
 [[package]]
@@ -6809,9 +6809,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.3.4"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fa2982af2eec27de306107c027578ff7f423d65f7250e40ce0fea8f45248b81"
+checksum = "79daa5ed5740825c40b389c5e50312b9c86df53fccd33f281df655642b43869d"
 dependencies = [
  "getrandom 0.2.8",
  "serde",
@@ -7115,7 +7115,7 @@ dependencies = [
  "servo_config",
  "servo_url",
  "style_traits",
- "uuid 1.3.4",
+ "uuid 1.4.1",
  "webdriver",
 ]
 
