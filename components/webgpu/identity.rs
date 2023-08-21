@@ -7,12 +7,12 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
 use wgpu::{
-    hub::{GlobalIdentityHandlerFactory, IdentityHandler, IdentityHandlerFactory},
     id::{
         AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePipelineId,
         DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPipelineId, SamplerId,
         ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId, TypedId,
     },
+    identity::{GlobalIdentityHandlerFactory, IdentityHandler, IdentityHandlerFactory},
 };
 use wgt::Backend;
 

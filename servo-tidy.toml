@@ -83,6 +83,13 @@ packages = [
     "windows_x86_64_msvc",
     "windows_x86_64_gnullvm",
 
+    # wgpu has the latest and greates
+    "paste",
+    "syn",
+    "metal",
+    "foreign-types",
+    "foreign-types-shared",
+
     # Temporarily duplicated until gleam can be upgrded.
     "uuid",
 

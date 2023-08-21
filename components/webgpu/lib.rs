@@ -266,7 +266,7 @@ pub enum WebGPURequest {
 struct BufferMapInfo<'a, T> {
     buffer_id: id::BufferId,
     sender: IpcSender<T>,
-    global: &'a wgpu::hub::Global<IdentityRecyclerFactory>,
+    global: &'a wgpu::global::Global<IdentityRecyclerFactory>,
     size: usize,
     external_id: Option<u64>,
 }
@@ -339,7 +339,7 @@ struct WGPU<'a> {
     receiver: IpcReceiver<(Option<ErrorScopeId>, WebGPURequest)>,
     sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
     script_sender: IpcSender<WebGPUMsg>,
-    global: wgpu::hub::Global<IdentityRecyclerFactory>,
+    global: wgpu::global::Global<IdentityRecyclerFactory>,
     adapters: Vec<WebGPUAdapter>,
     devices: HashMap<WebGPUDevice, PipelineId>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
@@ -376,7 +376,7 @@ impl<'a> WGPU<'a> {
             receiver,
             sender,
             script_sender,
-            global: wgpu::hub::Global::new(
+            global: wgpu::global::Global::new(
                 "wgpu-core",
                 factory,
                 InstanceDescriptor {
