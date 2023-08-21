@@ -2,7 +2,12 @@
 # NOTE: This does not work offline or for nix-build
 
 with import <nixpkgs> {};
-
+let
+    pinnedSha = "6adf48f53d819a7b6e15672817fa1e78e5f4e84f";
+    pinnedNixpkgs = import (builtins.fetchTarball {
+        url = "https://github.com/NixOS/nixpkgs/archive/${pinnedSha}.tar.gz";
+    }) {};
+in
 clangStdenv.mkDerivation rec {
   name = "servo-env";
 
@@ -22,6 +27,11 @@ clangStdenv.mkDerivation rec {
     # Build utilities
     cmake dbus gcc git pkg-config which llvm autoconf213 perl yasm m4
     (python3.withPackages (ps: with ps; [virtualenv pip dbus]))
+    # This pins gnumake to 4.3 since 4.4 breaks jobserver
+    # functionality in mozjs and causes builds to be extremely
+    # slow as it behaves as if -j1 was passed.
+    # See https://github.com/servo/mozjs/issues/375
+    pinnedNixpkgs.gnumake
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]);
