@@ -66,7 +66,7 @@ shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle"] }
 tinyfiledialogs = "3.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
-winit = "0.28.3"
+winit = "0.28.6"
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 image = { workspace = true }
