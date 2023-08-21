@@ -4,12 +4,12 @@
 
 use smallvec::SmallVec;
 use webgpu::wgpu::{
-    hub::IdentityManager,
     id::{
         AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
         DeviceId, PipelineLayoutId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId,
         TextureId, TextureViewId,
     },
+    identity::IdentityManager,
 };
 use webgpu::wgt::Backend;
 
