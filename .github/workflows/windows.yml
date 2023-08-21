@@ -33,7 +33,7 @@ env:
 
 jobs:
   build:
-    name: Build
+    name: Windows Build
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
