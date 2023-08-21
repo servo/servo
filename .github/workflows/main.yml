@@ -5,7 +5,7 @@ on:
     # Run the entire pipeline for 'master' even though the merge queue already runs checks
     # for every change. This just offers an extra layer of testing and covers the case of
     # random force pushes.
-    branches: ["master"]
+    branches: ["master", "try"]
   pull_request:
     types: ['opened', 'synchronize']
     branches: ["**"]
@@ -16,10 +16,7 @@ on:
       platform:
         required: true
         type: string
-      linux-wpt-layout:
-        required: true
-        type: string
-      mac-wpt-layout:
+      layout:
         required: true
         type: string
       unit-tests:
@@ -31,11 +28,7 @@ on:
         required: false
         type: choice
         options: ["none", "linux", "windows", "macos", "all", "sync"]
-      linux-wpt-layout:
-        required: false
-        type: choice
-        options: ["none", "2013", "2020", "all"]
-      mac-wpt-layout:
+      layout:
         required: false
         type: choice
         options: ["none", "2013", "2020", "all"]
@@ -55,17 +48,11 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            // Skip this workflow if an identical run already exists. Note that we don't
-            // always want to skip workflows. In particular we don't skip duplicate
-            // workflows if:
-            //   1. This is a try job (triggered via an `issue_comment` event or a push to
-            //      a non-master branch)
-            //   2. This is a merge queue event (`merge_queue`)
-            //   3. This event was triggered by a pull request update (`pull_request`)
-            //   4. This event was triggered manually `workflow_run` / `workflow_call`
-            let isPushToMaster = context.eventName == "push" && process.env.GITHUB_REF_NAME == "master";
-            let isTryRun = context.eventName == 'issue_comment' || (context.eventName == 'push' && !isPushToMaster);
-            if (!isTryRun && !['merge_group', 'pull_request', 'workflow_run', 'workflow_call'].includes(context.eventName)) {
+            // Never skip workflow runs for pull requests, merge groups, or manually triggered
+            // workfows / try jobs, which might need to actually run / retry WPT tests.
+            if (!['issue_comment', 'merge_group', 'pull_request', 'workflow_run', 'workflow_call'].includes(context.eventName)) {
+              // Skip the run if an identical run already exists. This helps to avoid running
+              // the workflow over and over again for the same commit hash.
               if ((await github.rest.actions.listWorkflowRuns({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -81,23 +68,20 @@ jobs:
             // We need to pick defaults if the inputs are not provided. Unprovided inputs
             // are empty strings in this template.
             let platform = "${{ inputs.platform }}" || "linux";
+            let layout = "${{ inputs.layout }}" || "none";
             let unit_tests = Boolean(${{ inputs.unit-tests }})
-            let linux_wpt_layout = "${{ inputs.linux-wpt-layout }}" || "none";
-            let mac_wpt_layout = "${{ inputs.mac-wpt-layout }}" || "none";
 
             // Merge queue runs and pushes to master should always trigger a full build and test.
-            if (isPushToMaster || context.eventName == "merge_group") {
+            if (["push", "merge_group"].includes(context.eventName)) {
               platform = "all";
+              layout = "all";
               unit_tests = true;
-              linux_wpt_layout = "all";
-              mac_wpt_layout = "none";
             }
 
             let returnValue =  {
               platform,
+              layout,
               unit_tests,
-              linux_wpt_layout,
-              mac_wpt_layout,
             };
             console.log("Using configuration: " + JSON.stringify(returnValue));
             return returnValue;
@@ -116,7 +100,6 @@ jobs:
     if: ${{ contains(fromJson('["macos", "all"]'), fromJson(needs.decision.outputs.configuration).platform) }}
     uses: ./.github/workflows/mac.yml
     with:
-      wpt-layout: ${{ fromJson(needs.decision.outputs.configuration).mac_wpt_layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
 
   build-linux:
@@ -126,52 +109,8 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       wpt: 'test'
-      wpt-layout: ${{ fromJson(needs.decision.outputs.configuration).linux_wpt_layout }}
+      layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
-
-  report-test-results:
-    name: Report WPT Results
-    runs-on: ubuntu-latest
-    needs:
-      - "decision"
-      - "build-win"
-      - "build-mac"
-      - "build-linux"
-    if: ${{
-      always() && !cancelled() &&
-      fromJson(needs.decision.outputs.configuration).platform != 'none' &&
-      (
-          fromJson(needs.decision.outputs.configuration).linux_wpt_layout != 'none' ||
-          fromJson(needs.decision.outputs.configuration).mac_wpt_layout != 'none'
-      )
-      }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - uses: actions/download-artifact@v3
-      - name: Create aggregated unexpected results
-        run: |
-          mkdir -p wpt-filtered-results
-          cd wpt-filtered-results
-          for file in *; do \
-            if [ -d "$file" ]; then \
-              cat $file/*.log > "unexpected-test-wpt-$file.log"; \
-            fi \
-          done
-      - name: Archive aggregate results
-        uses: actions/upload-artifact@v3
-        with:
-          name: wpt-filtered-results
-          path: |
-            unexpected-test-wpt-*.log
-      - name: Comment on PR with results
-        run: |
-          etc/ci/report_aggregated_expected_results.py wpt-filtered-results
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RESULTS: ${{ toJson(needs.*.result) }}
 
   build-result:
     name: Result
