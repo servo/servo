@@ -6,10 +6,9 @@ use api::{BorderRadius, ClipMode, HitTestItem, HitTestResult, ItemTag, Primitive
 use api::{PipelineId, ApiHitTester, ClipId};
 use api::units::*;
 use crate::clip::{ClipItemKind, ClipStore, ClipNode, rounded_rectangle_contains_point};
-use crate::clip::{polygon_contains_point};
+use crate::clip::polygon_contains_point;
 use crate::prim_store::PolygonKey;
 use crate::scene_builder_thread::Interners;
-use crate::spatial_node::SpatialNodeType;
 use crate::spatial_tree::{SpatialNodeIndex, SpatialTree};
 use crate::internal_types::{FastHashMap, FastHashSet, LayoutPrimitiveInfo};
 use std::ops;

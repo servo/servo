@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate webrender_build;
-
 use std::borrow::Cow;
 use std::env;
 use std::fs::{canonicalize, read_dir, File};

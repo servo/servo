@@ -536,6 +536,7 @@ pub enum ResultMsg {
 
 #[derive(Clone, Debug)]
 pub struct ResourceCacheError {
+    #[allow(dead_code)]
     description: String,
 }
 

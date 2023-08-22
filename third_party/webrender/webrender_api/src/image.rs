@@ -326,10 +326,9 @@ pub enum ImageData {
 }
 
 mod serde_image_data_raw {
-    extern crate serde_bytes;
-
-    use std::sync::Arc;
     use serde::{Deserializer, Serializer};
+    use serde_bytes;
+    use std::sync::Arc;
 
     pub fn serialize<S: Serializer>(bytes: &Arc<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error> {
         serde_bytes::serialize(bytes.as_slice(), serializer)

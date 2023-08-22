@@ -386,6 +386,7 @@ impl<T> Drop for VBO<T> {
 pub struct ExternalTexture {
     id: gl::GLuint,
     target: gl::GLuint,
+    #[allow(dead_code)]
     swizzle: Swizzle,
     uv_rect: TexelRect,
 }

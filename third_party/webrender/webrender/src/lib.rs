@@ -71,8 +71,7 @@ extern crate serde;
 extern crate tracy_rs;
 #[macro_use]
 extern crate derive_more;
-extern crate malloc_size_of;
-extern crate svg_fmt;
+use malloc_size_of;
 
 #[macro_use]
 mod profiler;
@@ -163,41 +162,14 @@ mod platform {
     }
 }
 
-#[cfg(target_os = "macos")]
-extern crate core_foundation;
-#[cfg(target_os = "macos")]
-extern crate core_graphics;
-#[cfg(target_os = "macos")]
-extern crate core_text;
-
-#[cfg(all(unix, not(target_os = "macos")))]
-extern crate freetype;
-#[cfg(all(unix, not(target_os = "macos")))]
-extern crate libc;
-
-#[cfg(target_os = "windows")]
-extern crate dwrote;
-
-extern crate bincode;
-extern crate byteorder;
-pub extern crate euclid;
-extern crate fxhash;
-extern crate gleam;
-extern crate num_traits;
-extern crate plane_split;
-extern crate rayon;
-#[cfg(feature = "ron")]
-extern crate ron;
+pub use euclid;
 #[macro_use]
 extern crate smallvec;
-extern crate time;
-#[cfg(all(feature = "capture", feature = "png"))]
-extern crate png;
 #[cfg(test)]
-extern crate rand;
+use rand;
 
-pub extern crate api;
-extern crate webrender_build;
+pub use api;
+use webrender_build;
 
 #[doc(hidden)]
 pub use crate::composite::{CompositorConfig, Compositor, CompositorCapabilities, CompositorSurfaceTransform};

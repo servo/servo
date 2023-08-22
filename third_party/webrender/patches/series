@@ -1,7 +1,3 @@
-0001-Add-signal-handler-to-catch-segfault-in-build-script.patch
-0002-Bug-1646741-Update-gleam-to-0.12.-r-kvark.patch
-0003-Bug-1651889.-Update-to-gleam-0.12.1.-r-kvark.patch
-0004-Bug-1654699.-Update-core-foundation-core-graphics.-r.patch
-0005-Bug-1656236-Update-to-euclid-0.22.-r-kvark.patch
-0006-Bump-procedural-masquerade-to-0.1.7.patch
-0007-Fix-warnings.patch
+001-Restore-hit-testing-api.diff
+002-Upgrade-version-of-gleam.diff
+003-Fix-WebRender-warnings.diff

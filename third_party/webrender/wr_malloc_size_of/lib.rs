@@ -10,8 +10,8 @@
 
 //! A reduced fork of Firefox's malloc_size_of crate, for bundling with WebRender.
 
-extern crate app_units;
-extern crate euclid;
+use app_units;
+use euclid;
 
 use std::hash::{BuildHasher, Hash};
 use std::mem::size_of;

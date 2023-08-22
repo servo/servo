@@ -10,7 +10,7 @@ use crate::batch::{ClipBatcher, BatchBuilder};
 use crate::spatial_tree::{SpatialTree, ROOT_SPATIAL_NODE_INDEX};
 use crate::clip::ClipStore;
 use crate::composite::CompositeState;
-use crate::frame_builder::{FrameGlobalResources};
+use crate::frame_builder::FrameGlobalResources;
 use crate::gpu_cache::{GpuCache, GpuCacheAddress};
 use crate::gpu_types::{BorderInstance, SvgFilterInstance, BlurDirection, BlurInstance, PrimitiveHeaders, ScalingInstance};
 use crate::gpu_types::{TransformPalette, ZBufferIdGenerator};
@@ -819,10 +819,10 @@ fn add_svg_filter_instances(
     let generic_int = match filter {
         SvgFilterInfo::Blend(mode) => *mode as u16,
         SvgFilterInfo::ComponentTransfer(data) =>
-            ((data.r_func.to_int() << 12 |
+            (data.r_func.to_int() << 12 |
               data.g_func.to_int() << 8 |
               data.b_func.to_int() << 4 |
-              data.a_func.to_int()) as u16),
+              data.a_func.to_int()) as u16,
         SvgFilterInfo::Composite(operator) =>
             operator.as_int() as u16,
         SvgFilterInfo::LinearToSrgb |

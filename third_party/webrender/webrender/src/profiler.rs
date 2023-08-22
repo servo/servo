@@ -1362,6 +1362,7 @@ pub struct Counter {
     change_indicator: u8,
 
     /// Only used to check that the constants match the real index.
+    #[allow(dead_code)]
     index: usize,
 
     graph: Option<Graph>,
