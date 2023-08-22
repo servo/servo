@@ -93,6 +93,7 @@ class BidiSession:
         self.browser = modules.Browser(self)
         self.browsing_context = modules.BrowsingContext(self)
         self.input = modules.Input(self)
+        self.network = modules.Network(self)
         self.script = modules.Script(self)
         self.session = modules.Session(self)
 
@@ -178,32 +179,31 @@ class BidiSession:
 
     async def on_message(self, data: Mapping[str, Any]) -> None:
         """Handle a message from the remote server"""
-        if "id" in data:
+        if data["type"] in ["error", "success"]:
             # This is a command response or error
             future = self.pending_commands.get(data["id"])
             if future is None:
                 raise ValueError(f"No pending command with id {data['id']}")
-            if "result" in data:
+            if data["type"] == "success":
+                assert isinstance(data["result"], dict)
                 future.set_result(data["result"])
-            elif "error" in data and "message" in data:
+            else:
                 assert isinstance(data["error"], str)
                 assert isinstance(data["message"], str)
                 exception = from_error_details(data["error"],
                                                data["message"],
                                                data.get("stacktrace"))
                 future.set_exception(exception)
-            else:
-                raise ValueError(f"Unexpected message: {data!r}")
-        elif "method" in data and "params" in data:
+        elif data["type"] == "event":
             # This is an event
-            method = data["method"]
-            params = data["params"]
+            assert isinstance(data["method"], str)
+            assert isinstance(data["params"], dict)
 
-            listeners = self.event_listeners.get(method, [])
+            listeners = self.event_listeners.get(data["method"], [])
             if not listeners:
                 listeners = self.event_listeners.get(None, [])
             for listener in listeners:
-                await listener(method, params)
+                await listener(data["method"], data["params"])
         else:
             raise ValueError(f"Unexpected message: {data!r}")
 

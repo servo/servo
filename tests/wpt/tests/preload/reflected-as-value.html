@@ -2,8 +2,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-test(function() {
-  var link = document.createElement("link");
   var values = {
     "Image": "image",
     "images": "",
@@ -17,10 +15,12 @@ test(function() {
     "track": "track",
     "fetch": "fetch",
   };
+  var link = document.createElement("link");
   var keys = Object.keys(values);
   for (var i = 0; i < keys.length; ++i) {
-    link.as = keys[i];
-    assert_equals(link.as, values[keys[i]]);
+    test(function() {
+      link.as = keys[i];
+      assert_equals(link.as, values[keys[i]]);
+    }, `Link preload "as" value for "${keys[i]}" should be "${values[keys[i]]}".`);
   }
-}, "Make sure that the `as` value reflects only known values");
 </script>

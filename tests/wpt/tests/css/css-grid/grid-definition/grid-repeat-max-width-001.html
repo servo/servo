@@ -41,3 +41,13 @@
         <div class=item></div>
     </div>
 </div>
+
+<script>
+    let grid = document.getElementsByClassName("grid")[0];
+    // Force a layout.
+    grid.offsetLeft = grid.offsetLeft;
+    if (window.getComputedStyle(grid).gridTemplateColumns === "100px") {
+        // Test passes - only one repeat of 100px was computed.
+        grid.style.width = "min-content";
+    }
+</script>

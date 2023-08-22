@@ -23,18 +23,12 @@
         "random-selector",
         "Should've parsed",
       );
-      assert_not_equals(
-        rule.selectorText,
-        invalidSelector,
-        "Should not be considered valid and parsed as-is",
-      );
-      let emptyList = `:${pseudo}()`;
       assert_equals(
         rule.selectorText,
-        emptyList,
-        "Should be serialized as an empty selector-list",
+        invalidSelector,
+        "Should be parsed as-is (but not be considered valid)",
       );
-      assert_equals(document.querySelector(emptyList), null, "Should never match, but should parse");
+      assert_equals(document.querySelector(rule.selectorText), null, "Should never match, but should parse");
       for (let mixedList of [
         `:${pseudo}(:total-nonsense, #test-div)`,
         `:${pseudo}(:total-nonsense and-more-stuff, #test-div)`,
@@ -43,8 +37,8 @@
         rule.selectorText = mixedList;
         assert_equals(
           rule.selectorText,
-          `:${pseudo}(#test-div)`,
-          `${mixedList}: Should ignore invalid selectors`,
+          mixedList,
+          `${mixedList}: Should parse invalid selectors`,
         );
         let testDiv = document.getElementById("test-div");
         assert_equals(document.querySelector(mixedList), testDiv, "Should correctly match");

@@ -2,31 +2,24 @@
 <html>
 <meta charset="utf-8">
 <title>CSS Text — WORD JOINER after atomic inline</title>
-<meta name=assert content="There is a soft wrap opportunity between an atomic inline and a following WORD JOINER">
+<meta name=assert content="There is no soft wrap opportunity between an atomic inline and a following WORD JOINER">
 <link rel=help href="https://www.w3.org/TR/css-text-3/#line-break-details">
-<link rel=match href="reference/line-breaking-atomic-005-ref.html">
+<link rel=match href="../../reference/ref-filled-green-100px-square.xht">
 <link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
-.red {
-  font: 50px/1 Ahem;
-  position: absolute;
-  z-index: -1;
-  color: red;
-}
-
-.test {
-  font: 50px/1 Ahem;
-  color: green;
+div {
+  font: 100px/1 Ahem;
+  color: transparent;
   width: 100px;
-  height: 100px;
+  background: red;
 }
 span {
   display: inline-block;
+  color: green;
 }
 </style>
 
 <p>Test passes if there is a filled green square and <strong>no red</strong>.
 
-<div class=red>&#8288;AB<br>&#8288;CD</div>
-<div class=test><span>&#8288;AB</span>&#8288;CD</div>
+<div><span>A</span>&#8288;B</div>

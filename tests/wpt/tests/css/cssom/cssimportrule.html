@@ -16,6 +16,7 @@
         @import url("support/a-green.css") screen;
         @import url("support/a-green.css") all;
         @import url("support/a-green") supports((display: flex) or (display: block));
+        @import url('quote"quote');
         @page { background-color: red; }
     </style>
 </head>
@@ -23,7 +24,7 @@
     <div id="log"></div>
 
     <script type="text/javascript">
-        var styleSheet, ruleList, rule, ruleWithMedia, ruleWithMediaAll, ruleWithSupports;
+        var styleSheet, ruleList, rule, ruleWithMedia, ruleWithMediaAll, ruleWithSupports, ruleWithQuote;
         setup(function() {
             styleSheet = document.getElementById("styleElement").sheet;
             ruleList = styleSheet.cssRules;
@@ -31,6 +32,7 @@
             ruleWithMedia = ruleList[1];
             ruleWithMediaAll = ruleList[2];
             ruleWithSupports = ruleList[3];
+            ruleWithQuote = ruleList[4];
         });
 
         test(function() {
@@ -71,6 +73,7 @@
             assert_equals(ruleWithMedia.cssText, '@import url("support/a-green.css") screen;');
             assert_equals(ruleWithMediaAll.cssText, '@import url("support/a-green.css") all;');
             assert_equals(ruleWithSupports.cssText, '@import url("support/a-green") supports((display: flex) or (display: block));');
+            assert_equals(ruleWithQuote.cssText, '@import url("quote\\\"quote");');
             assert_equals(rule.parentRule, null);
             assert_true(rule.parentStyleSheet instanceof CSSStyleSheet);
         }, "Values of CSSRule attributes");
@@ -99,7 +102,7 @@
         }, "CSSImportRule : MediaList mediaText attribute should be updated due to [PutForwards]");
 
         test(function() {
-            var ruleWithPage = ruleList[4];
+            var ruleWithPage = ruleList[5];
             ruleWithPage.style = "margin-top: 10px;"
             assert_equals(ruleWithPage.style.cssText, "margin-top: 10px;");
         }, "CSSStyleDeclaration cssText attribute should be updated due to [PutForwards]");

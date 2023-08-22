@@ -31,7 +31,9 @@
     <script>
       promise_test(async (t) => {
         await waitForCompositorCommit();
-        let scrollend_promise = waitForScrollendEvent(t, scroller);
+        let scrollend_promise = new Promise((resolve) => {
+          scroller.addEventListener("scrollend", resolve);
+        });
         let scroll_promise = new Promise((resolve) => {
           scroller.addEventListener("scroll", resolve);
         });

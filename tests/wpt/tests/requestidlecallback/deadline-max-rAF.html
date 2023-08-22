@@ -7,12 +7,16 @@
 <script src="resources/ric-utils.js"></script>
 <script>
 
+function runRAFLoop()
+{
+  requestAnimationFrame(runRAFLoop);
+}
+
 promise_test(async done => {
+  runRAFLoop();
   for (let i = 0; i < getRICRetryCount(); ++i) {
-    requestAnimationFrame(() => {})
     assert_less_than_equal(await getDeadlineForNextIdleCallback(), getPendingRenderDeadlineCap())
   }
-
 }, 'Check that the deadline is less than 16ms when there is a pending animation frame.');
 </script>
 <h1>Test of requestIdleCallback deadline behavior</h1>

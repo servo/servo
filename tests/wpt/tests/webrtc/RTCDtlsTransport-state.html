@@ -72,8 +72,13 @@ promise_test(async t => {
   const dtlsTransport2 = pc2.getTransceivers()[0].sender.transport;
   await Promise.all([resolveWhen(t, dtlsTransport1, 'connected'),
                      resolveWhen(t, dtlsTransport2, 'connected')]);
+  let fired = false;
+  dtlsTransport1.onstatechange = t.step_func(() => fired = true);
+  dtlsTransport1.addEventListener('statechange', t.step_func(() => fired = true));
   pc1.close();
   assert_equals(dtlsTransport1.state, 'closed');
+  await new Promise(r => t.step_timeout(r, 10));
+  assert_false(fired, 'close() should not see a statechange event on close');
 }, 'close() causes the local transport to close immediately');
 
 promise_test(async t => {
@@ -128,13 +133,7 @@ promise_test(async t => {
   stoppedTransceiver.stop();
   await onended;
 
-  assert_equals(
-      pc1.getReceivers().length, 1,
-      'getReceivers does not expose a receiver of a stopped transceiver');
-  assert_equals(
-      pc1.getSenders().length, 1,
-      'getSenders does not expose a sender of a stopped transceiver');
-  assert_equals(audioTc.sender, pc1.getSenders()[0]); // sanity
+  assert_equals(audioTc.sender, pc1.getSenders()[1]); // sanity
   assert_equals(audioTc.sender.transport, audioTp); // sanity
   assert_equals(audioTp.state, 'connected');
 }, 'stop bundled transceiver retains dtls transport state');

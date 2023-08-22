@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+  <title>HTML-AAM Contextual-Specific Role Verification Tests</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+
+<p>Tests contextual computedrole mappings defined in <a href="https://w3c.github.io/html-aam/">HTML-AAM</a>, where the returned computed role is expected to change based on the context. Most test names correspond to a unique ID defined in the spec.<p>
+
+<p>These should remain in alphabetical order.</code></p>
+
+
+<!-- el-a -->
+<a href="#" data-testname="el-a" data-expectedrole="link" class="ex">x</a>
+<a data-testname="el-a-no-href" class="ex-generic">x</a>
+
+<!-- el-aside -->
+<nav>
+  <aside data-testname="el-aside-in-section-with-name" data-expectedrole="complementary" aria-label="x" class="ex">x</aside>
+  <aside data-testname="el-aside-in-section-without-name" class="ex-generic">x</aside>
+</nav>
+<aside data-testname="el-aside-ancestorbodymain" data-expectedrole="complementary" class="ex">x</aside>
+
+<!-- el-footer -->
+<nav>
+  <footer data-testname="el-footer" aria-label="x" class="ex-generic">x</aside>
+</nav>
+<footer data-testname="el-footer-ancestorbody" data-expectedrole="contentinfo" class="ex">x</footer>
+
+<!-- el-header -->
+<nav>
+  <header data-testname="el-header" aria-label="x" class="ex-generic">x</header>
+</nav>
+<header data-testname="el-header-ancestorbody" data-expectedrole="banner" class="ex">x</header>
+
+<!-- el-section -->
+<section data-testname="el-section" aria-label="x" data-expectedrole="region" class="ex">x</section>
+<section data-testname="el-section-no-name" class="ex-generic">x</section>
+
+
+<script>
+AriaUtils.verifyRolesBySelector(".ex");
+AriaUtils.verifyGenericRolesBySelector(".ex-generic");
+</script>
+
+</body>
+</html>

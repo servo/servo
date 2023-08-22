@@ -28,6 +28,11 @@ from .wpt import venv_dir
 
 uname = platform.uname()
 
+# The root URL for Chrome for Testing API endpoints.
+CHROME_FOR_TESTING_ROOT_URL = "https://googlechromelabs.github.io/chrome-for-testing/"
+# File name containing a matching ChromeDriver download URL for a specific Chrome download.
+CHROMEDRIVER_SAVED_DOWNLOAD_FILE = "matching_chromedriver_url.txt"
+
 # the rootUrl for the firefox-ci deployment of Taskcluster
 FIREFOX_CI_ROOT_URL = 'https://firefox-ci-tc.services.mozilla.com'
 
@@ -926,6 +931,11 @@ class Chromium(ChromeChromiumBase):
         return False
 
 
+class DownloadNotFoundError(Exception):
+    """Raised when a download is not found for browser/webdriver installation."""
+    pass
+
+
 class Chrome(ChromeChromiumBase):
     """Chrome-specific interface.
 
@@ -939,44 +949,252 @@ class Chrome(ChromeChromiumBase):
     product = "chrome"
 
     @property
-    def _chromedriver_api_platform_string(self):
-        """chromedriver.storage.googleapis.com has a different filename for M1 binary,
-        while the snapshot URL has a different directory but the same filename."""
-        if self.platform == "Mac" and uname.machine == "arm64":
-            return "mac_arm64"
-        return self._chromedriver_platform_string
+    def _chrome_platform_string(self):
+        """A string that represents the platform-based suffix
+        of the Chrome for Testing downloads.
+        """
+        if self.platform in ("Linux", "Win"):
+            bits = "64" if uname.machine == "x86_64" else "32"
+        elif self.platform == "Mac":
+            bits = "-arm64" if uname.machine == "arm64" else "-x64"
+        else:
+            bits = ""
+        return f"{self.platform.lower()}{bits}"
 
-    def _get_webdriver_url(self, version, revision=None):
-        """Get a ChromeDriver API URL to download a version of ChromeDriver that matches
-        the browser binary version. Version selection is described here:
-        https://chromedriver.chromium.org/downloads/version-selection"""
-        filename = f"chromedriver_{self._chromedriver_api_platform_string}.zip"
+    @property
+    def _chrome_package_name(self):
+        return f"chrome-{self._chrome_platform_string}"
 
-        version = self._remove_version_suffix(version)
+    def _get_build_version(self, version):
+        """Convert a Chrome/ChromeDriver version into MAJOR.MINOR.BUILD format."""
+        version_parts = version.split(".")
+        if len(version_parts) < 3:
+            self.logger.info(f"Version {version} could not be formatted for build matching.")
+            return None
+        return ".".join(version_parts[0:3])
 
-        parts = version.split(".")
-        assert len(parts) == 4
+    def _get_webdriver_url(self, version, channel):
+        """Get a ChromeDriver URL to download a version of ChromeDriver that matches
+        the browser binary version.
+
+        Raises: ValueError if the given version string could not be formatted.
+
+        Returns: A ChromeDriver download URL that matches the given Chrome version.
+        """
+        # Remove version suffix if it exists.
+        if version:
+            version = self._remove_version_suffix(version)
+
+        formatted_version = self._get_build_version(version)
+        if formatted_version is None:
+            raise ValueError(f"Unknown version format: {version}")
+        major_version = version.split(".")[0]
+
+        # Chrome for Testing only has ChromeDriver downloads available for Chrome 115+.
+        # If we are matching an older version of Chrome, use the old ChromeDriver source.
+        if int(major_version) < 115:
+            return self._get_old_webdriver_url(formatted_version)
+
+        # Check if a file exists containing the matching ChromeDriver version download URL.
+        # This is generated when installing Chrome for Testing using the install command.
+        download_url_reference_file = os.path.join(
+            self._get_browser_binary_dir(None, channel), CHROMEDRIVER_SAVED_DOWNLOAD_FILE)
+        if os.path.isfile(download_url_reference_file):
+            self.logger.info("Download info for matching ChromeDriver version found.")
+            with open(download_url_reference_file, "r") as f:
+                return f.read()
+
+        # If no ChromeDriver download URL reference file exists,
+        # try to find a download URL based on the build version.
+        self.logger.info(f"Searching for ChromeDriver downloads for version {version}.")
+        return self._get_webdriver_url_by_build(formatted_version)
+
+    def _get_old_webdriver_url(self, version):
+        """Find a ChromeDriver download URL for Chrome version <= 114
+
+        Raises: DownloadNotFoundError if no ChromeDriver download URL is found
+                to match the given Chrome binary.
+
+        Returns: A ChromeDriver download URL that matches the given Chrome version.
+        """
         latest_url = ("https://chromedriver.storage.googleapis.com/LATEST_RELEASE_"
-                      f"{'.'.join(parts[:-1])}")
+                      f"{version}")
         try:
             latest = get(latest_url).text.strip()
-        except requests.RequestException:
-            latest_url = f"https://chromedriver.storage.googleapis.com/LATEST_RELEASE_{parts[0]}"
-            try:
-                latest = get(latest_url).text.strip()
-            except requests.RequestException:
-                # We currently use the latest Chromium revision to get a compatible Chromedriver
-                # version for Chrome Dev, since it is not available through the ChromeDriver API.
-                # If we've gotten to this point, it is assumed that this is Chrome Dev.
-                filename = f"chromedriver_{self._chromedriver_platform_string}.zip"
-                revision = self._get_chromium_revision(filename, version)
-                return self._build_snapshots_url(revision, filename)
+        except requests.RequestException as e:
+            raise DownloadNotFoundError("No matching ChromeDriver download"
+                                        f" found for version {version}.", e)
+
+        filename = f"chromedriver_{self._chromedriver_platform_string}.zip"
         return f"https://chromedriver.storage.googleapis.com/{latest}/{filename}"
 
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError("Downloading of Chrome browser binary not implemented.")
+    def _get_webdriver_url_by_build(self, version):
+        """Find a ChromeDriver download URL based on a MAJOR.MINOR.BUILD version.
+
+        Raises: RequestException if a bad responses is received from
+                Chrome for Testing sources.
+
+        Returns: Download URL string or None if no matching build is found.
+        """
+        try:
+            # Get a list of builds with download URLs from Chrome for Testing.
+            resp = get(f"{CHROME_FOR_TESTING_ROOT_URL}"
+                       "latest-patch-versions-per-build-with-downloads.json")
+        except requests.RequestException as e:
+            raise requests.RequestException(
+                "Chrome for Testing versions not found", e)
+        builds_json = resp.json()
+        builds_dict = builds_json["builds"]
+        if version not in builds_dict:
+            self.logger.info(f"No builds found for version {version}.")
+            return None
+        download_info = builds_dict[version]["downloads"]
+        if "chromedriver" not in download_info:
+            self.logger.info(f"No ChromeDriver download found for build {version}")
+            return None
+        downloads_for_platform = [d for d in download_info["chromedriver"]
+                                  if d["platform"] == self._chrome_platform_string]
+        if len(downloads_for_platform) == 0:
+            self.logger.info(f"No ChromeDriver download found for build {version}"
+                             f"of platform {self.platform}")
+            return None
+        return downloads_for_platform[0]["url"]
+
+    def _get_download_urls_by_version(self, version):
+        """Find Chrome for Testing and ChromeDriver download URLs matching a specific version.
+
+        Raises: DownloadNotFoundError if no download is found for the given version or platform.
+                RequestException if a bad responses is received from
+                Chrome for Testing sources.
+
+        Returns: Both binary downloads for Chrome and ChromeDriver.
+        """
+        try:
+            # Get a list of versions with download URLs from Chrome for Testing.
+            resp = get(f"{CHROME_FOR_TESTING_ROOT_URL}"
+                       "known-good-versions-with-downloads.json")
+        except requests.RequestException as e:
+            raise requests.RequestException(
+                "Chrome for Testing versions not found", e)
+        versions_json = resp.json()
+        versions_list = versions_json["versions"]
+        # Attempt to find a version match in the list of available downloads.
+        matching_versions = [v for v in versions_list if v["version"] == version]
+        if len(matching_versions) == 0:
+            raise DownloadNotFoundError(f"No Chrome for Testing download found for {version}")
+
+        download_info = matching_versions[0]["downloads"]
+        # Find the download url that matches the current platform.
+        browser_download_urls = [d for d in download_info["chrome"]
+                                 if d["platform"] == self._chrome_platform_string]
+        if len(browser_download_urls) == 0:
+            raise DownloadNotFoundError(
+                f"No Chrome for Testing download found for {self.platform} of version {version}")
+        browser_download_url = browser_download_urls[0]["url"]
+
+        # Get the corresponding ChromeDriver download URL for later use.
+        chromedriver_download_urls = [d for d in download_info["chromedriver"]
+                                      if d["platform"] == self._chrome_platform_string]
+        if len(chromedriver_download_urls) == 0:
+            # Some older versions of Chrome for Testing
+            # do not have a matching ChromeDriver download.
+            raise DownloadNotFoundError(
+                f"ChromeDriver download does not exist for version {version}")
+        chromedriver_url = chromedriver_download_urls[0]["url"]
+
+        return browser_download_url, chromedriver_url
+
+    def _get_download_urls_by_channel(self, channel):
+        """Find Chrome for Testing and ChromeDriver download URLs matching the given channel.
+
+        Raises: DownloadNotFoundError if no download is found for the given channel or platform.
+                RequestException if a bad responses is received from Chrome for Testing sources.
+
+        Returns: Both binary downloads for Chrome and ChromeDriver.
+        """
+        try:
+            resp = get(f"{CHROME_FOR_TESTING_ROOT_URL}"
+                       "last-known-good-versions-with-downloads.json")
+        except requests.RequestException as e:
+            raise requests.RequestException(
+                "Chrome for Testing versions not found", e)
+        channels_json = resp.json()
+        download_info = channels_json["channels"][channel.capitalize()]["downloads"]["chrome"]
+
+        # Find the download URL that matches the current platform.
+        matching_download_urls = [d for d in download_info
+                                  if d["platform"] == self._chrome_platform_string]
+        if len(matching_download_urls) == 0:
+            raise DownloadNotFoundError("No matching download for platform "
+                                        f"{self.platform} of channel \"{channel}\".")
+
+        browser_download_url = matching_download_urls[0]["url"]
+
+        # Get the corresponding ChromeDriver download URL for later use.
+        chromedriver_download_info = (
+            channels_json["channels"][channel.capitalize()]["downloads"]["chromedriver"])
+
+        matching_chromedriver_urls = [d for d in chromedriver_download_info
+                                      if d["platform"] == self._chrome_platform_string]
+        if len(matching_chromedriver_urls) == 0:
+            raise DownloadNotFoundError(
+                f"No ChromeDriver download found in Chrome for Testing {channel}.")
+        chromedriver_url = matching_chromedriver_urls[0]["url"]
+
+        return browser_download_url, chromedriver_url
+
+    def _save_chromedriver_download_info(self, dest, url):
+        """Save the download URL of a ChromeDriver binary that matches the browser.
+        This will allow for easy version matching, even in separate CLI invocations.
+        """
+        with open(os.path.join(dest, CHROMEDRIVER_SAVED_DOWNLOAD_FILE), "w") as f:
+            f.write(url)
+
+    def download(self, dest=None, channel="canary", rename=None, version=None):
+        """Download Chrome for Testing. For more information,
+        see: https://github.com/GoogleChromeLabs/chrome-for-testing
+        """
+        dest = self._get_browser_binary_dir(None, channel)
+        filename = f"{self._chrome_package_name}.zip"
+
+        # If a version has been supplied, try to find a download to match that version.
+        # Otherwise, find a download for the specified channel.
+        if version is not None:
+            download_url, chromedriver_url = self._get_download_urls_by_version(version)
+        else:
+            download_url, chromedriver_url = self._get_download_urls_by_channel(channel)
+
+        self.logger.info(f"Downloading Chrome for Testing from {download_url}")
+        resp = get(download_url)
+        installer_path = os.path.join(dest, filename)
+        with open(installer_path, "wb") as f:
+            f.write(resp.content)
+
+        # Save the ChromeDriver download URL for use if a matching ChromeDriver
+        # needs to be downloaded in a separate install invocation.
+        self._save_chromedriver_download_info(dest, chromedriver_url)
+
+        return installer_path
+
+    def _find_binary_in_directory(self, directory):
+        """Search for Chrome for Testing browser binary in a given directory."""
+        if uname[0] == "Darwin":
+            return which(
+                "Google Chrome for Testing",
+                path=os.path.join(directory,
+                                  self._chrome_package_name,
+                                  "Google Chrome for Testing.app",
+                                  "Contents",
+                                  "MacOS"))
+        # "which" will add .exe on Windows automatically.
+        return which("chrome", path=os.path.join(directory, self._chrome_package_name))
 
     def find_binary(self, venv_path=None, channel=None):
+        # Check for binary in venv first.
+        path = self._find_binary_in_directory(self._get_browser_binary_dir(venv_path, channel))
+        if path is not None:
+            return path
+
         if uname[0] == "Linux":
             name = "google-chrome"
             if channel == "stable":
@@ -1005,10 +1223,15 @@ class Chrome(ChromeChromiumBase):
         self.logger.warning("Unable to find the browser binary.")
         return None
 
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError("Installing of Chrome browser binary not implemented.")
+    def install(self, dest=None, channel=None, version=None):
+        dest = self._get_browser_binary_dir(dest, channel)
+        installer_path = self.download(dest=dest, channel=channel, version=version)
+        with open(installer_path, "rb") as f:
+            unzip(f, dest)
+        os.remove(installer_path)
+        return self._find_binary_in_directory(dest)
 
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None, revision=None):
+    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
         if dest is None:
             dest = os.pwd
 
@@ -1028,42 +1251,100 @@ class Chrome(ChromeChromiumBase):
             raise ValueError(f"Unable to detect browser version from binary at {browser_binary}. "
                              " Cannot install ChromeDriver without a valid version to match.")
 
-        chromedriver_path = self.install_webdriver_by_version(version, dest, revision)
+        chromedriver_path = self.install_webdriver_by_version(version, dest, channel)
 
+        return chromedriver_path
+
+    def install_webdriver_by_version(self, version, dest, channel):
+        # Set the destination to a specific "chrome" folder to not overwrite or remove
+        # ChromeDriver versions used for Chromium.
+        dest = os.path.join(dest, self.product)
+        self._remove_existing_chromedriver_binary(dest)
+
+        url = self._get_webdriver_url(version, channel)
+        if url is None:
+            raise DownloadNotFoundError(
+                f"No ChromeDriver download found to match browser version {version}")
+        self.logger.info(f"Downloading ChromeDriver from {url}")
+        unzip(get(url).raw, dest)
+
+        chromedriver_dir = os.path.join(
+            dest, f"chromedriver-{self._chrome_platform_string}")
+        chromedriver_path = which("chromedriver", path=chromedriver_dir)
+
+        if chromedriver_path is not None:
+            shutil.move(chromedriver_path, dest)
+            rmtree(chromedriver_dir)
+
+        chromedriver_path = which("chromedriver", path=dest)
+        if chromedriver_path is None:
+            raise FileNotFoundError("ChromeDriver could not be detected after installation.")
         return chromedriver_path
 
     def webdriver_supports_browser(self, webdriver_binary, browser_binary, browser_channel):
         """Check that the browser binary and ChromeDriver versions are a valid match."""
-        # TODO(DanielRyanSmith): The procedure for matching the browser and ChromeDriver
-        #     versions here is too loose. More strict rules for version matching
-        #     should be in place. (#33231)
+        browser_version = self.version(browser_binary)
         chromedriver_version = self.webdriver_version(webdriver_binary)
+
         if not chromedriver_version:
             self.logger.warning("Unable to get version for ChromeDriver "
                                 f"{webdriver_binary}, rejecting it")
             return False
 
-        browser_version = self.version(browser_binary)
+        # TODO(DanielRyanSmith): Determine if this version logic fail case is
+        # still necessary and remove it if it isn't.
         if not browser_version:
             # If we can't get the browser version,
             # we just have to assume the ChromeDriver is good.
             return True
 
-        # Check that the ChromeDriver version matches the Chrome version.
-        chromedriver_major = int(chromedriver_version.split('.')[0])
-        browser_major = int(browser_version.split('.')[0])
-        if chromedriver_major != browser_major:
-            # There is no official ChromeDriver release for the dev channel -
-            # it switches between beta and tip-of-tree, so we accept version+1
-            # too for dev.
-            if browser_channel == "dev" and chromedriver_major == (browser_major + 1):
-                self.logger.debug(f"Accepting ChromeDriver {chromedriver_version} "
-                                  f"for Chrome/Chromium Dev {browser_version}")
-                return True
-            self.logger.warning(f"ChromeDriver {chromedriver_version} does not match "
-                                f"Chrome/Chromium {browser_version}")
+        # Format versions for comparison.
+        browser_version = self._get_build_version(browser_version)
+        chromedriver_version = self._get_build_version(chromedriver_version)
+
+        # Chrome and ChromeDriver versions should match on the same MAJOR.MINOR.BUILD version.
+        if browser_version is not None and browser_version != chromedriver_version:
+            self.logger.warning(
+                f"ChromeDriver {chromedriver_version} does not match Chrome {browser_version}")
             return False
         return True
+
+    def version(self, binary=None, webdriver_binary=None):
+        """Get version string from browser binary."""
+        if not binary:
+            self.logger.warning("No browser binary provided.")
+            return None
+
+        if uname[0] == "Windows":
+            return _get_fileversion(binary, self.logger)
+
+        try:
+            version_string = call(binary, "--version").strip()
+        except (subprocess.CalledProcessError, OSError) as e:
+            self.logger.warning(f"Failed to call {binary}: {e}")
+            return None
+        m = re.match(r"(?:Google Chrome for Testing|Google Chrome) (.*)", version_string)
+        if not m:
+            self.logger.warning(f"Failed to extract version from: {version_string}")
+            return None
+        return m.group(1)
+
+    def webdriver_version(self, webdriver_binary):
+        """Get version string from ChromeDriver binary."""
+        if webdriver_binary is None:
+            self.logger.warning("No valid webdriver supplied to detect version.")
+            return None
+
+        try:
+            version_string = call(webdriver_binary, "--version").strip()
+        except (subprocess.CalledProcessError, OSError) as e:
+            self.logger.warning(f"Failed to call {webdriver_binary}: {e}")
+            return None
+        m = re.match(r"ChromeDriver ([0-9][0-9.]*)", version_string)
+        if not m:
+            self.logger.warning(f"Failed to extract version from: {version_string}")
+            return None
+        return m.group(1)
 
 
 class ContentShell(Browser):

@@ -1,0 +1,13 @@
+<script>
+function go() {
+  b.innerHTML = undefined
+}
+document.addEventListener("DOMContentLoaded", () => {
+  b.appendChild(document.createTextNode(""))
+  a.addEventListener("DOMNodeRemoved", go)
+  go();
+})
+</script>
+<div id="a">
+<style id="b">
+</style>

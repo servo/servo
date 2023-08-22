@@ -12,12 +12,15 @@ import json
 class CrashError(BaseException):
     pass
 
+class LeakError(BaseException):
+    pass
 
-def _read_line(io_queue, deadline=None, encoding=None, errors="strict", raise_crash=True):
+def _read_line(io_queue, deadline=None, encoding=None, errors="strict", raise_crash_leak=True):
     """Reads a single line from the io queue. The read must succeed before `deadline` or
     a TimeoutError is raised. The line is returned as a bytestring or optionally with the
-    specified `encoding`. If `raise_crash` is set, a CrashError is raised if the line
-    happens to be a crash message.
+    specified `encoding`. If `raise_crash_leak` is set, a CrashError is raised if the line
+    happens to be a crash message, or a LeakError is raised if the line happens to be a
+    leak message.
     """
     current_time = time()
 
@@ -26,8 +29,10 @@ def _read_line(io_queue, deadline=None, encoding=None, errors="strict", raise_cr
 
     try:
         line = io_queue.get(True, deadline - current_time if deadline else None)
-        if raise_crash and line.startswith(b"#CRASHED"):
+        if raise_crash_leak and line.startswith(b"#CRASHED"):
             raise CrashError()
+        if raise_crash_leak and line.startswith(b"#LEAK"):
+            raise LeakError()
     except Empty:
         raise TimeoutError()
 
@@ -114,7 +119,7 @@ class ContentShellTestPart(ProtocolPart):
         result = bytearray()
 
         while True:
-            line = _read_line(self.stdout_queue, deadline, raise_crash=False)
+            line = _read_line(self.stdout_queue, deadline, raise_crash_leak=False)
             excess = len(line) + len(result) - content_length
 
             if excess > 0:
@@ -211,6 +216,11 @@ def _convert_exception(test, exception, errors):
         return (test.result_cls("EXTERNAL-TIMEOUT", errors), [])
     if isinstance(exception, CrashError):
         return (test.result_cls("CRASH", errors), [])
+    if isinstance(exception, LeakError):
+        # TODO: the internal error is to force a restart, but it doesn't correctly
+        # describe what the issue is. Need to find a way to return a "FAIL",
+        # and restart the content_shell after the test run.
+        return (test.result_cls("INTERNAL-ERROR", errors), [])
     raise exception
 
 

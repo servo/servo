@@ -10,7 +10,7 @@
 </style>
 <script>
   let rule = document.getElementById("test-sheet").sheet.cssRules[0];
-  function assert_valid(expected_valid, pattern, expected_pattern, description) {
+  function assert_valid(expected_parseable, pattern, expected_pattern, description) {
     test(function() {
       for (let pseudo of ["is", "where"]) {
         let selector = pattern.replace("{}", ":" + pseudo);
@@ -19,7 +19,7 @@
           expected_selector = expected_pattern.replace("{}", ":" + pseudo);
         rule.selectorText = "random-selector";
         rule.selectorText = selector;
-        (expected_valid ? assert_equals : assert_not_equals)(
+        (expected_parseable ? assert_equals : assert_not_equals)(
           rule.selectorText,
           expected_selector,
           `${description}: ${selector}`
@@ -42,7 +42,8 @@
   assert_valid(true, "{}(:hover, :active)", null, "Pseudo-classes inside");
   assert_valid(true, "{}(div):hover", null, "Pseudo-classes after");
   assert_valid(true, "{}(div)::before", null, "Pseudo-elements after");
-  assert_valid(false, "{}(::before)", null, "Pseudo-elements inside");
+  // Should ask clarification from CSSWG
+  assert_valid(true, "{}(::before)", null, "Pseudo-elements inside");
 
   assert_valid(true, "{}(div) + bar", null, "Combinators after");
   assert_valid(true, "::part(foo):is(:hover)", null, "After part with simple pseudo-class");
