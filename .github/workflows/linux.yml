@@ -62,7 +62,7 @@ env:
 jobs:
   build:
     name: Linux Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         if: github.event_name != 'issue_comment' && github.event_name != 'pull_request_target'
