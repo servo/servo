@@ -607,13 +607,13 @@ dependencies = [
 
 [[package]]
 name = "bytemuck_derive"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1aca418a974d83d40a0c1f0c5cba6ff4bc28d8df099109ca459a2118d40b6322"
+checksum = "fdde5c9cd29ebd706ce1b35600920a33550e402fc998a2e53ad3b42c3c47a192"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.103",
+ "syn 2.0.29",
 ]
 
 [[package]]
