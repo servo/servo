@@ -528,9 +528,9 @@ def check_rust(file_name, lines):
     PANIC_NOT_ALLOWED_PATHS = [
         os.path.join("*", "components", "compositing", "compositor.rs"),
         os.path.join("*", "components", "constellation", "*"),
-        os.path.join("*", "ports", "winit", "headed_window.rs"),
-        os.path.join("*", "ports", "winit", "headless_window.rs"),
-        os.path.join("*", "ports", "winit", "embedder.rs"),
+        os.path.join("*", "ports", "servoshell", "headed_window.rs"),
+        os.path.join("*", "ports", "servoshell", "headless_window.rs"),
+        os.path.join("*", "ports", "servoshell", "embedder.rs"),
         os.path.join("*", "rust_tidy.rs"),  # This is for the tests.
     ]
     is_panic_not_allowed_rs_file = any([

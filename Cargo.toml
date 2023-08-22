@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "ports/winit",
+    "ports/servoshell",
     "ports/gstplugin",
     "ports/libsimpleservo/capi/",
     "ports/libsimpleservo/jniapi/",
