@@ -12,4 +12,4 @@ glsl-to-cxx = { path = "../glsl-to-cxx" }
 webrender_build = { path = "../webrender_build" }
 
 [dependencies]
-gleam = "0.13.1"
+gleam = "0.15"

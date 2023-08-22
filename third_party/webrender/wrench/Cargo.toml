@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 base64 = "0.12"
 env_logger = { version = "0.5", optional = true }
-gleam = "0.13"
+gleam = "0.15"
 glutin = "0.21"
 clap = { version = "2", features = ["yaml"] }
 log = "0.4"

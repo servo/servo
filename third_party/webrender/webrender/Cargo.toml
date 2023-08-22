@@ -33,7 +33,7 @@ byteorder = "1.0"
 cstr = "0.2"
 euclid = { version = "0.22.0", features = ["serde"] }
 fxhash = "0.2.1"
-gleam = "0.13.1"
+gleam = "0.15"
 lazy_static = "1"
 log = "0.4"
 malloc_size_of_derive = "0.1"
