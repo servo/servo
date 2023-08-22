@@ -131,19 +131,6 @@ pub(crate) struct IFrameFragment {
 }
 
 impl Fragment {
-    pub fn offset_inline(&mut self, offset: &Length) {
-        let position = match self {
-            Fragment::Box(f) => &mut f.content_rect.start_corner,
-            Fragment::Float(_) | Fragment::AbsoluteOrFixedPositioned(_) => return,
-            Fragment::Anonymous(f) => &mut f.rect.start_corner,
-            Fragment::Text(f) => &mut f.rect.start_corner,
-            Fragment::Image(f) => &mut f.rect.start_corner,
-            Fragment::IFrame(f) => &mut f.rect.start_corner,
-        };
-
-        position.inline += *offset;
-    }
-
     pub fn base(&self) -> Option<&BaseFragment> {
         Some(match self {
             Fragment::Box(fragment) => &fragment.base,
