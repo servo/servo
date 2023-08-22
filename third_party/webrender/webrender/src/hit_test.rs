@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{BorderRadius, ClipMode, HitTestItem, HitTestResult, ItemTag, PrimitiveFlags};
+use api::{BorderRadius, ClipMode, HitTestItem, HitTestResult, ItemTag, PrimitiveFlags, HitTestFlags};
 use api::{PipelineId, ApiHitTester, ClipId};
 use api::units::*;
 use crate::clip::{ClipItemKind, ClipStore, ClipNode, rounded_rectangle_contains_point};
 use crate::clip::{polygon_contains_point};
 use crate::prim_store::PolygonKey;
 use crate::scene_builder_thread::Interners;
+use crate::spatial_node::SpatialNodeType;
 use crate::spatial_tree::{SpatialNodeIndex, SpatialTree};
 use crate::internal_types::{FastHashMap, FastHashSet, LayoutPrimitiveInfo};
 use std::ops;
@@ -45,8 +46,9 @@ impl ApiHitTester for SharedHitTester {
     fn hit_test(&self,
         pipeline_id: Option<PipelineId>,
         point: WorldPoint,
+        flags: HitTestFlags,
     ) -> HitTestResult {
-        self.get_ref().hit_test(HitTest::new(pipeline_id, point))
+        self.get_ref().hit_test(HitTest::new(pipeline_id, point, flags))
     }
 }
 
@@ -355,6 +357,7 @@ impl HitTester {
         self.spatial_nodes.clear();
 
         self.spatial_nodes.reserve(spatial_tree.spatial_nodes.len());
+        self.pipeline_root_nodes.clear();
         for (index, node) in spatial_tree.spatial_nodes.iter().enumerate() {
             let index = SpatialNodeIndex::new(index);
 
@@ -380,6 +383,8 @@ impl HitTester {
     }
 
     pub fn hit_test(&self, test: HitTest) -> HitTestResult {
+        let point = test.get_absolute_point(self);
+
         let mut result = HitTestResult::default();
 
         let mut current_spatial_node_index = SpatialNodeIndex::INVALID;
@@ -402,7 +407,7 @@ impl HitTester {
                 point_in_layer = scroll_node
                     .world_content_transform
                     .inverse()
-                    .and_then(|inverted| inverted.transform_point2d(test.point));
+                    .and_then(|inverted| inverted.transform_point2d(point));
                 current_spatial_node_index = item.spatial_node_index;
             }
 
@@ -426,7 +431,7 @@ impl HitTester {
                         .world_content_transform;
                     let transformed_point = match transform
                         .inverse()
-                        .and_then(|inverted| inverted.transform_point2d(test.point))
+                        .and_then(|inverted| inverted.transform_point2d(point))
                     {
                         Some(point) => point,
                         None => {
@@ -457,7 +462,7 @@ impl HitTester {
                     point_in_viewport = root_node
                         .world_viewport_transform
                         .inverse()
-                        .and_then(|inverted| inverted.transform_point2d(test.point))
+                        .and_then(|inverted| inverted.transform_point2d(point))
                         .map(|pt| pt - scroll_node.external_scroll_offset);
 
                     current_root_spatial_node_index = root_spatial_node_index;
@@ -470,6 +475,10 @@ impl HitTester {
                         point_in_viewport,
                         point_relative_to_item: point_in_layer - item.rect.origin.to_vector(),
                     });
+
+                    if !test.flags.contains(HitTestFlags::FIND_ALL) {
+                        return result;
+                    }
                 }
             }
         }
@@ -477,24 +486,51 @@ impl HitTester {
         result.items.dedup();
         result
     }
+
+    fn get_pipeline_root(&self, pipeline_id: PipelineId) -> &HitTestSpatialNode {
+        &self.spatial_nodes[self.pipeline_root_nodes[&pipeline_id].0 as usize]
+    }
+
 }
 
 #[derive(MallocSizeOf)]
 pub struct HitTest {
     pipeline_id: Option<PipelineId>,
     point: WorldPoint,
+    flags: HitTestFlags,
 }
 
 impl HitTest {
     pub fn new(
         pipeline_id: Option<PipelineId>,
         point: WorldPoint,
+        flags: HitTestFlags,
     ) -> HitTest {
         HitTest {
             pipeline_id,
             point,
+            flags
         }
     }
+
+    fn get_absolute_point(&self, hit_tester: &HitTester) -> WorldPoint {
+        if !self.flags.contains(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT) {
+            return self.point;
+        }
+
+        let point = LayoutPoint::new(self.point.x, self.point.y);
+        self.pipeline_id
+            .and_then(|id|
+                hit_tester
+                    .get_pipeline_root(id)
+                    .world_viewport_transform
+                    .transform_point2d(point)
+            )
+            .unwrap_or_else(|| {
+                WorldPoint::new(self.point.x, self.point.y)
+            })
+    }
+
 }
 
 /// Collect clips for a given ClipId, convert and add them to the hit testing

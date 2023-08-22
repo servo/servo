@@ -535,14 +535,14 @@ impl Document {
             FrameMsg::UpdateEpoch(pipeline_id, epoch) => {
                 self.scene.pipeline_epochs.insert(pipeline_id, epoch);
             }
-            FrameMsg::HitTest(pipeline_id, point, tx) => {
+            FrameMsg::HitTest(pipeline_id, point, flags, tx) => {
                 if !self.hit_tester_is_valid {
                     self.rebuild_hit_tester();
                 }
 
                 let result = match self.hit_tester {
                     Some(ref hit_tester) => {
-                        hit_tester.hit_test(HitTest::new(pipeline_id, point))
+                        hit_tester.hit_test(HitTest::new(pipeline_id, point, flags))
                     }
                     None => HitTestResult { items: Vec::new() },
                 };

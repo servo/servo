@@ -278,7 +278,7 @@ pub trait ApiHitTester: Send + Sync {
     /// hit results so that only items inside that pipeline are matched. The vector
     /// of hit results will contain all display items that match, ordered from
     /// front to back.
-    fn hit_test(&self, pipeline_id: Option<PipelineId>, point: WorldPoint) -> HitTestResult;
+    fn hit_test(&self, pipeline_id: Option<PipelineId>, point: WorldPoint, flags: HitTestFlags) -> HitTestResult;
 }
 
 /// A hit tester requested to the render backend thread but not necessarily ready yet.
@@ -320,6 +320,17 @@ pub struct HitTestItem {
 pub struct HitTestResult {
     /// List of items that are match the hit-test query.
     pub items: Vec<HitTestItem>,
+}
+
+bitflags! {
+    #[derive(Deserialize, MallocSizeOf, Serialize)]
+    ///
+    pub struct HitTestFlags: u8 {
+        ///
+        const FIND_ALL = 0b00000001;
+        ///
+        const POINT_RELATIVE_TO_PIPELINE_VIEWPORT = 0b00000010;
+    }
 }
 
 impl Drop for NotificationRequest {

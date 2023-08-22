@@ -1393,6 +1393,7 @@ impl<'a> RawtestHarness<'a> {
                 self.wrench.document_id,
                 None,
                 point,
+                HitTetFlags::empty(),
             )
         };
 

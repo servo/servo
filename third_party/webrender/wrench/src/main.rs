@@ -965,6 +965,7 @@ fn render<'a>(
                                 wrench.document_id,
                                 None,
                                 cursor_position,
+                                HitTestFlags::empty(),
                             );
 
                             println!("Hit test results:");
