@@ -67,7 +67,7 @@ serde_json = "1.0"
 syn = { version = "1", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.12"
 smallbitvec = "2.3.0"
-smallvec = "1.9"
+smallvec = "1.11"
 sparkle = "0.1.25"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
