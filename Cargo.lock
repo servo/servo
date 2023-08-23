@@ -5773,7 +5773,7 @@ version = "0.0.1"
 dependencies = [
  "lazy_static",
  "log",
- "rand 0.7.3",
+ "rand 0.8.5",
  "rand_core 0.5.1",
  "rand_isaac",
  "uuid 1.4.1",
