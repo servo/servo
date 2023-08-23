@@ -17,7 +17,7 @@ path = "lib.rs"
 [dependencies]
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
-glib = "0.9"
+glib = "0.16"
 gstreamer = "0.15"
 gstreamer-base = "0.15"
 gstreamer-gl = "0.15"
