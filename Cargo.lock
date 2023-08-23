@@ -211,9 +211,9 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
 name = "arrayvec"
-version = "0.7.1"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be4dc07131ffa69b8072d35f5007352af944213cde02545e2103680baed38fcd"
+checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 dependencies = [
  "serde",
 ]
@@ -2958,7 +2958,7 @@ name = "immeta"
 version = "0.4.1"
 source = "git+https://github.com/fabricedesre/immeta.git#7f08e1bd465078baedfb37269aea1612af9bfd5f"
 dependencies = [
- "arrayvec 0.7.1",
+ "arrayvec 0.7.4",
  "byteorder",
  "num-traits",
 ]
@@ -3546,7 +3546,7 @@ version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74df1ff0a0147282eb10699537a03baa7d31972b58984a1d44ce0624043fe8ad"
 dependencies = [
- "arrayvec 0.7.1",
+ "arrayvec 0.7.4",
  "euclid",
  "num-traits",
 ]
@@ -5163,7 +5163,7 @@ version = "0.0.1"
 dependencies = [
  "accountable-refcell",
  "app_units",
- "arrayvec 0.7.1",
+ "arrayvec 0.7.4",
  "atomic_refcell",
  "backtrace",
  "base64 0.21.2",
@@ -6112,7 +6112,7 @@ name = "style"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "arrayvec 0.7.1",
+ "arrayvec 0.7.4",
  "atomic_refcell",
  "bindgen",
  "bitflags 1.3.2",
@@ -6440,7 +6440,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df8493a203431061e901613751931f047d1971337153f96d0e5e363d6dbf6a67"
 dependencies = [
  "arrayref",
- "arrayvec 0.7.1",
+ "arrayvec 0.7.4",
  "bytemuck",
  "cfg-if 1.0.0",
  "png 0.17.7",
@@ -6703,7 +6703,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "794a32261a1f5eb6a4462c81b59cec87b5c27d5deea7dd1ac8fc781c41d226db"
 dependencies = [
- "arrayvec 0.7.1",
+ "arrayvec 0.7.4",
 ]
 
 [[package]]
@@ -7123,7 +7123,7 @@ dependencies = [
 name = "webgpu"
 version = "0.0.1"
 dependencies = [
- "arrayvec 0.7.1",
+ "arrayvec 0.7.4",
  "euclid",
  "ipc-channel",
  "log",
@@ -7287,7 +7287,7 @@ version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ecf7454d9386f602f7399225c92dd2fbdcde52c519bc8fb0bd6fbeb388075dc2"
 dependencies = [
- "arrayvec 0.7.1",
+ "arrayvec 0.7.4",
  "bit-vec",
  "bitflags 2.3.1",
  "codespan-reporting",
@@ -7312,7 +7312,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6654a13885a17f475e8324efb46dc6986d7aaaa98353330f8de2077b153d0101"
 dependencies = [
  "android_system_properties",
- "arrayvec 0.7.1",
+ "arrayvec 0.7.4",
  "ash",
  "bit-set",
  "bitflags 2.3.1",
