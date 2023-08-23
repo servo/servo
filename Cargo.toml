@@ -64,7 +64,7 @@ rustls-pemfile = "1.0.3"
 serde = "1.0.60"
 serde_bytes = "0.11"
 serde_json = "1.0"
-syn = { version = "1", default-features = false, features = ["clone-impls", "derive", "parsing"] }
+syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.12"
 smallbitvec = "2.3.0"
 smallvec = "1.11"
