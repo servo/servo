@@ -829,9 +829,10 @@ impl Fragment {
             index,
         );
 
-        if placement.tile_size.is_empty() {
-            return;
-        }
+        let placement = match placement {
+            Some(placement) => placement,
+            None => return,
+        };
 
         state.clipping_and_scrolling_scope(|state| {
             if !placement.clip_radii.is_zero() {
@@ -950,6 +951,11 @@ impl Fragment {
             border::radii(absolute_bounds, style.get_border()),
             index,
         );
+
+        let placement = match placement {
+            Some(placement) => placement,
+            None => return,
+        };
 
         state.clipping_and_scrolling_scope(|state| {
             if !placement.clip_radii.is_zero() {
