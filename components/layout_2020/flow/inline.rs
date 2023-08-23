@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use super::float::PlacementAmongFloats;
+use super::CollapsibleWithParentStartMargin;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
@@ -26,6 +28,7 @@ use atomic_refcell::AtomicRef;
 use gfx::text::glyph::GlyphStore;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
+use std::cell::OnceCell;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
@@ -37,7 +40,6 @@ use style::Zero;
 use webrender_api::FontInstanceKey;
 use xi_unicode::LineBreakLeafIter;
 
-use super::CollapsibleWithParentStartMargin;
 #[derive(Debug, Serialize)]
 pub(crate) struct InlineFormattingContext {
     pub(super) inline_level_boxes: Vec<ArcRefCell<InlineLevelBox>>,
@@ -110,6 +112,74 @@ struct PartialInlineBoxFragment<'box_tree> {
     parent_nesting_level: InlineNestingLevelState<'box_tree>,
 }
 
+/// Information about the current line under construction for a particular
+/// [`InlineFormattingContextState`]. This tracks position and size information while
+/// [`LineItem`]s are collected and is used as input when those [`LineItem`]s are
+/// converted into [`Fragment`]s during the final phase of line layout. Note that this
+/// does not store the [`LineItem`]s themselves, as they are stored as part of the
+/// nesting state in the [`InlineFormattingContextState`].
+struct LineUnderConstruction {
+    /// The position where this line will start once it is laid out. This includes any
+    /// offset from `text-indent`.
+    start_position: Vec2<Length>,
+
+    /// The current inline position in the line being laid out into [`LineItems`] in this
+    /// [`InlineFormattingContext`] independent of the depth in the nesting level.
+    inline_position: Length,
+
+    /// If the current line ends with whitespace, this tracks the advance width of that
+    /// whitespace. This is used to find the "real" width of a line if trailing whitespace
+    /// is trimmed from the end.
+    trailing_whitespace_advance: Length,
+
+    /// The currently calculated block size of this line, taking into account all inline
+    /// content already laid out into [`LineItem`]s. Later content may increase the block
+    /// size.
+    block_size: Length,
+
+    /// Whether any active linebox has added a glyph, border, margin, or padding
+    /// to this line, which indicates that the next run that exceeds the line length
+    /// can cause a line break.
+    has_content: bool,
+
+    /// Whether or not there are floats that did not fit on the current line. Before
+    /// the [`LineItems`] of this line are laid out, these floats will need to be
+    /// placed directly below this line, but still as children of this line's Fragments.
+    has_floats_waiting_to_be_placed: bool,
+
+    /// A rectangular area (relative to the containing block / inline formatting
+    /// context boundaries) where we can fit the line box without overlapping floats.
+    /// Note that when this is not empty, its start corner takes precedence over
+    /// [`LineUnderConstruction::start_position`].
+    placement_among_floats: OnceCell<Rect<Length>>,
+}
+
+impl LineUnderConstruction {
+    fn new(start_position: Vec2<Length>) -> Self {
+        Self {
+            inline_position: start_position.inline.clone(),
+            trailing_whitespace_advance: Length::zero(),
+            start_position: start_position,
+            block_size: Length::zero(),
+            has_content: false,
+            has_floats_waiting_to_be_placed: false,
+            placement_among_floats: OnceCell::new(),
+        }
+    }
+
+    fn line_block_start_considering_placement_among_floats(&self) -> Length {
+        match self.placement_among_floats.get() {
+            Some(placement_among_floats) => placement_among_floats.start_corner.block,
+            None => self.start_position.block,
+        }
+    }
+
+    fn replace_placement_among_floats(&mut self, new_placement: Rect<Length>) {
+        self.placement_among_floats.take();
+        let _ = self.placement_among_floats.set(new_placement);
+    }
+}
+
 struct InlineFormattingContextState<'box_tree, 'a, 'b> {
     positioning_context: &'a mut PositioningContext,
     containing_block: &'b ContainingBlock<'b>,
@@ -120,17 +190,9 @@ struct InlineFormattingContextState<'box_tree, 'a, 'b> {
     /// are currently laid out at the top-level of each [`InlineFormattingContext`].
     fragments: Vec<Fragment>,
 
-    /// The position of where the next line will start.
-    current_line_start_position: Vec2<Length>,
-
-    /// The current inline position in the line being laid out into [`LineItems`] in this
-    /// [`InlineFormattingContext`] independent of the depth in the nesting level.
-    current_inline_position: Length,
-
-    /// Whether any active line box has added a glyph, border, margin, or padding
-    /// to this line, which indicates that the next run that exceeds the line length
-    /// can cause a line break.
-    line_had_any_content: bool,
+    /// Information about the line currently being laid out into [`LineItems`]s. The
+    /// [`LineItem`]s themselves are stored in the nesting state.
+    current_line: LineUnderConstruction,
 
     /// The line breaking state for this inline formatting context.
     linebreaker: Option<LineBreakLeafIter>,
@@ -142,10 +204,19 @@ struct InlineFormattingContextState<'box_tree, 'a, 'b> {
 impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
     /// Push a completed [LineItem] to the current nesteding level of this
     /// [InlineFormattingContext].
-    fn push_line_item(&mut self, inline_size: Length, line_item: LineItem) {
+    fn push_line_item(
+        &mut self,
+        inline_size: Length,
+        line_item: LineItem,
+        last_whitespace_advance: Length,
+    ) {
+        self.current_line.has_content = true;
+        self.current_line.inline_position += inline_size;
+        self.current_line.trailing_whitespace_advance = last_whitespace_advance;
+        self.current_line
+            .block_size
+            .max_assign(line_item.block_size());
         self.current_nesting_level.line_items_so_far.push(line_item);
-        self.line_had_any_content = true;
-        self.current_inline_position += inline_size;
     }
 
     /// Finish layout of all the partial inline boxes in the current line,
@@ -155,7 +226,7 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
         for partial in self.partial_inline_boxes_stack.iter_mut().rev() {
             partial.finish_layout(
                 nesting_level,
-                &mut self.current_inline_position,
+                &mut self.current_line.inline_position,
                 false, /* at_end_of_inline_element */
             );
             nesting_level = &mut partial.parent_nesting_level;
@@ -163,9 +234,6 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
 
         let line_items = std::mem::take(&mut nesting_level.line_items_so_far);
         self.finish_current_line(layout_context, line_items, self.containing_block);
-
-        self.current_inline_position = Length::zero();
-        self.line_had_any_content = false;
     }
 
     fn finish_current_line(
@@ -187,13 +255,29 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
 
         let inline_start_position =
             self.calculate_inline_start_for_current_line(containing_block, whitespace_trimmed);
+        let block_start_position = self
+            .current_line
+            .line_block_start_considering_placement_among_floats();
+        let block_end_position = block_start_position + self.current_line.block_size;
+
+        if let Some(sequential_layout_state) = self.sequential_layout_state.as_mut() {
+            // This amount includes both the block size of the line and any extra space
+            // added to move the line down in order to avoid overlapping floats.
+            let increment = block_end_position - self.current_line.start_position.block;
+            sequential_layout_state.advance_block_position(increment);
+        }
+
+        if self.current_line.has_floats_waiting_to_be_placed {
+            place_pending_floats(self, &mut line_items);
+        }
+
         let mut state = LineItemLayoutState {
             inline_position: inline_start_position,
             max_block_size: Length::zero(),
             inline_start_of_parent: Length::zero(),
             ifc_containing_block: containing_block,
             positioning_context: &mut self.positioning_context,
-            line_block_start: self.current_line_start_position.block,
+            line_block_start: block_start_position,
         };
 
         let positioning_context_length = state.positioning_context.len();
@@ -209,16 +293,8 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
         // we do not need to include it in the `start_corner` of the line's main Fragment.
         let start_corner = Vec2 {
             inline: Length::zero(),
-            block: self.current_line_start_position.block,
+            block: block_start_position,
         };
-        self.current_line_start_position = Vec2 {
-            inline: Length::zero(),
-            block: self.current_line_start_position.block + size.block,
-        };
-
-        if let Some(sequential_layout_state) = self.sequential_layout_state.as_mut() {
-            sequential_layout_state.advance_block_position(size.block);
-        }
 
         let line_had_content =
             !fragments.is_empty() || state.positioning_context.len() != positioning_context_length;
@@ -237,6 +313,11 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
                     containing_block.style.writing_mode,
                 )));
         }
+
+        self.current_line = LineUnderConstruction::new(Vec2 {
+            inline: Length::zero(),
+            block: block_end_position,
+        });
     }
 
     /// Given the amount of whitespace trimmed from the line and taking into consideration
@@ -286,22 +367,136 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
             },
         };
 
+        let (line_start, available_space) = match self.current_line.placement_among_floats.get() {
+            Some(placement_among_floats) => (
+                placement_among_floats.start_corner.inline,
+                placement_among_floats.size.inline,
+            ),
+            None => (Length::zero(), self.containing_block.inline_size),
+        };
+
         // Properly handling text-indent requires that we do not align the text
         // into the text-indent.
         // See <https://drafts.csswg.org/css-text/#text-indent-property>
         // "This property specifies the indentation applied to lines of inline content in
         // a block. The indent is treated as a margin applied to the start edge of the
         // line box."
-        let text_indent = self.current_line_start_position.inline;
-        let line_length = self.current_inline_position - whitespace_trimmed - text_indent;
-        match text_align {
-            TextAlign::Start => text_indent,
-            TextAlign::End => (containing_block.inline_size - line_length).max(text_indent),
-            TextAlign::Center => {
-                let available_space = containing_block.inline_size - text_indent;
-                ((available_space - line_length) / 2.) + text_indent
-            },
+        let text_indent = self.current_line.start_position.inline;
+        let line_length = self.current_line.inline_position - whitespace_trimmed - text_indent;
+        line_start +
+            match text_align {
+                TextAlign::Start => text_indent,
+                TextAlign::End => (available_space - line_length).max(text_indent),
+                TextAlign::Center => (available_space - line_length + text_indent) / 2.,
+            }
+    }
+
+    fn place_float_fragment(&mut self, fragment: &mut BoxFragment) {
+        let state = self
+            .sequential_layout_state
+            .as_mut()
+            .expect("Tried to lay out a float with no sequential placement state!");
+
+        let block_offset_from_containining_block_top = state
+            .current_block_position_including_margins() -
+            state.current_containing_block_offset();
+        state.place_float_fragment(
+            fragment,
+            CollapsedMargin::zero(),
+            block_offset_from_containining_block_top,
+        );
+    }
+
+    /// Given a new potential line size for the current line, create a "placement" for that line.
+    /// This tells us whether or not the new potential line will fit in the current block position
+    /// or need to be moved. In addition, the placement rect determines the inline start and end
+    /// of the line if it's used as the final placement among floats.
+    fn place_line_among_floats(&self, potential_line_size: &Vec2<Length>) -> Rect<Length> {
+        let sequential_layout_state = self
+            .sequential_layout_state
+            .as_ref()
+            .expect("Should not have called this function without having floats.");
+
+        let ifc_offset_in_float_container = Vec2 {
+            inline: sequential_layout_state
+                .floats
+                .containing_block_info
+                .inline_start,
+            block: sequential_layout_state.current_containing_block_offset(),
+        };
+
+        let ceiling = self
+            .current_line
+            .line_block_start_considering_placement_among_floats();
+        let mut placement = PlacementAmongFloats::new(
+            &sequential_layout_state.floats,
+            ceiling + ifc_offset_in_float_container.block,
+            potential_line_size.clone(),
+            &PaddingBorderMargin::zero(),
+        );
+
+        let mut placement_rect = placement.place();
+        placement_rect.start_corner = &placement_rect.start_corner - &ifc_offset_in_float_container;
+        placement_rect
+    }
+
+    /// Returns true if a new potential line size for the current line would require a line
+    /// break. This takes into account floats and will also update the "placement among
+    /// floats" for this line if the potential line size would not cause a line break.
+    /// Thus, calling this method has side effects and should only be done while in the
+    /// process of laying out line content that is always going to be committed to this
+    /// line or the next.
+    fn new_potential_line_size_causes_line_break(
+        &mut self,
+        potential_line_size: &Vec2<Length>,
+    ) -> bool {
+        // If this is the first content on the line and we already have a float placement,
+        // that means that the placement was initialized by a leading float in the IFC.
+        // This placement needs to be updated, because the first line content might push
+        // the block start of the line downward.
+        if !self.current_line.has_content && self.sequential_layout_state.is_some() {
+            let new_placement = self.place_line_among_floats(potential_line_size);
+            self.current_line
+                .replace_placement_among_floats(new_placement);
         }
+
+        if potential_line_size.inline > self.containing_block.inline_size {
+            return true;
+        }
+
+        // If we already have a placement among floats for this line, and the new potential
+        // line size causes a change in the block position, then we will need a line
+        // break. This block of code also takes the opportunity to update the placement
+        // among floats in the case that line does fit at the same block position (because
+        // its inline start may change).
+        let old_placement = self.current_line.placement_among_floats.get().cloned();
+        if let Some(old_placement) = old_placement {
+            if potential_line_size.block > old_placement.size.block {
+                let new_placement = self.place_line_among_floats(potential_line_size);
+                if new_placement.start_corner.block != old_placement.start_corner.block {
+                    return true;
+                } else {
+                    self.current_line
+                        .replace_placement_among_floats(new_placement);
+                    return false;
+                }
+            }
+        }
+
+        // Otherwise the new potential line size will require a newline if it fits in the
+        // inline space available for this line. This space may be smaller than the
+        // containing block if floats shrink the available inline space.
+        let available_inline_space = if self.sequential_layout_state.is_some() {
+            let placement_among_floats = self
+                .current_line
+                .placement_among_floats
+                .get_or_init(|| self.place_line_among_floats(potential_line_size));
+            placement_among_floats.size.inline
+        } else {
+            self.containing_block.inline_size
+        };
+
+        potential_line_size.inline > available_inline_space
     }
 }
 
@@ -481,12 +676,10 @@ impl InlineFormattingContext {
             containing_block,
             sequential_layout_state,
             fragments: Vec::new(),
-            current_line_start_position: Vec2 {
+            current_line: LineUnderConstruction::new(Vec2 {
                 inline: first_line_inline_start,
                 block: Length::zero(),
-            },
-            current_inline_position: first_line_inline_start,
-            line_had_any_content: false,
+            }),
             linebreaker: None,
             partial_inline_boxes_stack: Vec::new(),
             current_nesting_level: InlineNestingLevelState {
@@ -499,8 +692,10 @@ impl InlineFormattingContext {
 
         // FIXME(pcwalton): This assumes that margins never collapse through inline formatting
         // contexts (i.e. that inline formatting contexts are never empty). Is that right?
+        // FIXME(mrobinson): This should not happen if the IFC collapses through.
         if let Some(ref mut sequential_layout_state) = ifc.sequential_layout_state {
             sequential_layout_state.collapse_margins();
+            // FIXME(mrobinson): Collapse margins in the containing block offsets as well??
         }
 
         loop {
@@ -533,7 +728,7 @@ impl InlineFormattingContext {
                 // start working on the parent nesting level again.
                 partial.finish_layout(
                     &mut ifc.current_nesting_level,
-                    &mut ifc.current_inline_position,
+                    &mut ifc.current_line.inline_position,
                     true, /* at_end_of_inline_element */
                 );
                 ifc.current_nesting_level = partial.parent_nesting_level
@@ -547,7 +742,7 @@ impl InlineFormattingContext {
         ifc.finish_current_line(layout_context, line_items, containing_block);
 
         let mut collapsible_margins_in_children = CollapsedBlockMargins::zero();
-        let content_block_size = ifc.current_line_start_position.block;
+        let content_block_size = ifc.current_line.start_position.block;
         collapsible_margins_in_children.collapsed_through =
             content_block_size == Length::zero() && collapsible_with_parent_start_margin.0;
 
@@ -592,7 +787,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
         let mut pbm = style.padding_border_margin(&ifc.containing_block);
 
         if inline_box.first_fragment {
-            ifc.current_inline_position += pbm.padding.inline_start +
+            ifc.current_line.inline_position += pbm.padding.inline_start +
                 pbm.border.inline_start +
                 pbm.margin.inline_start.auto_is(Length::zero)
         } else {
@@ -786,15 +981,18 @@ impl IndependentFormattingContext {
             },
         };
 
-        if fragment.content_rect.size.inline + pbm_sums.inline_sum() >
-            ifc.containing_block.inline_size - ifc.current_inline_position &&
-            ifc.current_nesting_level.white_space.allow_wrap() &&
-            ifc.current_nesting_level.line_items_so_far.len() != 0
-        {
+        let size = &pbm_sums.sum() + &fragment.content_rect.size;
+        let new_potential_line_size = Vec2 {
+            inline: ifc.current_line.inline_position + size.inline,
+            block: ifc.current_line.block_size.max(size.block),
+        };
+
+        let can_break = ifc.current_nesting_level.white_space.allow_wrap() &&
+            ifc.current_nesting_level.line_items_so_far.len() != 0;
+        if ifc.new_potential_line_size_causes_line_break(&new_potential_line_size) && can_break {
             ifc.finish_line_and_reset(layout_context);
         }
 
-        let size = &pbm_sums.sum() + &fragment.content_rect.size;
         ifc.push_line_item(
             size.inline,
             LineItem::Atomic(AtomicLineItem {
@@ -802,6 +1000,7 @@ impl IndependentFormattingContext {
                 size,
                 positioning_context: child_positioning_context,
             }),
+            Length::zero(),
         );
 
         // After every atomic, we need to create a line breaking opportunity for the next TextRun.
@@ -903,6 +1102,7 @@ impl TextRun {
             break_at_start,
         } = self.break_and_shape(layout_context, &mut ifc.linebreaker);
 
+        let white_space = self.parent_style.get_inherited_text().white_space;
         let add_glyphs_to_current_line =
             |ifc: &mut InlineFormattingContextState,
              glyphs: Vec<std::sync::Arc<GlyphStore>>,
@@ -911,6 +1111,13 @@ impl TextRun {
                 if !force_text_run_creation && glyphs.is_empty() {
                     return;
                 }
+
+                let last_whitespace_advance = match (white_space.preserve_spaces(), glyphs.last()) {
+                    (false, Some(last_glyph)) if last_glyph.is_whitespace() => {
+                        last_glyph.total_advance()
+                    },
+                    _ => Au::zero(),
+                };
 
                 ifc.push_line_item(
                     inline_advance,
@@ -922,12 +1129,15 @@ impl TextRun {
                         font_key,
                         text_decoration_line: ifc.current_nesting_level.text_decoration_line,
                     }),
+                    Length::from(last_whitespace_advance),
                 );
             };
 
-        let white_space = self.parent_style.get_inherited_text().white_space;
+        let line_height = line_height(&self.parent_style, &font_metrics);
+        let new_max_height_of_line = ifc.current_line.block_size.max(line_height);
+
         let mut glyphs = vec![];
-        let mut inline_advance = Length::zero();
+        let mut advance_from_text_run = Length::zero();
         let mut iterator = runs.iter().enumerate();
         while let Some((run_index, run)) = iterator.next() {
             // If this whitespace forces a line break, finish the line and reset everything.
@@ -940,30 +1150,39 @@ impl TextRun {
                     add_glyphs_to_current_line(
                         ifc,
                         glyphs.drain(..).collect(),
-                        inline_advance,
+                        advance_from_text_run,
                         true,
                     );
                     ifc.finish_line_and_reset(layout_context);
-                    inline_advance = Length::zero();
+                    advance_from_text_run = Length::zero();
                     continue;
                 }
             }
 
-            // We break the line if this new advance and any advances from pending
-            // whitespace bring us past the inline end of the containing block.
-            let new_advance = Length::from(run.glyph_store.total_advance());
-            let will_advance_past_containing_block =
-                (new_advance + inline_advance + ifc.current_inline_position) >
-                    ifc.containing_block.inline_size;
+            let new_advance_from_glyph_run = Length::from(run.glyph_store.total_advance());
+            let new_total_advance = new_advance_from_glyph_run +
+                advance_from_text_run +
+                ifc.current_line.inline_position;
+
+            let new_potential_line_size = Vec2 {
+                inline: new_total_advance,
+                block: new_max_height_of_line,
+            };
 
             // We can only break the line, if this isn't the first actual content (non-whitespace or
             // preserved whitespace) on the line and this isn't the unbreakable run of this text run
             // (or we can break at the start according to the text breaker).
-            let can_break = ifc.line_had_any_content && (break_at_start || run_index != 0);
-            if will_advance_past_containing_block && can_break {
-                add_glyphs_to_current_line(ifc, glyphs.drain(..).collect(), inline_advance, false);
+            let can_break = ifc.current_line.has_content && (break_at_start || run_index != 0);
+            if ifc.new_potential_line_size_causes_line_break(&new_potential_line_size) && can_break
+            {
+                add_glyphs_to_current_line(
+                    ifc,
+                    glyphs.drain(..).collect(),
+                    advance_from_text_run,
+                    true,
+                );
                 ifc.finish_line_and_reset(layout_context);
-                inline_advance = Length::zero();
+                advance_from_text_run = Length::zero();
             }
 
             // From <https://www.w3.org/TR/css-text-3/#white-space-phase-2>:
@@ -978,17 +1197,22 @@ impl TextRun {
             // width.
             if run.glyph_store.is_whitespace() &&
                 !white_space.preserve_spaces() &&
-                !ifc.line_had_any_content
+                !ifc.current_line.has_content
             {
                 continue;
             }
 
-            inline_advance += Length::from(run.glyph_store.total_advance());
+            advance_from_text_run += Length::from(run.glyph_store.total_advance());
             glyphs.push(run.glyph_store.clone());
-            ifc.line_had_any_content = true;
+            ifc.current_line.has_content = true;
         }
 
-        add_glyphs_to_current_line(ifc, glyphs.drain(..).collect(), inline_advance, false);
+        add_glyphs_to_current_line(
+            ifc,
+            glyphs.drain(..).collect(),
+            advance_from_text_run,
+            false,
+        );
     }
 }
 
@@ -998,28 +1222,53 @@ impl FloatBox {
         layout_context: &LayoutContext,
         ifc: &mut InlineFormattingContextState,
     ) {
-        let mut box_fragment = self.layout(
+        let mut fragment = self.layout(
             layout_context,
             ifc.positioning_context,
             ifc.containing_block,
         );
 
-        let state = ifc
-            .sequential_layout_state
-            .as_mut()
-            .expect("Tried to lay out a float with no sequential placement state!");
+        let margin_box = fragment.border_rect().inflate(&fragment.margin);
+        let inline_size = margin_box.size.inline.max(Length::zero());
 
-        let block_offset_from_containining_block_top = state
-            .current_block_position_including_margins() -
-            state.current_containing_block_offset();
-        state.place_float_fragment(
-            &mut box_fragment,
-            CollapsedMargin::zero(),
-            block_offset_from_containining_block_top,
-        );
+        let available_inline_size = match ifc.current_line.placement_among_floats.get() {
+            Some(placement_among_floats) => placement_among_floats.size.inline,
+            None => ifc.containing_block.inline_size,
+        } - (ifc.current_line.inline_position -
+            ifc.current_line.trailing_whitespace_advance);
+
+        // If this float doesn't fit on the current line or a previous float didn't fit on
+        // the current line, we need to place it starting at the next line BUT still as
+        // children of this line's hierarchy of inline boxes (for the purposes of properly
+        // parenting in their stacking contexts). Once all the line content is gathered we
+        // will place them later.
+        let fits_on_line = !ifc.current_line.has_content || inline_size <= available_inline_size;
+        let needs_placement_later =
+            ifc.current_line.has_floats_waiting_to_be_placed || !fits_on_line;
+
+        if needs_placement_later {
+            ifc.current_line.has_floats_waiting_to_be_placed = true;
+        } else {
+            ifc.place_float_fragment(&mut fragment);
+
+            // We've added a new float to the IFC, but this may have actually changed the
+            // position of the current line. In order to determine that we regenerate the
+            // placement among floats for the current line, which may adjust its inline
+            // start position.
+            let new_placement = ifc.place_line_among_floats(&Vec2 {
+                inline: ifc.current_line.inline_position,
+                block: ifc.current_line.block_size,
+            });
+            ifc.current_line
+                .replace_placement_among_floats(new_placement);
+        }
+
         ifc.current_nesting_level
             .line_items_so_far
-            .push(LineItem::Float(FloatLineItem { box_fragment }));
+            .push(LineItem::Float(FloatLineItem {
+                fragment,
+                needs_placement: needs_placement_later,
+            }));
     }
 }
 
@@ -1123,6 +1372,22 @@ fn layout_line_items(
     fragments
 }
 
+fn place_pending_floats(ifc: &mut InlineFormattingContextState, line_items: &mut Vec<LineItem>) {
+    for item in line_items.into_iter() {
+        match item {
+            LineItem::InlineBox(box_line_item) => {
+                place_pending_floats(ifc, &mut box_line_item.children);
+            },
+            LineItem::Float(float_line_item) => {
+                if float_line_item.needs_placement {
+                    ifc.place_float_fragment(&mut float_line_item.fragment);
+                }
+            },
+            _ => {},
+        }
+    }
+}
+
 enum LineItem {
     TextRun(TextRunLineItem),
     InlineBox(InlineBoxLineItem),
@@ -1148,6 +1413,19 @@ impl LineItem {
             LineItem::Float(_) => true,
         }
     }
+
+    fn block_size(&self) -> Length {
+        match self {
+            LineItem::TextRun(text_run) => text_run.line_height(),
+            LineItem::InlineBox(_) => {
+                // TODO(mrobinson): This should get the line height from the font.
+                Length::zero()
+            },
+            LineItem::Atomic(atomic) => atomic.size.block,
+            LineItem::AbsolutelyPositioned(_) => Length::zero(),
+            LineItem::Float(_) => Length::zero(),
+        }
+    }
 }
 
 struct TextRunLineItem {
@@ -1157,6 +1435,15 @@ struct TextRunLineItem {
     font_metrics: FontMetrics,
     font_key: FontInstanceKey,
     text_decoration_line: TextDecorationLine,
+}
+
+fn line_height(parent_style: &Arc<ComputedValues>, font_metrics: &FontMetrics) -> Length {
+    let font_size = parent_style.get_font().font_size.size.0;
+    match parent_style.get_inherited_text().line_height {
+        LineHeight::Normal => font_metrics.line_gap,
+        LineHeight::Number(n) => font_size * n.0,
+        LineHeight::Length(l) => l.0,
+    }
 }
 
 impl TextRunLineItem {
@@ -1188,14 +1475,12 @@ impl TextRunLineItem {
         index_of_last_non_whitespace.is_none()
     }
 
+    fn line_height(&self) -> Length {
+        line_height(&self.parent_style, &self.font_metrics)
+    }
+
     fn layout(self, state: &mut LineItemLayoutState) -> Option<TextFragment> {
-        let font_size = self.parent_style.get_font().font_size.size.0;
-        let line_height = match self.parent_style.get_inherited_text().line_height {
-            LineHeight::Normal => self.font_metrics.line_gap,
-            LineHeight::Number(n) => font_size * n.0,
-            LineHeight::Length(l) => l.0,
-        };
-        state.max_block_size.max_assign(line_height);
+        state.max_block_size.max_assign(self.line_height());
 
         // This happens after updating the `max_block_size`, because even trimmed newlines
         // should affect the height of the line.
@@ -1214,7 +1499,7 @@ impl TextRunLineItem {
                 inline: state.inline_position - state.inline_start_of_parent,
             },
             size: Vec2 {
-                block: line_height,
+                block: self.line_height(),
                 inline: inline_advance,
             },
         };
@@ -1412,7 +1697,11 @@ impl AbsolutelyPositionedLineItem {
 }
 
 struct FloatLineItem {
-    box_fragment: BoxFragment,
+    fragment: BoxFragment,
+    /// Whether or not this float Fragment has been placed yet. Fragments that
+    /// do not fit on a line need to be placed after the hypothetical block start
+    /// of the next line.
+    needs_placement: bool,
 }
 
 impl FloatLineItem {
@@ -1426,8 +1715,8 @@ impl FloatLineItem {
             inline: state.inline_start_of_parent,
             block: state.line_block_start,
         };
-        self.box_fragment.content_rect.start_corner =
-            &self.box_fragment.content_rect.start_corner - &distance_from_parent_to_ifc;
-        self.box_fragment
+        self.fragment.content_rect.start_corner =
+            &self.fragment.content_rect.start_corner - &distance_from_parent_to_ifc;
+        self.fragment
     }
 }
