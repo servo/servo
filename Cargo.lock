@@ -685,7 +685,7 @@ dependencies = [
  "fnv",
  "font-kit",
  "gfx",
- "gleam",
+ "gleam 0.15.0",
  "half",
  "ipc-channel",
  "log",
@@ -961,7 +961,7 @@ dependencies = [
  "euclid",
  "fnv",
  "gfx_traits",
- "gleam",
+ "gleam 0.15.0",
  "image 0.24.6",
  "ipc-channel",
  "keyboard-types",
@@ -2253,6 +2253,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gleam"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0173481f2bb6e809bf4985de2e86c83876d84d2805830e3301cd37355e897f0f"
+dependencies = [
+ "gl_generator 0.14.0",
+]
+
+[[package]]
 name = "glib"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3455,7 +3464,7 @@ dependencies = [
  "gaol",
  "gfx",
  "gfx_traits",
- "gleam",
+ "gleam 0.15.0",
  "gstreamer",
  "ipc-channel",
  "keyboard-types",
@@ -5475,7 +5484,7 @@ dependencies = [
  "egui_glow",
  "euclid",
  "getopts",
- "gleam",
+ "gleam 0.15.0",
  "glow",
  "image 0.24.6",
  "keyboard-types",
@@ -7176,7 +7185,7 @@ dependencies = [
  "euclid",
  "freetype",
  "fxhash",
- "gleam",
+ "gleam 0.12.2",
  "glslopt",
  "image 0.23.14",
  "lazy_static",
