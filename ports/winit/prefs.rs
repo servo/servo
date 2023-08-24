@@ -90,7 +90,7 @@ fn test_parse_pref_from_command_line() {
         prefs::pref_map().get("dom.bluetooth.enabled"),
         PrefValue::Bool(false)
     );
-    assert!(pref!(dom.bluetooth.enabled));
+    assert_eq!(pref!(dom.bluetooth.enabled), false);
 
     // Test with numbers
     test_parse_pref("layout.threads=42");
