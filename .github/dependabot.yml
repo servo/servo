@@ -5,6 +5,10 @@ updates:
   schedule:
     interval: daily
   open-pull-requests-limit: 10
+  groups:
+    patch-updates:
+      update-types:
+       - patch
   allow:
   - dependency-type: direct
   - dependency-type: indirect
