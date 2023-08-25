@@ -185,7 +185,7 @@ dependencies = [
  "objc-foundation",
  "objc_id",
  "once_cell",
- "parking_lot 0.12.0",
+ "parking_lot",
  "thiserror",
  "winapi",
  "x11rb",
@@ -1661,7 +1661,7 @@ dependencies = [
  "emath",
  "log",
  "nohash-hasher",
- "parking_lot 0.12.0",
+ "parking_lot",
 ]
 
 [[package]]
@@ -3079,7 +3079,7 @@ dependencies = [
  "msg",
  "net_traits",
  "num-traits",
- "parking_lot 0.12.0",
+ "parking_lot",
  "profile_traits",
  "range",
  "rayon",
@@ -3125,7 +3125,7 @@ dependencies = [
  "mitochondria",
  "msg",
  "net_traits",
- "parking_lot 0.12.0",
+ "parking_lot",
  "quickcheck",
  "range",
  "rayon",
@@ -3167,7 +3167,7 @@ dependencies = [
  "metrics",
  "msg",
  "net_traits",
- "parking_lot 0.11.2",
+ "parking_lot",
  "profile_traits",
  "range",
  "rayon",
@@ -3211,7 +3211,7 @@ dependencies = [
  "metrics",
  "msg",
  "net_traits",
- "parking_lot 0.11.2",
+ "parking_lot",
  "profile_traits",
  "range",
  "script",
@@ -3797,7 +3797,7 @@ dependencies = [
  "lazy_static",
  "malloc_size_of",
  "malloc_size_of_derive",
- "parking_lot 0.12.0",
+ "parking_lot",
  "serde",
  "size_of_test",
  "webrender_api",
@@ -4267,37 +4267,12 @@ dependencies = [
 
 [[package]]
 name = "parking_lot"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d17b78036a60663b797adeaee46f5c9dfebb86948d1255007a1d6be0271ff99"
-dependencies = [
- "instant",
- "lock_api",
- "parking_lot_core 0.8.6",
-]
-
-[[package]]
-name = "parking_lot"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87f5ec2493a61ac0506c0f4199f99070cbe83857b0337006a30f3e6719b8ef58"
 dependencies = [
  "lock_api",
- "parking_lot_core 0.9.7",
-]
-
-[[package]]
-name = "parking_lot_core"
-version = "0.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60a2cfe6f0ad2bfc16aefa463b497d5c7a5ecd44a23efa72aa342d90177356dc"
-dependencies = [
- "cfg-if 1.0.0",
- "instant",
- "libc",
- "redox_syscall 0.2.13",
- "smallvec",
- "winapi",
+ "parking_lot_core",
 ]
 
 [[package]]
@@ -5015,7 +4990,7 @@ dependencies = [
  "msg",
  "net_traits",
  "num-traits",
- "parking_lot 0.12.0",
+ "parking_lot",
  "percent-encoding",
  "phf",
  "phf_codegen",
@@ -5079,7 +5054,7 @@ dependencies = [
  "metrics",
  "msg",
  "net_traits",
- "parking_lot 0.12.0",
+ "parking_lot",
  "profile_traits",
  "range",
  "script_traits",
@@ -5874,7 +5849,7 @@ checksum = "f91138e76242f575eb1d3b38b4f1362f10d3a43f47d182a5b359af488a02293b"
 dependencies = [
  "new_debug_unreachable",
  "once_cell",
- "parking_lot 0.12.0",
+ "parking_lot",
  "phf_shared",
  "precomputed-hash",
  "serde",
@@ -5929,7 +5904,7 @@ dependencies = [
  "num-traits",
  "num_cpus",
  "owning_ref",
- "parking_lot 0.11.2",
+ "parking_lot",
  "precomputed-hash",
  "rayon",
  "regex",
@@ -7074,7 +7049,7 @@ dependencies = [
  "codespan-reporting",
  "log",
  "naga",
- "parking_lot 0.12.0",
+ "parking_lot",
  "profiling",
  "ron 0.8.0",
  "rustc-hash",
@@ -7110,7 +7085,7 @@ dependencies = [
  "metal 0.26.0",
  "naga",
  "objc",
- "parking_lot 0.12.0",
+ "parking_lot",
  "profiling",
  "range-alloc",
  "raw-window-handle",
