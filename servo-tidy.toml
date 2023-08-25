@@ -27,8 +27,6 @@ packages = [
     "itoa",
     "libloading",
     "num-rational",
-    "parking_lot",
-    "parking_lot_core",
     "redox_syscall",
     "ron",
     "time",
