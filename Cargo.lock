@@ -3129,7 +3129,6 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "mitochondria",
  "msg",
  "net_traits",
  "parking_lot",
@@ -3734,12 +3733,6 @@ checksum = "b9f1c5b025cda876f66ef43a113f91ebc9f4ccef34843000e0adf6ebbab84e21"
 dependencies = [
  "winapi",
 ]
-
-[[package]]
-name = "mitochondria"
-version = "1.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9de3eca27871df31c33b807f834b94ef7d000956f57aa25c5aed9c5f0aae8f6f"
 
 [[package]]
 name = "mozangle"
@@ -4991,7 +4984,6 @@ dependencies = [
  "metrics",
  "mime",
  "mime_guess",
- "mitochondria",
  "mozangle",
  "mozjs",
  "msg",

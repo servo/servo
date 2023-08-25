@@ -13,10 +13,10 @@ use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::GlyphStore;
-use mitochondria::OnceCell;
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::image_cache::UsePlaceholder;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId};
+use std::cell::OnceCell;
 use std::sync::Arc;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
@@ -440,7 +440,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn content_rect(&self) -> &units::LayoutRect {
-        self.content_rect.init_once(|| {
+        self.content_rect.get_or_init(|| {
             self.fragment
                 .content_rect
                 .to_physical(self.fragment.style.writing_mode, self.containing_block)
@@ -450,7 +450,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn padding_rect(&self) -> &units::LayoutRect {
-        self.padding_rect.init_once(|| {
+        self.padding_rect.get_or_init(|| {
             self.fragment
                 .padding_rect()
                 .to_physical(self.fragment.style.writing_mode, self.containing_block)
@@ -462,11 +462,11 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn border_edge_clip(&self, builder: &mut DisplayListBuilder) -> Option<wr::ClipId> {
         *self
             .border_edge_clip_id
-            .init_once(|| clip_for_radii(self.border_radius, self.border_rect, builder))
+            .get_or_init(|| clip_for_radii(self.border_radius, self.border_rect, builder))
     }
 
     fn padding_edge_clip(&self, builder: &mut DisplayListBuilder) -> Option<wr::ClipId> {
-        *self.padding_edge_clip_id.init_once(|| {
+        *self.padding_edge_clip_id.get_or_init(|| {
             clip_for_radii(
                 inner_radii(
                     self.border_radius,
@@ -482,7 +482,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn content_edge_clip(&self, builder: &mut DisplayListBuilder) -> Option<wr::ClipId> {
-        *self.content_edge_clip_id.init_once(|| {
+        *self.content_edge_clip_id.get_or_init(|| {
             clip_for_radii(
                 inner_radii(
                     self.border_radius,
