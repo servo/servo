@@ -36,6 +36,10 @@ packages = [
     "wayland-sys",
     "bitflags",
 
+    # This dependency is for "hermit os" which Servo doesn't support.
+    # Theoretically, it's never fetched.
+    "hermit-abi",
+
     # Duplicated by rustls and image.
     "spin",
 
