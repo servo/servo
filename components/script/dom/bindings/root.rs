@@ -33,9 +33,8 @@ use crate::dom::node::Node;
 use js::jsapi::{Heap, JSObject, JSTracer};
 use js::rust::GCMethods;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use mitochondria::OnceCell;
 use script_layout_interface::TrustedNodeAddress;
-use std::cell::{Cell, UnsafeCell};
+use std::cell::{Cell, OnceCell, UnsafeCell};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
@@ -718,7 +717,7 @@ where
         F: FnOnce() -> DomRoot<T>,
     {
         assert_in_script();
-        &self.ptr.init_once(|| Dom::from_ref(&cb()))
+        &self.ptr.get_or_init(|| Dom::from_ref(&cb()))
     }
 }
 
@@ -742,7 +741,7 @@ impl<T: DomObject> MallocSizeOf for DomOnceCell<T> {
 #[allow(unrooted_must_root)]
 unsafe impl<T: DomObject> JSTraceable for DomOnceCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        if let Some(ptr) = self.ptr.as_ref() {
+        if let Some(ptr) = self.ptr.get() {
             ptr.trace(trc);
         }
     }
