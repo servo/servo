@@ -47,13 +47,13 @@ ron = { optional = true, version = "0.5" }
 serde = { optional = true, version = "1.0", features = ["serde_derive"] }
 serde_json = { optional = true, version = "1.0" }
 smallvec = "1"
-time = "0.1"
 api = { version = "0.61.0", path = "../webrender_api", package = "webrender_api" }
 webrender_build = { version = "0.0.1", path = "../webrender_build" }
 malloc_size_of = { version = "0.0.1", path = "../wr_malloc_size_of", package = "wr_malloc_size_of" }
 ws = { optional = true, version = "0.9" }
 svg_fmt = "0.4"
 tracy-rs = { version = "0.1" }
+chrono = "0.4.26"
 
 [dev-dependencies]
 mozangle = "0.3.1"

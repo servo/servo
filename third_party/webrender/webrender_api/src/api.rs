@@ -13,7 +13,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::u32;
 use std::sync::mpsc::{Sender, Receiver, channel};
-use time::precise_time_ns;
+use std::time::Duration;
+use chrono::Local;
 // local imports
 use crate::{display_item as di, font};
 use crate::color::{ColorU, ColorF};
@@ -257,7 +258,7 @@ impl Transaction {
         (pipeline_id, content_size, mut display_list): (PipelineId, LayoutSize, BuiltDisplayList),
         preserve_frame_state: bool,
     ) {
-        display_list.set_send_time_ns(precise_time_ns());
+        display_list.set_send_time(Duration::from_nanos(Local::now().timestamp_nanos() as u64));
         self.scene_ops.push(
             SceneMsg::SetDisplayList {
                 display_list,
@@ -1996,7 +1997,7 @@ pub trait RenderNotifier: Send {
     /// in the renderer's queue).
     fn wake_up(&self);
     /// Notify the thread containing the `Renderer` that a new frame is ready.
-    fn new_frame_ready(&self, _: DocumentId, scrolled: bool, composite_needed: bool, render_time_ns: Option<u64>);
+    fn new_frame_ready(&self, _: DocumentId, scrolled: bool, composite_needed: bool, render_time_ns: Option<Duration>);
     /// A Gecko-specific notification mechanism to get some code executed on the
     /// `Renderer`'s thread, mostly replaced by `NotificationHandler`. You should
     /// probably use the latter instead.

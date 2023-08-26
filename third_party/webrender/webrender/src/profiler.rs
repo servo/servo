@@ -12,8 +12,8 @@ use std::collections::vec_deque::VecDeque;
 use std::{f32, mem};
 use std::ffi::CStr;
 use std::ops::Range;
-use std::time::Duration;
-use time::precise_time_ns;
+use chrono::Local;
+use std::time::{Instant,Duration};
 
 pub mod expected {
     use std::ops::Range;
@@ -238,13 +238,13 @@ impl ProfileCounter for IntProfileCounter {
 pub struct AverageIntProfileCounter {
     description: &'static str,
     /// Start of the current time slice.
-    start_ns: u64,
+    start: Duration,
     /// Sum of the values recorded during the current time slice.
-    sum: u64,
+    sum: Duration,
     /// Number of samples in the current time slice.
     num_samples: u64,
     /// The max value in in-progress time slice.
-    next_max: u64,
+    next_max: Duration,
     /// The max value of the previous time slice (displayed).
     max: u64,
     /// The average value of the previous time slice (displayed). 
@@ -265,10 +265,10 @@ impl AverageIntProfileCounter {
     ) -> Self {
         AverageIntProfileCounter {
             description,
-            start_ns: precise_time_ns(),
-            sum: 0,
+            start: Duration::from_nanos(Local::now().timestamp_nanos() as u64),
+            sum: Duration::default(),
             num_samples: 0,
-            next_max: 0,
+            next_max: Duration::default(),
             max: 0,
             avg: 0,
             accum: 0,
@@ -279,24 +279,25 @@ impl AverageIntProfileCounter {
 
     pub fn reset(&mut self) {
         if self.accum > 0 {
-            self.set_u64(self.accum);
+            self.set(self.accum as usize);
             self.accum = 0;
         }
     }
 
     pub fn set(&mut self, val: usize) {
-        self.set_u64(val as u64);
+        self.set_ns(Duration::from_nanos(val as u64));
     }
-
-    pub fn set_u64(&mut self, val: u64) {
-        let now = precise_time_ns();
-        if (now - self.start_ns) > AVERAGE_OVER_NS && self.num_samples > 0 {
-            self.avg = self.sum / self.num_samples;
-            self.max = self.next_max;
-            self.start_ns = now;
-            self.sum = 0;
+    
+    // This function is used in many places and it is passed various values from nanoseconds mostly and sometimes arbitary counts
+    pub fn set_ns(&mut self, val: Duration) {
+        let now = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
+        if (now - self.start) > Duration::from_nanos(AVERAGE_OVER_NS) && self.num_samples > 0 {
+            self.avg = self.sum.as_nanos() as u64 / self.num_samples;
+            self.max = self.next_max.as_nanos() as u64;
+            self.start = now;
+            self.sum = Duration::default();
             self.num_samples = 0;
-            self.next_max = 0;
+            self.next_max = Duration::default();
         }
         self.next_max = self.next_max.max(val);
         self.sum += val;
@@ -427,19 +428,19 @@ impl ProfileCounter for ResourceProfileCounter {
 #[derive(Clone)]
 pub struct TimeProfileCounter {
     description: &'static str,
-    nanoseconds: u64,
+    nanoseconds: Duration,
     invert: bool,
     expect_ms: Option<Range<f64>>,
 }
 
 pub struct Timer<'a> {
-    start: u64,
-    result: &'a mut u64,
+    start: Duration,
+    result: &'a mut Duration,
 }
 
 impl<'a> Drop for Timer<'a> {
     fn drop(&mut self) {
-        let end = precise_time_ns();
+        let end = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
         *self.result += end - self.start;
     }
 }
@@ -448,18 +449,18 @@ impl TimeProfileCounter {
     pub fn new(description: &'static str, invert: bool, expect_ms: Option<Range<f64>>) -> Self {
         TimeProfileCounter {
             description,
-            nanoseconds: 0,
+            nanoseconds: Duration::default(),
             invert,
             expect_ms,
         }
     }
 
     fn reset(&mut self) {
-        self.nanoseconds = 0;
+        self.nanoseconds = Duration::default();
     }
 
     #[allow(dead_code)]
-    pub fn set(&mut self, ns: u64) {
+    pub fn set(&mut self, ns: Duration) {
         self.nanoseconds = ns;
     }
 
@@ -467,31 +468,25 @@ impl TimeProfileCounter {
     where
         F: FnOnce() -> T,
     {
-        let t0 = precise_time_ns();
+        let timer = Instant::now();
         let val = callback();
-        let t1 = precise_time_ns();
-        let ns = t1 - t0;
-        self.nanoseconds += ns;
+        self.nanoseconds += timer.elapsed();
         val
     }
 
     pub fn timer(&mut self) -> Timer {
         Timer {
-            start: precise_time_ns(),
+            start: Duration::from_nanos(Local::now().timestamp_nanos() as u64),
             result: &mut self.nanoseconds,
         }
     }
 
-    pub fn inc(&mut self, ns: u64) {
-        self.nanoseconds += ns;
+    pub fn inc(&mut self, time_ns: Duration) {
+        self.nanoseconds += time_ns;
     }
 
-    pub fn get(&self) -> u64 {
+    pub fn get(&self) -> Duration {
         self.nanoseconds
-    }
-
-    pub fn get_ms(&self) -> f64 {
-        self.nanoseconds as f64 / 1000000.0
     }
 }
 
@@ -502,15 +497,15 @@ impl ProfileCounter for TimeProfileCounter {
 
     fn value(&self) -> String {
         if self.invert {
-            format!("{:.2} fps", 1000000000.0 / self.nanoseconds as f64)
+            format!("{:.2} fps", 1000000000.0 / self.nanoseconds.as_nanos() as f64)
         } else {
-            format!("{:.2} ms", self.get_ms())
+            format!("{:.2} ms", self.get().as_millis())
         }
     }
 
     fn is_expected(&self) -> bool {
         self.expect_ms.as_ref()
-            .map(|range| range.contains(&(self.nanoseconds as f64 / 1000000.0)))
+            .map(|range| range.contains(&(self.nanoseconds.as_millis() as f64)))
             .unwrap_or(true)
     }
 }
@@ -545,8 +540,8 @@ impl AverageTimeProfileCounter {
         }
     }
 
-    pub fn set(&mut self, ns: u64) {
-        self.counter.set_u64(ns);
+    pub fn set(&mut self, ns: Duration) {
+        self.counter.set_ns(ns);
     }
 
     #[allow(dead_code)]
@@ -554,10 +549,9 @@ impl AverageTimeProfileCounter {
     where
         F: FnOnce() -> T,
     {
-        let t0 = precise_time_ns();
+        let timer = Instant::now();
         let val = callback();
-        let t1 = precise_time_ns();
-        self.counter.set_u64(t1 - t0);
+        self.counter.set_ns(timer.elapsed());
         val
     }
 
@@ -762,11 +756,11 @@ enumerate_interners!(declare_intern_profile_counters);
 impl TransactionProfileCounters {
     pub fn set(
         &mut self,
-        dl_build_start: u64,
-        dl_build_end: u64,
-        send_start: u64,
-        scene_build_start: u64,
-        scene_build_end: u64,
+        dl_build_start: Duration,
+        dl_build_end: Duration,
+        send_start: Duration,
+        scene_build_start: Duration,
+        scene_build_end: Duration,
         display_len: usize,
     ) {
         self.display_list_build_time.reset();
@@ -1168,11 +1162,11 @@ impl GpuFrameCollection {
         for frame in &self.frames {
             let y1 = y0 + GRAPH_FRAME_HEIGHT;
 
-            let mut current_ns = 0;
+            let mut current_ns = Duration::default();
             for sample in &frame.samples {
-                let x0 = graph_rect.origin.x + w * current_ns as f32 / max_time;
+                let x0 = graph_rect.origin.x + w * current_ns.as_nanos() as f32 / max_time;
                 current_ns += sample.time_ns;
-                let x1 = graph_rect.origin.x + w * current_ns as f32 / max_time;
+                let x1 = graph_rect.origin.x + w * current_ns.as_nanos() as f32 / max_time;
                 let mut bottom_color = sample.tag.color;
                 bottom_color.a *= 0.5;
 
@@ -1794,7 +1788,7 @@ impl Profiler {
         self.draw_state.x_right = 450.0;
         self.draw_state.y_right = 40.0;
 
-        let mut gpu_graph = 0;
+        let mut gpu_graph = Duration::default();
         let gpu_graphrs = mem::replace(&mut renderer_timers.gpu_samples, Vec::new());
         for sample in &gpu_graphrs {
             gpu_graph += sample.time_ns;
@@ -1802,23 +1796,23 @@ impl Profiler {
         renderer_timers.gpu_graph.set(gpu_graph);
 
         self.backend_graph
-            .push(backend_profile.total_time.nanoseconds);
+            .push(backend_profile.total_time.nanoseconds.as_nanos() as u64);
         self.backend_time.set(backend_profile.total_time.nanoseconds);
         self.renderer_graph
-            .push(renderer_timers.cpu_time.nanoseconds);
+            .push(renderer_timers.cpu_time.nanoseconds.as_nanos() as u64);
         self.renderer_time.set(renderer_timers.cpu_time.nanoseconds);
         self.ipc_graph
-            .push(backend_profile.txn.total_send_time.nanoseconds);
+            .push(backend_profile.txn.total_send_time.nanoseconds.as_nanos() as u64);
         self.display_list_build_graph
-            .push(backend_profile.txn.display_list_build_time.nanoseconds);
+            .push(backend_profile.txn.display_list_build_time.nanoseconds.as_nanos() as u64);
         self.scene_build_graph
-            .push(backend_profile.txn.scene_build_time.nanoseconds);
+            .push(backend_profile.txn.scene_build_time.nanoseconds.as_nanos() as u64);
         self.blob_raster_graph
             .push(backend_profile.resources.texture_cache.rasterized_blob_pixels.size as u64);
         self.ipc_time.set(backend_profile.txn.total_send_time.nanoseconds);
-        self.gpu_graph.push(gpu_graph);
+        self.gpu_graph.push(gpu_graph.as_nanos() as u64);
         self.gpu_time.set(gpu_graph);
-        self.gpu_frames.push(gpu_graph, gpu_graphrs);
+        self.gpu_frames.push(gpu_graph.as_nanos() as u64, gpu_graphrs);
 
         match style {
             ProfileStyle::Full => {

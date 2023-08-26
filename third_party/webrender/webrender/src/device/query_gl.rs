@@ -5,6 +5,7 @@
 use gleam::gl;
 use std::mem;
 use std::rc::Rc;
+use std::time::Duration;
 
 use crate::device::GpuFrameId;
 
@@ -22,7 +23,7 @@ pub trait NamedTag {
 #[derive(Debug, Clone)]
 pub struct GpuTimer<T> {
     pub tag: T,
-    pub time_ns: u64,
+    pub time_ns: Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -148,7 +149,7 @@ impl<T: NamedTag> GpuFrameProfile<T> {
 
         let marker = GpuMarker::new(&self.gl, tag.get_label(), self.debug_method);
 
-        if let Some(query) = self.timers.add(GpuTimer { tag, time_ns: 0 }) {
+        if let Some(query) = self.timers.add(GpuTimer { tag, time_ns: Duration::default() }) {
             self.gl.begin_query(gl::TIME_ELAPSED, query);
         }
 
@@ -172,7 +173,7 @@ impl<T: NamedTag> GpuFrameProfile<T> {
         (
             self.frame_id,
             self.timers.take(|timer, query| {
-                timer.time_ns = gl.get_query_object_ui64v(query, gl::QUERY_RESULT)
+                timer.time_ns = Duration::from_nanos(gl.get_query_object_ui64v(query, gl::QUERY_RESULT))
             }),
             self.samplers.take(|sampler, query| {
                 sampler.count = gl.get_query_object_ui64v(query, gl::QUERY_RESULT)

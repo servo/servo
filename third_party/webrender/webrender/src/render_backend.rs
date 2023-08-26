@@ -63,7 +63,8 @@ use std::u32;
 use std::path::PathBuf;
 #[cfg(feature = "replay")]
 use crate::frame_builder::Frame;
-use time::precise_time_ns;
+use std::time::Duration;
+use chrono::Local;
 use crate::util::{Recycler, VecHelper, drain_filter};
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -987,11 +988,11 @@ impl RenderBackend {
                }
 
                profile_counters.txn.set(
-                   timings.builder_start_time_ns,
-                   timings.builder_end_time_ns,
-                   timings.send_time_ns,
-                   timings.scene_build_start_time_ns,
-                   timings.scene_build_end_time_ns,
+                   timings.builder_start_time,
+                   timings.builder_end_time,
+                   timings.send_time,
+                   timings.scene_build_start_time,
+                   timings.scene_build_end_time,
                    timings.display_list_len,
                );
             }
@@ -1515,7 +1516,7 @@ impl RenderBackend {
             // borrow ck hack for profile_counters
             let (pending_update, rendered_document) = {
                 let _timer = profile_counters.total_time.timer();
-                let frame_build_start_time = precise_time_ns();
+                let frame_build_start_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
 
                 let rendered_document = doc.build_frame(
                     &mut self.resource_cache,
@@ -1531,7 +1532,7 @@ impl RenderBackend {
                 let msg = ResultMsg::UpdateGpuCache(self.gpu_cache.extract_updates());
                 self.result_tx.send(msg).unwrap();
 
-                frame_build_time = Some(precise_time_ns() - frame_build_start_time);
+                frame_build_time = Some(Duration::from_nanos(Local::now().timestamp_nanos() as u64) - frame_build_start_time);
 
                 let pending_update = self.resource_cache.pending_updates();
                 (pending_update, rendered_document)

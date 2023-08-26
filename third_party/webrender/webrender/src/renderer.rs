@@ -111,7 +111,8 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread;
 use std::cell::RefCell;
 use tracy_rs::register_thread_with_profiler;
-use time::precise_time_ns;
+use std::time::Duration;
+use chrono::Local;
 use std::ffi::CString;
 
 cfg_if! {
@@ -963,12 +964,12 @@ impl From<TextureTarget> for ImageBufferKind {
 #[derive(Debug)]
 pub struct GpuProfile {
     pub frame_id: GpuFrameId,
-    pub paint_time_ns: u64,
+    pub paint_time_ns: Duration,
 }
 
 impl GpuProfile {
     fn new<T>(frame_id: GpuFrameId, timers: &[GpuTimer<T>]) -> GpuProfile {
-        let mut paint_time_ns = 0;
+        let mut paint_time_ns = Duration::default();
         for timer in timers {
             paint_time_ns += timer.time_ns;
         }
@@ -982,16 +983,16 @@ impl GpuProfile {
 #[derive(Debug)]
 pub struct CpuProfile {
     pub frame_id: GpuFrameId,
-    pub backend_time_ns: u64,
-    pub composite_time_ns: u64,
+    pub backend_time_ns: Duration,
+    pub composite_time_ns: Duration,
     pub draw_calls: usize,
 }
 
 impl CpuProfile {
     fn new(
         frame_id: GpuFrameId,
-        backend_time_ns: u64,
-        composite_time_ns: u64,
+        backend_time_ns: Duration,
+        composite_time_ns: Duration,
         draw_calls: usize,
     ) -> CpuProfile {
         CpuProfile {
@@ -2047,15 +2048,15 @@ pub struct Renderer {
     debug_flags: DebugFlags,
     backend_profile_counters: BackendProfileCounters,
     profile_counters: RendererProfileCounters,
-    resource_upload_time: u64,
-    gpu_cache_upload_time: u64,
+    resource_upload_time: Duration,
+    gpu_cache_upload_time: Duration,
     profiler: Profiler,
     new_frame_indicator: ChangeIndicator,
     new_scene_indicator: ChangeIndicator,
     slow_frame_indicator: ChangeIndicator,
     slow_txn_indicator: ChangeIndicator,
 
-    last_time: u64,
+    last_time: Duration,
 
     pub gpu_profile: GpuProfiler<GpuProfileTag>,
     vaos: RendererVAOs,
@@ -2659,8 +2660,8 @@ impl Renderer {
             debug_flags: DebugFlags::empty(),
             backend_profile_counters: BackendProfileCounters::new(),
             profile_counters: RendererProfileCounters::new(),
-            resource_upload_time: 0,
-            gpu_cache_upload_time: 0,
+            resource_upload_time: Duration::default(),
+            gpu_cache_upload_time: Duration::default(),
             profiler: Profiler::new(),
             new_frame_indicator: ChangeIndicator::new(),
             new_scene_indicator: ChangeIndicator::new(),
@@ -2671,7 +2672,7 @@ impl Renderer {
             enable_clear_scissor: options.enable_clear_scissor,
             enable_advanced_blend_barriers: !ext_blend_equation_advanced_coherent,
             clear_caches_with_quads: options.clear_caches_with_quads,
-            last_time: 0,
+            last_time: Duration::default(),
             gpu_profile,
             vaos: RendererVAOs {
                 prim_vao,
@@ -3380,7 +3381,7 @@ impl Renderer {
         profile_scope!("render");
         let mut results = RenderResults::default();
         if self.active_documents.is_empty() {
-            self.last_time = precise_time_ns();
+            self.last_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
             return Ok(results);
         }
 
@@ -3557,7 +3558,7 @@ impl Renderer {
             self.draw_epoch_debug();
         }
 
-        let current_time = precise_time_ns();
+        let current_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
         if device_size.is_some() {
             let ns = current_time - self.last_time;
             self.profile_counters.frame_time.set(ns);
@@ -3565,7 +3566,7 @@ impl Renderer {
 
         let frame_cpu_time_ns = self.backend_profile_counters.total_time.get()
             + profile_timers.cpu_time.get();
-        let frame_cpu_time_ms = frame_cpu_time_ns as f64 / 1000000.0;
+        let frame_cpu_time_ms = frame_cpu_time_ns.as_nanos() as f64 / 1000000.0;
         if frame_cpu_time_ms > 16.0 {
             self.slow_frame_indicator.changed();
         }
@@ -3574,7 +3575,7 @@ impl Renderer {
             let txn_time_ns = self.backend_profile_counters.txn.total_send_time.get()
                 + self.backend_profile_counters.txn.display_list_build_time.get()
                 + self.backend_profile_counters.txn.scene_build_time.get();
-            let txn_time_ms = txn_time_ns as f64 / 1000000.0;
+            let txn_time_ms = txn_time_ns.as_nanos() as f64 / 1000000.0;
             if txn_time_ms > 100.0 {
                 self.slow_txn_indicator.changed();
             }
@@ -3668,9 +3669,9 @@ impl Renderer {
         self.profile_counters.reset();
         self.profile_counters.frame_counter.inc();
         results.stats.resource_upload_time = self.resource_upload_time;
-        self.resource_upload_time = 0;
+        self.resource_upload_time = Duration::default();
         results.stats.gpu_cache_upload_time = self.gpu_cache_upload_time;
-        self.gpu_cache_upload_time = 0;
+        self.gpu_cache_upload_time = Duration::default();
 
         profile_timers.cpu_time.profile(|| {
             if let Some(debug_renderer) = self.debug.try_get_mut() {
@@ -6899,11 +6900,11 @@ pub trait SceneBuilderHooks {
     /// This is called before each scene build starts.
     fn pre_scene_build(&self);
     /// This is called before each scene swap occurs.
-    fn pre_scene_swap(&self, scenebuild_time: u64);
+    fn pre_scene_swap(&self, scenebuild_time: Duration);
     /// This is called after each scene swap occurs. The PipelineInfo contains
     /// the updated epochs and pipelines removed in the new scene compared to
     /// the old scene.
-    fn post_scene_swap(&self, document_id: &Vec<DocumentId>, info: PipelineInfo, sceneswap_time: u64);
+    fn post_scene_swap(&self, document_id: &Vec<DocumentId>, info: PipelineInfo, sceneswap_time: Duration);
     /// This is called after a resource update operation on the scene builder
     /// thread, in the case where resource updates were applied without a scene
     /// build.
@@ -7136,8 +7137,8 @@ pub struct RendererStats {
     pub alpha_target_count: usize,
     pub color_target_count: usize,
     pub texture_upload_kb: usize,
-    pub resource_upload_time: u64,
-    pub gpu_cache_upload_time: u64,
+    pub resource_upload_time: Duration,
+    pub gpu_cache_upload_time: Duration,
 }
 
 /// Return type from render(), which contains some repr(C) statistics as well as

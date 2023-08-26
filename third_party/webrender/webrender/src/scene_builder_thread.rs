@@ -28,10 +28,10 @@ use crate::scene::{Scene, BuiltScene, SceneStats};
 use std::iter;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::mem::replace;
-use time::precise_time_ns;
+use std::time::Duration;
+use chrono::Local;
 use crate::util::drain_filter;
 use std::thread;
-use std::time::Duration;
 
 #[cfg(feature = "debugger")]
 use crate::debug_server;
@@ -42,12 +42,12 @@ use api::{BuiltDisplayListIter, DisplayItem};
 /// TransactionProfileCounters later down the pipeline.
 #[derive(Clone, Debug)]
 pub struct TransactionTimings {
-    pub builder_start_time_ns: u64,
-    pub builder_end_time_ns: u64,
-    pub send_time_ns: u64,
-    pub scene_build_start_time_ns: u64,
-    pub scene_build_end_time_ns: u64,
-    pub blob_rasterization_end_time_ns: u64,
+    pub builder_start_time: Duration,
+    pub builder_end_time: Duration,
+    pub send_time: Duration,
+    pub scene_build_start_time: Duration,
+    pub scene_build_end_time: Duration,
+    pub blob_rasterization_end_time: Duration,
     pub display_list_len: usize,
 }
 
@@ -78,8 +78,8 @@ pub struct BuiltTransaction {
     pub removed_pipelines: Vec<(PipelineId, DocumentId)>,
     pub notifications: Vec<NotificationRequest>,
     pub interner_updates: Option<InternerUpdates>,
-    pub scene_build_start_time: u64,
-    pub scene_build_end_time: u64,
+    pub scene_build_start_time: Duration,
+    pub scene_build_end_time: Duration,
     pub render_frame: bool,
     pub invalidate_rendered_frame: bool,
     pub discard_frame_state_for_pipelines: Vec<PipelineId>,
@@ -452,7 +452,7 @@ impl SceneBuilderThread {
         for mut item in scenes {
             self.config = item.config;
 
-            let scene_build_start_time = precise_time_ns();
+            let scene_build_start_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
 
             let mut built_scene = None;
             let mut interner_updates = None;
@@ -500,7 +500,7 @@ impl SceneBuilderThread {
                 discard_frame_state_for_pipelines: Vec::new(),
                 notifications: Vec::new(),
                 scene_build_start_time,
-                scene_build_end_time: precise_time_ns(),
+                scene_build_end_time: Duration::from_nanos(Local::now().timestamp_nanos() as u64),
                 interner_updates,
                 timings: None,
             })];
@@ -608,7 +608,7 @@ impl SceneBuilderThread {
             hooks.pre_scene_build();
         }
 
-        let scene_build_start_time = precise_time_ns();
+        let scene_build_start_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
 
         let doc = self.documents.get_mut(&txn.document_id).unwrap();
         let scene = &mut doc.scene;
@@ -644,7 +644,7 @@ impl SceneBuilderThread {
                 } => {
                     let display_list_len = display_list.data().len();
 
-                    let (builder_start_time_ns, builder_end_time_ns, send_time_ns) =
+                    let (builder_start_time, builder_end_time, send_time) =
                         display_list.times();
 
                     if self.removed_pipelines.contains(&pipeline_id) {
@@ -666,12 +666,12 @@ impl SceneBuilderThread {
                     );
 
                     timings = Some(TransactionTimings {
-                        builder_start_time_ns,
-                        builder_end_time_ns,
-                        send_time_ns,
-                        scene_build_start_time_ns: 0,
-                        scene_build_end_time_ns: 0,
-                        blob_rasterization_end_time_ns: 0,
+                        builder_start_time,
+                        builder_end_time,
+                        send_time,
+                        scene_build_start_time: Duration::default(),
+                        scene_build_end_time: Duration::default(),
+                        blob_rasterization_end_time: Duration::default(),
                         display_list_len,
                     });
 
@@ -727,15 +727,15 @@ impl SceneBuilderThread {
             built_scene = Some(built);
         }
 
-        let scene_build_end_time = precise_time_ns();
+        let scene_build_end_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
 
         let is_low_priority = false;
         rasterize_blobs(txn, is_low_priority);
 
         if let Some(timings) = timings.as_mut() {
-            timings.blob_rasterization_end_time_ns = precise_time_ns();
-            timings.scene_build_start_time_ns = scene_build_start_time;
-            timings.scene_build_end_time_ns = scene_build_end_time;
+            timings.blob_rasterization_end_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
+            timings.scene_build_start_time = scene_build_start_time;
+            timings.scene_build_end_time = scene_build_end_time;
         }
 
         drain_filter(
@@ -799,7 +799,7 @@ impl SceneBuilderThread {
             _ => (None, None, None)
         };
 
-        let scene_swap_start_time = precise_time_ns();
+        let scene_swap_start_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
         let document_ids = txns.iter().map(|txn| txn.document_id).collect();
         let have_resources_updates : Vec<DocumentId> = if pipeline_info.is_none() {
             txns.iter()
@@ -824,7 +824,7 @@ impl SceneBuilderThread {
         if let Some(pipeline_info) = pipeline_info {
             // Block until the swap is done, then invoke the hook.
             let swap_result = result_rx.unwrap().recv();
-            let scene_swap_time = precise_time_ns() - scene_swap_start_time;
+            let scene_swap_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64) - scene_swap_start_time;
             self.hooks.as_ref().unwrap().post_scene_swap(&document_ids,
                                                          pipeline_info, scene_swap_time);
             // Once the hook is done, allow the RB thread to resume

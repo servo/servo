@@ -31,7 +31,6 @@ use crate::segment::SegmentBuilder;
 use std::{f32, mem};
 use crate::util::MaxRect;
 
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]

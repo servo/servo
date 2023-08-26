@@ -121,6 +121,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::Duration;
 use surfman::GLApi;
 use webrender::ShaderPrecacheFlags;
 use webrender_traits::WebrenderExternalImageHandlers;
@@ -230,7 +231,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
         _document_id: DocumentId,
         scrolled: bool,
         composite_needed: bool,
-        _render_time_ns: Option<u64>,
+        _render_time_ns: Option<Duration>,
     ) {
         if scrolled {
             self.compositor_proxy

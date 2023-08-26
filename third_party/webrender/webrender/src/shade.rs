@@ -14,10 +14,10 @@ use crate::renderer::{
 };
 
 use gleam::gl::GlType;
-use time::precise_time_ns;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::Instant;
 
 use webrender_build::shader::{ShaderFeatures, ShaderFeatureFlags, get_shader_features};
 
@@ -111,11 +111,10 @@ impl LazilyCompiledShader {
         );
 
         if precache_flags.intersects(ShaderPrecacheFlags::ASYNC_COMPILE | ShaderPrecacheFlags::FULL_COMPILE) {
-            let t0 = precise_time_ns();
+            let timer = Instant::now();
             shader.get_internal(device, precache_flags)?;
-            let t1 = precise_time_ns();
             debug!("[C: {:.1} ms ] Precache {} {:?}",
-                (t1 - t0) as f64 / 1000000.0,
+                timer.elapsed().as_millis() as f64,
                 name,
                 features
             );

@@ -6926,6 +6926,7 @@ dependencies = [
  "build-parallel",
  "byteorder",
  "cfg-if 0.1.10",
+ "chrono",
  "core-foundation 0.9.3",
  "core-graphics",
  "core-text",
@@ -6948,7 +6949,6 @@ dependencies = [
  "sig",
  "smallvec",
  "svg_fmt",
- "time 0.1.45",
  "tracy-rs",
  "webrender_api",
  "webrender_build",
@@ -6962,6 +6962,7 @@ dependencies = [
  "app_units",
  "bitflags 1.3.2",
  "byteorder",
+ "chrono",
  "core-foundation 0.9.3",
  "core-graphics",
  "derive_more",
@@ -6971,7 +6972,6 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_derive",
- "time 0.1.45",
  "wr_malloc_size_of",
 ]
 

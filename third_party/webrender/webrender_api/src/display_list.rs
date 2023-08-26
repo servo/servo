@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::SideOffsets2D;
+use std::time::Duration;
 use peek_poke::{ensure_red_zone, peek_from_slice, poke_extend_vec};
 use peek_poke::{poke_inplace_slice, poke_into_vec, Poke};
 #[cfg(feature = "deserialize")]
@@ -15,7 +16,7 @@ use std::marker::PhantomData;
 use std::ops::Range;
 use std::mem;
 use std::collections::HashMap;
-use time::precise_time_ns;
+use chrono::Local;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 // local imports
 use crate::display_item as di;
@@ -123,11 +124,11 @@ pub struct BuiltDisplayList {
 #[derive(Copy, Clone, Default, Deserialize, Serialize)]
 pub struct BuiltDisplayListDescriptor {
     /// The first IPC time stamp: before any work has been done
-    builder_start_time: u64,
+    builder_start_time: Duration,
     /// The second IPC time stamp: after serialization
-    builder_finish_time: u64,
+    builder_finish_time: Duration,
     /// The third IPC time stamp: just before sending
-    send_start_time: u64,
+    send_start_time: Duration,
     /// The amount of clipping nodes created while building this display list.
     total_clip_nodes: usize,
     /// The amount of spatial nodes created while building this display list.
@@ -379,11 +380,11 @@ impl BuiltDisplayList {
         &self.descriptor
     }
 
-    pub fn set_send_time_ns(&mut self, time: u64) {
+    pub fn set_send_time(&mut self, time: Duration) {
         self.descriptor.send_start_time = time;
     }
 
-    pub fn times(&self) -> (u64, u64, u64) {
+    pub fn times(&self) -> (Duration, Duration, Duration) {
         (
             self.descriptor.builder_start_time,
             self.descriptor.builder_finish_time,
@@ -974,7 +975,7 @@ pub struct DisplayListBuilder {
     next_clip_index: usize,
     next_spatial_index: usize,
     next_clip_chain_id: u64,
-    builder_start_time: u64,
+    builder_start_time: Duration,
 
     /// The size of the content of this display list. This is used to allow scrolling
     /// outside the bounds of the display list items themselves.
@@ -995,7 +996,7 @@ impl DisplayListBuilder {
         content_size: LayoutSize,
         capacity: usize,
     ) -> Self {
-        let start_time = precise_time_ns();
+        let start_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
 
         DisplayListBuilder {
             data: Vec::with_capacity(capacity),
@@ -1948,7 +1949,7 @@ impl DisplayListBuilder {
             self.data.extend(self.extra_data);
         }
 
-        let end_time = precise_time_ns();
+        let end_time = Duration::from_nanos(Local::now().timestamp_nanos() as u64);
         (
             self.pipeline_id,
             self.content_size,
