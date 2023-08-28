@@ -4,6 +4,7 @@
 
 #![feature(core_intrinsics)]
 #![feature(drain_filter)]
+#![feature(once_cell)]
 #![feature(plugin)]
 #![feature(register_tool)]
 #![deny(unsafe_code)]

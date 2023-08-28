@@ -15,7 +15,6 @@ rand = [
     "quickcheck", # Only used in tests
     "servo_rand",
     "tungstenite",
-    "ws",
 ]
 
 [ignore]
@@ -25,24 +24,19 @@ packages = [
     "base64",
     "cfg-if",
     "cookie",
-    "getrandom",
-    "image",
     "itoa",
     "libloading",
-    "miniz_oxide",
     "num-rational",
-    "parking_lot",
-    "parking_lot_core",
-    "png",
-    "rand",
-    "rand_chacha",
-    "rand_core",
     "redox_syscall",
     "ron",
     "time",
     "wasi",
     "wayland-sys",
     "bitflags",
+
+    # This dependency is for "hermit os" which Servo doesn't support.
+    # Theoretically, it's never fetched.
+    "hermit-abi",
 
     # Duplicated by rustls and image.
     "spin",
@@ -51,7 +45,6 @@ packages = [
     "rustls-webpki",
 
     # https://github.com/servo/servo/issues/26933
-    "bytes",
     "futures",
     "mio",
 
@@ -65,11 +58,6 @@ packages = [
 
     # https://github.com/servo/servo/pull/28236
     "nix",
-
-    # Duplicated by webrender debugger via ws
-    "block-buffer",
-    "digest",
-    "generic-array",
 
     # Duplicated by surfman/wgpu update.
     "bitflags",

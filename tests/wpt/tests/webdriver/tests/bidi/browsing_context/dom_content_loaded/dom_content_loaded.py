@@ -11,6 +11,7 @@ DOM_CONTENT_LOADED_EVENT = "browsingContext.domContentLoaded"
 
 
 async def test_unsubscribe(bidi_session, inline, top_context):
+    # test
     await bidi_session.session.subscribe(events=[DOM_CONTENT_LOADED_EVENT])
     await bidi_session.session.unsubscribe(events=[DOM_CONTENT_LOADED_EVENT])
 

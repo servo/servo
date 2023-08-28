@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS reference</title>
+<style>
+    /* Lato has superscript Latin letters, but not subscript ones;
+     * digits are available in both super- and subscript form.
+     */
+    @font-face {
+        font-family: "lato";
+        src: url(support/fonts/Lato-Medium.ttf);
+    }
+    .test {
+        font-family: "lato";
+        font-size: 2em;
+    }
+    .sub {
+        font-feature-settings: 'subs' 1;
+    }
+    .super {
+        font-feature-settings: 'sups' 1;
+    }
+</style>
+
+<section class="test">
+    <p>Synthetic super- and subscripts <em>must not</em> be used:</p>
+    <p>Text with sub and <span class="sub">123</span> and <span class="sub">3.14</span></p>
+    <!-- note that Lato does not support a superscript FULL STOP -->
+    <p>Text with <span class="super">super</span> and <span class="super">123</span> and <span class="super">3</span>.<span class="super">14</span></p>
+</section>

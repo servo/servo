@@ -1186,7 +1186,9 @@ impl HTMLScriptElement {
             (Some(ref ty), _) => {
                 debug!("script type={}", &***ty);
 
-                if &***ty == String::from("module") {
+                if ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) ==
+                    String::from("module")
+                {
                     return Some(ScriptType::Module);
                 }
 

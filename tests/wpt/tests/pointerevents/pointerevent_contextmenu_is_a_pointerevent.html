@@ -2,6 +2,7 @@
 <title>contexmenu is a PointerEvent</title>
 <meta name="variant" content="?mouse">
 <meta name="variant" content="?touch">
+<!-- TODO: Can we test "pen" just like "touch"? -->
 <link rel="help" href="https://github.com/w3c/pointerevents/pull/317">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -13,37 +14,64 @@
 <input id="target" style="margin: 20px">
 
 <script>
-'use strict';
-let contextmenuTest = async_test("contextmenu is a PointerEvent");
-let target = document.getElementById("target");
-let pointerdownPointerId, pointerdownPointerType;
-let inputSource = location.search.substring(1);
+  'use strict';
+  const target = document.getElementById("target");
+  const pointer_type = location.search.substring(1);
 
-target.addEventListener("contextmenu", contextmenuTest.step_func((e)=>{
-  assert_equals(e.constructor, window.PointerEvent,
-      "contextmenu should use a PointerEvent constructor");
-  assert_true(e instanceof PointerEvent,
-      "contextmenu should be a PointerEvent");
-  assert_equals(e.pointerId, pointerdownPointerId,
-      "contextmenu's pointerId should match the pointerId of the pointer event that triggers it");
-  assert_equals(e.pointerType, pointerdownPointerType,
-      "contextmenu's pointerType should match the pointerType of the pointer event that triggers it");
-  assert_equals(e.composed, true, "contextmenu.composed should be true");
-}));
-target.addEventListener("pointerdown", e=>{
-  pointerdownPointerId = e.pointerId;
-  pointerdownPointerType = e.pointerType;
-});
+  function assertContextmenuProperties(contextmenu_event, pointerdown_event) {
+    assert_equals(contextmenu_event.constructor, window.PointerEvent,
+        "contextmenu should use a PointerEvent constructor");
+    assert_true(contextmenu_event instanceof PointerEvent,
+        "contextmenu should be a PointerEvent");
+    assert_not_equals(contextmenu_event.pointerId, -1,
+        "contextmenu.pointerId should not be -1");
+    assert_equals(contextmenu_event.pointerType, pointer_type,
+        "contextmenu.pointerType should match test action pointerType");
+    assert_equals(contextmenu_event.composed, true,
+        "contextmenu.composed should be true");
 
-let pointerDownPrevented = preventDefaultPointerdownOnce(target);
-let eventWatcher = new EventWatcher(contextmenuTest, target, ["contextmenu"]);
-let actions = new test_driver.Actions();
-// TODO: We might be able to test "pen" just like "touch".
-let testPointer = inputSource + "TestPointer";
-actions = actions.addPointer(testPointer, inputSource)
-  .pointerMove(0,0, {sourceName:testPointer, origin:target})
-  .pointerDown({sourceName:testPointer, button:actions.ButtonType.RIGHT})
-  .pause(inputSource === "touch" ? 1500 : 0, "pointer", {sourceName:testPointer})
-  .pointerUp({sourceName:testPointer, button:actions.ButtonType.RIGHT});
-Promise.all([pointerDownPrevented, eventWatcher.wait_for("contextmenu"), actions.send()]).then(()=>contextmenuTest.done());
+    if (pointerdown_event) {
+      assert_equals(contextmenu_event.pointerId, pointerdown_event.pointerId,
+          "contextmenu.pointerId should match pointerdown.pointerId");
+    }
+  }
+
+  promise_test(async test => {
+    const test_pointer = pointer_type + "TestPointer";
+
+    let actions = new test_driver.Actions();
+    actions = actions.addPointer(test_pointer, pointer_type)
+      .pointerMove(0,0, {sourceName:test_pointer, origin:target})
+      .pointerDown({sourceName:test_pointer, button:actions.ButtonType.RIGHT})
+      .pause(pointer_type === "touch" ? 1500 : 0, "pointer", {sourceName:test_pointer})
+      .pointerUp({sourceName:test_pointer, button:actions.ButtonType.RIGHT});
+    let pointerdown_prevented = preventDefaultPointerdownOnce(target, test);
+    let pointerdown_promise = getEvent("pointerdown", target, test);
+    let contextmenu_promise = getEvent("contextmenu", target, test);
+
+    await actions.send();
+    await pointerdown_prevented;
+    let pointerdown_event = await pointerdown_promise;
+    let contextmenu_event = await contextmenu_promise;
+
+    assertContextmenuProperties(contextmenu_event, pointerdown_event);
+  }, "contextmenu using " + pointer_type + " is a PointerEvent with correct properties");
+
+  promise_test(async test => {
+    const test_pointer = pointer_type + "TestPointer";
+
+    let actions = new test_driver.Actions();
+    actions = actions.addPointer(test_pointer, pointer_type)
+      .pointerMove(0,0, {sourceName:test_pointer, origin:target})
+      .pointerDown({sourceName:test_pointer, button:actions.ButtonType.RIGHT})
+      .pause(pointer_type === "touch" ? 1500 : 0, "pointer", {sourceName:test_pointer})
+      .pointerUp({sourceName:test_pointer, button:actions.ButtonType.RIGHT});
+    let contextmenu_promise = getEvent("contextmenu", target, test);
+
+    await actions.send();
+    let contextmenu_event = await contextmenu_promise;
+
+    assertContextmenuProperties(contextmenu_event);
+  }, "contextmenu using " + pointer_type + " is a PointerEvent with correct properties"
+      + " when no other PointerEvent listeners are present");
 </script>

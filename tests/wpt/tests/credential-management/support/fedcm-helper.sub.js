@@ -150,6 +150,13 @@ export function request_options_with_login_hint(manifest_filename, login_hint) {
   return options;
 }
 
+export function request_options_with_hosted_domain(manifest_filename, hosted_domain) {
+  let options = request_options_with_mediation_required(manifest_filename);
+  options.identity.providers[0].hostedDomain = hosted_domain;
+
+  return options;
+}
+
 export function fedcm_get_dialog_type_promise(t) {
   return new Promise(resolve => {
     async function helper() {

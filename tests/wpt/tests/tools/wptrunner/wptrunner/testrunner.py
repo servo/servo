@@ -177,6 +177,7 @@ class BrowserManager:
 
         self.started = False
 
+        self.browser_pid = None
         self.init_timer = None
         self.command_queue = command_queue
 
@@ -271,7 +272,7 @@ class TestRunnerManager(threading.Thread):
                  test_implementation_by_type, stop_flag, rerun=1,
                  pause_after_test=False, pause_on_unexpected=False,
                  restart_on_unexpected=True, debug_info=None,
-                 capture_stdio=True, restart_on_new_group=True, recording=None):
+                 capture_stdio=True, restart_on_new_group=True, recording=None, max_restarts=5):
         """Thread that owns a single TestRunner process and any processes required
         by the TestRunner (e.g. the Firefox binary).
 
@@ -343,7 +344,7 @@ class TestRunnerManager(threading.Thread):
 
         self.timer = None
 
-        self.max_restarts = 5
+        self.max_restarts = max_restarts
 
         self.browser = None
 
@@ -513,16 +514,10 @@ class TestRunnerManager(threading.Thread):
         self.browser.update_settings(self.state.test)
 
         result = self.browser.init(self.state.group_metadata)
-        if result is Stop:
-            return RunnerManagerState.error()
-        elif not result:
-            return RunnerManagerState.initializing(self.state.test_type,
-                                                   self.state.test,
-                                                   self.state.test_group,
-                                                   self.state.group_metadata,
-                                                   self.state.failure_count + 1)
-        else:
-            self.start_test_runner()
+        if not result:
+            return self.init_failed()
+
+        self.start_test_runner()
 
     def start_test_runner(self):
         # Note that we need to be careful to start the browser before the
@@ -913,7 +908,8 @@ class ManagerGroup:
                  debug_info=None,
                  capture_stdio=True,
                  restart_on_new_group=True,
-                 recording=None):
+                 recording=None,
+                 max_restarts=5):
         self.suite_name = suite_name
         self.test_source_cls = test_source_cls
         self.test_source_kwargs = test_source_kwargs
@@ -927,6 +923,7 @@ class ManagerGroup:
         self.restart_on_new_group = restart_on_new_group
         self.recording = recording
         assert recording is not None
+        self.max_restarts = max_restarts
 
         self.pool = set()
         # Event that is polled by threads so that they can gracefully exit in the face
@@ -960,7 +957,8 @@ class ManagerGroup:
                                         self.debug_info,
                                         self.capture_stdio,
                                         self.restart_on_new_group,
-                                        recording=self.recording)
+                                        recording=self.recording,
+                                        max_restarts=self.max_restarts)
             manager.start()
             self.pool.add(manager)
         self.wait()

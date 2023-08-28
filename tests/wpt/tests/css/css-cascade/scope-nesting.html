@@ -334,3 +334,40 @@ test((t) => {
   assert_equals(getComputedStyle(c).zIndex, 'auto');
 }, 'Implicit rule within nested @scope ');
 </script>
+
+<template id=test_direct_declarations_in_nested_scope_proximity>
+  <div>
+    <style>
+      .a {
+        /* We're supposed to prepend :scope to this declaration. If we do that,
+           then :where() does not matter, since :scope does not gain any
+           specificity from the enclosing @scope rule. However, if an
+           implementation incorrectly prepends & instead, then :where() is
+           needed to avoid the test incorrectly passing due to specificity. */
+        @scope (:where(&) .b) {
+          z-index: 1; /* Should win due to proximity */
+        }
+      }
+      .b { z-index: 2; }
+    </style>
+    <div class=a>
+      <div class="b x">
+        <div class=c>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_direct_declarations_in_nested_scope_proximity.content.cloneNode(true));
+
+  let a = document.querySelector('.a');
+  let b = document.querySelector('.b');
+  let c = document.querySelector('.c');
+  assert_equals(getComputedStyle(a).zIndex, 'auto');
+  assert_equals(getComputedStyle(b).zIndex, '1');
+  assert_equals(getComputedStyle(c).zIndex, 'auto');
+}, 'Implicit rule within nested @scope (proximity)');
+</script>

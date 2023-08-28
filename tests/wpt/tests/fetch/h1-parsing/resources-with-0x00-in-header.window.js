@@ -15,7 +15,7 @@ async_test(t => {
   // https://github.com/whatwg/html/issues/125 and https://github.com/whatwg/html/issues/1230 this
   // should be changed to use the load event instead.
   t.step_timeout(() => {
-    assert_equals(frame.contentDocument, null);
+    assert_equals(window.frameLoaded, undefined);
     t.done();
   }, 1000);
   document.body.append(frame);

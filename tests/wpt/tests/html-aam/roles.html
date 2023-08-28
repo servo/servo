@@ -12,30 +12,23 @@
 <body>
 
 
-<p>Tests the computedrole mappings defined in <a href="https://w3c.github.io/html-aam/">HTML-AAM</a>. Most test names correspond to unique ID defined in the spec.<p>
+<p>Tests the computedrole mappings defined in <a href="https://w3c.github.io/html-aam/">HTML-AAM</a>. Most test names correspond to a unique ID defined in the spec.<p>
 
 <p>These should remain in alphabetical order, and include all HTML tagnames. If a tag is not tested here, include a pointer to the file where it is tested, such as: <code>&lt;!-- caption -&gt; ./table-roles.html --&gt;</code></p>
 
-<a href="#" data-testname="el-a" data-expectedrole="link" class="ex">x</a>
-<a data-testname="el-a-no-href" data-expectedrole="generic" class="ex">x</a>
+
+<!-- a (w/ and w/o href) -> ./roles-contextual.html -->
 <!-- todo: abbr -->
 <address data-testname="el-address" data-expectedrole="group" class="ex">x</address>
 <!-- area -> ./fragile/area-role.html -->
 <article data-testname="el-article" data-expectedrole="article" class="ex">x</article>
-
-<!-- el-aside -->
-<nav>
-  <aside data-testname="el-aside-in-section-with-name" data-expectedrole="complementary" aria-label="x" class="ex">x</aside>
-  <aside data-testname="el-aside-in-section-without-name" data-expectedrole="generic" class="ex">x</aside>
-</nav>
-<aside data-testname="el-aside-ancestorbodymain" data-expectedrole="complementary" class="ex">x</aside>
-
+<!-- aside -> ./roles-contextual.html -->
 <!-- todo: audio -->
 <!-- todo: autonomous custom element -->
-<b data-testname="el-b" data-expectedrole="generic" class="ex">x</b>
+<!-- b -> ./roles-generic.html -->
 <!-- base (not mapped) -->
-<bdi data-testname="el-bdi" data-expectedrole="generic" class="ex">x</bdi>
-<bdo data-testname="el-bdo" data-expectedrole="generic" class="ex">x</bdo>
+<!-- bdi -> ./roles-generic.html -->
+<!-- bdo -> ./roles-generic.html -->
 <blockquote data-testname="el-blockquote" data-expectedrole="blockquote" class="ex">x</blockquote>
 <!-- todo: body -->
 <!-- br (not mapped) -->
@@ -46,7 +39,7 @@
 <code data-testname="el-code" data-expectedrole="code" class="ex">x</code>
 <!-- todo: col -->
 <!-- todo: colgroup -->
-<data value="1" data-testname="el-data" data-expectedrole="generic" class="ex">x</data>
+<!-- data -> ./roles-generic.html -->
 <!-- todo: datalist -->
 
 <!-- el-dd -->
@@ -58,7 +51,7 @@
 <del data-testname="el-del" data-expectedrole="deletion" class="ex">x</del>
 <details data-testname="el-details" data-expectedrole="group" class="ex"><summary>x</summary>x</details>
 <dfn data-testname="el-dfn" data-expectedrole="term" class="ex">x</dfn>
-<div open data-testname="el-div" data-expectedrole="generic" class="ex">x</div>
+<!-- div -> ./roles-generic.html -->
 <!-- todo: dl -->
 
 <!-- el-dt -->
@@ -72,13 +65,7 @@
 <fieldset data-testname="el-fieldset" data-expectedrole="group" class="ex"><legend>x</legend><input></fieldset>
 <!-- todo: figcaption -->
 <figure data-testname="el-figure" data-expectedrole="figure" class="ex"><img src="#" alt="x"><figcaption>x</figcaption></figure>
-
-<!-- el-footer -->
-<nav>
-  <footer data-testname="el-footer" data-expectedrole="generic" aria-label="x" class="ex">x</aside>
-</nav>
-<footer data-testname="el-footer-ancestorbody" data-expectedrole="contentinfo" class="ex">x</footer>
-
+<!-- footer -> ./roles-contextual.html -->
 <form data-testname="el-form" data-expectedrole="form" class="ex"><input></form>
 <!-- todo: form-associated custom element -->
 
@@ -92,16 +79,11 @@
 
 <!-- head (not mapped) -->
 
-<!-- el-header -->
-<nav>
-  <header data-testname="el-header" data-expectedrole="generic" aria-label="x" class="ex">x</header>
-</nav>
-<header data-testname="el-header-ancestorbody" data-expectedrole="banner" class="ex">x</header>
-
+<!-- header -> ./roles-contextual.html -->
 <hgroup data-testname="el-hgroup" data-expectedrole="group" class="ex"><h1>x</h1></hgroup>
 <hr data-testname="el-hr" data-expectedrole="separator" class="ex">
 <!-- todo: html -->
-<i data-testname="el-i" data-expectedrole="generic" class="ex">x</i>
+<!-- i -> ./roles-generic.html -->
 <!-- todo: iframe -->
 <img src="#" alt="x" data-testname="el-img" data-expectedrole="image" class="ex">
 
@@ -141,7 +123,7 @@
 <!-- todo: legend -->
 
 <!-- el-li -->
-<li data-testname="el-li-orphaned" data-expectedrole="generic" class="ex">x</li>
+<!-- li (orphaned) -> ./roles-generic.html -->
 <ul><li data-testname="el-li-in-ul" data-expectedrole="listitem" class="ex">x</li><li>x</li></ul>
 <ol><li data-testname="el-li-in-ol" data-expectedrole="listitem" class="ex">x</li><li>x</li></ol>
 
@@ -170,20 +152,17 @@
 <p data-testname="el-p" data-expectedrole="paragraph" class="ex">x</p>
 <!-- param (not mapped) -->
 <!-- todo: picture -->
-<pre data-testname="el-pre" data-expectedrole="generic" class="ex">x</pre>
+<!-- pre -> ./roles-generic.html -->
 <progress data-testname="el-progress" data-expectedrole="progressbar" class="ex">x</progress>
-<q data-testname="el-q" data-expectedrole="generic" class="ex">x</q>
+<!-- q -> ./roles-generic.html -->
 <!-- todo: rp -> /ruby-aam? -->
 <!-- todo: rt -> /ruby-aam? -->
 <!-- todo: ruby -> /ruby-aam? -->
 <s data-testname="el-s" data-expectedrole="deletion" class="ex">x</s>
-<samp data-testname="el-samp" data-expectedrole="generic" class="ex">x</samp>
+<!-- samp -> ./roles-generic.html -->
 <!-- script (not mapped) -->
 <search data-testname="el-search" data-expectedrole="search" class="ex">x</search>
-
-<!-- el-section -->
-<section data-testname="el-section" aria-label="x" data-expectedrole="region" class="ex">x</section>
-<section data-testname="el-section-no-name" data-expectedrole="generic" class="ex">x</section>
+<!-- section -> ./roles-contextual.html -->
 
 <!-- Blocked: HTML-AAM Issue #467 -->
 <!-- <select data-testname="el-select-combobox" data-expectedrole="combobox" class="ex"><option>a1</option><option>a2</option></select>-->
@@ -191,9 +170,9 @@
 <select data-testname="el-select-listbox" size="2" data-expectedrole="listbox" class="ex"><option>b1</option><option>b2</option></select>
 
 <!-- slot (not mapped) -->
-<small data-testname="el-small" data-expectedrole="generic" class="ex">x</small>
+<!-- small -> ./roles-generic.html -->
 <!-- source (not mapped) -->
-<span data-testname="el-span" data-expectedrole="generic" class="ex">x</span>
+<!-- span -> ./roles-generic.html -->
 <strong data-testname="el-strong" data-expectedrole="strong" class="ex">x</strong>
 <!-- style (not mapped) -->
 <sub data-testname="el-sub" data-expectedrole="subscript" class="ex">x</sub>
@@ -212,7 +191,7 @@
 <!-- tr -> ./table-roles.html -->
 <textarea data-testname="el-textarea" data-expectedrole="textbox" class="ex">x</textarea>
 <!-- track (not mapped) -->
-<u data-testname="el-u" data-expectedrole="generic" class="ex">x</u>
+<!-- u -> ./roles-generic.html -->
 <ul data-testname="el-ul" data-expectedrole="list" class="ex"><li>x</li><li>x</li></ul>
 <!-- var (not mapped) -->
 <!-- todo: video -->

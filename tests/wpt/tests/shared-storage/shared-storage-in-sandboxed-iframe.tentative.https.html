@@ -1,0 +1,41 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/browsing-topics/resources/header-util.sub.js></script>
+  <script>
+    function test_shared_storage_in_sandboxed_iframe(test, sandbox_flags, expect_success) {
+      let frame = document.createElement('iframe');
+      frame.sandbox = sandbox_flags;
+      frame.src = '/shared-storage/resources/verify-shared-storage.https.html';
+
+      window.addEventListener('message', test.step_func(function handler(evt) {
+        if (evt.source === frame.contentWindow) {
+          if (expect_success) {
+            assert_equals(evt.data.accessSharedStorageResult, 'success');
+          } else {
+            assert_equals(evt.data.accessSharedStorageResult, 'failure');
+          }
+
+          document.body.removeChild(frame);
+          window.removeEventListener('message', handler);
+          test.done();
+        }
+      }));
+
+      document.body.appendChild(frame);
+    }
+
+    async_test(t => {
+      test_shared_storage_in_sandboxed_iframe(t,
+        /*sandbox_flags=*/'allow-scripts allow-same-origin',
+        /*expect_success=*/true);
+    }, 'test shared storage in sandboxed iframe with "allow-same-origin"');
+
+    async_test(t => {
+      test_shared_storage_in_sandboxed_iframe(t,
+        /*sandbox_flags=*/'allow-scripts',
+        /*expect_success=*/false);
+    }, 'test shared storage in sandboxed iframe without "allow-same-origin"');
+  </script>
+</body>

@@ -84,7 +84,8 @@ promise_test(async t => {
 
   // Give the browser time to receive the focus event before attempting
   // another focus.
-  await t.step_timeout(async () => {await AttemptButtonFocus(frame, true);}, 20);
+  await t.step_timeout(async () => {await AttemptButtonFocus(frame, true);},
+      500);
 }, "Focused fenced frames can move programmatic focus within frame");
 
 promise_test(async () => {
