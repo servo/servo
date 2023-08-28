@@ -348,9 +348,9 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
 name = "base64"
-version = "0.21.2"
+version = "0.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "604178f6c5c21f02dc555784810edfb88d34ac2c73b2eae109655649ee73ce3d"
+checksum = "414dcefbc63d77c526a76b3afcf6fbb9b5e2791c19c3aa2297733208750c6e53"
 
 [[package]]
 name = "binary-space-partition"
@@ -1024,7 +1024,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "754c060c4a3342c5824d14caeba6c588716e9327f50558532685ef56718e0461"
 dependencies = [
- "base64 0.21.2",
+ "base64 0.21.3",
  "bitflags 2.3.1",
  "once_cell",
  "percent-encoding",
@@ -3872,7 +3872,7 @@ version = "0.0.1"
 dependencies = [
  "async-recursion",
  "async-tungstenite",
- "base64 0.21.2",
+ "base64 0.21.3",
  "brotli",
  "bytes",
  "content-security-policy",
@@ -4877,7 +4877,7 @@ version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2d3987094b1d07b653b7dfdc3f70ce9a1da9c51ac18c1b06b662e4f9a0e9f4b2"
 dependencies = [
- "base64 0.21.2",
+ "base64 0.21.3",
 ]
 
 [[package]]
@@ -4942,7 +4942,7 @@ dependencies = [
  "arrayvec 0.7.4",
  "atomic_refcell",
  "backtrace",
- "base64 0.21.2",
+ "base64 0.21.3",
  "bitflags 1.3.2",
  "bluetooth_traits",
  "canvas_traits",
@@ -6852,7 +6852,7 @@ dependencies = [
 name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
- "base64 0.21.2",
+ "base64 0.21.3",
  "compositing_traits",
  "cookie 0.12.0",
  "crossbeam-channel",
