@@ -6,7 +6,7 @@
 package org.mozilla.servoview;
 
 import android.app.Activity;
-
+import android.view.Surface;
 /**
  * Maps /ports/libsimpleservo API
  */
@@ -20,7 +20,7 @@ public class JNIServo {
 
     public native String version();
 
-    public native void init(Activity activity, ServoOptions options, Callbacks callbacks);
+    public native void init(Activity activity, ServoOptions options, Callbacks callbacks, Surface surface);
 
     public native void deinit();
 

@@ -14,6 +14,7 @@ use std::rc::Rc;
 use getopts::Options;
 use ipc_channel::ipc::IpcSender;
 use log::{debug, info, warn};
+use servo::compositing::CompositeTarget;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
     WindowMethods,
@@ -298,7 +299,7 @@ pub fn init(
         gl: gl.clone(),
     });
 
-    let servo = Servo::new(embedder_callbacks, window_callbacks.clone(), None);
+    let servo = Servo::new(embedder_callbacks, window_callbacks.clone(), None, CompositeTarget::Window);
 
     SERVO.with(|s| {
         let mut servo_glue = ServoGlue {

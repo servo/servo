@@ -335,7 +335,7 @@ class CommandBase(object):
     def get_binary_path(self, build_type: BuildType, target=None, android=False, simpleservo=False):
         base_path = util.get_target_dir()
         if android:
-            base_path = path.join(base_path, "android", self.config["android"]["target"])
+            base_path = path.join(base_path, self.config["android"]["target"])
             simpleservo = True
         elif target:
             base_path = path.join(base_path, target)
@@ -600,7 +600,7 @@ class CommandBase(object):
             sys.exit(1)
         with open(path.join(env["ANDROID_NDK"], 'source.properties'), encoding="utf8") as ndk_properties:
             lines = ndk_properties.readlines()
-            if lines[1].split(' = ')[1].split('.')[0] != '21':
+            if lines[1].split(' = ')[1].split('.')[0] != '25':
                 print("Currently only support NDK 21. Please re-run `./mach bootstrap-android`.")
                 sys.exit(1)
 
@@ -619,8 +619,8 @@ class CommandBase(object):
             host_suffix = "x86_64"
         host = os_type + "-" + host_suffix
 
-        host_cc = env.get('HOST_CC') or shutil.which(["clang"]) or util.whichget_exec_path(["gcc"])
-        host_cxx = env.get('HOST_CXX') or util.whichget_exec_path(["clang++"]) or util.whichget_exec_path(["g++"])
+        host_cc = env.get('HOST_CC') or shutil.which("clang") or shutil.which(["gcc"])
+        host_cxx = env.get('HOST_CXX') or shutil.which("clang++") or shutil.which("g++")
 
         llvm_toolchain = path.join(env['ANDROID_NDK'], "toolchains", "llvm", "prebuilt", host)
         gcc_toolchain = path.join(env['ANDROID_NDK'], "toolchains",
@@ -660,7 +660,6 @@ class CommandBase(object):
         env['ANDROID_VERSION'] = android_api
         #env['ANDROID_PLATFORM_DIR'] = android_platform_dir
         env['ANDROID_PLATFORM_DIR'] = env['ANDROID_SYSROOT']
-        env['PKG_CONFIG'] = "/usr/bin/pkg-config"
         # env['GCC_TOOLCHAIN'] = gcc_toolchain
         #gcc_toolchain_bin = path.join(gcc_toolchain, android_toolchain_name, "bin")
 
@@ -727,7 +726,7 @@ class CommandBase(object):
         if not os.path.exists(env['AAR_OUT_DIR']):
             os.makedirs(env['AAR_OUT_DIR'])
 
-        env['PKG_CONFIG_ALLOW_CROSS'] = "1"
+        env['PKG_CONFIG_SYSROOT_DIR'] = path.join(llvm_toolchain, 'sysroot')
 
     @staticmethod
     def common_command_arguments(build_configuration=False, build_type=False):
@@ -1011,10 +1010,10 @@ class CommandBase(object):
             # https://github.com/jemalloc/jemalloc/issues/1279
             self.config["android"]["platform"] = "android-30"
             self.config["android"]["target"] = target
-            self.config["android"]["toolchain_prefix"] = "x86"
+            self.config["android"]["toolchain_prefix"] = target
             self.config["android"]["arch"] = "x86"
             self.config["android"]["lib"] = "x86"
-            self.config["android"]["toolchain_name"] = "x86_64-linux-android30"
+            self.config["android"]["toolchain_name"] = "i686-linux-android30"
             return True
         return False
 

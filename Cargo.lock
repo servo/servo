@@ -128,20 +128,20 @@ checksum = "80b9e34fcbf29c0563547cb2ecce9b49504597cad6166769b1e4efb45c6c2951"
 
 [[package]]
 name = "android_log-sys"
-version = "0.2.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85965b6739a430150bdd138e2374a98af0c3ee0d030b3bb7fc3bddff58d0102e"
+checksum = "5ecc8056bf6ab9892dcd53216c83d1597487d7dacac16c8df6b877d127df9937"
 
 [[package]]
 name = "android_logger"
-version = "0.10.1"
+version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9ed09b18365ed295d722d0b5ed59c01b79a826ff2d2a8f73d5ecca8e6fb2f66"
+checksum = "c494134f746c14dc653a35a4ea5aca24ac368529da5370ecf41fe0341c35772f"
 dependencies = [
  "android_log-sys",
- "env_logger",
- "lazy_static",
+ "env_logger 0.10.1",
  "log",
+ "once_cell",
 ]
 
 [[package]]
@@ -1609,6 +1609,16 @@ dependencies = [
  "log",
  "regex",
  "termcolor",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95b3f3e67048839cb0d0781f445682a35113da7121f7c949db0e2be96a4fbece"
+dependencies = [
+ "log",
+ "regex",
 ]
 
 [[package]]
@@ -3380,7 +3390,7 @@ dependencies = [
  "devtools",
  "devtools_traits",
  "embedder_traits",
- "env_logger",
+ "env_logger 0.8.4",
  "euclid",
  "gaol",
  "gfx",
@@ -4569,7 +4579,7 @@ version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "588f6378e4dd99458b60ec275b4477add41ce4fa9f64dcba6f15adccb19b50d6"
 dependencies = [
- "env_logger",
+ "env_logger 0.8.4",
  "log",
  "rand",
 ]
@@ -5593,7 +5603,7 @@ version = "0.0.1"
 dependencies = [
  "backtrace",
  "cbindgen",
- "env_logger",
+ "env_logger 0.8.4",
  "keyboard-types",
  "lazy_static",
  "libc",
@@ -5607,10 +5617,8 @@ dependencies = [
 name = "simpleservo_jniapi"
 version = "0.0.1"
 dependencies = [
- "android_injected_glue",
  "android_logger",
  "cc",
- "gstreamer",
  "jni",
  "libc",
  "log",
@@ -5907,9 +5915,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca39befaf946247c5d3323465a9ec86c4a05523bb87a0d3eb07e71c15181a338"
+checksum = "db2e4280229411d6eb8a8f873152dece1904df2682003bdc748adc181e003568"
 dependencies = [
  "bitflags 1.3.2",
  "cfg_aliases",

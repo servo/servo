@@ -6,17 +6,17 @@
 package org.mozilla.servoview;
 
 import android.app.Activity;
+import android.content.Context;
+import android.util.AttributeSet;
 import android.net.Uri;
-import android.opengl.EGL14;
-import android.opengl.EGLConfig;
-import android.opengl.EGLContext;
-import android.opengl.EGLDisplay;
-import android.opengl.EGLSurface;
 import android.opengl.GLUtils;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.View;
 import android.view.Surface;
+import android.view.SurfaceView;
+import android.view.SurfaceHolder;
 
 import org.mozilla.servoview.JNIServo.ServoCoordinates;
 import org.mozilla.servoview.JNIServo.ServoOptions;
@@ -24,41 +24,74 @@ import org.mozilla.servoview.Servo.Client;
 import org.mozilla.servoview.Servo.GfxCallbacks;
 import org.mozilla.servoview.Servo.RunCallback;
 
-import static android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION;
-import static android.opengl.EGL14.EGL_NO_CONTEXT;
-import static android.opengl.EGL14.EGL_NO_SURFACE;
-import static android.opengl.EGL14.EGL_OPENGL_ES2_BIT;
+import android.view.Choreographer;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
+import android.widget.OverScroller;
 
-public class ServoSurface {
+import java.util.ArrayList;
+public class ServoSurface extends SurfaceView
+                        implements  
+                        GfxCallbacks,
+                        RunCallback,
+                        Choreographer.FrameCallback,
+                        GestureDetector.OnGestureListener,
+                        ScaleGestureDetector.OnScaleGestureListener {
     private static final String LOGTAG = "ServoSurface";
-    private final GLThread mGLThread;
-    private final Handler mMainLooperHandler;
+    private GLThread mGLThread;
     private Handler mGLLooperHandler;
     private Surface mASurface;
-    private int mPadding;
-    private int mWidth;
-    private int mHeight;
-    private long mVRExternalContext;
-    private Servo mServo;
+    protected Servo mServo = null;
     private Client mClient = null;
     private String mServoArgs;
     private String mServoLog;
     private String mInitialUri;
     private Activity mActivity;
+    private GestureDetector mGestureDetector;
+    private int mLastX = 0;
+    private int mCurX = 0;
+    private int mLastY = 0;
+    private int mCurY = 0;
+    private boolean mFlinging;
+    private ScaleGestureDetector mScaleGestureDetector;
+    private OverScroller mScroller;
 
-    public ServoSurface(Surface surface, int width, int height, int padding) {
-        mPadding = padding;
-        mWidth = width;
-        mHeight = height;
-        mASurface = surface;
-        mMainLooperHandler = new Handler(Looper.getMainLooper());
-        mGLThread = new GLThread();
+    private boolean mZooming;
+    private float mZoomFactor = 1;
+    private boolean mRedrawing;
+    private boolean mAnimating;
+
+    public ServoSurface(Context context) {
+        super(context);
+        init(context);
     }
 
-    public void onSurfaceChanged(Surface surface) {
-      mASurface = surface;
-      mGLThread.onSurfaceChanged();
+    public ServoSurface(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        init(context);
     }
+
+    private void init(Context context) {
+        mActivity = (Activity) context;
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+        setClickable(true);
+        ArrayList view = new ArrayList();
+        view.add(this);
+        addTouchables(view);
+        setWillNotCacheDrawing(false);
+        initGestures(context);
+
+        mGLThread = new GLThread(mActivity, this);
+        // this requires API level 34
+        //setSurfaceLifecycle(SurfaceView.SURFACE_LIFECYCLE_FOLLOWS_ATTACHMENT);
+        getHolder().addCallback(mGLThread);
+        mGLThread.start();
+    }
+
+
+    // Scroll and click
 
     public void setClient(Client client) {
         mClient = client;
@@ -69,28 +102,113 @@ public class ServoSurface {
         mServoLog = log;
     }
 
-    public void setActivity(Activity activity) {
-        mActivity = activity;
+    // RunCallback
+    public void inGLThread(Runnable r) {
+        mGLLooperHandler.post(r);
     }
 
-    public void setVRExternalContext(long context) {
-        mVRExternalContext = context;
+    public void inUIThread(Runnable r) {
+        post(r);
     }
 
-    public void runLoop() {
-        mGLThread.start();
+    // public void shutdown() {
+    //     Log.d(LOGTAG, "shutdown");
+    //     mServo.shutdown();
+    //     mServo = null;
+    //     mGLThread.shutdown();
+    //     try {
+    //         Log.d(LOGTAG, "Waiting for GL thread to shutdown");
+    //         mGLThread.join();
+    //     } catch (InterruptedException e) {
+    //         e.printStackTrace();
+    //     }
+    // }
+    //
+
+    // GfxCallbacks
+    public void flushGLBuffers() {
     }
 
-    public void shutdown() {
-        Log.d(LOGTAG, "shutdown");
-        mServo.shutdown();
-        mServo = null;
-        mGLThread.shutdown();
-        try {
-            Log.d(LOGTAG, "Waiting for GL thread to shutdown");
-            mGLThread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    public void animationStateChanged(boolean animating) {
+        if (!mAnimating && animating) {
+            post(() -> startLooping());
+        }
+        mAnimating = animating;
+    }
+
+    public void makeCurrent() {
+    }
+
+
+    private void startLooping() {
+      //In case we were already drawing.
+      Choreographer.getInstance().removeFrameCallback(this);
+
+      Choreographer.getInstance().postFrameCallback(this);
+    }
+
+
+    public void doFrame(long frameTimeNanos) {
+        Log.i(LOGTAG, ":::doFrame");
+        if (!mRedrawing) {
+            mRedrawing = true;
+            mClient.onRedrawing(mRedrawing);
+        }
+
+        // 3 reasons to be here: animating or scrolling/flinging or pinching
+
+        if (mFlinging && mScroller.isFinished()) {
+            mFlinging = false;
+            mServo.scrollEnd(0, 0, mCurX, mCurY);
+        }
+
+        if (mFlinging) {
+            mScroller.computeScrollOffset();
+            mCurX = mScroller.getCurrX();
+            mCurY = mScroller.getCurrY();
+        }
+
+        int dx = mCurX - mLastX;
+        int dy = mCurY - mLastY;
+
+        mLastX = mCurX;
+        mLastY = mCurY;
+
+        boolean scrollNecessary = mFlinging && (dx != 0 || dy != 0);
+        boolean zoomNecessary = mZooming && mZoomFactor != 1;
+
+        if (scrollNecessary) {
+            mServo.scroll(dx, dy, mCurX, mCurY);
+        }
+
+        if (zoomNecessary) {
+            mServo.pinchZoom(mZoomFactor, 0, 0);
+            mZoomFactor = 1;
+        }
+
+        if (!zoomNecessary && !scrollNecessary && mAnimating) {
+            mServo.performUpdates();
+        }
+
+        if (mZooming || mFlinging || mAnimating) {
+            Choreographer.getInstance().postFrameCallback(this);
+        } else {
+            mRedrawing = false;
+            mClient.onRedrawing(mRedrawing);
+        }
+    }
+
+    // Calls from Activity
+    public void onPause() {
+        if (mServo != null) {
+            mServo.suspend(true);
+        }
+    }
+
+
+    public void onResume() {
+        if (mServo != null) {
+            mServo.suspend(false);
         }
     }
 
@@ -99,7 +217,7 @@ public class ServoSurface {
     }
 
     public void goBack() {
-        mServo.goBack();
+       mServo.goBack();
     }
 
     public void goForward() {
@@ -138,163 +256,181 @@ public class ServoSurface {
         mServo.click(x, y);
     }
 
-    public void onSurfaceResized(int width, int height) {
-        mWidth = width;
-        mHeight = height;
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        mFlinging = true;
 
-        ServoCoordinates coords = new ServoCoordinates();
-        coords.x = mPadding;
-        coords.y = mPadding;
-        coords.width = width - 2 * mPadding;
-        coords.height = height - 2 * mPadding;
-        coords.fb_width = width;
-        coords.fb_height = height;
-
-        mServo.resize(coords);
+        // FIXME: magic values
+        // https://github.com/servo/servo/issues/20361
+        int mPageWidth = 80000;
+        int mPageHeight = 80000;
+        mCurX = velocityX < 0 ? mPageWidth : 0;
+        mLastX = mCurX;
+        mCurY = velocityY < 0 ? mPageHeight : 0;
+        mLastY = mCurY;
+        mScroller.fling(mCurX, mCurY, (int) velocityX, (int) velocityY, 0, mPageWidth, 0, mPageHeight);
+        mServo.scrollStart(0, 0, mCurX, mCurY);
+        startLooping();
+        return true;
     }
 
-    static class GLSurface implements GfxCallbacks {
-        private EGLConfig[] mEGLConfigs;
-        private EGLDisplay mEglDisplay;
-        private EGLContext mEglContext;
-        private EGLSurface mEglSurface;
-        
-        void throwGLError(String function) {
-            throwGLError(function, EGL14.eglGetError());
-        }
-
-        void throwGLError(String function, int error) {
-            throw new RuntimeException("Error: " + function + "() Failed " + GLUtils.getEGLErrorString(error));
-        }
-
-        GLSurface(Surface surface) {
-            mEglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
-            int[] version = new int[2];
-            if (!EGL14.eglInitialize(mEglDisplay, version, 0, version, 1)) {
-                throwGLError("eglInitialize");
-            }
-            mEGLConfigs = new EGLConfig[1];
-            int[] configsCount = new int[1];
-            int[] configSpec = new int[]{
-                    EGL14.EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-                    EGL14.EGL_RED_SIZE, 8,
-                    EGL14.EGL_GREEN_SIZE, 8,
-                    EGL14.EGL_BLUE_SIZE, 8,
-                    EGL14.EGL_ALPHA_SIZE, 8,
-                    EGL14.EGL_DEPTH_SIZE, 24,
-                    EGL14.EGL_STENCIL_SIZE, 0,
-                    EGL14.EGL_NONE
-            };
-            if ((!EGL14.eglChooseConfig(mEglDisplay, configSpec, 0, mEGLConfigs, 0, 1, configsCount, 0)) || (configsCount[0] == 0)) {
-                throwGLError("eglChooseConfig");
-            }
-            if (mEGLConfigs[0] == null) {
-                throw new RuntimeException("Error: eglConfig() not Initialized");
-            }
-            int[] attrib_list = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL14.EGL_NONE};
-            mEglContext = EGL14.eglCreateContext(mEglDisplay, mEGLConfigs[0], EGL14.EGL_NO_CONTEXT, attrib_list, 0);
-            int glError = EGL14.eglGetError();
-            if (glError != EGL14.EGL_SUCCESS) {
-                throwGLError("eglCreateContext", glError);
-            }
-            mEglSurface = EGL14.eglCreateWindowSurface(mEglDisplay, mEGLConfigs[0], surface, new int[]{EGL14.EGL_NONE}, 0);
-            if (mEglSurface == null || mEglSurface == EGL14.EGL_NO_SURFACE) {
-                glError = EGL14.eglGetError();
-                if (glError == EGL14.EGL_BAD_NATIVE_WINDOW) {
-                    Log.e(LOGTAG, "Error: createWindowSurface() Returned EGL_BAD_NATIVE_WINDOW.");
-                    return;
-                }
-                throwGLError("createWindowSurface", glError);
-            }
-
-            makeCurrent();
-        }
-
-
-        public void makeCurrent() {
-            if (!EGL14.eglMakeCurrent(mEglDisplay, mEglSurface, mEglSurface, mEglContext)) {
-                throwGLError("eglMakeCurrent");
-            }
-        }
-
-        public void flushGLBuffers() {
-            EGL14.eglSwapBuffers(mEglDisplay, mEglSurface);
-        }
-
-        public void animationStateChanged(boolean animating) {
-            // FIXME
-        }
-
-        void destroy() {
-            Log.d(LOGTAG, "Destroying surface");
-            if (!EGL14.eglMakeCurrent(mEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)) {
-                throwGLError("eglMakeCurrent");
-            }
-            if (!EGL14.eglDestroyContext(mEglDisplay, mEglContext)) {
-                throwGLError("eglDestroyContext");
-            }
-            if (!EGL14.eglDestroySurface(mEglDisplay, mEglSurface)) {
-                throwGLError("eglDestroySurface");
-            }
-            if (!EGL14.eglTerminate(mEglDisplay)) {
-                throwGLError("eglTerminate");
-            }
-        }
-
+    public boolean onDown(MotionEvent e) {
+        mScroller.forceFinished(true);
+        return true;
     }
 
-    class GLThread extends Thread implements RunCallback {
-        private GLSurface mSurface;
+    @Override
+    public boolean onTouchEvent(MotionEvent e) {
+        mGestureDetector.onTouchEvent(e);
+        mScaleGestureDetector.onTouchEvent(e);
 
-        public void inGLThread(Runnable r) {
-            mGLLooperHandler.post(r);
+        int action = e.getActionMasked();
+
+        float x = e.getX();
+        float y = e.getY();
+
+        int pointerIndex = e.getActionIndex();
+        int pointerId = e.getPointerId(pointerIndex);
+        switch (action) {
+            case (MotionEvent.ACTION_DOWN):
+            case (MotionEvent.ACTION_POINTER_DOWN):
+                //mServo.touchDown(x, y, pointerId);
+                mFlinging = false;
+                mScroller.forceFinished(true);
+                mCurX = (int) x;
+                mLastX = mCurX;
+                mCurY = (int) y;
+                mLastY = mCurY;
+                return true;
+            case (MotionEvent.ACTION_MOVE):
+                mCurX = (int) x;
+                mCurY = (int) y;
+                //mServo.touchMove(x, y, pointerId);
+                return true;
+            case (MotionEvent.ACTION_UP):
+            case (MotionEvent.ACTION_POINTER_UP):
+                //mServo.touchUp(x, y, pointerId);
+                return true;
+            case (MotionEvent.ACTION_CANCEL):
+                //mServo.touchCancel(x, y, pointerId);
+                return true;
+            default:
+                return true;
+        }
+    }
+
+    // OnGestureListener
+    public void onLongPress(MotionEvent e) {
+    }
+
+    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+        Log.i(LOGTAG, ":::::::onScroll");
+        mServo.scroll((int) -distanceX, (int) -distanceY, (int) e1.getX(), (int) e1.getY());
+        return true;
+    }
+
+    public boolean onSingleTapUp(MotionEvent e) {
+        Log.i(LOGTAG, String.format("::onSingleTapUp %1$f %2$f", e.getX(), e.getY()));
+        click(e.getX(), e.getY());
+        return false;
+    }
+
+    public void onShowPress(MotionEvent e) {
+    }
+
+    // OnScaleGestureListener
+    @Override
+    public boolean onScaleBegin(ScaleGestureDetector detector) {
+        if (mScroller.isFinished()) {
+            mZoomFactor = detector.getScaleFactor();
+            mZooming = true;
+            mServo.pinchZoomStart(mZoomFactor, 0, 0);
+            startLooping();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean onScale(ScaleGestureDetector detector) {
+        mZoomFactor *= detector.getScaleFactor();
+        return true;
+    }
+
+    @Override
+    public void onScaleEnd(ScaleGestureDetector detector) {
+        mZoomFactor = detector.getScaleFactor();
+        mZooming = false;
+        mServo.pinchZoomEnd(mZoomFactor, 0, 0);
+    }
+
+    private void initGestures(Context context) {
+        mGestureDetector = new GestureDetector(context, this);
+        mScaleGestureDetector = new ScaleGestureDetector(context, this);
+        mScroller = new OverScroller(context);
+    }
+
+    class GLThread extends Thread implements SurfaceHolder.Callback {
+        private Activity mActivity;
+        private ServoSurface mSurface;
+        GLThread(Activity activity, ServoSurface surface) {
+            mActivity = activity;
+            mSurface = surface;
         }
 
         public void inUIThread(Runnable r) {
-            mMainLooperHandler.post(r);
+            mSurface.inUIThread(r);
         }
 
-        public void onSurfaceChanged() {
-          Log.d(LOGTAG, "GLThread::onSurfaceChanged");
-          mSurface.destroy();
-          mSurface = new GLSurface(mASurface);
-          mServo.resetGfxCallbacks(mSurface);
+        public void surfaceCreated(SurfaceHolder holder) {
+            Log.d(LOGTAG, "GLThread::surfaceCreated");
+
+            ServoCoordinates coords = new ServoCoordinates();
+            coords.width = mSurface.getWidth();
+            coords.height = mSurface.getHeight();
+            coords.fb_width = mSurface.getWidth();
+            coords.fb_height = mSurface.getHeight();
+
+            Surface surface = holder.getSurface();
+            ServoOptions options = new ServoOptions();
+            options.args = mSurface.mServoArgs;
+            options.coordinates = coords;
+            options.enableLogs = true;
+            options.enableSubpixelTextAntialiasing = true;
+
+            if (mSurface.mServo == null) {
+                mSurface.mServo = new Servo(options, mSurface, mSurface, mClient, mActivity, surface);
+            }
+
+        }
+
+        public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+            Log.d(LOGTAG, "GLThread::surfaceChanged");
+            ServoCoordinates coords = new ServoCoordinates();
+            coords.width = width;
+            coords.height = height;
+            coords.fb_width = width;
+            coords.fb_height = height;
+
+            if (mSurface.mServo != null) {
+                mSurface.mServo.resize(coords);
+            }
+        }
+
+        public void surfaceDestroyed(SurfaceHolder holder) {
+            Log.d(LOGTAG, "GLThread::surfaceDestroyed");
         }
 
         public void shutdown() {
             Log.d(LOGTAG, "GLThread::shutdown");
-            mSurface.destroy();
+            // mSurface.destroy();
             mGLLooperHandler.getLooper().quitSafely();
         }
 
         public void run() {
             Looper.prepare();
 
-            mSurface = new GLSurface(mASurface);
-
             mGLLooperHandler = new Handler();
-
-            inUIThread(() -> {
-              ServoCoordinates coords = new ServoCoordinates();
-              coords.x = mPadding;
-              coords.y = mPadding;
-              coords.width = mWidth - 2 * mPadding;
-              coords.height = mHeight - 2 * mPadding;
-              coords.fb_width = mWidth;
-              coords.fb_height = mHeight;
-
-              ServoOptions options = new ServoOptions();
-              options.coordinates = coords;
-              options.args = mServoArgs;
-              options.density = 1;
-              options.url = mInitialUri;
-              options.logStr = mServoLog;
-              options.enableLogs = true;
-              options.enableSubpixelTextAntialiasing = false;
-              options.VRExternalContext = mVRExternalContext;
-
-              mServo = new Servo(options, this, mSurface, mClient, mActivity);
-            });
 
             Looper.loop();
         }

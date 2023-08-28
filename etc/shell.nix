@@ -10,6 +10,10 @@ with import (builtins.fetchTarball {
       url = "https://github.com/oxalica/rust-overlay/archive/a0df72e106322b67e9c6e591fe870380bd0da0d5.tar.gz";
     }))
   ];
+  config = {
+    android_sdk.accept_license = true;
+    allowUnfree = true;
+  };
 };
 let
     rustToolchain = rust-bin.fromRustupToolchainFile ../rust-toolchain.toml;
@@ -27,6 +31,23 @@ let
     # - glibc 2.38 (#31054)
     llvmPackages = llvmPackages_14;
     stdenv = llvmPackages.stdenv;
+
+    androidComposition = androidenv.composeAndroidPackages {
+      includeEmulator = true;
+      platformVersions = [ "30" ];
+      includeSources = false;
+      includeSystemImages = true;
+      systemImageTypes = [ "google_apis" ];
+      abiVersions = [ "x86" "armeabi-v7a" ];
+      includeNDK = true;
+      ndkVersion = "25.2.9519653";
+      useGoogleAPIs = false;
+      useGoogleTVAddOns = false;
+      includeExtras = [
+        "extras;google;gcm"
+      ];
+  };
+  androidSdk = androidComposition.androidsdk;
 in
 stdenv.mkDerivation rec {
   name = "servo-env";
@@ -111,12 +132,24 @@ stdenv.mkDerivation rec {
 
       RUSTC_BOOTSTRAP = "crown";
     }))
+
+    # for android builds
+    # TODO: make this optional
+    openjdk8_headless
+    androidSdk
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]);
 
-  LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
+  #LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
 
+
+  RUST_FONTCONFIG_DLOPEN = "on"; # to avoid link failure on fontconfig
+  ANDROID_SDK = "${androidSdk}/libexec/android-sdk";
+  ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
+  ANDROID_NDK = "${ANDROID_SDK}/ndk-bundle";
+  APP_PLATFORM = "30"; # blurdroid
+  ANDROID_SDK_PLATFORM = "30"; # blurdroid
   # Allow cargo to download crates
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
 
@@ -126,7 +159,7 @@ stdenv.mkDerivation rec {
   # Provide libraries that aren’t linked against but somehow required
   LD_LIBRARY_PATH = lib.makeLibraryPath [
     # Fixes missing library errors
-    xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon
+    zlib xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon
 
     # [WARN  script::dom::gpu] Could not get GPUAdapter ("NotFound")
     # TLA Err: Error: Couldn't request WebGPU adapter.
