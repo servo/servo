@@ -5239,39 +5239,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "servo"
-version = "0.0.1"
-dependencies = [
- "backtrace",
- "cc",
- "clipboard",
- "egui",
- "egui-winit",
- "egui_glow",
- "euclid",
- "getopts",
- "gleam",
- "glow",
- "image",
- "keyboard-types",
- "lazy_static",
- "libc",
- "libservo",
- "log",
- "raw-window-handle",
- "servo-media",
- "shellwords",
- "sig",
- "surfman",
- "tinyfiledialogs",
- "vergen",
- "webxr",
- "winapi",
- "winit",
- "winres",
-]
-
-[[package]]
 name = "servo-display-link"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5573,6 +5540,39 @@ dependencies = [
  "to_shmem",
  "url",
  "uuid 1.4.1",
+]
+
+[[package]]
+name = "servoshell"
+version = "0.0.1"
+dependencies = [
+ "backtrace",
+ "cc",
+ "clipboard",
+ "egui",
+ "egui-winit",
+ "egui_glow",
+ "euclid",
+ "getopts",
+ "gleam",
+ "glow",
+ "image",
+ "keyboard-types",
+ "lazy_static",
+ "libc",
+ "libservo",
+ "log",
+ "raw-window-handle",
+ "servo-media",
+ "shellwords",
+ "sig",
+ "surfman",
+ "tinyfiledialogs",
+ "vergen",
+ "webxr",
+ "winapi",
+ "winit",
+ "winres",
 ]
 
 [[package]]

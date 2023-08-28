@@ -871,7 +871,7 @@ class CommandBase(object):
                     api = "capi"
                 port = path.join("libsimpleservo", api)
             else:
-                port = "winit"
+                port = "servoshell"
             args += [
                 "--manifest-path",
                 path.join(self.context.topdir, "ports", port, "Cargo.toml"),
