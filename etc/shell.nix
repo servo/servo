@@ -7,6 +7,23 @@ let
     pinnedNixpkgs = import (builtins.fetchTarball {
         url = "https://github.com/NixOS/nixpkgs/archive/${pinnedSha}.tar.gz";
     }) {};
+    androidComposition = androidenv.composeAndroidPackages {
+      toolsVersion = "26.1.1";
+      includeEmulator = false;
+      platformVersions = [ "30" ];
+      includeSources = false;
+      includeSystemImages = false;
+      systemImageTypes = [ "google_apis_playstore" ];
+      abiVersions = [ "armeabi-v7a" "arm64-v8a" ];
+      includeNDK = true;
+      ndkVersion = "21.3.6528147";
+      useGoogleAPIs = false;
+      useGoogleTVAddOns = false;
+      includeExtras = [
+        "extras;google;gcm"
+      ];
+  };
+  androidSdk = androidComposition.androidsdk;
 in
 clangStdenv.mkDerivation rec {
   name = "servo-env";
@@ -33,12 +50,24 @@ clangStdenv.mkDerivation rec {
     # slow as it behaves as if -j1 was passed.
     # See https://github.com/servo/mozjs/issues/375
     pinnedNixpkgs.gnumake
+
+    # android build
+    openjdk8_headless
+
+    # android, make this conditional?
+    androidSdk
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]);
 
   LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
 
+
+  ANDROID_SDK = "${androidSdk}/libexec/android-sdk";
+  ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
+  ANDROID_NDK = "${ANDROID_SDK}/ndk-bundle";
+  APP_PLATFORM = "30"; # blurdroid
+  ANDROID_SDK_PLATFORM = "30"; # blurdroid
   # Allow cargo to download crates
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
 

@@ -4,15 +4,15 @@ import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 android {
-    compileSdkVersion 27
-    buildToolsVersion '27.0.3'
+    compileSdkVersion 30
+    buildToolsVersion '33.0.2'
 
     buildDir = rootDir.absolutePath + "/../../../target/android/gradle/servoapp"
 
     defaultConfig {
         applicationId "org.mozilla.servo"
         minSdkVersion 21
-        targetSdkVersion 27
+        targetSdkVersion 30 
         versionCode 1
         versionName "1.0.0"
     }

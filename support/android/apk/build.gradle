@@ -26,6 +26,11 @@ String getTargetDir(boolean debug, String arch) {
     return basePath + '/target/android/' + getSubTargetDir(debug, arch)
 }
 
+String getRealTargetDir(boolean debug, String arch) {
+    def basePath = project.rootDir.getParentFile().getParentFile().getParentFile().absolutePath
+    return basePath + '/target/' + getSubTargetDir(debug, arch)
+}
+
 String getSubTargetDir(boolean debug, String arch) {
     return getRustTarget(arch) + '/' + (debug ? 'debug' : 'release')
 }

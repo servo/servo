@@ -336,7 +336,7 @@ class CommandBase(object):
     def get_binary_path(self, build_type: BuildType, target=None, android=False, simpleservo=False):
         base_path = util.get_target_dir()
         if android:
-            base_path = path.join(base_path, "android", self.config["android"]["target"])
+            base_path = path.join(base_path, self.config["android"]["target"])
             simpleservo = True
         elif target:
             base_path = path.join(base_path, target)
@@ -670,7 +670,6 @@ class CommandBase(object):
         env['ANDROID_VERSION'] = android_api
         #env['ANDROID_PLATFORM_DIR'] = android_platform_dir
         env['ANDROID_PLATFORM_DIR'] = env['ANDROID_SYSROOT']
-        env['PKG_CONFIG'] = "/usr/bin/pkg-config"
         # env['GCC_TOOLCHAIN'] = gcc_toolchain
         #gcc_toolchain_bin = path.join(gcc_toolchain, android_toolchain_name, "bin")
 
@@ -737,7 +736,7 @@ class CommandBase(object):
         if not os.path.exists(env['AAR_OUT_DIR']):
             os.makedirs(env['AAR_OUT_DIR'])
 
-        env['PKG_CONFIG_ALLOW_CROSS'] = "1"
+        env['PKG_CONFIG_SYSROOT_DIR'] = path.join(llvm_toolchain, 'sysroot')
 
     @staticmethod
     def common_command_arguments(build_configuration=False, build_type=False):

@@ -127,6 +127,7 @@ class PackageCommands(CommandBase):
                      help='Create a local Maven repository')
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
     def package(self, build_type: BuildType, android=None, target=None, flavor=None, maven=False):
+        simpleservo = False
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -136,10 +137,11 @@ class PackageCommands(CommandBase):
             android = self.setup_configuration_for_android_target(target)
         else:
             target = self.config["android"]["target"]
+            simpleservo = True
 
         self.cross_compile_target = target
         env = self.build_env()
-        binary_path = self.get_binary_path(build_type, target=target, android=android)
+        binary_path = self.get_binary_path(build_type, target=target, android=android, simpleservo=simpleservo)
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
         if android:

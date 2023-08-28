@@ -5,14 +5,14 @@ import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 android {
-    compileSdkVersion 27
-    buildToolsVersion '27.0.3'
+    compileSdkVersion 30 
+    buildToolsVersion '33.0.2'
 
     buildDir = rootDir.absolutePath + "/../../../target/android/gradle/servoview"
 
     defaultConfig {
         minSdkVersion 18
-        targetSdkVersion 27
+        targetSdkVersion 30 
         versionCode 1
         versionName "1.0"
     }
@@ -166,7 +166,7 @@ android {
                         'NDK_OUT=' + getTargetDir(debug, arch) + '/apk/obj',
                         'NDK_DEBUG=' + (debug ? '1' : '0'),
                         'APP_ABI=' + getNDKAbi(arch),
-                        'SERVO_TARGET_DIR=' + getTargetDir(debug, arch)
+                        'SERVO_TARGET_DIR=' + getRealTargetDir(debug, arch)
             }
 
             compileTask.dependsOn taskName
@@ -220,9 +220,9 @@ dependencies {
         }
     }
 
-    googlevrImplementation 'com.google.vr:sdk-base:1.140.0'
-    googlevrImplementation(name: 'GVRService', ext: 'aar')
-    oculusvrImplementation(name: 'OVRService', ext: 'aar')
+    //googlevrImplementation 'com.google.vr:sdk-base:1.140.0'
+    //googlevrImplementation(name: 'GVRService', ext: 'aar')
+    //oculusvrImplementation(name: 'OVRService', ext: 'aar')
     implementation 'com.android.support.constraint:constraint-layout:1.1.2'
 }
 
