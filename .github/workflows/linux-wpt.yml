@@ -12,6 +12,7 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
+  WPT_COMMAND_LINE_ARG: "${{ inputs.layout == 'layout-2013' && '--legacy-layout' || '' }}"
 
 jobs:
   linux-wpt:
@@ -65,7 +66,7 @@ jobs:
       - name: Run tests
         if: ${{ inputs.wpt != 'sync' }}
         run: |
-          python3 ./mach test-wpt --with-${{ inputs.layout }} \
+          python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
             --release --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
@@ -77,7 +78,7 @@ jobs:
       - name: Run tests (sync)
         if: ${{ inputs.wpt == 'sync' }}
         run: |
-          python3 ./mach test-wpt --with-${{ inputs.layout }} \
+          python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
             --release --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
