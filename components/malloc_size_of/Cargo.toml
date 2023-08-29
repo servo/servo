@@ -36,6 +36,7 @@ cssparser = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true, optional = true }
 hyper_serde = { workspace = true, optional = true }
+indexmap = { workspace = true }
 keyboard-types = { workspace = true, optional = true }
 selectors = { path = "../selectors", features = ["shmem"] }
 serde = { workspace = true, optional = true }

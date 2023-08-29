@@ -3497,6 +3497,7 @@ dependencies = [
  "euclid",
  "http",
  "hyper_serde",
+ "indexmap",
  "keyboard-types",
  "selectors",
  "serde",
