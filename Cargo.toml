@@ -81,7 +81,7 @@ tokio-rustls = "0.24"
 tungstenite = "0.19"
 unicode-bidi = "0.3.4"
 unicode-script = "0.5"
-url = "2.0"
+url = "2.4"
 uuid = { version = "1.4.1", features = ["v4"] }
 webdriver = "0.48.0"
 webpki-roots = "0.23"
