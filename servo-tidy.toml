@@ -15,7 +15,6 @@ rand = [
     "quickcheck", # Only used in tests
     "servo_rand",
     "tungstenite",
-    "ws",
 ]
 
 [ignore]
@@ -25,27 +24,19 @@ packages = [
     "base64",
     "cfg-if",
     "cookie",
-    "fixedbitset",
-    "getrandom",
-    "image",
     "itoa",
     "libloading",
-    "metal",
-    "miniz_oxide",
     "num-rational",
-    "parking_lot",
-    "parking_lot_core",
-    "petgraph",
-    "png",
-    "rand",
-    "rand_chacha",
-    "rand_core",
     "redox_syscall",
     "ron",
     "time",
     "wasi",
     "wayland-sys",
     "bitflags",
+
+    # This dependency is for "hermit os" which Servo doesn't support.
+    # Theoretically, it's never fetched.
+    "hermit-abi",
 
     # Duplicated by rustls and image.
     "spin",
@@ -54,7 +45,6 @@ packages = [
     "rustls-webpki",
 
     # https://github.com/servo/servo/issues/26933
-    "bytes",
     "futures",
     "mio",
 
@@ -69,19 +59,31 @@ packages = [
     # https://github.com/servo/servo/pull/28236
     "nix",
 
-    # Duplicated by webrender debugger via ws
-    "block-buffer",
-    "digest",
-    "generic-array",
+    # Duplicated by surfman/wgpu update.
+    "bitflags",
+    "windows-sys",
+    "windows-targets",
+    "windows_aarch64_gnullvm",
+    "windows_aarch64_msvc",
+    "windows_i686_gnu",
+    "windows_i686_msvc",
+    "windows_x86_64_gnu",
+    "windows_x86_64_msvc",
+    "windows_x86_64_gnullvm",
 
-    # Duplicated by winit/surfman update.
-    "raw-window-handle",
+    # wgpu has the latest and greates
+    "paste",
+    "syn",
+    "metal",
+    "foreign-types",
+    "foreign-types-shared",
 
     # Temporarily duplicated until gleam can be upgrded.
     "uuid",
 
     # winit port minibrowser (servo/servo#30049)
     "clipboard-win",
+    "ahash",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
@@ -132,4 +134,4 @@ directories = [
 # Directories that are checked for correct file extension
 [check_ext]
 # directory, list of expected file extensions
-"./components/script/dom/webidls" = [".webidl"]
+"./components/script/dom/webidls" = [".webidl", "noidl"]

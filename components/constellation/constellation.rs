@@ -106,10 +106,10 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use canvas_traits::ConstellationCanvasMsg;
-use compositing::compositor_thread::CompositorProxy;
-use compositing::compositor_thread::Msg as ToCompositorMsg;
-use compositing::compositor_thread::WebrenderMsg;
-use compositing::{ConstellationMsg as FromCompositorMsg, SendableFrameTree};
+use compositing_traits::{
+    CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, SendableFrameTree,
+    WebrenderMsg,
+};
 use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
@@ -724,7 +724,7 @@ where
                 ROUTER.add_route(
                     webrender_ipc_receiver.to_opaque(),
                     Box::new(move |message| {
-                        let _ = compositor_proxy.send(ToCompositorMsg::Webrender(
+                        let _ = compositor_proxy.send(CompositorMsg::Webrender(
                             WebrenderMsg::Layout(message.to().expect("conversion failure")),
                         ));
                     }),
@@ -734,9 +734,9 @@ where
                 ROUTER.add_route(
                     webrender_image_ipc_receiver.to_opaque(),
                     Box::new(move |message| {
-                        let _ = compositor_proxy.send(ToCompositorMsg::Webrender(
-                            WebrenderMsg::Net(message.to().expect("conversion failure")),
-                        ));
+                        let _ = compositor_proxy.send(CompositorMsg::Webrender(WebrenderMsg::Net(
+                            message.to().expect("conversion failure"),
+                        )));
                     }),
                 );
 
@@ -1467,7 +1467,7 @@ where
                 }
                 let is_ready = is_ready == ReadyToSave::Ready;
                 self.compositor_proxy
-                    .send(ToCompositorMsg::IsReadyToSaveImageReply(is_ready));
+                    .send(CompositorMsg::IsReadyToSaveImageReply(is_ready));
                 if self.is_running_problem_test {
                     println!("sent response");
                 }
@@ -1484,11 +1484,10 @@ where
             // Panic a top level browsing context.
             FromCompositorMsg::SendError(top_level_browsing_context_id, error) => {
                 debug!("constellation got SendError message");
-                if let Some(id) = top_level_browsing_context_id {
-                    self.handle_panic(id, error, None);
-                } else {
+                if top_level_browsing_context_id.is_none() {
                     warn!("constellation got a SendError message without top level id");
                 }
+                self.handle_panic(top_level_browsing_context_id, error, None);
             },
             // Send frame tree to WebRender. Make it visible.
             FromCompositorMsg::SelectBrowser(top_level_browsing_context_id) => {
@@ -1735,22 +1734,22 @@ where
             },
             FromScriptMsg::GetClientWindow(response_sender) => {
                 self.compositor_proxy
-                    .send(ToCompositorMsg::GetClientWindow(response_sender));
+                    .send(CompositorMsg::GetClientWindow(response_sender));
             },
             FromScriptMsg::GetScreenSize(response_sender) => {
                 self.compositor_proxy
-                    .send(ToCompositorMsg::GetScreenSize(response_sender));
+                    .send(CompositorMsg::GetScreenSize(response_sender));
             },
             FromScriptMsg::GetScreenAvailSize(response_sender) => {
                 self.compositor_proxy
-                    .send(ToCompositorMsg::GetScreenAvailSize(response_sender));
+                    .send(CompositorMsg::GetScreenAvailSize(response_sender));
             },
             FromScriptMsg::LogEntry(thread_name, entry) => {
                 self.handle_log_entry(Some(source_top_ctx_id), thread_name, entry);
             },
             FromScriptMsg::TouchEventProcessed(result) => self
                 .compositor_proxy
-                .send(ToCompositorMsg::TouchEventProcessed(result)),
+                .send(CompositorMsg::TouchEventProcessed(result)),
             FromScriptMsg::GetBrowsingContextInfo(pipeline_id, response_sender) => {
                 let result = self
                     .pipelines
@@ -2734,8 +2733,7 @@ where
         }
 
         debug!("Asking compositor to complete shutdown.");
-        self.compositor_proxy
-            .send(ToCompositorMsg::ShutdownComplete);
+        self.compositor_proxy.send(CompositorMsg::ShutdownComplete);
 
         debug!("Shutting-down IPC router thread in constellation.");
         ROUTER.shutdown();
@@ -2753,15 +2751,13 @@ where
             .pipelines
             .get(&pipeline_id)
             .map(|pipeline| pipeline.top_level_browsing_context_id);
-        if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
-            let reason = format!("Send failed ({})", err);
-            self.handle_panic(top_level_browsing_context_id, reason, None);
-        }
+        let reason = format!("Send failed ({})", err);
+        self.handle_panic(top_level_browsing_context_id, reason, None);
     }
 
     fn handle_panic(
         &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
         reason: String,
         backtrace: Option<String>,
     ) {
@@ -2771,6 +2767,11 @@ where
             println!("Pipeline failed in hard-fail mode.  Crashing!");
             process::exit(1);
         }
+
+        let top_level_browsing_context_id = match top_level_browsing_context_id {
+            Some(id) => id,
+            None => return,
+        };
 
         debug!(
             "Panic handler for top-level browsing context {}: {}.",
@@ -2853,13 +2854,16 @@ where
         entry: LogEntry,
     ) {
         debug!("Received log entry {:?}.", entry);
-        match (entry, top_level_browsing_context_id) {
-            (LogEntry::Panic(reason, backtrace), Some(top_level_browsing_context_id)) => {
-                self.handle_panic(top_level_browsing_context_id, reason, Some(backtrace));
-            },
-            (LogEntry::Panic(reason, _), _) |
-            (LogEntry::Error(reason), _) |
-            (LogEntry::Warn(reason), _) => {
+        if let LogEntry::Panic(ref reason, ref backtrace) = entry {
+            self.handle_panic(
+                top_level_browsing_context_id,
+                reason.clone(),
+                Some(backtrace.clone()),
+            );
+        }
+
+        match entry {
+            LogEntry::Panic(reason, _) | LogEntry::Error(reason) | LogEntry::Warn(reason) => {
                 // VecDeque::truncate is unstable
                 if WARNINGS_BUFFER_SIZE <= self.handled_warnings.len() {
                     self.handled_warnings.pop_front();
@@ -3344,7 +3348,7 @@ where
 
     fn handle_pending_paint_metric(&self, pipeline_id: PipelineId, epoch: Epoch) {
         self.compositor_proxy
-            .send(ToCompositorMsg::PendingPaintMetric(pipeline_id, epoch))
+            .send(CompositorMsg::PendingPaintMetric(pipeline_id, epoch))
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
@@ -3361,7 +3365,7 @@ where
             if pipeline.animation_state != animation_state {
                 pipeline.animation_state = animation_state;
                 self.compositor_proxy
-                    .send(ToCompositorMsg::ChangeRunningAnimationsState(
+                    .send(CompositorMsg::ChangeRunningAnimationsState(
                         pipeline_id,
                         animation_state,
                     ))
@@ -3598,7 +3602,7 @@ where
             if !current_top_level_pipeline_will_be_replaced {
                 // Notify embedder and compositor top level document finished loading.
                 self.compositor_proxy
-                    .send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
+                    .send(CompositorMsg::LoadComplete(top_level_browsing_context_id));
             }
         } else {
             self.handle_subframe_loaded(pipeline_id);
@@ -4435,7 +4439,7 @@ where
             },
             WebDriverCommandMsg::MouseButtonAction(mouse_event_type, mouse_button, x, y) => {
                 self.compositor_proxy
-                    .send(ToCompositorMsg::WebDriverMouseButtonEvent(
+                    .send(CompositorMsg::WebDriverMouseButtonEvent(
                         mouse_event_type,
                         mouse_button,
                         x,
@@ -4444,11 +4448,11 @@ where
             },
             WebDriverCommandMsg::MouseMoveAction(x, y) => {
                 self.compositor_proxy
-                    .send(ToCompositorMsg::WebDriverMouseMoveEvent(x, y));
+                    .send(CompositorMsg::WebDriverMouseMoveEvent(x, y));
             },
             WebDriverCommandMsg::TakeScreenshot(_, rect, response_sender) => {
                 self.compositor_proxy
-                    .send(ToCompositorMsg::CreatePng(rect, response_sender));
+                    .send(CompositorMsg::CreatePng(rect, response_sender));
             },
         }
     }
@@ -5454,7 +5458,7 @@ where
             );
             self.active_browser_id = Some(top_level_browsing_context_id);
             self.compositor_proxy
-                .send(ToCompositorMsg::SetFrameTree(frame_tree));
+                .send(CompositorMsg::SetFrameTree(frame_tree));
         }
     }
 

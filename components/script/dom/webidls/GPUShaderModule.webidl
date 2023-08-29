@@ -5,11 +5,13 @@
 // https://gpuweb.github.io/gpuweb/#gpushadermodule
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUShaderModule {
+    [Throws]
+    Promise<GPUCompilationInfo> compilationInfo();
 };
 GPUShaderModule includes GPUObjectBase;
 
-typedef (Uint32Array or DOMString) GPUShaderCode;
-
 dictionary GPUShaderModuleDescriptor : GPUObjectDescriptorBase {
-    required GPUShaderCode code;
+    // UTF8String is not observably different from USVString
+    required USVString code;
+    object sourceMap;
 };

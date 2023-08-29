@@ -4,15 +4,20 @@
 
 // https://gpuweb.github.io/gpuweb/#gpudevice
 [Exposed=(Window, DedicatedWorker), /*Serializable,*/ Pref="dom.webgpu.enabled"]
-interface GPUDevice : EventTarget {
-    [SameObject] readonly attribute GPUAdapter adapter;
-    readonly attribute object extensions;
-    readonly attribute object limits;
+interface GPUDevice: EventTarget {
+    //[SameObject] readonly attribute GPUSupportedFeatures features;
+    [SameObject] readonly attribute GPUSupportedLimits limits;
 
-    [SameObject] readonly attribute GPUQueue defaultQueue;
+    // Overriding the name to avoid collision with `class Queue` in gcc
+    [SameObject, BinaryName="getQueue"] readonly attribute GPUQueue queue;
 
+    undefined destroy();
+
+    [NewObject, Throws]
     GPUBuffer createBuffer(GPUBufferDescriptor descriptor);
+    [NewObject]
     GPUTexture createTexture(GPUTextureDescriptor descriptor);
+    [NewObject]
     GPUSampler createSampler(optional GPUSamplerDescriptor descriptor = {});
 
     GPUBindGroupLayout createBindGroupLayout(GPUBindGroupLayoutDescriptor descriptor);
@@ -22,16 +27,22 @@ interface GPUDevice : EventTarget {
     GPUShaderModule createShaderModule(GPUShaderModuleDescriptor descriptor);
     GPUComputePipeline createComputePipeline(GPUComputePipelineDescriptor descriptor);
     GPURenderPipeline createRenderPipeline(GPURenderPipelineDescriptor descriptor);
-    //Promise<GPUComputePipeline> createReadyComputePipeline(GPUComputePipelineDescriptor descriptor);
-    //Promise<GPURenderPipeline> createReadyRenderPipeline(GPURenderPipelineDescriptor descriptor);
 
+    [NewObject]
+    Promise<GPUComputePipeline> createComputePipelineAsync(GPUComputePipelineDescriptor descriptor);
+    [NewObject]
+    Promise<GPURenderPipeline> createRenderPipelineAsync(GPURenderPipelineDescriptor descriptor);
+
+    [NewObject]
     GPUCommandEncoder createCommandEncoder(optional GPUCommandEncoderDescriptor descriptor = {});
+    [NewObject]
     GPURenderBundleEncoder createRenderBundleEncoder(GPURenderBundleEncoderDescriptor descriptor);
-
+    //[NewObject]
     //GPUQuerySet createQuerySet(GPUQuerySetDescriptor descriptor);
 };
 GPUDevice includes GPUObjectBase;
 
+//TODO
 dictionary GPUCommandEncoderDescriptor : GPUObjectDescriptorBase {
     boolean measureExecutionTime = false;
 };

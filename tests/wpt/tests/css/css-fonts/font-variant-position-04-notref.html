@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Reference (mismatch)</title>
+
+<style>
+    /* Lato has superscript Latin letters, but not subscript ones;
+     * digits are available in both super- and subscript form.
+     */
+    @font-face {
+        font-family: "lato";
+        src: url(support/fonts/Lato-Medium.ttf);
+    }
+    .test {
+        font-family: "lato";
+        font-size: 2em;
+    }
+</style>
+
+<section class="test">
+    <p>Synthetic subscript letters <em>must</em> be used:</p>
+    <p>Text with subscript letters</p>
+</section>

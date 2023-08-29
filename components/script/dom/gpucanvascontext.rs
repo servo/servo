@@ -2,20 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::{
-    GPUCanvasContextMethods, GPUSwapChainDescriptor,
+    GPUCanvasConfiguration, GPUCanvasContextMethods,
 };
 use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::GPUDeviceBinding::GPUDeviceMethods;
 use crate::dom::bindings::codegen::Bindings::GPUObjectBaseBinding::GPUObjectDescriptorBase;
 use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
     GPUExtent3D, GPUExtent3DDict, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
 };
+use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpuswapchain::GPUSwapChain;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
 use arrayvec::ArrayVec;
@@ -24,14 +23,78 @@ use euclid::default::Size2D;
 use ipc_channel::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::cell::Cell;
+use webgpu::WebGPUTexture;
 use webgpu::{wgpu::id, wgt, WebGPU, WebGPURequest, PRESENTATION_BUFFER_COUNT};
 use webrender_api::{
     units, ExternalImageData, ExternalImageId, ExternalImageType, ImageData, ImageDescriptor,
     ImageDescriptorFlags, ImageFormat, ImageKey,
 };
 
+use super::bindings::codegen::Bindings::GPUTextureUsageBinding::GPUTextureUsageConstants;
+use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
+use super::bindings::error::{Error, Fallible};
+use super::bindings::root::MutNullableDom;
+use super::gputexture::GPUTexture;
+
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct WebGPUContextId(pub u64);
+
+// TODO: make all this derivables available via new Bindings.conf option
+impl Clone for GPUCanvasConfiguration {
+    fn clone(&self) -> Self {
+        Self {
+            alphaMode: self.alphaMode.clone(),
+            device: self.device.clone(),
+            format: self.format.clone(),
+            usage: self.usage.clone(),
+            viewFormats: self.viewFormats.clone(),
+        }
+    }
+}
+
+impl Clone for HTMLCanvasElementOrOffscreenCanvas {
+    fn clone(&self) -> Self {
+        match self {
+            Self::HTMLCanvasElement(arg0) => Self::HTMLCanvasElement(arg0.clone()),
+            Self::OffscreenCanvas(arg0) => Self::OffscreenCanvas(arg0.clone()),
+        }
+    }
+}
+
+impl malloc_size_of::MallocSizeOf for GPUTextureDescriptor {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        match self {
+            Self {
+                parent,
+                dimension,
+                format,
+                mipLevelCount,
+                sampleCount,
+                size,
+                usage,
+                viewFormats,
+            } => {
+                parent.size_of(ops) +
+                    dimension.size_of(ops) +
+                    format.size_of(ops) +
+                    mipLevelCount.size_of(ops) +
+                    sampleCount.size_of(ops) +
+                    size.size_of(ops) +
+                    usage.size_of(ops) +
+                    viewFormats.size_of(ops)
+            },
+        }
+    }
+}
+
+impl malloc_size_of::MallocSizeOf for HTMLCanvasElementOrOffscreenCanvas {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        match self {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => canvas.size_of(ops),
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.size_of(ops),
+        }
+    }
+}
 
 #[dom_struct]
 pub struct GPUCanvasContext {
@@ -39,18 +102,19 @@ pub struct GPUCanvasContext {
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
-    canvas: Dom<HTMLCanvasElement>,
-    #[no_trace]
-    size: Cell<Size2D<u32>>,
-    swap_chain: DomRefCell<Option<Dom<GPUSwapChain>>>,
+    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas
+    canvas: HTMLCanvasElementOrOffscreenCanvas,
+    // TODO: can we have wgpu surface that is hw accelerated inside wr ...
     #[ignore_malloc_size_of = "Defined in webrender"]
     #[no_trace]
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     context_id: WebGPUContextId,
+    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot
+    texture: MutNullableDom<GPUTexture>,
 }
 
 impl GPUCanvasContext {
-    fn new_inherited(canvas: &HTMLCanvasElement, size: Size2D<u32>, channel: WebGPU) -> Self {
+    fn new_inherited(canvas: HTMLCanvasElementOrOffscreenCanvas, channel: WebGPU) -> Self {
         let (sender, receiver) = ipc::channel().unwrap();
         if let Err(e) = channel.0.send((None, WebGPURequest::CreateContext(sender))) {
             warn!("Failed to send CreateContext ({:?})", e);
@@ -59,22 +123,19 @@ impl GPUCanvasContext {
         Self {
             reflector_: Reflector::new(),
             channel,
-            canvas: Dom::from_ref(canvas),
-            size: Cell::new(size),
-            swap_chain: DomRefCell::new(None),
+            canvas,
             webrender_image: Cell::new(None),
             context_id: WebGPUContextId(external_id.0),
+            texture: MutNullableDom::default(),
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        canvas: &HTMLCanvasElement,
-        size: Size2D<u32>,
-        channel: WebGPU,
-    ) -> DomRoot<Self> {
+    pub fn new(global: &GlobalScope, canvas: &HTMLCanvasElement, channel: WebGPU) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUCanvasContext::new_inherited(canvas, size, channel)),
+            Box::new(GPUCanvasContext::new_inherited(
+                HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(canvas)),
+                channel,
+            )),
             global,
         )
     }
@@ -91,7 +152,7 @@ impl GPUCanvasContext {
     }
 
     pub fn send_swap_chain_present(&self) {
-        let texture_id = self.swap_chain.borrow().as_ref().unwrap().texture_id().0;
+        let texture_id = self.texture_id().unwrap().0;
         let encoder_id = self
             .global()
             .wgpu_id_hub()
@@ -116,13 +177,26 @@ impl GPUCanvasContext {
         self.context_id
     }
 
-    pub fn mark_as_dirty(&self) {
-        self.canvas
-            .upcast::<Node>()
-            .dirty(NodeDamage::OtherNodeDamage);
+    pub fn texture_id(&self) -> Option<WebGPUTexture> {
+        self.texture.get().map(|t| t.id())
+    }
 
-        let document = document_from_node(&*self.canvas);
-        document.add_dirty_webgpu_canvas(self);
+    pub fn mark_as_dirty(&self) {
+        if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) = &self.canvas {
+            canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            let document = document_from_node(&**canvas);
+            document.add_dirty_webgpu_canvas(self);
+        }
+        // TODO(sagudev): offscreen canvas also dirty?
+    }
+
+    fn size(&self) -> Size2D<u64> {
+        match &self.canvas {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                Size2D::new(canvas.Width() as u64, canvas.Height() as u64)
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.get_size(),
+        }
     }
 }
 
@@ -134,37 +208,49 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
 }
 
 impl GPUCanvasContextMethods for GPUCanvasContext {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configureswapchain
-    fn ConfigureSwapChain(&self, descriptor: &GPUSwapChainDescriptor) -> DomRoot<GPUSwapChain> {
-        if let Some(chain) = &*self.swap_chain.borrow() {
-            chain.destroy(self.context_id.0, self.webrender_image.get().unwrap());
-            self.webrender_image.set(None);
-        }
-        *self.swap_chain.borrow_mut() = None;
+    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas
+    fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+        self.canvas.clone()
+    }
 
-        let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
-        for _ in 0..PRESENTATION_BUFFER_COUNT {
-            buffer_ids.push(
-                self.global()
-                    .wgpu_id_hub()
-                    .lock()
-                    .create_buffer_id(descriptor.device.id().0.backend()),
-            );
-        }
+    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure
+    fn Configure(&self, descriptor: &GPUCanvasConfiguration) {
+        // Step 1 is let
+        // Step 2
+        // TODO: device features
+        let format = match descriptor.format {
+            GPUTextureFormat::Rgba8unorm | GPUTextureFormat::Rgba8unorm_srgb => ImageFormat::RGBA8,
+            GPUTextureFormat::Bgra8unorm | GPUTextureFormat::Bgra8unorm_srgb => ImageFormat::BGRA8,
+            _ => panic!("SwapChain format({:?}) not supported", descriptor.format), // TODO: Better handling
+        };
 
+        // Step 3
+        // TODO: device features
+
+        // Step 4
+        let size = self.size();
+        let text_desc = GPUTextureDescriptor {
+            format: descriptor.format,
+            mipLevelCount: 1,
+            sampleCount: 1,
+            usage: descriptor.usage | GPUTextureUsageConstants::COPY_SRC, // TODO: specs
+            size: GPUExtent3D::GPUExtent3DDict(GPUExtent3DDict {
+                width: size.width as u32,
+                height: size.height as u32,
+                depthOrArrayLayers: 1,
+            }),
+            viewFormats: descriptor.viewFormats.clone(),
+            // other members to default
+            parent: GPUObjectDescriptorBase { label: None },
+            dimension: GPUTextureDimension::_2d,
+        };
+
+        // Step 8
         let image_desc = ImageDescriptor {
-            format: match descriptor.format {
-                GPUTextureFormat::Rgba8unorm => ImageFormat::RGBA8,
-                GPUTextureFormat::Bgra8unorm => ImageFormat::BGRA8,
-                _ => panic!("SwapChain format({:?}) not supported", descriptor.format),
-            },
-            size: units::DeviceIntSize::new(
-                self.size.get().width as i32,
-                self.size.get().height as i32,
-            ),
+            format,
+            size: units::DeviceIntSize::new(size.width as i32, size.height as i32),
             stride: Some(
-                (((self.size.get().width * 4) | (wgt::COPY_BYTES_PER_ROW_ALIGNMENT - 1)) + 1)
-                    as i32,
+                (((size.width as u32 * 4) | (wgt::COPY_BYTES_PER_ROW_ALIGNMENT - 1)) + 1) as i32,
             ),
             offset: 0,
             flags: ImageDescriptorFlags::from_bits(1).unwrap(),
@@ -177,6 +263,16 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         });
 
         let (sender, receiver) = ipc::channel().unwrap();
+
+        let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
+        for _ in 0..PRESENTATION_BUFFER_COUNT {
+            buffer_ids.push(
+                self.global()
+                    .wgpu_id_hub()
+                    .lock()
+                    .create_buffer_id(descriptor.device.id().0.backend()),
+            );
+        }
 
         self.channel
             .0
@@ -193,37 +289,42 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             ))
             .expect("Failed to create WebGPU SwapChain");
 
-        let usage = if descriptor.usage % 2 == 0 {
-            descriptor.usage + 1
-        } else {
-            descriptor.usage
-        };
-        let text_desc = GPUTextureDescriptor {
-            parent: GPUObjectDescriptorBase { label: None },
-            dimension: GPUTextureDimension::_2d,
-            format: descriptor.format,
-            mipLevelCount: 1,
-            sampleCount: 1,
-            usage,
-            size: GPUExtent3D::GPUExtent3DDict(GPUExtent3DDict {
-                width: self.size.get().width,
-                height: self.size.get().height,
-                depth: 1,
-            }),
-        };
-
-        let texture = descriptor.device.CreateTexture(&text_desc);
+        self.texture
+            .set(Some(&descriptor.device.CreateTexture(&text_desc)));
 
         self.webrender_image.set(Some(receiver.recv().unwrap()));
+    }
 
-        let swap_chain = GPUSwapChain::new(
-            &self.global(),
-            self.channel.clone(),
-            &self,
-            &*texture,
-            descriptor.parent.label.as_ref().cloned(),
-        );
-        *self.swap_chain.borrow_mut() = Some(Dom::from_ref(&*swap_chain));
-        swap_chain
+    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure
+    fn Unconfigure(&self) {
+        if let Some(image_key) = self.webrender_image.take() {
+            if let Err(e) = self.channel.0.send((
+                None,
+                WebGPURequest::DestroySwapChain {
+                    external_id: self.context_id.0,
+                    image_key,
+                },
+            )) {
+                warn!(
+                    "Failed to send DestroySwapChain-ImageKey({:?}) ({})",
+                    image_key, e
+                );
+            }
+        }
+        self.texture.take();
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture
+    fn GetCurrentTexture(&self) -> Fallible<DomRoot<GPUTexture>> {
+        // Step 5.
+        self.mark_as_dirty();
+        // Step 6.
+        self.texture.get().ok_or(Error::InvalidState)
+    }
+}
+
+impl Drop for GPUCanvasContext {
+    fn drop(&mut self) {
+        self.Unconfigure()
     }
 }

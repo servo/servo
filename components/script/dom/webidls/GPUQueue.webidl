@@ -5,27 +5,30 @@
 // https://gpuweb.github.io/gpuweb/#gpuqueue
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUQueue {
-    undefined submit(sequence<GPUCommandBuffer> commandBuffers);
+    undefined submit(sequence<GPUCommandBuffer> buffers);
 
-    //GPUFence createFence(optional GPUFenceDescriptor descriptor = {});
-    //void signal(GPUFence fence, GPUFenceValue signalValue);
+    //TODO:
+    //Promise<undefined> onSubmittedWorkDone();
 
-    [Throws] undefined writeBuffer(
+    [Throws]
+    undefined writeBuffer(
         GPUBuffer buffer,
         GPUSize64 bufferOffset,
-        /*[AllowShared]*/ BufferSource data,
+        BufferSource data,
         optional GPUSize64 dataOffset = 0,
         optional GPUSize64 size);
 
-    [Throws] undefined writeTexture(
-      GPUTextureCopyView destination,
-      /*[AllowShared]*/ BufferSource data,
-      GPUTextureDataLayout dataLayout,
+    [Throws]
+    undefined writeTexture(
+      GPUImageCopyTexture destination,
+      BufferSource data,
+      GPUImageDataLayout dataLayout,
       GPUExtent3D size);
 
-    //void copyImageBitmapToTexture(
-    //    GPUImageBitmapCopyView source,
-    //    GPUTextureCopyView destination,
-    //    GPUExtent3D copySize);
+    //[Throws]
+    //undefined copyExternalImageToTexture(
+    //  GPUImageCopyExternalImage source,
+    //  GPUImageCopyTextureTagged destination,
+    //  GPUExtent3D copySize);
 };
 GPUQueue includes GPUObjectBase;

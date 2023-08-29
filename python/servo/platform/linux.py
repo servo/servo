@@ -114,6 +114,7 @@ class Linux(Base):
             'centos linux',
             'centos',
             'debian gnu/linux',
+            'raspbian gnu/linux',
             'fedora linux',
             'fedora',
             'nixos',
@@ -141,7 +142,7 @@ class Linux(Base):
     def install_non_gstreamer_dependencies(self, force: bool) -> bool:
         install = False
         pkgs = []
-        if self.distro in ['Ubuntu', 'Debian GNU/Linux']:
+        if self.distro in ['Ubuntu', 'Debian GNU/Linux', 'Raspbian GNU/Linux']:
             command = ['apt-get', 'install']
             pkgs = APT_PKGS
             if subprocess.call(['dpkg', '-s'] + pkgs,

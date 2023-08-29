@@ -1,5 +1,6 @@
 # mypy: allow-untyped-defs
 
+import gc
 import logging
 import sys
 from unittest import mock
@@ -15,6 +16,12 @@ sauce = pytest.importorskip("wptrunner.browsers.sauce")
 from wptserve.config import ConfigBuilder
 
 logger = logging.getLogger()
+
+
+def setup_module(module):
+    # Do a full GC collection, as mozprocess often creates garbage which then
+    # breaks when its __del__ is called while subprocess.Popen is mocked below.
+    gc.collect()
 
 
 def test_sauceconnect_success():

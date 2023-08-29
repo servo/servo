@@ -311,14 +311,22 @@ class TestEnvironment:
         return failed, pending
 
 
-def wait_for_service(logger, host, port, timeout=60):
+def wait_for_service(logger, host, port, timeout=60, server_process=None):
     """Waits until network service given as a tuple of (host, port) becomes
-    available or the `timeout` duration is reached, at which point
-    ``socket.error`` is raised."""
+    available, `timeout` duration is reached, or the `server_process` exits at
+    which point ``socket.error`` is raised."""
     addr = (host, port)
     logger.debug(f"Trying to connect to {host}:{port}")
     end = time.time() + timeout
     while end > time.time():
+        if server_process is not None and server_process.poll() is not None:
+            returncode = server_process.poll()
+            logger.debug(
+                f"Server process {server_process.pid} exited with "
+                f"{returncode}, giving up trying to connect"
+            )
+            break
+
         so = socket.socket()
         try:
             so.connect(addr)

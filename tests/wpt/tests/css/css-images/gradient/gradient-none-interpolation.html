@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Gradient interpolation</title>
+  <link rel="author" title="Aaron Krajeski" href="mailto:aaronhk@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="assert" content="Channel values of 'none' should not affect the gradient.">
+  <link rel="match" href="gradient-none-interpolation-ref.html">
+  <style>
+    div {
+      height: 100px;
+    }
+    #red {
+      background: linear-gradient(to right in srgb, color(srgb 0 0 0), color(srgb none 0.5 0.5), color(srgb 1 1 1));
+    }
+    #green {
+      background: linear-gradient(to right in srgb, color(srgb 0 0 0), color(srgb 0.5 none 0.5), color(srgb 1 1 1));
+    }
+    #blue {
+      background: linear-gradient(to right in srgb, color(srgb 0 0 0), color(srgb 0.5 0.5 none), color(srgb 1 1 1));
+    }
+    #redAndGreen {
+      background: linear-gradient(to right in srgb, color(srgb 0 none 0), color(srgb 0.5 0.5 none), color(srgb 1 1 1));
+    }
+    #multiple {
+      background: linear-gradient(to right in srgb, color(srgb 0 0 0), color(srgb 0.25 0.25 none),
+        color(srgb 0.5 0.5 none), color(srgb 0.75 0.75 none), color(srgb 1 1 1));
+    }
+    #noneOnLeft {
+      background: linear-gradient(to right in srgb, color(srgb none 0 0), color(srgb none 0.25 0.25),
+        color(srgb 0.5 0.5 0.5), color(srgb 0.75 0.75 0.75), color(srgb 1 1 1));
+    }
+    #noneOnRight {
+      background: linear-gradient(to right in srgb, color(srgb 0 0 0), color(srgb 0.25 0.25 0.25),
+        color(srgb 0.5 0.5 0.5), color(srgb 0.75 0.75 none), color(srgb 1 1 none));
+    }
+    #allNone {
+      background: linear-gradient(to right in srgb, color(srgb none 0 0), color(srgb none 1 1));
+    }
+ </style>
+ </head>
+ <body>
+  <div id="red"></div>
+  <div id="green"></div>
+  <div id="blue"></div>
+  <div id="redAndGreen"></div>
+  <div id="multiple"></div>
+  <div id="noneOnLeft"></div>
+  <div id="noneOnRight"></div>
+  <div id="allNone"></div>
+ </body>
+</html>

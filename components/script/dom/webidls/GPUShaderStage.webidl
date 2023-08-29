@@ -5,9 +5,9 @@
 // https://gpuweb.github.io/gpuweb/#typedefdef-gpushaderstageflags
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUShaderStage {
-    const GPUShaderStageFlags VERTEX   = 0x1;
-    const GPUShaderStageFlags FRAGMENT = 0x2;
-    const GPUShaderStageFlags COMPUTE  = 0x4;
+    const GPUShaderStageFlags VERTEX = 1;
+    const GPUShaderStageFlags FRAGMENT = 2;
+    const GPUShaderStageFlags COMPUTE = 4;
 };
 
-typedef unsigned long GPUShaderStageFlags;
+typedef [EnforceRange] unsigned long GPUShaderStageFlags;

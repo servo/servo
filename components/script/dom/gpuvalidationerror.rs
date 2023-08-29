@@ -10,6 +10,8 @@ use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
+use super::bindings::error::Fallible;
+
 #[dom_struct]
 pub struct GPUValidationError {
     reflector_: Reflector,
@@ -46,8 +48,8 @@ impl GPUValidationError {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
-    ) -> DomRoot<Self> {
-        GPUValidationError::new_with_proto(global, proto, message)
+    ) -> Fallible<DomRoot<Self>> {
+        Ok(GPUValidationError::new_with_proto(global, proto, message))
     }
 }
 

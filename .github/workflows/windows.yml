@@ -35,7 +35,7 @@ env:
 
 jobs:
   build:
-    name: Build
+    name: Windows Build
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
@@ -55,6 +55,8 @@ jobs:
           Start-BitsTransfer -Source https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip -Destination C:\\wix311-binaries.zip
           Expand-Archive C:\\wix311-binaries.zip -DestinationPath C:\\wix
           echo "C:\\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Remove msys from PATH # see https://github.com/actions/runner-images/issues/2208
+        run: Remove-Item -LiteralPath "C:\msys64\" -Force -Recurse
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
       - name: Bootstrap

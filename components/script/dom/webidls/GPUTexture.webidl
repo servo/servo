@@ -5,6 +5,7 @@
 // https://gpuweb.github.io/gpuweb/#gputexture
 [Exposed=(Window, DedicatedWorker), Serializable , Pref="dom.webgpu.enabled"]
 interface GPUTexture {
+    [NewObject]
     GPUTextureView createView(optional GPUTextureViewDescriptor descriptor = {});
 
     undefined destroy();
@@ -18,12 +19,13 @@ dictionary GPUTextureDescriptor : GPUObjectDescriptorBase {
     GPUTextureDimension dimension = "2d";
     required GPUTextureFormat format;
     required GPUTextureUsageFlags usage;
+    sequence<GPUTextureFormat> viewFormats = [];
 };
 
 enum GPUTextureDimension {
     "1d",
     "2d",
-    "3d"
+    "3d",
 };
 
 enum GPUTextureFormat {
@@ -57,9 +59,8 @@ enum GPUTextureFormat {
     "bgra8unorm",
     "bgra8unorm-srgb",
     // Packed 32-bit formats
-    //"rgb9e5ufloat",
     "rgb10a2unorm",
-    //"rg11b10ufloat",
+    "rg11b10float",
 
     // 64-bit formats
     "rg32uint",
@@ -75,7 +76,7 @@ enum GPUTextureFormat {
     "rgba32float",
 
     // Depth and stencil formats
-    //"stencil8",
+    //"stencil8", //TODO
     //"depth16unorm",
     "depth24plus",
     "depth24plus-stencil8",
@@ -94,29 +95,22 @@ enum GPUTextureFormat {
     "bc5-rg-unorm",
     "bc5-rg-snorm",
     "bc6h-rgb-ufloat",
-    //"bc6h-rgb-float",
+    "bc6h-rgb-float",
     "bc7-rgba-unorm",
     "bc7-rgba-unorm-srgb",
 
-    // "depth24unorm-stencil8" extension
+    // "depth24unorm-stencil8" feature
     //"depth24unorm-stencil8",
 
-    // "depth32float-stencil8" extension
+    // "depth32float-stencil8" feature
     //"depth32float-stencil8",
 };
 
-enum GPUTextureComponentType {
-    "float",
-    "sint",
-    "uint",
-    // Texture is used with comparison sampling only.
-    "depth-comparison"
-};
+typedef [EnforceRange] unsigned long GPUIntegerCoordinate;
 
 dictionary GPUExtent3DDict {
     required GPUIntegerCoordinate width;
-    required GPUIntegerCoordinate height;
-    required GPUIntegerCoordinate depth;
+    GPUIntegerCoordinate height = 1;
+    GPUIntegerCoordinate depthOrArrayLayers = 1;
 };
-typedef [EnforceRange] unsigned long GPUIntegerCoordinate;
 typedef (sequence<GPUIntegerCoordinate> or GPUExtent3DDict) GPUExtent3D;

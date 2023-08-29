@@ -6020,11 +6020,11 @@ class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
 class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', '_proxy')]
-        CGAbstractExternMethod.__init__(self, descriptor, "className", "*const i8", args, doesNotPanic=True)
+        CGAbstractExternMethod.__init__(self, descriptor, "className", "*const libc::c_char", args, doesNotPanic=True)
         self.descriptor = descriptor
 
     def getBody(self):
-        return '%s as *const u8 as *const i8' % str_to_const_array(self.descriptor.name)
+        return '%s as *const u8 as *const libc::c_char' % str_to_const_array(self.descriptor.name)
 
     def definition_body(self):
         return CGGeneric(self.getBody())

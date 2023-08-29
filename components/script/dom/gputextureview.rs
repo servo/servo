@@ -15,7 +15,7 @@ use webgpu::WebGPUTextureView;
 #[dom_struct]
 pub struct GPUTextureView {
     reflector_: Reflector,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     texture_view: WebGPUTextureView,
     texture: Dom<GPUTexture>,
@@ -25,7 +25,7 @@ impl GPUTextureView {
     fn new_inherited(
         texture_view: WebGPUTextureView,
         texture: &GPUTexture,
-        label: Option<USVString>,
+        label: USVString,
     ) -> GPUTextureView {
         Self {
             reflector_: Reflector::new(),
@@ -39,7 +39,7 @@ impl GPUTextureView {
         global: &GlobalScope,
         texture_view: WebGPUTextureView,
         texture: &GPUTexture,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<GPUTextureView> {
         reflect_dom_object(
             Box::new(GPUTextureView::new_inherited(texture_view, texture, label)),
@@ -56,12 +56,12 @@ impl GPUTextureView {
 
 impl GPUTextureViewMethods for GPUTextureView {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 }

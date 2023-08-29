@@ -19,7 +19,6 @@ from .base import Base
 
 DEPS_URL = "https://github.com/servo/servo-build-deps/releases/download/msvc-deps/"
 DEPENDENCIES = {
-    "llvm": "15.0.5",
     "moztools": "3.2",
 }
 

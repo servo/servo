@@ -30,7 +30,6 @@ webgl_backtrace = [
     "canvas/webgl_backtrace",
     "canvas_traits/webgl_backtrace",
 ]
-webrender_debugger = ["webrender/debugger"]
 xr-profile = ["canvas/xr-profile", "canvas_traits/xr-profile", "script/xr-profile", "webxr/profile"]
 
 [dependencies]
@@ -40,6 +39,7 @@ bluetooth_traits = { path = "../bluetooth_traits" }
 canvas = { path = "../canvas", default-features = false }
 canvas_traits = { path = "../canvas_traits" }
 compositing = { path = "../compositing", features = ["gl"] }
+compositing_traits = { path = "../compositing_traits" }
 constellation = { path = "../constellation" }
 crossbeam-channel = { workspace = true }
 devtools = { path = "../devtools" }

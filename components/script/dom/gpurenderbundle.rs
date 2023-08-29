@@ -21,7 +21,7 @@ pub struct GPURenderBundle {
     device: WebGPUDevice,
     #[no_trace]
     render_bundle: WebGPURenderBundle,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
 }
 
 impl GPURenderBundle {
@@ -29,7 +29,7 @@ impl GPURenderBundle {
         render_bundle: WebGPURenderBundle,
         device: WebGPUDevice,
         channel: WebGPU,
-        label: Option<USVString>,
+        label: USVString,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -45,7 +45,7 @@ impl GPURenderBundle {
         render_bundle: WebGPURenderBundle,
         device: WebGPUDevice,
         channel: WebGPU,
-        label: Option<USVString>,
+        label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderBundle::new_inherited(
@@ -67,12 +67,12 @@ impl GPURenderBundle {
 
 impl GPURenderBundleMethods for GPURenderBundle {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 }

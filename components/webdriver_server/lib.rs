@@ -19,7 +19,7 @@ mod capabilities;
 use crate::actions::{InputSourceState, PointerInputState};
 use base64::Engine;
 use capabilities::ServoCapabilities;
-use compositing::ConstellationMsg;
+use compositing_traits::ConstellationMsg;
 use crossbeam_channel::{after, unbounded, Receiver, Sender};
 use euclid::{Rect, Size2D};
 use http::method::Method;

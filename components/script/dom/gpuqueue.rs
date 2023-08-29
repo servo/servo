@@ -4,9 +4,6 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUSize64;
-use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
-    GPUTextureCopyView, GPUTextureDataLayout,
-};
 use crate::dom::bindings::codegen::Bindings::GPUQueueBinding::GPUQueueMethods;
 use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::GPUExtent3D;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
@@ -17,11 +14,15 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
-use crate::dom::gpucommandencoder::{convert_texture_cv, convert_texture_data_layout};
+use crate::dom::gpucommandencoder::{convert_ic_texture, convert_image_data_layout};
 use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt, GPUDevice};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use webgpu::{identity::WebGPUOpResult, wgt, WebGPU, WebGPUQueue, WebGPURequest};
+
+use super::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
+    GPUImageCopyTexture, GPUImageDataLayout,
+};
 
 #[dom_struct]
 pub struct GPUQueue {
@@ -30,7 +31,7 @@ pub struct GPUQueue {
     #[no_trace]
     channel: WebGPU,
     device: DomRefCell<Option<Dom<GPUDevice>>>,
-    label: DomRefCell<Option<USVString>>,
+    label: DomRefCell<USVString>,
     #[no_trace]
     queue: WebGPUQueue,
 }
@@ -41,7 +42,7 @@ impl GPUQueue {
             channel,
             reflector_: Reflector::new(),
             device: DomRefCell::new(None),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(USVString::default()),
             queue,
         }
     }
@@ -59,12 +60,12 @@ impl GPUQueue {
 
 impl GPUQueueMethods for GPUQueue {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<USVString> {
+    fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<USVString>) {
+    fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
@@ -149,9 +150,9 @@ impl GPUQueueMethods for GPUQueue {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writetexture
     fn WriteTexture(
         &self,
-        destination: &GPUTextureCopyView,
+        destination: &GPUImageCopyTexture,
         data: BufferSource,
-        data_layout: &GPUTextureDataLayout,
+        data_layout: &GPUImageDataLayout,
         size: GPUExtent3D,
     ) -> Fallible<()> {
         let (bytes, len) = match data {
@@ -164,8 +165,8 @@ impl GPUQueueMethods for GPUQueue {
             return Err(Error::Operation);
         }
 
-        let texture_cv = convert_texture_cv(destination);
-        let texture_layout = convert_texture_data_layout(data_layout);
+        let texture_cv = convert_ic_texture(destination);
+        let texture_layout = convert_image_data_layout(data_layout);
         let write_size = convert_texture_size_to_wgt(&convert_texture_size_to_dict(&size));
         let final_data = IpcSharedMemory::from_bytes(&bytes);
 

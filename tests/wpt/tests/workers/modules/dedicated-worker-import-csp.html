@@ -86,6 +86,17 @@ import_csp_test(
     "worker-src 'self' directive should override script-src * directive and " +
         "disallow cross origin static import.");
 
+// For static imports on workers, the effective directive should be 'worker-src'.
+// https://w3c.github.io/webappsec-csp/#effective-directive-for-a-request
+//
+// The directive fallback list of 'worker-src' doesn't contain 'script-src-elem'
+// https://w3c.github.io/webappsec-csp/#directive-fallback-list
+import_csp_test(
+    "script-src-elem 'self' 'unsafe-inline'",
+    "static",
+    ["export-on-load-script.js"],
+    "script-src-elem 'self' directive should not take effect on static import.");
+
 // Tests for dynamic import.
 //
 // Dynamic import should obey the script-src directive instead of the worker-src
@@ -105,6 +116,14 @@ import_csp_test(
     ['ERROR'],
     "script-src 'self' directive should disallow cross origin dynamic import.");
 
+// For dynamic imports, the effective directive should be 'script-src-elem'.
+// https://w3c.github.io/webappsec-csp/#effective-directive-for-a-request
+import_csp_test(
+    "script-src-elem 'self' 'unsafe-inline'",
+    "dynamic",
+    ['ERROR'],
+    "script-src-elem 'self' directive should disallow cross origin dynamic import.");
+
 import_csp_test(
     "script-src * 'unsafe-inline'",
     "dynamic",
@@ -116,5 +135,4 @@ import_csp_test(
     "dynamic",
     ["export-on-load-script.js"],
     "worker-src 'self' directive should not take effect on dynamic import.");
-
 </script>

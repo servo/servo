@@ -16,5 +16,4 @@ interface GPUBufferUsage {
     const GPUBufferUsageFlags INDIRECT      = 0x0100;
     const GPUBufferUsageFlags QUERY_RESOLVE = 0x0200;
 };
-
 typedef [EnforceRange] unsigned long GPUBufferUsageFlags;

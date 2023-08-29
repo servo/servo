@@ -2,6 +2,7 @@
 <title>auxclick is a PointerEvent</title>
 <meta name="variant" content="?mouse">
 <meta name="variant" content="?pen">
+<!-- TODO: Does any platform support auxclick with touch? -->
 <link rel="help" href="https://github.com/w3c/pointerevents/pull/317">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -13,58 +14,61 @@
 <input id="target" style="margin: 20px">
 
 <script>
-'use strict';
-let target = document.getElementById("target");
-let pointerId = 0;
-let pointerType = "";
-let inputSource = location.search.substring(1);
+  'use strict';
+  const target = document.getElementById("target");
+  const pointer_type = location.search.substring(1);
+  const test_pointer = pointer_type + "TestPointer";
 
-target.addEventListener("pointerdown", (e)=>{
-  pointerId = e.pointerId;
-  pointerType = e.pointerType;
-});
-
-function testFunction(test){
-  return test.step_func(e=>{
-    assert_equals(e.constructor, window.PointerEvent,
+  function assertAuxclickProperties(auxclick_event, pointerdown_event) {
+    assert_equals(auxclick_event.constructor, window.PointerEvent,
         "auxclick should use a PointerEvent constructor");
-    assert_true(e instanceof PointerEvent,
+    assert_true(auxclick_event instanceof PointerEvent,
         "auxclick should be a PointerEvent");
-    assert_equals(e.pointerId, pointerId,
-        "auxclick's pointerId should match the pointerId of the pointer event that triggers it");
-    assert_equals(e.pointerType, pointerType,
-        "auxclick's pointerType should match the pointerType of the pointer event that triggers it");
-    assert_equals(e.composed, true, "auxclick.composed should be true");
-  });
-}
+    assert_not_equals(auxclick_event.pointerId, -1,
+        "auxclick.pointerId should not be -1");
+    assert_equals(auxclick_event.pointerType, pointer_type,
+        "auxclick.pointerType should match test action pointerType");
+    assert_equals(auxclick_event.composed, true,
+        "auxclick.composed should be true");
 
-function run_test(pointerType){
-  promise_test((test) => new Promise((resolve, reject) => {
-    const testPointer = pointerType + "TestPointer";
-    let auxclickFunc = testFunction(test);
-    test.add_cleanup(() => {
-      target.removeEventListener("auxclick", auxclickFunc);
-      pointerId = 0;
-      pointerType = "";
-    });
-    let pointerDownPrevented = preventDefaultPointerdownOnce(target);
-    target.addEventListener("auxclick", auxclickFunc);
-    let eventWatcher = new EventWatcher(test, target, ["auxclick"]);
+    if (pointerdown_event) {
+      assert_equals(auxclick_event.pointerId, pointerdown_event.pointerId,
+          "auxclick.pointerId should match pointerdown.pointerId");
+    }
+  }
+
+  promise_test(async test => {
     let actions = new test_driver.Actions();
     actions = actions
-      .addPointer(testPointer, pointerType)
-      .pointerMove(0,0, {origin:target, sourceName:testPointer})
-      .pointerDown({button:actions.ButtonType.MIDDLE, sourceName:testPointer})
-      .pointerUp({button:actions.ButtonType.MIDDLE, sourceName:testPointer});
-    Promise.all([
-      pointerDownPrevented,
-      eventWatcher.wait_for("auxclick"),
-      actions.send()
-    ]).then(()=>resolve());
-  }), "auxclick using " + pointerType + " is a PointerEvent");
-}
+      .addPointer(test_pointer, pointer_type)
+      .pointerMove(0,0, {origin:target, sourceName:test_pointer})
+      .pointerDown({button:actions.ButtonType.MIDDLE, sourceName:test_pointer})
+      .pointerUp({button:actions.ButtonType.MIDDLE, sourceName:test_pointer});
+    let pointerdown_prevented = preventDefaultPointerdownOnce(target, test);
+    let pointerdown_promise = getEvent("pointerdown", target, test);
+    let auxclick_promise = getEvent("auxclick", target, test);
 
-run_test(inputSource);
-// TODO(crbug.com/1150441): Add test for auxclick from touch.  Note: Calling
-// run_test("touch") here times out.
+    await actions.send();
+    await pointerdown_prevented;
+    let pointerdown_event = await pointerdown_promise;
+    let auxclick_event = await auxclick_promise;
+
+    assertAuxclickProperties(auxclick_event, pointerdown_event);
+  }, "auxclick using " + pointer_type + " is a PointerEvent with correct properties");
+
+  promise_test(async test => {
+    let actions = new test_driver.Actions();
+    actions = actions
+      .addPointer(test_pointer, pointer_type)
+      .pointerMove(0,0, {origin:target, sourceName:test_pointer})
+      .pointerDown({button:actions.ButtonType.MIDDLE, sourceName:test_pointer})
+      .pointerUp({button:actions.ButtonType.MIDDLE, sourceName:test_pointer});
+    let auxclick_promise = getEvent("auxclick", target, test);
+
+    await actions.send();
+    let auxclick_event = await auxclick_promise;
+
+    assertAuxclickProperties(auxclick_event);
+  }, "auxclick using " + pointer_type + " is a PointerEvent with correct properties"
+      + " when no other PointerEvent listeners are present");
 </script>

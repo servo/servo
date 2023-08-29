@@ -2139,14 +2139,13 @@ impl HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-value-string-number
     fn convert_string_to_number(&self, value: &DOMString) -> Result<f64, ()> {
         match self.input_type() {
-            InputType::Date => match value.parse_date_string() {
-                Ok((year, month, day)) => {
-                    let d = NaiveDate::from_ymd(year, month, day);
-                    let duration = d.signed_duration_since(NaiveDate::from_ymd(1970, 1, 1));
-                    Ok(duration.num_milliseconds() as f64)
-                },
-                _ => Err(()),
-            },
+            InputType::Date => value
+                .parse_date_string()
+                .ok()
+                .and_then(|(year, month, day)| NaiveDate::from_ymd_opt(year, month, day))
+                .and_then(|date| date.and_hms_opt(0, 0, 0))
+                .map(|time| Ok(time.timestamp_millis() as f64))
+                .unwrap_or(Err(())),
             InputType::Month => match value.parse_month_string() {
                 // This one returns number of months, not milliseconds
                 // (specification requires this, presumably because number of
@@ -2155,30 +2154,32 @@ impl HTMLInputElement {
                 Ok((year, month)) => Ok(((year - 1970) * 12) as f64 + (month as f64 - 1.0)),
                 _ => Err(()),
             },
-            InputType::Week => match value.parse_week_string() {
-                Ok((year, weeknum)) => {
-                    let d = NaiveDate::from_isoywd(year, weeknum, Weekday::Mon);
-                    let duration = d.signed_duration_since(NaiveDate::from_ymd(1970, 1, 1));
-                    Ok(duration.num_milliseconds() as f64)
-                },
-                _ => Err(()),
-            },
+            InputType::Week => value
+                .parse_week_string()
+                .ok()
+                .and_then(|(year, weeknum)| NaiveDate::from_isoywd_opt(year, weeknum, Weekday::Mon))
+                .and_then(|date| date.and_hms_opt(0, 0, 0))
+                .map(|time| Ok(time.timestamp_millis() as f64))
+                .unwrap_or(Err(())),
             InputType::Time => match value.parse_time_string() {
                 Ok((hours, minutes, seconds)) => {
                     Ok((seconds as f64 + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0)
                 },
                 _ => Err(()),
             },
-            InputType::DatetimeLocal => match value.parse_local_date_and_time_string() {
+            InputType::DatetimeLocal => {
                 // Is this supposed to know the locale's daylight-savings-time rules?
-                Ok(((year, month, day), (hours, minutes, seconds))) => {
-                    let d = NaiveDate::from_ymd(year, month, day);
-                    let ymd_duration = d.signed_duration_since(NaiveDate::from_ymd(1970, 1, 1));
-                    let hms_millis =
-                        (seconds + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0;
-                    Ok(ymd_duration.num_milliseconds() as f64 + hms_millis)
-                },
-                _ => Err(()),
+                value
+                    .parse_local_date_and_time_string()
+                    .ok()
+                    .and_then(|((year, month, day), (hours, minutes, seconds))| {
+                        let hms_millis =
+                            (seconds + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0;
+                        NaiveDate::from_ymd_opt(year, month, day)
+                            .and_then(|date| date.and_hms_opt(0, 0, 0))
+                            .map(|time| Ok(time.timestamp_millis() as f64 + hms_millis))
+                    })
+                    .unwrap_or(Err(()))
             },
             InputType::Number | InputType::Range => value.parse_floating_point_number(),
             // min/max/valueAsNumber/stepDown/stepUp do not apply to
@@ -2230,25 +2231,34 @@ impl HTMLInputElement {
         match self.input_type() {
             InputType::Date => value
                 .parse_date_string()
-                .and_then(|(y, m, d)| NaiveDate::from_ymd_opt(y, m, d).ok_or(()))
-                .map(|date| date.and_hms(0, 0, 0)),
-            InputType::Time => value.parse_time_string().and_then(|(h, m, s)| {
-                let whole_seconds = s.floor();
-                let nanos = ((s - whole_seconds) * 1e9).floor() as u32;
-                NaiveDate::from_ymd(1970, 1, 1)
-                    .and_hms_nano_opt(h, m, whole_seconds as u32, nanos)
-                    .ok_or(())
-            }),
+                .ok()
+                .and_then(|(y, m, d)| NaiveDate::from_ymd_opt(y, m, d))
+                .and_then(|date| date.and_hms_opt(0, 0, 0))
+                .ok_or(()),
+            InputType::Time => value
+                .parse_time_string()
+                .ok()
+                .and_then(|(h, m, s)| {
+                    let whole_seconds = s.floor();
+                    let nanos = ((s - whole_seconds) * 1e9).floor() as u32;
+                    NaiveDate::from_ymd_opt(1970, 1, 1)
+                        .and_then(|date| date.and_hms_nano_opt(h, m, whole_seconds as u32, nanos))
+                })
+                .ok_or(()),
             InputType::Week => value
                 .parse_week_string()
+                .ok()
                 .and_then(|(iso_year, week)| {
-                    NaiveDate::from_isoywd_opt(iso_year, week, Weekday::Mon).ok_or(())
+                    NaiveDate::from_isoywd_opt(iso_year, week, Weekday::Mon)
                 })
-                .map(|date| date.and_hms(0, 0, 0)),
+                .and_then(|date| date.and_hms_opt(0, 0, 0))
+                .ok_or(()),
             InputType::Month => value
                 .parse_month_string()
-                .and_then(|(y, m)| NaiveDate::from_ymd_opt(y, m, 1).ok_or(()))
-                .map(|date| date.and_hms(0, 0, 0)),
+                .ok()
+                .and_then(|(y, m)| NaiveDate::from_ymd_opt(y, m, 1))
+                .and_then(|date| date.and_hms_opt(0, 0, 0))
+                .ok_or(()),
             // does not apply to other types
             _ => Err(()),
         }

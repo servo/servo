@@ -5,6 +5,7 @@
 // https://gpuweb.github.io/gpuweb/#gpuvalidationerror
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUValidationError {
+    [Throws]
     constructor(DOMString message);
     readonly attribute DOMString message;
 };
@@ -18,5 +19,6 @@ enum GPUErrorFilter {
 
 partial interface GPUDevice {
     undefined pushErrorScope(GPUErrorFilter filter);
+    [NewObject]
     Promise<GPUError?> popErrorScope();
 };

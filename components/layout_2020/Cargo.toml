@@ -28,7 +28,6 @@ html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
-mitochondria = { workspace = true }
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
 parking_lot = { workspace = true }

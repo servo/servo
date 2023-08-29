@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <title>Absolute position frame inside 'overflow: hidden' immediately after a forced page break</title>
+  <link rel="author" title="Emily McDonough" href="mailto:emcdonough@mozilla.com"/>
+  <style>
+    .inner {
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .outer {
+      break-after: page;
+      width: 100vw;
+      height: 100vh;
+    }
+    html, body { margin: 0; }
+  </style>
+  <body>
+    <div class="outer">
+      <div class="inner" style="border: 3px solid blue">111</div>
+    </div>
+    <div class="outer">
+      <div class="inner" style="border: 3px solid black">222</div>
+    </div>
+  </body>
+</html>

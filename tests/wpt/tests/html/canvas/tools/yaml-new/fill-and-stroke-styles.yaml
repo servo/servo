@@ -626,9 +626,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -648,9 +648,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -671,9 +671,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -693,9 +693,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -715,9 +715,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -738,9 +738,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -760,9 +760,9 @@
     @assert pixel 98,1 == 0,255,0,255; @moz-todo
     @assert pixel 1,25 == 0,255,0,255; @moz-todo
     @assert pixel 50,25 == 0,255,0,255; @moz-todo
-    @assert pixel 98,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1; @moz-todo
     @assert pixel 1,48 == 0,255,0,255; @moz-todo
-    @assert pixel 50,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1; @moz-todo
     @assert pixel 98,48 == 0,255,0,255; @moz-todo
   expected: green
 
@@ -784,9 +784,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -806,9 +806,9 @@
     @assert pixel 98,1 == 0,255,0,255; @moz-todo
     @assert pixel 1,25 == 0,255,0,255; @moz-todo
     @assert pixel 50,25 == 0,255,0,255; @moz-todo
-    @assert pixel 98,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1; @moz-todo
     @assert pixel 1,48 == 0,255,0,255; @moz-todo
-    @assert pixel 50,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1; @moz-todo
     @assert pixel 98,48 == 0,255,0,255; @moz-todo
   expected: green
 
@@ -828,9 +828,9 @@
     @assert pixel 98,1 == 0,255,0,255; @moz-todo
     @assert pixel 1,25 == 0,255,0,255; @moz-todo
     @assert pixel 50,25 == 0,255,0,255; @moz-todo
-    @assert pixel 98,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1; @moz-todo
     @assert pixel 1,48 == 0,255,0,255; @moz-todo
-    @assert pixel 50,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1; @moz-todo
     @assert pixel 98,48 == 0,255,0,255; @moz-todo
   expected: green
 
@@ -850,9 +850,9 @@
     @assert pixel 98,1 == 0,255,0,255; @moz-todo
     @assert pixel 1,25 == 0,255,0,255; @moz-todo
     @assert pixel 50,25 == 0,255,0,255; @moz-todo
-    @assert pixel 98,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1; @moz-todo
     @assert pixel 1,48 == 0,255,0,255; @moz-todo
-    @assert pixel 50,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1; @moz-todo
     @assert pixel 98,48 == 0,255,0,255; @moz-todo
   expected: green
 
@@ -872,9 +872,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -894,9 +894,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -916,9 +916,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -938,9 +938,9 @@
     @assert pixel 98,1 == 0,255,0,255; @moz-todo
     @assert pixel 1,25 == 0,255,0,255; @moz-todo
     @assert pixel 50,25 == 0,255,0,255; @moz-todo
-    @assert pixel 98,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1; @moz-todo
     @assert pixel 1,48 == 0,255,0,255; @moz-todo
-    @assert pixel 50,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1; @moz-todo
     @assert pixel 98,48 == 0,255,0,255; @moz-todo
   expected: green
 
@@ -960,9 +960,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -991,9 +991,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255;
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255;
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
@@ -1022,9 +1022,9 @@
     @assert pixel 98,1 == 0,255,0,255;
     @assert pixel 1,25 == 0,255,0,255; @moz-todo
     @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
     @assert pixel 1,48 == 0,255,0,255; @moz-todo
-    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 

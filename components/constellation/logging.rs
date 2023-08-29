@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use backtrace::Backtrace;
-use compositing::ConstellationMsg as FromCompositorMsg;
+use compositing_traits::ConstellationMsg as FromCompositorMsg;
 use crossbeam_channel::Sender;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use msg::constellation_msg::TopLevelBrowsingContextId;

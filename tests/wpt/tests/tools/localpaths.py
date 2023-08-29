@@ -34,3 +34,4 @@ if sys.version_info < (3, 8):
 sys.path.insert(0, os.path.join(here, "webdriver"))
 sys.path.insert(0, os.path.join(here, "wptrunner"))
 sys.path.insert(0, os.path.join(here, "webtransport"))
+sys.path.insert(0, os.path.join(here, "third_party_modified", "mozlog"))

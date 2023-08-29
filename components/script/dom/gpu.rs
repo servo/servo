@@ -23,6 +23,8 @@ use std::rc::Rc;
 use webgpu::wgt::PowerPreference;
 use webgpu::{wgpu, WebGPUResponse, WebGPUResponseResult};
 
+use super::bindings::codegen::Bindings::GPUTextureBinding::GPUTextureFormat;
+
 #[dom_struct]
 pub struct GPU {
     reflector_: Reflector,
@@ -105,7 +107,7 @@ impl GPUMethods for GPU {
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
             Some(GPUPowerPreference::High_performance) => PowerPreference::HighPerformance,
-            None => PowerPreference::Default,
+            None => PowerPreference::default(),
         };
         let ids = global.wgpu_id_hub().lock().create_adapter_ids();
 
@@ -116,6 +118,7 @@ impl GPUMethods for GPU {
                 wgpu::instance::RequestAdapterOptions {
                     power_preference,
                     compatible_surface: None,
+                    force_fallback_adapter: options.forceFallbackAdapter,
                 },
                 ids,
             ))
@@ -125,21 +128,34 @@ impl GPUMethods for GPU {
         }
         promise
     }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpu-getpreferredcanvasformat
+    fn GetPreferredCanvasFormat(&self) -> GPUTextureFormat {
+        // TODO: real implementation
+        GPUTextureFormat::Rgba8unorm
+    }
 }
 
 impl AsyncWGPUListener for GPU {
     fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
         match response {
             Ok(WebGPUResponse::RequestAdapter {
-                adapter_name,
+                adapter_info,
                 adapter_id,
+                limits,
                 channel,
             }) => {
                 let adapter = GPUAdapter::new(
                     &self.global(),
                     channel,
-                    DOMString::from(format!("{} ({:?})", adapter_name, adapter_id.0.backend())),
+                    DOMString::from(format!(
+                        "{} ({:?})",
+                        adapter_info.name,
+                        adapter_id.0.backend()
+                    )),
                     Heap::default(),
+                    limits,
+                    adapter_info,
                     adapter_id,
                 );
                 promise.resolve_native(&adapter);

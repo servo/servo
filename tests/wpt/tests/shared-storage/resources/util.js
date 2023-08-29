@@ -184,3 +184,15 @@ async function setKeyValueForOrigin(key, value, origin) {
   const result = await nextValueFromServer(outerKey);
   assert_equals(result, 'set_key_value_loaded');
 }
+
+async function deleteKeyForOrigin(key, origin) {
+  const outerKey = token();
+  let deleteIframeUrl = generateURL(
+      '/shared-storage/resources/delete-key.https.html', [outerKey]);
+  deleteIframeUrl = updateUrlToUseNewOrigin(deleteIframeUrl, origin);
+  appendExpectedKey(deleteIframeUrl, key);
+
+  attachIFrame(deleteIframeUrl);
+  const result = await nextValueFromServer(outerKey);
+  assert_equals(result, 'delete_key_loaded');
+}

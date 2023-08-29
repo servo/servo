@@ -11,8 +11,7 @@ GPURenderBundleEncoder includes GPUObjectBase;
 GPURenderBundleEncoder includes GPUProgrammablePassEncoder;
 GPURenderBundleEncoder includes GPURenderEncoderBase;
 
-dictionary GPURenderBundleEncoderDescriptor : GPUObjectDescriptorBase {
-    required sequence<GPUTextureFormat> colorFormats;
-    GPUTextureFormat depthStencilFormat;
-    GPUSize32 sampleCount = 1;
+dictionary GPURenderBundleEncoderDescriptor : GPURenderPassLayout {
+    boolean depthReadOnly = false;
+    boolean stencilReadOnly = false;
 };

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
+#![feature(once_cell)]
 
 #[macro_use]
 extern crate log;

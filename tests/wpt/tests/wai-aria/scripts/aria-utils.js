@@ -56,6 +56,66 @@ const AriaUtils = {
 
 
   /*
+  Tests computed ROLE of selected elements matching selector
+  against the string value of provided roles array.
+
+  Ex: <foo
+        data-testname="verify fooRole or barRole role on span"
+        class="ex-foo-or-bar">
+
+      AriaUtils.verifyRoleOrVariantRolesBySelector(".ex-foo-or-bar", ["fooRole", "barRole"]);
+
+  See also helper function verifyGenericRolesBySelector shorthand of the above using ["generic", "", "none"].
+
+  Note: This function should not be used to circumvent unexpected interop differences in implementations.
+  It should only be used in specific cases (like "generic") determined by ARIA WG or other spec maintainers to be acceptable for the purposes of testing.
+
+  */
+  verifyRoleOrVariantRolesBySelector: function(selector, roles) {
+    const els = document.querySelectorAll(selector);
+    if (!els.length) {
+      throw `Selector "${selector}" should match at least one element.`;
+    }
+    if (!roles.length || roles.length < 2) {
+      throw `Roles array ["${roles.join('", "')}"] should include at least two strings, a primary role and at least one acceptable implementation-specific variant. E.g. ["generic", "", "none"]…`;
+    }
+    for (const el of els) {
+      let testName = el.getAttribute("data-testname");
+      promise_test(async t => {
+        const expectedRoles = roles;
+        const computedRole = await test_driver.get_computed_role(el);
+        for (role of roles){
+          if (computedRole === role) {
+            return assert_equals(computedRole, role, `Computed Role: "${computedRole}" matches one of the acceptable role strings in ["${roles.join('", "')}"]: ${el.outerHTML}`);
+          }
+        }
+        return assert_false(true, `Computed Role: "${computedRole}" does not match any of the acceptable role strings in ["${roles.join('", "')}"]: ${el.outerHTML}`);
+      }, `${testName}`);
+    }
+  },
+
+
+  /*
+  Helper function for "generic" ROLE tests.
+
+  Ex: <span
+        data-testname="verify generic, none, or empty computed role on span"
+        class="ex-generic">
+
+      AriaUtils.verifyGenericRolesBySelector(".ex-generic");
+
+   This helper function is equivalant to AriaUtils.verifyRoleOrVariantRolesBySelector(".ex-generic", ["generic", "", "none"]);
+   See various issues and discussions linked from https://github.com/web-platform-tests/interop-2023-accessibility-testing/issues/48
+
+  */
+  verifyGenericRolesBySelector: function(selector) {
+    // ARIA WG determined implementation variants "none" (Chromium), and the empty string "" (WebKit), are sufficiently equivalent to "generic" for WPT test verification of HTML-AAM.
+    // See various discussions linked from https://github.com/web-platform-tests/interop-2023-accessibility-testing/issues/48
+    this.verifyRoleOrVariantRolesBySelector(selector, ["generic", "", "none"]);
+  },
+
+
+  /*
   Tests computed LABEL of all elements matching selector
   against the string value of their data-expectedlabel attribute.
 

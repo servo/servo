@@ -1,0 +1,77 @@
+[package]
+
+name = "servoshell"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+build = "build.rs"
+publish = false
+
+[[bin]]
+name = "servo"
+path = "main.rs"
+bench = false
+
+[build-dependencies]
+vergen = { version = "8.0.0", features = ["git", "gitcl"] }
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[target.'cfg(target_os = "macos")'.build-dependencies]
+cc = "1.0"
+
+[package.metadata.winres]
+FileDescription = "Servo"
+LegalCopyright = "© The Servo Project Developers"
+OriginalFilename = "servo.exe"
+ProductName = "Servo"
+
+[features]
+debugmozjs = ["libservo/debugmozjs"]
+default = ["max_log_level", "native-bluetooth", "webdriver"]
+jitspew = ["libservo/jitspew"]
+js_backtrace = ["libservo/js_backtrace"]
+max_log_level = ["log/release_max_level_info"]
+media-dummy = ["libservo/media-dummy"]
+media-gstreamer = ["libservo/media-gstreamer"]
+native-bluetooth = ["libservo/native-bluetooth"]
+no-wgl = ["libservo/no-wgl"]
+profilemozjs = ["libservo/profilemozjs"]
+refcell_backtrace = ["libservo/refcell_backtrace"]
+webdriver = ["libservo/webdriver"]
+webgl_backtrace = ["libservo/webgl_backtrace"]
+xr-profile = ["libservo/xr-profile"]
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+backtrace = { workspace = true }
+clipboard = "0.5"
+egui = "0.22.0"
+egui_glow = { version = "0.22.0", features = ["winit"] }
+egui-winit = { version = "0.22.0", default-features = false, features = ["clipboard", "wayland"] }
+euclid = { workspace = true }
+getopts = { workspace = true }
+gleam = "0.12"
+glow = "0.12.2"
+keyboard-types = { workspace = true }
+lazy_static = { workspace = true }
+libc = { workspace = true }
+libservo = { path = "../../components/servo" }
+log = { workspace = true }
+raw-window-handle = "0.5"
+servo-media = { git = "https://github.com/servo/media" }
+shellwords = "1.0.0"
+surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle"] }
+tinyfiledialogs = "3.0"
+webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
+winit = "0.28.6"
+
+[target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
+image = { workspace = true }
+
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
+sig = "1.0"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { workspace = true, features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"] }

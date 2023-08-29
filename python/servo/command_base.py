@@ -468,12 +468,9 @@ class CommandBase(object):
 
         effective_target = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in effective_target:
-            util.append_paths_to_env(env, "PATH", path.join(self.msvc_package_dir("llvm"), "bin"))
-
-            # These two environment variables are necessary for building mozjs. It would
-            # be nice to be able to set them in the cargo configuration somehow, but they
-            # are platform-dependent.
-            env["LIBCLANG_PATH"] = path.join(self.msvc_package_dir("llvm"), "lib")
+            # This environment variable is necessary for building mozjs. It would
+            # be nice to be able to set it in the cargo configuration somehow, but it
+            # is platform-dependent.
             env["MOZILLA_BUILD"] = path.join(self.msvc_package_dir("moztools"))
 
             # Always build harfbuzz from source
@@ -874,7 +871,7 @@ class CommandBase(object):
                     api = "capi"
                 port = path.join("libsimpleservo", api)
             else:
-                port = "winit"
+                port = "servoshell"
             args += [
                 "--manifest-path",
                 path.join(self.context.topdir, "ports", port, "Cargo.toml"),

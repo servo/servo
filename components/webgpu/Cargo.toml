@@ -22,5 +22,17 @@ servo_config = { path = "../config" }
 smallvec = { workspace = true, features = ["serde"] }
 webrender_api = { workspace = true }
 webrender_traits = { path = "../webrender_traits" }
-wgpu-core = { version = "0.6.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace", "serial-pass"], rev = "e72724a6e393503c73f37e86aa9317a5c62e32b8" }
-wgpu-types = { version = "0.6.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace"], rev = "e72724a6e393503c73f37e86aa9317a5c62e32b8" }
+wgpu-core = { version = "0.17", features = ["replay", "trace", "serial-pass", "wgsl"] }
+wgpu-types = { version = "0.17" }
+
+[target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies.wgpu-core]
+version = "0.17"
+features = ["replay", "trace", "serial-pass", "metal"]
+
+[target.'cfg(all(unix, not(target_os = "ios"), not(target_os = "macos")))'.dependencies.wgpu-core]
+version = "0.17"
+features = ["replay", "trace", "serial-pass", "vulkan"]
+
+[target.'cfg(windows)'.dependencies.wgpu-core]
+version = "0.17"
+features = ["replay", "trace", "serial-pass", "dx11", "dx12", "vulkan"]

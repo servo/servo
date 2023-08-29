@@ -775,7 +775,7 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
         delete(path.join(tdir, "webgpu"))
         copy_tree(path.join(clone_dir, "out-wpt"), path.join(tdir, "webgpu"))
         # update commit
-        commit = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode()
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=clone_dir).decode()
         with open(path.join(tdir, "checkout_commit.txt"), 'w') as file:
             file.write(commit)
         # clean up

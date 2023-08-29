@@ -39,8 +39,28 @@ def test_install_chromium():
 @pytest.mark.slow
 @pytest.mark.remote_network
 def test_install_chrome():
-    with pytest.raises(NotImplementedError):
-        wpt.main(argv=["install", "chrome", "browser"])
+    venv_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir())
+    channel = "dev"
+    dest = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", channel)
+    if sys.platform == "win32":
+        chrome_path = os.path.join(dest, "chrome-win32")
+    elif sys.platform == "darwin":
+        chrome_path = os.path.join(dest, "chrome-mac-x64")
+    else:
+        chrome_path = os.path.join(dest, "chrome-linux64")
+
+    if os.path.exists(chrome_path):
+        utils.rmtree(chrome_path)
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["install", "--channel", channel, "chrome", "browser"])
+    assert excinfo.value.code == 0
+    assert os.path.exists(chrome_path)
+
+    chrome = browser.Chrome(logging.getLogger("Chrome"))
+    binary = chrome.find_binary(venv_path, channel)
+    assert binary is not None and os.path.exists(binary)
+
+    utils.rmtree(chrome_path)
 
 
 @pytest.mark.slow
@@ -60,7 +80,8 @@ def test_install_chrome_chromedriver_by_version():
     if os.path.exists(chromedriver_path):
         os.unlink(chromedriver_path)
     # This is a stable version.
-    binary_path = chrome.install_webdriver_by_version(dest=dest, version="111.0.5563.146")
+    binary_path = chrome.install_webdriver_by_version(
+        dest=dest, version="115.0.5790.170", channel="stable")
     assert path_fn(binary_path) == path_fn(chromedriver_path)
     assert os.path.exists(chromedriver_path)
     os.unlink(chromedriver_path)

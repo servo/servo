@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+  try {
+    window.sharedStorage;
+    window.parent.postMessage({ accessSharedStorageResult: 'success'}, "*");
+  } catch (error) {
+    window.parent.postMessage({ accessSharedStorageResult: 'failure'}, "*");
+  }
+</script>
+</body>
+</html>
