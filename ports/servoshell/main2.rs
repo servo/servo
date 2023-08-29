@@ -23,6 +23,7 @@ mod keyutils;
 mod minibrowser;
 mod prefs;
 mod resources;
+mod tests;
 mod window_trait;
 
 use app::App;

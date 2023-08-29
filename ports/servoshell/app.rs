@@ -14,16 +14,17 @@ use gleam::gl;
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
 use servo::compositing::windowing::EmbedderEvent;
-use servo::config::opts::{self, parse_url_or_filename};
+use servo::config::opts;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::Servo;
 use std::cell::{Cell, RefCell, RefMut};
 use std::collections::HashMap;
 use std::env;
-
+use std::path::Path;
 use std::rc::Rc;
 use surfman::GLApi;
+use url::{self, Url};
 use webxr::glwindow::GlWindowDiscovery;
 
 pub struct App {
@@ -346,7 +347,15 @@ fn get_default_url() -> ServoUrl {
     // If the url is not provided, we fallback to the homepage in prefs,
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
-    let cmdline_url = opts::get().url.clone();
+    let cmdline_url = opts::get().url.clone().and_then(|url_string| {
+        parse_url_or_filename(&cwd, &url_string)
+            .map_err(|error| {
+                warn!("URL parsing failed ({:?}).", error);
+                error
+            })
+            .ok()
+    });
+
     let pref_url = {
         let homepage_url = pref!(shell.homepage);
         parse_url_or_filename(&cwd, &homepage_url).ok()
@@ -354,4 +363,14 @@ fn get_default_url() -> ServoUrl {
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     cmdline_url.or(pref_url).or(blank_url).unwrap()
+}
+
+pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
+    match ServoUrl::parse(input) {
+        Ok(url) => Ok(url),
+        Err(url::ParseError::RelativeUrlWithoutBase) => {
+            Url::from_file_path(&*cwd.join(input)).map(ServoUrl::from_url)
+        },
+        Err(_) => Err(()),
+    }
 }

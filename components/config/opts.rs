@@ -25,7 +25,7 @@ pub struct Opts {
     pub is_running_problem_test: bool,
 
     /// The initial URL to load.
-    pub url: Option<ServoUrl>,
+    pub url: Option<String>,
 
     /// Whether or not the legacy layout system is enabled.
     pub legacy_layout: bool,
@@ -598,15 +598,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
             url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html")
     });
 
-    let url_opt = url_opt.and_then(|url_string| {
-        parse_url_or_filename(&cwd, url_string)
-            .map_err(|error| {
-                warn!("URL parsing failed ({:?}).", error);
-                error
-            })
-            .ok()
-    });
-
     let tile_size: usize = match opt_match.opt_str("s") {
         Some(tile_size_str) => tile_size_str
             .parse()
@@ -752,7 +743,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     let opts = Opts {
         debug: debug_options.clone(),
         is_running_problem_test,
-        url: url_opt,
+        url: url_opt.map(|s| s.to_string()),
         legacy_layout,
         tile_size,
         time_profiling,
@@ -814,14 +805,4 @@ pub fn set_options(opts: Opts) {
 #[inline]
 pub fn get() -> RwLockReadGuard<'static, Opts> {
     OPTIONS.read().unwrap()
-}
-
-pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
-    match ServoUrl::parse(input) {
-        Ok(url) => Ok(url),
-        Err(url::ParseError::RelativeUrlWithoutBase) => {
-            Url::from_file_path(&*cwd.join(input)).map(ServoUrl::from_url)
-        },
-        Err(_) => Err(()),
-    }
 }
