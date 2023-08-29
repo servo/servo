@@ -307,7 +307,7 @@ impl FloatContext {
     pub fn new(max_inline_size: Length) -> Self {
         let mut bands = FloatBandTree::new();
         bands = bands.insert(FloatBand {
-            top: Length::zero(),
+            top: Length::new(-f32::INFINITY),
             left: None,
             right: None,
         });
