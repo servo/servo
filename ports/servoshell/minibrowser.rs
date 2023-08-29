@@ -66,6 +66,10 @@ impl Minibrowser {
                         if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
                             location_field.request_focus();
                         }
+                        if location_field.lost_focus() && ui.input(|i| i.clone().key_pressed(Key::Enter)) {
+                            event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                            location_dirty.set(false);
+                        }
                     },
                 );
             });
