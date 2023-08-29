@@ -39,14 +39,14 @@ fn main() {
             .write_bindings(gl_generator::StaticStructGenerator, &mut file)
             .unwrap();
 
-        // Historically, Android builds have succeeded with rust-link-lib=EGL.
+        // Historically, Android builds have succeeded with rustc-link-lib=EGL.
         // On Windows when relying on %LIBS% to contain libEGL.lib, however,
         // we must explicitly use rustc-link-lib=libEGL or rustc will attempt
         // to link EGL.lib instead.
         if target.contains("windows") {
             println!("cargo:rustc-link-lib=libEGL");
         } else {
-            println!("cargo:rust-link-lib=EGL");
+            println!("cargo:rustc-link-lib=EGL");
         }
     }
 
