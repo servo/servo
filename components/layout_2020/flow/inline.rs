@@ -90,7 +90,9 @@ pub(crate) struct TextRun {
 struct InlineNestingLevelState<'box_tree> {
     remaining_boxes: InlineBoxChildIter<'box_tree>,
     line_items_so_far: Vec<LineItem>,
-    white_space: WhiteSpace,
+    /// Whether or not we have processed any content (an atomic element or text) for
+    /// this inline box on the current line OR any previous line.
+    has_content: bool,
     /// Indicates whether this nesting level have text decorations in effect.
     /// From https://drafts.csswg.org/css-text-decor/#line-decoration
     // "When specified on or propagated to a block container that establishes
@@ -197,6 +199,12 @@ struct InlineFormattingContextState<'box_tree, 'a, 'b> {
     /// The line breaking state for this inline formatting context.
     linebreaker: Option<LineBreakLeafIter>,
 
+    /// The currently white-space setting of this line. This is stored on the
+    /// [`InlineFormattingContextState`] because when a soft wrap opportunity is defined
+    /// by the boundary between two characters, the white-space property of their nearest
+    /// common ancestor is used.
+    white_space: WhiteSpace,
+
     partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
     current_nesting_level: InlineNestingLevelState<'box_tree>,
 }
@@ -216,7 +224,18 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
         self.current_line
             .block_size
             .max_assign(line_item.block_size());
+
         self.current_nesting_level.line_items_so_far.push(line_item);
+        self.current_nesting_level.has_content = true;
+        self.propagate_current_nesting_level_white_space_style();
+    }
+
+    fn propagate_current_nesting_level_white_space_style(&mut self) {
+        let style = match self.partial_inline_boxes_stack.last() {
+            Some(partial) => &partial.style,
+            None => self.containing_block.style,
+        };
+        self.white_space = style.get_inherited_text().white_space;
     }
 
     /// Finish layout of all the partial inline boxes in the current line,
@@ -450,53 +469,74 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
         &mut self,
         potential_line_size: &Vec2<Length>,
     ) -> bool {
+        let available_line_space = if self.sequential_layout_state.is_some() {
+            self.current_line
+                .placement_among_floats
+                .get_or_init(|| self.place_line_among_floats(potential_line_size))
+                .size
+                .clone()
+        } else {
+            Vec2 {
+                inline: self.containing_block.inline_size,
+                block: Length::new(f32::INFINITY),
+            }
+        };
+
+        let inline_would_overflow = potential_line_size.inline > available_line_space.inline;
+        let block_would_overflow = potential_line_size.block > available_line_space.block;
+
+        // The first content that is added to a line cannot trigger a line break and
+        // the `white-space` propertly can also prevent all line breaking.
+        let can_break = self.current_line.has_content && self.white_space.allow_wrap();
+
         // If this is the first content on the line and we already have a float placement,
         // that means that the placement was initialized by a leading float in the IFC.
         // This placement needs to be updated, because the first line content might push
-        // the block start of the line downward.
-        if !self.current_line.has_content && self.sequential_layout_state.is_some() {
-            let new_placement = self.place_line_among_floats(potential_line_size);
-            self.current_line
-                .replace_placement_among_floats(new_placement);
+        // the block start of the line downward. If there is no float placement, we want
+        // to make one to properly set the block position of the line.
+        if !can_break {
+            // Even if we cannot break, adding content to this line might change its position.
+            // In that case we need to redo our placement among floats.
+            if self.sequential_layout_state.is_some() &&
+                (inline_would_overflow || block_would_overflow)
+            {
+                let new_placement = self.place_line_among_floats(potential_line_size);
+                self.current_line
+                    .replace_placement_among_floats(new_placement);
+            }
+
+            return false;
         }
 
+        // If the potential line is larger than the containing block we do not even need to consider
+        // floats. We definitely have to do a linebreak.
         if potential_line_size.inline > self.containing_block.inline_size {
             return true;
         }
 
-        // If we already have a placement among floats for this line, and the new potential
-        // line size causes a change in the block position, then we will need a line
-        // break. This block of code also takes the opportunity to update the placement
-        // among floats in the case that line does fit at the same block position (because
-        // its inline start may change).
-        let old_placement = self.current_line.placement_among_floats.get().cloned();
-        if let Some(old_placement) = old_placement {
-            if potential_line_size.block > old_placement.size.block {
-                let new_placement = self.place_line_among_floats(potential_line_size);
-                if new_placement.start_corner.block != old_placement.start_corner.block {
-                    return true;
-                } else {
-                    self.current_line
-                        .replace_placement_among_floats(new_placement);
-                    return false;
-                }
+        // Not fitting in the block space means that our block size has changed and we had a
+        // placement among floats that is no longer valid. This same placement might just
+        // need to be expanded or perhaps we need to line break.
+        if block_would_overflow {
+            // If we have a limited block size then we are wedging this line between floats.
+            assert!(self.sequential_layout_state.is_some());
+            let new_placement = self.place_line_among_floats(potential_line_size);
+            if new_placement.start_corner.block !=
+                self.current_line
+                    .line_block_start_considering_placement_among_floats()
+            {
+                return true;
+            } else {
+                self.current_line
+                    .replace_placement_among_floats(new_placement);
+                return false;
             }
         }
 
         // Otherwise the new potential line size will require a newline if it fits in the
         // inline space available for this line. This space may be smaller than the
         // containing block if floats shrink the available inline space.
-        let available_inline_space = if self.sequential_layout_state.is_some() {
-            let placement_among_floats = self
-                .current_line
-                .placement_among_floats
-                .get_or_init(|| self.place_line_among_floats(potential_line_size));
-            placement_among_floats.size.inline
-        } else {
-            self.containing_block.inline_size
-        };
-
-        potential_line_size.inline > available_inline_space
+        inline_would_overflow
     }
 }
 
@@ -680,12 +720,13 @@ impl InlineFormattingContext {
                 inline: first_line_inline_start,
                 block: Length::zero(),
             }),
+            white_space: containing_block.style.get_inherited_text().white_space,
             linebreaker: None,
             partial_inline_boxes_stack: Vec::new(),
             current_nesting_level: InlineNestingLevelState {
                 remaining_boxes: InlineBoxChildIter::from_formatting_context(self),
                 line_items_so_far: Vec::with_capacity(self.inline_level_boxes.len()),
-                white_space: containing_block.style.clone_inherited_text().white_space,
+                has_content: false,
                 text_decoration_line: self.text_decoration_line,
             },
         };
@@ -731,7 +772,17 @@ impl InlineFormattingContext {
                     &mut ifc.current_line.inline_position,
                     true, /* at_end_of_inline_element */
                 );
-                ifc.current_nesting_level = partial.parent_nesting_level
+
+                let had_content = ifc.current_nesting_level.has_content;
+                ifc.current_nesting_level = partial.parent_nesting_level;
+
+                // If the inline box that we just finished had any content at all, we want to propagate
+                // the `white-space` property of its parent to future inline children. This is because
+                // when a soft wrap opportunity is defined by the boundary between two elements, the
+                // `white-space` used is that of their nearest common ancestor.
+                if had_content {
+                    ifc.propagate_current_nesting_level_white_space_style();
+                }
             } else {
                 // We reached the end of the entire IFC.
                 break;
@@ -798,8 +849,6 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
 
         let text_decoration_line =
             ifc.current_nesting_level.text_decoration_line | style.clone_text_decoration_line();
-        let white_space = style.clone_inherited_text().white_space;
-
         PartialInlineBoxFragment {
             base_fragment_info: inline_box.base_fragment_info,
             style,
@@ -812,7 +861,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
                         this_inline_level_box,
                     ),
                     line_items_so_far: Vec::with_capacity(inline_box.children.len()),
-                    white_space,
+                    has_content: false,
                     text_decoration_line: text_decoration_line,
                 },
             ),
@@ -987,9 +1036,7 @@ impl IndependentFormattingContext {
             block: ifc.current_line.block_size.max(size.block),
         };
 
-        let can_break = ifc.current_nesting_level.white_space.allow_wrap() &&
-            ifc.current_nesting_level.line_items_so_far.len() != 0;
-        if ifc.new_potential_line_size_causes_line_break(&new_potential_line_size) && can_break {
+        if ifc.new_potential_line_size_causes_line_break(&new_potential_line_size) {
             ifc.finish_line_and_reset(layout_context);
         }
 
@@ -1169,10 +1216,12 @@ impl TextRun {
                 block: new_max_height_of_line,
             };
 
-            // We can only break the line, if this isn't the first actual content (non-whitespace or
-            // preserved whitespace) on the line and this isn't the unbreakable run of this text run
-            // (or we can break at the start according to the text breaker).
-            let can_break = ifc.current_line.has_content && (break_at_start || run_index != 0);
+            // If we cannot break at the start according to the text breaker and this is the first
+            // unbreakable run of glyphs then we cannot break in any case.
+            // TODO(mrobinson): If this doesn't fit on the current line and there is content we
+            // need to line break, but this requires rewinding LineItems and adding them to the
+            // next line.
+            let can_break = break_at_start || run_index != 0;
             if ifc.new_potential_line_size_causes_line_break(&new_potential_line_size) && can_break
             {
                 add_glyphs_to_current_line(
@@ -1205,6 +1254,7 @@ impl TextRun {
             advance_from_text_run += Length::from(run.glyph_store.total_advance());
             glyphs.push(run.glyph_store.clone());
             ifc.current_line.has_content = true;
+            ifc.propagate_current_nesting_level_white_space_style();
         }
 
         add_glyphs_to_current_line(
