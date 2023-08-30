@@ -566,11 +566,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             match image {
                 Image::None => {},
                 Image::Gradient(ref gradient) => {
-                    let intrinsic = IntrinsicSizes {
-                        width: None,
-                        height: None,
-                        ratio: None,
-                    };
+                    let intrinsic = IntrinsicSizes::empty();
                     if let Some(layer) =
                         &background::layout_layer(self, &source, builder, index, intrinsic)
                     {
@@ -607,13 +603,10 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
                     let dppx = 1.0;
-
-                    let intrinsic = IntrinsicSizes {
-                        width: Some(Length::new(width as f32 / dppx)),
-                        height: Some(Length::new(height as f32 / dppx)),
-                        // FIXME https://github.com/w3c/csswg-drafts/issues/4572
-                        ratio: Some(width as f32 / height as f32),
-                    };
+                    let intrinsic = IntrinsicSizes::from_width_and_height(
+                        width as f32 / dppx,
+                        height as f32 / dppx,
+                    );
 
                     if let Some(layer) =
                         background::layout_layer(self, &source, builder, index, intrinsic)
