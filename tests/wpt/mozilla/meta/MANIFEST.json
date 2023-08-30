@@ -2366,19 +2366,6 @@
        {}
       ]
      ],
-     "multiple_external.html": [
-      "c2d66f25cec3e496023755af786409fff5b3c619",
-      [
-       null,
-       [
-        [
-         "/_mozilla/css/iframe/multiple_external_ref.html",
-         "=="
-        ]
-       ],
-       {}
-      ]
-     ],
      "navigation.html": [
       "bbbceaea51dda8983c11d169297c11395d918077",
       [
@@ -8796,14 +8783,6 @@
      ],
      "hide_layers_ref.html": [
       "cb61f63d447b8df1862fbd5c01d41508183442f0",
-      []
-     ],
-     "multiple_external_child.html": [
-      "8e1b304226d46f5f470bb0f4b59f9186eb56d3ce",
-      []
-     ],
-     "multiple_external_ref.html": [
-      "cb06d78125970a8127708354db716f8ad5094fc0",
       []
      ],
      "navigation_ref.html": [
