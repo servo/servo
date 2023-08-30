@@ -39,7 +39,12 @@ def set_if_none(args: dict, key: str, value):
 
 
 def run_tests(default_binary_path: str, **kwargs):
-    print(default_binary_path)
+    legacy_layout = kwargs.pop("legacy_layout")
+    message = f"Running WPT tests with {default_binary_path}"
+    if legacy_layout:
+        message += " (legacy layout)"
+    print(message)
+
     # By default, Rayon selects the number of worker threads based on the
     # available CPU count. This doesn't work very well when running tests on CI,
     # since we run so many Servo processes in parallel. The result is a lot of
@@ -81,8 +86,8 @@ def run_tests(default_binary_path: str, **kwargs):
     kwargs.setdefault("binary_args", [])
     if prefs:
         kwargs["binary_args"] += ["--pref=" + pref for pref in prefs]
-    if kwargs.get("layout_2013"):
-        kwargs["binary_args"] += ["--legacy-layout"]
+    if legacy_layout:
+        kwargs["binary_args"].append("--legacy-layout")
 
     if not kwargs.get("no_default_test_types"):
         test_types = {
@@ -98,7 +103,8 @@ def run_tests(default_binary_path: str, **kwargs):
 
     wptcommandline.check_args(kwargs)
 
-    update_args_for_legacy_layout(kwargs)
+    if legacy_layout:
+        update_args_for_legacy_layout(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
         ServoFormatter,

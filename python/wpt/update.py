@@ -110,7 +110,9 @@ def update_tests(**kwargs) -> int:
     wptcommandline.set_from_config(kwargs)
     if hasattr(wptcommandline, 'check_paths'):
         wptcommandline.check_paths(kwargs)
-    update_args_for_legacy_layout(kwargs)
+
+    if kwargs.pop("legacy_layout"):
+        update_args_for_legacy_layout(kwargs)
 
     if kwargs.get('sync', False):
         return do_sync(**kwargs)
@@ -126,8 +128,7 @@ def run_update(**kwargs) -> bool:
 
 def create_parser(**_kwargs):
     parser = wptcommandline.create_parser_update()
-    parser.add_argument("--layout-2020", "--with-layout-2020", default=True, action="store_true",
-                        help="Use expected results for the 2020 layout engine")
-    parser.add_argument("--layout-2013", "--with-layout-2013", default=False, action="store_true",
-                        help="Use expected results for the 2013 layout engine")
+    parser.add_argument("--legacy-layout", "--layout-2013", "--with-layout-2013",
+                        default=False, action="store_true",
+                        help="Use expected results for the legacy layout engine")
     return parser

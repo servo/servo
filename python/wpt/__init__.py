@@ -31,10 +31,8 @@ def create_parser():
                         help="Run under chaos mode in rr until a failure is captured")
     parser.add_argument('--pref', default=[], action="append", dest="prefs",
                         help="Pass preferences to servo")
-    parser.add_argument('--layout-2020', '--with-layout-2020', default=True,
-                        action="store_true", help="Use expected results for the 2020 layout engine")
-    parser.add_argument('--layout-2013', '--with-layout-2013', default=False,
-                        action="store_true", help="Use expected results for the 2013 layout engine")
+    parser.add_argument('--legacy-layout', '--layout-2013', '--with-layout-2013', default=False,
+                        action="store_true", help="Use expected results for the legacy layout engine")
     parser.add_argument('--log-servojson', action="append", type=mozlog.commandline.log_file,
                         help="Servo's JSON logger of unexpected results")
     parser.add_argument('--always-succeed', default=False, action="store_true",
@@ -51,16 +49,15 @@ def create_parser():
 
 
 def update_args_for_legacy_layout(kwargs: dict):
-    if kwargs.pop("layout_2013"):
-        kwargs["test_paths"]["/"]["metadata_path"] = os.path.join(
-            WPT_PATH, "meta-legacy-layout"
-        )
-        kwargs["test_paths"]["/_mozilla/"]["metadata_path"] = os.path.join(
-            WPT_PATH, "mozilla", "meta-legacy-layout"
-        )
-        kwargs["test_paths"]["/_webgl/"]["metadata_path"] = os.path.join(
-            WPT_PATH, "webgl", "meta-legacy-layout"
-        )
+    kwargs["test_paths"]["/"]["metadata_path"] = os.path.join(
+        WPT_PATH, "meta-legacy-layout"
+    )
+    kwargs["test_paths"]["/_mozilla/"]["metadata_path"] = os.path.join(
+        WPT_PATH, "mozilla", "meta-legacy-layout"
+    )
+    kwargs["test_paths"]["/_webgl/"]["metadata_path"] = os.path.join(
+        WPT_PATH, "webgl", "meta-legacy-layout"
+    )
 
 
 def run_tests():

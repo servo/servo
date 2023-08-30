@@ -257,7 +257,6 @@ class CommandBase(object):
         self.config["build"].setdefault("mode", "")
         self.config["build"].setdefault("debug-assertions", False)
         self.config["build"].setdefault("debug-mozjs", False)
-        self.config["build"].setdefault("layout-2020", True)
         self.config["build"].setdefault("media-stack", "auto")
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
