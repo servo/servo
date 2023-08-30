@@ -54,6 +54,33 @@ pub(crate) struct IntrinsicSizes {
     pub ratio: Option<CSSFloat>,
 }
 
+impl IntrinsicSizes {
+    pub(crate) fn from_width_and_height(width: f32, height: f32) -> Self {
+        // https://drafts.csswg.org/css-images/#natural-aspect-ratio:
+        // "If an object has a degenerate natural aspect ratio (at least one part being
+        // zero or infinity), it is treated as having no natural aspect ratio.""
+        let ratio = if width.is_normal() && height.is_normal() {
+            Some(width / height)
+        } else {
+            None
+        };
+
+        Self {
+            width: Some(Length::new(width)),
+            height: Some(Length::new(height)),
+            ratio,
+        }
+    }
+
+    pub(crate) fn empty() -> Self {
+        Self {
+            width: None,
+            height: None,
+            ratio: None,
+        }
+    }
+}
+
 #[derive(Serialize)]
 pub(crate) enum CanvasSource {
     WebGL(ImageKey),
@@ -121,11 +148,7 @@ impl ReplacedContent {
         };
 
         let intrinsic = intrinsic_size_in_dots.map_or_else(
-            || IntrinsicSizes {
-                width: None,
-                height: None,
-                ratio: None,
-            },
+            || IntrinsicSizes::empty(),
             |intrinsic_size_in_dots| {
                 // FIXME: should 'image-resolution' (when implemented) be used *instead* of
                 // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
@@ -133,12 +156,7 @@ impl ReplacedContent {
                 let dppx = 1.0;
                 let width = (intrinsic_size_in_dots.width as CSSFloat) / dppx;
                 let height = (intrinsic_size_in_dots.height as CSSFloat) / dppx;
-                IntrinsicSizes {
-                    width: Some(Length::new(width)),
-                    height: Some(Length::new(height)),
-                    // FIXME https://github.com/w3c/csswg-drafts/issues/4572
-                    ratio: Some(width / height),
-                }
+                IntrinsicSizes::from_width_and_height(width, height)
             },
         );
 
@@ -172,12 +190,7 @@ impl ReplacedContent {
 
             return Some(Self {
                 kind: ReplacedContentKind::Image(image),
-                intrinsic: IntrinsicSizes {
-                    width: Some(Length::new(width)),
-                    height: Some(Length::new(height)),
-                    // FIXME https://github.com/w3c/csswg-drafts/issues/4572
-                    ratio: Some(width / height),
-                },
+                intrinsic: IntrinsicSizes::from_width_and_height(width, height),
                 base_fragment_info: BaseFragmentInfo::new_for_node(element.opaque()),
             });
         }
