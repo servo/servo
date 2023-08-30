@@ -461,10 +461,9 @@ class CommandBase(object):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
 
-        if "media-dummy" not in self.features:
-            servo.platform.get().set_gstreamer_environment_variables_if_necessary(
-                env, cross_compilation_target=self.cross_compile_target,
-                check_installation=is_build)
+        servo.platform.get().set_gstreamer_environment_variables_if_necessary(
+            env, cross_compilation_target=self.cross_compile_target,
+            check_installation=is_build)
 
         effective_target = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in effective_target:
@@ -850,7 +849,8 @@ class CommandBase(object):
                 media_stack = "gstreamer"
             else:
                 media_stack = "dummy"
-        self.features += ["media-" + media_stack]
+        if media_stack != "dummy":
+            self.features += ["media-" + media_stack]
 
     def run_cargo_build_like_command(
         self, command: str, cargo_args: List[str],

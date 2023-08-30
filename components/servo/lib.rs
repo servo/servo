@@ -171,7 +171,7 @@ mod media_platform {
     }
 }
 
-#[cfg(feature = "media-dummy")]
+#[cfg(not(feature = "media-gstreamer"))]
 mod media_platform {
     use super::ServoMedia;
     pub fn init() {

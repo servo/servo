@@ -17,7 +17,6 @@ googlevr = ["webxr/googlevr"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 max_log_level = ["log/release_max_level_info"]
-media-dummy = ["servo-media-dummy"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
 no-wgl = ["canvas/no-wgl"]
@@ -67,7 +66,7 @@ script = { path = "../script" }
 script_layout_interface = { path = "../script_layout_interface" }
 script_traits = { path = "../script_traits" }
 servo-media = { git = "https://github.com/servo/media" }
-servo-media-dummy = { git = "https://github.com/servo/media", optional = true }
+servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media", optional = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
