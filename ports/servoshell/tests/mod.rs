@@ -84,4 +84,3 @@ fn test_argument_parsing_special() {
     assert_eq!(url.query(), None);
     assert_eq!(url.fragment(), None);
 }
-
