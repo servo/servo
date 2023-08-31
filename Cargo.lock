@@ -175,16 +175,15 @@ dependencies = [
 
 [[package]]
 name = "arboard"
-version = "3.2.0"
+version = "3.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6041616acea41d67c4a984709ddab1587fd0b10efe5cc563fee954d2f011854"
+checksum = "ac57f2b058a76363e357c056e4f74f1945bf734d37b8b3ef49066c4787dde0fc"
 dependencies = [
  "clipboard-win 4.5.0",
  "log",
  "objc",
  "objc-foundation",
  "objc_id",
- "once_cell",
  "parking_lot",
  "thiserror",
  "winapi",
