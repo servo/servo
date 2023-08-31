@@ -10,6 +10,9 @@ extern crate log;
 #[macro_use]
 extern crate sig;
 
+#[cfg(test)]
+mod tests;
+
 mod app;
 mod backtrace;
 mod browser;
@@ -23,7 +26,6 @@ mod keyutils;
 mod minibrowser;
 mod prefs;
 mod resources;
-mod tests;
 mod window_trait;
 
 use app::App;
