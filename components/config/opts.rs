@@ -24,9 +24,6 @@ use url::{self, Url};
 pub struct Opts {
     pub is_running_problem_test: bool,
 
-    /// The initial URL to load.
-    pub url: Option<String>,
-
     /// Whether or not the legacy layout system is enabled.
     pub legacy_layout: bool,
 
@@ -371,7 +368,7 @@ pub enum OutputOptions {
     Stdout(f64),
 }
 
-fn args_fail(msg: &str) -> ! {
+pub fn args_fail(msg: &str) -> ! {
     writeln!(io::stderr(), "{}", msg).unwrap();
     process::exit(1)
 }
@@ -386,7 +383,6 @@ pub fn multiprocess() -> bool {
 pub fn default_opts() -> Opts {
     Opts {
         is_running_problem_test: false,
-        url: None,
         legacy_layout: false,
         tile_size: 512,
         time_profiling: None,
@@ -743,7 +739,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     let opts = Opts {
         debug: debug_options.clone(),
         is_running_problem_test,
-        url: url_opt.map(|s| s.to_string()),
         legacy_layout,
         tile_size,
         time_profiling,
