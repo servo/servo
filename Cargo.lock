@@ -6998,7 +6998,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#d817d07133dac7eac0eb5f6c5b9dddc1477b535a"
+source = "git+https://github.com/servo/webxr#b29816a530a7519e30124c6e636511857c32433d"
 dependencies = [
  "android_injected_glue",
  "bindgen",
