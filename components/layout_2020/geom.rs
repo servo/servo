@@ -105,11 +105,11 @@ where
     }
 }
 
-impl flow_relative::Vec2<Length> {
+impl<T: Zero> flow_relative::Vec2<T> {
     pub fn zero() -> Self {
         Self {
-            inline: Length::zero(),
-            block: Length::zero(),
+            inline: T::zero(),
+            block: T::zero(),
         }
     }
 }
@@ -155,7 +155,7 @@ impl flow_relative::Vec2<Option<&'_ LengthPercentage>> {
     }
 }
 
-impl flow_relative::Rect<Length> {
+impl<T: Zero> flow_relative::Rect<T> {
     pub fn zero() -> Self {
         Self {
             start_corner: flow_relative::Vec2::zero(),
@@ -342,6 +342,17 @@ where
             inline_end: self.inline_end + other.inline_end,
             block_start: self.block_start + other.block_start,
             block_end: self.block_end + other.block_end,
+        }
+    }
+}
+
+impl<T: Zero> flow_relative::Sides<T> {
+    pub(crate) fn zero() -> flow_relative::Sides<T> {
+        flow_relative::Sides {
+            inline_start: T::zero(),
+            inline_end: T::zero(),
+            block_start: T::zero(),
+            block_end: T::zero(),
         }
     }
 }

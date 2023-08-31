@@ -65,6 +65,17 @@ pub(crate) struct PaddingBorderMargin {
     pub padding_border_sums: flow_relative::Vec2<Length>,
 }
 
+impl PaddingBorderMargin {
+    pub(crate) fn zero() -> Self {
+        Self {
+            padding: flow_relative::Sides::zero(),
+            border: flow_relative::Sides::zero(),
+            margin: flow_relative::Sides::zero(),
+            padding_border_sums: flow_relative::Vec2::zero(),
+        }
+    }
+}
+
 pub(crate) trait ComputedValuesExt {
     fn inline_size_is_length(&self) -> bool;
     fn inline_box_offsets_are_both_non_auto(&self) -> bool;
