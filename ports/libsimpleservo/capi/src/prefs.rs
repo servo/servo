@@ -41,7 +41,7 @@ impl LocalCPrefValue {
         match v {
             PrefValue::Float(v) => LocalCPrefValue::Float(*v),
             PrefValue::Int(v) => LocalCPrefValue::Int(*v),
-            PrefValue::Str(v) => LocalCPrefValue::Str(CString::new(v.clone()).unwrap()),
+            PrefValue::Str(v) => LocalCPrefValue::Str(CString::new(v.as_bytes()).unwrap()),
             PrefValue::Bool(v) => LocalCPrefValue::Bool(*v),
             PrefValue::Missing => LocalCPrefValue::Missing,
         }
@@ -203,7 +203,7 @@ pub extern "C" fn get_prefs() -> CPrefList {
         .into_iter()
         .map(|(key, (value, is_default))| {
             let l = Box::new(LocalCPref {
-                key: CString::new(key.clone()).unwrap(),
+                key: CString::new(key.as_bytes()).unwrap(),
                 value: LocalCPrefValue::new(&value),
                 is_default: is_default,
             });
