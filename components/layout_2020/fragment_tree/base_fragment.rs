@@ -72,10 +72,10 @@ impl From<BaseFragmentInfo> for BaseFragment {
 }
 
 bitflags! {
-    #[doc = "Flags used to track various information about a DOM node during layout."]
-    #[derive(Serialize)]
+    /// Flags used to track various information about a DOM node during layout.
+    #[derive(Clone, Copy, Debug, Serialize)]
     pub(crate) struct FragmentFlags: u8 {
-        #[doc = "Whether or not this node is a body element on an HTML document."]
+        /// Whether or not this node is a body element on an HTML document.
         const IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT = 0b00000001;
     }
 }

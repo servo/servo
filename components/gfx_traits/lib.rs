@@ -57,10 +57,9 @@ impl StackingContextId {
 }
 
 int_range_index! {
-    #[derive(Deserialize, Serialize)]
-    #[doc = "An index that refers to a byte offset in a text run. This could \
-             point to the middle of a glyph."]
-    #[derive(MallocSizeOf)]
+    #[derive(Deserialize, MallocSizeOf, Serialize)]
+    /// An index that refers to a byte offset in a text run. This could
+    /// the middle of a glyph.
     struct ByteIndex(isize)
 }
 

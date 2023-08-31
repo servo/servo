@@ -177,16 +177,17 @@ impl Font {
 }
 
 bitflags! {
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub struct ShapingFlags: u8 {
-        #[doc = "Set if the text is entirely whitespace."]
+        /// Set if the text is entirely whitespace.
         const IS_WHITESPACE_SHAPING_FLAG = 0x01;
-        #[doc = "Set if we are to ignore ligatures."]
+        /// Set if we are to ignore ligatures.
         const IGNORE_LIGATURES_SHAPING_FLAG = 0x02;
-        #[doc = "Set if we are to disable kerning."]
+        /// Set if we are to disable kerning.
         const DISABLE_KERNING_SHAPING_FLAG = 0x04;
-        #[doc = "Text direction is right-to-left."]
+        /// Text direction is right-to-left.
         const RTL_FLAG = 0x08;
-        #[doc = "Set if word-break is set to keep-all."]
+        /// Set if word-break is set to keep-all.
         const KEEP_ALL_FLAG = 0x10;
     }
 }

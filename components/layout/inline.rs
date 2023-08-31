@@ -221,7 +221,7 @@ impl Line {
 
 int_range_index! {
     #[derive(Serialize)]
-    #[doc = "The index of a fragment in a flattened vector of DOM elements."]
+    /// The index of a fragment in a flattened vector of DOM elements.
     struct FragmentIndex(isize)
 }
 
@@ -1658,7 +1658,7 @@ impl Flow for InlineFlow {
             InlineFlow::set_inline_fragment_positions(
                 &mut self.fragments,
                 line,
-                self.base.flags.text_align(),
+                self.base.text_align,
                 indentation,
                 line_index + 1 == line_count,
             );
@@ -2053,6 +2053,7 @@ pub struct InlineFragmentNodeInfo {
 }
 
 bitflags! {
+    #[derive(Clone)]
     pub struct InlineFragmentNodeFlags: u8 {
         const FIRST_FRAGMENT_OF_ELEMENT = 0x01;
         const LAST_FRAGMENT_OF_ELEMENT = 0x02;

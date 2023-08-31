@@ -136,10 +136,12 @@ where
     ObjectValue(rval.get())
 }
 
+/// Set of bitflags for texture unpacking (texImage2d, etc...)
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+struct TextureUnpacking(u8);
+
 bitflags! {
-    /// Set of bitflags for texture unpacking (texImage2d, etc...)
-    #[derive(JSTraceable, MallocSizeOf)]
-    struct TextureUnpacking: u8 {
+    impl TextureUnpacking: u8 {
         const FLIP_Y_AXIS = 0x01;
         const PREMULTIPLY_ALPHA = 0x02;
         const CONVERT_COLORSPACE = 0x04;
@@ -4703,12 +4705,14 @@ macro_rules! capabilities {
         capabilities!($name, $next, $($rest,)* [$name = 1;]);
     };
     ($prev:ident, $name:ident, $($rest:ident,)* [$($tt:tt)*]) => {
-        capabilities!($name, $($rest,)* [$($tt)* $name = Self::$prev.bits << 1;]);
+        capabilities!($name, $($rest,)* [$($tt)* $name = Self::$prev.bits() << 1;]);
     };
     ($prev:ident, [$($name:ident = $value:expr;)*]) => {
+        #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+        pub struct CapFlags(u16);
+
         bitflags! {
-            #[derive(JSTraceable, MallocSizeOf)]
-            struct CapFlags: u16 {
+            impl CapFlags: u16 {
                 $(const $name = $value;)*
             }
         }

@@ -534,6 +534,7 @@ pub struct ScannedTextFragmentInfo {
 }
 
 bitflags! {
+    #[derive(Clone, Copy)]
     pub struct ScannedTextFlags: u8 {
         /// Whether a line break is required after this fragment if wrapping on newlines (e.g. if
         /// `white-space: pre` is in effect).
@@ -3328,10 +3329,10 @@ bitflags! {
     // Various flags we can use when splitting fragments. See
     // `calculate_split_position_using_breaking_strategy()`.
     struct SplitOptions: u8 {
-        #[doc = "True if this is the first fragment on the line."]
+        /// True if this is the first fragment on the line."]
         const STARTS_LINE = 0x01;
-        #[doc = "True if we should attempt to split at character boundaries if this split fails. \
-                 This is used to implement `overflow-wrap: break-word`."]
+        /// True if we should attempt to split at character boundaries if this split fails. \
+        /// This is used to implement `overflow-wrap: break-word`."]
         const RETRY_AT_CHARACTER_BOUNDARIES = 0x02;
     }
 }
@@ -3446,6 +3447,7 @@ impl Overflow {
 }
 
 bitflags! {
+    #[derive(Clone, Debug)]
     pub struct FragmentFlags: u8 {
         // TODO(stshine): find a better name since these flags can also be used for grid item.
         /// Whether this fragment represents a child in a row flex container.
