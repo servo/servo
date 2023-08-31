@@ -56,7 +56,7 @@ glow = "0.12.2"
 keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
-libservo = { path = "../../components/servo", features=["media-gstreamer"] }
+libservo = { path = "../../components/servo" }
 log = { workspace = true }
 raw-window-handle = "0.5"
 servo-media = { git = "https://github.com/servo/media" }
