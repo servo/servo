@@ -47,7 +47,6 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
 use gfx_traits::StackingContextId;
-use num_traits::cast::FromPrimitive;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, MaxRect};
 use std::fmt;
@@ -613,73 +612,53 @@ impl FlowClass {
 }
 
 bitflags! {
-    #[doc = "Flags used in flows."]
+    /// Flags used in flows.
+    #[derive(Clone, Copy, Debug)]
     pub struct FlowFlags: u32 {
-        // text align flags
-        #[doc = "Whether this flow is absolutely positioned. This is checked all over layout, so a"]
-        #[doc = "virtual call is too expensive."]
+        /// Whether this flow is absolutely positioned. This is checked all over layout, so a
+        /// virtual call is too expensive.
         const IS_ABSOLUTELY_POSITIONED = 0b0000_0000_0000_0000_0100_0000;
-        #[doc = "Whether this flow clears to the left. This is checked all over layout, so a"]
-        #[doc = "virtual call is too expensive."]
+        /// Whether this flow clears to the left. This is checked all over layout, so a
+        /// virtual call is too expensive.
         const CLEARS_LEFT = 0b0000_0000_0000_0000_1000_0000;
-        #[doc = "Whether this flow clears to the right. This is checked all over layout, so a"]
-        #[doc = "virtual call is too expensive."]
+        /// Whether this flow clears to the right. This is checked all over layout, so a
+        /// virtual call is too expensive.
         const CLEARS_RIGHT = 0b0000_0000_0000_0001_0000_0000;
-        #[doc = "Whether this flow is left-floated. This is checked all over layout, so a"]
-        #[doc = "virtual call is too expensive."]
+        /// Whether this flow is left-floated. This is checked all over layout, so a
+        /// virtual call is too expensive.
         const FLOATS_LEFT = 0b0000_0000_0000_0010_0000_0000;
-        #[doc = "Whether this flow is right-floated. This is checked all over layout, so a"]
-        #[doc = "virtual call is too expensive."]
+        /// Whether this flow is right-floated. This is checked all over layout, so a
+        /// virtual call is too expensive.
         const FLOATS_RIGHT = 0b0000_0000_0000_0100_0000_0000;
-        #[doc = "Text alignment. \
-                 \
-                 NB: If you update this, update `TEXT_ALIGN_SHIFT` below."]
-        const TEXT_ALIGN = 0b0000_0000_0111_1000_0000_0000;
-        #[doc = "Whether this flow has a fragment with `counter-reset` or `counter-increment` \
-                 styles."]
-        const AFFECTS_COUNTERS = 0b0000_0000_1000_0000_0000_0000;
-        #[doc = "Whether this flow's descendants have fragments that affect `counter-reset` or \
-                 `counter-increment` styles."]
-        const HAS_COUNTER_AFFECTING_CHILDREN = 0b0000_0001_0000_0000_0000_0000;
-        #[doc = "Whether this flow behaves as though it had `position: static` for the purposes \
-                 of positioning in the inline direction. This is set for flows with `position: \
-                 static` and `position: relative` as well as absolutely-positioned flows with \
-                 unconstrained positions in the inline direction."]
-        const INLINE_POSITION_IS_STATIC = 0b0000_0010_0000_0000_0000_0000;
-        #[doc = "Whether this flow behaves as though it had `position: static` for the purposes \
-                 of positioning in the block direction. This is set for flows with `position: \
-                 static` and `position: relative` as well as absolutely-positioned flows with \
-                 unconstrained positions in the block direction."]
-        const BLOCK_POSITION_IS_STATIC = 0b0000_0100_0000_0000_0000_0000;
+        /// Whether this flow has a fragment with `counter-reset` or `counter-increment`
+        /// styles.
+        const AFFECTS_COUNTERS = 0b0000_0000_0000_1000_0000_0000;
+        /// Whether this flow's descendants have fragments that affect `counter-reset` or
+        //  `counter-increment` styles.
+        const HAS_COUNTER_AFFECTING_CHILDREN = 0b0000_0000_0001_0000_0000_0000;
+        /// Whether this flow behaves as though it had `position: static` for the purposes
+        /// of positioning in the inline direction. This is set for flows with `position:
+        /// static` and `position: relative` as well as absolutely-positioned flows with
+        /// unconstrained positions in the inline direction."]
+        const INLINE_POSITION_IS_STATIC = 0b0000_0000_0010_0000_0000_0000;
+        /// Whether this flow behaves as though it had `position: static` for the purposes
+        /// of positioning in the block direction. This is set for flows with `position:
+        /// static` and `position: relative` as well as absolutely-positioned flows with
+        /// unconstrained positions in the block direction.
+        const BLOCK_POSITION_IS_STATIC = 0b0000_0000_0100_0000_0000_0000;
 
         /// Whether any ancestor is a fragmentation container
-        const CAN_BE_FRAGMENTED = 0b0000_1000_0000_0000_0000_0000;
+        const CAN_BE_FRAGMENTED = 0b0000_0000_1000_0000_0000_0000;
 
         /// Whether this flow contains any text and/or replaced fragments.
-        const CONTAINS_TEXT_OR_REPLACED_FRAGMENTS = 0b0001_0000_0000_0000_0000_0000;
+        const CONTAINS_TEXT_OR_REPLACED_FRAGMENTS = 0b0000_0001_0000_0000_0000_0000;
 
         /// Whether margins are prohibited from collapsing with this flow.
-        const MARGINS_CANNOT_COLLAPSE = 0b0010_0000_0000_0000_0000_0000;
+        const MARGINS_CANNOT_COLLAPSE = 0b0000_0010_0000_0000_0000_0000;
     }
 }
 
-/// The number of bits we must shift off to handle the text alignment field.
-///
-/// NB: If you update this, update `TEXT_ALIGN` above.
-static TEXT_ALIGN_SHIFT: usize = 11;
-
 impl FlowFlags {
-    #[inline]
-    pub fn text_align(self) -> TextAlign {
-        TextAlign::from_u32((self & FlowFlags::TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
-    }
-
-    #[inline]
-    pub fn set_text_align(&mut self, value: TextAlign) {
-        *self = (*self & !FlowFlags::TEXT_ALIGN) |
-            FlowFlags::from_bits((value as u32) << TEXT_ALIGN_SHIFT).unwrap();
-    }
-
     #[inline]
     pub fn float_kind(&self) -> Float {
         if self.contains(FlowFlags::FLOATS_LEFT) {
@@ -936,6 +915,9 @@ pub struct BaseFlow {
     /// Various flags for flows, tightly packed to save space.
     pub flags: FlowFlags,
 
+    /// Text alignment of this flow.
+    pub text_align: TextAlign,
+
     /// The ID of the StackingContext that contains this flow. This is initialized
     /// to 0, but it assigned during the collect_stacking_contexts phase of display
     /// list construction.
@@ -1115,8 +1097,9 @@ impl BaseFlow {
             early_absolute_position_info: EarlyAbsolutePositionInfo::new(writing_mode),
             late_absolute_position_info: LateAbsolutePositionInfo::new(),
             clip: MaxRect::max_rect(),
-            flags: flags,
-            writing_mode: writing_mode,
+            flags,
+            text_align: TextAlign::Start,
+            writing_mode,
             thread_id: 0,
             stacking_context_id: StackingContextId::root(),
             clipping_and_scrolling: None,

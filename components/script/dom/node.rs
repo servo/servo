@@ -157,28 +157,30 @@ pub struct Node {
     style_and_layout_data: DomRefCell<Option<Box<StyleAndOpaqueLayoutData>>>,
 }
 
+/// Flags for node items
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+pub struct NodeFlags(u16);
+
 bitflags! {
-    #[doc = "Flags for node items."]
-    #[derive(JSTraceable, MallocSizeOf)]
-    pub struct NodeFlags: u16 {
-        #[doc = "Specifies whether this node is in a document."]
+    impl NodeFlags: u16 {
+        /// Specifies whether this node is in a document.
         const IS_IN_DOC = 1 << 0;
 
-        #[doc = "Specifies whether this node needs style recalc on next reflow."]
+        /// Specifies whether this node needs style recalc on next reflow.
         const HAS_DIRTY_DESCENDANTS = 1 << 1;
 
-        #[doc = "Specifies whether or not there is an authentic click in progress on \
-                 this element."]
+        /// Specifies whether or not there is an authentic click in progress on
+        /// this element.
         const CLICK_IN_PROGRESS = 1 << 2;
 
-        #[doc = "Specifies whether this node is focusable and whether it is supposed \
-                 to be reachable with using sequential focus navigation."]
+        /// Specifies whether this node is focusable and whether it is supposed
+        /// to be reachable with using sequential focus navigation."]
         const SEQUENTIALLY_FOCUSABLE = 1 << 3;
 
         // There are two free bits here.
 
-        #[doc = "Specifies whether the parser has set an associated form owner for \
-                 this element. Only applicable for form-associatable elements."]
+        /// Specifies whether the parser has set an associated form owner for
+        /// this element. Only applicable for form-associatable elements.
         const PARSER_ASSOCIATED_FORM_OWNER = 1 << 6;
 
         /// Whether this element has a snapshot stored due to a style or

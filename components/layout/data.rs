@@ -51,10 +51,11 @@ impl Default for LayoutData {
 }
 
 bitflags! {
+    #[derive(Clone, Copy)]
     pub struct LayoutDataFlags: u8 {
-        #[doc = "Whether a flow has been newly constructed."]
+        /// Whether a flow has been newly constructed.
         const HAS_NEWLY_CONSTRUCTED_FLOW = 0x01;
-        #[doc = "Whether this node has been traversed by layout."]
+        /// Whether this node has been traversed by layout.
         const HAS_BEEN_TRAVERSED = 0x02;
     }
 }

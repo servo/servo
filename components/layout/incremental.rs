@@ -16,8 +16,8 @@ pub enum RelayoutMode {
 
 bitflags! {
     pub struct SpecialRestyleDamage: u8 {
-        #[doc = "If this flag is set, we need to reflow the entire document. This is more or less a \
-                 temporary hack to deal with cases that we don't handle incrementally yet."]
+        /// If this flag is set, we need to reflow the entire document. This is more or less a
+        /// temporary hack to deal with cases that we don't handle incrementally yet.
         const REFLOW_ENTIRE_DOCUMENT = 0x01;
     }
 }

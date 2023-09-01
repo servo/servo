@@ -7964,7 +7964,7 @@ class GlobalGenRoots():
         global_flags = CGWrapper(CGIndenter(CGList([
             CGGeneric("const %s = %#x;" % args)
             for args in flags
-        ], "\n")), pre="pub struct Globals: u8 {\n", post="\n}")
+        ], "\n")), pre="#[derive(Clone, Copy)]\npub struct Globals: u8 {\n", post="\n}")
         globals_ = CGWrapper(CGIndenter(global_flags), pre="bitflags! {\n", post="\n}")
 
         phf = CGGeneric("include!(concat!(env!(\"OUT_DIR\"), \"/InterfaceObjectMapPhf.rs\"));")

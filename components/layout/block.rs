@@ -603,10 +603,11 @@ pub struct BlockFlow {
 }
 
 bitflags! {
+    #[derive(Clone, Copy)]
     struct BlockFlowFlags: u8 {
-        #[doc = "If this is set, then this block flow is the root flow."]
+        /// If this is set, then this block flow is the root flow.
         const IS_ROOT = 0b0000_0001;
-        #[doc = "If this is set, then this block flow has overflow and it will scroll."]
+        /// If this is set, then this block flow has overflow and it will scroll.
         const HAS_SCROLLING_OVERFLOW = 0b0000_0010;
     }
 }
@@ -1663,9 +1664,7 @@ impl BlockFlow {
             //
             // TODO(#2265, pcwalton): Do this in the cascade instead.
             let containing_block_text_align = self.fragment.style().get_inherited_text().text_align;
-            kid.mut_base()
-                .flags
-                .set_text_align(containing_block_text_align);
+            kid.mut_base().text_align = containing_block_text_align;
 
             // Handle `text-indent` on behalf of any inline children that we have. This is
             // necessary because any percentages are relative to the containing block, which only
@@ -2970,7 +2969,7 @@ pub trait ISizeAndMarginsComputer {
         // Check for direction of parent flow (NOT Containing Block)
         let block_mode = block.base.writing_mode;
         let container_mode = block.base.block_container_writing_mode;
-        let block_align = block.base.flags.text_align();
+        let block_align = block.base.text_align;
 
         // FIXME (mbrubeck): Handle vertical writing modes.
         let parent_has_same_direction = container_mode.is_bidi_ltr() == block_mode.is_bidi_ltr();

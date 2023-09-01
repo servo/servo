@@ -2223,6 +2223,7 @@ impl Fragment {
 }
 
 bitflags! {
+    #[derive(Clone, Copy)]
     pub struct StackingContextCollectionFlags: u8 {
         /// This flow never establishes a containing block.
         const POSITION_NEVER_CREATES_CONTAINING_BLOCK = 0b001;

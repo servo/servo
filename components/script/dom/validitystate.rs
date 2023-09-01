@@ -20,9 +20,11 @@ use std::fmt;
 use style::element_state::ElementState;
 
 // https://html.spec.whatwg.org/multipage/#validity-states
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+pub struct ValidationFlags(u32);
+
 bitflags! {
-    #[derive(JSTraceable, MallocSizeOf)]
-    pub struct ValidationFlags: u32 {
+    impl ValidationFlags: u32 {
         const VALUE_MISSING    = 0b0000000001;
         const TYPE_MISMATCH    = 0b0000000010;
         const PATTERN_MISMATCH = 0b0000000100;

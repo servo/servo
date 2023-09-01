@@ -658,7 +658,7 @@ impl FlexFlow {
                 // Per CSS 2.1 § 16.3.1, text alignment propagates to all children in flow.
                 //
                 // TODO(#2265, pcwalton): Do this in the cascade instead.
-                block.base.flags.set_text_align(containing_block_text_align);
+                block.base.text_align = containing_block_text_align;
 
                 let margin = block.fragment.style().logical_margin();
                 let auto_len = if line.auto_margin_count == 0 || line.free_space <= Au(0) {
