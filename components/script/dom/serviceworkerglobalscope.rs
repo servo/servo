@@ -373,6 +373,7 @@ impl ServiceWorkerGlobalScope {
                     };
 
                 let scope = global.upcast::<WorkerGlobalScope>();
+                let _ac = enter_realm(&*scope);
 
                 unsafe {
                     // Handle interrupt requests
