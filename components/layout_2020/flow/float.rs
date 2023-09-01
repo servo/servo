@@ -200,14 +200,29 @@ impl<'a> PlacementAmongFloats<'a> {
         })
     }
 
+    /// Checks if we either have bands or we have gone past all of them.
+    /// This is an invariant that should hold, otherwise we are in a broken state.
+    fn has_bands_or_at_end(&self) -> bool {
+        !self.current_bands.is_empty() || self.next_band.top.px().is_infinite()
+    }
+
+    fn pop_front_band_ensuring_has_bands_or_at_end(&mut self) {
+        self.current_bands.pop_front();
+        if !self.has_bands_or_at_end() {
+            self.add_one_band();
+        }
+    }
+
     /// Run the placement algorithm for this [PlacementAmongFloats].
     pub(crate) fn place(&mut self) -> Rect<Length> {
+        debug_assert!(self.has_bands_or_at_end());
         while !self.current_bands.is_empty() {
             if let Some(result) = self.try_place_once() {
                 return result;
             }
-            self.current_bands.pop_front();
+            self.pop_front_band_ensuring_has_bands_or_at_end();
         }
+        debug_assert!(self.has_bands_or_at_end());
 
         // We could not fit the object in among the floats, so we place it as if it
         // cleared all floats.
@@ -237,6 +252,7 @@ impl<'a> PlacementAmongFloats<'a> {
         block_size_after_layout: Length,
         size_from_placement: &Vec2<Length>,
     ) -> bool {
+        debug_assert!(self.has_bands_or_at_end());
         debug_assert_eq!(size_from_placement.block, self.current_bands_height());
         debug_assert_eq!(
             size_from_placement.inline,
@@ -268,7 +284,7 @@ impl<'a> PlacementAmongFloats<'a> {
                 if available_inline_size < self.object_size.inline {
                     self.next_band = self.current_bands[old_num_bands];
                     self.current_bands.truncate(old_num_bands);
-                    self.current_bands.pop_front();
+                    self.pop_front_band_ensuring_has_bands_or_at_end();
                 }
                 return false;
             }
