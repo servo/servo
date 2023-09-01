@@ -20,6 +20,7 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
+    "ahash",
     "arrayvec",
     "base64",
     "cfg-if",
@@ -80,10 +81,6 @@ packages = [
 
     # Temporarily duplicated until gleam can be upgrded.
     "uuid",
-
-    # winit port minibrowser (servo/servo#30049)
-    "clipboard-win",
-    "ahash",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
