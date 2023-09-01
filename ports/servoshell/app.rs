@@ -10,22 +10,18 @@ use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::minibrowser::Minibrowser;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
-use getopts::Options;
 use gleam::gl;
+use servoshell::get_default_url;
 use winit::window::WindowId;
 use winit::event_loop::EventLoopWindowTarget;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::config::opts;
 use servo::servo_config::pref;
-use servo::servo_url::ServoUrl;
 use servo::Servo;
 use std::cell::{Cell, RefCell, RefMut};
 use std::collections::HashMap;
-use std::env;
-use std::path::Path;
 use std::rc::Rc;
 use surfman::GLApi;
-use url::{self, Url};
 use webxr::glwindow::GlWindowDiscovery;
 
 pub struct App {
@@ -341,53 +337,5 @@ impl App {
 
     fn minibrowser(&self) -> Option<RefMut<Minibrowser>> {
         self.minibrowser.as_ref().map(|x| x.borrow_mut())
-    }
-}
-
-fn get_default_url() -> ServoUrl {
-    // If the url is not provided, we fallback to the homepage in prefs,
-    // or a blank page in case the homepage is not set either.
-    let cwd = env::current_dir().unwrap();
-
-    // Parse the command line options
-    let args: Vec<String> = env::args().collect();
-    let opts = Options::new();
-
-    let opt_match = match opts.parse(args.clone()) {
-        Ok(m) => m,
-        Err(f) => opts::args_fail(&f.to_string()),
-    };
-
-    let url_opt = if !opt_match.free.is_empty() {
-        Some(&opt_match.free[0][..])
-    } else {
-        None
-    };
-
-    let cmdline_url = url_opt.map(|s| s.to_string()).and_then(|url_string| {
-        parse_url_or_filename(&cwd, &url_string)
-            .map_err(|error| {
-                warn!("URL parsing failed ({:?}).", error);
-                error
-            })
-            .ok()
-    });
-
-    let pref_url = {
-        let homepage_url = pref!(shell.homepage);
-        parse_url_or_filename(&cwd, &homepage_url).ok()
-    };
-    let blank_url = ServoUrl::parse("about:blank").ok();
-
-    cmdline_url.or(pref_url).or(blank_url).unwrap()
-}
-
-pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
-    match ServoUrl::parse(input) {
-        Ok(url) => Ok(url),
-        Err(url::ParseError::RelativeUrlWithoutBase) => {
-            Url::from_file_path(&*cwd.join(input)).map(ServoUrl::from_url)
-        },
-        Err(_) => Err(()),
     }
 }
