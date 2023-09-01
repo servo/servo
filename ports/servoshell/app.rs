@@ -23,6 +23,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use surfman::GLApi;
 use webxr::glwindow::GlWindowDiscovery;
+use getopts::Matches;
 
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
@@ -44,6 +45,7 @@ impl App {
         no_native_titlebar: bool,
         device_pixels_per_px: Option<f32>,
         user_agent: Option<String>,
+        opts_matches: &Matches,
     ) {
         let events_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some());
 
@@ -61,6 +63,7 @@ impl App {
 
         // Handle browser state.
         let browser = Browser::new(window.clone());
+        let initial_url = get_default_url(opts_matches);
 
         let mut app = App {
             event_queue: RefCell::new(vec![]),
@@ -71,7 +74,7 @@ impl App {
             minibrowser: None,
         };
 
-        if opts::get().minibrowser && window.winit_window().is_some() {
+        if  opts_matches.opt_present("minibrowser") && window.winit_window().is_some() {
             // Make sure the gl context is made current.
             let webrender_surfman = window.webrender_surfman();
             let webrender_gl = match webrender_surfman.connection().gl_api() {
@@ -137,7 +140,7 @@ impl App {
                     // is ready to present, so that we can paint the minibrowser then present.
                     servo.set_external_present(app.minibrowser.is_some());
 
-                    servo.handle_events(vec![EmbedderEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
+                    servo.handle_events(vec![EmbedderEvent::NewBrowser(initial_url.to_owned(), servo_data.browser_id)]);
                     servo.setup_logging();
 
                     app.windows.insert(window.id(), window.clone());

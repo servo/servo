@@ -1,9 +1,8 @@
 use std::env;
 use std::path::Path;
 
-use getopts::Options;
+use getopts::Matches;
 use log::warn;
-use servo::config::opts;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use url::{self, Url};
@@ -18,22 +17,13 @@ pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
     }
 }
 
-pub fn get_default_url() -> ServoUrl {
+pub fn get_default_url(opts_matches: &Matches) -> ServoUrl {
     // If the url is not provided, we fallback to the homepage in prefs,
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
 
-    // Parse the command line options
-    let args: Vec<String> = env::args().collect();
-    let opts = Options::new();
-
-    let opt_match = match opts.parse(args.clone()) {
-        Ok(m) => m,
-        Err(f) => opts::args_fail(&f.to_string()),
-    };
-
-    let url_opt = if !opt_match.free.is_empty() {
-        Some(&opt_match.free[0][..])
+    let url_opt = if !opts_matches.free.is_empty() {
+        Some(&opts_matches.free[0][..])
     } else {
         None
     };

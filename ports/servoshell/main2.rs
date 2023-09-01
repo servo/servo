@@ -167,7 +167,7 @@ pub fn main() {
 
     let user_agent = opts_matches.opt_str("u");
 
-    App::run(do_not_use_native_titlebar, device_pixels_per_px, user_agent);
+    App::run(do_not_use_native_titlebar, device_pixels_per_px, user_agent, &opts_matches);
 
     platform::deinit(clean_shutdown)
 }
