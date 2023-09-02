@@ -368,7 +368,7 @@ pub enum OutputOptions {
     Stdout(f64),
 }
 
-pub fn args_fail(msg: &str) -> ! {
+fn args_fail(msg: &str) -> ! {
     writeln!(io::stderr(), "{}", msg).unwrap();
     process::exit(1)
 }
