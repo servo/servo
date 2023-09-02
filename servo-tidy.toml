@@ -29,6 +29,7 @@ packages = [
     "num-rational",
     "redox_syscall",
     "ron",
+    "socket2",
     "time",
     "wasi",
     "wayland-sys",
