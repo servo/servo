@@ -19,7 +19,7 @@ crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 glib = "0.9"
 gstreamer = "0.15"
-gstreamer-base = "0.15"
+gstreamer-base = "0.21"
 gstreamer-gl = "0.15"
 gstreamer-gl-sys = { version = "0.8", features = ["wayland"] }
 gstreamer-sys = "0.8"
