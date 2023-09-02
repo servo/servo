@@ -11,7 +11,6 @@ use crate::minibrowser::Minibrowser;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
 
-use getopts::Matches;
 use gleam::gl;
 use servoshell::get_default_url;
 use servo::compositing::windowing::EmbedderEvent;
@@ -46,7 +45,7 @@ impl App {
         no_native_titlebar: bool,
         device_pixels_per_px: Option<f32>,
         user_agent: Option<String>,
-        opts_matches: &Matches,
+        url: Option<String>,
     ) {
         let events_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some());
 
@@ -64,7 +63,7 @@ impl App {
 
         // Handle browser state.
         let browser = Browser::new(window.clone());
-        let initial_url = get_default_url(opts_matches);
+        let initial_url = get_default_url(url);
 
         let mut app = App {
             event_queue: RefCell::new(vec![]),
@@ -75,7 +74,7 @@ impl App {
             minibrowser: None,
         };
 
-        if  opts_matches.opt_present("minibrowser") && window.winit_window().is_some() {
+        if  opts::get().minibrowser && window.winit_window().is_some() {
             // Make sure the gl context is made current.
             let webrender_surfman = window.webrender_surfman();
             let webrender_gl = match webrender_surfman.connection().gl_api() {
