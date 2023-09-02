@@ -18,7 +18,7 @@ path = "lib.rs"
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 glib = "0.9"
-gstreamer = "0.15"
+gstreamer = "0.21"
 gstreamer-base = "0.15"
 gstreamer-gl = "0.15"
 gstreamer-gl-sys = { version = "0.8", features = ["wayland"] }
