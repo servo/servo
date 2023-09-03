@@ -143,6 +143,7 @@ pub mod htmlconstructor;
 pub mod inheritance;
 pub mod interface;
 pub mod iterable;
+pub mod like;
 pub mod namespace;
 pub mod num;
 pub mod principals;
