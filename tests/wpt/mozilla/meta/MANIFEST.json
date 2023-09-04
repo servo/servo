@@ -13472,11 +13472,29 @@
       {}
      ]
     ],
-    "like.html": [
-     "8c35c8931845929f050001fe8fe9986734a4bb4a",
+    "like.any.js": [
+     "11e4d86325ce6216754a0e0b760c59beb812db85",
      [
-      null,
-      {}
+      "mozilla/like.any.html",
+      {
+       "script_metadata": [
+        [
+         "title",
+         "Setlike and Maplike bindings"
+        ]
+       ]
+      }
+     ],
+     [
+      "mozilla/like.any.worker.html",
+      {
+       "script_metadata": [
+        [
+         "title",
+         "Setlike and Maplike bindings"
+        ]
+       ]
+      }
      ]
     ],
     "link_rel_crash.html": [
