@@ -104,7 +104,7 @@ where
 
     #[inline(always)]
     fn delete(&self, key: Self::Key) -> bool {
-        self.borrow_mut().remove(&key)
+        self.borrow_mut().shift_remove(&key)
     }
 }
 
@@ -241,8 +241,7 @@ where
 
     #[inline(always)]
     fn delete(&self, key: Self::Key) -> bool {
-        // TODO: shift_remove ???
-        self.borrow_mut().remove(&key).is_some()
+        self.borrow_mut().shift_remove(&key).is_some()
     }
 }
 
