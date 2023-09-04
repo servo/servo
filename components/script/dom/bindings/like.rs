@@ -17,10 +17,9 @@ use super::iterable::Iterable;
 /// Every Setlike dom_struct must implement this to provide access to underlying storage
 /// so codegen can automatically generate all setlike methods
 ///
-/// In case you use type that implements Setlike as underlying storage it's recommended to use `setlike` macro.
-// This is somehow analogues to gecko's SetlikeHelpers
+/// In case you use a type that implements Setlike as underlying storage it's recommended to use `setlike` macro.
+// In webidl: `setlike<Key>`
 pub trait Setlike {
-    // setlike<Key>
     /// The type of the key of the set.
     type Key: ToJSValConvertible + Clone; // clone is for impl<T: Setlike> Maplike for T
 
@@ -160,9 +159,8 @@ macro_rules! setlike {
 /// so codegen can automatically generate all maplike methods
 ///
 /// In case you use type that implements Maplike as underlying storage it's recommended to use `maplike` macro.
-// This is somehow analogues to gecko's MaplikeHelpers
+// In webidl: `maplike<Key, Value>`
 pub trait Maplike {
-    // maplike<Key, Value>
     /// The type of the key of the map.
     type Key: ToJSValConvertible;
     /// The type of the value of the map.

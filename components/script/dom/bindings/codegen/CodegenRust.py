@@ -7917,7 +7917,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGGeneric):
                 """,
                 trt=trait,
                 method=methodName))
-        elif methodName in ["add", "has", "delete", "get"]:  # one argument
+        elif methodName in ["has", "delete", "get"]:  # one argument
             CGGeneric.__init__(self, fill(
                 """
                 let result = ${trt}::${method}(&*this, arg0);

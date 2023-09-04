@@ -53,7 +53,7 @@ impl TestBindingSetlikeMethods for TestBindingSetlike {
     }
 }
 
-// this error is wrong because if we inline functions and then inline Self::Key all warnings are gone
+// this error is wrong because if we inline Self::Key and Self::Value all errors are gone
 // TODO: FIX THIS
 #[allow(unrooted_must_root)]
 impl Setlike for TestBindingSetlike {
