@@ -158,7 +158,7 @@ macro_rules! setlike {
 /// to provide access to underlying storage
 /// so codegen can automatically generate all maplike methods
 ///
-/// In case you use type that implements Maplike as underlying storage it's recommended to use `maplike` macro.
+/// In case you use a type that implements Maplike as underlying storage it's recommended to use `maplike` macro.
 // In webidl: `maplike<Key, Value>`
 pub trait Maplike {
     /// The type of the key of the map.
