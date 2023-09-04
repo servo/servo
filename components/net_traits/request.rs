@@ -254,6 +254,7 @@ pub struct RequestBuilder {
     pub initiator: Initiator,
     pub https_state: HttpsState,
     pub response_tainting: ResponseTainting,
+    pub crash: bool,
 }
 
 impl RequestBuilder {
@@ -284,6 +285,7 @@ impl RequestBuilder {
             csp_list: None,
             https_state: HttpsState::None,
             response_tainting: ResponseTainting::Basic,
+            crash: false,
         }
     }
 
@@ -382,6 +384,11 @@ impl RequestBuilder {
         self
     }
 
+    pub fn crash(mut self, crash: bool) -> Self {
+        self.crash = crash;
+        self
+    }
+
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.url.clone(),
@@ -415,6 +422,7 @@ impl RequestBuilder {
         request.parser_metadata = self.parser_metadata;
         request.csp_list = self.csp_list;
         request.response_tainting = self.response_tainting;
+        request.crash = self.crash;
         request
     }
 }
@@ -488,6 +496,7 @@ pub struct Request {
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     pub csp_list: Option<CspList>,
     pub https_state: HttpsState,
+    pub crash: bool,
 }
 
 impl Request {
@@ -528,6 +537,7 @@ impl Request {
             response_tainting: ResponseTainting::Basic,
             csp_list: None,
             https_state: https_state,
+            crash: false,
         }
     }
 

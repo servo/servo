@@ -890,10 +890,17 @@ impl FetchResponseListener for ParserContext {
                 }
                 if let Some(reason) = network_error {
                     self.is_synthesized_document = true;
-                    let page = resources::read_string(Resource::NetErrorHTML);
-                    let page = page.replace("${reason}", &reason);
-                    parser.push_string_input_chunk(page);
-                    parser.parse_sync();
+                    if reason == "crash" {
+                        // TODO use a separate enum variant instead of keying on reason
+                        let page = resources::read_string(Resource::Crash);
+                        parser.push_string_input_chunk(page);
+                        parser.parse_sync();
+                    } else {
+                        let page = resources::read_string(Resource::NetErrorHTML);
+                        let page = page.replace("${reason}", &reason);
+                        parser.push_string_input_chunk(page);
+                        parser.parse_sync();
+                    }
                 }
             },
             (mime::TEXT, mime::XML, _) |

@@ -2797,7 +2797,6 @@ where
             Some(p) => p,
             None => return warn!("failed pipeline is missing"),
         };
-        let pipeline_url = pipeline.url.clone();
         let opener = pipeline.opener;
 
         self.close_browsing_context_children(
@@ -2806,23 +2805,20 @@ where
             ExitPipelineMode::Force,
         );
 
-        let failure_url = ServoUrl::parse("about:failure").expect("infallible");
-
-        if pipeline_url == failure_url {
-            return error!("about:failure failed");
+        let old_pipeline_id = pipeline_id;
+        let old_load_data = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.load_data.clone(),
+            None => return warn!("failed pipeline is missing"),
+        };
+        if old_load_data.crash {
+            return error!("crash page crashed");
         }
 
-        warn!("creating replacement pipeline for about:failure");
+        warn!("creating replacement pipeline for crash page");
 
         let new_pipeline_id = PipelineId::new();
-        let load_data = LoadData::new(
-            LoadOrigin::Constellation,
-            failure_url,
-            None,
-            Referrer::NoReferrer,
-            None,
-            None,
-        );
+        let mut new_load_data = old_load_data.clone();
+        new_load_data.crash = true;
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         let is_private = false;
         self.new_pipeline(
@@ -2832,7 +2828,7 @@ where
             None,
             opener,
             window_size,
-            load_data,
+            new_load_data,
             sandbox,
             is_private,
             is_visible,
@@ -2841,10 +2837,12 @@ where
             top_level_browsing_context_id,
             browsing_context_id,
             new_pipeline_id,
-            replace: None,
+            // pipeline already closed, so Yes avoids harmless but useless close
+            replace: Some(NeedsToReload::Yes(old_pipeline_id, old_load_data)),
             new_browsing_context_info: None,
             window_size,
         });
+
     }
 
     fn handle_log_entry(

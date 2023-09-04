@@ -35,6 +35,7 @@ fn filename(file: Resource) -> &'static str {
         Resource::RippyPNG => "rippy.png",
         Resource::MediaControlsCSS => "media-controls.css",
         Resource::MediaControlsJS => "media-controls.js",
+        Resource::Crash => "crash.html",
     }
 }
 

@@ -3843,7 +3843,8 @@ impl ScriptThread {
             .headers(load_data.headers)
             .body(load_data.data)
             .redirect_mode(RedirectMode::Manual)
-            .origin(incomplete.origin.immutable().clone());
+            .origin(incomplete.origin.immutable().clone())
+            .crash(load_data.crash);
 
         let context = ParserContext::new(id, load_data.url);
         self.incomplete_parser_contexts

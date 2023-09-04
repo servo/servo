@@ -195,6 +195,11 @@ pub async fn main_fetch(
     // Step 1.
     let mut response = None;
 
+    // crash
+    if request.crash {
+        response = Some(Response::network_error(NetworkError::Internal("crash".into())));
+    }
+
     // Step 2.
     if request.local_urls_only {
         if !matches!(
