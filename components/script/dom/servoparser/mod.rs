@@ -898,7 +898,7 @@ impl FetchResponseListener for ParserContext {
                 },
                 Some(NetworkError::Crash) => {
                     self.is_synthesized_document = true;
-                    let page = resources::read_string(Resource::Crash);
+                    let page = resources::read_string(Resource::CrashHTML);
                     parser.push_string_input_chunk(page);
                     parser.parse_sync();
                 },

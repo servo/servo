@@ -61,7 +61,7 @@ pub enum Resource {
     RippyPNG,
     MediaControlsCSS,
     MediaControlsJS,
-    Crash,
+    CrashHTML,
 }
 
 pub trait ResourceReaderMethods {
@@ -97,7 +97,7 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 Resource::RippyPNG => "rippy.png",
                 Resource::MediaControlsCSS => "media-controls.css",
                 Resource::MediaControlsJS => "media-controls.js",
-                Resource::Crash => "crash.html",
+                Resource::CrashHTML => "crash.html",
             };
             let mut path = env::current_exe().unwrap();
             path = path.canonicalize().unwrap();
