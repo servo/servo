@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use embedder_traits::resources::{self, Resource};
-use immeta::load_from_buf;
+use imsz::imsz_from_reader;
 use ipc_channel::ipc::IpcSender;
 use net_traits::image::base::{load_from_memory, Image, ImageMetadata};
 use net_traits::image_cache::{
@@ -608,19 +608,18 @@ impl ImageCache for ImageCacheImpl {
                 let mut store = self.store.lock().unwrap();
                 let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                 pending_load.bytes.extend_from_slice(&data);
+
                 //jmr0 TODO: possibly move to another task?
-                if let None = pending_load.metadata {
-                    if let Ok(metadata) = load_from_buf(&pending_load.bytes.as_slice()) {
-                        let dimensions = metadata.dimensions();
-                        let img_metadata = ImageMetadata {
-                            width: dimensions.width,
-                            height: dimensions.height,
-                        };
-                        for listener in &pending_load.listeners {
-                            listener.respond(ImageResponse::MetadataLoaded(img_metadata.clone()));
-                        }
-                        pending_load.metadata = Some(img_metadata);
+                let mut reader = std::io::Cursor::new(pending_load.bytes.as_slice());
+                if let Ok(info) = imsz_from_reader(&mut reader) {
+                    let img_metadata = ImageMetadata {
+                        width: info.width as u32,
+                        height: info.height as u32,
+                    };
+                    for listener in &pending_load.listeners {
+                        listener.respond(ImageResponse::MetadataLoaded(img_metadata.clone()));
                     }
+                    pending_load.metadata = Some(img_metadata);
                 }
             },
             (FetchResponseMsg::ProcessResponseEOF(result), key) => {

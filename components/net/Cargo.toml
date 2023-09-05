@@ -34,7 +34,7 @@ http = { workspace = true }
 hyper = { workspace = true, features = ["client", "http1", "http2", "tcp", "stream"] }
 hyper-rustls = { workspace = true }
 hyper_serde = { workspace = true }
-immeta = "0.4"
+imsz = { workspace = true }
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 libflate = "0.1"
