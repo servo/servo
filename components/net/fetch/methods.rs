@@ -195,9 +195,9 @@ pub async fn main_fetch(
     // Step 1.
     let mut response = None;
 
-    // crash
+    // Servo internal: return a crash error when a crash error page is needed
     if request.crash {
-        response = Some(Response::network_error(NetworkError::Internal("crash".into())));
+        response = Some(Response::network_error(NetworkError::Crash));
     }
 
     // Step 2.

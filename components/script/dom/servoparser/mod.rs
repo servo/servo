@@ -774,28 +774,27 @@ impl FetchResponseListener for ParserContext {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, meta_result: Result<FetchMetadata, NetworkError>) {
-        let mut ssl_error = None;
-        let mut network_error = None;
-        let metadata = match meta_result {
-            Ok(meta) => Some(match meta {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-            }),
-            Err(NetworkError::SslValidation(reason, cert_bytes)) => {
-                ssl_error = Some((reason, cert_bytes));
-                let mut meta = Metadata::default(self.url.clone());
-                let mime: Option<Mime> = "text/html".parse().ok();
-                meta.set_content_type(mime.as_ref());
-                Some(meta)
-            },
-            Err(NetworkError::Internal(reason)) => {
-                network_error = Some(reason);
-                let mut meta = Metadata::default(self.url.clone());
-                let mime: Option<Mime> = "text/html".parse().ok();
-                meta.set_content_type(mime.as_ref());
-                Some(meta)
-            },
-            Err(_) => None,
+        let (metadata, error) = match meta_result {
+            Ok(meta) => (
+                Some(match meta {
+                    FetchMetadata::Unfiltered(m) => m,
+                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+                }),
+                None,
+            ),
+            Err(error) => (
+                // Check variant without moving
+                match &error {
+                    NetworkError::SslValidation(..) | NetworkError::Internal(..) | NetworkError::Crash => {
+                        let mut meta = Metadata::default(self.url.clone());
+                        let mime: Option<Mime> = "text/html".parse().ok();
+                        meta.set_content_type(mime.as_ref());
+                        Some(meta)
+                    },
+                    _ => None,
+                },
+                Some(error),
+            ),
         };
         let content_type: Option<Mime> = metadata
             .clone()
@@ -877,30 +876,33 @@ impl FetchResponseListener for ParserContext {
                 parser.tokenizer.borrow_mut().set_plaintext_state();
             },
             (mime::TEXT, mime::HTML, _) => {
-                if let Some((reason, bytes)) = ssl_error {
-                    self.is_synthesized_document = true;
-                    let page = resources::read_string(Resource::BadCertHTML);
-                    let page = page.replace("${reason}", &reason);
-                    let encoded_bytes = general_purpose::STANDARD_NO_PAD.encode(&bytes);
-                    let page = page.replace("${bytes}", encoded_bytes.as_str());
-                    let page =
-                        page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string());
-                    parser.push_string_input_chunk(page);
-                    parser.parse_sync();
-                }
-                if let Some(reason) = network_error {
-                    self.is_synthesized_document = true;
-                    if reason == "crash" {
-                        // TODO use a separate enum variant instead of keying on reason
-                        let page = resources::read_string(Resource::Crash);
+                match error {
+                    Some(NetworkError::SslValidation(reason, bytes)) => {
+                        self.is_synthesized_document = true;
+                        let page = resources::read_string(Resource::BadCertHTML);
+                        let page = page.replace("${reason}", &reason);
+                        let encoded_bytes = general_purpose::STANDARD_NO_PAD.encode(&bytes);
+                        let page = page.replace("${bytes}", encoded_bytes.as_str());
+                        let page =
+                            page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string());
                         parser.push_string_input_chunk(page);
                         parser.parse_sync();
-                    } else {
+                    },
+                    Some(NetworkError::Internal(reason)) => {
+                        self.is_synthesized_document = true;
                         let page = resources::read_string(Resource::NetErrorHTML);
                         let page = page.replace("${reason}", &reason);
                         parser.push_string_input_chunk(page);
                         parser.parse_sync();
-                    }
+                    },
+                    Some(NetworkError::Crash) => {
+                        self.is_synthesized_document = true;
+                        let page = resources::read_string(Resource::Crash);
+                        parser.push_string_input_chunk(page);
+                        parser.parse_sync();
+                    },
+                    Some(_) => {},
+                    None => {},
                 }
             },
             (mime::TEXT, mime::XML, _) |
