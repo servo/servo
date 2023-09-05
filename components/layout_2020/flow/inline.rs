@@ -87,33 +87,6 @@ pub(crate) struct TextRun {
     pub has_uncollapsible_content: bool,
 }
 
-struct InlineNestingLevelState<'box_tree> {
-    remaining_boxes: InlineBoxChildIter<'box_tree>,
-    line_items_so_far: Vec<LineItem>,
-    /// Whether or not we have processed any content (an atomic element or text) for
-    /// this inline box on the current line OR any previous line.
-    has_content: bool,
-    /// Indicates whether this nesting level have text decorations in effect.
-    /// From https://drafts.csswg.org/css-text-decor/#line-decoration
-    // "When specified on or propagated to a block container that establishes
-    //  an IFC..."
-    text_decoration_line: TextDecorationLine,
-}
-
-struct PartialInlineBoxFragment<'box_tree> {
-    base_fragment_info: BaseFragmentInfo,
-    style: Arc<ComputedValues>,
-    pbm: PaddingBorderMargin,
-
-    /// Whether or not this inline box has already been part of a previous line.
-    /// We need to create at least one Fragment for every inline box, but on following
-    /// lines, if the inline box is totally empty (such as after a preserved line
-    /// break), then we don't want to create empty Fragments for it.
-    was_part_of_previous_line: bool,
-
-    parent_nesting_level: InlineNestingLevelState<'box_tree>,
-}
-
 /// Information about the current line under construction for a particular
 /// [`InlineFormattingContextState`]. This tracks position and size information while
 /// [`LineItem`]s are collected and is used as input when those [`LineItem`]s are
@@ -182,7 +155,44 @@ impl LineUnderConstruction {
     }
 }
 
-struct InlineFormattingContextState<'box_tree, 'a, 'b> {
+struct InlineContainerState {
+    /// The [`LineItems`]s we have collected so far for this nesting level for
+    /// the current line.
+    line_items_so_far: Vec<LineItem>,
+
+    /// Whether or not we have processed any content (an atomic element or text) for
+    /// this inline box on the current line OR any previous line.
+    has_content: bool,
+
+    /// Indicates whether this nesting level have text decorations in effect.
+    /// From https://drafts.csswg.org/css-text-decor/#line-decoration
+    // "When specified on or propagated to a block container that establishes
+    //  an IFC..."
+    text_decoration_line: TextDecorationLine,
+}
+
+struct InlineBoxContainerState {
+    /// The container state common to both [`InlineBox`] and the root of the
+    /// [`InlineFormattingContext`].
+    base: InlineContainerState,
+
+    /// The style of this inline box.
+    style: Arc<ComputedValues>,
+
+    /// The [`BaseFragmentInfo`] of the [`InlineBox`] that this state tracks.
+    base_fragment_info: BaseFragmentInfo,
+
+    /// The [`PaddingBorderMargin`] of the [`InlineBox`] that this state tracks.
+    pbm: PaddingBorderMargin,
+
+    /// Whether or not this inline box has already been part of a previous line.
+    /// We need to create at least one Fragment for every inline box, but on following
+    /// lines, if the inline box is totally empty (such as after a preserved line
+    /// break), then we don't want to create empty Fragments for it.
+    was_part_of_previous_line: bool,
+}
+
+struct InlineFormattingContextState<'a, 'b> {
     positioning_context: &'a mut PositioningContext,
     containing_block: &'b ContainingBlock<'b>,
     sequential_layout_state: Option<&'a mut SequentialLayoutState>,
@@ -205,11 +215,17 @@ struct InlineFormattingContextState<'box_tree, 'a, 'b> {
     /// common ancestor is used.
     white_space: WhiteSpace,
 
-    partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
-    current_nesting_level: InlineNestingLevelState<'box_tree>,
+    /// The [`InlineContainerState`] for the container formed by the root of the
+    /// [`InlineFormattingContext`].
+    root_nesting_level: InlineContainerState,
+
+    /// A stack of [`InlineBoxContainerState`] that is used to produce [`LineItem`]s either when we
+    /// reach the end of an inline box or when we reach the end of a line. Only at the end
+    /// of the inline box is the state popped from the stack.
+    inline_box_state_stack: Vec<InlineBoxContainerState>,
 }
 
-impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
+impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     /// Push a completed [LineItem] to the current nesteding level of this
     /// [InlineFormattingContext].
     fn push_line_item(
@@ -225,42 +241,102 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
             .block_size
             .max_assign(line_item.block_size());
 
-        self.current_nesting_level.line_items_so_far.push(line_item);
-        self.current_nesting_level.has_content = true;
+        let current_nesting_level = self.current_inline_container_state_mut();
+        current_nesting_level.line_items_so_far.push(line_item);
+        current_nesting_level.has_content = true;
         self.propagate_current_nesting_level_white_space_style();
     }
 
+    fn current_inline_container_state(&self) -> &InlineContainerState {
+        match self.inline_box_state_stack.last() {
+            Some(inline_box_state) => &inline_box_state.base,
+            None => &self.root_nesting_level,
+        }
+    }
+
+    fn current_inline_container_state_mut(&mut self) -> &mut InlineContainerState {
+        match self.inline_box_state_stack.last_mut() {
+            Some(inline_box_state) => &mut inline_box_state.base,
+            None => &mut self.root_nesting_level,
+        }
+    }
+
     fn propagate_current_nesting_level_white_space_style(&mut self) {
-        let style = match self.partial_inline_boxes_stack.last() {
-            Some(partial) => &partial.style,
+        let style = match self.inline_box_state_stack.last() {
+            Some(inline_box_state) => &inline_box_state.style,
             None => self.containing_block.style,
         };
         self.white_space = style.get_inherited_text().white_space;
     }
 
-    /// Finish layout of all the partial inline boxes in the current line,
-    /// finish current line and start a new one.
-    fn finish_line_and_reset(&mut self, layout_context: &LayoutContext) {
-        let mut nesting_level = &mut self.current_nesting_level;
-        for partial in self.partial_inline_boxes_stack.iter_mut().rev() {
-            partial.finish_layout(
-                nesting_level,
+    /// Start laying out a particular [`InlineBox`] into line items. This will push
+    /// a new [`InlineBoxContainerState`] onto [`Self::inline_box_state_stack`].
+    fn start_inline_box(&mut self, inline_box: &InlineBox) {
+        let text_decoration_of_parent = self.current_inline_container_state().text_decoration_line;
+        self.inline_box_state_stack
+            .push(InlineBoxContainerState::new(
+                inline_box,
                 &mut self.current_line.inline_position,
-                false, /* at_end_of_inline_element */
-            );
-            nesting_level = &mut partial.parent_nesting_level;
-        }
-
-        let line_items = std::mem::take(&mut nesting_level.line_items_so_far);
-        self.finish_current_line(layout_context, line_items, self.containing_block);
+                &self.containing_block,
+                text_decoration_of_parent,
+            ));
     }
 
-    fn finish_current_line(
-        &mut self,
-        layout_context: &LayoutContext,
-        mut line_items: Vec<LineItem>,
-        containing_block: &ContainingBlock,
-    ) {
+    /// Finish laying out a particular [`InlineBox`] into line items. This will add the
+    /// final [`InlineBoxLineItem`] to the state and pop its state off of
+    /// [`Self::inline_box_state_stack`].
+    fn finish_inline_box(&mut self) {
+        let mut inline_box_state = match self.inline_box_state_stack.pop() {
+            Some(inline_box_state) => inline_box_state,
+            None => return, // We are at the root.
+        };
+
+        // We reached the end of the remaining boxes in this nesting level, so we finish it and
+        // start working on the parent nesting level again.
+        let line_item = inline_box_state.layout_into_line_item(
+            &mut self.current_line.inline_position,
+            true, /* at_end_of_inline_element */
+        );
+
+        self.current_inline_container_state_mut()
+            .line_items_so_far
+            .push(LineItem::InlineBox(line_item));
+
+        // If the inline box that we just finished had any content at all, we want to propagate
+        // the `white-space` property of its parent to future inline children. This is because
+        // when a soft wrap opportunity is defined by the boundary between two elements, the
+        // `white-space` used is that of their nearest common ancestor.
+        if inline_box_state.base.has_content {
+            self.propagate_current_nesting_level_white_space_style();
+        }
+    }
+
+    /// Finish layout of all inline boxes for the current line. This will gather all
+    /// [`LineItem`]s and turn them into [`Fragment`]s, then reset the
+    /// [`InlineFormattingContextState`] preparing it for laying out a new line.
+    fn finish_current_line_and_reset(&mut self, layout_context: &LayoutContext) {
+        let mut line_item_from_child = None;
+        for inline_box_state in self.inline_box_state_stack.iter_mut().rev() {
+            if let Some(line_item_from_child) = line_item_from_child {
+                inline_box_state
+                    .base
+                    .line_items_so_far
+                    .push(LineItem::InlineBox(line_item_from_child));
+            }
+
+            line_item_from_child = Some(
+                inline_box_state
+                    .layout_into_line_item(&mut self.current_line.inline_position, false),
+            );
+        }
+
+        if let Some(line_item_from_child) = line_item_from_child {
+            self.root_nesting_level
+                .line_items_so_far
+                .push(LineItem::InlineBox(line_item_from_child));
+        }
+        let mut line_items = std::mem::take(&mut self.root_nesting_level.line_items_so_far);
+
         // From <https://www.w3.org/TR/css-text-3/#white-space-phase-2>:
         // > 3. A sequence of collapsible spaces at the end of a line is removed,
         // >    as well as any trailing U+1680   OGHAM SPACE MARK whose white-space
@@ -273,7 +349,7 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
         }
 
         let inline_start_position =
-            self.calculate_inline_start_for_current_line(containing_block, whitespace_trimmed);
+            self.calculate_inline_start_for_current_line(self.containing_block, whitespace_trimmed);
         let block_start_position = self
             .current_line
             .line_block_start_considering_placement_among_floats();
@@ -294,7 +370,7 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
             inline_position: inline_start_position,
             max_block_size: Length::zero(),
             inline_start_of_parent: Length::zero(),
-            ifc_containing_block: containing_block,
+            ifc_containing_block: self.containing_block,
             positioning_context: &mut self.positioning_context,
             line_block_start: block_start_position,
         };
@@ -303,7 +379,7 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
         let fragments = layout_line_items(line_items, layout_context, &mut state);
 
         let size = Vec2 {
-            inline: containing_block.inline_size,
+            inline: self.containing_block.inline_size,
             block: state.max_block_size,
         };
 
@@ -329,7 +405,7 @@ impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
                 .push(Fragment::Anonymous(AnonymousFragment::new(
                     Rect { start_corner, size },
                     fragments,
-                    containing_block.style.writing_mode,
+                    self.containing_block.style.writing_mode,
                 )));
         }
 
@@ -722,13 +798,12 @@ impl InlineFormattingContext {
             }),
             white_space: containing_block.style.get_inherited_text().white_space,
             linebreaker: None,
-            partial_inline_boxes_stack: Vec::new(),
-            current_nesting_level: InlineNestingLevelState {
-                remaining_boxes: InlineBoxChildIter::from_formatting_context(self),
+            root_nesting_level: InlineContainerState {
                 line_items_so_far: Vec::with_capacity(self.inline_level_boxes.len()),
                 has_content: false,
                 text_decoration_line: self.text_decoration_line,
             },
+            inline_box_state_stack: Vec::new(),
         };
 
         // FIXME(pcwalton): This assumes that margins never collapse through inline formatting
@@ -739,13 +814,15 @@ impl InlineFormattingContext {
             // FIXME(mrobinson): Collapse margins in the containing block offsets as well??
         }
 
+        let mut iterator = InlineBoxChildIter::from_formatting_context(self);
+        let mut parent_iterators = Vec::new();
         loop {
-            if let Some(child) = ifc.current_nesting_level.remaining_boxes.next() {
-                match &mut *child.borrow_mut() {
-                    InlineLevelBox::InlineBox(inline) => {
-                        let partial =
-                            PartialInlineBoxFragment::new(inline, child.clone(), &mut ifc);
-                        ifc.partial_inline_boxes_stack.push(partial);
+            match iterator.next() {
+                Some(child) => match &mut *child.borrow_mut() {
+                    InlineLevelBox::InlineBox(inline_box) => {
+                        ifc.start_inline_box(inline_box);
+                        parent_iterators.push(iterator);
+                        iterator = InlineBoxChildIter::from_inline_level_box(child.clone());
                     },
                     InlineLevelBox::TextRun(run) => {
                         run.layout_into_line_items(layout_context, &mut ifc)
@@ -754,43 +831,36 @@ impl InlineFormattingContext {
                         atomic_formatting_context.layout_into_line_items(layout_context, &mut ifc);
                     },
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
-                        ifc.current_nesting_level.line_items_so_far.push(
-                            LineItem::AbsolutelyPositioned(AbsolutelyPositionedLineItem {
-                                absolutely_positioned_box: box_.clone(),
-                            }),
-                        );
+                        ifc.current_inline_container_state_mut()
+                            .line_items_so_far
+                            .push(LineItem::AbsolutelyPositioned(
+                                AbsolutelyPositionedLineItem {
+                                    absolutely_positioned_box: box_.clone(),
+                                },
+                            ));
                     },
                     InlineLevelBox::OutOfFlowFloatBox(float_box) => {
                         float_box.layout_into_line_items(layout_context, &mut ifc);
                     },
-                }
-            } else if let Some(mut partial) = ifc.partial_inline_boxes_stack.pop() {
-                // We reached the end of the remaining boxes in this nesting level, so we finish it and
-                // start working on the parent nesting level again.
-                partial.finish_layout(
-                    &mut ifc.current_nesting_level,
-                    &mut ifc.current_line.inline_position,
-                    true, /* at_end_of_inline_element */
-                );
-
-                let had_content = ifc.current_nesting_level.has_content;
-                ifc.current_nesting_level = partial.parent_nesting_level;
-
-                // If the inline box that we just finished had any content at all, we want to propagate
-                // the `white-space` property of its parent to future inline children. This is because
-                // when a soft wrap opportunity is defined by the boundary between two elements, the
-                // `white-space` used is that of their nearest common ancestor.
-                if had_content {
-                    ifc.propagate_current_nesting_level_white_space_style();
-                }
-            } else {
-                // We reached the end of the entire IFC.
-                break;
+                },
+                None => {
+                    match parent_iterators.pop() {
+                        // If we have a parent iterator, then we are working on an
+                        // InlineBox and we just finished it.
+                        Some(parent_iterator) => {
+                            ifc.finish_inline_box();
+                            iterator = parent_iterator;
+                            continue;
+                        },
+                        // If we have no more parents, we are at the end of the root
+                        // iterator ie at the end of this InlineFormattingContext.
+                        None => break,
+                    };
+                },
             }
         }
 
-        let line_items = std::mem::take(&mut ifc.current_nesting_level.line_items_so_far);
-        ifc.finish_current_line(layout_context, line_items, containing_block);
+        ifc.finish_current_line_and_reset(layout_context);
 
         let mut collapsible_margins_in_children = CollapsedBlockMargins::zero();
         let content_block_size = ifc.current_line.start_position.block;
@@ -828,73 +898,65 @@ impl InlineFormattingContext {
     }
 }
 
-impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
+impl InlineBoxContainerState {
     fn new(
         inline_box: &InlineBox,
-        this_inline_level_box: ArcRefCell<InlineLevelBox>,
-        ifc: &mut InlineFormattingContextState<'box_tree, '_, '_>,
-    ) -> PartialInlineBoxFragment<'box_tree> {
+        inline_position: &mut Length,
+        containing_block: &ContainingBlock,
+        text_decoration_of_parent: TextDecorationLine,
+    ) -> Self {
         let style = inline_box.style.clone();
-        let mut pbm = style.padding_border_margin(&ifc.containing_block);
+        let mut pbm = style.padding_border_margin(containing_block);
 
         if inline_box.first_fragment {
-            ifc.current_line.inline_position += pbm.padding.inline_start +
+            *inline_position += pbm.padding.inline_start +
                 pbm.border.inline_start +
-                pbm.margin.inline_start.auto_is(Length::zero)
+                pbm.margin.inline_start.auto_is(Length::zero);
         } else {
             pbm.padding.inline_start = Length::zero();
             pbm.border.inline_start = Length::zero();
             pbm.margin.inline_start = LengthOrAuto::zero();
         }
 
-        let text_decoration_line =
-            ifc.current_nesting_level.text_decoration_line | style.clone_text_decoration_line();
-        PartialInlineBoxFragment {
-            base_fragment_info: inline_box.base_fragment_info,
+        let text_decoration_line = text_decoration_of_parent | style.clone_text_decoration_line();
+        Self {
+            base: InlineContainerState {
+                line_items_so_far: Vec::with_capacity(inline_box.children.len()),
+                has_content: false,
+                text_decoration_line,
+            },
             style,
+            base_fragment_info: inline_box.base_fragment_info,
             pbm,
             was_part_of_previous_line: false,
-            parent_nesting_level: std::mem::replace(
-                &mut ifc.current_nesting_level,
-                InlineNestingLevelState {
-                    remaining_boxes: InlineBoxChildIter::from_inline_level_box(
-                        this_inline_level_box,
-                    ),
-                    line_items_so_far: Vec::with_capacity(inline_box.children.len()),
-                    has_content: false,
-                    text_decoration_line: text_decoration_line,
-                },
-            ),
         }
     }
 
-    fn finish_layout(
+    fn layout_into_line_item(
         &mut self,
-        nesting_level: &mut InlineNestingLevelState,
         inline_position: &mut Length,
         at_end_of_inline_element: bool,
-    ) {
+    ) -> InlineBoxLineItem {
         // If we are finishing in order to fragment this InlineBox into multiple lines, do
         // not add end margins, borders, and padding.
+        let mut pbm = self.pbm.clone();
         if !at_end_of_inline_element {
-            self.pbm.padding.inline_end = Length::zero();
-            self.pbm.border.inline_end = Length::zero();
-            self.pbm.margin.inline_end = LengthOrAuto::zero();
+            pbm.padding.inline_end = Length::zero();
+            pbm.border.inline_end = Length::zero();
+            pbm.margin.inline_end = LengthOrAuto::zero();
         } else {
             *inline_position += self.pbm.padding.inline_end +
                 self.pbm.border.inline_end +
                 self.pbm.margin.inline_end.auto_is(Length::zero)
         }
 
-        self.parent_nesting_level
-            .line_items_so_far
-            .push(LineItem::InlineBox(InlineBoxLineItem {
-                base_fragment_info: self.base_fragment_info,
-                style: self.style.clone(),
-                pbm: self.pbm.clone(),
-                children: std::mem::take(&mut nesting_level.line_items_so_far),
-                always_make_fragment: !self.was_part_of_previous_line,
-            }));
+        let new_line_item = InlineBoxLineItem {
+            base_fragment_info: self.base_fragment_info,
+            style: self.style.clone(),
+            pbm,
+            children: std::mem::take(&mut self.base.line_items_so_far),
+            always_make_fragment: !self.was_part_of_previous_line,
+        };
 
         // This InlineBox now has at least one Fragment that corresponds to it, so
         // if subsequent lines can ignore it if it is empty on those lines.
@@ -905,6 +967,8 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
         self.pbm.padding.inline_start = Length::zero();
         self.pbm.border.inline_start = Length::zero();
         self.pbm.margin.inline_start = LengthOrAuto::zero();
+
+        new_line_item
     }
 }
 
@@ -1037,7 +1101,7 @@ impl IndependentFormattingContext {
         };
 
         if ifc.new_potential_line_size_causes_line_break(&new_potential_line_size) {
-            ifc.finish_line_and_reset(layout_context);
+            ifc.finish_current_line_and_reset(layout_context);
         }
 
         ifc.push_line_item(
@@ -1174,7 +1238,9 @@ impl TextRun {
                         parent_style: self.parent_style.clone(),
                         font_metrics,
                         font_key,
-                        text_decoration_line: ifc.current_nesting_level.text_decoration_line,
+                        text_decoration_line: ifc
+                            .current_inline_container_state()
+                            .text_decoration_line,
                     }),
                     Length::from(last_whitespace_advance),
                 );
@@ -1200,7 +1266,7 @@ impl TextRun {
                         advance_from_text_run,
                         true,
                     );
-                    ifc.finish_line_and_reset(layout_context);
+                    ifc.finish_current_line_and_reset(layout_context);
                     advance_from_text_run = Length::zero();
                     continue;
                 }
@@ -1230,7 +1296,7 @@ impl TextRun {
                     advance_from_text_run,
                     true,
                 );
-                ifc.finish_line_and_reset(layout_context);
+                ifc.finish_current_line_and_reset(layout_context);
                 advance_from_text_run = Length::zero();
             }
 
@@ -1313,7 +1379,7 @@ impl FloatBox {
                 .replace_placement_among_floats(new_placement);
         }
 
-        ifc.current_nesting_level
+        ifc.current_inline_container_state_mut()
             .line_items_so_far
             .push(LineItem::Float(FloatLineItem {
                 fragment,
