@@ -13,10 +13,6 @@ name = "servo"
 path = "main.rs"
 bench = false
 
-[lib]
-name = "servoshell"
-path = "lib.rs"
-
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitcl"] }
 

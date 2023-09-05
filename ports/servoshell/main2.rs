@@ -11,7 +11,7 @@ extern crate log;
 extern crate sig;
 
 #[cfg(test)]
-mod tests;
+mod test;
 
 mod app;
 mod backtrace;
@@ -24,6 +24,7 @@ mod headed_window;
 mod headless_window;
 mod keyutils;
 mod minibrowser;
+mod parser;
 mod prefs;
 mod resources;
 mod window_trait;

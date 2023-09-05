@@ -8,11 +8,11 @@ use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::minibrowser::Minibrowser;
+use crate::parser::get_default_url;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
 
 use gleam::gl;
-use servoshell::get_default_url;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::config::opts;
 use servo::servo_config::pref;

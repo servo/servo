@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servoshell::parse_url_or_filename;
+
 use std::path::Path;
+use crate::parser::parse_url_or_filename;
 
 #[cfg(not(target_os = "windows"))]
 const FAKE_CWD: &'static str = "/fake/cwd";
@@ -13,7 +14,7 @@ const FAKE_CWD: &'static str = "C:/fake/cwd";
 
 #[test]
 fn test_argument_parsing() {
-    let fake_cwd: &Path = Path::new(FAKE_CWD);
+    let fake_cwd = Path::new(FAKE_CWD);
     assert!(parse_url_or_filename(fake_cwd, "http://example.net:invalid").is_err());
 
     let url = parse_url_or_filename(fake_cwd, "http://example.net").unwrap();
@@ -30,7 +31,7 @@ fn test_argument_parsing() {
 #[test]
 #[cfg(not(target_os = "windows"))]
 fn test_file_path_parsing() {
-    let fake_cwd: &Path = Path::new(FAKE_CWD);
+    let fake_cwd = Path::new(FAKE_CWD);
 
     let url = parse_url_or_filename(fake_cwd, "bar.html").unwrap();
     assert_eq!(url.scheme(), "file");

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
+use crate::parser::sanitize_url;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use arboard::Clipboard;
 use euclid::{Point2D, Vector2D};
@@ -14,10 +15,8 @@ use servo::embedder_traits::{
 };
 use servo::msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 use servo::msg::constellation_msg::TraversalDirection;
-use servo::net_traits::pub_domains::is_reg_domain;
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
-use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
 use std::env;
@@ -632,23 +631,6 @@ fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Opt
         .unwrap()
         .join()
         .expect("Thread spawning failed")
-}
-
-fn sanitize_url(request: &str) -> Option<ServoUrl> {
-    let request = request.trim();
-    ServoUrl::parse(request)
-        .ok()
-        .or_else(|| {
-            if request.contains('/') || is_reg_domain(request) {
-                ServoUrl::parse(&format!("https://{}", request)).ok()
-            } else {
-                None
-            }
-        })
-        .or_else(|| {
-            let url = pref!(shell.searchpage).replace("%s", request);
-            ServoUrl::parse(&url).ok()
-        })
 }
 
 // This is a mitigation for #25498, not a verified solution.

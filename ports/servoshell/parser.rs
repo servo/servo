@@ -6,6 +6,7 @@ use std::env;
 use std::path::Path;
 
 use log::warn;
+use servo::net_traits::pub_domains::is_reg_domain;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use url::{self, Url};
@@ -41,4 +42,21 @@ pub fn get_default_url(url_opt: Option<String>) -> ServoUrl {
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     cmdline_url.or(pref_url).or(blank_url).unwrap()
+}
+
+pub fn sanitize_url(request: &str) -> Option<ServoUrl> {
+    let request = request.trim();
+    ServoUrl::parse(request)
+        .ok()
+        .or_else(|| {
+            if request.contains('/') || is_reg_domain(request) {
+                ServoUrl::parse(&format!("https://{}", request)).ok()
+            } else {
+                None
+            }
+        })
+        .or_else(|| {
+            let url = pref!(shell.searchpage).replace("%s", request);
+            ServoUrl::parse(&url).ok()
+        })
 }
