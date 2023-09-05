@@ -466,11 +466,6 @@ class CommandBase(object):
 
         effective_target = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in effective_target:
-            # This environment variable is necessary for building mozjs. It would
-            # be nice to be able to set it in the cargo configuration somehow, but it
-            # is platform-dependent.
-            env["MOZILLA_BUILD"] = path.join(self.msvc_package_dir("moztools"))
-
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
