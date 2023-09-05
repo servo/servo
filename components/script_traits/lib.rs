@@ -185,8 +185,8 @@ pub struct LoadData {
     /// The inherited context is Secure, None if not inherited
     pub inherited_secure_context: Option<bool>,
 
-    /// Whether we are reloading to a crash error page.
-    pub crash: bool,
+    /// Crash details, if we are reloading to a crash error page.
+    pub crash: Option<String>,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -221,7 +221,7 @@ impl LoadData {
             referrer_policy: referrer_policy,
             srcdoc: "".to_string(),
             inherited_secure_context,
-            crash: false,
+            crash: None,
         }
     }
 }

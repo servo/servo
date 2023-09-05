@@ -2782,7 +2782,7 @@ where
 
         self.embedder_proxy.send((
             Some(top_level_browsing_context_id),
-            EmbedderMsg::Panic(reason, backtrace),
+            EmbedderMsg::Panic(reason.clone(), backtrace.clone()),
         ));
 
         let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
@@ -2810,7 +2810,7 @@ where
             Some(pipeline) => pipeline.load_data.clone(),
             None => return warn!("failed pipeline is missing"),
         };
-        if old_load_data.crash {
+        if old_load_data.crash.is_some() {
             return error!("crash page crashed");
         }
 
@@ -2818,7 +2818,12 @@ where
 
         let new_pipeline_id = PipelineId::new();
         let mut new_load_data = old_load_data.clone();
-        new_load_data.crash = true;
+        new_load_data.crash = Some(if let Some(backtrace) = backtrace {
+            format!("{}\n{}", reason, backtrace)
+        } else {
+            reason
+        });
+
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         let is_private = false;
         self.new_pipeline(

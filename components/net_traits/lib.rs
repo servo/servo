@@ -761,7 +761,7 @@ pub enum NetworkError {
     /// SSL validation error, to be converted to Resource::BadCertHTML in the HTML parser
     SslValidation(String, Vec<u8>),
     /// Crash error, to be converted to Resource::Crash in the HTML parser
-    Crash,
+    Crash(String),
 }
 
 impl NetworkError {

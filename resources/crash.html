@@ -1,9 +1,8 @@
-<html>
-<body>
-  <!-- TODO not this -->
-  <p>uh oh! servo has made a big fucky wucky! a widdle fucko boingo!</p>
+<p>Servo crashed!</p>
 
-  <!-- TODO does this resubmit POST or otherwise preserve the LoadData? -->
-  <button onclick="location.reload()">Reload</button>
-</body>
-</html>
+<!-- NOTE: unlike in Firefox and Chrome, this reloads POST as GET -->
+<!-- see whatwg/html#6600 + whatwg/html#3215 -->
+<button onclick="location.reload()">Reload</button>
+
+<pre><plaintext>
+${details}

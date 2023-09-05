@@ -787,7 +787,7 @@ impl FetchResponseListener for ParserContext {
                 match &error {
                     NetworkError::SslValidation(..) |
                     NetworkError::Internal(..) |
-                    NetworkError::Crash => {
+                    NetworkError::Crash(..) => {
                         let mut meta = Metadata::default(self.url.clone());
                         let mime: Option<Mime> = "text/html".parse().ok();
                         meta.set_content_type(mime.as_ref());
@@ -896,9 +896,10 @@ impl FetchResponseListener for ParserContext {
                     parser.push_string_input_chunk(page);
                     parser.parse_sync();
                 },
-                Some(NetworkError::Crash) => {
+                Some(NetworkError::Crash(details)) => {
                     self.is_synthesized_document = true;
                     let page = resources::read_string(Resource::CrashHTML);
+                    let page = page.replace("${details}", &details);
                     parser.push_string_input_chunk(page);
                     parser.parse_sync();
                 },
