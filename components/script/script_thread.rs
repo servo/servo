@@ -3870,6 +3870,7 @@ impl ScriptThread {
     ) {
         match fetch_metadata {
             Ok(_) => (),
+            Err(NetworkError::Crash(..)) => (),
             Err(ref e) => {
                 warn!("Network error: {:?}", e);
             },
