@@ -785,7 +785,9 @@ impl FetchResponseListener for ParserContext {
             Err(error) => (
                 // Check variant without moving
                 match &error {
-                    NetworkError::SslValidation(..) | NetworkError::Internal(..) | NetworkError::Crash => {
+                    NetworkError::SslValidation(..) |
+                    NetworkError::Internal(..) |
+                    NetworkError::Crash => {
                         let mut meta = Metadata::default(self.url.clone());
                         let mime: Option<Mime> = "text/html".parse().ok();
                         meta.set_content_type(mime.as_ref());
@@ -875,35 +877,33 @@ impl FetchResponseListener for ParserContext {
                 parser.parse_sync();
                 parser.tokenizer.borrow_mut().set_plaintext_state();
             },
-            (mime::TEXT, mime::HTML, _) => {
-                match error {
-                    Some(NetworkError::SslValidation(reason, bytes)) => {
-                        self.is_synthesized_document = true;
-                        let page = resources::read_string(Resource::BadCertHTML);
-                        let page = page.replace("${reason}", &reason);
-                        let encoded_bytes = general_purpose::STANDARD_NO_PAD.encode(&bytes);
-                        let page = page.replace("${bytes}", encoded_bytes.as_str());
-                        let page =
-                            page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string());
-                        parser.push_string_input_chunk(page);
-                        parser.parse_sync();
-                    },
-                    Some(NetworkError::Internal(reason)) => {
-                        self.is_synthesized_document = true;
-                        let page = resources::read_string(Resource::NetErrorHTML);
-                        let page = page.replace("${reason}", &reason);
-                        parser.push_string_input_chunk(page);
-                        parser.parse_sync();
-                    },
-                    Some(NetworkError::Crash) => {
-                        self.is_synthesized_document = true;
-                        let page = resources::read_string(Resource::Crash);
-                        parser.push_string_input_chunk(page);
-                        parser.parse_sync();
-                    },
-                    Some(_) => {},
-                    None => {},
-                }
+            (mime::TEXT, mime::HTML, _) => match error {
+                Some(NetworkError::SslValidation(reason, bytes)) => {
+                    self.is_synthesized_document = true;
+                    let page = resources::read_string(Resource::BadCertHTML);
+                    let page = page.replace("${reason}", &reason);
+                    let encoded_bytes = general_purpose::STANDARD_NO_PAD.encode(&bytes);
+                    let page = page.replace("${bytes}", encoded_bytes.as_str());
+                    let page =
+                        page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string());
+                    parser.push_string_input_chunk(page);
+                    parser.parse_sync();
+                },
+                Some(NetworkError::Internal(reason)) => {
+                    self.is_synthesized_document = true;
+                    let page = resources::read_string(Resource::NetErrorHTML);
+                    let page = page.replace("${reason}", &reason);
+                    parser.push_string_input_chunk(page);
+                    parser.parse_sync();
+                },
+                Some(NetworkError::Crash) => {
+                    self.is_synthesized_document = true;
+                    let page = resources::read_string(Resource::Crash);
+                    parser.push_string_input_chunk(page);
+                    parser.parse_sync();
+                },
+                Some(_) => {},
+                None => {},
             },
             (mime::TEXT, mime::XML, _) |
             (mime::APPLICATION, mime::XML, _) |

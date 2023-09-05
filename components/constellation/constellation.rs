@@ -2842,7 +2842,6 @@ where
             new_browsing_context_info: None,
             window_size,
         });
-
     }
 
     fn handle_log_entry(
