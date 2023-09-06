@@ -8,23 +8,21 @@ use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::minibrowser::Minibrowser;
+use crate::parser::get_default_url;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
 use gleam::gl;
-use winit::window::WindowId;
-use winit::event_loop::EventLoopWindowTarget;
 use servo::compositing::windowing::EmbedderEvent;
-use servo::config::opts::{self, parse_url_or_filename};
+use servo::config::opts;
 use servo::servo_config::pref;
-use servo::servo_url::ServoUrl;
 use servo::Servo;
 use std::cell::{Cell, RefCell, RefMut};
 use std::collections::HashMap;
-use std::env;
-
 use std::rc::Rc;
 use surfman::GLApi;
 use webxr::glwindow::GlWindowDiscovery;
+use winit::window::WindowId;
+use winit::event_loop::EventLoopWindowTarget;
 
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
@@ -46,6 +44,7 @@ impl App {
         no_native_titlebar: bool,
         device_pixels_per_px: Option<f32>,
         user_agent: Option<String>,
+        url: Option<String>,
     ) {
         let events_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some());
 
@@ -63,6 +62,7 @@ impl App {
 
         // Handle browser state.
         let browser = Browser::new(window.clone());
+        let initial_url = get_default_url(url);
 
         let mut app = App {
             event_queue: RefCell::new(vec![]),
@@ -139,7 +139,7 @@ impl App {
                     // is ready to present, so that we can paint the minibrowser then present.
                     servo.set_external_present(app.minibrowser.is_some());
 
-                    servo.handle_events(vec![EmbedderEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
+                    servo.handle_events(vec![EmbedderEvent::NewBrowser(initial_url.to_owned(), servo_data.browser_id)]);
                     servo.setup_logging();
 
                     app.windows.insert(window.id(), window.clone());
@@ -340,18 +340,4 @@ impl App {
     fn minibrowser(&self) -> Option<RefMut<Minibrowser>> {
         self.minibrowser.as_ref().map(|x| x.borrow_mut())
     }
-}
-
-fn get_default_url() -> ServoUrl {
-    // If the url is not provided, we fallback to the homepage in prefs,
-    // or a blank page in case the homepage is not set either.
-    let cwd = env::current_dir().unwrap();
-    let cmdline_url = opts::get().url.clone();
-    let pref_url = {
-        let homepage_url = pref!(shell.homepage);
-        parse_url_or_filename(&cwd, &homepage_url).ok()
-    };
-    let blank_url = ServoUrl::parse("about:blank").ok();
-
-    cmdline_url.or(pref_url).or(blank_url).unwrap()
 }

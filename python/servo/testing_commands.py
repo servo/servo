@@ -197,6 +197,7 @@ class MachCommands(CommandBase):
                 test_patterns.append(test)
 
         self_contained_tests = [
+            "servoshell",
             "background_hang_monitor",
             "gfx",
             "layout_2013",

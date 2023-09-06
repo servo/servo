@@ -5535,6 +5535,7 @@ dependencies = [
  "sig",
  "surfman",
  "tinyfiledialogs",
+ "url",
  "vergen",
  "webxr",
  "winapi",

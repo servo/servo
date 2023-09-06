@@ -10,6 +10,9 @@ extern crate log;
 #[macro_use]
 extern crate sig;
 
+#[cfg(test)]
+mod test;
+
 mod app;
 mod backtrace;
 mod browser;
@@ -21,6 +24,7 @@ mod headed_window;
 mod headless_window;
 mod keyutils;
 mod minibrowser;
+mod parser;
 mod prefs;
 mod resources;
 mod window_trait;
@@ -164,7 +168,13 @@ pub fn main() {
 
     let user_agent = opts_matches.opt_str("u");
 
-    App::run(do_not_use_native_titlebar, device_pixels_per_px, user_agent);
+    let url_opt = if !opts_matches.free.is_empty() {
+        Some(&opts_matches.free[0][..])
+    } else {
+        None
+    };
+
+    App::run(do_not_use_native_titlebar, device_pixels_per_px, user_agent, url_opt.map(|s| s.to_string()));
 
     platform::deinit(clean_shutdown)
 }
