@@ -11,7 +11,6 @@ use crate::minibrowser::Minibrowser;
 use crate::parser::get_default_url;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
-
 use gleam::gl;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::config::opts;
