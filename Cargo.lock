@@ -2840,14 +2840,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "immeta"
-version = "0.4.1"
-source = "git+https://github.com/fabricedesre/immeta.git#7f08e1bd465078baedfb37269aea1612af9bfd5f"
-dependencies = [
- "arrayvec 0.7.4",
- "byteorder",
- "num-traits",
-]
+name = "imsz"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76a49eaebc8750bcba241df1e1e47ebb51b81eb35c65e8f11ffa0aebac353f7f"
 
 [[package]]
 name = "indexmap"
@@ -3852,7 +3848,7 @@ dependencies = [
  "hyper",
  "hyper-rustls",
  "hyper_serde",
- "immeta",
+ "imsz",
  "ipc-channel",
  "lazy_static",
  "libflate",
