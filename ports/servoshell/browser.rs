@@ -4,7 +4,7 @@
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use clipboard::{ClipboardContext, ClipboardProvider};
+use arboard::Clipboard;
 use euclid::{Point2D, Vector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, EmbedderEvent};
@@ -47,7 +47,7 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
 
     window: Rc<Window>,
     event_queue: Vec<EmbedderEvent>,
-    clipboard_ctx: Option<ClipboardContext>,
+    clipboard: Option<Clipboard>,
     shutdown_requested: bool,
 }
 
@@ -63,7 +63,7 @@ where
             browser_id: None,
             browsers: Vec::new(),
             window,
-            clipboard_ctx: match ClipboardContext::new() {
+            clipboard: match Clipboard::new() {
                 Ok(c) => Some(c),
                 Err(e) => {
                     warn!("Error creating clipboard context ({})", e);
@@ -420,23 +420,20 @@ where
                     self.handle_key_from_servo(browser_id, key_event);
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
-                    let contents = match self.clipboard_ctx {
-                        Some(ref mut ctx) => match ctx.get_contents() {
-                            Ok(c) => c,
-                            Err(e) => {
-                                warn!("Error getting clipboard contents ({}), defaulting to empty string", e);
-                                "".to_owned()
-                            },
-                        },
-                        None => "".to_owned(),
-                    };
+                    let contents = self.clipboard
+                        .as_mut()
+                        .and_then(|clipboard| clipboard.get_text().ok())
+                        .unwrap_or_else(|| {
+                            warn!("Error getting clipboard text. Returning empty string.");
+                            String::new()
+                        });
                     if let Err(e) = sender.send(contents) {
                         warn!("Failed to send clipboard ({})", e);
                     }
                 },
                 EmbedderMsg::SetClipboardContents(text) => {
-                    if let Some(ref mut ctx) = self.clipboard_ctx {
-                        if let Err(e) = ctx.set_contents(text) {
+                    if let Some(ref mut clipboard) = self.clipboard {
+                        if let Err(e) = clipboard.set_text(text) {
                             warn!("Error setting clipboard contents ({})", e);
                         }
                     }
