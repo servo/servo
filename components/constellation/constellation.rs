@@ -2817,12 +2817,14 @@ where
         warn!("creating replacement pipeline for crash page");
 
         let new_pipeline_id = PipelineId::new();
-        let mut new_load_data = old_load_data.clone();
-        new_load_data.crash = Some(if let Some(backtrace) = backtrace {
-            format!("{}\n{}", reason, backtrace)
-        } else {
-            reason
-        });
+        let new_load_data = LoadData {
+            crash: Some(
+                backtrace
+                    .map(|b| format!("{}\n{}", reason, b))
+                    .unwrap_or(reason),
+            ),
+            ..old_load_data.clone()
+        };
 
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         let is_private = false;
