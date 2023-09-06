@@ -185,7 +185,7 @@ pub struct LoadData {
     /// The inherited context is Secure, None if not inherited
     pub inherited_secure_context: Option<bool>,
 
-    /// Servo internal: if crash details are present, trigger a crash error page with these details
+    /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
 }
 
