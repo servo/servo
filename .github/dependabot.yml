@@ -179,10 +179,6 @@ updates:
   - dependency-name: thiserror
     versions:
     - 1.0.24
-  - dependency-name: bumpalo
-    versions:
-    - 3.6.0
-    - 3.6.1
   - dependency-name: core-text
     versions:
     - 19.2.0
