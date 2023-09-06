@@ -5657,7 +5657,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             set += ("if id.is_string() || id.is_int() {\n"
                     + CGIndenter(CGProxyNamedGetter(self.descriptor)).define()
                     + "    if result.is_some() {\n"
-                      "        return (*opresult).failNoNamedSetter();\n"
+                      "        return (*opresult).fail_no_named_setter();\n"
                       "    }\n"
                       "}\n")
         set += "return proxyhandler::define_property(*cx, %s);" % ", ".join(a.name for a in self.args[1:])
