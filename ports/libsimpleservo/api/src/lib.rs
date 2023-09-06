@@ -920,6 +920,7 @@ impl ResourceReaderMethods for ResourceReaderInstance {
             Resource::MediaControlsJS => {
                 &include_bytes!("../../../../resources/media-controls.js")[..]
             },
+            Resource::CrashHTML => &include_bytes!("../../../../resources/crash.html")[..],
         })
     }
 

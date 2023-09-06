@@ -184,6 +184,9 @@ pub struct LoadData {
     pub srcdoc: String,
     /// The inherited context is Secure, None if not inherited
     pub inherited_secure_context: Option<bool>,
+
+    /// Servo internal: if crash details are present, trigger a crash error page with these details.
+    pub crash: Option<String>,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -218,6 +221,7 @@ impl LoadData {
             referrer_policy: referrer_policy,
             srcdoc: "".to_string(),
             inherited_secure_context,
+            crash: None,
         }
     }
 }

@@ -758,8 +758,10 @@ pub enum NetworkError {
     /// Could be any of the internal errors, like unsupported scheme, connection errors, etc.
     Internal(String),
     LoadCancelled,
-    /// SSL validation error that has to be handled in the HTML parser
+    /// SSL validation error, to be converted to Resource::BadCertHTML in the HTML parser.
     SslValidation(String, Vec<u8>),
+    /// Crash error, to be converted to Resource::Crash in the HTML parser.
+    Crash(String),
 }
 
 impl NetworkError {

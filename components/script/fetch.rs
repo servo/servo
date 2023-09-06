@@ -129,6 +129,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         csp_list: None,
         https_state: request.https_state,
         response_tainting: request.response_tainting,
+        crash: None,
     }
 }
 

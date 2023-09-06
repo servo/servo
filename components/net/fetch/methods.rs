@@ -195,6 +195,13 @@ pub async fn main_fetch(
     // Step 1.
     let mut response = None;
 
+    // Servo internal: return a crash error when a crash error page is needed
+    if let Some(ref details) = request.crash {
+        response = Some(Response::network_error(NetworkError::Crash(
+            details.clone(),
+        )));
+    }
+
     // Step 2.
     if request.local_urls_only {
         if !matches!(
