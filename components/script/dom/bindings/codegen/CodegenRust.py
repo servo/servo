@@ -3805,7 +3805,9 @@ class CGPerSignatureCall(CGThing):
         if idlNode.isMethod() and idlNode.isMaplikeOrSetlikeOrIterableMethod():
             if idlNode.maplikeOrSetlikeOrIterable.isMaplike() or \
                idlNode.maplikeOrSetlikeOrIterable.isSetlike():
-                raise TypeError('Maplike/Setlike methods are not supported yet')
+                cgThings.append(CGMaplikeOrSetlikeMethodGenerator(descriptor,
+                                                                  idlNode.maplikeOrSetlikeOrIterable,
+                                                                  idlNode.identifier.name))
             else:
                 cgThings.append(CGIterableMethodGenerator(descriptor,
                                                           idlNode.maplikeOrSetlikeOrIterable,
@@ -6490,6 +6492,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::htmlconstructor::push_new_element_queue',
         'crate::dom::bindings::iterable::Iterable',
         'crate::dom::bindings::iterable::IteratorType',
+        'crate::dom::bindings::like::Setlike',
+        'crate::dom::bindings::like::Maplike',
         'crate::dom::bindings::namespace::NamespaceObjectClass',
         'crate::dom::bindings::namespace::create_namespace_object',
         'crate::dom::bindings::reflector::MutDomObject',
@@ -7860,6 +7864,77 @@ class CallbackOperation(CallbackOperationBase):
                                        jsName,
                                        MakeNativeName(descriptor.binaryNameFor(jsName)),
                                        descriptor, descriptor.interface.isSingleOperationInterface())
+
+
+class CGMaplikeOrSetlikeMethodGenerator(CGGeneric):
+    """
+    Creates methods for *like interfaces. Unwrapping/wrapping
+    will be taken care of by the usual method generation machinery in
+    CGMethodCall/CGPerSignatureCall. Functionality is filled in here instead of
+    using CGCallGenerator.
+    """
+    def __init__(self, descriptor, likeable, methodName):
+        trait: str
+        if likeable.isSetlike():
+            trait = "Setlike"
+        elif likeable.isMaplike():
+            trait = "Maplike"
+        else:
+            raise TypeError("CGMaplikeOrSetlikeMethodGenerator is only for Setlike/Maplike")
+        """
+        setlike:
+            fn size(&self) -> usize;
+            fn add(&self, key: Self::Key);
+            fn has(&self, key: &Self::Key) -> bool;
+            fn clear(&self);
+            fn delete(&self, key: &Self::Key) -> bool;
+        maplike:
+            fn get(&self, key: Self::Key) -> Self::Value;
+            fn size(&self) -> usize;
+            fn set(&self, key: Self::Key, value: Self::Value);
+            fn has(&self, key: &Self::Key) -> bool;
+            fn clear(&self);
+            fn delete(&self, key: &Self::Key) -> bool;
+        like iterable:
+            keys/values/entries/forEach
+        """
+        # like iterables are implemented seperatly as we are actually implementing them
+        if methodName in ["keys", "values", "entries", "forEach"]:
+            CGIterableMethodGenerator.__init__(self, descriptor, likeable, methodName)
+        elif methodName in ["size", "clear"]:  # zero arguments
+            CGGeneric.__init__(self, fill(
+                """
+                let result = ${trt}::${method}(&*this);
+                """,
+                trt=trait,
+                method=methodName.lower()))
+        elif methodName == "add":  # special case one argumet
+            CGGeneric.__init__(self, fill(
+                """
+                ${trt}::${method}(&*this, arg0);
+                // Returns itself per https://webidl.spec.whatwg.org/#es-set-add
+                let result = this;
+                """,
+                trt=trait,
+                method=methodName))
+        elif methodName in ["has", "delete", "get"]:  # one argument
+            CGGeneric.__init__(self, fill(
+                """
+                let result = ${trt}::${method}(&*this, arg0);
+                """,
+                trt=trait,
+                method=methodName))
+        elif methodName == "set":  # two arguments
+            CGGeneric.__init__(self, fill(
+                """
+                ${trt}::${method}(&*this, arg0, arg1);
+                // Returns itself per https://webidl.spec.whatwg.org/#es-map-set
+                let result = this;
+                """,
+                trt=trait,
+                method=methodName))
+        else:
+            raise TypeError(f"Do not know how to impl *like method: {methodName}")
 
 
 class CGIterableMethodGenerator(CGGeneric):

@@ -516,7 +516,11 @@ def getUnwrappedType(type):
 
 
 def iteratorNativeType(descriptor, infer=False):
-    assert descriptor.interface.isIterable()
     iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
-    assert iterableDecl.isPairIterator()
-    return "IterableIterator%s" % ("" if infer else '<%s>' % descriptor.interface.identifier.name)
+    assert (iterableDecl.isIterable() and iterableDecl.isPairIterator()) \
+        or iterableDecl.isSetlike() or iterableDecl.isMaplike()
+    res = "IterableIterator%s" % ("" if infer else '<%s>' % descriptor.interface.identifier.name)
+    # todo: this hack is telling us that something is still wrong in codegen
+    if iterableDecl.isSetlike() or iterableDecl.isMaplike():
+        res = f"crate::dom::bindings::iterable::{res}"
+    return res
