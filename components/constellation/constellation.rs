@@ -2844,7 +2844,8 @@ where
             top_level_browsing_context_id,
             browsing_context_id,
             new_pipeline_id,
-            // pipeline already closed, so Yes avoids harmless but useless close
+            // Pipeline already closed by close_browsing_context_children, so we can pass Yes here
+            // to avoid closing again in handle_activate_document_msg (though it would be harmless)
             replace: Some(NeedsToReload::Yes(old_pipeline_id, old_load_data)),
             new_browsing_context_info: None,
             window_size,

@@ -254,6 +254,7 @@ pub struct RequestBuilder {
     pub initiator: Initiator,
     pub https_state: HttpsState,
     pub response_tainting: ResponseTainting,
+    /// Servo internal: if crash details are present, trigger a crash error page with these details
     pub crash: Option<String>,
 }
 
@@ -496,6 +497,7 @@ pub struct Request {
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     pub csp_list: Option<CspList>,
     pub https_state: HttpsState,
+    /// Servo internal: if crash details are present, trigger a crash error page with these details
     pub crash: Option<String>,
 }
 
