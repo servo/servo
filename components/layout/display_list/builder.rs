@@ -32,6 +32,7 @@ use crate::inline::InlineFragmentNodeFlags;
 use crate::model::MaybeAuto;
 use crate::table_cell::CollapsedBordersForCell;
 use app_units::{Au, AU_PER_PX};
+use bitflags::bitflags;
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use embedder_traits::Cursor;
 use euclid::{
@@ -43,6 +44,7 @@ use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
 use ipc_channel::ipc;
+use log::{debug, warn};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;

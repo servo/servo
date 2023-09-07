@@ -43,15 +43,17 @@ use crate::fragment::{
     CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentFlags, Overflow,
 };
 use crate::incremental::RelayoutMode;
-use crate::layout_debug;
 use crate::model::{
     AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto,
 };
 use crate::sequential;
 use crate::traversal::PreorderFlowTraversal;
+use crate::{layout_debug, layout_debug_scope};
 use app_units::{Au, MAX_AU};
+use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::print_tree::PrintTree;
+use log::{debug, trace};
 use serde::{Serialize, Serializer};
 use servo_geometry::MaxRect;
 use std::cmp::{max, min};

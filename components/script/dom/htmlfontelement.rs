@@ -14,7 +14,7 @@ use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use servo_atoms::Atom;
 use style::attr::AttrValue;

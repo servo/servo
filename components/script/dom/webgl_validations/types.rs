@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use canvas_traits::gl_enums;
+use serde::{Deserialize, Serialize};
 
 gl_enums! {
     pub enum TexImageTarget {

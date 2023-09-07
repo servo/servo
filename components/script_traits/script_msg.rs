@@ -31,6 +31,8 @@ use msg::constellation_msg::{ServiceWorkerId, ServiceWorkerRegistrationId};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
+use serde::Deserialize;
+use serde::Serialize;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;

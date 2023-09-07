@@ -11,17 +11,14 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate malloc_size_of_derive;
-#[macro_use]
-extern crate serde;
-
+use bitflags::bitflags;
 use http::HeaderMap;
 use http::Method;
 use ipc_channel::ipc::IpcSender;
+use malloc_size_of_derive::MallocSizeOf;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use serde::Deserialize;
+use serde::Serialize;
 use servo_url::ServoUrl;
 use std::net::TcpStream;
 use time::{self, Duration, Tm};

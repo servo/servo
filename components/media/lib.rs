@@ -4,13 +4,6 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde;
-
 mod media_channel;
 mod media_thread;
 
@@ -18,6 +11,7 @@ pub use crate::media_channel::glplayer_channel;
 use crate::media_channel::{GLPlayerChan, GLPlayerPipeline, GLPlayerReceiver, GLPlayerSender};
 use crate::media_thread::GLPlayerThread;
 use euclid::default::Size2D;
+use serde::{Deserialize, Serialize};
 use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
 use std::sync::{Arc, Mutex};
 use webrender_traits::{

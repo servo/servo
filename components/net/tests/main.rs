@@ -5,9 +5,6 @@
 #![cfg(test)]
 #![allow(dead_code)]
 
-#[macro_use]
-extern crate lazy_static;
-
 mod cookie;
 mod cookie_http_state;
 mod data_loader;
@@ -31,6 +28,7 @@ use hyper::server::conn::Http;
 use hyper::server::Server as HyperServer;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
+use lazy_static::lazy_static;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;

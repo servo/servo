@@ -4,6 +4,7 @@
 
 use super::Fragment;
 use crate::{cell::ArcRefCell, geom::flow_relative::Vec2};
+use serde::Serialize;
 use style::values::computed::{Length, LengthPercentage};
 
 /// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`

@@ -17,7 +17,7 @@ use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, LocalName, Prefix};
 use js::rust::HandleObject;
 
 #[dom_struct]

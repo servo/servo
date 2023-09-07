@@ -9,6 +9,7 @@ use crossbeam_channel::{Receiver, Sender};
 use euclid::default::{Point2D, Rect};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use malloc_size_of_derive::MallocSizeOf;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::{BackgroundHangMonitorRegister, BrowsingContextId, PipelineId};
 use net_traits::image_cache::ImageCache;

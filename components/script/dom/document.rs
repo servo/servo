@@ -114,17 +114,19 @@ use crate::timers::OneshotTimerCallback;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use content_security_policy::{self as csp, CspList};
 use cookie::Cookie;
+use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
-use html5ever::{LocalName, Namespace, QualName};
+use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::{Code, Key, KeyState};
+use lazy_static::lazy_static;
 use metrics::{
     InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
     ProgressiveWebMetric,

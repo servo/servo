@@ -84,6 +84,7 @@ use crate::dom::window::ReflowReason;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 use crate::task::TaskOnce;
+use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use euclid::default::Rect;
@@ -92,7 +93,9 @@ use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use html5ever::{LocalName, Namespace, Prefix, QualName};
+use html5ever::{
+    local_name, namespace_prefix, namespace_url, ns, LocalName, Namespace, Prefix, QualName,
+};
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;

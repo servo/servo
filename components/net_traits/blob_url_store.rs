@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::filemanager_thread::FileOrigin;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use std::str::FromStr;
 use url::Url;

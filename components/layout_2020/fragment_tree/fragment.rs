@@ -11,6 +11,7 @@ use gfx::font::FontMetrics as GfxFontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
 use style::logical_geometry::WritingMode;

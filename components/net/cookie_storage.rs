@@ -6,8 +6,10 @@
 //! http://tools.ietf.org/html/rfc6265
 
 use crate::cookie::Cookie;
+use log::{debug, info};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::CookieSource;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use std::cmp::Ordering;
 use std::collections::hash_map::Entry;

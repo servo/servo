@@ -4,13 +4,10 @@
 
 #![recursion_limit = "128"]
 
-#[macro_use]
-extern crate quote;
-#[macro_use]
-extern crate syn;
-
 use proc_macro2;
+use quote::quote;
 use quote::TokenStreamExt;
+use syn::parse_quote;
 
 #[proc_macro_derive(DomObject)]
 pub fn expand_token_stream(input: proc_macro::TokenStream) -> proc_macro::TokenStream {

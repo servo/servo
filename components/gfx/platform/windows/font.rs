@@ -15,6 +15,7 @@ use crate::text::glyph::GlyphId;
 use app_units::Au;
 use dwrote::{Font, FontFace, FontFile};
 use dwrote::{FontStretch, FontStyle};
+use log::debug;
 use servo_atoms::Atom;
 use std::fmt;
 use std::ops::Deref;

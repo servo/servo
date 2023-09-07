@@ -6,6 +6,8 @@ use crate::block::FormattingContextType;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use crate::persistent_list::PersistentList;
 use app_units::{Au, MAX_AU};
+use log::debug;
+use serde::Serialize;
 use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::float::T as StyleFloat;

@@ -35,7 +35,7 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use image::codecs::png::PngEncoder;
 use image::{ColorType, ImageEncoder};
 use ipc_channel::ipc::{self as ipcchan, IpcSharedMemory};

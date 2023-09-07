@@ -20,6 +20,7 @@ use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
 use core_text::font_descriptor::kCTFontDefaultOrientation;
 use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
+use log::debug;
 use servo_atoms::Atom;
 use std::ops::Range;
 use std::sync::Arc;

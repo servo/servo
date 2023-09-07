@@ -34,7 +34,7 @@ use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Namespace, Prefix};
+use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor};

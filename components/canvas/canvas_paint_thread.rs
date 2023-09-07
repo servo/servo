@@ -10,6 +10,7 @@ use euclid::default::Size2D;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use log::warn;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::thread;

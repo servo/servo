@@ -9,6 +9,7 @@ use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use profile_traits::mem::ReportsChan;
 use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest};
+use profile_traits::path;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -389,6 +390,7 @@ mod system_reporter {
     #[cfg(not(target_os = "windows"))]
     use libc::{c_void, size_t};
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
+    use profile_traits::path;
     #[cfg(not(target_os = "windows"))]
     use std::ffi::CString;
     #[cfg(not(target_os = "windows"))]

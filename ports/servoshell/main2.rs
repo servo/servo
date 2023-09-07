@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 #[macro_use]
 extern crate sig;
@@ -38,6 +34,7 @@ use std::io::Write;
 use std::panic;
 use std::process;
 use std::thread;
+use log::{warn,error};
 
 pub mod platform {
     #[cfg(target_os = "macos")]

@@ -5,7 +5,9 @@
 use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc::IpcSender;
+use malloc_size_of_derive::MallocSizeOf;
 use num_traits::ToPrimitive;
+use serde::{Deserialize, Serialize};
 use std::cmp::{max, min};
 use std::ops::Range;
 use std::path::PathBuf;

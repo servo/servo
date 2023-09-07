@@ -17,9 +17,6 @@
 //! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
-#[macro_use]
-extern crate log;
-
 pub use background_hang_monitor;
 pub use bluetooth;
 pub use bluetooth_traits;
@@ -98,7 +95,7 @@ use euclid::{Scale, Size2D};
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
-use log::{Log, Metadata, Record};
+use log::{error, warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;

@@ -10,8 +10,11 @@ use http::header::{HeaderName, AUTHORIZATION};
 use http::HeaderMap;
 use http::Method;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use msg::constellation_msg::PipelineId;
+use serde::Deserialize;
+use serde::Serialize;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::sync::{Arc, Mutex};
 

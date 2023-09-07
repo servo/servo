@@ -9,15 +9,6 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate malloc_size_of;
-#[macro_use]
-extern crate malloc_size_of_derive;
-#[macro_use]
-extern crate serde;
-
 pub mod compositor;
 mod script_msg;
 pub mod serializable;
@@ -33,6 +24,7 @@ pub use crate::script_msg::{
 use crate::serializable::{BlobData, BlobImpl};
 use crate::transferable::MessagePortImpl;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
+use bitflags::bitflags;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositor::ScrollTreeNodeId;
@@ -49,6 +41,8 @@ use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use log::warn;
+use malloc_size_of::malloc_size_of_is_0;
+use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use msg::constellation_msg::BackgroundHangMonitorRegister;
 use msg::constellation_msg::{

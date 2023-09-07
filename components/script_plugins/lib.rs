@@ -11,6 +11,7 @@
 #![feature(plugin)]
 #![feature(rustc_private)]
 
+// this private rustc crates needs to be manually imported
 extern crate rustc_ast;
 extern crate rustc_driver;
 extern crate rustc_error_messages;

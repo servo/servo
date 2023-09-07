@@ -46,7 +46,7 @@ use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
 use html5ever::tokenizer::TokenizerResult;
 use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
-use html5ever::{Attribute, ExpandedName, LocalName, QualName};
+use html5ever::{local_name, namespace_url, ns, Attribute, ExpandedName, LocalName, QualName};
 use hyper_serde::Serde;
 use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;

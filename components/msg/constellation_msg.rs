@@ -6,7 +6,12 @@
 //! reduce coupling between these two components.
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use lazy_static::lazy_static;
+use malloc_size_of::malloc_size_of_is_0;
+use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
+use serde::{Deserialize, Serialize};
+use size_of_test::size_of_test;
 use std::cell::Cell;
 use std::fmt;
 use std::mem;

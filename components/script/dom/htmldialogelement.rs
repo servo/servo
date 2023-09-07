@@ -13,7 +13,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{window_from_node, Node};
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 
 #[dom_struct]

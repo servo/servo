@@ -22,6 +22,7 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
+use html5ever::local_name;
 use indexmap::map::IndexMap;
 use ipc_channel::ipc;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps};
@@ -52,6 +53,7 @@ use script_traits::{
     AuxiliaryBrowsingContextLoadInfo, HistoryEntryReplacement, LoadData, LoadOrigin,
 };
 use script_traits::{NewLayoutInfo, ScriptMsg};
+use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::ptr;

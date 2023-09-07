@@ -34,6 +34,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::{enter_realm, InRealm};
+use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
 use js::jsapi::JS_GetFunctionObject;

@@ -4,6 +4,7 @@
 
 use crate::browsingcontext::NewBrowsingContextInfo;
 use euclid::Size2D;
+use log::debug;
 use msg::constellation_msg::{
     BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
 };

@@ -25,6 +25,7 @@ use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::JSContext as SafeJSContext;
+use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
 use dom_struct::dom_struct;
 use http::header::{HeaderName, HeaderValue};
 use http::method::InvalidMethod;

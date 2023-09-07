@@ -9,6 +9,7 @@
 
 use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, ClipScrollNodeType, ClipType};
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
+use log::trace;
 use msg::constellation_msg::PipelineId;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId, ScrollableNodeInfo};
 use webrender_api::units::{LayoutPoint, LayoutSize, LayoutVector2D};

@@ -7,6 +7,7 @@
 use crate::fragment::Fragment;
 use app_units::Au;
 use euclid::SideOffsets2D;
+use serde::Serialize;
 use std::cmp::{max, min};
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, WritingMode};

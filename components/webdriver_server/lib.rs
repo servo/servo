@@ -6,13 +6,6 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate crossbeam_channel;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde;
-
 mod actions;
 mod capabilities;
 
@@ -20,13 +13,14 @@ use crate::actions::{InputSourceState, PointerInputState};
 use base64::Engine;
 use capabilities::ServoCapabilities;
 use compositing_traits::ConstellationMsg;
-use crossbeam_channel::{after, unbounded, Receiver, Sender};
+use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
 use euclid::{Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
+use log::{debug, info};
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::request::Referrer;
 use pixels::PixelFormat;
@@ -35,8 +29,9 @@ use script_traits::webdriver_msg::{
     WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverScriptCommand,
 };
 use script_traits::{LoadData, LoadOrigin, WebDriverCommandMsg};
-use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};
-use serde::ser::{Serialize, Serializer};
+use serde::de::{Deserializer, MapAccess, Visitor};
+use serde::ser::Serializer;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;

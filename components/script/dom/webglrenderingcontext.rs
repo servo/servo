@@ -54,6 +54,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
+use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
     webgl_channel, AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType,

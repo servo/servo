@@ -14,6 +14,7 @@ use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_thread::ScriptThread;
+use deny_public_fields::DenyPublicFields;
 use euclid::Length;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::Heap;

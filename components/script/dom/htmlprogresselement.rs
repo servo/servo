@@ -12,7 +12,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::nodelist::NodeList;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, LocalName, Prefix};
 use js::rust::HandleObject;
 
 #[dom_struct]

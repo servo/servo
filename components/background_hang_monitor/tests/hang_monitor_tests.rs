@@ -4,9 +4,6 @@
 
 #![allow(unused_imports)]
 
-#[macro_use]
-extern crate lazy_static;
-
 use background_hang_monitor::HangMonitorRegister;
 use ipc_channel::ipc;
 use msg::constellation_msg::ScriptHangAnnotation;
@@ -22,7 +19,7 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref SERIAL: Mutex<()> = Mutex::new(());
 }
 

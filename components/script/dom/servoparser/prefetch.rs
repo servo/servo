@@ -19,7 +19,7 @@ use html5ever::tokenizer::TokenSinkResult;
 use html5ever::tokenizer::Tokenizer as HtmlTokenizer;
 use html5ever::tokenizer::TokenizerResult;
 use html5ever::Attribute;
-use html5ever::LocalName;
+use html5ever::{local_name, LocalName};
 use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
 use net_traits::request::CorsSettings;

@@ -7,6 +7,7 @@ use crate::media_channel::{glplayer_channel, GLPlayerSender};
 /// constellation.
 use crate::{GLPlayerMsg, GLPlayerMsgForward};
 use fnv::FnvHashMap;
+use log::{trace, warn};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use webrender_api::ExternalImageId;

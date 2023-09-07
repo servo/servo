@@ -23,7 +23,7 @@ use gfx_traits::{Epoch, FontData};
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
 use libc::c_void;
-use log::warn;
+use log::{debug, error, info, warn};
 use msg::constellation_msg::{
     PipelineId, PipelineIndex, PipelineNamespaceId, TopLevelBrowsingContextId,
 };

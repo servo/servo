@@ -48,6 +48,8 @@ use crate::text::TextRunScanner;
 use crate::traversal::PostorderNodeMutTraversal;
 use crate::wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
 use crate::ServoArc;
+use html5ever::{local_name, namespace_url, ns};
+use log::debug;
 use script_layout_interface::wrapper_traits::{
     PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };

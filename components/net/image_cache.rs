@@ -5,6 +5,7 @@
 use embedder_traits::resources::{self, Resource};
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::IpcSender;
+use log::{debug, warn};
 use net_traits::image::base::{load_from_memory, Image, ImageMetadata};
 use net_traits::image_cache::{
     CorsStatus, ImageCache, ImageCacheResult, ImageResponder, PendingImageResponse,

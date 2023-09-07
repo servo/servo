@@ -17,15 +17,17 @@ use crate::flow::{
 };
 use crate::flow_list::{FlowListIterator, MutFlowListIterator};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::layout_debug;
 use crate::model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
 use crate::table_cell::TableCellFlow;
 use crate::table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use crate::table_row::{TableRowFlow, TableRowSizeData};
 use crate::table_wrapper::TableLayout;
+use crate::{layout_debug, layout_debug_scope};
 use app_units::Au;
 use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
+use log::{debug, trace};
+use serde::Serialize;
 use std::{cmp, fmt};
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;

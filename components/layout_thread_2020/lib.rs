@@ -8,17 +8,11 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-#[macro_use]
-extern crate crossbeam_channel;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate profile_traits;
+use lazy_static::lazy_static;
+use log::{debug, error, warn};
 
 use app_units::Au;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::{select, Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
 use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
@@ -54,6 +48,7 @@ use msg::constellation_msg::{
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
+use profile_traits::path;
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};

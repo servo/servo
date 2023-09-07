@@ -5,7 +5,10 @@
 use crate::image_cache::CorsStatus;
 use image::ImageFormat;
 use ipc_channel::ipc::IpcSharedMemory;
+use log::debug;
+use malloc_size_of_derive::MallocSizeOf;
 use pixels::PixelFormat;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use webrender_api::ImageKey;
 

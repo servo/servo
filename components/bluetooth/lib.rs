@@ -2,13 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate log;
-
 pub mod test;
 
+use bitflags::bitflags;
 use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::scanfilter::{
     BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions,
@@ -20,6 +16,7 @@ use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacte
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use log::warn;
 use servo_config::pref;
 use servo_rand::{self, Rng};
 use std::borrow::ToOwned;

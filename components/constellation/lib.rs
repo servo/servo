@@ -4,13 +4,6 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate crossbeam_channel;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde;
-
 mod browsingcontext;
 mod constellation;
 mod event_loop;

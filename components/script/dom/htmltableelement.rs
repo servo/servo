@@ -22,7 +22,7 @@ use crate::dom::node::{document_from_node, window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use std::cell::Cell;
 use style::attr::{parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto};

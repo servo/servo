@@ -10,6 +10,7 @@ use crate::display_list::DisplayListBuildState;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use crate::wrapper::ThreadSafeLayoutNodeHelpers;
 use crate::wrapper::{GetStyleAndLayoutData, LayoutNodeLayoutData};
+use log::debug;
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
 use style::context::{SharedStyleContext, StyleContext};

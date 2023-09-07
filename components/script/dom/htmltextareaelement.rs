@@ -36,7 +36,7 @@ use crate::textinput::{
     Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes,
 };
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use script_traits::ScriptToConstellationChan;
 use std::cell::Cell;

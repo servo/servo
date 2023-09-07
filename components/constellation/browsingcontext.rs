@@ -4,6 +4,7 @@
 
 use crate::pipeline::Pipeline;
 use euclid::Size2D;
+use log::warn;
 use msg::constellation_msg::{
     BrowsingContextGroupId, BrowsingContextId, PipelineId, TopLevelBrowsingContextId,
 };

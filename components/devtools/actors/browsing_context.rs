@@ -23,6 +23,7 @@ use devtools_traits::DevtoolsPageInfo;
 use devtools_traits::NavigationState;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use serde::Serialize;
 use serde_json::{Map, Value};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;

@@ -23,6 +23,7 @@ use crate::DefiniteContainingBlock;
 use atomic_refcell::AtomicRef;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
+use serde::Serialize;
 use servo_arc::Arc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;

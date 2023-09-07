@@ -46,6 +46,7 @@ use js::jsapi::JSGCParamKey;
 use js::jsapi::JSTracer;
 use js::jsapi::JS_GetGCParameter;
 use js::jsapi::{GCReason, JS_GC};
+use malloc_size_of::malloc_size_of_is_0;
 use msg::constellation_msg::PipelineId;
 use net_traits::request::Destination;
 use net_traits::request::RequestBuilder;

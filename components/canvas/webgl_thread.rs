@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::webgl_limits::GLLimitsDetect;
+use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;
 use canvas_traits::webgl::webgl_channel;
@@ -45,6 +46,7 @@ use canvas_traits::webgl::YAxisTreatment;
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
+use log::{debug, error, trace, warn};
 use pixels::{self, PixelFormat};
 use sparkle::gl;
 use sparkle::gl::GLint;
