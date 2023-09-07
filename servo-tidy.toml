@@ -23,10 +23,18 @@ packages = [
     "ahash",
     "arrayvec",
     "base64",
+    "bitflags",
     "cfg-if",
     "cookie",
+    "core-foundation",
+    "core-foundation-sys",
+    "futures",
+    "gl_generator",
     "itoa",
     "libloading",
+    "lyon_geom",
+    "mio",
+    "nix",
     "num-rational",
     "redox_syscall",
     "ron",
@@ -34,7 +42,6 @@ packages = [
     "time",
     "wasi",
     "wayland-sys",
-    "bitflags",
 
     # This dependency is for "hermit os" which Servo doesn't support.
     # Theoretically, it's never fetched.
@@ -46,23 +53,7 @@ packages = [
     # Duplicated by rustls and the version of webpki-roots required by async_tungstenite.
     "rustls-webpki",
 
-    # https://github.com/servo/servo/issues/26933
-    "futures",
-    "mio",
-
-    # https://github.com/servo/servo/pull/23288#issuecomment-494687746
-    "gl_generator",
-
-    # https://github.com/servo/servo/pull/25518
-    "core-foundation",
-    "core-foundation-sys",
-    "lyon_geom",
-
-    # https://github.com/servo/servo/pull/28236
-    "nix",
-
-    # Duplicated by surfman/wgpu update.
-    "bitflags",
+    # Duplicated by winit.
     "windows-sys",
     "windows-targets",
     "windows_aarch64_gnullvm",
@@ -70,17 +61,17 @@ packages = [
     "windows_i686_gnu",
     "windows_i686_msvc",
     "windows_x86_64_gnu",
-    "windows_x86_64_msvc",
     "windows_x86_64_gnullvm",
+    "windows_x86_64_msvc",
 
-    # wgpu has the latest and greates
-    "paste",
-    "syn",
-    "metal",
+    # wgpu has the latest and greatest.
     "foreign-types",
     "foreign-types-shared",
+    "metal",
+    "paste",
+    "syn",
 
-    # Temporarily duplicated until gleam can be upgrded.
+    # Duplicated by servo-media.
     "uuid",
 ]
 # Files that are ignored for all tidy and lint checks.
