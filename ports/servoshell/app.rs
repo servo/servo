@@ -91,7 +91,7 @@ impl App {
         }
 
         if let Some(mut minibrowser) = app.minibrowser() {
-            minibrowser.update(window.winit_window().unwrap());
+            minibrowser.update(window.winit_window().unwrap(), "init");
             window.set_toolbar_height(minibrowser.toolbar_height.get());
         }
 
@@ -151,7 +151,7 @@ impl App {
                 // winit::event::Event::RedrawEventsCleared => todo!(),
                 winit::event::Event::RedrawRequested(_) => {
                     if let Some(mut minibrowser) = app.minibrowser() {
-                        minibrowser.update(window.winit_window().unwrap());
+                        minibrowser.update(window.winit_window().unwrap(), "RedrawRequested");
 
                         // Tell Servo to repaint, which will in turn allow us to repaint the
                         // minibrowser and present a complete frame without partial updates.
@@ -204,7 +204,7 @@ impl App {
                 if minibrowser.update_location_in_toolbar(browser) {
                     // Update the minibrowser immediately. While we could update by requesting a
                     // redraw, doing so would delay the location update by two frames.
-                    minibrowser.update(window.winit_window().unwrap());
+                    minibrowser.update(window.winit_window().unwrap(), "update_location_in_toolbar");
                 }
             }
 
