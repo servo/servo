@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
- use std::{cell::{RefCell, Cell}, sync::Arc};
+ use std::{cell::{RefCell, Cell}, sync::Arc, time::Instant};
 
 use egui::{TopBottomPanel, Modifiers, Key};
 use servo::{servo_url::ServoUrl, compositing::windowing::EmbedderEvent};
@@ -14,6 +14,7 @@ pub struct Minibrowser {
     pub context: EguiGlow,
     pub event_queue: RefCell<Vec<MinibrowserEvent>>,
     pub toolbar_height: Cell<f32>,
+    last_update: Instant,
     location: RefCell<String>,
 
     /// Whether the location has been edited by the user without clicking Go.
@@ -37,14 +38,17 @@ impl Minibrowser {
             context: EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
             event_queue: RefCell::new(vec![]),
             toolbar_height: 0f32.into(),
+            last_update: Instant::now(),
             location: RefCell::new(String::default()),
             location_dirty: false.into(),
         }
     }
 
     /// Update the minibrowser, but don’t paint.
-    pub fn update(&mut self, window: &winit::window::Window) {
-        let Self { context, event_queue, location, location_dirty, toolbar_height } = self;
+    pub fn update(&mut self, window: &winit::window::Window, reason: &'static str) {
+        let now = Instant::now();
+        trace!("{:?} since last update ({})", now - self.last_update, reason);
+        let Self { context, event_queue, toolbar_height, last_update, location, location_dirty } = self;
         let _duration = context.run(window, |ctx| {
             TopBottomPanel::top("toolbar").show(ctx, |ui| {
                 ui.allocate_ui_with_layout(
@@ -75,6 +79,7 @@ impl Minibrowser {
             });
 
             toolbar_height.set(ctx.used_rect().height());
+            *last_update = now;
         });
     }
 
@@ -104,16 +109,20 @@ impl Minibrowser {
         }
     }
 
-    /// Updates the location field when the [Browser] says it has changed, unless the user has
-    /// started editing it without clicking Go.
+    /// Updates the location field from the given [Browser], unless the user has started editing it
+    /// without clicking Go, returning true iff the location has changed (needing an egui update).
     pub fn update_location_in_toolbar(&mut self, browser: &mut Browser<dyn WindowPortsMethods>) -> bool {
-        if !self.location_dirty.get() {
-            if let Some(location) = browser.current_url_string() {
-                self.location = RefCell::new(location.to_owned());
-                return true;
-            }
+        // User edited without clicking Go?
+        if self.location_dirty.get() {
+            return false;
         }
 
-        false
+        match browser.current_url_string() {
+            Some(location) if location != self.location.get_mut() => {
+                self.location = RefCell::new(location.to_owned());
+                true
+            },
+            _ => false,
+        }
     }
 }
