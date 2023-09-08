@@ -20,6 +20,8 @@ pub type LengthOrAuto = AutoOr<Length>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
 pub mod flow_relative {
+    use serde::Serialize;
+
     #[derive(Clone, Serialize)]
     pub struct Vec2<T> {
         pub inline: T,

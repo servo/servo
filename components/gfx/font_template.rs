@@ -6,6 +6,7 @@ use crate::font::FontHandleMethods;
 use crate::platform::font::FontHandle;
 use crate::platform::font_context::FontContextHandle;
 use crate::platform::font_template::FontTemplateData;
+use serde::{Deserialize, Serialize};
 use servo_atoms::Atom;
 use std::fmt::{Debug, Error, Formatter};
 use std::io::Error as IoError;

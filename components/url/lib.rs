@@ -6,17 +6,12 @@
 #![crate_name = "servo_url"]
 #![crate_type = "rlib"]
 
-#[macro_use]
-extern crate malloc_size_of;
-#[macro_use]
-extern crate malloc_size_of_derive;
-#[macro_use]
-extern crate serde;
-
 pub mod origin;
 
 pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
 
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::Hasher;

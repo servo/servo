@@ -14,6 +14,7 @@ use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use app_units::Au;
 use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
+use log::{debug, trace};
 use std::fmt;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;

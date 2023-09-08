@@ -7,6 +7,7 @@ use crate::cell::ArcRefCell;
 use crate::geom::flow_relative::{Rect, Sides};
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 use gfx_traits::print_tree::PrintTree;
+use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;

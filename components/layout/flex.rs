@@ -12,12 +12,14 @@ use crate::display_list::{
 use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::layout_debug;
 use crate::model::{self, AdjoiningMargins, CollapsibleMargins};
 use crate::model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use crate::traversal::PreorderFlowTraversal;
+use crate::{layout_debug, layout_debug_scope};
 use app_units::{Au, MAX_AU};
 use euclid::default::Point2D;
+use log::debug;
+use serde::Serialize;
 use std::cmp::{max, min};
 use std::ops::Range;
 use style::computed_values::align_content::T as AlignContent;

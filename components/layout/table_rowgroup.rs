@@ -11,11 +11,12 @@ use crate::display_list::{
 };
 use crate::flow::{Flow, FlowClass, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::layout_debug;
 use crate::table::{ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
+use crate::{layout_debug, layout_debug_scope};
 use app_units::Au;
 use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
+use log::{debug, trace};
 use serde::{Serialize, Serializer};
 use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};

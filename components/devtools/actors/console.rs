@@ -21,7 +21,9 @@ use devtools_traits::{
     CachedConsoleMessageTypes, ConsoleAPI, DevtoolScriptControlMsg, LogLevel, PageError,
 };
 use ipc_channel::ipc::{self, IpcSender};
+use log::debug;
 use msg::constellation_msg::TEST_PIPELINE_ID;
+use serde::Serialize;
 use serde_json::{self, Map, Number, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;

@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[macro_use]
-extern crate serde;
-
 use servo_config::basedir;
 use servo_config::pref_util::Preferences;
 use servo_config::prefs::{read_prefs_map, PrefValue};
@@ -303,6 +300,7 @@ static WITHOUT_DEFAULTS_JSON_STR: &'static str = r#"{
 }"#;
 
 mod gen {
+    use serde::{Deserialize, Serialize};
     use servo_config::pref_util::{Accessor, PrefValue};
     use servo_config_plugins::build_structs;
 

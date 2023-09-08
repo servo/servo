@@ -8,7 +8,7 @@ use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::layout_debug;
+use crate::{layout_debug, layout_debug_scope};
 use app_units::Au;
 use euclid::default::Point2D;
 use std::fmt;

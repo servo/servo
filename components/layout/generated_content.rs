@@ -16,6 +16,7 @@ use crate::fragment::{
 };
 use crate::text::TextRunScanner;
 use crate::traversal::InorderFlowTraversal;
+use lazy_static::lazy_static;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};

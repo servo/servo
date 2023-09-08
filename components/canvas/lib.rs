@@ -4,11 +4,6 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate log;
-
 mod raqote_backend;
 
 pub use webgl_mode::WebGLComm;

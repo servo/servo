@@ -40,7 +40,7 @@ use content_security_policy as csp;
 use core::ffi::c_void;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{CanCompileOffThread, CompileToStencilOffThread1, OffThreadToken};

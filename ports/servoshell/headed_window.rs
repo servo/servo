@@ -11,6 +11,7 @@ use euclid::{
     Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit,
     Vector2D, Vector3D,
 };
+use log::{trace, debug, info};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};

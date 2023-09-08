@@ -11,13 +11,15 @@ use crate::display_list::{
 };
 use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::layout_debug;
 use crate::table::InternalTable;
 use crate::table_row::{CollapsedBorder, CollapsedBorderProvenance};
+use crate::{layout_debug, layout_debug_scope};
 use app_units::Au;
 use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::print_tree::PrintTree;
+use log::{debug, trace};
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
+use serde::Serialize;
 use std::fmt;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;

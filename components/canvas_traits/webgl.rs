@@ -4,6 +4,7 @@
 
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
+use malloc_size_of_derive::MallocSizeOf;
 use pixels::PixelFormat;
 use serde::{Deserialize, Serialize};
 use sparkle::gl;
@@ -889,7 +890,7 @@ parameters! {
 macro_rules! gl_enums {
     ($(pub enum $name:ident { $($variant:ident = $mod:ident::$constant:ident,)+ })*) => {
         $(
-            #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf)]
+            #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, malloc_size_of_derive::MallocSizeOf)]
             #[derive(PartialEq, Serialize)]
             #[repr(u32)]
             pub enum $name { $($variant = $mod::$constant,)+ }

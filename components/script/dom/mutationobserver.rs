@@ -17,7 +17,7 @@ use crate::dom::window::Window;
 use crate::microtask::Microtask;
 use crate::script_thread::ScriptThread;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Namespace};
+use html5ever::{namespace_url, ns, LocalName, Namespace};
 use js::rust::HandleObject;
 use std::rc::Rc;
 

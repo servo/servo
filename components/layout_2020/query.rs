@@ -9,6 +9,7 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
 use euclid::Vector2D;
+use log::warn;
 use msg::constellation_msg::PipelineId;
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};

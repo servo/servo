@@ -2,13 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate malloc_size_of_derive;
-
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use msg::constellation_msg::PipelineId;
 use profile_traits::time::TimerMetadata;
 use profile_traits::time::{send_profile_data, ProfilerCategory, ProfilerChan};

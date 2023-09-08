@@ -26,6 +26,7 @@ use crate::dom::node::Node;
 use crate::dom::text::Text;
 use crate::dom::xmldocument::XMLDocument;
 use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns};
 use script_traits::DocumentActivity;
 
 // https://dom.spec.whatwg.org/#domimplementation

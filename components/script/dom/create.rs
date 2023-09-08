@@ -84,7 +84,7 @@ use crate::dom::svgelement::SVGElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_thread::ScriptThread;
-use html5ever::{LocalName, Prefix, QualName};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
 use js::rust::HandleObject;
 use servo_config::pref;
 

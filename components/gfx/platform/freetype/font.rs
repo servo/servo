@@ -21,6 +21,7 @@ use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
 use freetype::freetype::{FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_Vector};
 use freetype::succeeded;
 use freetype::tt_os2::TT_OS2;
+use log::debug;
 use servo_atoms::Atom;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_long};

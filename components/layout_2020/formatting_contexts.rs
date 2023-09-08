@@ -13,6 +13,7 @@ use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
 use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
+use serde::Serialize;
 use servo_arc::Arc;
 use std::convert::TryInto;
 use style::logical_geometry::WritingMode;

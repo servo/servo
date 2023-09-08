@@ -17,6 +17,7 @@ use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
 use crate::dom::text::Text;
 use atomic_refcell::AtomicRefCell;
 use gfx_traits::ByteIndex;
+use html5ever::{local_name, namespace_url, ns};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;

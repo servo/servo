@@ -2,21 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate num_derive;
-#[macro_use]
-extern crate serde;
-
 pub mod resources;
 
 use crossbeam_channel::{Receiver, Sender};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
+use log::warn;
 use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId};
+use num_derive::FromPrimitive;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};

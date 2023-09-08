@@ -8,6 +8,7 @@
 use hyper_serde::Serde;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::CookieSource;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};

@@ -13,14 +13,17 @@ use headers::{
 };
 use http::header::HeaderValue;
 use http::{header, HeaderMap, Method, StatusCode};
+use log::debug;
 use malloc_size_of::Measurable;
 use malloc_size_of::{
     MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf, MallocUnconditionalSizeOf,
 };
+use malloc_size_of_derive::MallocSizeOf;
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
 use servo_arc::Arc;
+use servo_config::pref;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::ops::Bound;

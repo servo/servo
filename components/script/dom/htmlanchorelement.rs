@@ -28,7 +28,7 @@ use crate::dom::urlhelper::UrlHelper;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use net_traits::request::Referrer;
 use num_traits::ToPrimitive;

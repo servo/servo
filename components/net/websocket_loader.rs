@@ -25,6 +25,8 @@ use futures::stream::StreamExt;
 use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use lazy_static::lazy_static;
+use log::{debug, trace, warn};
 use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};

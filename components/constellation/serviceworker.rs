@@ -5,6 +5,7 @@
 use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
 use ipc_channel::Error;
 use script_traits::{SWManagerSenders, ServiceWorkerManagerFactory};
+use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, PrefValue};
 use servo_url::ImmutableOrigin;

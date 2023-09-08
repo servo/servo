@@ -8,11 +8,6 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate html5ever;
-#[macro_use]
-extern crate malloc_size_of_derive;
-
 pub mod message;
 pub mod rpc;
 pub mod wrapper_traits;
@@ -21,6 +16,7 @@ use atomic_refcell::AtomicRefCell;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
+use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::PendingImageId;
 use script_traits::UntrustedNodeAddress;
 use servo_url::{ImmutableOrigin, ServoUrl};

@@ -13,6 +13,7 @@ use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use bitflags::bitflags;
 use dom_struct::dom_struct;
 use itertools::Itertools;
 use std::cell::Cell;

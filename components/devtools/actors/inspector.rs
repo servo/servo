@@ -14,6 +14,7 @@ use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
 use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg, NodeInfo};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
+use serde::Serialize;
 use serde_json::{self, Map, Value};
 use std::cell::RefCell;
 use std::net::TcpStream;

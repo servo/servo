@@ -27,7 +27,7 @@ use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, QualName};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
 use js::rust::HandleObject;
 use std::cell::Cell;
 use std::convert::TryInto;

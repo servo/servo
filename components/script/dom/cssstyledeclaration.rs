@@ -14,6 +14,7 @@ use crate::dom::element::Element;
 use crate::dom::node::{document_from_node, stylesheets_owner_from_node, window_from_node, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use html5ever::local_name;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -475,5 +476,5 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-_camel_cased_attribute
-    css_properties_accessors!(css_properties);
+    style::css_properties_accessors!(css_properties);
 }

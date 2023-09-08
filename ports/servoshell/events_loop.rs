@@ -4,6 +4,7 @@
 
 //! An event loop implementation that works in headless mode.
 
+use log::warn;
 use servo::embedder_traits::EventLoopWaker;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time;

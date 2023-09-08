@@ -4,6 +4,7 @@
 
 use self::TouchState::*;
 use euclid::{Point2D, Scale, Vector2D};
+use log::warn;
 use script_traits::{EventResult, TouchId};
 use style_traits::DevicePixel;
 

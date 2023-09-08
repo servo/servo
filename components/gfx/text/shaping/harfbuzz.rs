@@ -5,6 +5,7 @@
 #![allow(unsafe_code)]
 
 use crate::font::{Font, FontTableMethods, FontTableTag, ShapingFlags, ShapingOptions, KERN};
+use crate::ot_tag;
 use crate::platform::font::FontTable;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
@@ -38,6 +39,8 @@ use harfbuzz_sys::{hb_buffer_t, hb_codepoint_t, hb_font_funcs_t};
 use harfbuzz_sys::{hb_face_t, hb_font_t};
 use harfbuzz_sys::{hb_position_t, hb_tag_t};
 use harfbuzz_sys::{HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY};
+use lazy_static::lazy_static;
+use log::debug;
 use std::os::raw::{c_char, c_int, c_uint, c_void};
 use std::{char, cmp, ptr};
 

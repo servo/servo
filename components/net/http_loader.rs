@@ -40,6 +40,8 @@ use hyper::{Body, Client, Response as HyperResponse};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use lazy_static::lazy_static;
+use log::{debug, error, info, log_enabled, warn};
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::quality::{quality_to_value, Quality, QualityItem};

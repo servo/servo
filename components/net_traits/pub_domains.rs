@@ -15,6 +15,7 @@
 //! those cases are not present.
 
 use embedder_traits::resources::{self, Resource};
+use lazy_static::lazy_static;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use std::collections::HashSet;
 use std::iter::FromIterator;

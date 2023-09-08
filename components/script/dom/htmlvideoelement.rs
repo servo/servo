@@ -23,7 +23,7 @@ use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListe
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::rust::HandleObject;

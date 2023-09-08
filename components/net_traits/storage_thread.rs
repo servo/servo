@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::IpcSender;
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]

@@ -4,9 +4,6 @@
 
 //! Communication with the compositor thread.
 
-#[macro_use]
-extern crate log;
-
 mod constellation_msg;
 
 pub use constellation_msg::ConstellationMsg;
@@ -17,6 +14,7 @@ use embedder_traits::EventLoopWaker;
 use euclid::Rect;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
+use log::warn;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use script_traits::{

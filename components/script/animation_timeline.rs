@@ -7,6 +7,7 @@
 //! A timeline module, used to specify an `AnimationTimeline` which determines
 //! the time used for synchronizing animations in the script thread.
 
+use jstraceable_derive::JSTraceable;
 use time;
 
 /// A `AnimationTimeline` which is used to synchronize animations during the script

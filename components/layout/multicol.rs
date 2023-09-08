@@ -14,6 +14,7 @@ use crate::ServoArc;
 use app_units::Au;
 use euclid::default::{Point2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
+use log::{debug, trace};
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;

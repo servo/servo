@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::IpcSender;
+use log::warn;
+use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use time::precise_time_ns;
 

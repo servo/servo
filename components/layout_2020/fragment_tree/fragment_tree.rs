@@ -11,6 +11,7 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
 use gfx_traits::print_tree::PrintTree;
+use serde::Serialize;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use style::values::computed::Length;

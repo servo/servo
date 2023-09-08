@@ -7,6 +7,7 @@ use canvas_traits::webgl::webgl_channel;
 use canvas_traits::webgl::{WebGLContextId, WebGLMsg, WebGLThreads};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
+use log::debug;
 use sparkle::gl::GlType;
 use std::default::Default;
 use std::sync::{Arc, Mutex};

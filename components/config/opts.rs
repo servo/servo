@@ -7,6 +7,9 @@
 
 use euclid::Size2D;
 use getopts::{Matches, Options};
+use lazy_static::lazy_static;
+use log::error;
+use serde::{Deserialize, Serialize};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::default::Default;
@@ -18,6 +21,8 @@ use std::process;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{RwLock, RwLockReadGuard};
 use url::{self, Url};
+
+use crate::{pref, set_pref};
 
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Debug, Deserialize, Serialize)]

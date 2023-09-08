@@ -5,6 +5,7 @@
 use crate::layout_debug::DebugId;
 use bitflags::bitflags;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType};
+use serde::Serialize;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
 

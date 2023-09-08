@@ -12,7 +12,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::{select, Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with

@@ -4,8 +4,7 @@
 
 //! Property-based randomized testing for the core float layout algorithm.
 
-#[macro_use]
-extern crate lazy_static;
+use lazy_static::lazy_static;
 
 use euclid::num::Zero;
 use layout_2020::flow::float::{ContainingBlockPositionInfo, FloatSide, PlacementInfo};

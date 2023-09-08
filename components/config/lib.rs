@@ -4,15 +4,7 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde;
-
 pub mod pref_util;
-#[macro_use]
 pub mod prefs;
 
 pub mod basedir;

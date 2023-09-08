@@ -8,7 +8,8 @@
 use crate::flow::BoxTree;
 use crate::fragment_tree::FragmentTree;
 #[cfg(not(debug_assertions))]
-use serde::ser::{Serialize, Serializer};
+use serde::ser::Serializer;
+use serde::Serialize;
 use serde_json::{to_string, to_value, Value};
 use std::cell::RefCell;
 use std::fs;

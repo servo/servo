@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::flow::{Flow, FlowFlags, GetBaseFlow};
+use bitflags::bitflags;
 use style::computed_values::float::T as Float;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;

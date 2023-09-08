@@ -4,15 +4,4 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate malloc_size_of;
-#[macro_use]
-extern crate malloc_size_of_derive;
-#[macro_use]
-extern crate serde;
-#[macro_use]
-extern crate size_of_test;
-
 pub mod constellation_msg;

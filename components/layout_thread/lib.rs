@@ -8,19 +8,8 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-#[macro_use]
-extern crate crossbeam_channel;
-#[macro_use]
-extern crate layout;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate profile_traits;
-
 use app_units::Au;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::{select, Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
 use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
@@ -42,7 +31,6 @@ use layout::display_list::{IndexableText, ToLayout};
 use layout::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
-use layout::parallel;
 use layout::query::{
     process_client_rect_query, process_content_box_request, process_content_boxes_request,
     process_element_inner_text_query, process_node_scroll_area_request,
@@ -57,7 +45,10 @@ use layout::traversal::{
 };
 use layout::wrapper::LayoutNodeLayoutData;
 use layout::{layout_debug, LayoutData};
+use layout::{layout_debug_scope, parallel};
 use layout_traits::LayoutThreadFactory;
+use lazy_static::lazy_static;
+use log::{debug, error, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::{
@@ -68,6 +59,7 @@ use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, Pipel
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
+use profile_traits::path;
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};

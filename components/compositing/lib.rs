@@ -4,9 +4,6 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate log;
-
 pub use crate::compositor::IOCompositor;
 pub use crate::compositor::ShutdownState;
 

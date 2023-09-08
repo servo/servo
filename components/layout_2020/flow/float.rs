@@ -16,6 +16,7 @@ use crate::positioned::PositioningContext;
 use crate::style_ext::{ComputedValuesExt, DisplayInside, PaddingBorderMargin};
 use crate::ContainingBlock;
 use euclid::num::Zero;
+use serde::Serialize;
 use servo_arc::Arc;
 use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter, Result as FmtResult};

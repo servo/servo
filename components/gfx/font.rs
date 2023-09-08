@@ -12,8 +12,11 @@ use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
 use crate::text::Shaper;
 use app_units::Au;
+use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
-use servo_atoms::Atom;
+use log::debug;
+use serde::{Deserialize, Serialize};
+use servo_atoms::{atom, Atom};
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
@@ -29,6 +32,7 @@ use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use unicode_script::Script;
 use webrender_api::FontInstanceKey;
 
+#[macro_export]
 macro_rules! ot_tag {
     ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => {
         (($t1 as u32) << 24) | (($t2 as u32) << 16) | (($t3 as u32) << 8) | ($t4 as u32)

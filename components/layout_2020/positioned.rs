@@ -16,6 +16,7 @@ use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
+use serde::Serialize;
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
 use style::values::computed::{CSSPixelLength, Length};

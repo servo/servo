@@ -34,7 +34,7 @@ struct SyncWrapper(*const libc::c_void);
 #[allow(unsafe_code)]
 unsafe impl Sync for SyncWrapper {}
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref HANDLER: SyncWrapper = {
         let traps = ProxyTraps {
             enter: None,

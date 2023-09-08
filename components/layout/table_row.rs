@@ -14,12 +14,13 @@ use crate::flow::{
 };
 use crate::flow_list::MutFlowListIterator;
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::layout_debug;
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use crate::table_cell::{CollapsedBordersForCell, TableCellFlow};
+use crate::{layout_debug, layout_debug_scope};
 use app_units::Au;
 use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
+use log::{debug, warn};
 use serde::{Serialize, Serializer};
 use std::cmp::max;
 use std::fmt;

@@ -5,7 +5,7 @@
 use backtrace::Backtrace;
 use compositing_traits::ConstellationMsg as FromCompositorMsg;
 use crossbeam_channel::Sender;
-use log::{Level, LevelFilter, Log, Metadata, Record};
+use log::{debug, Level, LevelFilter, Log, Metadata, Record};
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use script_traits::{LogEntry, ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
 use servo_remutex::ReentrantMutex;

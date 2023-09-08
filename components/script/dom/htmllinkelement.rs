@@ -28,7 +28,7 @@ use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, Styles
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use servo_arc::Arc;

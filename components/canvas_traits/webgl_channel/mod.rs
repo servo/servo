@@ -10,6 +10,7 @@ mod mpsc;
 use crate::webgl::WebGLMsg;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use std::fmt;

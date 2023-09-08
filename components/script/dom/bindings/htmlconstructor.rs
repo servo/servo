@@ -84,7 +84,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use html5ever::interface::QualName;
-use html5ever::LocalName;
+use html5ever::{local_name, namespace_url, ns, LocalName};
 use js::conversions::ToJSValConvertible;
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, CurrentGlobalOrNull};

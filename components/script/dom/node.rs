@@ -64,11 +64,13 @@ use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
 use app_units::Au;
+use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
-use html5ever::{Namespace, Prefix, QualName};
+use html5ever::{namespace_url, ns, Namespace, Prefix, QualName};
 use js::jsapi::JSObject;
+
 use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};

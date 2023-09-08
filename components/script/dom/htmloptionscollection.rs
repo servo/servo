@@ -22,6 +22,7 @@ use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use html5ever::local_name;
 
 #[dom_struct]
 pub struct HTMLOptionsCollection {

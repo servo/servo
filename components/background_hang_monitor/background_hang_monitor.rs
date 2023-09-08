@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::sampler::{NativeStack, Sampler};
-use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
+use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use log::warn;
 use msg::constellation_msg::MonitoredComponentId;
 use msg::constellation_msg::{
     BackgroundHangMonitor, BackgroundHangMonitorClone, BackgroundHangMonitorExitSignal,

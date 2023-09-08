@@ -19,6 +19,7 @@ use gfx_traits::{self, StackingContextId};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use script_traits::compositor::ScrollTreeNodeId;
+use serde::Serialize;
 use servo_geometry::MaxRect;
 use std::cmp::Ordering;
 use std::collections::HashMap;

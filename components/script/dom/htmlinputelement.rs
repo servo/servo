@@ -54,7 +54,7 @@ use chrono::{Datelike, Weekday};
 use dom_struct::dom_struct;
 use embedder_traits::FilterPattern;
 use encoding_rs::Encoding;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JSObject, JS_ClearPendingException, NewDateObject,
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
