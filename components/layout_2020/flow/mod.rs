@@ -26,7 +26,7 @@ use crate::formatting_contexts::{
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
 };
-use crate::geom::flow_relative::{Rect, Sides, Vec2};
+use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
@@ -587,7 +587,7 @@ impl BlockLevelBox {
                     // This is incorrect, however we do not know the
                     // correct positioning until later, in place_block_level_fragment,
                     // and this value will be adjusted there
-                    Vec2::zero(),
+                    LogicalVec2::zero(),
                     containing_block,
                 );
                 let hoisted_fragment = hoisted_box.fragment.clone();
@@ -771,14 +771,14 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
     }
 
-    let content_rect = Rect {
-        start_corner: Vec2 {
+    let content_rect = LogicalRect {
+        start_corner: LogicalVec2 {
             block: pbm.padding.block_start +
                 pbm.border.block_start +
                 clearance.unwrap_or_else(Length::zero),
             inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
         },
-        size: Vec2 {
+        size: LogicalVec2 {
             block: block_size,
             inline: containing_block_for_children.inline_size,
         },
@@ -842,12 +842,12 @@ impl NonReplacedFormattingContext {
                 .clamp_between_extremums(min_box_size.block, max_box_size.block)
         });
 
-        let content_rect = Rect {
-            start_corner: Vec2 {
+        let content_rect = LogicalRect {
+            start_corner: LogicalVec2 {
                 block: pbm.padding.block_start + pbm.border.block_start,
                 inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
             },
-            size: Vec2 {
+            size: LogicalVec2 {
                 block: block_size,
                 inline: containing_block_for_children.inline_size,
             },
@@ -919,7 +919,7 @@ impl NonReplacedFormattingContext {
                     style: &self.style,
                 },
             );
-            content_size = Vec2 {
+            content_size = LogicalVec2 {
                 inline: inline_size,
                 block: block_size.auto_is(|| {
                     layout
@@ -950,7 +950,7 @@ impl NonReplacedFormattingContext {
             });
 
             // Create a PlacementAmongFloats using the minimum size in all dimensions as the object size.
-            let minimum_size_of_block = &Vec2 {
+            let minimum_size_of_block = &LogicalVec2 {
                 inline: min_box_size.inline,
                 block: block_size.auto_is(|| min_box_size.block),
             } + &pbm.padding_border_sums;
@@ -983,7 +983,7 @@ impl NonReplacedFormattingContext {
                     },
                 );
 
-                content_size = Vec2 {
+                content_size = LogicalVec2 {
                     inline: proposed_inline_size,
                     block: block_size.auto_is(|| {
                         layout
@@ -1030,7 +1030,7 @@ impl NonReplacedFormattingContext {
             );
         }
 
-        let margin = Sides {
+        let margin = LogicalSides {
             inline_start: margin_inline_start,
             inline_end: margin_inline_end,
             block_start: margin_block_start,
@@ -1053,8 +1053,8 @@ impl NonReplacedFormattingContext {
         );
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
 
-        let content_rect = Rect {
-            start_corner: Vec2 {
+        let content_rect = LogicalRect {
+            start_corner: LogicalVec2 {
                 block: pbm.padding.block_start +
                     pbm.border.block_start +
                     clearance.unwrap_or_else(Length::zero),
@@ -1140,21 +1140,21 @@ fn layout_in_flow_replaced_block_level<'a>(
         );
     };
 
-    let margin = Sides {
+    let margin = LogicalSides {
         inline_start: margin_inline_start,
         inline_end: margin_inline_end,
         block_start: margin_block_start,
         block_end: margin_block_end,
     };
 
-    let start_corner = Vec2 {
+    let start_corner = LogicalVec2 {
         block: pbm.padding.block_start +
             pbm.border.block_start +
             clearance.unwrap_or_else(Length::zero),
         inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
     };
 
-    let content_rect = Rect {
+    let content_rect = LogicalRect {
         start_corner,
         size: content_size,
     };
@@ -1175,9 +1175,9 @@ fn layout_in_flow_replaced_block_level<'a>(
 struct ContainingBlockPaddingBorderAndMargin<'a> {
     containing_block: ContainingBlock<'a>,
     pbm: PaddingBorderMargin,
-    min_box_size: Vec2<Length>,
-    max_box_size: Vec2<Option<Length>>,
-    margin: Sides<Length>,
+    min_box_size: LogicalVec2<Length>,
+    max_box_size: LogicalVec2<Option<Length>>,
+    margin: LogicalSides<Length>,
 }
 
 /// Given the style for in in flow box and its containing block, determine the containing
@@ -1213,7 +1213,7 @@ fn solve_containing_block_padding_border_and_margin_for_in_flow_box<'a>(
     let inline_margins =
         solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size);
     let block_margins = solve_block_margins_for_in_flow_block_level(&pbm);
-    let margin = Sides {
+    let margin = LogicalSides {
         inline_start: inline_margins.0,
         inline_end: inline_margins.1,
         block_start: block_margins.0,
@@ -1256,7 +1256,7 @@ fn solve_clearance_and_inline_margins_avoiding_floats(
     containing_block: &ContainingBlock,
     block_start_margin: &CollapsedMargin,
     pbm: &PaddingBorderMargin,
-    size: Vec2<Length>,
+    size: LogicalVec2<Length>,
     style: &Arc<ComputedValues>,
 ) -> (Option<Length>, (Length, Length)) {
     let (clearance, placement_rect) = sequential_layout_state
@@ -1284,7 +1284,7 @@ fn solve_inline_margins_avoiding_floats(
     containing_block: &ContainingBlock,
     pbm: &PaddingBorderMargin,
     inline_size: Length,
-    placement_rect: Rect<Length>,
+    placement_rect: LogicalRect<Length>,
 ) -> (Length, Length) {
     let inline_adjustment = placement_rect.start_corner.inline -
         sequential_layout_state
@@ -1424,7 +1424,7 @@ impl PlacementState {
                 }
             },
             Fragment::AbsoluteOrFixedPositioned(fragment) => {
-                let offset = Vec2 {
+                let offset = LogicalVec2 {
                     block: self.current_margin.solve() + self.current_block_direction_position,
                     inline: Length::new(0.),
                 };

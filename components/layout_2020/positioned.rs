@@ -19,8 +19,7 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{
     AbsoluteBoxOffsets, BoxFragment, CollapsedBlockMargins, Fragment, HoistedSharedFragment,
 };
-use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::geom::{LengthOrAuto, LengthPercentageOrAuto};
+use crate::geom::{LengthOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 
@@ -68,7 +67,7 @@ impl AbsolutelyPositionedBox {
 
     pub(crate) fn to_hoisted(
         self_: ArcRefCell<Self>,
-        initial_start_corner: Vec2<Length>,
+        initial_start_corner: LogicalVec2<Length>,
         containing_block: &ContainingBlock,
     ) -> HoistedAbsolutelyPositionedBox {
         fn absolute_box_offsets(
@@ -94,7 +93,7 @@ impl AbsolutelyPositionedBox {
         let box_offsets = {
             let box_ = self_.borrow();
             let box_offsets = box_.context.style().box_offsets(containing_block);
-            Vec2 {
+            LogicalVec2 {
                 inline: absolute_box_offsets(
                     initial_start_corner.inline,
                     box_offsets.inline_start,
@@ -183,7 +182,7 @@ impl PositioningContext {
     /// See documentation for [adjust_static_position_of_hoisted_fragments].
     pub(crate) fn adjust_static_position_of_hoisted_fragments_with_offset(
         &mut self,
-        start_offset: &Vec2<CSSPixelLength>,
+        start_offset: &LogicalVec2<CSSPixelLength>,
         index: PositioningContextLength,
     ) {
         let update_fragment_if_needed = |hoisted_fragment: &mut HoistedAbsolutelyPositionedBox| {
@@ -249,10 +248,10 @@ impl PositioningContext {
         layout_context: &LayoutContext,
         new_fragment: &mut BoxFragment,
     ) {
-        let padding_rect = Rect {
+        let padding_rect = LogicalRect {
             size: new_fragment.content_rect.size.clone(),
             // Ignore the content rect’s position in its own containing block:
-            start_corner: Vec2::zero(),
+            start_corner: LogicalVec2::zero(),
         }
         .inflate(&new_fragment.padding);
         let containing_block = DefiniteContainingBlock {
@@ -490,7 +489,7 @@ impl HoistedAbsolutelyPositionedBox {
                     None,
                     &pbm,
                 );
-                Vec2 {
+                LogicalVec2 {
                     inline: LengthOrAuto::LengthPercentage(used_size.inline),
                     block: LengthOrAuto::LengthPercentage(used_size.block),
                 }
@@ -518,7 +517,7 @@ impl HoistedAbsolutelyPositionedBox {
             avoid_negative_margin_start: false,
             box_offsets: &shared_fragment.box_offsets.block,
         };
-        let overconstrained = Vec2 {
+        let overconstrained = LogicalVec2 {
             inline: inline_axis_solver.is_overconstrained_for_size(computed_size.inline),
             block: block_axis_solver.is_overconstrained_for_size(computed_size.block),
         };
@@ -592,7 +591,7 @@ impl HoistedAbsolutelyPositionedBox {
                     }
 
                     struct Result {
-                        content_size: Vec2<CSSPixelLength>,
+                        content_size: LogicalVec2<CSSPixelLength>,
                         fragments: Vec<Fragment>,
                     }
 
@@ -625,7 +624,7 @@ impl HoistedAbsolutelyPositionedBox {
                         );
                         let block_size = size.auto_is(|| independent_layout.content_block_size);
                         Result {
-                            content_size: Vec2 {
+                            content_size: LogicalVec2 {
                                 inline: inline_size,
                                 block: block_size,
                             },
@@ -664,7 +663,7 @@ impl HoistedAbsolutelyPositionedBox {
                 },
             };
 
-            let margin = Sides {
+            let margin = LogicalSides {
                 inline_start: inline_axis.margin_start,
                 inline_end: inline_axis.margin_end,
                 block_start: block_axis.margin_start,
@@ -685,8 +684,8 @@ impl HoistedAbsolutelyPositionedBox {
                 },
             };
 
-            let content_rect = Rect {
-                start_corner: Vec2 {
+            let content_rect = LogicalRect {
+                start_corner: LogicalVec2 {
                     inline: inline_start,
                     block: block_start,
                 },
@@ -860,7 +859,7 @@ fn vec_append_owned<T>(a: &mut Vec<T>, mut b: Vec<T>) {
 pub(crate) fn relative_adjustement(
     style: &ComputedValues,
     containing_block: &ContainingBlock,
-) -> Vec2<Length> {
+) -> LogicalVec2<Length> {
     // "If the height of the containing block is not specified explicitly (i.e.,
     // it depends on content height), and this element is not absolutely
     // positioned, the value computes to 'auto'.""
@@ -880,7 +879,7 @@ pub(crate) fn relative_adjustement(
             (LengthOrAuto::LengthPercentage(start), _) => start,
         }
     }
-    Vec2 {
+    LogicalVec2 {
         inline: adjust(box_offsets.inline_start, box_offsets.inline_end),
         block: adjust(box_offsets.block_start, box_offsets.block_end),
     }

@@ -13,8 +13,9 @@ use style::Zero;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::cell::ArcRefCell;
-use crate::geom::flow_relative::{Rect, Sides};
-use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
+use crate::geom::{
+    LogicalRect, LogicalSides, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
+};
 
 #[derive(Serialize)]
 pub(crate) struct BoxFragment {
@@ -27,11 +28,11 @@ pub(crate) struct BoxFragment {
     /// From the containing block’s start corner…?
     /// This might be broken when the containing block is in a different writing mode:
     /// https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-    pub content_rect: Rect<Length>,
+    pub content_rect: LogicalRect<Length>,
 
-    pub padding: Sides<Length>,
-    pub border: Sides<Length>,
-    pub margin: Sides<Length>,
+    pub padding: LogicalSides<Length>,
+    pub border: LogicalSides<Length>,
+    pub margin: LogicalSides<Length>,
 
     /// When the `clear` property is not set to `none`, it may introduce clearance.
     /// Clearance is some extra spacing that is added above the top margin,
@@ -55,10 +56,10 @@ impl BoxFragment {
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
         children: Vec<Fragment>,
-        content_rect: Rect<Length>,
-        padding: Sides<Length>,
-        border: Sides<Length>,
-        margin: Sides<Length>,
+        content_rect: LogicalRect<Length>,
+        padding: LogicalSides<Length>,
+        border: LogicalSides<Length>,
+        margin: LogicalSides<Length>,
         clearance: Option<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
     ) -> BoxFragment {
@@ -89,10 +90,10 @@ impl BoxFragment {
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
         children: Vec<Fragment>,
-        content_rect: Rect<Length>,
-        padding: Sides<Length>,
-        border: Sides<Length>,
-        margin: Sides<Length>,
+        content_rect: LogicalRect<Length>,
+        padding: LogicalSides<Length>,
+        border: LogicalSides<Length>,
+        margin: LogicalSides<Length>,
         clearance: Option<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
         overconstrained: PhysicalSize<bool>,
@@ -142,11 +143,11 @@ impl BoxFragment {
         )
     }
 
-    pub fn padding_rect(&self) -> Rect<Length> {
+    pub fn padding_rect(&self) -> LogicalRect<Length> {
         self.content_rect.inflate(&self.padding)
     }
 
-    pub fn border_rect(&self) -> Rect<Length> {
+    pub fn border_rect(&self) -> LogicalRect<Length> {
         self.padding_rect().inflate(&self.border)
     }
 

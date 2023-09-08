@@ -25,8 +25,7 @@ use super::{FlexContainer, FlexLevelBox};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
-use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::geom::LengthOrAuto;
+use crate::geom::{LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
 use crate::style_ext::ComputedValuesExt;
@@ -97,16 +96,16 @@ struct FlexLineLayoutResult {
 }
 
 impl FlexContext<'_> {
-    fn vec2_to_flex_relative<T>(&self, x: Vec2<T>) -> FlexRelativeVec2<T> {
+    fn vec2_to_flex_relative<T>(&self, x: LogicalVec2<T>) -> FlexRelativeVec2<T> {
         self.flex_axis.vec2_to_flex_relative(x)
     }
 
-    fn sides_to_flex_relative<T>(&self, x: Sides<T>) -> FlexRelativeSides<T> {
+    fn sides_to_flex_relative<T>(&self, x: LogicalSides<T>) -> FlexRelativeSides<T> {
         self.main_start_cross_start_sides_are
             .sides_to_flex_relative(x)
     }
 
-    fn sides_to_flow_relative<T>(&self, x: FlexRelativeSides<T>) -> Sides<T> {
+    fn sides_to_flow_relative<T>(&self, x: FlexRelativeSides<T>) -> LogicalSides<T> {
         self.main_start_cross_start_sides_are
             .sides_to_flow_relative(x)
     }
@@ -115,7 +114,7 @@ impl FlexContext<'_> {
         &self,
         base_rect_size: FlexRelativeVec2<Length>,
         rect: FlexRelativeRect<Length>,
-    ) -> Rect<Length> {
+    ) -> LogicalRect<Length> {
         super::geom::rect_to_flow_relative(
             self.flex_axis,
             self.main_start_cross_start_sides_are,
@@ -206,7 +205,7 @@ impl FlexContainer {
                 Ok(absolutely_positioned) => {
                     let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
                         absolutely_positioned,
-                        Vec2::zero(),
+                        LogicalVec2::zero(),
                         containing_block,
                     );
                     let hoisted_fragment = hoisted_box.fragment.clone();
@@ -285,7 +284,7 @@ fn layout<'context, 'boxes>(
             flex_wrap_reverse,
         ),
         // https://drafts.csswg.org/css-flexbox/#definite-sizes
-        container_definite_inner_size: flex_axis.vec2_to_flex_relative(Vec2 {
+        container_definite_inner_size: flex_axis.vec2_to_flex_relative(LogicalVec2 {
             inline: Some(containing_block.inline_size),
             block: containing_block.block_size.non_auto(),
         }),
@@ -394,19 +393,19 @@ fn layout<'context, 'boxes>(
         .zip(line_cross_start_positions)
         .flat_map(move |(mut line, line_cross_start_position)| {
             let flow_relative_line_position = match (flex_axis, flex_wrap_reverse) {
-                (FlexAxis::Row, false) => Vec2 {
+                (FlexAxis::Row, false) => LogicalVec2 {
                     block: line_cross_start_position,
                     inline: Length::zero(),
                 },
-                (FlexAxis::Row, true) => Vec2 {
+                (FlexAxis::Row, true) => LogicalVec2 {
                     block: container_cross_size - line_cross_start_position - line.cross_size,
                     inline: Length::zero(),
                 },
-                (FlexAxis::Column, false) => Vec2 {
+                (FlexAxis::Column, false) => LogicalVec2 {
                     block: Length::zero(),
                     inline: line_cross_start_position,
                 },
-                (FlexAxis::Column, true) => Vec2 {
+                (FlexAxis::Column, true) => LogicalVec2 {
                     block: Length::zero(),
                     inline: container_cross_size - line_cross_start_position - line.cross_size,
                 },
@@ -509,7 +508,7 @@ impl<'a> FlexItem<'a> {
             }
         };
 
-        let min_size = Vec2 {
+        let min_size = LogicalVec2 {
             inline: min_size.inline.auto_is(automatic_min_size),
             block: min_size.block.auto_is(|| Length::zero()),
         };
@@ -1067,7 +1066,7 @@ impl<'a> FlexItem<'a> {
                         let pbm = replaced
                             .style
                             .padding_border_margin(flex_context.containing_block);
-                        let box_size = used_cross_size_override.map(|size| Vec2 {
+                        let box_size = used_cross_size_override.map(|size| LogicalVec2 {
                             inline: replaced
                                 .style
                                 .content_box_size(flex_context.containing_block, &pbm)
