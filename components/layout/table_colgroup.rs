@@ -4,17 +4,19 @@
 
 //! CSS table formatting contexts.
 
+use std::fmt;
+
+use app_units::Au;
+use euclid::default::Point2D;
+use style::logical_geometry::LogicalSize;
+use style::properties::ComputedValues;
+use style::values::computed::Size;
+
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::{layout_debug, layout_debug_scope};
-use app_units::Au;
-use euclid::default::Point2D;
-use std::fmt;
-use style::logical_geometry::LogicalSize;
-use style::properties::ComputedValues;
-use style::values::computed::Size;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableColGroupFlow {}

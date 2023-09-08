@@ -4,6 +4,14 @@
 
 #![allow(unsafe_code)]
 
+use dom_struct::dom_struct;
+use servo_arc::Arc;
+use style::shared_lock::Locked;
+use style::stylesheets::{
+    AllowImportRules, CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError,
+    StylesheetLoader as StyleStylesheetLoader,
+};
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -15,13 +23,6 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
 use crate::stylesheet_loader::StylesheetLoader;
-use dom_struct::dom_struct;
-use servo_arc::Arc;
-use style::shared_lock::Locked;
-use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
-use style::stylesheets::{
-    AllowImportRules, CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError,
-};
 
 unsafe_no_jsmanaged_fields!(RulesSource);
 

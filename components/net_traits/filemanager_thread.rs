@@ -2,16 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
+use std::cmp::{max, min};
+use std::ops::Range;
+use std::path::PathBuf;
+
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
-use std::cmp::{max, min};
-use std::ops::Range;
-use std::path::PathBuf;
 use uuid::Uuid;
+
+use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
 
 // HACK: Not really process-safe now, we should send Origin
 //       directly instead of this in future, blocked on #11722

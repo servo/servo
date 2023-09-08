@@ -27,21 +27,22 @@ The following types directly support the gzip compression case:
 - `Peeked` is a buffer that keeps a few bytes available so `libflate`s `read_exact` calls won't fail
 */
 
-use crate::connector::BUF_SIZE;
-use brotli::Decompressor;
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use flate2::read::DeflateDecoder;
-use futures::{task::Context, task::Poll, Future, Stream};
-use hyper::header::{HeaderValue, CONTENT_ENCODING, TRANSFER_ENCODING};
-use hyper::{self, Body, Response};
-use libflate::non_blocking::gzip;
-use std::cmp;
-use std::fmt;
 use std::io::{self, Read};
-use std::mem;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::Waker;
+use std::{cmp, fmt, mem};
+
+use brotli::Decompressor;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use flate2::read::DeflateDecoder;
+use futures::task::{Context, Poll};
+use futures::{Future, Stream};
+use hyper::header::{HeaderValue, CONTENT_ENCODING, TRANSFER_ENCODING};
+use hyper::{self, Body, Response};
+use libflate::non_blocking::gzip;
+
+use crate::connector::BUF_SIZE;
 
 #[derive(Debug)]
 pub enum Error {

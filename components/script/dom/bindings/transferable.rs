@@ -5,10 +5,11 @@
 //! Trait representing the concept of [transferable objects]
 //! (https://html.spec.whatwg.org/multipage/#transferable-objects).
 
+use js::jsapi::MutableHandleObject;
+
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::structuredclone::StructuredDataHolder;
 use crate::dom::globalscope::GlobalScope;
-use js::jsapi::MutableHandleObject;
 
 pub trait Transferable: DomObject {
     fn transfer(&self, sc_holder: &mut StructuredDataHolder) -> Result<u64, ()>;

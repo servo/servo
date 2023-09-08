@@ -32,6 +32,28 @@
 //! | sequences               | `Vec<T>`        |                |
 //! | union types             | `T`             |                |
 
+use std::{char, ffi, ptr, slice};
+
+use js::conversions::latin1_to_string;
+pub use js::conversions::{
+    ConversionBehavior, ConversionResult, FromJSValConvertible, ToJSValConvertible,
+};
+use js::error::throw_type_error;
+use js::glue::{GetProxyReservedSlot, IsWrapper, JS_GetReservedSlot, UnwrapObjectDynamic};
+use js::jsapi::{
+    Heap, IsWindowProxy, JSContext, JSObject, JSString, JS_DeprecatedStringHasLatin1Chars,
+    JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending,
+    JS_NewStringCopyN,
+};
+use js::jsval::{ObjectValue, StringValue, UndefinedValue};
+use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasProperty};
+use js::rust::{
+    get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, HandleId, HandleObject,
+    HandleValue, MutableHandleValue, ToString,
+};
+use num_traits::Float;
+use servo_config::opts;
+
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -46,25 +68,6 @@ use crate::dom::htmlformcontrolscollection::HTMLFormControlsCollection;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::nodelist::NodeList;
 use crate::dom::windowproxy::WindowProxy;
-use js::conversions::latin1_to_string;
-pub use js::conversions::ConversionBehavior;
-pub use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
-use js::error::throw_type_error;
-use js::glue::GetProxyReservedSlot;
-use js::glue::JS_GetReservedSlot;
-use js::glue::{IsWrapper, UnwrapObjectDynamic};
-use js::jsapi::{Heap, JSContext, JSObject, JSString};
-use js::jsapi::{IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_NewStringCopyN};
-use js::jsapi::{
-    JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending,
-};
-use js::jsval::{ObjectValue, StringValue, UndefinedValue};
-use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasProperty};
-use js::rust::{get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, ToString};
-use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue};
-use num_traits::Float;
-use servo_config::opts;
-use std::{char, ffi, ptr, slice};
 
 /// A trait to check whether a given `JSObject` implements an IDL interface.
 pub trait IDLInterface {
@@ -384,8 +387,9 @@ pub unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_void {
 
 /// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
 pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()> {
-    use crate::dom::bindings::utils::DOMJSClass;
     use js::glue::GetProxyHandlerExtra;
+
+    use crate::dom::bindings::utils::DOMJSClass;
 
     let clasp = get_object_class(obj);
     if is_dom_class(&*clasp) {

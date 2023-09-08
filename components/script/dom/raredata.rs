@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
+use euclid::default::Rect;
+use servo_atoms::Atom;
+
 use crate::dom::bindings::root::Dom;
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementState,
@@ -10,9 +15,6 @@ use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::LayoutValue;
-use euclid::default::Rect;
-use servo_atoms::Atom;
-use std::rc::Rc;
 
 //XXX(ferjm) Ideally merge NodeRareData and ElementRareData so they share
 //           storage.

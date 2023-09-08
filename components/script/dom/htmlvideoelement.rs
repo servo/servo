@@ -2,6 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::sync::{Arc, Mutex};
+
+use dom_struct::dom_struct;
+use euclid::default::Size2D;
+use html5ever::{local_name, LocalName, Prefix};
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
+use js::rust::HandleObject;
+use net_traits::image_cache::{
+    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
+    UsePlaceholder,
+};
+use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
+use net_traits::{
+    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
+    NetworkError, ResourceFetchTiming, ResourceTimingType,
+};
+use servo_media::player::video::VideoFrame;
+use servo_url::ServoUrl;
+
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -21,25 +42,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
 use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListener};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
-use dom_struct::dom_struct;
-use euclid::default::Size2D;
-use html5ever::{local_name, LocalName, Prefix};
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
-use js::rust::HandleObject;
-use net_traits::image_cache::{
-    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
-    UsePlaceholder,
-};
-use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
-use net_traits::{
-    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
-};
-use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
-use servo_media::player::video::VideoFrame;
-use servo_url::ServoUrl;
-use std::cell::Cell;
-use std::sync::{Arc, Mutex};
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;

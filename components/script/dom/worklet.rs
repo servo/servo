@@ -10,62 +10,48 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
+use std::cmp::max;
+use std::collections::{hash_map, HashMap};
+use std::rc::Rc;
+use std::sync::atomic::{AtomicIsize, Ordering};
+use std::sync::Arc;
+use std::thread;
+
+use crossbeam_channel::{unbounded, Receiver, Sender};
+use dom_struct::dom_struct;
+use js::jsapi::{GCReason, JSGCParamKey, JSTracer, JS_GetGCParameter, JS_GC};
+use malloc_size_of::malloc_size_of_is_0;
+use msg::constellation_msg::PipelineId;
+use net_traits::request::{Destination, RequestBuilder, RequestMode};
+use net_traits::IpcSend;
+use servo_url::{ImmutableOrigin, ServoUrl};
+use style::thread_state::{self, ThreadState};
+use swapper::{swapper, Swapper};
+use uuid::Uuid;
+
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletMethods;
-use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
+use crate::dom::bindings::codegen::Bindings::WorkletBinding::{WorkletMethods, WorkletOptions};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::testworkletglobalscope::TestWorkletTask;
 use crate::dom::window::Window;
-use crate::dom::workletglobalscope::WorkletGlobalScope;
-use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
-use crate::dom::workletglobalscope::WorkletGlobalScopeType;
-use crate::dom::workletglobalscope::WorkletTask;
+use crate::dom::workletglobalscope::{
+    WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType, WorkletTask,
+};
 use crate::fetch::load_whole_resource;
 use crate::realms::InRealm;
-use crate::script_runtime::new_rt_and_cx;
-use crate::script_runtime::CommonScriptMsg;
-use crate::script_runtime::Runtime;
-use crate::script_runtime::ScriptThreadEventCategory;
+use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
-use crossbeam_channel::{unbounded, Receiver, Sender};
-use dom_struct::dom_struct;
-use js::jsapi::JSGCParamKey;
-use js::jsapi::JSTracer;
-use js::jsapi::JS_GetGCParameter;
-use js::jsapi::{GCReason, JS_GC};
-use malloc_size_of::malloc_size_of_is_0;
-use msg::constellation_msg::PipelineId;
-use net_traits::request::Destination;
-use net_traits::request::RequestBuilder;
-use net_traits::request::RequestMode;
-use net_traits::IpcSend;
-use servo_url::ImmutableOrigin;
-use servo_url::ServoUrl;
-use std::cmp::max;
-use std::collections::hash_map;
-use std::collections::HashMap;
-use std::rc::Rc;
-use std::sync::atomic::AtomicIsize;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
-use std::thread;
-use style::thread_state::{self, ThreadState};
-use swapper::swapper;
-use swapper::Swapper;
-use uuid::Uuid;
 
 // Magic numbers
 const WORKLET_THREAD_POOL_SIZE: u32 = 3;

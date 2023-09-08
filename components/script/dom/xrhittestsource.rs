@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use webxr_api::HitTestId;
+
 use crate::dom::bindings::codegen::Bindings::XRHitTestSourceBinding::XRHitTestSourceMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::XRSession;
-use dom_struct::dom_struct;
-use webxr_api::HitTestId;
 
 #[dom_struct]
 pub struct XRHitTestSource {

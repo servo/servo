@@ -2,6 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::cmp::{self, Ord, Ordering};
+use std::collections::HashMap;
+use std::default::Default;
+use std::rc::Rc;
+
+use deny_public_fields::DenyPublicFields;
+use euclid::Length;
+use ipc_channel::ipc::IpcSender;
+use js::jsapi::Heap;
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::HandleValue;
+use script_traits::{
+    precise_time_ms, MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSchedulerMsg,
+    TimerSource,
+};
+use servo_config::pref;
+
 use crate::dom::bindings::callback::ExceptionHandling::Report;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -14,21 +32,6 @@ use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_thread::ScriptThread;
-use deny_public_fields::DenyPublicFields;
-use euclid::Length;
-use ipc_channel::ipc::IpcSender;
-use js::jsapi::Heap;
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::HandleValue;
-use script_traits::{precise_time_ms, MsDuration};
-use script_traits::{TimerEvent, TimerEventId, TimerEventRequest};
-use script_traits::{TimerSchedulerMsg, TimerSource};
-use servo_config::pref;
-use std::cell::Cell;
-use std::cmp::{self, Ord, Ordering};
-use std::collections::HashMap;
-use std::default::Default;
-use std::rc::Rc;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct OneshotTimerHandle(i32);

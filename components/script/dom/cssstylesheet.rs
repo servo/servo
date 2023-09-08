@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use servo_arc::Arc;
+use style::shared_lock::SharedRwLock;
+use style::stylesheets::Stylesheet as StyleStyleSheet;
+
 use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -14,11 +21,6 @@ use crate::dom::medialist::MediaList;
 use crate::dom::node::{stylesheets_owner_from_node, Node};
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use servo_arc::Arc;
-use std::cell::Cell;
-use style::shared_lock::SharedRwLock;
-use style::stylesheets::Stylesheet as StyleStyleSheet;
 
 #[dom_struct]
 pub struct CSSStyleSheet {

@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ptr;
+
 use backtrace;
 use msg::constellation_msg::{HangProfile, HangProfileSymbol};
-use std::ptr;
 
 const MAX_NATIVE_FRAMES: usize = 1024;
 

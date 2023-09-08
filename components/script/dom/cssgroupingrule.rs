@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use servo_arc::Arc;
+use style::shared_lock::{Locked, SharedRwLock};
+use style::stylesheets::CssRules as StyleCssRules;
+
 use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -11,10 +16,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::CSSRule;
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::cssstylesheet::CSSStyleSheet;
-use dom_struct::dom_struct;
-use servo_arc::Arc;
-use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::CssRules as StyleCssRules;
 
 #[dom_struct]
 pub struct CSSGroupingRule {

@@ -11,16 +11,15 @@
 #![deny(unsafe_code, missing_docs)]
 
 use bitflags::bitflags;
+use cssparser::{CowRcStr, Token};
 use malloc_size_of_derive::MallocSizeOf;
+use selectors::parser::SelectorParseErrorKind;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "servo")]
+use servo_atoms::Atom;
 use size_of_test::size_of_test;
 #[cfg(feature = "servo")]
 pub use webrender_api::units::DevicePixel;
-
-use cssparser::{CowRcStr, Token};
-use selectors::parser::SelectorParseErrorKind;
-#[cfg(feature = "servo")]
-use servo_atoms::Atom;
 
 /// One hardware pixel.
 ///

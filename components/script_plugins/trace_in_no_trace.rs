@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{get_trait_def_id, implements_trait, symbols};
-
 use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_ast::token::TokenKind;
 use rustc_ast::tokenstream::TokenTree;
@@ -15,6 +13,8 @@ use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass};
 use rustc_middle::ty;
 use rustc_session::declare_lint;
 use rustc_span::symbol::Symbol;
+
+use crate::{get_trait_def_id, implements_trait, symbols};
 
 declare_lint!(
     TRACE_IN_NO_TRACE,

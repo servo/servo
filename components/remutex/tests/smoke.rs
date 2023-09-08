@@ -10,10 +10,11 @@
 
 // These tests came from https://github.com/rust-lang/rust/blob/master/src/libstd/sys/common/remutex.rs
 
-use servo_remutex::{ReentrantMutex, ReentrantMutexGuard};
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::thread;
+
+use servo_remutex::{ReentrantMutex, ReentrantMutexGuard};
 
 #[test]
 fn smoke() {

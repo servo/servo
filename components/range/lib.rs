@@ -4,11 +4,11 @@
 
 #![deny(unsafe_code)]
 
+use std::cmp::{self, max, min};
+use std::{fmt, ops};
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use std::cmp::{self, max, min};
-use std::fmt;
-use std::ops;
 
 pub trait Int:
     Copy + ops::Add<Self, Output = Self> + ops::Sub<Self, Output = Self> + cmp::Ord

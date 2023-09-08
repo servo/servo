@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use self::TouchState::*;
 use euclid::{Point2D, Scale, Vector2D};
 use log::warn;
 use script_traits::{EventResult, TouchId};
 use style_traits::DevicePixel;
+
+use self::TouchState::*;
 
 /// Minimum number of `DeviceIndependentPixel` to begin touch scrolling.
 const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;

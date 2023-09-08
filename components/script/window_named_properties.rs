@@ -2,6 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::ptr;
+
+use js::conversions::jsstr_to_string;
+use js::glue::{AppendToIdVector, CreateProxyHandler, NewProxyObject, ProxyTraps};
+use js::jsapi::{
+    GetWellKnownSymbol, Handle, HandleId, HandleObject, JSClass, JSClass_NON_NATIVE, JSContext,
+    JSErrNum, JS_SetImmutablePrototype, MutableHandle, MutableHandleIdVector, MutableHandleObject,
+    ObjectOpResult, PropertyDescriptor, ProxyClassExtension, ProxyClassOps, ProxyObjectOps,
+    SymbolCode, UndefinedHandleValue, JSCLASS_DELAY_METADATA_BUILDER, JSCLASS_IS_PROXY,
+    JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSPROP_READONLY,
+};
+use js::jsid::SymbolId;
+use js::jsval::UndefinedValue;
+use js::rust::{
+    Handle as RustHandle, HandleObject as RustHandleObject, IntoHandle,
+    MutableHandle as RustMutableHandle, MutableHandleObject as RustMutableHandleObject,
+};
+use libc;
+
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::proxyhandler::set_property_descriptor;
 use crate::dom::bindings::root::Root;
@@ -10,25 +29,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
-use js::conversions::jsstr_to_string;
-use js::glue::{AppendToIdVector, CreateProxyHandler, NewProxyObject, ProxyTraps};
-use js::jsapi::{GetWellKnownSymbol, JS_SetImmutablePrototype, SymbolCode, JSPROP_READONLY};
-use js::jsapi::{
-    Handle, HandleObject, JSClass, JSContext, JSErrNum, MutableHandleObject, UndefinedHandleValue,
-};
-use js::jsapi::{
-    HandleId, JSClass_NON_NATIVE, MutableHandle, MutableHandleIdVector, ObjectOpResult,
-    PropertyDescriptor, ProxyClassExtension, ProxyClassOps, ProxyObjectOps,
-    JSCLASS_DELAY_METADATA_BUILDER, JSCLASS_IS_PROXY, JSCLASS_RESERVED_SLOTS_MASK,
-    JSCLASS_RESERVED_SLOTS_SHIFT,
-};
-use js::jsid::SymbolId;
-use js::jsval::UndefinedValue;
-use js::rust::IntoHandle;
-use js::rust::{Handle as RustHandle, MutableHandle as RustMutableHandle};
-use js::rust::{HandleObject as RustHandleObject, MutableHandleObject as RustMutableHandleObject};
-use libc;
-use std::ptr;
 
 struct SyncWrapper(*const libc::c_void);
 #[allow(unsafe_code)]

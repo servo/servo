@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::jsval::JSVal;
+
 use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -12,8 +15,6 @@ use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsval::JSVal;
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]

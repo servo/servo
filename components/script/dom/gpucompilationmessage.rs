@@ -4,8 +4,6 @@
 
 #![allow(dead_code)] // this file is stub as wgpu does not provide info
 
-use crate::dom::bindings::reflector::Reflector;
-use crate::test::DOMString;
 use dom_struct::dom_struct;
 
 use super::bindings::codegen::Bindings::GPUCompilationMessageBinding::{
@@ -13,7 +11,8 @@ use super::bindings::codegen::Bindings::GPUCompilationMessageBinding::{
 };
 use super::bindings::root::DomRoot;
 use super::types::GlobalScope;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::test::DOMString;
 
 #[dom_struct]
 pub struct GPUCompilationMessage {

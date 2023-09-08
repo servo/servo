@@ -2,6 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::ptr;
+
+use base64::Engine;
+use dom_struct::dom_struct;
+use encoding_rs::{Encoding, UTF_8};
+use js::jsapi::{Heap, JSObject};
+use js::jsval::{self, JSVal};
+use js::rust::HandleObject;
+use js::typedarray::{ArrayBuffer, CreateWith};
+use mime::{self, Mime};
+use servo_atoms::Atom;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderBinding::{
@@ -25,18 +38,6 @@ use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
 use crate::task_source::file_reading::FileReadingTask;
 use crate::task_source::{TaskSource, TaskSourceName};
-use base64::Engine;
-use dom_struct::dom_struct;
-use encoding_rs::{Encoding, UTF_8};
-use js::jsapi::Heap;
-use js::jsapi::JSObject;
-use js::jsval::{self, JSVal};
-use js::rust::HandleObject;
-use js::typedarray::{ArrayBuffer, CreateWith};
-use mime::{self, Mime};
-use servo_atoms::Atom;
-use std::cell::Cell;
-use std::ptr;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum FileReaderFunction {

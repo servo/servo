@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use html5ever::local_name;
+
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
@@ -21,8 +24,6 @@ use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use html5ever::local_name;
 
 #[dom_struct]
 pub struct HTMLOptionsCollection {

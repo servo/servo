@@ -4,8 +4,9 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use crate::{FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
-use crate::{ResourceFetchTiming, ResourceTimingType};
+use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
+
 use headers::{ContentType, HeaderMapExt};
 use http::{HeaderMap, StatusCode};
 use hyper_serde::Serde;
@@ -13,8 +14,11 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc;
 use servo_url::ServoUrl;
-use std::sync::atomic::AtomicBool;
-use std::sync::Mutex;
+
+use crate::{
+    FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+    ResourceTimingType,
+};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]

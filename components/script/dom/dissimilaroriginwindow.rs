@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::jsapi::{Heap, JSObject};
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use msg::constellation_msg::PipelineId;
+use script_traits::{ScriptMsg, StructuredSerializedData};
+use servo_url::ServoUrl;
+
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowPostMessageOptions;
@@ -14,13 +22,6 @@ use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use msg::constellation_msg::PipelineId;
-use script_traits::{ScriptMsg, StructuredSerializedData};
-use servo_url::ServoUrl;
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.
 ///

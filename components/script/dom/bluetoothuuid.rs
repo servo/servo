@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use regex::Regex;
+
 use crate::dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use crate::dom::bindings::error::Error::Type;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use regex::Regex;
 
 pub type UUID = DOMString;
 pub type BluetoothServiceUUID = StringOrUnsignedLong;

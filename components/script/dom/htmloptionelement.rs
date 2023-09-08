@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::convert::TryInto;
+
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
+use js::rust::HandleObject;
+use style::element_state::ElementState;
+use style::str::{split_html_space_chars, str_join};
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
@@ -26,13 +35,6 @@ use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
-use js::rust::HandleObject;
-use std::cell::Cell;
-use std::convert::TryInto;
-use style::element_state::ElementState;
-use style::str::{split_html_space_chars, str_join};
 
 #[dom_struct]
 pub struct HTMLOptionElement {

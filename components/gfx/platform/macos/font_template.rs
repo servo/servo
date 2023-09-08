@@ -2,20 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
-use core_foundation::array::CFArray;
-use core_foundation::base::{CFType, TCFType};
-use core_foundation::dictionary::CFDictionary;
-use core_foundation::string::CFString;
-use core_graphics::data_provider::CGDataProvider;
-use core_graphics::font::CGFont;
-use core_text::font::CTFont;
-use core_text::font_collection;
-use core_text::font_descriptor;
-use serde::de::{Error, Visitor};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use servo_atoms::Atom;
-use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fmt;
@@ -24,6 +10,20 @@ use std::io::{Error as IoError, Read};
 use std::ops::Deref;
 use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock};
+
+use app_units::Au;
+use core_foundation::array::CFArray;
+use core_foundation::base::{CFType, TCFType};
+use core_foundation::dictionary::CFDictionary;
+use core_foundation::string::CFString;
+use core_graphics::data_provider::CGDataProvider;
+use core_graphics::font::CGFont;
+use core_text::font::CTFont;
+use core_text::{font_collection, font_descriptor};
+use serde::de::{Error, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use webrender_api::NativeFontHandle;
 
 /// Platform specific font representation for mac.

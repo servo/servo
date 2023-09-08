@@ -7,29 +7,29 @@
 //! If an active service worker timeouts, then it removes the descriptor entry from its
 //! active_workers map
 
-use crate::dom::abstractworker::WorkerScriptMsg;
-use crate::dom::serviceworkerglobalscope::{
-    ServiceWorkerControlMsg, ServiceWorkerGlobalScope, ServiceWorkerScriptMsg,
-};
-use crate::dom::serviceworkerregistration::longest_prefix_match;
-use crate::script_runtime::ContextForRequestInterrupt;
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread::{self, JoinHandle};
+
 use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::PipelineNamespace;
-use msg::constellation_msg::{ServiceWorkerId, ServiceWorkerRegistrationId};
+use msg::constellation_msg::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
 use script_traits::{
     DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
     ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
 };
 use servo_config::pref;
-use servo_url::ImmutableOrigin;
-use servo_url::ServoUrl;
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread::{self, JoinHandle};
+use servo_url::{ImmutableOrigin, ServoUrl};
+
+use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::serviceworkerglobalscope::{
+    ServiceWorkerControlMsg, ServiceWorkerGlobalScope, ServiceWorkerScriptMsg,
+};
+use crate::dom::serviceworkerregistration::longest_prefix_match;
+use crate::script_runtime::ContextForRequestInterrupt;
 
 enum Message {
     FromResource(CustomResponseMediator),

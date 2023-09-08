@@ -2,11 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::{ContainingBlockManager, Fragment, Tag};
-use crate::cell::ArcRefCell;
-use crate::display_list::StackingContext;
-use crate::flow::CanvasBackground;
-use crate::geom::PhysicalRect;
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
@@ -16,6 +11,12 @@ use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use style::values::computed::Length;
 use webrender_api::units;
+
+use super::{ContainingBlockManager, Fragment, Tag};
+use crate::cell::ArcRefCell;
+use crate::display_list::StackingContext;
+use crate::flow::CanvasBackground;
+use crate::geom::PhysicalRect;
 
 #[derive(Serialize)]
 pub struct FragmentTree {

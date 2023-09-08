@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
-use crate::cell::ArcRefCell;
-use crate::geom::flow_relative::{Rect, Sides};
-use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 use gfx_traits::print_tree::PrintTree;
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
@@ -14,6 +10,11 @@ use style::computed_values::position::T as ComputedPosition;
 use style::properties::ComputedValues;
 use style::values::computed::{CSSPixelLength, Length, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
+
+use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
+use crate::cell::ArcRefCell;
+use crate::geom::flow_relative::{Rect, Sides};
+use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 
 #[derive(Serialize)]
 pub(crate) struct BoxFragment {

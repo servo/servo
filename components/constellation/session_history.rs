@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::browsingcontext::NewBrowsingContextInfo;
+use std::cmp::PartialEq;
+use std::{fmt, mem};
+
 use euclid::Size2D;
 use log::debug;
 use msg::constellation_msg::{
@@ -10,9 +12,9 @@ use msg::constellation_msg::{
 };
 use script_traits::LoadData;
 use servo_url::ServoUrl;
-use std::cmp::PartialEq;
-use std::{fmt, mem};
 use style_traits::CSSPixel;
+
+use crate::browsingcontext::NewBrowsingContextInfo;
 
 /// Represents the joint session history
 /// https://html.spec.whatwg.org/multipage/#joint-session-history

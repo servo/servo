@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+use std::thread;
+
+use js::jsapi::{GetScriptedCallerGlobal, HideScriptedCaller, JSTracer, UnhideScriptedCaller};
+use js::rust::Runtime;
+
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
-use js::jsapi::GetScriptedCallerGlobal;
-use js::jsapi::HideScriptedCaller;
-use js::jsapi::JSTracer;
-use js::jsapi::UnhideScriptedCaller;
-use js::rust::Runtime;
-use std::cell::RefCell;
-use std::thread;
 
 thread_local!(static STACK: RefCell<Vec<StackEntry>> = RefCell::new(Vec::new()));
 

@@ -7,13 +7,15 @@
 mod ipc;
 mod mpsc;
 
-use crate::webgl::WebGLMsg;
+use std::fmt;
+
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
-use std::fmt;
+
+use crate::webgl::WebGLMsg;
 
 lazy_static! {
     static ref IS_MULTIPROCESS: bool = opts::multiprocess();

@@ -2,14 +2,37 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::fmt;
+use std::str::FromStr;
+use std::sync::Arc;
+
+use canvas_traits::canvas::{
+    Canvas2dMsg, CanvasId, CanvasMsg, CompositionOrBlending, Direction, FillOrStrokeStyle,
+    FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, RadialGradientStyle,
+    RepetitionStyle, TextAlign, TextBaseline,
+};
+use cssparser::{Color as CSSColor, Parser, ParserInput, RGBA};
+use euclid::default::{Point2D, Rect, Size2D, Transform2D};
+use euclid::vec2;
+use ipc_channel::ipc::{self, IpcSender};
+use net_traits::image_cache::{ImageCache, ImageResponse};
+use net_traits::request::CorsSettings;
+use pixels::PixelFormat;
+use profile_traits::ipc as profiled_ipc;
+use script_traits::ScriptMsg;
+use serde_bytes::ByteBuf;
+use servo_url::{ImmutableOrigin, ServoUrl};
+use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
+use style::properties::style_structs::Font;
+use style::values::computed::font::FontStyle;
+use style_traits::values::ToCss;
+
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasDirection;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextAlign;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextBaseline;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
+    CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
+    CanvasTextAlign, CanvasTextBaseline,
+};
 use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -20,8 +43,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
-use crate::dom::element::cors_setting_for_element;
-use crate::dom::element::Element;
+use crate::dom::element::{cors_setting_for_element, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
@@ -30,32 +52,6 @@ use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
-use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg, Direction, TextAlign, TextBaseline};
-use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
-use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
-use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
-use cssparser::Color as CSSColor;
-use cssparser::{Parser, ParserInput, RGBA};
-use euclid::{
-    default::{Point2D, Rect, Size2D, Transform2D},
-    vec2,
-};
-use ipc_channel::ipc::{self, IpcSender};
-use net_traits::image_cache::{ImageCache, ImageResponse};
-use net_traits::request::CorsSettings;
-use pixels::PixelFormat;
-use profile_traits::ipc as profiled_ipc;
-use script_traits::ScriptMsg;
-use serde_bytes::ByteBuf;
-use servo_url::{ImmutableOrigin, ServoUrl};
-use std::cell::Cell;
-use std::fmt;
-use std::str::FromStr;
-use std::sync::Arc;
-use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
-use style::properties::style_structs::Font;
-use style::values::computed::font::FontStyle;
-use style_traits::values::ToCss;
 
 #[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]

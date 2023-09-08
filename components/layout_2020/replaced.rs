@@ -2,6 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fmt;
+use std::sync::{Arc, Mutex};
+
+use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
+use ipc_channel::ipc::{self, IpcSender};
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use net_traits::image::base::Image;
+use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
+use serde::Serialize;
+use servo_arc::Arc as ServoArc;
+use style::properties::ComputedValues;
+use style::servo::url::ComputedUrl;
+use style::values::computed::image::Image as ComputedImage;
+use style::values::computed::{Length, LengthOrAuto};
+use style::values::CSSFloat;
+use style::Zero;
+use webrender_api::ImageKey;
+
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
@@ -10,22 +28,6 @@ use crate::geom::PhysicalSize;
 use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
-use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
-use ipc_channel::ipc::{self, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use net_traits::image::base::Image;
-use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
-use serde::Serialize;
-use servo_arc::Arc as ServoArc;
-use std::fmt;
-use std::sync::{Arc, Mutex};
-use style::properties::ComputedValues;
-use style::servo::url::ComputedUrl;
-use style::values::computed::image::Image as ComputedImage;
-use style::values::computed::{Length, LengthOrAuto};
-use style::values::CSSFloat;
-use style::Zero;
-use webrender_api::ImageKey;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct ReplacedContent {

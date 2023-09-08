@@ -2,15 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::mem;
+
+use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
+use dom_struct::dom_struct;
+use euclid::default::{Point2D, Rect, Size2D};
+use ipc_channel::ipc::IpcSender;
+use servo_url::ServoUrl;
+
 use crate::canvas_state::CanvasState;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasDirection;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextAlign;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextBaseline;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
+    CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
+    CanvasRenderingContext2DMethods, CanvasTextAlign, CanvasTextBaseline,
+};
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
@@ -24,12 +28,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::textmetrics::TextMetrics;
-use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
-use dom_struct::dom_struct;
-use euclid::default::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::IpcSender;
-use servo_url::ServoUrl;
-use std::mem;
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]

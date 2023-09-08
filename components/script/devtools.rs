@@ -2,6 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+use std::str;
+
+use devtools_traits::{
+    AutoMargins, ComputedNodeLayout, EvaluateJSReply, Modification, NodeInfo, TimelineMarker,
+    TimelineMarkerType,
+};
+use ipc_channel::ipc::IpcSender;
+use js::jsval::UndefinedValue;
+use js::rust::ToString;
+use msg::constellation_msg::PipelineId;
+use uuid::Uuid;
+
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -19,15 +32,6 @@ use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_thread::Documents;
-use devtools_traits::{AutoMargins, ComputedNodeLayout, TimelineMarkerType};
-use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker};
-use ipc_channel::ipc::IpcSender;
-use js::jsval::UndefinedValue;
-use js::rust::ToString;
-use msg::constellation_msg::PipelineId;
-use std::rc::Rc;
-use std::str;
-use uuid::Uuid;
 
 #[allow(unsafe_code)]
 pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<EvaluateJSReply>) {

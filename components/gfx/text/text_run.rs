@@ -2,22 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::font::{Font, FontHandleMethods, FontMetrics, ShapingFlags};
-use crate::font::{RunMetrics, ShapingOptions};
-use crate::platform::font_template::FontTemplateData;
-use crate::text::glyph::{ByteIndex, GlyphStore};
-use app_units::Au;
-use log::debug;
-use range::Range;
-use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 use std::cmp::{max, Ordering};
 use std::slice::Iter;
 use std::sync::Arc;
+
+use app_units::Au;
+use log::debug;
+use range::Range;
+use serde::{Deserialize, Serialize};
 use style::str::char_is_whitespace;
 use unicode_bidi as bidi;
 use webrender_api::FontInstanceKey;
 use xi_unicode::LineBreakLeafIter;
+
+use crate::font::{Font, FontHandleMethods, FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
+use crate::platform::font_template::FontTemplateData;
+use crate::text::glyph::{ByteIndex, GlyphStore};
 
 thread_local! {
     static INDEX_OF_FIRST_GLYPH_RUN_CACHE: Cell<Option<(*const TextRun, ByteIndex, usize)>> =

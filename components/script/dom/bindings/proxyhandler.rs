@@ -6,6 +6,36 @@
 
 #![deny(missing_docs)]
 
+use std::ffi::CStr;
+use std::os::raw::c_char;
+use std::ptr;
+
+use js::conversions::ToJSValConvertible;
+use js::glue::{
+    GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, InvokeGetOwnPropertyDescriptor,
+    SetProxyPrivate,
+};
+use js::jsapi;
+use js::jsapi::{
+    jsid, DOMProxyShadowsResult, GetObjectRealmOrNull, GetRealmPrincipals, GetStaticPrototype,
+    GetWellKnownSymbol, Handle as RawHandle, HandleId as RawHandleId,
+    HandleObject as RawHandleObject, HandleValue as RawHandleValue, JSAutoRealm, JSContext,
+    JSErrNum, JSFunctionSpec, JSObject, JSPropertySpec, JS_AtomizeAndPinString,
+    JS_DefinePropertyById, JS_GetOwnPropertyDescriptorById, JS_IsExceptionPending,
+    MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
+    MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
+    ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode,
+};
+use js::jsid::SymbolId;
+use js::jsval::{ObjectValue, UndefinedValue};
+use js::rust::wrappers::{
+    AppendToIdVector, JS_AlreadyHasOwnPropertyById, JS_NewObjectWithGivenProto,
+    SetDataPropertyDescriptor, RUST_INTERNED_STRING_TO_JSID,
+};
+use js::rust::{
+    get_context_realm, Handle, HandleObject, HandleValue, MutableHandle, MutableHandleObject,
+};
+
 use crate::dom::bindings::conversions::{is_dom_proxy, jsid_to_string, jsstring_to_str};
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::principals::ServoJSPrincipalsRef;
@@ -15,41 +45,6 @@ use crate::dom::bindings::utils::delete_property_by_id;
 use crate::dom::globalscope::GlobalScope;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
-use js::conversions::ToJSValConvertible;
-use js::glue::{GetProxyHandler, GetProxyHandlerFamily, InvokeGetOwnPropertyDescriptor};
-use js::glue::{GetProxyPrivate, SetProxyPrivate};
-use js::jsapi;
-use js::jsapi::GetStaticPrototype;
-use js::jsapi::Handle as RawHandle;
-use js::jsapi::HandleId as RawHandleId;
-use js::jsapi::HandleObject as RawHandleObject;
-use js::jsapi::HandleValue as RawHandleValue;
-use js::jsapi::JSAutoRealm;
-use js::jsapi::JS_AtomizeAndPinString;
-use js::jsapi::JS_DefinePropertyById;
-use js::jsapi::JS_GetOwnPropertyDescriptorById;
-use js::jsapi::JS_IsExceptionPending;
-use js::jsapi::MutableHandle as RawMutableHandle;
-use js::jsapi::MutableHandleIdVector as RawMutableHandleIdVector;
-use js::jsapi::MutableHandleObject as RawMutableHandleObject;
-use js::jsapi::MutableHandleValue as RawMutableHandleValue;
-use js::jsapi::ObjectOpResult;
-use js::jsapi::{jsid, GetObjectRealmOrNull, GetRealmPrincipals, JSFunctionSpec, JSPropertySpec};
-use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor};
-use js::jsapi::{GetWellKnownSymbol, SymbolCode};
-use js::jsapi::{JSErrNum, SetDOMProxyInformation};
-use js::jsid::SymbolId;
-use js::jsval::ObjectValue;
-use js::jsval::UndefinedValue;
-use js::rust::wrappers::JS_AlreadyHasOwnPropertyById;
-use js::rust::wrappers::JS_NewObjectWithGivenProto;
-use js::rust::wrappers::{
-    AppendToIdVector, SetDataPropertyDescriptor, RUST_INTERNED_STRING_TO_JSID,
-};
-use js::rust::{
-    get_context_realm, Handle, HandleObject, HandleValue, MutableHandle, MutableHandleObject,
-};
-use std::{ffi::CStr, os::raw::c_char, ptr};
 
 /// Determine if this id shadows any existing properties for this proxy.
 pub unsafe extern "C" fn shadow_check_callback(

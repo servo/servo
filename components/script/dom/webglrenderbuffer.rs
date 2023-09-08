@@ -3,6 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
+use std::cell::Cell;
+
+use canvas_traits::webgl::{
+    webgl_channel, GlType, InternalFormatIntVec, WebGLCommand, WebGLError, WebGLRenderbufferId,
+    WebGLResult, WebGLVersion,
+};
+use dom_struct::dom_struct;
+
 use crate::dom::bindings::codegen::Bindings::EXTColorBufferHalfFloatBinding::EXTColorBufferHalfFloatConstants;
 use crate::dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding::WEBGLColorBufferFloatConstants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
@@ -12,12 +20,6 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
-use canvas_traits::webgl::{
-    webgl_channel, GlType, InternalFormatIntVec, WebGLCommand, WebGLError, WebGLRenderbufferId,
-    WebGLResult, WebGLVersion,
-};
-use dom_struct::dom_struct;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct WebGLRenderbuffer {

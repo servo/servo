@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use net::subresource_integrity::{get_prioritized_hash_function, get_strongest_metadata, SriEntry};
-use net::subresource_integrity::{is_response_integrity_valid, parsed_metadata};
+use net::subresource_integrity::{
+    get_prioritized_hash_function, get_strongest_metadata, is_response_integrity_valid,
+    parsed_metadata, SriEntry,
+};
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;

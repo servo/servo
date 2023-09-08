@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     TextTrackKind, TextTrackMethods, TextTrackMode,
@@ -15,8 +19,6 @@ use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttrackcuelist::TextTrackCueList;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct TextTrack {

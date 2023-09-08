@@ -6,8 +6,8 @@
 
 use embedder_traits::Cursor;
 use serde::{Deserialize, Serialize};
+use webrender_api::units::{LayoutSize, LayoutVector2D};
 use webrender_api::{
-    units::{LayoutSize, LayoutVector2D},
     Epoch, ExternalScrollId, PipelineId, ScrollLocation, ScrollSensitivity, SpatialId,
 };
 

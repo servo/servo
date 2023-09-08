@@ -4,45 +4,33 @@
 
 #![allow(unsafe_code)]
 
+use std::os::raw::{c_char, c_int, c_uint, c_void};
+use std::{char, cmp, ptr};
+
+use app_units::Au;
+use euclid::default::Point2D;
+// Eventually we would like the shaper to be pluggable, as many operating systems have their own
+// shapers. For now, however, HarfBuzz is a hard dependency.
+use harfbuzz_sys::hb_blob_t;
+use harfbuzz_sys::{
+    hb_blob_create, hb_bool_t, hb_buffer_add_utf8, hb_buffer_create, hb_buffer_destroy,
+    hb_buffer_get_glyph_infos, hb_buffer_get_glyph_positions, hb_buffer_get_length,
+    hb_buffer_set_direction, hb_buffer_set_script, hb_buffer_t, hb_codepoint_t,
+    hb_face_create_for_tables, hb_face_destroy, hb_face_t, hb_feature_t, hb_font_create,
+    hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
+    hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t, hb_font_set_funcs, hb_font_set_ppem,
+    hb_font_set_scale, hb_font_t, hb_glyph_info_t, hb_glyph_position_t, hb_position_t, hb_shape,
+    hb_tag_t, HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY,
+};
+use lazy_static::lazy_static;
+use log::debug;
+
 use crate::font::{Font, FontTableMethods, FontTableTag, ShapingFlags, ShapingOptions, KERN};
 use crate::ot_tag;
 use crate::platform::font::FontTable;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
 use crate::text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
-use app_units::Au;
-use euclid::default::Point2D;
-// Eventually we would like the shaper to be pluggable, as many operating systems have their own
-// shapers. For now, however, HarfBuzz is a hard dependency.
-use harfbuzz_sys::hb_blob_t;
-use harfbuzz_sys::hb_bool_t;
-use harfbuzz_sys::hb_buffer_add_utf8;
-use harfbuzz_sys::hb_buffer_destroy;
-use harfbuzz_sys::hb_buffer_get_glyph_positions;
-use harfbuzz_sys::hb_buffer_get_length;
-use harfbuzz_sys::hb_face_destroy;
-use harfbuzz_sys::hb_feature_t;
-use harfbuzz_sys::hb_font_create;
-use harfbuzz_sys::hb_font_funcs_create;
-use harfbuzz_sys::hb_font_funcs_set_glyph_h_advance_func;
-use harfbuzz_sys::hb_font_funcs_set_nominal_glyph_func;
-use harfbuzz_sys::hb_font_set_funcs;
-use harfbuzz_sys::hb_font_set_ppem;
-use harfbuzz_sys::hb_font_set_scale;
-use harfbuzz_sys::hb_glyph_info_t;
-use harfbuzz_sys::hb_glyph_position_t;
-use harfbuzz_sys::{hb_blob_create, hb_face_create_for_tables};
-use harfbuzz_sys::{hb_buffer_create, hb_font_destroy};
-use harfbuzz_sys::{hb_buffer_get_glyph_infos, hb_shape};
-use harfbuzz_sys::{hb_buffer_set_direction, hb_buffer_set_script};
-use harfbuzz_sys::{hb_buffer_t, hb_codepoint_t, hb_font_funcs_t};
-use harfbuzz_sys::{hb_face_t, hb_font_t};
-use harfbuzz_sys::{hb_position_t, hb_tag_t};
-use harfbuzz_sys::{HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY};
-use lazy_static::lazy_static;
-use log::debug;
-use std::os::raw::{c_char, c_int, c_uint, c_void};
-use std::{char, cmp, ptr};
 
 const NO_GLYPH: i32 = -1;
 const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');

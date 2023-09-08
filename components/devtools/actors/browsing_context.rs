@@ -7,6 +7,17 @@
 //! Connection point for remote devtools that wish to investigate a particular Browsing Context's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::net::TcpStream;
+
+use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
+use devtools_traits::{DevtoolsPageInfo, NavigationState};
+use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use serde::Serialize;
+use serde_json::{Map, Value};
+
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::emulation::EmulationActor;
 use crate::actors::inspector::InspectorActor;
@@ -18,16 +29,6 @@ use crate::actors::thread::ThreadActor;
 use crate::actors::timeline::TimelineActor;
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
-use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
-use devtools_traits::DevtoolsPageInfo;
-use devtools_traits::NavigationState;
-use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use serde::Serialize;
-use serde_json::{Map, Value};
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-use std::net::TcpStream;
 
 #[derive(Serialize)]
 struct BrowsingContextTraits {

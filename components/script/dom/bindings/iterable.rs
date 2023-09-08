@@ -6,8 +6,19 @@
 
 //! Implementation of `iterable<...>` and `iterable<..., ...>` WebIDL declarations.
 
-use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndValueResult;
-use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
+use std::cell::Cell;
+use std::ptr;
+use std::ptr::NonNull;
+
+use dom_struct::dom_struct;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::{Heap, JSObject};
+use js::jsval::UndefinedValue;
+use js::rust::{HandleObject, HandleValue, MutableHandleObject};
+
+use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::{
+    IterableKeyAndValueResult, IterableKeyOrValueResult,
+};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{
     reflect_dom_object, DomObjectIteratorWrap, DomObjectWrap, Reflector,
@@ -16,14 +27,6 @@ use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
-use js::jsapi::{Heap, JSObject};
-use js::jsval::UndefinedValue;
-use js::rust::{HandleObject, HandleValue, MutableHandleObject};
-use std::cell::Cell;
-use std::ptr;
-use std::ptr::NonNull;
 
 /// The values that an iterator will iterate over.
 #[derive(JSTraceable, MallocSizeOf)]

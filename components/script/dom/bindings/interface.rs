@@ -4,6 +4,34 @@
 
 //! Machinery to initialise interface prototype objects and interface objects.
 
+use std::convert::TryFrom;
+use std::ptr;
+
+use js::error::throw_type_error;
+use js::glue::UncheckedUnwrapObject;
+use js::jsapi::JS::CompartmentIterResult;
+use js::jsapi::{
+    jsid, CallArgs, CheckedUnwrapStatic, Compartment, CompartmentSpecifier, CurrentGlobalOrNull,
+    GetFunctionRealm, GetNonCCWObjectGlobal, GetRealmGlobalOrNull, GetWellKnownSymbol,
+    HandleObject as RawHandleObject, IsSharableCompartment, IsSystemCompartment, JSAutoRealm,
+    JSClass, JSClassOps, JSContext, JSFunctionSpec, JSObject, JSPropertySpec, JSString, JSTracer,
+    JS_AtomizeAndPinString, JS_GetFunctionObject, JS_GetProperty, JS_IterateCompartments,
+    JS_NewFunction, JS_NewGlobalObject, JS_NewObject, JS_NewPlainObject, JS_NewStringCopyN,
+    JS_SetReservedSlot, JS_WrapObject, ObjectOps, OnNewGlobalHookOption, SymbolCode,
+    TrueHandleValue, Value, JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING,
+};
+use js::jsval::{JSVal, NullValue, PrivateValue};
+use js::rust::wrappers::{
+    JS_DefineProperty, JS_DefineProperty3, JS_DefineProperty4, JS_DefineProperty5,
+    JS_DefinePropertyById5, JS_FireOnNewGlobalObject, JS_LinkConstructorAndPrototype,
+    JS_NewObjectWithGivenProto, RUST_SYMBOL_TO_JSID,
+};
+use js::rust::{
+    define_methods, define_properties, get_object_class, is_dom_class, maybe_wrap_object,
+    HandleObject, HandleValue, MutableHandleObject, RealmOptions,
+};
+use servo_url::MutableOrigin;
+
 use crate::dom::bindings::codegen::InterfaceObjectMap::Globals;
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::constant::{define_constants, ConstantSpec};
@@ -15,43 +43,6 @@ use crate::dom::bindings::utils::{
     DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL,
 };
 use crate::script_runtime::JSContext as SafeJSContext;
-use js::error::throw_type_error;
-use js::glue::UncheckedUnwrapObject;
-use js::jsapi::CheckedUnwrapStatic;
-use js::jsapi::CurrentGlobalOrNull;
-use js::jsapi::GetFunctionRealm;
-use js::jsapi::GetNonCCWObjectGlobal;
-use js::jsapi::GetRealmGlobalOrNull;
-use js::jsapi::GetWellKnownSymbol;
-use js::jsapi::HandleObject as RawHandleObject;
-use js::jsapi::JS_GetProperty;
-use js::jsapi::JS_WrapObject;
-use js::jsapi::{jsid, JSClass, JSClassOps};
-use js::jsapi::{
-    CallArgs, Compartment, CompartmentSpecifier, IsSharableCompartment, IsSystemCompartment,
-    JS_IterateCompartments, JS::CompartmentIterResult,
-};
-use js::jsapi::{JSAutoRealm, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
-use js::jsapi::{JSPropertySpec, JSString, JSTracer, JS_AtomizeAndPinString};
-use js::jsapi::{JS_GetFunctionObject, JS_NewFunction, JS_NewGlobalObject};
-use js::jsapi::{JS_NewObject, JS_NewPlainObject};
-use js::jsapi::{JS_NewStringCopyN, JS_SetReservedSlot};
-use js::jsapi::{ObjectOps, OnNewGlobalHookOption, SymbolCode};
-use js::jsapi::{TrueHandleValue, Value};
-use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
-use js::jsval::NullValue;
-use js::jsval::{JSVal, PrivateValue};
-use js::rust::is_dom_class;
-use js::rust::wrappers::JS_FireOnNewGlobalObject;
-use js::rust::wrappers::RUST_SYMBOL_TO_JSID;
-use js::rust::wrappers::{JS_DefineProperty, JS_DefineProperty5};
-use js::rust::wrappers::{JS_DefineProperty3, JS_DefineProperty4, JS_DefinePropertyById5};
-use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithGivenProto};
-use js::rust::{define_methods, define_properties, get_object_class, maybe_wrap_object};
-use js::rust::{HandleObject, HandleValue, MutableHandleObject, RealmOptions};
-use servo_url::MutableOrigin;
-use std::convert::TryFrom;
-use std::ptr;
 
 /// The class of a non-callback interface object.
 #[derive(Clone, Copy)]

@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use script_traits::{TimerEvent, TimerEventRequest, TimerSchedulerMsg};
 use std::cmp::{self, Ord};
 use std::collections::BinaryHeap;
 use std::time::{Duration, Instant};
+
+use script_traits::{TimerEvent, TimerEventRequest, TimerSchedulerMsg};
 
 pub struct TimerScheduler(BinaryHeap<ScheduledEvent>);
 

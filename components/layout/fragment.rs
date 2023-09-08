@@ -4,22 +4,12 @@
 
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
-use crate::context::{with_thread_local_font_context, LayoutContext};
-use crate::display_list::items::{ClipScrollNodeIndex, OpaqueNode, BLUR_INFLATION_FACTOR};
-use crate::display_list::ToLayout;
-use crate::floats::ClearType;
-use crate::flow::{GetBaseFlow, ImmutableFlowUtils};
-use crate::flow_ref::FlowRef;
-use crate::inline::{InlineFragmentContext, InlineFragmentNodeFlags, InlineFragmentNodeInfo};
-use crate::inline::{InlineMetrics, LineMetrics};
-#[cfg(debug_assertions)]
-use crate::layout_debug;
-use crate::model::style_length;
-use crate::model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
-use crate::text;
-use crate::text::TextRunScanner;
-use crate::wrapper::ThreadSafeLayoutNodeHelpers;
-use crate::ServoArc;
+use std::borrow::ToOwned;
+use std::cmp::{max, min, Ordering};
+use std::collections::LinkedList;
+use std::sync::{Arc, Mutex};
+use std::{f32, fmt};
+
 use app_units::Au;
 use bitflags::bitflags;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
@@ -41,11 +31,6 @@ use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaDat
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
 use size_of_test::size_of_test;
-use std::borrow::ToOwned;
-use std::cmp::{max, min, Ordering};
-use std::collections::LinkedList;
-use std::sync::{Arc, Mutex};
-use std::{f32, fmt};
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
 use style::computed_values::clear::T as Clear;
@@ -70,6 +55,25 @@ use style::values::generics::box_::{Perspective, VerticalAlignKeyword};
 use style::values::generics::transform;
 use webrender_api::units::LayoutTransform;
 use webrender_api::{self, ImageKey};
+
+use crate::context::{with_thread_local_font_context, LayoutContext};
+use crate::display_list::items::{ClipScrollNodeIndex, OpaqueNode, BLUR_INFLATION_FACTOR};
+use crate::display_list::ToLayout;
+use crate::floats::ClearType;
+use crate::flow::{GetBaseFlow, ImmutableFlowUtils};
+use crate::flow_ref::FlowRef;
+use crate::inline::{
+    InlineFragmentContext, InlineFragmentNodeFlags, InlineFragmentNodeInfo, InlineMetrics,
+    LineMetrics,
+};
+#[cfg(debug_assertions)]
+use crate::layout_debug;
+use crate::model::{
+    self, style_length, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint,
+};
+use crate::text::TextRunScanner;
+use crate::wrapper::ThreadSafeLayoutNodeHelpers;
+use crate::{text, ServoArc};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;

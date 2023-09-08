@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::flow::{Flow, FlowFlags, GetBaseFlow};
 use bitflags::bitflags;
 use style::computed_values::float::T as Float;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
+
+use crate::flow::{Flow, FlowFlags, GetBaseFlow};
 
 /// Used in a flow traversal to indicate whether this re-layout should be incremental or not.
 #[derive(Clone, Copy, PartialEq)]

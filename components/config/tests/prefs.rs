@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo_config::basedir;
-use servo_config::pref_util::Preferences;
-use servo_config::prefs::{read_prefs_map, PrefValue};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::{self, File};
 use std::io::{Read, Write};
+
+use servo_config::basedir;
+use servo_config::pref_util::Preferences;
+use servo_config::prefs::{read_prefs_map, PrefValue};
 
 #[test]
 fn test_create_prefs_map() {

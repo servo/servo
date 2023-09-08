@@ -4,8 +4,9 @@
 
 //! https://drafts.csswg.org/css-flexbox/#box-model
 
-use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
+
+use crate::geom::flow_relative::{Rect, Sides, Vec2};
 
 #[derive(Clone, Copy)]
 pub(super) struct FlexRelativeVec2<T> {

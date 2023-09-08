@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::PathBuf;
+use std::rc::Rc;
+
 use app_units::Au;
 use gfx::font::{
     fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope,
@@ -11,18 +18,12 @@ use gfx::font_context::{FontContext, FontContextHandle, FontSource};
 use gfx::font_template::FontTemplateDescriptor;
 use servo_arc::Arc;
 use servo_atoms::Atom;
-use std::cell::Cell;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::PathBuf;
-use std::rc::Rc;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
-    FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSize,
+    FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSize, FontStretch,
+    FontWeight, SingleFontFamily,
 };
-use style::values::computed::font::{FontStretch, FontWeight, SingleFontFamily};
 use style::values::generics::font::FontStyle;
 use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
 

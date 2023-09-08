@@ -2,13 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::canvas_data;
-use crate::canvas_data::{
-    Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, ExtendMode, Filter,
-    GenericDrawTarget, GenericPathBuilder, GradientStop, GradientStops, Path, SourceSurface,
-    StrokeOptions, SurfaceFormat,
-};
-use crate::canvas_paint_thread::AntialiasMode;
+use std::marker::PhantomData;
+
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
@@ -17,7 +12,14 @@ use font_kit::font::Font;
 use log::warn;
 use lyon_geom::Arc;
 use raqote::PathOp;
-use std::marker::PhantomData;
+
+use crate::canvas_data;
+use crate::canvas_data::{
+    Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, ExtendMode, Filter,
+    GenericDrawTarget, GenericPathBuilder, GradientStop, GradientStops, Path, SourceSurface,
+    StrokeOptions, SurfaceFormat,
+};
+use crate::canvas_paint_thread::AntialiasMode;
 
 pub struct RaqoteBackend;
 

@@ -2,8 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::canvas_paint_thread::{AntialiasMode, ImageUpdate, WebrenderApi};
-use crate::raqote_backend::Repetition;
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::marker::PhantomData;
+use std::mem;
+use std::sync::{Arc, Mutex};
+
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
@@ -20,16 +24,14 @@ use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{debug, error, warn};
 use num_traits::ToPrimitive;
 use servo_arc::Arc as ServoArc;
-use std::cell::RefCell;
-#[allow(unused_imports)]
-use std::marker::PhantomData;
-use std::mem;
-use std::sync::{Arc, Mutex};
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font;
 use style_traits::values::ToCss;
 use webrender_api::units::{DeviceIntSize, RectExt as RectExt_};
 use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
+
+use crate::canvas_paint_thread::{AntialiasMode, ImageUpdate, WebrenderApi};
+use crate::raqote_backend::Repetition;
 
 /// The canvas data stores a state machine for the current status of
 /// the path data and any relevant transformations that are

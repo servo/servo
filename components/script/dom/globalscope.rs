@@ -2,6 +2,64 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+use std::cell::Cell;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, VecDeque};
+use std::ops::Index;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread::JoinHandle;
+use std::{mem, ptr};
+
+use content_security_policy::CspList;
+use crossbeam_channel::Sender;
+use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
+use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
+use js::glue::{IsWrapper, UnwrapObjectDynamic};
+use js::jsapi::{
+    Compile1, CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap,
+    InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, SetScriptPrivate,
+};
+use js::jsval::{JSVal, PrivateValue, UndefinedValue};
+use js::panic::maybe_resume_unwind;
+use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
+use js::rust::{
+    get_object_class, transform_str_to_source_text, CompileOptionsWrapper, HandleValue,
+    MutableHandleValue, ParentRuntime, Runtime,
+};
+use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
+use msg::constellation_msg::{
+    BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
+    ServiceWorkerId, ServiceWorkerRegistrationId,
+};
+use net_traits::blob_url_store::{get_blob_origin, BlobBuf};
+use net_traits::filemanager_thread::{
+    FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
+};
+use net_traits::image_cache::ImageCache;
+use net_traits::request::Referrer;
+use net_traits::response::HttpsState;
+use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
+use parking_lot::Mutex;
+use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
+use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
+use script_traits::transferable::MessagePortImpl;
+use script_traits::{
+    BroadcastMsg, MessagePortMsg, MsDuration, PortMessageTask, ScriptMsg,
+    ScriptToConstellationChan, TimerEvent, TimerEventId, TimerSchedulerMsg, TimerSource,
+};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use time::{get_time, Timespec};
+use uuid::Uuid;
+use webgpu::identity::WebGPUOpResult;
+use webgpu::{ErrorScopeId, WebGPUDevice};
+
+use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
@@ -52,8 +110,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
-use crate::script_module::{DynamicModuleList, ModuleTree};
-use crate::script_module::{ModuleScript, ScriptFetchOptions};
+use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
 use crate::script_runtime::{
     CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext, ScriptChan, ScriptPort,
 };
@@ -67,69 +124,10 @@ use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::timer::TimerTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
-use crate::task_source::TaskSource;
-use crate::task_source::TaskSourceName;
-use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
-use crate::timers::{OneshotTimers, TimerCallback};
-use content_security_policy::CspList;
-use crossbeam_channel::Sender;
-use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
-use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
-use js::glue::{IsWrapper, UnwrapObjectDynamic};
-use js::jsapi::Compile1;
-use js::jsapi::SetScriptPrivate;
-use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
-use js::jsapi::{HandleObject, Heap, InstantiateGlobalStencil, InstantiateOptions};
-use js::jsapi::{JSContext, JSObject, JSScript};
-use js::jsval::PrivateValue;
-use js::jsval::{JSVal, UndefinedValue};
-use js::panic::maybe_resume_unwind;
-use js::rust::transform_str_to_source_text;
-use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
-use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
-use js::rust::{HandleValue, MutableHandleValue};
-use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::{
-    BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
-    ServiceWorkerId, ServiceWorkerRegistrationId,
+use crate::task_source::{TaskSource, TaskSourceName};
+use crate::timers::{
+    IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
 };
-use net_traits::blob_url_store::{get_blob_origin, BlobBuf};
-use net_traits::filemanager_thread::{
-    FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
-};
-use net_traits::image_cache::ImageCache;
-use net_traits::request::Referrer;
-use net_traits::response::HttpsState;
-use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
-use parking_lot::Mutex;
-use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
-use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
-use script_traits::transferable::MessagePortImpl;
-use script_traits::{
-    BroadcastMsg, MessagePortMsg, MsDuration, PortMessageTask, ScriptMsg,
-    ScriptToConstellationChan, TimerEvent,
-};
-use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
-use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use std::borrow::Cow;
-use std::cell::Cell;
-use std::collections::hash_map::Entry;
-use std::collections::{HashMap, VecDeque};
-use std::mem;
-use std::ops::Index;
-use std::ptr;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread::JoinHandle;
-use time::{get_time, Timespec};
-use uuid::Uuid;
-use webgpu::{identity::WebGPUOpResult, ErrorScopeId, WebGPUDevice};
-
-use super::bindings::trace::HashMapTracedValues;
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker {

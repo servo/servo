@@ -2,6 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use atomic_refcell::AtomicRefMut;
+use style::properties::longhands::align_content::computed_value::T as AlignContent;
+use style::properties::longhands::align_items::computed_value::T as AlignItems;
+use style::properties::longhands::align_self::computed_value::T as AlignSelf;
+use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
+use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
+use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
+use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
+use style::values::computed::length::Size;
+use style::values::computed::Length;
+use style::values::generics::flex::GenericFlexBasis as FlexBasis;
+use style::values::CSSFloat;
+use style::Zero;
+
 use super::geom::{
     FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2, MainStartCrossStart,
 };
@@ -15,20 +31,6 @@ use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, Positioning
 use crate::sizing::ContentSizes;
 use crate::style_ext::ComputedValuesExt;
 use crate::ContainingBlock;
-use atomic_refcell::AtomicRefMut;
-use std::cell::Cell;
-use style::properties::longhands::align_content::computed_value::T as AlignContent;
-use style::properties::longhands::align_items::computed_value::T as AlignItems;
-use style::properties::longhands::align_self::computed_value::T as AlignSelf;
-use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
-use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
-use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
-use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
-use style::values::computed::length::Size;
-use style::values::computed::Length;
-use style::values::generics::flex::GenericFlexBasis as FlexBasis;
-use style::values::CSSFloat;
-use style::Zero;
 
 // FIMXE: “Flex items […] `z-index` values other than `auto` create a stacking context
 // even if `position` is `static` (behaving exactly as if `position` were `relative`).”

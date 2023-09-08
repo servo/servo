@@ -4,6 +4,21 @@
 
 //! The set of animations for a document.
 
+use std::cell::Cell;
+
+use cssparser::ToCss;
+use fxhash::{FxHashMap, FxHashSet};
+use libc::c_void;
+use msg::constellation_msg::PipelineId;
+use script_traits::{AnimationState as AnimationsPresentState, ScriptMsg, UntrustedNodeAddress};
+use serde::{Deserialize, Serialize};
+use style::animation::{
+    Animation, AnimationSetKey, AnimationState, DocumentAnimationSet, ElementAnimationSet,
+    KeyframesIterationState, Transition,
+};
+use style::dom::OpaqueNode;
+use style::selector_parser::PseudoElement;
+
 use crate::dom::animationevent::AnimationEvent;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AnimationEventBinding::AnimationEventInit;
@@ -18,19 +33,6 @@ use crate::dom::event::Event;
 use crate::dom::node::{from_untrusted_node_address, window_from_node, Node, NodeDamage};
 use crate::dom::transitionevent::TransitionEvent;
 use crate::dom::window::Window;
-use cssparser::ToCss;
-use fxhash::{FxHashMap, FxHashSet};
-use libc::c_void;
-use msg::constellation_msg::PipelineId;
-use script_traits::{AnimationState as AnimationsPresentState, ScriptMsg, UntrustedNodeAddress};
-use serde::{Deserialize, Serialize};
-use std::cell::Cell;
-use style::animation::{
-    Animation, AnimationSetKey, AnimationState, DocumentAnimationSet, ElementAnimationSet,
-    KeyframesIterationState, Transition,
-};
-use style::dom::OpaqueNode;
-use style::selector_parser::PseudoElement;
 
 /// The set of animations for a document.
 #[derive(Default, JSTraceable, MallocSizeOf)]

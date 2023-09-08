@@ -9,21 +9,23 @@
 // The traits are here instead of in layout so
 //   that these modules won't have to depend on layout.
 
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+
 use crossbeam_channel::{Receiver, Sender};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::TopLevelBrowsingContextId;
-use msg::constellation_msg::{BackgroundHangMonitorRegister, PipelineId};
+use msg::constellation_msg::{
+    BackgroundHangMonitorRegister, PipelineId, TopLevelBrowsingContextId,
+};
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
-use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::{
-    ConstellationControlMsg, LayoutControlMsg, WebrenderIpcSender, WindowSizeData,
+    ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg, WebrenderIpcSender,
+    WindowSizeData,
 };
 use servo_url::ServoUrl;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency

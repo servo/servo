@@ -4,6 +4,32 @@
 
 #![allow(unsafe_code)]
 
+use std::borrow::Cow;
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::num::NonZeroU64;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::jsapi::{Heap, JSObject};
+use webgpu::identity::WebGPUOpResult;
+use webgpu::wgpu::id::{BindGroupLayoutId, PipelineLayoutId};
+use webgpu::wgpu::{
+    binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
+};
+use webgpu::{self, wgt, ErrorScopeId, WebGPU, WebGPURequest};
+
+use super::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
+    GPUBufferBindingType, GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType,
+};
+use super::bindings::codegen::Bindings::GPUDeviceLostInfoBinding::GPUDeviceLostReason;
+use super::bindings::codegen::Bindings::GPURenderPipelineBinding::{
+    GPUBlendComponent, GPUPrimitiveState, GPUVertexStepMode,
+};
+use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
+use super::bindings::error::Fallible;
+use super::gpudevicelostinfo::GPUDeviceLostInfo;
+use super::gpusupportedlimits::GPUSupportedLimits;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
@@ -61,31 +87,6 @@ use crate::dom::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::dom::gpuvalidationerror::GPUValidationError;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
-use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
-use std::borrow::Cow;
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-use std::num::NonZeroU64;
-use std::rc::Rc;
-use webgpu::wgpu::{
-    binding_model as wgpu_bind, command as wgpu_com,
-    id::{BindGroupLayoutId, PipelineLayoutId},
-    pipeline as wgpu_pipe, resource as wgpu_res,
-};
-use webgpu::{self, identity::WebGPUOpResult, wgt, ErrorScopeId, WebGPU, WebGPURequest};
-
-use super::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
-    GPUBufferBindingType, GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType,
-};
-use super::bindings::codegen::Bindings::GPUDeviceLostInfoBinding::GPUDeviceLostReason;
-use super::bindings::codegen::Bindings::GPURenderPipelineBinding::{
-    GPUBlendComponent, GPUPrimitiveState, GPUVertexStepMode,
-};
-use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
-use super::bindings::error::Fallible;
-use super::gpudevicelostinfo::GPUDeviceLostInfo;
-use super::gpusupportedlimits::GPUSupportedLimits;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct ErrorScopeInfo {

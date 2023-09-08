@@ -2,12 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::jsval::JSVal;
+use js::rust::HandleObject;
+
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverCallback;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
-use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverMethods;
+use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::{
+    PerformanceObserverCallback, PerformanceObserverInit, PerformanceObserverMethods,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -18,11 +25,6 @@ use crate::dom::performance::PerformanceEntryList;
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsval::JSVal;
-use js::rust::HandleObject;
-use std::cell::Cell;
-use std::rc::Rc;
 
 /// List of allowed performance entry types, in alphabetical order.
 pub const VALID_ENTRY_TYPES: &'static [&'static str] = &[

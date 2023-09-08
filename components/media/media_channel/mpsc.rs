@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use serde::{Deserialize, Serialize};
-use serde::{Deserializer, Serializer};
 use std::sync::mpsc;
+
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 macro_rules! unreachable_serializable {
     ($name:ident) => {

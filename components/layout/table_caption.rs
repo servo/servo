@@ -4,6 +4,15 @@
 
 //! CSS table formatting contexts.
 
+use std::fmt;
+
+use app_units::Au;
+use euclid::default::Point2D;
+use gfx_traits::print_tree::PrintTree;
+use log::{debug, trace};
+use style::logical_geometry::LogicalSize;
+use style::properties::ComputedValues;
+
 use crate::block::BlockFlow;
 use crate::context::LayoutContext;
 use crate::display_list::{
@@ -11,13 +20,6 @@ use crate::display_list::{
 };
 use crate::flow::{Flow, FlowClass, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use app_units::Au;
-use euclid::default::Point2D;
-use gfx_traits::print_tree::PrintTree;
-use log::{debug, trace};
-use std::fmt;
-use style::logical_geometry::LogicalSize;
-use style::properties::ComputedValues;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableCaptionFlow {}

@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use webgpu::wgpu::command::{compute_ffi as wgpu_comp, ComputePass};
+use webgpu::{WebGPU, WebGPURequest};
+
+use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUComputePassEncoderBinding::GPUComputePassEncoderMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -12,13 +17,6 @@ use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandencoder::{GPUCommandEncoder, GPUCommandEncoderState};
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
-use dom_struct::dom_struct;
-use webgpu::{
-    wgpu::command::{compute_ffi as wgpu_comp, ComputePass},
-    WebGPU, WebGPURequest,
-};
-
-use super::bindings::error::Fallible;
 
 #[dom_struct]
 pub struct GPUComputePassEncoder {

@@ -5,6 +5,14 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
+use std::default::Default;
+use std::fs::{self, File};
+use std::io::{self, Read, Write};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{RwLock, RwLockReadGuard};
+use std::{env, process};
+
 use euclid::Size2D;
 use getopts::{Matches, Options};
 use lazy_static::lazy_static;
@@ -12,14 +20,6 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
-use std::default::Default;
-use std::env;
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
-use std::path::{Path, PathBuf};
-use std::process;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{RwLock, RwLockReadGuard};
 use url::{self, Url};
 
 use crate::{pref, set_pref};

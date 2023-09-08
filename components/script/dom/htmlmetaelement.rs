@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use html5ever::{LocalName, Prefix};
+use js::rust::HandleObject;
+use style::str::HTML_SPACE_CHARACTERS;
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -14,10 +19,6 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
-use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
-use js::rust::HandleObject;
-use style::str::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct HTMLMetaElement {

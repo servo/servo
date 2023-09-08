@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use html5ever::{local_name, LocalName, Prefix};
+use js::rust::HandleObject;
+use style::attr::AttrValue;
+
 use crate::dom::bindings::codegen::Bindings::HTMLLIElementBinding::HTMLLIElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -10,10 +15,6 @@ use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
-use dom_struct::dom_struct;
-use html5ever::{local_name, LocalName, Prefix};
-use js::rust::HandleObject;
-use style::attr::AttrValue;
 
 #[dom_struct]
 pub struct HTMLLIElement {

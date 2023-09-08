@@ -2,6 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fmt;
+
+use euclid::default::Point2D;
+use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
+use script_traits::UntrustedNodeAddress;
+use servo_arc::Arc;
+use servo_atoms::Atom;
+use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
+use style::media_queries::MediaList;
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
+use style::stylesheets::{Stylesheet, StylesheetContents};
+
+use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -12,18 +25,6 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
-use euclid::default::Point2D;
-use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
-use script_traits::UntrustedNodeAddress;
-use servo_arc::Arc;
-use servo_atoms::Atom;
-use std::fmt;
-use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
-use style::media_queries::MediaList;
-use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
-use style::stylesheets::{Stylesheet, StylesheetContents};
-
-use super::bindings::trace::HashMapTracedValues;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]

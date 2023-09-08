@@ -6,9 +6,10 @@
 // This is copy pasted from the old hyper headers to avoid hardcoding everything
 // (I would probably also make some silly mistakes while migrating...)
 
+use std::{fmt, str};
+
 use http::header::HeaderValue;
 use mime::Mime;
-use std::{fmt, str};
 
 /// A quality value, as specified in [RFC7231].
 ///

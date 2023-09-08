@@ -2,6 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::marker::PhantomData;
+use std::sync::{Arc, Mutex};
+
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use net_traits::image::base::Image as NetImage;
+use script_layout_interface::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
+use script_layout_interface::{HTMLCanvasDataSource, StyleData};
+use servo_arc::Arc as ServoArc;
+use style::properties::ComputedValues;
+
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::WhichPseudoElement;
@@ -10,15 +21,6 @@ use crate::flow::inline::InlineLevelBox;
 use crate::flow::BlockLevelBox;
 use crate::geom::PhysicalSize;
 use crate::replaced::{CanvasInfo, CanvasSource};
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use net_traits::image::base::Image as NetImage;
-use script_layout_interface::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
-use script_layout_interface::{HTMLCanvasDataSource, StyleData};
-use servo_arc::Arc as ServoArc;
-use std::marker::PhantomData;
-use std::sync::{Arc, Mutex};
-use style::properties::ComputedValues;
 
 /// The data that is stored in each DOM node that is used by layout.
 #[derive(Default)]

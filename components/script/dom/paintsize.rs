@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::PaintSizeBinding::PaintSizeMethods;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use style_traits::CSSPixel;
+
+use crate::dom::bindings::codegen::Bindings::PaintSizeBinding::PaintSizeMethods;
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 
 #[dom_struct]
 pub struct PaintSize {

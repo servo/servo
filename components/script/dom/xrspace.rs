@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use euclid::RigidTransform3D;
+use webxr_api::{BaseSpace, Frame, Space};
+
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -11,9 +15,6 @@ use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrjointspace::XRJointSpace;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::{cast_transform, ApiPose, XRSession};
-use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
-use webxr_api::{BaseSpace, Frame, Space};
 
 #[dom_struct]
 pub struct XRSpace {

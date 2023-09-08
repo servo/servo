@@ -2,10 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::ptr;
+
+use dom_struct::dom_struct;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::{JSAutoRealm, JSObject};
+use js::jsval::UndefinedValue;
+use js::rust::CustomAutoRooterGuard;
+use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
+use script_traits::serializable::BlobImpl;
+use servo_media::webrtc::{
+    DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
+};
+
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelInit;
-use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelMethods;
-use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelState;
+use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::{
+    RTCDataChannelInit, RTCDataChannelMethods, RTCDataChannelState,
+};
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{RTCErrorDetailType, RTCErrorInit};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -20,18 +34,6 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::rtcerrorevent::RTCErrorEvent;
 use crate::dom::rtcpeerconnection::RTCPeerConnection;
-use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
-use js::jsapi::{JSAutoRealm, JSObject};
-use js::jsval::UndefinedValue;
-use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
-use script_traits::serializable::BlobImpl;
-use servo_media::webrtc::{
-    DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
-};
-use std::cell::Cell;
-use std::ptr;
 
 #[dom_struct]
 pub struct RTCDataChannel {

@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
 use euclid::default::{Point2D, Rect, Size2D};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum PixelFormat {

@@ -3,24 +3,24 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // check-tidy: no specs after this line
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletBinding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
-use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::realms::InRealm;
 use crate::script_thread::ScriptThread;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use std::rc::Rc;
 
 #[dom_struct]
 pub struct TestWorklet {

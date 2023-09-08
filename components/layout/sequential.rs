@@ -4,6 +4,13 @@
 
 //! Implements sequential traversals over the DOM and flow trees.
 
+use app_units::Au;
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
+use servo_config::opts;
+use style::servo::restyle_damage::ServoRestyleDamage;
+use webrender_api::units::LayoutPoint;
+use webrender_api::{ColorF, PropertyBinding, RectangleDisplayItem};
+
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToLayout;
 use crate::display_list::items::{self, CommonDisplayItem, DisplayItem, DisplayListSection};
@@ -13,14 +20,10 @@ use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use crate::fragment::{CoordinateSystem, FragmentBorderBoxIterator};
 use crate::generated_content::ResolveGeneratedContent;
 use crate::incremental::RelayoutMode;
-use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
-use crate::traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
-use app_units::Au;
-use euclid::default::{Point2D, Rect, Size2D, Vector2D};
-use servo_config::opts;
-use style::servo::restyle_damage::ServoRestyleDamage;
-use webrender_api::units::LayoutPoint;
-use webrender_api::{ColorF, PropertyBinding, RectangleDisplayItem};
+use crate::traversal::{
+    AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList, InorderFlowTraversal,
+    PostorderFlowTraversal, PreorderFlowTraversal,
+};
 
 pub fn resolve_generated_content(root: &mut dyn Flow, layout_context: &LayoutContext) {
     ResolveGeneratedContent::new(&layout_context).traverse(root, 0);

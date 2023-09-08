@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use style::properties::longhands::list_style_type::computed_value::T as ListStyleType;
+use style::properties::style_structs;
+use style::values::computed::Image;
+
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{NodeAndStyleInfo, PseudoElementContentItem};
 use crate::replaced::ReplacedContent;
-use style::properties::longhands::list_style_type::computed_value::T as ListStyleType;
-use style::properties::style_structs;
-use style::values::computed::Image;
 
 /// https://drafts.csswg.org/css-lists/#content-property
 pub(crate) fn make_marker<'dom, Node>(

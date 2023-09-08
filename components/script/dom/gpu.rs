@@ -2,8 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::GPUBinding::GPURequestAdapterOptions;
-use crate::dom::bindings::codegen::Bindings::GPUBinding::{GPUMethods, GPUPowerPreference};
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
+use js::jsapi::Heap;
+use script_traits::ScriptMsg;
+use webgpu::wgt::PowerPreference;
+use webgpu::{wgpu, WebGPUResponse, WebGPUResponseResult};
+
+use super::bindings::codegen::Bindings::GPUTextureBinding::GPUTextureFormat;
+use crate::dom::bindings::codegen::Bindings::GPUBinding::{
+    GPUMethods, GPUPowerPreference, GPURequestAdapterOptions,
+};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -14,16 +26,6 @@ use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::task_source::{TaskSource, TaskSourceName};
-use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
-use js::jsapi::Heap;
-use script_traits::ScriptMsg;
-use std::rc::Rc;
-use webgpu::wgt::PowerPreference;
-use webgpu::{wgpu, WebGPUResponse, WebGPUResponseResult};
-
-use super::bindings::codegen::Bindings::GPUTextureBinding::GPUTextureFormat;
 
 #[dom_struct]
 pub struct GPU {

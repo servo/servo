@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::Fragment;
-use crate::{cell::ArcRefCell, geom::flow_relative::Vec2};
 use serde::Serialize;
 use style::values::computed::{Length, LengthPercentage};
+
+use super::Fragment;
+use crate::cell::ArcRefCell;
+use crate::geom::flow_relative::Vec2;
 
 /// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`
 /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.

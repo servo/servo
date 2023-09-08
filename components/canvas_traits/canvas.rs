@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::default::Default;
+use std::str::FromStr;
+
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
-use std::default::Default;
-use std::str::FromStr;
 use style::properties::style_structs::Font as FontStyleStruct;
 use webrender_api::ImageKey;
 

@@ -2,23 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use std::borrow::Cow;
+use std::default::Default;
+use std::ptr;
+use std::ptr::NonNull;
+use std::vec::Vec;
+
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{HandleObject, Runtime};
 use js::typedarray::{CreateWith, Uint8ClampedArray};
-use std::borrow::Cow;
-use std::default::Default;
-use std::ptr;
-use std::ptr::NonNull;
-use std::vec::Vec;
+
+use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub struct ImageData {

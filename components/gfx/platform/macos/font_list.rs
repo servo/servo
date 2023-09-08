@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::text::util::unicode_plane;
 use log::debug;
 use ucd::{Codepoint, UnicodeBlock};
+
+use crate::text::util::unicode_plane;
 
 pub fn for_each_available_family<F>(mut callback: F)
 where

@@ -2,15 +2,42 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::collections::hash_map::Entry;
+use std::ptr::null_mut;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+
+use crossbeam_channel::{unbounded, Sender};
+use dom_struct::dom_struct;
+use euclid::{Scale, Size2D};
+use js::jsapi::{
+    HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject,
+    JS_ClearPendingException, JS_IsExceptionPending, NewArrayObject,
+};
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::rust::wrappers::{Call, Construct1};
+use js::rust::{HandleValue, Runtime};
+use msg::constellation_msg::PipelineId;
+use net_traits::image_cache::ImageCache;
+use pixels::PixelFormat;
+use profile_traits::ipc;
+use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
+use servo_atoms::Atom;
+use servo_config::pref;
+use servo_url::ServoUrl;
+use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
+
+use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::callback::CallbackContainer;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding::PaintWorkletGlobalScopeMethods;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
-use crate::dom::bindings::conversions::get_property;
-use crate::dom::bindings::conversions::get_property_jsval;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::conversions::{get_property, get_property_jsval};
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -20,52 +47,8 @@ use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::stylepropertymapreadonly::StylePropertyMapReadOnly;
 use crate::dom::worklet::WorkletExecutor;
-use crate::dom::workletglobalscope::WorkletGlobalScope;
-use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
-use crate::dom::workletglobalscope::WorkletTask;
+use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit, WorkletTask};
 use crate::script_runtime::JSContext;
-use crossbeam_channel::{unbounded, Sender};
-use dom_struct::dom_struct;
-use euclid::Scale;
-use euclid::Size2D;
-use js::jsapi::HandleValueArray;
-use js::jsapi::Heap;
-use js::jsapi::IsCallable;
-use js::jsapi::IsConstructor;
-use js::jsapi::JSAutoRealm;
-use js::jsapi::JSObject;
-use js::jsapi::JS_ClearPendingException;
-use js::jsapi::JS_IsExceptionPending;
-use js::jsapi::NewArrayObject;
-use js::jsval::JSVal;
-use js::jsval::ObjectValue;
-use js::jsval::UndefinedValue;
-use js::rust::wrappers::Call;
-use js::rust::wrappers::Construct1;
-use js::rust::HandleValue;
-use js::rust::Runtime;
-use msg::constellation_msg::PipelineId;
-use net_traits::image_cache::ImageCache;
-use pixels::PixelFormat;
-use profile_traits::ipc;
-use script_traits::Painter;
-use script_traits::{DrawAPaintImageResult, PaintWorkletError};
-use servo_atoms::Atom;
-use servo_config::pref;
-use servo_url::ServoUrl;
-use std::cell::Cell;
-use std::collections::hash_map::Entry;
-use std::ptr::null_mut;
-use std::rc::Rc;
-use std::sync::Arc;
-use std::sync::Mutex;
-use std::thread;
-use std::time::Duration;
-use style_traits::CSSPixel;
-use style_traits::DevicePixel;
-use style_traits::SpeculativePainter;
-
-use super::bindings::trace::HashMapTracedValues;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]

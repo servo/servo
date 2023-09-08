@@ -27,10 +27,10 @@ pub mod traversal;
 
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
-
-use crate::geom::flow_relative::Vec2;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
+
+use crate::geom::flow_relative::Vec2;
 
 pub struct ContainingBlock<'a> {
     inline_size: Length,

@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use serde::{Deserialize, Serialize};
-use servo_atoms::Atom;
 use std::fmt;
 use std::fs::File;
 use std::io::{Error, Read};
 use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
+use servo_atoms::Atom;
 use webrender_api::NativeFontHandle;
 
 /// Platform specific font representation for Linux.

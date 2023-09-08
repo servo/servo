@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
+use dom_struct::dom_struct;
+use euclid::default::Size2D;
+use ipc_channel::ipc::IpcSender;
+
 use crate::canvas_state::CanvasState;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasDirection;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextAlign;
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextBaseline;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
+    CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
+    CanvasTextAlign, CanvasTextBaseline,
+};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::OffscreenCanvasRenderingContext2DMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -26,10 +27,6 @@ use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::textmetrics::TextMetrics;
-use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
-use dom_struct::dom_struct;
-use euclid::default::Size2D;
-use ipc_channel::ipc::IpcSender;
 
 #[dom_struct]
 pub struct OffscreenCanvasRenderingContext2D {

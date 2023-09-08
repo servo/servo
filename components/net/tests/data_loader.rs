@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::fetch;
+use std::ops::Deref;
+
 use headers::{ContentType, HeaderMapExt};
 use hyper_serde::Serde;
 use mime::{self, Mime};
@@ -10,7 +11,8 @@ use net_traits::request::{Origin, Referrer, Request};
 use net_traits::response::{HttpsState, ResponseBody};
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError};
 use servo_url::ServoUrl;
-use std::ops::Deref;
+
+use crate::fetch;
 
 #[cfg(test)]
 fn assert_parse(

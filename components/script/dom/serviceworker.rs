@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use js::jsapi::{Heap, JSObject};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use msg::constellation_msg::ServiceWorkerId;
+use script_traits::{DOMMessage, ScriptMsg};
+use servo_url::ServoUrl;
+
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
@@ -20,13 +29,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
-use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use msg::constellation_msg::ServiceWorkerId;
-use script_traits::{DOMMessage, ScriptMsg};
-use servo_url::ServoUrl;
-use std::cell::Cell;
 
 pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 

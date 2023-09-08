@@ -8,37 +8,16 @@
 //! list building, as the actual painting does not happen here—only deciding *what* we're going to
 //! paint.
 
-use crate::block::BlockFlow;
-use crate::context::LayoutContext;
-use crate::display_list::background::{self, get_cyclic};
-use crate::display_list::border;
-use crate::display_list::gradient;
-use crate::display_list::items::{self, BaseDisplayItem, ClipScrollNode};
-use crate::display_list::items::{
-    ClipScrollNodeIndex, ClipScrollNodeType, ClipType, ClippingAndScrolling,
-};
-use crate::display_list::items::{ClippingRegion, DisplayItem, DisplayItemMetadata, DisplayList};
-use crate::display_list::items::{CommonDisplayItem, DisplayListSection};
-use crate::display_list::items::{IframeDisplayItem, OpaqueNode};
-use crate::display_list::items::{PopAllTextShadowsDisplayItem, PushTextShadowDisplayItem};
-use crate::display_list::items::{StackingContext, StackingContextType, StickyFrameData};
-use crate::display_list::items::{TextOrientation, WebRenderImageInfo};
-use crate::display_list::ToLayout;
-use crate::flow::{BaseFlow, Flow, FlowFlags};
-use crate::flow_ref::FlowRef;
-use crate::fragment::SpecificFragmentInfo;
-use crate::fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ScannedTextFragmentInfo};
-use crate::inline::InlineFragmentNodeFlags;
-use crate::model::MaybeAuto;
-use crate::table_cell::CollapsedBordersForCell;
+use std::default::Default;
+use std::sync::Arc;
+use std::{f32, mem};
+
 use app_units::{Au, AU_PER_PX};
 use bitflags::bitflags;
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use embedder_traits::Cursor;
-use euclid::{
-    default::{Point2D, Rect, SideOffsets2D as UntypedSideOffsets2D, Size2D},
-    rect, SideOffsets2D,
-};
+use euclid::default::{Point2D, Rect, SideOffsets2D as UntypedSideOffsets2D, Size2D};
+use euclid::{rect, SideOffsets2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;
@@ -50,10 +29,6 @@ use net_traits::image_cache::UsePlaceholder;
 use range::Range;
 use servo_config::opts;
 use servo_geometry::{self, MaxRect};
-use std::default::Default;
-use std::f32;
-use std::mem;
-use std::sync::Arc;
 use style::computed_values::border_style::T as BorderStyle;
 use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::pointer_events::T as PointerEvents;
@@ -76,6 +51,26 @@ use webrender_api::{
     ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder,
     NinePatchBorderSource, NormalBorder, PropertyBinding, ScrollSensitivity, StickyOffsetBounds,
 };
+
+use crate::block::BlockFlow;
+use crate::context::LayoutContext;
+use crate::display_list::background::{self, get_cyclic};
+use crate::display_list::items::{
+    self, BaseDisplayItem, ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType, ClipType,
+    ClippingAndScrolling, ClippingRegion, CommonDisplayItem, DisplayItem, DisplayItemMetadata,
+    DisplayList, DisplayListSection, IframeDisplayItem, OpaqueNode, PopAllTextShadowsDisplayItem,
+    PushTextShadowDisplayItem, StackingContext, StackingContextType, StickyFrameData,
+    TextOrientation, WebRenderImageInfo,
+};
+use crate::display_list::{border, gradient, ToLayout};
+use crate::flow::{BaseFlow, Flow, FlowFlags};
+use crate::flow_ref::FlowRef;
+use crate::fragment::{
+    CanvasFragmentSource, CoordinateSystem, Fragment, ScannedTextFragmentInfo, SpecificFragmentInfo,
+};
+use crate::inline::InlineFragmentNodeFlags;
+use crate::model::MaybeAuto;
+use crate::table_cell::CollapsedBordersForCell;
 
 static THREAD_TINT_COLORS: [ColorF; 8] = [
     ColorF {

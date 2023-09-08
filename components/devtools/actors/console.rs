@@ -7,29 +7,31 @@
 //! Mediates interaction between the remote web console and equivalent functionality (object
 //! inspection, JS evaluation, autocompletion) in Servo.
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::object::ObjectActor;
-use crate::actors::worker::WorkerActor;
-use crate::protocol::JsonPacketStream;
-use crate::{StreamId, UniqueId};
-use devtools_traits::CachedConsoleMessage;
-use devtools_traits::ConsoleMessage;
-use devtools_traits::EvaluateJSReply::{ActorValue, BooleanValue, StringValue};
-use devtools_traits::EvaluateJSReply::{NullValue, NumberValue, VoidValue};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::net::TcpStream;
+
+use devtools_traits::EvaluateJSReply::{
+    ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
+};
 use devtools_traits::{
-    CachedConsoleMessageTypes, ConsoleAPI, DevtoolScriptControlMsg, LogLevel, PageError,
+    CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleAPI, ConsoleMessage,
+    DevtoolScriptControlMsg, LogLevel, PageError,
 };
 use ipc_channel::ipc::{self, IpcSender};
 use log::debug;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use serde::Serialize;
 use serde_json::{self, Map, Number, Value};
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::net::TcpStream;
 use time::precise_time_ns;
 use uuid::Uuid;
+
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
+use crate::actors::object::ObjectActor;
+use crate::actors::worker::WorkerActor;
+use crate::protocol::JsonPacketStream;
+use crate::{StreamId, UniqueId};
 
 trait EncodableConsoleMessage {
     fn encode(&self) -> serde_json::Result<String>;

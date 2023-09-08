@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::geom::flow_relative;
-use crate::geom::{LengthOrAuto, LengthPercentageOrAuto, PhysicalSides, PhysicalSize};
-use crate::ContainingBlock;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
@@ -14,13 +11,17 @@ use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::ComputedValues;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{Length, LengthPercentage};
-use style::values::computed::{NonNegativeLengthPercentage, Size};
+use style::values::computed::{Length, LengthPercentage, NonNegativeLengthPercentage, Size};
 use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
 use style::values::specified::box_ as stylo;
 use style::Zero;
 use webrender_api as wr;
+
+use crate::geom::{
+    flow_relative, LengthOrAuto, LengthPercentageOrAuto, PhysicalSides, PhysicalSize,
+};
+use crate::ContainingBlock;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum Display {

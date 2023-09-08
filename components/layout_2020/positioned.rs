@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use rayon::iter::IntoParallelRefMutIterator;
+use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
+use serde::Serialize;
+use style::computed_values::position::T as Position;
+use style::properties::ComputedValues;
+use style::values::computed::{CSSPixelLength, Length};
+use style::values::specified::text::TextDecorationLine;
+use style::Zero;
+
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
@@ -14,14 +23,6 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{LengthOrAuto, LengthPercentageOrAuto};
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
-use rayon::iter::IntoParallelRefMutIterator;
-use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
-use serde::Serialize;
-use style::computed_values::position::T as Position;
-use style::properties::ComputedValues;
-use style::values::computed::{CSSPixelLength, Length};
-use style::values::specified::text::TextDecorationLine;
-use style::Zero;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct AbsolutelyPositionedBox {

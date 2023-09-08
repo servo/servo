@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use phf_shared::{self, FmtConst};
-use serde_json::{self, Value};
-use std::env;
-use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::Instant;
+use std::{env, fmt};
+
+use phf_shared::{self, FmtConst};
+use serde_json::{self, Value};
 
 fn main() {
     let start = Instant::now();

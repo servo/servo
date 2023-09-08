@@ -2,6 +2,38 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+use std::cell::Cell;
+use std::mem;
+
+use base64::engine::general_purpose;
+use base64::Engine as _;
+use content_security_policy::{self as csp, CspList};
+use dom_struct::dom_struct;
+use embedder_traits::resources::{self, Resource};
+use encoding_rs::Encoding;
+use html5ever::buffer_queue::BufferQueue;
+use html5ever::tendril::fmt::UTF8;
+use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
+use html5ever::tokenizer::TokenizerResult;
+use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
+use html5ever::{local_name, namespace_url, ns, Attribute, ExpandedName, LocalName, QualName};
+use hyper_serde::Serde;
+use mime::{self, Mime};
+use msg::constellation_msg::PipelineId;
+use net_traits::{
+    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
+    ResourceTimingType,
+};
+use profile_traits::time::{
+    profile, ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
+};
+use script_traits::DocumentActivity;
+use servo_config::pref;
+use servo_url::ServoUrl;
+use style::context::QuirksMode as ServoQuirksMode;
+use tendril::stream::LossyDecoder;
+
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
@@ -36,33 +68,6 @@ use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::PreInvoke;
 use crate::realms::enter_realm;
 use crate::script_thread::ScriptThread;
-use base64::{engine::general_purpose, Engine as _};
-use content_security_policy::{self as csp, CspList};
-use dom_struct::dom_struct;
-use embedder_traits::resources::{self, Resource};
-use encoding_rs::Encoding;
-use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::fmt::UTF8;
-use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
-use html5ever::tokenizer::TokenizerResult;
-use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
-use html5ever::{local_name, namespace_url, ns, Attribute, ExpandedName, LocalName, QualName};
-use hyper_serde::Serde;
-use mime::{self, Mime};
-use msg::constellation_msg::PipelineId;
-use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
-use profile_traits::time::{
-    profile, ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
-};
-use script_traits::DocumentActivity;
-use servo_config::pref;
-use servo_url::ServoUrl;
-use std::borrow::Cow;
-use std::cell::Cell;
-use std::mem;
-use style::context::QuirksMode as ServoQuirksMode;
-use tendril::stream::LossyDecoder;
 
 mod async_html;
 mod html;

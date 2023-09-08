@@ -2,19 +2,38 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::f64::consts::{FRAC_PI_2, PI};
+use std::mem;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use euclid::{RigidTransform3D, Transform3D, Vector3D};
+use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::router::ROUTER;
+use metrics::ToMs;
+use profile_traits::ipc;
+use webxr_api::{
+    self, util, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,
+    Event as XREvent, Frame, FrameUpdateEvent, HitTestId, HitTestSource, Ray, SelectEvent,
+    SelectKind, Session, SessionId, View, Viewer, Visibility,
+};
+
+use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::Bindings::XRHitTestSourceBinding::XRHitTestOptionsInit;
-use crate::dom::bindings::codegen::Bindings::XRHitTestSourceBinding::XRHitTestTrackableType;
+use crate::dom::bindings::codegen::Bindings::XRHitTestSourceBinding::{
+    XRHitTestOptionsInit, XRHitTestTrackableType,
+};
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
-use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
-use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
-use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;
-use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCallback;
-use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
-use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState;
+use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::{
+    XRRenderStateInit, XRRenderStateMethods,
+};
+use crate::dom::bindings::codegen::Bindings::XRSessionBinding::{
+    XREnvironmentBlendMode, XRFrameRequestCallback, XRSessionMethods, XRVisibilityState,
+};
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
@@ -36,24 +55,6 @@ use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::InRealm;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use euclid::{RigidTransform3D, Transform3D, Vector3D};
-use ipc_channel::ipc::IpcReceiver;
-use ipc_channel::router::ROUTER;
-use metrics::ToMs;
-use profile_traits::ipc;
-use std::cell::Cell;
-use std::f64::consts::{FRAC_PI_2, PI};
-use std::mem;
-use std::rc::Rc;
-use webxr_api::ContextId as WebXRContextId;
-use webxr_api::{
-    self, util, ApiSpace, Display, EntityTypes, EnvironmentBlendMode, Event as XREvent, Frame,
-    FrameUpdateEvent, HitTestId, HitTestSource, Ray, SelectEvent, SelectKind, Session, SessionId,
-    View, Viewer, Visibility,
-};
-
-use super::bindings::trace::HashMapTracedValues;
 
 #[dom_struct]
 pub struct XRSession {

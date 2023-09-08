@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VTTCueBinding::{
     self, AlignSetting, AutoKeyword, DirectionSetting, LineAlignSetting, PositionAlignSetting,
@@ -17,9 +22,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::vttregion::VTTRegion;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct VTTCue {

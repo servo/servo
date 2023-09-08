@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use servo_atoms::Atom;
+
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -12,9 +17,6 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::node::{ChildrenMutation, Node};
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use servo_atoms::Atom;
-use std::cell::Cell;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]

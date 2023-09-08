@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
-use euclid::default::Point2D;
-use log::debug;
-use range::{self, EachIndex, Range, RangeIndex};
-use serde::{Deserialize, Serialize};
 use std::cmp::{Ordering, PartialOrd};
 use std::vec::Vec;
 use std::{fmt, mem, u16};
 
+use app_units::Au;
+use euclid::default::Point2D;
 pub use gfx_traits::ByteIndex;
+use log::debug;
+use range::{self, EachIndex, Range, RangeIndex};
+use serde::{Deserialize, Serialize};
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
 ///

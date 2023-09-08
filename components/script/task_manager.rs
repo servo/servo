@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -16,9 +20,6 @@ use crate::task_source::timer::TimerTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSourceName;
-use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 
 macro_rules! task_source_functions {
     ($self:ident,$with_canceller:ident,$task_source:ident,$task_source_type:ident,$task_source_name:ident) => {

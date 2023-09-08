@@ -2,13 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::MediaDevicesMethods;
-use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::MediaStreamConstraints;
-use crate::dom::bindings::codegen::UnionTypes::BooleanOrMediaTrackConstraints;
-use crate::dom::bindings::codegen::UnionTypes::ClampedUnsignedLongOrConstrainULongRange as ConstrainULong;
-use crate::dom::bindings::codegen::UnionTypes::DoubleOrConstrainDoubleRange as ConstrainDouble;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::reflector::DomObject;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
+use servo_media::streams::MediaStreamType;
+use servo_media::ServoMedia;
+
+use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::{
+    MediaDevicesMethods, MediaStreamConstraints,
+};
+use crate::dom::bindings::codegen::UnionTypes::{
+    BooleanOrMediaTrackConstraints, ClampedUnsignedLongOrConstrainULongRange as ConstrainULong,
+    DoubleOrConstrainDoubleRange as ConstrainDouble,
+};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -17,11 +25,6 @@ use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
-use dom_struct::dom_struct;
-use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
-use servo_media::streams::MediaStreamType;
-use servo_media::ServoMedia;
-use std::rc::Rc;
 
 #[dom_struct]
 pub struct MediaDevices {

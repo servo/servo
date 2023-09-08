@@ -4,12 +4,14 @@
 
 //! Machinery to initialise namespace objects.
 
+use std::ptr;
+
+use js::jsapi::{JSClass, JSFunctionSpec};
+use js::rust::{HandleObject, MutableHandleObject};
+
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::interface::{create_object, define_on_global_object};
 use crate::script_runtime::JSContext;
-use js::jsapi::{JSClass, JSFunctionSpec};
-use js::rust::{HandleObject, MutableHandleObject};
-use std::ptr;
 
 /// The class of a namespace object.
 #[derive(Clone, Copy)]

@@ -3,14 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use smallvec::SmallVec;
-use webgpu::wgpu::{
-    id::{
-        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
-        DeviceId, PipelineLayoutId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId,
-        TextureId, TextureViewId,
-    },
-    identity::IdentityManager,
+use webgpu::wgpu::id::{
+    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
+    DeviceId, PipelineLayoutId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId,
+    TextureId, TextureViewId,
 };
+use webgpu::wgpu::identity::IdentityManager;
 use webgpu::wgt::Backend;
 
 #[derive(Debug)]

@@ -2,11 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::collections::VecDeque;
+use std::ops::Deref;
+use std::rc::Rc;
+use std::{mem, ptr};
+
+use dom_struct::dom_struct;
+use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
+use js::conversions::ToJSValConvertible;
+use js::glue::UnwrapObjectStatic;
+use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
+use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
+use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+
+use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementConstructor;
-use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementRegistryMethods;
-use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
+use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
+    CustomElementConstructor, CustomElementRegistryMethods, ElementDefinitionOptions,
+};
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
@@ -33,23 +49,6 @@ use crate::microtask::Microtask;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
-use dom_struct::dom_struct;
-use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
-use js::conversions::ToJSValConvertible;
-use js::glue::UnwrapObjectStatic;
-use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor};
-use js::jsapi::{JSAutoRealm, JSObject};
-use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
-use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use std::cell::Cell;
-use std::collections::VecDeque;
-use std::mem;
-use std::ops::Deref;
-use std::ptr;
-use std::rc::Rc;
-
-use super::bindings::trace::HashMapTracedValues;
 
 /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
 #[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]

@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLSyncId};
+use dom_struct::dom_struct;
+
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -10,9 +15,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::task_source::TaskSource;
-use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLSyncId};
-use dom_struct::dom_struct;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct WebGLSync {

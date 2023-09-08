@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use gstreamer::DebugCategory;
-use gstreamer::DebugColorFlags;
-use gstreamer::DebugLevel;
+use gstreamer::{DebugCategory, DebugColorFlags, DebugLevel};
 use lazy_static::lazy_static;
 
 lazy_static! {

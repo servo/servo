@@ -4,14 +4,14 @@
 
 #![allow(dead_code)]
 
+use dom_struct::dom_struct;
+
+use super::bindings::codegen::Bindings::GPUDeviceLostInfoBinding::GPUDeviceLostReason;
 use crate::dom::bindings::codegen::Bindings::GPUDeviceLostInfoBinding::GPUDeviceLostInfoMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use dom_struct::dom_struct;
-
-use super::bindings::codegen::Bindings::GPUDeviceLostInfoBinding::GPUDeviceLostReason;
 
 #[dom_struct]
 pub struct GPUDeviceLostInfo {

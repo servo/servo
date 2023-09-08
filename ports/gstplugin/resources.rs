@@ -6,13 +6,12 @@
 // TODO: move this to somewhere where it can be shared.
 // https://github.com/servo/servo/issues/24853
 
-use lazy_static::lazy_static;
-use servo::embedder_traits::resources::{self, Resource};
-use std::env;
-use std::fs;
-use std::io;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::{env, fs, io};
+
+use lazy_static::lazy_static;
+use servo::embedder_traits::resources::{self, Resource};
 
 lazy_static! {
     static ref CMD_RESOURCE_DIR: Mutex<Option<String>> = Mutex::new(None);

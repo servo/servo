@@ -2,6 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use cssparser::{Parser as CssParser, ParserInput};
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::rust::HandleObject;
+use net_traits::ReferrerPolicy;
+use servo_arc::Arc;
+use style::media_queries::MediaList;
+use style::parser::ParserContext as CssParserContext;
+use style::stylesheets::{AllowImportRules, CssRuleType, Origin, Stylesheet};
+use style_traits::ParsingMode;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -18,17 +31,6 @@ use crate::dom::node::{
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
-use cssparser::{Parser as CssParser, ParserInput};
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::rust::HandleObject;
-use net_traits::ReferrerPolicy;
-use servo_arc::Arc;
-use std::cell::Cell;
-use style::media_queries::MediaList;
-use style::parser::ParserContext as CssParserContext;
-use style::stylesheets::{AllowImportRules, CssRuleType, Origin, Stylesheet};
-use style_traits::ParsingMode;
 
 #[dom_struct]
 pub struct HTMLStyleElement {

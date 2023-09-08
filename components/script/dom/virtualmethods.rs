@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use html5ever::LocalName;
+use style::attr::AttrValue;
+
 use crate::dom::attr::Attr;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::inheritance::ElementTypeId;
-use crate::dom::bindings::inheritance::HTMLElementTypeId;
-use crate::dom::bindings::inheritance::HTMLMediaElementTypeId;
-use crate::dom::bindings::inheritance::NodeTypeId;
-use crate::dom::bindings::inheritance::SVGElementTypeId;
-use crate::dom::bindings::inheritance::SVGGraphicsElementTypeId;
+use crate::dom::bindings::inheritance::{
+    Castable, ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
+    SVGElementTypeId, SVGGraphicsElementTypeId,
+};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
@@ -54,8 +54,6 @@ use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use crate::dom::svgelement::SVGElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
-use html5ever::LocalName;
-use style::attr::AttrValue;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.

@@ -2,6 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+use std::num::NonZeroU32;
+use std::ptr::NonNull;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use encoding_rs::UTF_8;
+use js::jsapi::JSObject;
+use js::rust::HandleObject;
+use msg::constellation_msg::{BlobId, BlobIndex, PipelineNamespaceId};
+use net_traits::filemanager_thread::RelativePos;
+use script_traits::serializable::BlobImpl;
+use uuid::Uuid;
+
 use crate::body::{run_array_buffer_data_algorithm, FetchedData};
 use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -17,18 +31,6 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use encoding_rs::UTF_8;
-use js::jsapi::JSObject;
-use js::rust::HandleObject;
-use msg::constellation_msg::{BlobId, BlobIndex, PipelineNamespaceId};
-use net_traits::filemanager_thread::RelativePos;
-use script_traits::serializable::BlobImpl;
-use std::collections::HashMap;
-use std::num::NonZeroU32;
-use std::ptr::NonNull;
-use std::rc::Rc;
-use uuid::Uuid;
 
 // https://w3c.github.io/FileAPI/#blob
 #[dom_struct]

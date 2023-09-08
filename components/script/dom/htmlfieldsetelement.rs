@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::default::Default;
+
+use dom_struct::dom_struct;
+use html5ever::{local_name, LocalName, Prefix};
+use js::rust::HandleObject;
+use style::element_state::ElementState;
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -17,11 +24,6 @@ use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
-use dom_struct::dom_struct;
-use html5ever::{local_name, LocalName, Prefix};
-use js::rust::HandleObject;
-use std::default::Default;
-use style::element_state::ElementState;
 
 #[dom_struct]
 pub struct HTMLFieldSetElement {

@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+use msg::constellation_msg::PipelineId;
+use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
+
 use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
 use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
-    AudioContextLatencyCategory, AudioContextMethods,
-};
-use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
-    AudioContextOptions, AudioTimestamp,
+    AudioContextLatencyCategory, AudioContextMethods, AudioContextOptions, AudioTimestamp,
 };
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
@@ -30,11 +34,6 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::realms::InRealm;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use msg::constellation_msg::PipelineId;
-use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
-use std::rc::Rc;
 
 #[dom_struct]
 pub struct AudioContext {

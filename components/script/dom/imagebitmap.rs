@@ -2,18 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-
-use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::ImageBitmapMethods;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
-
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use dom_struct::dom_struct;
-
 use std::cell::Cell;
 use std::vec::Vec;
+
+use dom_struct::dom_struct;
+
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::ImageBitmapMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub struct ImageBitmap {

@@ -2,22 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+
 use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaBindingBinding::XRMediaBindingMethods;
 use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaLayerInit;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
-use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::Dom;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::window::Window;
 use crate::dom::xrcylinderlayer::XRCylinderLayer;
 use crate::dom::xrequirectlayer::XREquirectLayer;
 use crate::dom::xrquadlayer::XRQuadLayer;
 use crate::dom::xrsession::XRSession;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct XRMediaBinding {

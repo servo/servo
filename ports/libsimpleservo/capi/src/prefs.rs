@@ -7,11 +7,12 @@
 //! retrieve an array (CPREFS) of struct of pointers (CPrefs) to the C-compatible preferences
 //! (LocalCPref).
 
-use crate::simpleservo::{self, PrefValue};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
+
+use crate::simpleservo::{self, PrefValue};
 
 thread_local! {
     // CPREFS keeps alive a set of CPref that are sent over to the embedder.

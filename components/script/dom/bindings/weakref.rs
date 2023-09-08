@@ -11,20 +11,20 @@
 //! slot. When all associated `WeakRef` values are dropped, the
 //! `WeakBox` itself is dropped too.
 
+use std::cell::{Cell, UnsafeCell};
+use std::ops::{Deref, DerefMut, Drop};
+use std::{mem, ptr};
+
+use js::glue::JS_GetReservedSlot;
+use js::jsapi::{JSTracer, JS_SetReservedSlot};
+use js::jsval::{PrivateValue, UndefinedValue};
+use libc::c_void;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
-use js::glue::JS_GetReservedSlot;
-use js::jsapi::{JSTracer, JS_SetReservedSlot};
-use js::jsval::PrivateValue;
-use js::jsval::UndefinedValue;
-use libc::c_void;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use std::cell::{Cell, UnsafeCell};
-use std::mem;
-use std::ops::{Deref, DerefMut, Drop};
-use std::ptr;
 
 /// The index of the slot wherein a pointer to the weak holder cell is
 /// stored for weak-referenceable bindings. We use slot 1 for holding it,

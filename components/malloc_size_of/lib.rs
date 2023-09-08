@@ -46,15 +46,15 @@
 //!   Note: WebRender has a reduced fork of this crate, so that we can avoid
 //!   publishing this crate on crates.io.
 
+use std::hash::{BuildHasher, Hash};
+use std::mem::size_of;
+use std::ops::{Deref, DerefMut, Range};
+use std::os::raw::c_void;
+
 #[cfg(feature = "servo")]
 use content_security_policy as csp;
 #[cfg(feature = "servo")]
 use serde_bytes::ByteBuf;
-use std::hash::{BuildHasher, Hash};
-use std::mem::size_of;
-use std::ops::Range;
-use std::ops::{Deref, DerefMut};
-use std::os::raw::c_void;
 #[cfg(feature = "servo")]
 use uuid::Uuid;
 use void::Void;

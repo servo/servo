@@ -4,15 +4,19 @@
 
 #![cfg(not(target_os = "windows"))]
 
-use crate::fetch;
-use crate::fetch_with_context;
-use crate::make_server;
-use crate::new_fetch_context;
+use std::collections::HashMap;
+use std::io::Write;
+use std::str;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, RwLock};
+use std::time::Duration;
+
 use cookie_rs::Cookie as CookiePair;
 use crossbeam_channel::{unbounded, Receiver};
-use devtools_traits::HttpRequest as DevtoolsHttpRequest;
-use devtools_traits::HttpResponse as DevtoolsHttpResponse;
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
+use devtools_traits::{
+    ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
+    HttpResponse as DevtoolsHttpResponse, NetworkEvent,
+};
 use flate2::write::{DeflateEncoder, GzEncoder};
 use flate2::Compression;
 use headers::authorization::Basic;
@@ -22,8 +26,7 @@ use headers::{
 use http::header::{self, HeaderMap, HeaderValue};
 use http::uri::Authority;
 use http::{Method, StatusCode};
-use hyper::Body;
-use hyper::{Request as HyperRequest, Response as HyperResponse};
+use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::TEST_PIPELINE_ID;
@@ -39,12 +42,8 @@ use net_traits::request::{
 use net_traits::response::ResponseBody;
 use net_traits::{CookieSource, NetworkError, ReferrerPolicy};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::collections::HashMap;
-use std::io::Write;
-use std::str;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, RwLock};
-use std::time::Duration;
+
+use crate::{fetch, fetch_with_context, make_server, new_fetch_context};
 
 fn mock_origin() -> ImmutableOrigin {
     ServoUrl::parse("http://servo.org").unwrap().origin()

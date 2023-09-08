@@ -2,8 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::abstractworker::SimpleWorkerErrorHandler;
-use crate::dom::abstractworker::WorkerScriptMsg;
+use std::cell::Cell;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+use crossbeam_channel::{unbounded, Sender};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
+use dom_struct::dom_struct;
+use ipc_channel::ipc;
+use js::jsapi::{Heap, JSObject};
+use js::jsval::UndefinedValue;
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
+use script_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
+use uuid::Uuid;
+
+use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
@@ -26,18 +39,6 @@ use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::realms::enter_realm;
 use crate::script_runtime::{ContextForRequestInterrupt, JSContext};
 use crate::task::TaskOnce;
-use crossbeam_channel::{unbounded, Sender};
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
-use dom_struct::dom_struct;
-use ipc_channel::ipc;
-use js::jsapi::{Heap, JSObject};
-use js::jsval::UndefinedValue;
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
-use script_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
-use std::cell::Cell;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use uuid::Uuid;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 

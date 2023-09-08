@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use lazy_static::lazy_static;
 use std::path::PathBuf;
 use std::sync::{Once, RwLock};
+
+use lazy_static::lazy_static;
 
 lazy_static! {
     static ref RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> =

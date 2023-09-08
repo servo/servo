@@ -4,24 +4,13 @@
 
 //! Layout for elements with a CSS `display` property of `flex`.
 
-use crate::block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
-use crate::context::LayoutContext;
-use crate::display_list::{
-    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionState,
-};
-use crate::floats::FloatKind;
-use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::model::{self, AdjoiningMargins, CollapsibleMargins};
-use crate::model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
-use crate::traversal::PreorderFlowTraversal;
-use crate::{layout_debug, layout_debug_scope};
+use std::cmp::{max, min};
+use std::ops::Range;
+
 use app_units::{Au, MAX_AU};
 use euclid::default::Point2D;
 use log::debug;
 use serde::Serialize;
-use std::cmp::{max, min};
-use std::ops::Range;
 use style::computed_values::align_content::T as AlignContent;
 use style::computed_values::align_self::T as AlignSelf;
 use style::computed_values::flex_direction::T as FlexDirection;
@@ -32,6 +21,20 @@ use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::flex::FlexBasis;
 use style::values::computed::{MaxSize, Size};
+
+use crate::block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
+use crate::context::LayoutContext;
+use crate::display_list::{
+    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionState,
+};
+use crate::floats::FloatKind;
+use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use crate::model::{
+    self, AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MaybeAuto, SizeConstraint,
+};
+use crate::traversal::PreorderFlowTraversal;
+use crate::{layout_debug, layout_debug_scope};
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size

@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use msg::constellation_msg::PipelineId;
+
 use crate::dom::domexception::DOMErrorName;
 use crate::dom::filereader::{FileReader, GenerationId, ReadMetaData, TrustedFileReader};
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
-use msg::constellation_msg::PipelineId;
 
 #[derive(JSTraceable)]
 pub struct FileReadingTaskSource(

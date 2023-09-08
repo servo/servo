@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::Heap;
+use js::jsval::{JSVal, UndefinedValue};
+use webxr_api::{Handedness, InputId, InputSource, TargetRayMode};
+
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods, XRTargetRayMode,
 };
@@ -13,11 +19,6 @@ use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
-use js::jsapi::Heap;
-use js::jsval::{JSVal, UndefinedValue};
-use webxr_api::{Handedness, InputId, InputSource, TargetRayMode};
 
 #[dom_struct]
 pub struct XRInputSource {

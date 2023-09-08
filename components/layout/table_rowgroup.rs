@@ -4,6 +4,18 @@
 
 //! CSS table formatting contexts.
 
+use std::fmt;
+use std::iter::{IntoIterator, Iterator, Peekable};
+
+use app_units::Au;
+use euclid::default::Point2D;
+use gfx_traits::print_tree::PrintTree;
+use log::{debug, trace};
+use serde::{Serialize, Serializer};
+use style::computed_values::{border_collapse, border_spacing};
+use style::logical_geometry::LogicalSize;
+use style::properties::ComputedValues;
+
 use crate::block::{BlockFlow, ISizeAndMarginsComputer};
 use crate::context::LayoutContext;
 use crate::display_list::{
@@ -13,16 +25,6 @@ use crate::flow::{Flow, FlowClass, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::table::{ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use crate::{layout_debug, layout_debug_scope};
-use app_units::Au;
-use euclid::default::Point2D;
-use gfx_traits::print_tree::PrintTree;
-use log::{debug, trace};
-use serde::{Serialize, Serializer};
-use std::fmt;
-use std::iter::{IntoIterator, Iterator, Peekable};
-use style::computed_values::{border_collapse, border_spacing};
-use style::logical_geometry::LogicalSize;
-use style::properties::ComputedValues;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableRowGroupFlow {}

@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::canvas_data::*;
+use std::borrow::ToOwned;
+use std::collections::HashMap;
+use std::thread;
+
 use canvas_traits::canvas::*;
 use canvas_traits::ConstellationCanvasMsg;
 use crossbeam_channel::{select, unbounded, Sender};
@@ -11,10 +14,9 @@ use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
-use std::borrow::ToOwned;
-use std::collections::HashMap;
-use std::thread;
 use webrender_api::{ImageData, ImageDescriptor, ImageKey};
+
+use crate::canvas_data::*;
 
 pub enum AntialiasMode {
     Default,

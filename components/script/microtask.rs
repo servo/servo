@@ -6,6 +6,13 @@
 //! microtask queues. It is up to implementations of event loops to store a queue and
 //! perform checkpoints at appropriate times, as well as enqueue microtasks as required.
 
+use std::cell::Cell;
+use std::mem;
+use std::rc::Rc;
+
+use js::jsapi::{JSAutoRealm, JobQueueIsEmpty, JobQueueMayNotBeEmpty};
+use msg::constellation_msg::PipelineId;
+
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
@@ -18,11 +25,6 @@ use crate::dom::mutationobserver::MutationObserver;
 use crate::realms::enter_realm;
 use crate::script_runtime::{notify_about_rejected_promises, JSContext};
 use crate::script_thread::ScriptThread;
-use js::jsapi::{JSAutoRealm, JobQueueIsEmpty, JobQueueMayNotBeEmpty};
-use msg::constellation_msg::PipelineId;
-use std::cell::Cell;
-use std::mem;
-use std::rc::Rc;
 
 /// A collection of microtasks in FIFO order.
 #[derive(Default, JSTraceable, MallocSizeOf)]

@@ -2,25 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
-use crate::resource_thread::CoreResourceThreadPool;
-use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
-use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
-use http::header::{self, HeaderValue};
-use ipc_channel::ipc::{self, IpcSender};
-use log::warn;
-use mime::{self, Mime};
-use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
-use net_traits::filemanager_thread::{
-    FileManagerResult, FileManagerThreadMsg, FileOrigin, FileTokenCheck,
-};
-use net_traits::filemanager_thread::{
-    FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile,
-};
-use net_traits::http_percent_encode;
-use net_traits::response::{Response, ResponseBody};
-use servo_arc::Arc as ServoArc;
-use servo_config::pref;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
@@ -29,9 +10,28 @@ use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
+
+use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
+use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
+use http::header::{self, HeaderValue};
+use ipc_channel::ipc::{self, IpcSender};
+use log::warn;
+use mime::{self, Mime};
+use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
+use net_traits::filemanager_thread::{
+    FileManagerResult, FileManagerThreadError, FileManagerThreadMsg, FileOrigin, FileTokenCheck,
+    ReadFileProgress, RelativePos, SelectedFile,
+};
+use net_traits::http_percent_encode;
+use net_traits::response::{Response, ResponseBody};
+use servo_arc::Arc as ServoArc;
+use servo_config::pref;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use url::Url;
 use uuid::Uuid;
+
+use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
+use crate::resource_thread::CoreResourceThreadPool;
 
 pub const FILE_CHUNK_SIZE: usize = 32768; //32 KB
 

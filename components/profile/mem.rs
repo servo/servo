@@ -4,17 +4,20 @@
 
 //! Memory profiling functions.
 
-use crate::time::duration_from_seconds;
-use ipc_channel::ipc::{self, IpcReceiver};
-use ipc_channel::router::ROUTER;
-use profile_traits::mem::ReportsChan;
-use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest};
-use profile_traits::path;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread;
 use std::time::Instant;
+
+use ipc_channel::ipc::{self, IpcReceiver};
+use ipc_channel::router::ROUTER;
+use profile_traits::mem::{
+    ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest, ReportsChan,
+};
+use profile_traits::path;
+
+use crate::time::duration_from_seconds;
 
 pub struct Profiler {
     /// The port through which messages are received.
@@ -384,21 +387,23 @@ impl ReportsForest {
 //---------------------------------------------------------------------------
 
 mod system_reporter {
-    use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
-    #[cfg(target_os = "linux")]
-    use libc::c_int;
-    #[cfg(not(target_os = "windows"))]
-    use libc::{c_void, size_t};
-    use profile_traits::mem::{Report, ReportKind, ReporterRequest};
-    use profile_traits::path;
     #[cfg(not(target_os = "windows"))]
     use std::ffi::CString;
     #[cfg(not(target_os = "windows"))]
     use std::mem::size_of;
     #[cfg(not(target_os = "windows"))]
     use std::ptr::null_mut;
+
+    #[cfg(target_os = "linux")]
+    use libc::c_int;
+    #[cfg(not(target_os = "windows"))]
+    use libc::{c_void, size_t};
+    use profile_traits::mem::{Report, ReportKind, ReporterRequest};
+    use profile_traits::path;
     #[cfg(target_os = "macos")]
     use task_info::task_basic_info::{resident_size, virtual_size};
+
+    use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
 
     /// Collects global measurements from the OS and heap allocators.
     pub fn collect_reports(request: ReporterRequest) {
@@ -599,11 +604,12 @@ mod system_reporter {
 
     #[cfg(target_os = "linux")]
     fn resident_segments() -> Vec<(String, usize)> {
-        use regex::Regex;
         use std::collections::hash_map::Entry;
         use std::collections::HashMap;
         use std::fs::File;
         use std::io::{BufRead, BufReader};
+
+        use regex::Regex;
 
         // The first line of an entry in /proc/<pid>/smaps looks just like an entry
         // in /proc/<pid>/maps:

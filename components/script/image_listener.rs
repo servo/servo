@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ipc_channel::ipc;
+use ipc_channel::ipc::IpcSender;
+use ipc_channel::router::ROUTER;
+use net_traits::image_cache::{ImageResponse, PendingImageResponse};
+
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::node::{window_from_node, Node};
 use crate::task_source::TaskSource;
-use ipc_channel::ipc;
-use ipc_channel::ipc::IpcSender;
-use ipc_channel::router::ROUTER;
-use net_traits::image_cache::{ImageResponse, PendingImageResponse};
 
 pub trait ImageCacheListener {
     fn generation_id(&self) -> u32;

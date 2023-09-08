@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::ToOwned;
+use std::sync::Arc;
+use std::thread;
+
 use backtrace::Backtrace;
 use compositing_traits::ConstellationMsg as FromCompositorMsg;
 use crossbeam_channel::Sender;
@@ -9,9 +13,6 @@ use log::{debug, Level, LevelFilter, Log, Metadata, Record};
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use script_traits::{LogEntry, ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
 use servo_remutex::ReentrantMutex;
-use std::borrow::ToOwned;
-use std::sync::Arc;
-use std::thread;
 
 /// The constellation uses logging to perform crash reporting.
 /// The constellation receives all `warn!`, `error!` and `panic!` messages,

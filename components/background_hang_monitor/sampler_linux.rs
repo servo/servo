@@ -4,19 +4,17 @@
 
 #![allow(unsafe_code)]
 
-use crate::sampler::{NativeStack, Sampler};
+use std::cell::UnsafeCell;
+use std::sync::atomic::{AtomicPtr, Ordering};
+use std::{io, mem, process, ptr, thread};
+
 use libc;
 use nix::sys::signal::{sigaction, SaFlags, SigAction, SigHandler, SigSet, Signal};
-use std::cell::UnsafeCell;
-use std::io;
-use std::mem;
-use std::process;
-use std::ptr;
-use std::sync::atomic::{AtomicPtr, Ordering};
-use std::thread;
 use unwind_sys::{
     unw_cursor_t, unw_get_reg, unw_init_local, unw_step, UNW_ESUCCESS, UNW_REG_IP, UNW_REG_SP,
 };
+
+use crate::sampler::{NativeStack, Sampler};
 
 // Hack to workaround broken libunwind pkg-config contents for <1.1-3ubuntu.1.
 // https://bugs.launchpad.net/ubuntu/+source/libunwind/+bug/1336912

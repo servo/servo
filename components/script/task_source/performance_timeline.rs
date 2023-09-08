@@ -6,14 +6,16 @@
 //     a low priority task and it should be processed during idle periods.
 //     We are currently treating this task queue as a normal priority queue.
 
+use std::fmt;
+use std::result::Result;
+
+use msg::constellation_msg::PipelineId;
+
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
-use msg::constellation_msg::PipelineId;
-use std::fmt;
-use std::result::Result;
 
 #[derive(JSTraceable)]
 pub struct PerformanceTimelineTaskSource(

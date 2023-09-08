@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
+use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::rust::HandleObject;
+use servo_url::ServoUrl;
+use style::attr::AttrValue;
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLBodyElementBinding::HTMLBodyElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -14,13 +22,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, window_from_node, BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
-use cssparser::RGBA;
-use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::rust::HandleObject;
-use servo_url::ServoUrl;
-use style::attr::AttrValue;
 
 /// How long we should wait before performing the initial reflow after `<body>` is parsed, in
 /// nanoseconds.

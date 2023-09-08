@@ -2,12 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ptr::NonNull;
+
+use dom_struct::dom_struct;
+use euclid::{RigidTransform3D, Rotation3D, Vector3D};
+use js::jsapi::{Heap, JSObject};
+use js::rust::HandleObject;
+
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::utils::create_typed_array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
@@ -15,11 +20,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrsession::ApiRigidTransform;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use euclid::{RigidTransform3D, Rotation3D, Vector3D};
-use js::jsapi::{Heap, JSObject};
-use js::rust::HandleObject;
-use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct XRRigidTransform {

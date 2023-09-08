@@ -6,17 +6,18 @@
 //! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js).
 //! Handles interaction with the remote web console on network events (HTTP requests, responses) in Servo.
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
-use crate::StreamId;
-use devtools_traits::HttpRequest as DevtoolsHttpRequest;
-use devtools_traits::HttpResponse as DevtoolsHttpResponse;
+use std::net::TcpStream;
+
+use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentType, Cookie, HeaderMapExt};
 use http::{header, HeaderMap, Method, StatusCode};
 use serde::Serialize;
 use serde_json::{Map, Value};
-use std::net::TcpStream;
 use time::Tm;
+
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 
 struct HttpRequest {
     url: String,

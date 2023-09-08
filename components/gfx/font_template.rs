@@ -2,19 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::font::FontHandleMethods;
-use crate::platform::font::FontHandle;
-use crate::platform::font_context::FontContextHandle;
-use crate::platform::font_template::FontTemplateData;
-use serde::{Deserialize, Serialize};
-use servo_atoms::Atom;
 use std::fmt::{Debug, Error, Formatter};
 use std::io::Error as IoError;
 use std::sync::{Arc, Weak};
+
+use serde::{Deserialize, Serialize};
+use servo_atoms::Atom;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::FontWeight;
+
+use crate::font::FontHandleMethods;
+use crate::platform::font::FontHandle;
+use crate::platform::font_context::FontContextHandle;
+use crate::platform::font_template::FontTemplateData;
 
 /// Describes how to select a font from a given family. This is very basic at the moment and needs
 /// to be expanded or refactored when we support more of the font styling parameters.

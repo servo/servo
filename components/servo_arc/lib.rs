@@ -25,27 +25,23 @@
 // duplicate those here.
 #![allow(missing_docs)]
 
-use nodrop::NoDrop;
-#[cfg(feature = "servo")]
-use serde::{Deserialize, Serialize};
-use stable_deref_trait::{CloneStableDeref, StableDeref};
 use std::alloc::{self, Layout};
-use std::borrow;
 use std::cmp::Ordering;
 use std::convert::From;
-use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::iter::{ExactSizeIterator, Iterator};
 use std::marker::PhantomData;
 use std::mem::{self, align_of, size_of};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
-use std::process;
-use std::ptr;
-use std::slice;
 use std::sync::atomic;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
-use std::{isize, usize};
+use std::{borrow, fmt, isize, process, ptr, slice, usize};
+
+use nodrop::NoDrop;
+#[cfg(feature = "servo")]
+use serde::{Deserialize, Serialize};
+use stable_deref_trait::{CloneStableDeref, StableDeref};
 
 /// A soft limit on the amount of references that may be made to an `Arc`.
 ///
@@ -1430,11 +1426,12 @@ impl<A: fmt::Debug, B: fmt::Debug> fmt::Debug for ArcUnion<A, B> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Arc, HeaderWithLength, ThinArc};
     use std::clone::Clone;
     use std::ops::Drop;
     use std::sync::atomic;
     use std::sync::atomic::Ordering::{Acquire, SeqCst};
+
+    use super::{Arc, HeaderWithLength, ThinArc};
 
     #[derive(PartialEq)]
     struct Canary(*mut atomic::AtomicUsize);

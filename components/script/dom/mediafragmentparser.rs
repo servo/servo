@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use chrono::NaiveDateTime;
-use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::str::FromStr;
+
+use chrono::NaiveDateTime;
+use servo_url::ServoUrl;
 use url::{form_urlencoded, Position, Url};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

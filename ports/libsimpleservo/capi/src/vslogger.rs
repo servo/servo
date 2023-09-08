@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::OUTPUT_LOG_HANDLER;
-use log::{self, Metadata, Record};
 use std::sync::{Arc, Mutex};
+
+use log::{self, Metadata, Record};
+
+use crate::OUTPUT_LOG_HANDLER;
 
 lazy_static! {
     pub static ref LOG_MODULE_FILTERS: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(vec![]));

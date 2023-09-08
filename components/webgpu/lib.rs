@@ -4,10 +4,18 @@
 
 use log::{error, warn};
 use wgpu::gfx_select;
-pub use wgpu_core as wgpu;
-pub use wgpu_types as wgt;
+pub use {wgpu_core as wgpu, wgpu_types as wgt};
 
 pub mod identity;
+
+use std::borrow::Cow;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::num::NonZeroU64;
+use std::rc::Rc;
+use std::slice;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
@@ -18,37 +26,26 @@ use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use smallvec::SmallVec;
-use std::borrow::Cow;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::num::NonZeroU64;
-use std::rc::Rc;
-use std::slice;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
 use webrender::{RenderApi, RenderApiSender, Transaction};
 use webrender_api::{DirtyRect, DocumentId, ExternalImageId, ImageData, ImageDescriptor, ImageKey};
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
     WebrenderImageSource,
 };
-use wgpu::device::DeviceDescriptor;
-use wgpu::pipeline::ShaderModuleDescriptor;
-use wgpu::resource::{BufferMapCallback, BufferMapCallbackC};
-use wgpu::{
-    binding_model::{BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor},
-    command::{
-        ComputePass, ImageCopyBuffer, ImageCopyTexture, RenderBundleDescriptor,
-        RenderBundleEncoder, RenderPass,
-    },
-    device::{HostMap, ImplicitPipelineIds},
-    id,
-    instance::RequestAdapterOptions,
-    pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor},
-    resource::{
-        BufferDescriptor, BufferMapAsyncStatus, BufferMapOperation, SamplerDescriptor,
-        TextureDescriptor, TextureViewDescriptor,
-    },
+use wgpu::binding_model::{
+    BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
+};
+use wgpu::command::{
+    ComputePass, ImageCopyBuffer, ImageCopyTexture, RenderBundleDescriptor, RenderBundleEncoder,
+    RenderPass,
+};
+use wgpu::device::{DeviceDescriptor, HostMap, ImplicitPipelineIds};
+use wgpu::id;
+use wgpu::instance::RequestAdapterOptions;
+use wgpu::pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor, ShaderModuleDescriptor};
+use wgpu::resource::{
+    BufferDescriptor, BufferMapAsyncStatus, BufferMapCallback, BufferMapCallbackC,
+    BufferMapOperation, SamplerDescriptor, TextureDescriptor, TextureViewDescriptor,
 };
 use wgt::{Dx12Compiler, InstanceDescriptor};
 

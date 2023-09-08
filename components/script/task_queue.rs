@@ -4,17 +4,19 @@
 
 //! Machinery for [task-queue](https://html.spec.whatwg.org/multipage/#task-queue).
 
+use std::cell::Cell;
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::default::Default;
+
+use crossbeam_channel::{self, Receiver, Sender};
+use msg::constellation_msg::PipelineId;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::script_runtime::ScriptThreadEventCategory;
 use crate::script_thread::ScriptThread;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
-use crossbeam_channel::{self, Receiver, Sender};
-use msg::constellation_msg::PipelineId;
-use std::cell::Cell;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::default::Default;
 
 pub type QueuedTask = (
     Option<TrustedWorkerAddress>,

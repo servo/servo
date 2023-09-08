@@ -4,13 +4,12 @@
 
 pub mod gl_glue;
 
-pub use servo::config::prefs::{add_user_prefs, PrefValue};
-pub use servo::embedder_traits::{
-    ContextMenuResult, MediaSessionPlaybackState, PermissionPrompt, PermissionRequest, PromptResult,
-};
-pub use servo::msg::constellation_msg::InputMethodType;
-pub use servo::script_traits::{MediaSessionActionType, MouseButton};
-pub use servo::webrender_api::units::DeviceIntRect;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::mem;
+use std::os::raw::c_void;
+use std::path::PathBuf;
+use std::rc::Rc;
 
 use getopts::Options;
 use ipc_channel::ipc::IpcSender;
@@ -19,30 +18,29 @@ use servo::compositing::windowing::{
     WindowMethods,
 };
 use servo::config::prefs::pref_map;
+pub use servo::config::prefs::{add_user_prefs, PrefValue};
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
+pub use servo::embedder_traits::{
+    ContextMenuResult, MediaSessionPlaybackState, PermissionPrompt, PermissionRequest, PromptResult,
+};
 use servo::embedder_traits::{
     EmbedderMsg, EmbedderProxy, MediaSessionEvent, PromptDefinition, PromptOrigin,
 };
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
+pub use servo::msg::constellation_msg::InputMethodType;
 use servo::msg::constellation_msg::TraversalDirection;
+pub use servo::script_traits::{MediaSessionActionType, MouseButton};
 use servo::script_traits::{TouchEventType, TouchId};
 use servo::servo_config::{opts, pref};
 use servo::servo_url::ServoUrl;
+pub use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_surfman::WebrenderSurfman;
 use servo::{self, gl, BrowserId, Servo};
 use servo_media::player::context as MediaPlayerContext;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::mem;
-use std::os::raw::c_void;
-use std::path::PathBuf;
-use std::rc::Rc;
-use surfman::Adapter;
-use surfman::Connection;
-use surfman::SurfaceType;
+use surfman::{Adapter, Connection, SurfaceType};
 
 thread_local! {
     pub static SERVO: RefCell<Option<ServoGlue>> = RefCell::new(None);

@@ -2,19 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use freetype::freetype::FT_Add_Default_Modules;
-use freetype::freetype::FT_Done_Library;
-use freetype::freetype::FT_Library;
-use freetype::freetype::FT_Memory;
-use freetype::freetype::FT_MemoryRec_;
-use freetype::freetype::FT_New_Library;
+use std::os::raw::{c_long, c_void};
+use std::ptr;
+use std::rc::Rc;
+
+use freetype::freetype::{
+    FT_Add_Default_Modules, FT_Done_Library, FT_Library, FT_Memory, FT_MemoryRec_, FT_New_Library,
+};
 use freetype::succeeded;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_allocator::libc_compat::{free, malloc, realloc};
 use servo_allocator::usable_size;
-use std::os::raw::{c_long, c_void};
-use std::ptr;
-use std::rc::Rc;
 
 // We pass a |User| struct -- via an opaque |void*| -- to FreeType each time a new instance is
 // created. FreeType passes it back to the ft_alloc/ft_realloc/ft_free callbacks. We use it to

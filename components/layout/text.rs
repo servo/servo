@@ -4,11 +4,11 @@
 
 //! Text layout.
 
-use crate::context::LayoutFontContext;
-use crate::fragment::{Fragment, ScannedTextFlags};
-use crate::fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use crate::inline::{InlineFragmentNodeFlags, InlineFragments};
-use crate::linked_list::split_off_head;
+use std::borrow::ToOwned;
+use std::collections::LinkedList;
+use std::mem;
+use std::sync::Arc;
+
 use app_units::Au;
 use gfx::font::{self, FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::text::glyph::ByteIndex;
@@ -17,10 +17,6 @@ use gfx::text::util::{self, CompressionMode};
 use log::debug;
 use range::Range;
 use servo_atoms::Atom;
-use std::borrow::ToOwned;
-use std::collections::LinkedList;
-use std::mem;
-use std::sync::Arc;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::computed_values::word_break::T as WordBreak;
@@ -32,6 +28,14 @@ use style::values::specified::text::{TextTransform, TextTransformCase};
 use unicode_bidi as bidi;
 use unicode_script::Script;
 use xi_unicode::LineBreakLeafIter;
+
+use crate::context::LayoutFontContext;
+use crate::fragment::{
+    Fragment, ScannedTextFlags, ScannedTextFragmentInfo, SpecificFragmentInfo,
+    UnscannedTextFragmentInfo,
+};
+use crate::inline::{InlineFragmentNodeFlags, InlineFragments};
+use crate::linked_list::split_off_head;
 
 /// Returns the concatenated text of a list of unscanned text fragments.
 fn text(fragments: &LinkedList<Fragment>) -> String {

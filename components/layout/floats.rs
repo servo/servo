@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::block::FormattingContextType;
-use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
-use crate::persistent_list::PersistentList;
+use std::cmp::{max, min};
+use std::fmt;
+
 use app_units::{Au, MAX_AU};
 use log::debug;
 use serde::Serialize;
-use std::cmp::{max, min};
-use std::fmt;
 use style::computed_values::float::T as StyleFloat;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::values::computed::Size;
+
+use crate::block::FormattingContextType;
+use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
+use crate::persistent_list::PersistentList;
 
 /// The kind of float: left or right.
 #[derive(Clone, Copy, Debug, Serialize)]

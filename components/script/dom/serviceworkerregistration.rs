@@ -2,9 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use devtools_traits::WorkerId;
+use dom_struct::dom_struct;
+use msg::constellation_msg::ServiceWorkerRegistrationId;
+use script_traits::{ScopeThings, WorkerScriptLoadOrigin};
+use servo_url::ServoUrl;
+use uuid::Uuid;
+
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::ServiceWorkerRegistrationMethods;
-use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::ServiceWorkerUpdateViaCache;
+use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{
+    ServiceWorkerRegistrationMethods, ServiceWorkerUpdateViaCache,
+};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
@@ -13,13 +23,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
-use devtools_traits::WorkerId;
-use dom_struct::dom_struct;
-use msg::constellation_msg::ServiceWorkerRegistrationId;
-use script_traits::{ScopeThings, WorkerScriptLoadOrigin};
-use servo_url::ServoUrl;
-use std::cell::Cell;
-use uuid::Uuid;
 
 #[dom_struct]
 pub struct ServiceWorkerRegistration {

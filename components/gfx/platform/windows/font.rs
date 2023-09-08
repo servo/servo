@@ -6,26 +6,28 @@
 // information for an approach that we'll likely need to take when the
 // renderer moves to a sandboxed process.
 
-use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use crate::font::{FontTableTag, FractionalPixel};
-use crate::platform::font_template::FontTemplateData;
-use crate::platform::windows::font_context::FontContextHandle;
-use crate::platform::windows::font_list::font_from_atom;
-use crate::text::glyph::GlyphId;
-use app_units::Au;
-use dwrote::{Font, FontFace, FontFile};
-use dwrote::{FontStretch, FontStyle};
-use log::debug;
-use servo_atoms::Atom;
 use std::fmt;
 use std::ops::Deref;
 use std::sync::Arc;
+
+use app_units::Au;
+use dwrote::{Font, FontFace, FontFile, FontStretch, FontStyle};
+use log::debug;
+use servo_atoms::Atom;
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
 use style::values::computed::font::FontStyle as StyleFontStyle;
 use style::values::generics::font::FontStyle as GenericFontStyle;
 use style::values::generics::NonNegative;
 use style::values::specified::font::FontStretchKeyword;
+
+use crate::font::{
+    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel,
+};
+use crate::platform::font_template::FontTemplateData;
+use crate::platform::windows::font_context::FontContextHandle;
+use crate::platform::windows::font_list::font_from_atom;
+use crate::text::glyph::GlyphId;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
 fn pt_to_px(pt: f64) -> f64 {
@@ -88,6 +90,7 @@ impl FontInfo {
         use std::cmp::{max, min};
         use std::collections::HashMap;
         use std::io::Cursor;
+
         use truetype::naming_table::{NameID, NamingTable};
         use truetype::{Value, WindowsMetrics};
 

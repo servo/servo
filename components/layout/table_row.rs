@@ -4,6 +4,22 @@
 
 //! CSS table formatting contexts.
 
+use std::cmp::max;
+use std::fmt;
+use std::iter::{Enumerate, IntoIterator, Peekable};
+
+use app_units::Au;
+use euclid::default::Point2D;
+use gfx_traits::print_tree::PrintTree;
+use log::{debug, warn};
+use serde::{Serialize, Serializer};
+use style::computed_values::border_collapse::T as BorderCollapse;
+use style::computed_values::border_spacing::T as BorderSpacing;
+use style::computed_values::border_top_style::T as BorderStyle;
+use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
+use style::properties::ComputedValues;
+use style::values::computed::{Color, Size};
+
 use crate::block::{BlockFlow, ISizeAndMarginsComputer};
 use crate::context::LayoutContext;
 use crate::display_list::{
@@ -17,20 +33,6 @@ use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use crate::table_cell::{CollapsedBordersForCell, TableCellFlow};
 use crate::{layout_debug, layout_debug_scope};
-use app_units::Au;
-use euclid::default::Point2D;
-use gfx_traits::print_tree::PrintTree;
-use log::{debug, warn};
-use serde::{Serialize, Serializer};
-use std::cmp::max;
-use std::fmt;
-use std::iter::{Enumerate, IntoIterator, Peekable};
-use style::computed_values::border_collapse::T as BorderCollapse;
-use style::computed_values::border_spacing::T as BorderSpacing;
-use style::computed_values::border_top_style::T as BorderStyle;
-use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
-use style::properties::ComputedValues;
-use style::values::computed::{Color, Size};
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableRowFlow {}

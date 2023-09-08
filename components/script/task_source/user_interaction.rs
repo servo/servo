@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fmt;
+use std::result::Result;
+
+use crossbeam_channel::Sender;
+use msg::constellation_msg::PipelineId;
+use servo_atoms::Atom;
+
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventTask};
@@ -11,11 +18,6 @@ use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::MainThreadScriptMsg;
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
-use crossbeam_channel::Sender;
-use msg::constellation_msg::PipelineId;
-use servo_atoms::Atom;
-use std::fmt;
-use std::result::Result;
 
 #[derive(Clone, JSTraceable)]
 pub struct UserInteractionTaskSource(

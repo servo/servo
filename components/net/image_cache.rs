@@ -2,30 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use std::{mem, thread};
+
 use embedder_traits::resources::{self, Resource};
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::IpcSender;
 use log::{debug, warn};
 use net_traits::image::base::{load_from_memory, Image, ImageMetadata};
 use net_traits::image_cache::{
-    CorsStatus, ImageCache, ImageCacheResult, ImageResponder, PendingImageResponse,
+    CorsStatus, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponder,
+    ImageResponse, PendingImageId, PendingImageResponse, UsePlaceholder,
 };
-use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse};
-use net_traits::image_cache::{PendingImageId, UsePlaceholder};
 use net_traits::request::CorsSettings;
 use net_traits::{
     FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError, WebrenderIpcSender,
 };
 use pixels::PixelFormat;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::HashMap;
-use std::mem;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use webrender_api::{
-    units::DeviceIntSize, ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat,
-};
+use webrender_api::units::DeviceIntSize;
+use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
 ///
 /// TODO(gw): Remaining work on image cache:

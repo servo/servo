@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+use net_traits::filemanager_thread::SelectedFile;
+use script_traits::serializable::BlobImpl;
+
 use crate::dom::bindings::codegen::Bindings::FileBinding;
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
@@ -13,10 +18,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::{blob_parts_to_bytes, normalize_type_string, Blob};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use net_traits::filemanager_thread::SelectedFile;
-use script_traits::serializable::BlobImpl;
 
 #[dom_struct]
 pub struct File {

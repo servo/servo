@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use webgpu::wgpu::command::{bundle_ffi as wgpu_bundle, RenderBundleEncoder};
+use webgpu::{wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
+
+use super::bindings::codegen::Bindings::GPURenderPipelineBinding::GPUIndexFormat;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPURenderBundleBinding::GPURenderBundleDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPURenderBundleEncoderBinding::GPURenderBundleEncoderMethods;
@@ -14,13 +19,6 @@ use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpudevice::{convert_label, GPUDevice};
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
-use dom_struct::dom_struct;
-use webgpu::{
-    wgpu::command::{bundle_ffi as wgpu_bundle, RenderBundleEncoder},
-    wgt, WebGPU, WebGPURenderBundle, WebGPURequest,
-};
-
-use super::bindings::codegen::Bindings::GPURenderPipelineBinding::GPUIndexFormat;
 
 #[dom_struct]
 pub struct GPURenderBundleEncoder {

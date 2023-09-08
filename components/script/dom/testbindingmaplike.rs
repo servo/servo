@@ -4,6 +4,11 @@
 
 // check-tidy: no specs after this line
 
+use dom_struct::dom_struct;
+use indexmap::IndexMap;
+use js::rust::HandleObject;
+
+use super::bindings::error::Error;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TestBindingMaplikeBinding::TestBindingMaplikeMethods;
 use crate::dom::bindings::error::Fallible;
@@ -13,11 +18,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::maplike;
-use dom_struct::dom_struct;
-use indexmap::IndexMap;
-use js::rust::HandleObject;
-
-use super::bindings::error::Error;
 
 /// maplike<DOMString, long>
 #[dom_struct]

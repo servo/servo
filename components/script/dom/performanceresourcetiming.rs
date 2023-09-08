@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use net_traits::ResourceFetchTiming;
+use servo_url::ServoUrl;
+
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -10,9 +14,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::reduce_timing_resolution;
 use crate::dom::performanceentry::PerformanceEntry;
-use dom_struct::dom_struct;
-use net_traits::ResourceFetchTiming;
-use servo_url::ServoUrl;
 
 // TODO UA may choose to limit how many resources are included as PerformanceResourceTiming objects
 // recommended minimum is 150, can be changed by setResourceTimingBufferSize in performance

@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
-use crate::StreamId;
+use std::net::TcpStream;
+
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_config::pref_util::PrefValue;
 use servo_config::prefs::pref_map;
-use std::net::TcpStream;
+
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 
 pub struct PreferenceActor {
     name: String,

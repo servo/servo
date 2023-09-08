@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use html5ever::{local_name, LocalName, Prefix};
+use js::rust::HandleObject;
+
 use crate::dom::bindings::codegen::Bindings::HTMLProgressElementBinding::HTMLProgressElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -11,9 +15,6 @@ use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::nodelist::NodeList;
-use dom_struct::dom_struct;
-use html5ever::{local_name, LocalName, Prefix};
-use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLProgressElement {

@@ -4,9 +4,7 @@
 
 use canvas_traits::webgl::{GLLimits, WebGLVersion};
 use sparkle::gl;
-use sparkle::gl::GLenum;
-use sparkle::gl::Gl;
-use sparkle::gl::GlType;
+use sparkle::gl::{GLenum, Gl, GlType};
 
 pub trait GLLimitsDetect {
     fn detect(gl: &Gl, webgl_version: WebGLVersion) -> Self;

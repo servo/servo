@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns};
+use script_traits::DocumentActivity;
+
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementationMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
@@ -15,8 +19,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::xmlname::{namespace_from_domstring, validate_qualified_name};
-use crate::dom::document::DocumentSource;
-use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
@@ -25,9 +28,6 @@ use crate::dom::htmltitleelement::HTMLTitleElement;
 use crate::dom::node::Node;
 use crate::dom::text::Text;
 use crate::dom::xmldocument::XMLDocument;
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns};
-use script_traits::DocumentActivity;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]

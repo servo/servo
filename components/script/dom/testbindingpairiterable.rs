@@ -4,6 +4,9 @@
 
 // check-tidy: no specs after this line
 
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TestBindingPairIterableBinding::TestBindingPairIterableMethods;
 use crate::dom::bindings::error::Fallible;
@@ -12,8 +15,6 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct TestBindingPairIterable {

@@ -4,7 +4,12 @@
 
 //! Data needed by the layout thread.
 
-use crate::display_list::items::{OpaqueNode, WebRenderImageInfo};
+use std::cell::{RefCell, RefMut};
+use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
+use std::sync::{Arc, Mutex};
+use std::thread;
+
 use fnv::FnvHasher;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
@@ -18,13 +23,9 @@ use script_layout_interface::{PendingImage, PendingImageState};
 use script_traits::Painter;
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::cell::{RefCell, RefMut};
-use std::collections::HashMap;
-use std::hash::BuildHasherDefault;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use style::context::RegisteredSpeculativePainter;
-use style::context::SharedStyleContext;
+use style::context::{RegisteredSpeculativePainter, SharedStyleContext};
+
+use crate::display_list::items::{OpaqueNode, WebRenderImageInfo};
 
 pub type LayoutFontContext = FontContext<FontCacheThread>;
 

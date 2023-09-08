@@ -4,6 +4,66 @@
 
 //! Element nodes.
 
+use std::borrow::Cow;
+use std::cell::Cell;
+use std::default::Default;
+use std::ops::Deref;
+use std::rc::Rc;
+use std::str::FromStr;
+use std::{fmt, mem};
+
+use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
+use devtools_traits::AttrInfo;
+use dom_struct::dom_struct;
+use euclid::default::{Rect, Size2D};
+use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
+use html5ever::serialize::{SerializeOpts, TraversalScope};
+use html5ever::{
+    local_name, namespace_prefix, namespace_url, ns, serialize, LocalName, Namespace, Prefix,
+    QualName,
+};
+use js::jsapi::Heap;
+use js::jsval::JSVal;
+use js::rust::HandleObject;
+use msg::constellation_msg::InputMethodType;
+use net_traits::request::CorsSettings;
+use net_traits::ReferrerPolicy;
+use script_layout_interface::message::ReflowGoal;
+use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
+use selectors::matching::{ElementSelectorFlags, MatchingContext};
+use selectors::sink::Push;
+use selectors::Element as SelectorsElement;
+use servo_arc::Arc;
+use servo_atoms::Atom;
+use style::applicable_declarations::ApplicableDeclarationBlock;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::context::QuirksMode;
+use style::element_state::ElementState;
+use style::invalidation::element::restyle_hints::RestyleHint;
+use style::properties::longhands::{
+    self, background_image, border_spacing, font_family, font_size,
+};
+use style::properties::{
+    parse_style_attribute, ComputedValues, Importance, PropertyDeclaration,
+    PropertyDeclarationBlock,
+};
+use style::rule_tree::CascadeLevel;
+use style::selector_parser::{
+    extended_filtering, NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl,
+    SelectorParser,
+};
+use style::shared_lock::{Locked, SharedRwLock};
+use style::stylesheets::layer_rule::LayerOrder;
+use style::stylesheets::CssRuleType;
+use style::values::generics::NonNegative;
+use style::values::{computed, specified, AtomIdent, AtomString, CSSFloat};
+use style::{dom_apis, thread_state, CaseSensitivityExt};
+use xml5ever::serialize as xmlSerialize;
+use xml5ever::serialize::TraversalScope::{
+    ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
+};
+use xml5ever::serialize::{SerializeOpts as XmlSerializeOpts, TraversalScope as XmlTraversalScope};
+
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
@@ -14,8 +74,9 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
+use crate::dom::bindings::codegen::Bindings::WindowBinding::{
+    ScrollBehavior, ScrollToOptions, WindowMethods,
+};
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -69,9 +130,10 @@ use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
-use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{BindContext, NodeDamage, NodeFlags, UnbindContext};
-use crate::dom::node::{ChildrenMutation, LayoutNodeHelpers, Node, ShadowIncluding};
+use crate::dom::node::{
+    document_from_node, window_from_node, BindContext, ChildrenMutation, LayoutNodeHelpers, Node,
+    NodeDamage, NodeFlags, ShadowIncluding, UnbindContext,
+};
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::raredata::ElementRareData;
@@ -84,67 +146,6 @@ use crate::dom::window::ReflowReason;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 use crate::task::TaskOnce;
-use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
-use devtools_traits::AttrInfo;
-use dom_struct::dom_struct;
-use euclid::default::Rect;
-use euclid::default::Size2D;
-use html5ever::serialize;
-use html5ever::serialize::SerializeOpts;
-use html5ever::serialize::TraversalScope;
-use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use html5ever::{
-    local_name, namespace_prefix, namespace_url, ns, LocalName, Namespace, Prefix, QualName,
-};
-use js::jsapi::Heap;
-use js::jsval::JSVal;
-use js::rust::HandleObject;
-use msg::constellation_msg::InputMethodType;
-use net_traits::request::CorsSettings;
-use net_traits::ReferrerPolicy;
-use script_layout_interface::message::ReflowGoal;
-use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext};
-use selectors::sink::Push;
-use selectors::Element as SelectorsElement;
-use servo_arc::Arc;
-use servo_atoms::Atom;
-use std::borrow::Cow;
-use std::cell::Cell;
-use std::default::Default;
-use std::fmt;
-use std::mem;
-use std::ops::Deref;
-use std::rc::Rc;
-use std::str::FromStr;
-use style::applicable_declarations::ApplicableDeclarationBlock;
-use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-use style::context::QuirksMode;
-use style::dom_apis;
-use style::element_state::ElementState;
-use style::invalidation::element::restyle_hints::RestyleHint;
-use style::properties::longhands::{
-    self, background_image, border_spacing, font_family, font_size,
-};
-use style::properties::{parse_style_attribute, PropertyDeclarationBlock};
-use style::properties::{ComputedValues, Importance, PropertyDeclaration};
-use style::rule_tree::CascadeLevel;
-use style::selector_parser::extended_filtering;
-use style::selector_parser::{
-    NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser,
-};
-use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::layer_rule::LayerOrder;
-use style::stylesheets::CssRuleType;
-use style::thread_state;
-use style::values::generics::NonNegative;
-use style::values::{computed, specified, AtomIdent, AtomString, CSSFloat};
-use style::CaseSensitivityExt;
-use xml5ever::serialize as xmlSerialize;
-use xml5ever::serialize::SerializeOpts as XmlSerializeOpts;
-use xml5ever::serialize::TraversalScope as XmlTraversalScope;
-use xml5ever::serialize::TraversalScope::ChildrenOnly as XmlChildrenOnly;
-use xml5ever::serialize::TraversalScope::IncludeNode as XmlIncludeNode;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
 // and when the element enters or leaves a browsing context container.

@@ -5,12 +5,52 @@
 //! The script module mod contains common traits and structs
 //! related to `type=module` for script thread or worker threads.
 
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
+use std::str::FromStr;
+use std::sync::{Arc, Mutex};
+use std::{mem, ptr};
+
+use encoding_rs::UTF_8;
+use html5ever::local_name;
+use hyper_serde::Serde;
+use indexmap::IndexSet;
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
+use js::jsapi::{
+    CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport, GetModuleRequestSpecifier,
+    GetModuleResolveHook, GetRequestedModules, Handle as RawHandle, HandleObject,
+    HandleValue as RawHandleValue, Heap, JSAutoRealm, JSContext, JSObject, JSRuntime, JSString,
+    JS_ClearPendingException, JS_DefineProperty4, JS_IsExceptionPending, JS_NewStringCopyN,
+    ModuleErrorBehaviour, ModuleEvaluate, ModuleLink, MutableHandleValue,
+    SetModuleDynamicImportHook, SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook,
+    SetScriptPrivateReferenceHooks, ThrowOnModuleEvaluationFailure, Value, JSPROP_ENUMERATE,
+};
+use js::jsval::{JSVal, PrivateValue, UndefinedValue};
+use js::rust::jsapi_wrapped::{
+    GetArrayLength, GetRequestedModuleSpecifier, JS_GetElement, JS_GetPendingException,
+};
+use js::rust::wrappers::JS_SetPendingException;
+use js::rust::{
+    transform_str_to_source_text, CompileOptionsWrapper, Handle, HandleValue, IntoHandle,
+};
+use mime::Mime;
+use net_traits::request::{
+    CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestMode,
+};
+use net_traits::{
+    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, IpcSend, Metadata,
+    NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
+};
+use servo_url::ServoUrl;
+use url::ParseError as UrlParseError;
+use uuid::Uuid;
+
 use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::jsstring_to_str;
-use crate::dom::bindings::error::report_pending_exception;
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::error::{report_pending_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
@@ -22,63 +62,20 @@ use crate::dom::document::Document;
 use crate::dom::dynamicmoduleowner::{DynamicModuleId, DynamicModuleOwner};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptId};
-use crate::dom::htmlscriptelement::{ScriptOrigin, ScriptType, SCRIPT_JS_MIMES};
+use crate::dom::htmlscriptelement::{
+    HTMLScriptElement, ScriptId, ScriptOrigin, ScriptType, SCRIPT_JS_MIMES,
+};
 use crate::dom::node::document_from_node;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
-use crate::network_listener::{self, NetworkListener};
-use crate::network_listener::{PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
-use encoding_rs::UTF_8;
-use html5ever::local_name;
-use hyper_serde::Serde;
-use indexmap::IndexSet;
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
-use js::jsapi::Handle as RawHandle;
-use js::jsapi::HandleObject;
-use js::jsapi::HandleValue as RawHandleValue;
-use js::jsapi::MutableHandleValue;
-use js::jsapi::Value;
-use js::jsapi::{CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport};
-use js::jsapi::{GetModuleRequestSpecifier, GetRequestedModules, SetModuleMetadataHook};
-use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
-use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
-use js::jsapi::{JSAutoRealm, JSObject, JSString};
-use js::jsapi::{JS_DefineProperty4, JS_IsExceptionPending, JS_NewStringCopyN, JSPROP_ENUMERATE};
-use js::jsapi::{ModuleErrorBehaviour, ModuleEvaluate, ModuleLink, ThrowOnModuleEvaluationFailure};
-use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
-use js::jsval::{JSVal, PrivateValue, UndefinedValue};
-use js::rust::jsapi_wrapped::{GetArrayLength, JS_GetElement};
-use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
-use js::rust::transform_str_to_source_text;
-use js::rust::wrappers::JS_SetPendingException;
-use js::rust::CompileOptionsWrapper;
-use js::rust::{Handle, HandleValue, IntoHandle};
-use mime::Mime;
-use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
-use net_traits::request::{Referrer, RequestBuilder, RequestMode};
-use net_traits::IpcSend;
-use net_traits::{CoreResourceMsg, FetchChannels};
-use net_traits::{FetchMetadata, Metadata, ReferrerPolicy};
-use net_traits::{FetchResponseListener, NetworkError};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
-use servo_url::ServoUrl;
-use std::collections::{HashMap, HashSet};
-use std::mem;
-use std::ptr;
-use std::rc::Rc;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
-use url::ParseError as UrlParseError;
-use uuid::Uuid;
 
 #[allow(unsafe_code)]
 unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {

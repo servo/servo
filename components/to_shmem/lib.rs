@@ -12,16 +12,12 @@
 #![crate_name = "to_shmem"]
 #![crate_type = "rlib"]
 
-use servo_arc::{Arc, ThinArc};
-use smallbitvec::{InternalStorage, SmallBitVec};
-use smallvec::{Array, SmallVec};
 use std::alloc::Layout;
 #[cfg(debug_assertions)]
 use std::any::TypeId;
 #[cfg(debug_assertions)]
 use std::collections::HashSet;
 use std::ffi::CString;
-use std::isize;
 use std::marker::PhantomData;
 use std::mem::{self, ManuallyDrop};
 use std::num::Wrapping;
@@ -30,8 +26,11 @@ use std::os::raw::c_char;
 #[cfg(debug_assertions)]
 use std::os::raw::c_void;
 use std::ptr::{self, NonNull};
-use std::slice;
-use std::str;
+use std::{isize, slice, str};
+
+use servo_arc::{Arc, ThinArc};
+use smallbitvec::{InternalStorage, SmallBitVec};
+use smallvec::{Array, SmallVec};
 
 /// Result type for ToShmem::to_shmem.
 ///

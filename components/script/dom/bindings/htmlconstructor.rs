@@ -2,74 +2,42 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLAudioElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLBRElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLBodyElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLDListElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLDataElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLDirectoryElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLDivElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLEmbedElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLFrameElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLFrameSetElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLHRElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLHeadingElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLHtmlElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLLIElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLMapElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLMenuElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLMeterElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLModElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLOListElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLParagraphElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLParamElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLPictureElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLPreElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLProgressElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLQuoteElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLSpanElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTableCaptionElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTableCellElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTableColElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTableRowElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTimeElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLTrackElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLUListElementBinding;
-use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
+use std::ptr;
+
+use html5ever::interface::QualName;
+use html5ever::{local_name, namespace_url, ns, LocalName};
+use js::conversions::ToJSValConvertible;
+use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
+use js::jsapi::{CallArgs, CurrentGlobalOrNull, JSAutoRealm, JSObject};
+use js::jsval::UndefinedValue;
+use js::rust::wrappers::{JS_GetProperty, JS_SetPrototype, JS_WrapObject};
+use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
+
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::{
+    HTMLAnchorElementBinding, HTMLAreaElementBinding, HTMLAudioElementBinding,
+    HTMLBRElementBinding, HTMLBaseElementBinding, HTMLBodyElementBinding, HTMLButtonElementBinding,
+    HTMLCanvasElementBinding, HTMLDListElementBinding, HTMLDataElementBinding,
+    HTMLDataListElementBinding, HTMLDetailsElementBinding, HTMLDialogElementBinding,
+    HTMLDirectoryElementBinding, HTMLDivElementBinding, HTMLElementBinding,
+    HTMLEmbedElementBinding, HTMLFieldSetElementBinding, HTMLFontElementBinding,
+    HTMLFormElementBinding, HTMLFrameElementBinding, HTMLFrameSetElementBinding,
+    HTMLHRElementBinding, HTMLHeadElementBinding, HTMLHeadingElementBinding,
+    HTMLHtmlElementBinding, HTMLIFrameElementBinding, HTMLImageElementBinding,
+    HTMLInputElementBinding, HTMLLIElementBinding, HTMLLabelElementBinding,
+    HTMLLegendElementBinding, HTMLLinkElementBinding, HTMLMapElementBinding,
+    HTMLMenuElementBinding, HTMLMetaElementBinding, HTMLMeterElementBinding, HTMLModElementBinding,
+    HTMLOListElementBinding, HTMLObjectElementBinding, HTMLOptGroupElementBinding,
+    HTMLOptionElementBinding, HTMLOutputElementBinding, HTMLParagraphElementBinding,
+    HTMLParamElementBinding, HTMLPictureElementBinding, HTMLPreElementBinding,
+    HTMLProgressElementBinding, HTMLQuoteElementBinding, HTMLScriptElementBinding,
+    HTMLSelectElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
+    HTMLStyleElementBinding, HTMLTableCaptionElementBinding, HTMLTableCellElementBinding,
+    HTMLTableColElementBinding, HTMLTableElementBinding, HTMLTableRowElementBinding,
+    HTMLTableSectionElementBinding, HTMLTemplateElementBinding, HTMLTextAreaElementBinding,
+    HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLTrackElementBinding,
+    HTMLUListElementBinding, HTMLVideoElementBinding,
+};
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
@@ -83,16 +51,6 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
-use html5ever::interface::QualName;
-use html5ever::{local_name, namespace_url, ns, LocalName};
-use js::conversions::ToJSValConvertible;
-use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
-use js::jsapi::{CallArgs, CurrentGlobalOrNull};
-use js::jsapi::{JSAutoRealm, JSObject};
-use js::jsval::UndefinedValue;
-use js::rust::wrappers::{JS_GetProperty, JS_SetPrototype, JS_WrapObject};
-use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
-use std::ptr;
 
 // https://html.spec.whatwg.org/multipage/#htmlconstructor
 unsafe fn html_constructor(

@@ -2,116 +2,65 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::logging::CATEGORY;
-
-use crossbeam_channel::Receiver;
-use crossbeam_channel::Sender;
-
-use euclid::default::Rotation3D;
-use euclid::default::Vector3D;
-use euclid::Point2D;
-use euclid::Rect;
-use euclid::Scale;
-use euclid::Size2D;
-
-use glib::glib_object_impl;
-use glib::glib_object_subclass;
-use glib::object::Cast;
-use glib::object::Object;
-use glib::object::ObjectType;
-use glib::subclass::object::ObjectClassSubclassExt;
-use glib::subclass::object::ObjectImpl;
-use glib::subclass::object::ObjectImplExt;
-use glib::subclass::object::Property;
-use glib::subclass::simple::ClassStruct;
-use glib::subclass::types::ObjectSubclass;
-use glib::translate::FromGlibPtrBorrow;
-use glib::value::Value;
-use glib::ParamSpec;
-use gstreamer::gst_element_error;
-use gstreamer::gst_loggable_error;
-use gstreamer::subclass::element::ElementClassSubclassExt;
-use gstreamer::subclass::element::ElementImpl;
-use gstreamer::subclass::ElementInstanceStruct;
-use gstreamer::Buffer;
-use gstreamer::BufferPool;
-use gstreamer::BufferPoolExt;
-use gstreamer::BufferPoolExtManual;
-use gstreamer::Caps;
-use gstreamer::CoreError;
-use gstreamer::Element;
-use gstreamer::ErrorMessage;
-use gstreamer::FlowError;
-use gstreamer::Format;
-use gstreamer::Fraction;
-use gstreamer::LoggableError;
-use gstreamer::PadDirection;
-use gstreamer::PadPresence;
-use gstreamer::PadTemplate;
-use gstreamer_base::subclass::base_src::BaseSrcImpl;
-use gstreamer_base::BaseSrc;
-use gstreamer_base::BaseSrcExt;
-use gstreamer_gl::GLContext;
-use gstreamer_gl::GLContextExt;
-use gstreamer_gl::GLContextExtManual;
-use gstreamer_gl::GLSyncMeta;
-use gstreamer_gl_sys::gst_gl_context_thread_add;
-use gstreamer_gl_sys::gst_gl_texture_target_to_gl;
-use gstreamer_gl_sys::gst_is_gl_memory;
-use gstreamer_gl_sys::GstGLContext;
-use gstreamer_gl_sys::GstGLMemory;
-use gstreamer_video::VideoInfo;
-
-use log::debug;
-use log::error;
-use log::info;
-use log::warn;
-
-use servo::compositing::windowing::AnimationState;
-use servo::compositing::windowing::EmbedderCoordinates;
-use servo::compositing::windowing::EmbedderEvent;
-use servo::compositing::windowing::EmbedderMethods;
-use servo::compositing::windowing::WindowMethods;
-use servo::embedder_traits::EmbedderProxy;
-use servo::embedder_traits::EventLoopWaker;
-use servo::msg::constellation_msg::TopLevelBrowsingContextId;
-use servo::servo_config::prefs::add_user_prefs;
-use servo::servo_config::prefs::read_prefs_map;
-use servo::servo_config::prefs::PrefValue;
-use servo::servo_config::set_pref;
-use servo::servo_url::ServoUrl;
-use servo::webrender_api::units::DevicePixel;
-use servo::webrender_surfman::WebrenderSurfman;
-use servo::Servo;
-
-use sparkle::gl;
-use sparkle::gl::types::GLuint;
-use sparkle::gl::Gl;
-
-use surfman::chains::{SwapChain, SwapChainAPI};
-use surfman::Connection;
-use surfman::Context;
-use surfman::Device;
-use surfman::SurfaceAccess;
-use surfman::SurfaceType;
-
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::c_void;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::sync::atomic::AtomicU64;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::thread;
-use std::time::Duration;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
-use webxr::glwindow::GlWindow as WebXRWindow;
-use webxr::glwindow::GlWindowDiscovery as WebXRDiscovery;
-use webxr::glwindow::GlWindowMode as WebXRMode;
-use webxr::glwindow::GlWindowRenderTarget as WebXRRenderTarget;
+use crossbeam_channel::{Receiver, Sender};
+use euclid::default::{Rotation3D, Vector3D};
+use euclid::{Point2D, Rect, Scale, Size2D};
+use glib::object::{Cast, Object, ObjectType};
+use glib::subclass::object::{ObjectClassSubclassExt, ObjectImpl, ObjectImplExt, Property};
+use glib::subclass::simple::ClassStruct;
+use glib::subclass::types::ObjectSubclass;
+use glib::translate::FromGlibPtrBorrow;
+use glib::value::Value;
+use glib::{glib_object_impl, glib_object_subclass, ParamSpec};
+use gstreamer::subclass::element::{ElementClassSubclassExt, ElementImpl};
+use gstreamer::subclass::ElementInstanceStruct;
+use gstreamer::{
+    gst_element_error, gst_loggable_error, Buffer, BufferPool, BufferPoolExt, BufferPoolExtManual,
+    Caps, CoreError, Element, ErrorMessage, FlowError, Format, Fraction, LoggableError,
+    PadDirection, PadPresence, PadTemplate,
+};
+use gstreamer_base::subclass::base_src::BaseSrcImpl;
+use gstreamer_base::{BaseSrc, BaseSrcExt};
+use gstreamer_gl::{GLContext, GLContextExt, GLContextExtManual, GLSyncMeta};
+use gstreamer_gl_sys::{
+    gst_gl_context_thread_add, gst_gl_texture_target_to_gl, gst_is_gl_memory, GstGLContext,
+    GstGLMemory,
+};
+use gstreamer_video::VideoInfo;
+use log::{debug, error, info, warn};
+use servo::compositing::windowing::{
+    AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, WindowMethods,
+};
+use servo::embedder_traits::{EmbedderProxy, EventLoopWaker};
+use servo::msg::constellation_msg::TopLevelBrowsingContextId;
+use servo::servo_config::prefs::{add_user_prefs, read_prefs_map, PrefValue};
+use servo::servo_config::set_pref;
+use servo::servo_url::ServoUrl;
+use servo::webrender_api::units::DevicePixel;
+use servo::webrender_surfman::WebrenderSurfman;
+use servo::Servo;
+use sparkle::gl;
+use sparkle::gl::types::GLuint;
+use sparkle::gl::Gl;
+use surfman::chains::{SwapChain, SwapChainAPI};
+use surfman::{Connection, Context, Device, SurfaceAccess, SurfaceType};
+use webxr::glwindow::{
+    GlWindow as WebXRWindow, GlWindowDiscovery as WebXRDiscovery, GlWindowMode as WebXRMode,
+    GlWindowRenderTarget as WebXRRenderTarget,
+};
+
+use crate::logging::CATEGORY;
 
 pub struct ServoWebSrc {
     sender: Sender<ServoWebSrcMsg>,

@@ -3,6 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! The `ByteString` struct.
+use std::borrow::{Borrow, Cow, ToOwned};
+use std::default::Default;
+use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
+use std::str::FromStr;
+use std::{fmt, ops, str};
+
 use chrono::prelude::{Utc, Weekday};
 use chrono::{Datelike, TimeZone};
 use cssparser::CowRcStr;
@@ -10,15 +18,6 @@ use html5ever::{LocalName, Namespace};
 use lazy_static::lazy_static;
 use regex::Regex;
 use servo_atoms::Atom;
-use std::borrow::{Borrow, Cow, ToOwned};
-use std::default::Default;
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
-use std::ops;
-use std::ops::{Deref, DerefMut};
-use std::str;
-use std::str::FromStr;
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(Clone, Debug, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]

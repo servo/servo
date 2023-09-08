@@ -4,11 +4,11 @@
 
 #![allow(dead_code)] // this file is stub
 
-use crate::dom::bindings::reflector::Reflector;
 use dom_struct::dom_struct;
 
 use super::bindings::codegen::Bindings::GPUQuerySetBinding::GPUQuerySetMethods;
 use super::bindings::str::USVString;
+use crate::dom::bindings::reflector::Reflector;
 
 #[dom_struct]
 pub struct GPUQuerySet {

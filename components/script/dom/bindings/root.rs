@@ -24,24 +24,24 @@
 //! originating `DomRoot<T>`.
 //!
 
-use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
-use crate::dom::bindings::trace::trace_reflector;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::node::Node;
-use js::jsapi::{Heap, JSObject, JSTracer};
-use js::rust::GCMethods;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use script_layout_interface::TrustedNodeAddress;
 use std::cell::{Cell, OnceCell, UnsafeCell};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
-use std::mem;
 use std::ops::Deref;
-use std::ptr;
+use std::{mem, ptr};
+
+use js::jsapi::{Heap, JSObject, JSTracer};
+use js::rust::GCMethods;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use script_layout_interface::TrustedNodeAddress;
 use style::thread_state;
+
+use crate::dom::bindings::conversions::DerivedFrom;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use crate::dom::bindings::trace::{trace_reflector, JSTraceable};
+use crate::dom::node::Node;
 
 /// A rooted value.
 #[allow(unrooted_must_root)]

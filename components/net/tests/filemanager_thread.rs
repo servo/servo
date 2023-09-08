@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::create_embedder_proxy;
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
+use std::sync::Arc;
+
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc;
 use net::filemanager_thread::FileManager;
@@ -12,10 +16,8 @@ use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
 };
 use servo_config::set_pref;
-use std::fs::File;
-use std::io::Read;
-use std::path::PathBuf;
-use std::sync::Arc;
+
+use crate::create_embedder_proxy;
 
 #[test]
 fn test_filemanager() {

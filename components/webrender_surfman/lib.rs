@@ -4,11 +4,11 @@
 
 #![deny(unsafe_code)]
 
-use euclid::default::Size2D;
-
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
+
+use euclid::default::Size2D;
 use surfman::chains::{PreserveBuffer, SwapChain};
 use surfman::{
     Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, Error, GLApi,

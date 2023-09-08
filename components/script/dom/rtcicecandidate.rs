@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
-use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateMethods;
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+
+use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::{
+    RTCIceCandidateInit, RTCIceCandidateMethods,
+};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
-use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct RTCIceCandidate {

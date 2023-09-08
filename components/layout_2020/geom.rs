@@ -2,15 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::ContainingBlock;
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
-use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection};
-use style::logical_geometry::{PhysicalCorner, WritingMode};
+
+use style::logical_geometry::{
+    BlockFlowDirection, InlineBaseDirection, PhysicalCorner, WritingMode,
+};
 use style::values::computed::{Length, LengthPercentage};
 use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
 use style::Zero;
 use style_traits::CSSPixel;
+
+use crate::ContainingBlock;
 
 pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
 pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;

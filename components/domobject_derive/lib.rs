@@ -5,8 +5,7 @@
 #![recursion_limit = "128"]
 
 use proc_macro2;
-use quote::quote;
-use quote::TokenStreamExt;
+use quote::{quote, TokenStreamExt};
 use syn::parse_quote;
 
 #[proc_macro_derive(DomObject)]

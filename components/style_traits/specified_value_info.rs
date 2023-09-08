@@ -4,11 +4,13 @@
 
 //! Value information for devtools.
 
-use crate::arc_slice::ArcSlice;
-use crate::owned_slice::OwnedSlice;
-use servo_arc::Arc;
 use std::ops::Range;
 use std::sync::Arc as StdArc;
+
+use servo_arc::Arc;
+
+use crate::arc_slice::ArcSlice;
+use crate::owned_slice::OwnedSlice;
 
 /// Type of value that a property supports. This is used by Gecko's
 /// devtools to make sense about value it parses, and types listed

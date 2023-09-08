@@ -5,6 +5,29 @@
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
+use std::collections::HashMap;
+use std::os::raw;
+use std::ptr;
+
+use js::glue::{
+    CopyJSStructuredCloneData, DeleteJSAutoStructuredCloneBuffer, GetLengthOfJSStructuredCloneData,
+    NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
+};
+use js::jsapi::{
+    CloneDataPolicy, HandleObject as RawHandleObject, JSContext, JSObject,
+    JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter,
+    JS_ClearPendingException, JS_ReadUint32Pair, JS_WriteUint32Pair,
+    MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
+    JS_STRUCTURED_CLONE_VERSION,
+};
+use js::jsval::UndefinedValue;
+use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use msg::constellation_msg::{BlobId, MessagePortId};
+use script_traits::serializable::BlobImpl;
+use script_traits::transferable::MessagePortImpl;
+use script_traits::StructuredSerializedData;
+
 use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
@@ -16,31 +39,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
-use js::glue::CopyJSStructuredCloneData;
-use js::glue::DeleteJSAutoStructuredCloneBuffer;
-use js::glue::GetLengthOfJSStructuredCloneData;
-use js::glue::NewJSAutoStructuredCloneBuffer;
-use js::glue::WriteBytesToJSStructuredCloneData;
-use js::jsapi::CloneDataPolicy;
-use js::jsapi::HandleObject as RawHandleObject;
-use js::jsapi::JSContext;
-use js::jsapi::MutableHandleObject as RawMutableHandleObject;
-use js::jsapi::StructuredCloneScope;
-use js::jsapi::TransferableOwnership;
-use js::jsapi::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSObject, JS_ClearPendingException};
-use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
-use js::jsapi::{JS_ReadUint32Pair, JS_WriteUint32Pair};
-use js::jsval::UndefinedValue;
-use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
-use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
-use msg::constellation_msg::{BlobId, MessagePortId};
-use script_traits::serializable::BlobImpl;
-use script_traits::transferable::MessagePortImpl;
-use script_traits::StructuredSerializedData;
-use std::collections::HashMap;
-use std::os::raw;
-use std::ptr;
 
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
 // TODO: Determine for sure which value Min and Max should have.

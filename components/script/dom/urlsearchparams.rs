@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+use url::form_urlencoded;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
 use crate::dom::bindings::codegen::UnionTypes::USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString;
@@ -13,9 +17,6 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::url::URL;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use url::form_urlencoded;
 
 // https://url.spec.whatwg.org/#interface-urlsearchparams
 #[dom_struct]

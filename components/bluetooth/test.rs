@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::BluetoothManager;
-use device::bluetooth::{BluetoothAdapter, BluetoothDevice};
-use device::bluetooth::{
-    BluetoothGATTCharacteristic, BluetoothGATTDescriptor, BluetoothGATTService,
-};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::string::String;
+
+use device::bluetooth::{
+    BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic, BluetoothGATTDescriptor,
+    BluetoothGATTService,
+};
 use uuid::Uuid;
+
+use crate::BluetoothManager;
 
 thread_local!(pub static CACHED_IDS: RefCell<HashSet<Uuid>> = RefCell::new(HashSet::new()));
 

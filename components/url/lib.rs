@@ -8,10 +8,6 @@
 
 pub mod origin;
 
-pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
-
-use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::Hasher;
@@ -19,10 +15,14 @@ use std::net::IpAddr;
 use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
 use std::path::Path;
 use std::sync::Arc;
+
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 use to_shmem::{SharedMemoryBuilder, ToShmem};
+pub use url::Host;
 use url::{Position, Url};
 
-pub use url::Host;
+pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
 
 #[derive(Clone, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct ServoUrl(#[ignore_malloc_size_of = "Arc"] Arc<Url>);

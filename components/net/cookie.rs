@@ -5,13 +5,14 @@
 //! Implementation of cookie creation and matching as specified by
 //! http://tools.ietf.org/html/rfc6265
 
+use std::borrow::ToOwned;
+use std::net::{Ipv4Addr, Ipv6Addr};
+
 use hyper_serde::Serde;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::CookieSource;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use std::borrow::ToOwned;
-use std::net::{Ipv4Addr, Ipv6Addr};
 use time::{at, now, Duration, Tm};
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement

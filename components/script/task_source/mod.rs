@@ -14,10 +14,12 @@ pub mod timer;
 pub mod user_interaction;
 pub mod websocket;
 
+use std::result::Result;
+
+use enum_iterator::IntoEnumIterator;
+
 use crate::dom::globalscope::GlobalScope;
 use crate::task::{TaskCanceller, TaskOnce};
-use enum_iterator::IntoEnumIterator;
-use std::result::Result;
 
 // The names of all task sources, used to differentiate TaskCancellers.
 // Note: When adding a task source, update this enum.

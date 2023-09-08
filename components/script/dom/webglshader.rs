@@ -3,6 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
+use std::cell::Cell;
+use std::os::raw::c_int;
+use std::sync::Once;
+
+use canvas_traits::webgl::{
+    webgl_channel, GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion,
+    WebGLShaderId, WebGLVersion,
+};
+use dom_struct::dom_struct;
+use mozangle::shaders::{ffi, BuiltInResources, Output, ShaderValidator};
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -14,14 +25,6 @@ use crate::dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDeriva
 use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
-use canvas_traits::webgl::{webgl_channel, GlType, WebGLVersion};
-use canvas_traits::webgl::{GLLimits, WebGLCommand, WebGLError};
-use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLShaderId};
-use dom_struct::dom_struct;
-use mozangle::shaders::{ffi, BuiltInResources, Output, ShaderValidator};
-use std::cell::Cell;
-use std::os::raw::c_int;
-use std::sync::Once;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ShaderCompilationStatus {

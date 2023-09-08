@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::env;
-use std::fs;
 use std::path::Path;
 use std::process::Command;
+use std::{env, fs};
 
 fn main() {
     println!("cargo:rerun-if-changed=../../python/servo/gstreamer.py");

@@ -2,10 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionDescriptor;
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use embedder_traits::{self, EmbedderMsg, PermissionPrompt, PermissionRequest};
+use ipc_channel::ipc;
+use js::conversions::ConversionResult;
+use js::jsapi::JSObject;
+use js::jsval::{ObjectValue, UndefinedValue};
+use servo_config::pref;
+
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
-    PermissionName, PermissionState,
+    PermissionDescriptor, PermissionName, PermissionState, PermissionStatusMethods,
 };
 use crate::dom::bindings::codegen::Bindings::PermissionsBinding::PermissionsMethods;
 use crate::dom::bindings::error::Error;
@@ -18,14 +26,6 @@ use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use embedder_traits::{self, EmbedderMsg, PermissionPrompt, PermissionRequest};
-use ipc_channel::ipc;
-use js::conversions::ConversionResult;
-use js::jsapi::JSObject;
-use js::jsval::{ObjectValue, UndefinedValue};
-use servo_config::pref;
-use std::rc::Rc;
 
 pub trait PermissionAlgorithm {
     type Descriptor;

@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
 use crate::dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods};
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
@@ -11,8 +14,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::domrect::DOMRect;
 use crate::dom::globalscope::GlobalScope;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
 
 // https://drafts.fxtf.org/geometry/#DOMQuad
 #[dom_struct]

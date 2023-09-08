@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::rust::{HandleObject, HandleValue};
+use servo_atoms::Atom;
+
 use crate::dom::bindings::codegen::Bindings::EventBinding::{self, EventMethods};
 use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -12,9 +16,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::rust::{HandleObject, HandleValue};
-use servo_atoms::Atom;
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
 #[dom_struct]

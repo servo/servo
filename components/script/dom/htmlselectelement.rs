@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::default::Default;
+use std::iter;
+
+use dom_struct::dom_struct;
+use html5ever::{local_name, LocalName, Prefix};
+use js::rust::HandleObject;
+use style::attr::AttrValue;
+use style::element_state::ElementState;
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -9,8 +18,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptio
 use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
-use crate::dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
+use crate::dom::bindings::codegen::UnionTypes::{
+    HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement,
+};
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -29,13 +39,6 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
-use dom_struct::dom_struct;
-use html5ever::{local_name, LocalName, Prefix};
-use js::rust::HandleObject;
-use std::default::Default;
-use std::iter;
-use style::attr::AttrValue;
-use style::element_state::ElementState;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct OptionsFilter;

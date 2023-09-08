@@ -4,14 +4,9 @@
 
 #![deny(unsafe_code)]
 
-use crate::filemanager_thread::FileManagerThreadMsg;
-use crate::request::{Request, RequestBuilder};
-use crate::response::{HttpsState, Response, ResponseInit};
-use crate::storage_thread::StorageThreadMsg;
 use cookie::Cookie;
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
-use http::StatusCode;
-use http::{Error as HttpError, HeaderMap};
+use http::{Error as HttpError, HeaderMap, StatusCode};
 use hyper::Error as HyperError;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -29,6 +24,11 @@ use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use time::precise_time_ns;
 use webrender_api::{ImageData, ImageDescriptor, ImageKey};
+
+use crate::filemanager_thread::FileManagerThreadMsg;
+use crate::request::{Request, RequestBuilder};
+use crate::response::{HttpsState, Response, ResponseInit};
+use crate::storage_thread::StorageThreadMsg;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;

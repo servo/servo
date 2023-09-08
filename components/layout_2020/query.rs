@@ -3,39 +3,38 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Utilities for querying the layout, as needed by the layout thread.
-use crate::context::LayoutContext;
-use crate::fragment_tree::{Fragment, FragmentFlags, FragmentTree, Tag};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
-use euclid::Size2D;
-use euclid::Vector2D;
+use euclid::{Size2D, Vector2D};
 use log::warn;
 use msg::constellation_msg::PipelineId;
-use script_layout_interface::rpc::TextIndexResponse;
-use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
-use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollIdResponse};
-use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse};
+use script_layout_interface::rpc::{
+    ContentBoxResponse, ContentBoxesResponse, LayoutRPC, NodeGeometryResponse,
+    NodeScrollIdResponse, OffsetParentResponse, ResolvedStyleResponse, TextIndexResponse,
+};
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc as ServoArc;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use style::computed_values::position::T as Position;
 use style::context::{StyleContext, ThreadLocalStyleContext};
-use style::dom::OpaqueNode;
-use style::dom::TElement;
+use style::dom::{OpaqueNode, TElement};
 use style::properties::style_structs::Font;
 use style::properties::{LonghandId, PropertyDeclarationId, PropertyId};
 use style::selector_parser::PseudoElement;
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
 use style::values::generics::text::LineHeight;
-use style_traits::CSSPixel;
-use style_traits::ToCss;
+use style_traits::{CSSPixel, ToCss};
 use webrender_api::units::LayoutPixel;
 use webrender_api::{DisplayListBuilder, ExternalScrollId};
+
+use crate::context::LayoutContext;
+use crate::fragment_tree::{Fragment, FragmentFlags, FragmentTree, Tag};
 
 /// Mutable data belonging to the LayoutThread.
 ///

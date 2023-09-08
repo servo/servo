@@ -4,7 +4,8 @@
 
 use proc_macro2::Span;
 use syn::parse::{Parse, ParseStream, Result};
-use syn::{braced, punctuated::Punctuated, token, Attribute, Ident, Path, Token, Type};
+use syn::punctuated::Punctuated;
+use syn::{braced, token, Attribute, Ident, Path, Token, Type};
 
 #[allow(non_camel_case_types)]
 mod kw {

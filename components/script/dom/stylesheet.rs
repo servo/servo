@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+
 use crate::dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::Reflector;
@@ -10,7 +12,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::element::Element;
 use crate::dom::medialist::MediaList;
-use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct StyleSheet {

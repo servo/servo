@@ -2,6 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use atomic_refcell::AtomicRef;
+use script_layout_interface::wrapper_traits::LayoutNode;
+use script_layout_interface::{LayoutElementType, LayoutNodeType};
+use serde::Serialize;
+use servo_arc::Arc;
+use style::dom::OpaqueNode;
+use style::properties::ComputedValues;
+use style::values::computed::Length;
+use style_traits::CSSPixel;
+
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
@@ -14,21 +24,10 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::FragmentTree;
 use crate::geom::flow_relative::Vec2;
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
-use crate::positioned::AbsolutelyPositionedBox;
-use crate::positioned::PositioningContext;
+use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContent;
-use crate::style_ext::ComputedValuesExt;
-use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
+use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayInside};
 use crate::DefiniteContainingBlock;
-use atomic_refcell::AtomicRef;
-use script_layout_interface::wrapper_traits::LayoutNode;
-use script_layout_interface::{LayoutElementType, LayoutNodeType};
-use serde::Serialize;
-use servo_arc::Arc;
-use style::dom::OpaqueNode;
-use style::properties::ComputedValues;
-use style::values::computed::Length;
-use style_traits::CSSPixel;
 
 #[derive(Serialize)]
 pub struct BoxTree {

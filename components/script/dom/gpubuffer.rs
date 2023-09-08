@@ -2,6 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
+use std::ffi::c_void;
+use std::ops::Range;
+use std::ptr::NonNull;
+use std::rc::Rc;
+use std::string::String;
+
+use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSharedMemory;
+use js::jsapi::{DetachArrayBuffer, Heap, JSObject, NewExternalArrayBuffer};
+use webgpu::identity::WebGPUOpResult;
+use webgpu::wgpu::device::HostMap;
+use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::{GPUBufferMethods, GPUSize64};
 use crate::dom::bindings::codegen::Bindings::GPUMapModeBinding::GPUMapModeConstants;
@@ -15,21 +29,6 @@ use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSharedMemory;
-use js::jsapi::DetachArrayBuffer;
-use js::jsapi::NewExternalArrayBuffer;
-use js::jsapi::{Heap, JSObject};
-use std::cell::{Cell, RefCell};
-use std::ffi::c_void;
-use std::ops::Range;
-use std::ptr::NonNull;
-use std::rc::Rc;
-use std::string::String;
-use webgpu::{
-    identity::WebGPUOpResult, wgpu::device::HostMap, WebGPU, WebGPUBuffer, WebGPURequest,
-    WebGPUResponse, WebGPUResponseResult,
-};
 
 const RANGE_OFFSET_ALIGN_MASK: u64 = 8;
 const RANGE_SIZE_ALIGN_MASK: u64 = 4;

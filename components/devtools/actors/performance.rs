@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::net::TcpStream;
+
+use serde::Serialize;
+use serde_json::{Map, Value};
+
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::{ActorDescription, JsonPacketStream, Method};
 use crate::StreamId;
-use serde::Serialize;
-use serde_json::{Map, Value};
-use std::net::TcpStream;
 
 pub struct PerformanceActor {
     name: String,

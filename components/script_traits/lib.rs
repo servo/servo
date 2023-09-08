@@ -15,15 +15,12 @@ pub mod serializable;
 pub mod transferable;
 pub mod webdriver_msg;
 
-use crate::compositor::CompositorDisplayListInfo;
-pub use crate::script_msg::{
-    DOMMessage, EventResult, HistoryEntryReplacement, IFrameSizeMsg, Job, JobError, JobResult,
-    JobResultValue, JobType, LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings,
-    ScriptMsg, ServiceWorkerMsg,
-};
-use crate::serializable::{BlobData, BlobImpl};
-use crate::transferable::MessagePortImpl;
-use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
+use std::borrow::Cow;
+use std::collections::{HashMap, VecDeque};
+use std::fmt;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+
 use bitflags::bitflags;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
@@ -31,10 +28,10 @@ use compositor::ScrollTreeNodeId;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::Cursor;
-use euclid::{default::Point2D, Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
+use euclid::default::Point2D;
+use euclid::{Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use gfx_traits::Epoch;
-use http::HeaderMap;
-use http::Method;
+use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
@@ -44,36 +41,37 @@ use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
-use msg::constellation_msg::BackgroundHangMonitorRegister;
 use msg::constellation_msg::{
-    BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId,
+    BackgroundHangMonitorRegister, BlobId, BrowsingContextId, HistoryStateId, MessagePortId,
+    PipelineId, PipelineNamespaceId, TopLevelBrowsingContextId,
 };
-use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
 use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
 use pixels::PixelFormat;
-use profile_traits::mem;
-use profile_traits::time as profile_time;
+use profile_traits::{mem, time as profile_time};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_atoms::Atom;
-use servo_url::ImmutableOrigin;
-use servo_url::ServoUrl;
-use std::borrow::Cow;
-use std::collections::{HashMap, VecDeque};
-use std::fmt;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
-use style_traits::CSSPixel;
-use style_traits::SpeculativePainter;
+use servo_url::{ImmutableOrigin, ServoUrl};
+use style_traits::{CSSPixel, SpeculativePainter};
 use webgpu::identity::WebGPUMsg;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, WorldPoint};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, DocumentId, ExternalImageData, ExternalScrollId,
     HitTestFlags, ImageData, ImageDescriptor, ImageKey, PipelineId as WebRenderPipelineId,
 };
+
+use crate::compositor::CompositorDisplayListInfo;
+pub use crate::script_msg::{
+    DOMMessage, EventResult, HistoryEntryReplacement, IFrameSizeMsg, Job, JobError, JobResult,
+    JobResultValue, JobType, LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings,
+    ScriptMsg, ServiceWorkerMsg,
+};
+use crate::serializable::{BlobData, BlobImpl};
+use crate::transferable::MessagePortImpl;
+use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.

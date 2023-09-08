@@ -2,6 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::ToOwned;
+use std::mem;
+
+use devtools_traits::AttrInfo;
+use dom_struct::dom_struct;
+use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
+use servo_atoms::Atom;
+use style::attr::{AttrIdentifier, AttrValue};
+use style::values::GenericAtomIdent;
+
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -14,14 +24,6 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::vtable_for;
 use crate::script_thread::ScriptThread;
-use devtools_traits::AttrInfo;
-use dom_struct::dom_struct;
-use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
-use servo_atoms::Atom;
-use std::borrow::ToOwned;
-use std::mem;
-use style::attr::{AttrIdentifier, AttrValue};
-use style::values::GenericAtomIdent;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]

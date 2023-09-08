@@ -4,24 +4,23 @@
 
 #![cfg(not(target_os = "windows"))]
 
-use crate::fetch_with_context;
-use crate::fetch_with_cors_cache;
-use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
-use crate::{
-    create_embedder_proxy, fetch, make_server, make_ssl_server, new_fetch_context,
-    DEFAULT_USER_AGENT,
-};
+use std::fs;
+use std::iter::FromIterator;
+use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, Weak};
+use std::time::{Duration, SystemTime};
+
 use crossbeam_channel::{unbounded, Sender};
-use devtools_traits::HttpRequest as DevtoolsHttpRequest;
-use devtools_traits::HttpResponse as DevtoolsHttpResponse;
-use headers::StrictTransportSecurity;
-use headers::{AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
-use headers::{AccessControlAllowMethods, AccessControlMaxAge, HeaderMapExt};
-use headers::{CacheControl, ContentLength, ContentType, Expires, LastModified, Pragma, UserAgent};
+use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
+use headers::{
+    AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
+    AccessControlAllowOrigin, AccessControlMaxAge, CacheControl, ContentLength, ContentType,
+    Expires, HeaderMapExt, LastModified, Pragma, StrictTransportSecurity, UserAgent,
+};
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::{Method, StatusCode};
-use hyper::Body;
-use hyper::{Request as HyperRequest, Response as HyperResponse};
+use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use mime::{self, Mime};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::fetch::cors_cache::CorsCache;
@@ -41,14 +40,14 @@ use net_traits::{
 };
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::fs;
-use std::iter::FromIterator;
-use std::path::Path;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, Weak};
-use std::time::{Duration, SystemTime};
 use tokio_test::block_on;
 use uuid::Uuid;
+
+use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
+use crate::{
+    create_embedder_proxy, fetch, fetch_with_context, fetch_with_cors_cache, make_server,
+    make_ssl_server, new_fetch_context, DEFAULT_USER_AGENT,
+};
 
 // TODO write a struct that impls Handler for storing test values
 

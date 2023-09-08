@@ -2,10 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::cmp::Ordering;
+use std::collections::VecDeque;
+
+use dom_struct::dom_struct;
+use metrics::ToMs;
+
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
-    DOMHighResTimeStamp, PerformanceMethods,
+    DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -22,11 +28,6 @@ use crate::dom::performancenavigation::PerformanceNavigation;
 use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use metrics::ToMs;
-use std::cell::Cell;
-use std::cmp::Ordering;
-use std::collections::VecDeque;
 
 const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
     "navigationStart",

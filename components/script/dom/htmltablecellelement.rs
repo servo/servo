@@ -2,11 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::rust::HandleObject;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::context::QuirksMode;
+
 use crate::dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::root::LayoutDom;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{Element, LayoutElementHelpers};
@@ -14,12 +20,6 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
-use cssparser::RGBA;
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::rust::HandleObject;
-use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-use style::context::QuirksMode;
 
 const DEFAULT_COLSPAN: u32 = 1;
 const DEFAULT_ROWSPAN: u32 = 1;

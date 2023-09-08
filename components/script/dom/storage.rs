@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSender;
+use net_traits::storage_thread::{StorageThreadMsg, StorageType};
+use net_traits::IpcSend;
+use profile_traits::ipc;
+use script_traits::ScriptMsg;
+use servo_url::ServoUrl;
+
 use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
@@ -13,13 +21,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::storageevent::StorageEvent;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use net_traits::IpcSend;
-use profile_traits::ipc;
-use script_traits::ScriptMsg;
-use servo_url::ServoUrl;
 
 #[dom_struct]
 pub struct Storage {

@@ -15,8 +15,10 @@ use msg::constellation_msg::PipelineId;
 use net::http_loader::{set_default_accept, set_default_accept_language};
 use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::response::ResponseInit;
-use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg};
-use net_traits::{IpcSend, NetworkError, ResourceThreads};
+use net_traits::{
+    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg, IpcSend, NetworkError,
+    ResourceThreads,
+};
 
 pub struct NetworkListener {
     res_init: Option<ResponseInit>,

@@ -2,6 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+use std::iter::FromIterator;
+use std::ptr::NonNull;
+
+use canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
+use fnv::{FnvHashMap, FnvHashSet};
+use js::jsapi::JSObject;
+use malloc_size_of::MallocSizeOf;
+use sparkle::gl::{self, GLenum};
+
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
 use super::{ext, WebGLExtension, WebGLExtensionSpec};
 use crate::dom::bindings::cell::DomRefCell;
@@ -18,14 +28,6 @@ use crate::dom::oestexturehalffloat::OESTextureHalfFloat;
 use crate::dom::webglcolorbufferfloat::WEBGLColorBufferFloat;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgltexture::TexCompression;
-use canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
-use fnv::{FnvHashMap, FnvHashSet};
-use js::jsapi::JSObject;
-use malloc_size_of::MallocSizeOf;
-use sparkle::gl::{self, GLenum};
-use std::collections::HashMap;
-use std::iter::FromIterator;
-use std::ptr::NonNull;
 
 // Data types that are implemented for texImage2D and texSubImage2D in a WebGL 1.0 context
 // but must trigger a InvalidValue error until the related WebGL Extensions are enabled.

@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::layout_debug::DebugId;
 use bitflags::bitflags;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 use serde::Serialize;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
+
+use crate::layout_debug::DebugId;
 
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all

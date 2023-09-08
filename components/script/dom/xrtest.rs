@@ -6,6 +6,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSender;
+use ipc_channel::router::ROUTER;
+use profile_traits::ipc;
+use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
+
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -19,12 +27,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use ipc_channel::router::ROUTER;
-use profile_traits::ipc;
-use std::rc::Rc;
-use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
 #[dom_struct]
 pub struct XRTest {

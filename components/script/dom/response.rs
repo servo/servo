@@ -2,8 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::body::{consume_body, BodyMixin, BodyType};
-use crate::body::{Extractable, ExtractedBody};
+use std::ptr::NonNull;
+use std::rc::Rc;
+use std::str::FromStr;
+
+use dom_struct::dom_struct;
+use http::header::HeaderMap as HyperHeaders;
+use http::StatusCode;
+use hyper_serde::Serde;
+use js::jsapi::JSObject;
+use js::rust::HandleObject;
+use servo_url::ServoUrl;
+use url::Position;
+
+use crate::body::{consume_body, BodyMixin, BodyType, Extractable, ExtractedBody};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
@@ -16,23 +28,10 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, 
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::headers::{is_obs_text, is_vchar};
-use crate::dom::headers::{Guard, Headers};
+use crate::dom::headers::{is_obs_text, is_vchar, Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{ExternalUnderlyingSource, ReadableStream};
-use crate::script_runtime::JSContext as SafeJSContext;
-use crate::script_runtime::StreamConsumer;
-use dom_struct::dom_struct;
-use http::header::HeaderMap as HyperHeaders;
-use http::StatusCode;
-use hyper_serde::Serde;
-use js::jsapi::JSObject;
-use js::rust::HandleObject;
-use servo_url::ServoUrl;
-use std::ptr::NonNull;
-use std::rc::Rc;
-use std::str::FromStr;
-use url::Position;
+use crate::script_runtime::{JSContext as SafeJSContext, StreamConsumer};
 
 #[dom_struct]
 pub struct Response {

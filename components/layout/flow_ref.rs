@@ -8,9 +8,10 @@
 //! be superfluous. This design is largely duplicating logic of Arc<T> and
 //! Weak<T>; please see comments there for details.
 
-use crate::flow::Flow;
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
+
+use crate::flow::Flow;
 
 #[derive(Clone, Debug)]
 pub struct FlowRef(Arc<dyn Flow>);

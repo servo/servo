@@ -2,16 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::replaced::IntrinsicSizes;
 use euclid::{Size2D, Vector2D};
 use style::computed_values::background_clip::single_value::T as Clip;
 use style::computed_values::background_origin::single_value::T as Origin;
 use style::properties::ComputedValues;
 use style::values::computed::background::BackgroundSize as Size;
 use style::values::computed::{Length, LengthPercentage};
-use style::values::specified::background::BackgroundRepeat as RepeatXY;
-use style::values::specified::background::BackgroundRepeatKeyword as Repeat;
+use style::values::specified::background::{
+    BackgroundRepeat as RepeatXY, BackgroundRepeatKeyword as Repeat,
+};
 use webrender_api::{self as wr, units};
+
+use crate::replaced::IntrinsicSizes;
 
 pub(super) struct BackgroundLayer {
     pub common: wr::CommonItemProperties,

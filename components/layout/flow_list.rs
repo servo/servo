@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::flow::{Flow, FlowClass};
-use crate::flow_ref::FlowRef;
-use serde::ser::{Serialize, SerializeSeq, Serializer};
-use serde_json::{to_value, Map, Value};
 use std::collections::{linked_list, LinkedList};
 use std::ops::Deref;
 use std::sync::Arc;
+
+use serde::ser::{Serialize, SerializeSeq, Serializer};
+use serde_json::{to_value, Map, Value};
+
+use crate::flow::{Flow, FlowClass};
+use crate::flow_ref::FlowRef;
 
 /// This needs to be reworked now that we have dynamically-sized types in Rust.
 /// Until then, it's just a wrapper around LinkedList.

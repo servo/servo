@@ -2,6 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use bitflags::bitflags;
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use ipc_channel::ipc;
+use js::rust::HandleObject;
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use profile_traits::ipc as ProfiledIpc;
+use script_layout_interface::message::ReflowGoal;
+use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
+use script_traits::{
+    HistoryEntryReplacement, IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData,
+    LoadOrigin, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason, WindowSizeData,
+};
+use servo_atoms::Atom;
+use servo_url::ServoUrl;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -25,24 +44,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::ReflowReason;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_thread::ScriptThread;
-use bitflags::bitflags;
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use ipc_channel::ipc;
-use js::rust::HandleObject;
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
-use profile_traits::ipc as ProfiledIpc;
-use script_layout_interface::message::ReflowGoal;
-use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
-use script_traits::{
-    HistoryEntryReplacement, IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData,
-    LoadOrigin, UpdatePipelineIdReason, WindowSizeData,
-};
-use script_traits::{NewLayoutInfo, ScriptMsg};
-use servo_atoms::Atom;
-use servo_url::ServoUrl;
-use std::cell::Cell;
-use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 struct SandboxAllowance(u8);

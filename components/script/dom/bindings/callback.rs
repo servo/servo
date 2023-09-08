@@ -4,6 +4,20 @@
 
 //! Base classes to work with IDL callbacks.
 
+use std::default::Default;
+use std::ffi::CString;
+use std::mem::drop;
+use std::ops::Deref;
+use std::ptr;
+use std::rc::Rc;
+
+use js::jsapi::{
+    AddRawValueRoot, EnterRealm, Heap, IsCallable, JSObject, LeaveRealm, Realm, RemoveRawValueRoot,
+};
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
+use js::rust::{MutableHandleObject, Runtime};
+
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -15,18 +29,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext;
-use js::jsapi::Heap;
-use js::jsapi::{AddRawValueRoot, IsCallable, JSObject};
-use js::jsapi::{EnterRealm, LeaveRealm, Realm, RemoveRawValueRoot};
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
-use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
-use js::rust::{MutableHandleObject, Runtime};
-use std::default::Default;
-use std::ffi::CString;
-use std::mem::drop;
-use std::ops::Deref;
-use std::ptr;
-use std::rc::Rc;
 
 /// The exception handling used for a call.
 #[derive(Clone, Copy, PartialEq)]

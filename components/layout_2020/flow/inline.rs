@@ -2,6 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::OnceCell;
+
+use app_units::Au;
+use atomic_refcell::AtomicRef;
+use gfx::text::glyph::GlyphStore;
+use gfx::text::text_run::GlyphRun;
+use serde::Serialize;
+use servo_arc::Arc;
+use style::computed_values::white_space::T as WhiteSpace;
+use style::logical_geometry::WritingMode;
+use style::properties::ComputedValues;
+use style::values::computed::Length;
+use style::values::generics::text::LineHeight;
+use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
+use style::Zero;
+use webrender_api::FontInstanceKey;
+use xi_unicode::LineBreakLeafIter;
+
 use super::float::PlacementAmongFloats;
 use super::CollapsibleWithParentStartMargin;
 use crate::cell::ArcRefCell;
@@ -23,23 +41,6 @@ use crate::style_ext::{
     ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside, PaddingBorderMargin,
 };
 use crate::ContainingBlock;
-use app_units::Au;
-use atomic_refcell::AtomicRef;
-use gfx::text::glyph::GlyphStore;
-use gfx::text::text_run::GlyphRun;
-use serde::Serialize;
-use servo_arc::Arc;
-use std::cell::OnceCell;
-use style::computed_values::white_space::T as WhiteSpace;
-use style::logical_geometry::WritingMode;
-use style::properties::ComputedValues;
-use style::values::computed::Length;
-use style::values::generics::text::LineHeight;
-use style::values::specified::text::TextAlignKeyword;
-use style::values::specified::text::TextDecorationLine;
-use style::Zero;
-use webrender_api::FontInstanceKey;
-use xi_unicode::LineBreakLeafIter;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct InlineFormattingContext {

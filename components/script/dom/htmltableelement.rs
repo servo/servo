@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use cssparser::RGBA;
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::rust::HandleObject;
+use style::attr::{parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto};
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
@@ -20,12 +28,6 @@ use crate::dom::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::{document_from_node, window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
-use cssparser::RGBA;
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::rust::HandleObject;
-use std::cell::Cell;
-use style::attr::{parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto};
 
 #[dom_struct]
 pub struct HTMLTableElement {

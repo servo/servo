@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use script_layout_interface::message::ReflowGoal;
+
 use crate::dom::element::Element;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlinputelement::InputActivationState;
 use crate::dom::node::window_from_node;
 use crate::dom::window::ReflowReason;
-use script_layout_interface::message::ReflowGoal;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable {

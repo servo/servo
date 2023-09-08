@@ -2,15 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::attr::AttrHelpersForLayout;
-use crate::dom::bindings::inheritance::{
-    CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId,
-};
-use crate::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId, TextTypeId};
-use crate::dom::bindings::root::LayoutDom;
-use crate::dom::characterdata::LayoutCharacterDataHelpers;
-use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::node::{LayoutNodeHelpers, NodeFlags};
+use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
+use std::sync::atomic::Ordering;
+
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
 use script_layout_interface::wrapper_traits::{
@@ -23,10 +19,6 @@ use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandling
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
 use servo_atoms::Atom;
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
-use std::sync::atomic::Ordering;
 use style::animation::AnimationSetKey;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
@@ -43,9 +35,16 @@ use style::shared_lock::Locked as StyleLocked;
 use style::values::{AtomIdent, AtomString};
 use style::CaseSensitivityExt;
 
-use crate::layout_dom::ServoLayoutNode;
-use crate::layout_dom::ServoShadowRoot;
-use crate::layout_dom::ServoThreadSafeLayoutNode;
+use crate::dom::attr::AttrHelpersForLayout;
+use crate::dom::bindings::inheritance::{
+    CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId,
+    TextTypeId,
+};
+use crate::dom::bindings::root::LayoutDom;
+use crate::dom::characterdata::LayoutCharacterDataHelpers;
+use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::node::{LayoutNodeHelpers, NodeFlags};
+use crate::layout_dom::{ServoLayoutNode, ServoShadowRoot, ServoThreadSafeLayoutNode};
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
 pub struct ServoLayoutElement<'dom, LayoutDataType: LayoutDataTrait> {

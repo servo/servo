@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::{panic, process};
+
+use {libc, mach};
+
 use crate::sampler::{Address, NativeStack, Registers, Sampler};
-use libc;
-use mach;
-use std::panic;
-use std::process;
 
 type MonitoredThreadId = mach::mach_types::thread_act_t;
 

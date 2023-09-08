@@ -25,6 +25,32 @@
 //!   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 //!   similar methods.
 
+use std::fmt;
+use std::slice::IterMut;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+
+use app_units::Au;
+use bitflags::bitflags;
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
+use gfx_traits::print_tree::PrintTree;
+use gfx_traits::StackingContextId;
+use log::debug;
+use serde::ser::{SerializeStruct, Serializer};
+use serde::Serialize;
+use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, MaxRect};
+use style::computed_values::clear::T as Clear;
+use style::computed_values::float::T as Float;
+use style::computed_values::overflow_x::T as StyleOverflow;
+use style::computed_values::position::T as Position;
+use style::computed_values::text_align::T as TextAlign;
+use style::context::SharedStyleContext;
+use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
+use style::properties::ComputedValues;
+use style::selector_parser::RestyleDamage;
+use style::servo::restyle_damage::ServoRestyleDamage;
+use webrender_api::units::LayoutTransform;
+
 use crate::block::{BlockFlow, FormattingContextType};
 use crate::context::LayoutContext;
 use crate::display_list::items::ClippingAndScrolling;
@@ -43,30 +69,6 @@ use crate::table_colgroup::TableColGroupFlow;
 use crate::table_row::TableRowFlow;
 use crate::table_rowgroup::TableRowGroupFlow;
 use crate::table_wrapper::TableWrapperFlow;
-use app_units::Au;
-use bitflags::bitflags;
-use euclid::default::{Point2D, Rect, Size2D, Vector2D};
-use gfx_traits::print_tree::PrintTree;
-use gfx_traits::StackingContextId;
-use log::debug;
-use serde::ser::{SerializeStruct, Serializer};
-use serde::Serialize;
-use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, MaxRect};
-use std::fmt;
-use std::slice::IterMut;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
-use style::computed_values::clear::T as Clear;
-use style::computed_values::float::T as Float;
-use style::computed_values::overflow_x::T as StyleOverflow;
-use style::computed_values::position::T as Position;
-use style::computed_values::text_align::T as TextAlign;
-use style::context::SharedStyleContext;
-use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::ComputedValues;
-use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::ServoRestyleDamage;
-use webrender_api::units::LayoutTransform;
 
 /// This marker trait indicates that a type is a struct with `#[repr(C)]` whose first field
 /// is of type `BaseFlow` or some type that also implements this trait.

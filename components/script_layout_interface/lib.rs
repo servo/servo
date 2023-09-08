@@ -12,6 +12,9 @@ pub mod message;
 pub mod rpc;
 pub mod wrapper_traits;
 
+use std::any::Any;
+use std::sync::atomic::AtomicIsize;
+
 use atomic_refcell::AtomicRefCell;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use ipc_channel::ipc::IpcSender;
@@ -20,8 +23,6 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::PendingImageId;
 use script_traits::UntrustedNodeAddress;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::any::Any;
-use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
 use webrender_api::ImageKey;
 

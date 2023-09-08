@@ -4,10 +4,11 @@
 
 // check-tidy: no specs after this line
 
+use dom_struct::dom_struct;
+
 use crate::dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::testbinding::TestBinding;
-use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct TestBindingProxy {
