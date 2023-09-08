@@ -1538,6 +1538,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
         if self.waiting_on_present {
+            debug!("tried to composite while waiting on present");
             return Err(UnableToComposite::NotReadyToPaintImage(
                 NotReadyToPaint::WaitingOnConstellation,
             ));

@@ -88,6 +88,7 @@ where
 
     pub fn handle_window_events(&mut self, events: Vec<EmbedderEvent>) {
         for event in events {
+            trace!("embedder <- window EmbedderEvent {:?}", event);
             match event {
                 EmbedderEvent::Keyboard(key_event) => {
                     self.handle_key_from_window(key_event);
@@ -280,6 +281,7 @@ where
     pub fn handle_servo_events(&mut self, events: Vec<(Option<BrowserId>, EmbedderMsg)>) -> bool {
         let mut need_present = false;
         for (browser_id, msg) in events {
+            trace!("embedder <- servo EmbedderMsg ({:?}, {:?})", browser_id.map(|x| format!("{}", x)), msg);
             match msg {
                 EmbedderMsg::Status(_status) => {
                     // FIXME: surface this status string in the UI somehow
