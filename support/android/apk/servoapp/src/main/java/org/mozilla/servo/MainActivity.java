@@ -24,7 +24,7 @@ import android.widget.TextView;
 import android.util.Log;
 
 import org.mozilla.servo.MediaSession;
-import org.mozilla.servoview.ServoView;
+import org.mozilla.servoview.ServoSurface;
 import org.mozilla.servoview.Servo;
 
 import java.io.File;
@@ -33,7 +33,7 @@ public class MainActivity extends Activity implements Servo.Client {
 
     private static final String LOGTAG = "MainActivity";
 
-    ServoView mServoView;
+    ServoSurface mServoView;
     Button mBackButton;
     Button mFwdButton;
     Button mReloadButton;
@@ -49,7 +49,7 @@ public class MainActivity extends Activity implements Servo.Client {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mServoView = findViewById(R.id.servoview);
+        mServoView = findViewById(R.id.servosurface);
         mBackButton = findViewById(R.id.backbutton);
         mFwdButton = findViewById(R.id.forwardbutton);
         mReloadButton = findViewById(R.id.reloadbutton);
@@ -78,8 +78,8 @@ public class MainActivity extends Activity implements Servo.Client {
         Intent intent = getIntent();
         String args = intent.getStringExtra("servoargs");
         String log = intent.getStringExtra("servolog");
-        String gstdebug = intent.getStringExtra("gstdebug");
-        mServoView.setServoArgs(args, log, gstdebug);
+        // TODO String gstdebug = intent.getStringExtra("gstdebug");
+        mServoView.setServoArgs(args, log);
 
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
           mServoView.loadUri(intent.getData());
@@ -229,41 +229,41 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     public void onMediaSessionMetadata(String title, String artist, String album) {
-      if (mMediaSession == null) {
-        mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
-      }
-      Log.d("onMediaSessionMetadata", title + " " + artist + " " + album);
-      mMediaSession.updateMetadata(title, artist, album);
+      // if (mMediaSession == null) {
+      //   mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+      // }
+      // Log.d("onMediaSessionMetadata", title + " " + artist + " " + album);
+      // mMediaSession.updateMetadata(title, artist, album);
     }
 
     @Override
     public void onMediaSessionPlaybackStateChange(int state) {
       Log.d("onMediaSessionPlaybackStateChange", String.valueOf(state));
-      if (mMediaSession == null) {
-        mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
-      }
-
-      mMediaSession.setPlaybackState(state);
-
-      if (state == MediaSession.PLAYBACK_STATE_NONE) {
-          mMediaSession.hideMediaSessionControls();
-          return;
-      }
-      if (state == MediaSession.PLAYBACK_STATE_PLAYING ||
-          state == MediaSession.PLAYBACK_STATE_PAUSED) {
-          mMediaSession.showMediaSessionControls();
-          return;
-      }
+      // if (mMediaSession == null) {
+      //   mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+      // }
+      //
+      // mMediaSession.setPlaybackState(state);
+      //
+      // if (state == MediaSession.PLAYBACK_STATE_NONE) {
+      //     mMediaSession.hideMediaSessionControls();
+      //     return;
+      // }
+      // if (state == MediaSession.PLAYBACK_STATE_PLAYING ||
+      //     state == MediaSession.PLAYBACK_STATE_PAUSED) {
+      //     mMediaSession.showMediaSessionControls();
+      //     return;
+      // }
     }
 
     @Override
     public void onMediaSessionSetPositionState(float duration, float position, float playbackRate) {
         Log.d("onMediaSessionSetPositionState", duration + " " + position + " " + playbackRate);
-        if (mMediaSession == null) {
-            mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
-        }
-
-        mMediaSession.setPositionState(duration, position, playbackRate);
-        return;
+        // if (mMediaSession == null) {
+        //     mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+        // }
+        //
+        // mMediaSession.setPositionState(duration, position, playbackRate);
+        // return;
     }
 }

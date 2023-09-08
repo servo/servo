@@ -1,28 +1,33 @@
 # This provides a shell with all the necesarry packages required to run mach and build servo
 # NOTE: This does not work offline or for nix-build
 
-with import <nixpkgs> {};
+with (import <nixpkgs> { config = { android_sdk.accept_license = true;  allowUnfree = true; }; });
 let
     pinnedSha = "6adf48f53d819a7b6e15672817fa1e78e5f4e84f";
     pinnedNixpkgs = import (builtins.fetchTarball {
         url = "https://github.com/NixOS/nixpkgs/archive/${pinnedSha}.tar.gz";
     }) {};
     androidComposition = androidenv.composeAndroidPackages {
-      toolsVersion = "26.1.1";
-      includeEmulator = false;
+      includeEmulator = true;
       platformVersions = [ "30" ];
       includeSources = false;
-      includeSystemImages = false;
-      systemImageTypes = [ "google_apis_playstore" ];
-      abiVersions = [ "armeabi-v7a" "arm64-v8a" ];
+      includeSystemImages = true;
+      systemImageTypes = [ "google_apis" ];
+      abiVersions = [ "x86" "armeabi-v7a" ];
       includeNDK = true;
-      ndkVersion = "21.3.6528147";
+      ndkVersion = "25.2.9519653";
       useGoogleAPIs = false;
       useGoogleTVAddOns = false;
       includeExtras = [
         "extras;google;gcm"
       ];
   };
+  # servoEmulator = androidenv.emulateApp {
+  #    name = "servo-emulator";
+  #    platformVersion = "30";
+  #    abiVersion = "x86"; # armeabi-v7a, mips, x86_64
+  #    systemImageType = "google_apis";
+  # };
   androidSdk = androidComposition.androidsdk;
 in
 clangStdenv.mkDerivation rec {
@@ -60,9 +65,10 @@ clangStdenv.mkDerivation rec {
     darwin.apple_sdk.frameworks.AppKit
   ]);
 
-  LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
+  #LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
 
 
+  RUST_FONTCONFIG_DLOPEN = "on"; # to avoid link failure on fontconfig
   ANDROID_SDK = "${androidSdk}/libexec/android-sdk";
   ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
   ANDROID_NDK = "${ANDROID_SDK}/ndk-bundle";
@@ -77,7 +83,7 @@ clangStdenv.mkDerivation rec {
   # Provide libraries that aren’t linked against but somehow required
   LD_LIBRARY_PATH = lib.makeLibraryPath [
     # Fixes missing library errors
-    xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon
+    zlib xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon
 
     # [WARN  script::dom::gpu] Could not get GPUAdapter ("NotFound")
     # TLA Err: Error: Couldn't request WebGPU adapter.

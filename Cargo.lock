@@ -413,6 +413,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "bindgen"
+version = "0.68.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "726e4313eb6ec35d2730258ad4e15b547ee75d6afaa1361a922e78e59b7d8078"
+dependencies = [
+ "bitflags 2.4.0",
+ "cexpr",
+ "clang-sys",
+ "lazy_static",
+ "lazycell",
+ "peeking_take_while",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "rustc-hash",
+ "shlex",
+ "syn 2.0.37",
+ "which",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3620,8 +3641,9 @@ checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#071ccca2f78b587553d2ba78a1b09377b96232cd"
+source = "git+https://github.com/servo/mozjs#6296684179d252a1a1a7fde394b464af91a55a4d"
 dependencies = [
+ "bindgen 0.68.1",
  "cc",
  "lazy_static",
  "libc",
@@ -3633,9 +3655,9 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.2"
-source = "git+https://github.com/servo/mozjs#071ccca2f78b587553d2ba78a1b09377b96232cd"
+source = "git+https://github.com/servo/mozjs#6296684179d252a1a1a7fde394b464af91a55a4d"
 dependencies = [
- "bindgen 0.62.0",
+ "bindgen 0.68.1",
  "cc",
  "encoding_c",
  "encoding_c_mem",
@@ -5468,7 +5490,6 @@ dependencies = [
 name = "simpleservo_jniapi"
 version = "0.0.1"
 dependencies = [
- "android_injected_glue",
  "android_logger",
  "cc",
  "jni",
@@ -5778,8 +5799,6 @@ dependencies = [
 [[package]]
 name = "surfman"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca39befaf946247c5d3323465a9ec86c4a05523bb87a0d3eb07e71c15181a338"
 dependencies = [
  "bitflags 1.3.2",
  "cfg_aliases",

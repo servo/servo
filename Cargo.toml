@@ -136,6 +136,3 @@ debug-assertions = false
 [patch."https://github.com/servo/webrender"]
 webrender = { path = "third_party/webrender/webrender" }
 webrender_api = { path = "third_party/webrender/webrender_api" }
-
-# [patch."https://github.com/servo/mozjs"]
-# mozjs = { path = "../mozjs/rust-mozjs" }

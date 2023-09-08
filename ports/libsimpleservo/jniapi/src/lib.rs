@@ -27,6 +27,14 @@ struct HostCallbacks {
     jvm: JavaVM,
 }
 
+extern "C" {
+ fn ANativeWindow_fromSurface( env: *mut jni::sys::JNIEnv, surface: JObject) -> *mut c_void; 
+}
+
+#[no_mangle]
+pub fn android_main() {
+}
+
 fn call<F>(env: &JNIEnv, f: F)
 where
     F: Fn(&mut ServoGlue) -> Result<(), &str>,
@@ -54,8 +62,10 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     activity: JObject,
     opts: JObject,
     callbacks_obj: JObject,
+    surface: JObject
 ) {
-    let (mut opts, log, log_str, gst_debug_str) = match get_options(&env, opts) {
+    let widget = unsafe { #[allow(unsafe_code)] ANativeWindow_fromSurface(env.get_native_interface(), surface) };
+    let (mut opts, log, log_str, gst_debug_str) = match get_options(&env, opts, widget) {
         Ok((opts, log, log_str, gst_debug_str)) => (opts, log, log_str, gst_debug_str),
         Err(err) => {
             throw(&env, &err);
@@ -102,7 +112,6 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
 
     info!("init");
 
-    initialize_android_glue(&env, activity);
     redirect_stdout_to_logcat();
 
     let callbacks_ref = match env.new_global_ref(callbacks_obj) {
@@ -345,7 +354,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_mediaSessionAction(
     action: jint,
 ) {
     debug!("mediaSessionAction");
-    call(&env, |s| s.media_session_action((action as i32).into()));
+    // call(&env, |s| s.media_session_action((action as i32).into()));
 }
 
 pub struct WakeupCallback {
@@ -549,46 +558,46 @@ impl HostTrait for HostCallbacks {
     fn set_clipboard_contents(&self, _contents: String) {}
 
     fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
-        info!("on_media_session_metadata");
-        let env = self.jvm.get_env().unwrap();
-        let title = match new_string(&env, &title) {
-            Ok(s) => s,
-            Err(_) => return,
-        };
-        let title = JValue::Object(JObject::from(title));
-
-        let artist = match new_string(&env, &artist) {
-            Ok(s) => s,
-            Err(_) => return,
-        };
-        let artist = JValue::Object(JObject::from(artist));
-
-        let album = match new_string(&env, &album) {
-            Ok(s) => s,
-            Err(_) => return,
-        };
-        let album = JValue::Object(JObject::from(album));
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onMediaSessionMetadata",
-            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
-            &[title, artist, album],
-        )
-        .unwrap();
+        // info!("on_media_session_metadata");
+        // let env = self.jvm.get_env().unwrap();
+        // let title = match new_string(&env, &title) {
+        //     Ok(s) => s,
+        //     Err(_) => return,
+        // };
+        // let title = JValue::Object(JObject::from(title));
+        //
+        // let artist = match new_string(&env, &artist) {
+        //     Ok(s) => s,
+        //     Err(_) => return,
+        // };
+        // let artist = JValue::Object(JObject::from(artist));
+        //
+        // let album = match new_string(&env, &album) {
+        //     Ok(s) => s,
+        //     Err(_) => return,
+        // };
+        // let album = JValue::Object(JObject::from(album));
+        // env.call_method(
+        //     self.callbacks.as_obj(),
+        //     "onMediaSessionMetadata",
+        //     "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
+        //     &[title, artist, album],
+        // )
+        // .unwrap();
     }
 
     fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState) {
-        info!("on_media_session_playback_state_change {:?}", state);
-        let env = self.jvm.get_env().unwrap();
-        let state = state as i32;
-        let state = JValue::Int(state as jint);
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onMediaSessionPlaybackStateChange",
-            "(I)V",
-            &[state],
-        )
-        .unwrap();
+        // info!("on_media_session_playback_state_change {:?}", state);
+        // let env = self.jvm.get_env().unwrap();
+        // let state = state as i32;
+        // let state = JValue::Int(state as jint);
+        // env.call_method(
+        //     self.callbacks.as_obj(),
+        //     "onMediaSessionPlaybackStateChange",
+        //     "(I)V",
+        //     &[state],
+        // )
+        // .unwrap();
     }
 
     fn on_media_session_set_position_state(
@@ -597,22 +606,22 @@ impl HostTrait for HostCallbacks {
         position: f64,
         playback_rate: f64,
     ) {
-        info!(
-            "on_media_session_playback_state_change ({:?}, {:?}, {:?})",
-            duration, position, playback_rate
-        );
-        let env = self.jvm.get_env().unwrap();
-        let duration = JValue::Float(duration as jfloat);
-        let position = JValue::Float(position as jfloat);
-        let playback_rate = JValue::Float(playback_rate as jfloat);
-
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onMediaSessionSetPositionState",
-            "(FFF)V",
-            &[duration, position, playback_rate],
-        )
-        .unwrap();
+        // info!(
+        //     "on_media_session_playback_state_change ({:?}, {:?}, {:?})",
+        //     duration, position, playback_rate
+        // );
+        // let env = self.jvm.get_env().unwrap();
+        // let duration = JValue::Float(duration as jfloat);
+        // let position = JValue::Float(position as jfloat);
+        // let playback_rate = JValue::Float(playback_rate as jfloat);
+        //
+        // env.call_method(
+        //     self.callbacks.as_obj(),
+        //     "onMediaSessionSetPositionState",
+        //     "(FFF)V",
+        //     &[duration, position, playback_rate],
+        // )
+        // .unwrap();
     }
 
     fn on_devtools_started(&self, port: Result<u16, ()>, _token: String) {
@@ -626,59 +635,6 @@ impl HostTrait for HostCallbacks {
     }
 
     fn on_panic(&self, _reason: String, _backtrace: Option<String>) {
-    }
-}
-
-fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
-    use android_injected_glue::{ffi, ANDROID_APP};
-
-    // From jni-rs to android_injected_glue
-
-    let clazz = Box::leak(Box::new(env.new_global_ref(activity).unwrap()));
-
-    let activity = Box::into_raw(Box::new(ffi::ANativeActivity {
-        clazz: clazz.as_obj().into_inner() as *mut c_void,
-        vm: env.get_java_vm().unwrap().get_java_vm_pointer() as *mut ffi::_JavaVM,
-
-        callbacks: null_mut(),
-        env: null_mut(),
-        internalDataPath: null(),
-        externalDataPath: null(),
-        sdkVersion: 0,
-        instance: null_mut(),
-        assetManager: null_mut(),
-        obbPath: null(),
-    }));
-
-    extern "C" fn on_app_cmd(_: *mut ffi::android_app, _: i32) {}
-    extern "C" fn on_input_event(_: *mut ffi::android_app, _: *const c_void) -> i32 {
-        0
-    }
-
-    let app = Box::into_raw(Box::new(ffi::android_app {
-        activity,
-        onAppCmd: on_app_cmd,
-        onInputEvent: on_input_event,
-
-        userData: null_mut(),
-        config: null(),
-        savedState: null_mut(),
-        savedStateSize: 0,
-        looper: null_mut(),
-        inputQueue: null(),
-        window: null_mut(),
-        contentRect: ffi::ARect {
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-        },
-        activityState: 0,
-        destroyRequested: 0,
-    }));
-
-    unsafe {
-        ANDROID_APP = app;
     }
 }
 
@@ -855,6 +811,7 @@ fn get_string(env: &JNIEnv, obj: JObject, field: &str) -> Result<Option<String>,
 fn get_options(
     env: &JNIEnv,
     opts: JObject,
+    widget: *mut c_void
 ) -> Result<(InitOptions, bool, Option<String>, Option<String>), String> {
     let args = get_string(env, opts, "args")?;
     let url = get_string(env, opts, "url")?;
@@ -902,7 +859,7 @@ fn get_options(
         xr_discovery: None,
         gl_context_pointer: None,
         native_display_pointer: None,
-        surfman_integration: todo!(),
+        surfman_integration: simpleservo::SurfmanIntegration::Widget(widget),
         prefs: None,
     };
     Ok((opts, log, log_str, gst_debug_str))

@@ -95,8 +95,8 @@
 
         </LinearLayout>
 
-        <org.mozilla.servoview.ServoView
-            android:id="@+id/servoview"
+        <org.mozilla.servoview.ServoSurface
+            android:id="@+id/servosurface"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:focusable="true"/>

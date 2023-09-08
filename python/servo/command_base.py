@@ -610,7 +610,7 @@ class CommandBase(object):
             sys.exit(1)
         with open(path.join(env["ANDROID_NDK"], 'source.properties'), encoding="utf8") as ndk_properties:
             lines = ndk_properties.readlines()
-            if lines[1].split(' = ')[1].split('.')[0] != '21':
+            if lines[1].split(' = ')[1].split('.')[0] != '25':
                 print("Currently only support NDK 21. Please re-run `./mach bootstrap-android`.")
                 sys.exit(1)
 
@@ -999,10 +999,10 @@ class CommandBase(object):
             # https://github.com/jemalloc/jemalloc/issues/1279
             self.config["android"]["platform"] = "android-30"
             self.config["android"]["target"] = target
-            self.config["android"]["toolchain_prefix"] = "x86"
+            self.config["android"]["toolchain_prefix"] = target
             self.config["android"]["arch"] = "x86"
             self.config["android"]["lib"] = "x86"
-            self.config["android"]["toolchain_name"] = "x86_64-linux-android30"
+            self.config["android"]["toolchain_name"] = "i686-linux-android30"
             return True
         return False
 
