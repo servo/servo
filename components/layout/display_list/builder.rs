@@ -1185,19 +1185,20 @@ impl Fragment {
         let border_style_struct = style.get_border();
         let border_image_outset =
             border::image_outset(border_style_struct.border_image_outset, border_width);
-        let border_image_area = bounds.outer_rect(border_image_outset).size;
+        let border_image_area = bounds.outer_rect(border_image_outset);
+        let border_image_size = border_image_area.size;
         let border_image_width = border::image_width(
             &border_style_struct.border_image_width,
             border_width.to_layout(),
-            border_image_area,
+            border_image_size,
         );
         let border_image_repeat = &border_style_struct.border_image_repeat;
         let border_image_fill = border_style_struct.border_image_slice.fill;
         let border_image_slice = &border_style_struct.border_image_slice.offsets;
 
         let mut stops = Vec::new();
-        let mut width = border_image_area.width.to_px() as u32;
-        let mut height = border_image_area.height.to_px() as u32;
+        let mut width = border_image_size.width.to_px() as u32;
+        let mut height = border_image_size.height.to_px() as u32;
         let source = match image {
             Image::Url(ref image_url) => {
                 let url = image_url.url()?;
@@ -1215,7 +1216,7 @@ impl Fragment {
                     state,
                     style,
                     paint_worklet,
-                    border_image_area,
+                    border_image_size,
                 )?;
                 width = image.width;
                 height = image.height;
@@ -1229,7 +1230,7 @@ impl Fragment {
                     compat_mode: _,
                 } => {
                     let (wr_gradient, linear_stops) =
-                        gradient::linear(style, border_image_area, items, *direction, *repeating);
+                        gradient::linear(style, border_image_size, items, *direction, *repeating);
                     stops = linear_stops;
                     NinePatchBorderSource::Gradient(wr_gradient)
                 },
@@ -1242,7 +1243,7 @@ impl Fragment {
                 } => {
                     let (wr_gradient, radial_stops) = gradient::radial(
                         style,
-                        border_image_area,
+                        border_image_size,
                         items,
                         shape,
                         position,
@@ -1266,17 +1267,12 @@ impl Fragment {
             fill: border_image_fill,
             repeat_horizontal: border_image_repeat.0.to_layout(),
             repeat_vertical: border_image_repeat.1.to_layout(),
-            outset: SideOffsets2D::new(
-                border_image_outset.top.to_f32_px(),
-                border_image_outset.right.to_f32_px(),
-                border_image_outset.bottom.to_f32_px(),
-                border_image_outset.left.to_f32_px(),
-            ),
+            outset: SideOffsets2D::zero(),
         });
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
-                bounds: bounds.to_layout(),
+                bounds: border_image_area.to_layout(),
                 common: items::empty_common_item_properties(),
                 widths: border_image_width,
                 details,
