@@ -14,6 +14,7 @@ namespace console {
   undefined info(DOMString... messages);
   undefined warn(DOMString... messages);
   undefined error(DOMString... messages);
+  undefined table(optional any tabularData, optional sequence<DOMString> properties);
   undefined assert(boolean condition, optional DOMString message);
   undefined clear();
 
