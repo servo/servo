@@ -392,6 +392,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "bindgen"
+version = "0.66.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b84e06fc203107bfbad243f4aba2af864eb7db3b1cf46ea0a023b0b433d2a7"
+dependencies = [
+ "bitflags 2.4.0",
+ "cexpr",
+ "clang-sys",
+ "lazy_static",
+ "lazycell",
+ "peeking_take_while",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "rustc-hash",
+ "shlex",
+ "syn 2.0.29",
+ "which",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1545,9 +1566,9 @@ dependencies = [
 
 [[package]]
 name = "encoding_c"
-version = "0.9.7"
+version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1891d977f814fd638c3b964987778665b5d1dc8690f46c4c7adc91466ad1c78a"
+checksum = "9af727805f3b0d79956bde5b35732669fb5c5d45a94893798e7b7e70cfbf9cc1"
 dependencies = [
  "encoding_rs",
 ]
@@ -3699,7 +3720,7 @@ checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#8dcf64e1dd1c362b2af3abb735f100bdff8a627d"
+source = "git+https://github.com/sagudev/mozjs.git?branch=moztools4#55a1d957c1feebde676b3a6f9dd79d8f0337a097"
 dependencies = [
  "cc",
  "lazy_static",
@@ -3712,9 +3733,9 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.2"
-source = "git+https://github.com/servo/mozjs#8dcf64e1dd1c362b2af3abb735f100bdff8a627d"
+source = "git+https://github.com/sagudev/mozjs.git?branch=moztools4#55a1d957c1feebde676b3a6f9dd79d8f0337a097"
 dependencies = [
- "bindgen",
+ "bindgen 0.66.1",
  "cc",
  "encoding_c",
  "encoding_c_mem",
@@ -5813,7 +5834,7 @@ dependencies = [
  "app_units",
  "arrayvec 0.7.4",
  "atomic_refcell",
- "bindgen",
+ "bindgen 0.62.0",
  "bitflags 1.3.2",
  "byteorder",
  "cssparser",
@@ -6936,7 +6957,7 @@ version = "0.0.1"
 source = "git+https://github.com/servo/webxr#b29816a530a7519e30124c6e636511857c32433d"
 dependencies = [
  "android_injected_glue",
- "bindgen",
+ "bindgen 0.62.0",
  "crossbeam-channel",
  "euclid",
  "gl_generator 0.13.1",
