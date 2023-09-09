@@ -47,10 +47,7 @@ class Windows(Base):
     @classmethod
     def download_and_extract_dependency(cls, zip_path: str, full_spec: str):
         if not os.path.isfile(zip_path):
-            if "moztools" in full_spec:
-                zip_url = "https://github.com/sagudev/servo-build-deps/releases/download/moztools-4.0/moztools-4.0.zip"
-            else:
-                zip_url = f"{DEPS_URL}{urllib.parse.quote(full_spec)}.zip"
+            zip_url = f"{DEPS_URL}{urllib.parse.quote(full_spec)}.zip"
             util.download_file(full_spec, zip_url, zip_path)
 
         zip_dir = os.path.dirname(zip_path)
