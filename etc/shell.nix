@@ -25,7 +25,7 @@ clangStdenv.mkDerivation rec {
     llvmPackages.bintools # provides lld
 
     # Build utilities
-    cmake dbus gcc git pkg-config which llvm autoconf213 perl yasm m4
+    cmake dbus gcc git pkg-config which llvm perl yasm m4
     (python3.withPackages (ps: with ps; [virtualenv pip dbus]))
     # This pins gnumake to 4.3 since 4.4 breaks jobserver
     # functionality in mozjs and causes builds to be extremely
