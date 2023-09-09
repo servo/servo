@@ -138,8 +138,10 @@ pub fn clip(
 
 /// Determines where to place an element background image or gradient.
 ///
-/// Photos have their resolution as intrinsic size while gradients have
+/// Images have their resolution as intrinsic size while gradients have
 /// no intrinsic size.
+///
+/// Return `None` if the background size is zero, otherwise a [`BackgroundPlacement`].
 pub fn placement(
     bg: &Background,
     viewport_size: Size2D<Au>,
@@ -149,7 +151,7 @@ pub fn placement(
     border_padding: SideOffsets2D<Au>,
     border_radii: BorderRadius,
     index: usize,
-) -> BackgroundPlacement {
+) -> Option<BackgroundPlacement> {
     let bg_attachment = *get_cyclic(&bg.background_attachment.0, index);
     let bg_clip = *get_cyclic(&bg.background_clip.0, index);
     let bg_origin = *get_cyclic(&bg.background_origin.0, index);
@@ -180,6 +182,9 @@ pub fn placement(
     };
 
     let mut tile_size = compute_background_image_size(bg_size, bounds.size, intrinsic_size);
+    if tile_size.is_empty() {
+        return None;
+    }
 
     let mut tile_spacing = Size2D::zero();
     let own_position = bounds.size - tile_size;
@@ -206,14 +211,18 @@ pub fn placement(
         clip_rect.size.height,
     );
 
-    BackgroundPlacement {
+    if tile_size.is_empty() {
+        return None;
+    }
+
+    Some(BackgroundPlacement {
         bounds,
         tile_size,
         tile_spacing,
         clip_rect,
         clip_radii,
         fixed,
-    }
+    })
 }
 
 fn tile_image_round(
