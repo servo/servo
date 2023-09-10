@@ -538,7 +538,6 @@ def check_rust(file_name, lines):
 
     prev_open_brace = False
     multi_line_string = False
-    prev_crate = {}
     prev_mod = {}
     prev_feature_name = ""
     indent = 0
