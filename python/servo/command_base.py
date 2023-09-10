@@ -499,7 +499,6 @@ class CommandBase(object):
                 or self.cross_compile_target.startswith('aarch64')):
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
 
-        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
         env["CARGO_TARGET_DIR"] = servo.util.get_target_dir()
 
         if self.config["build"]["thinlto"]:
