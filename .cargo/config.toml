@@ -39,3 +39,6 @@ linker = "lld-link.exe"
 
 [env]
 MACOSX_DEPLOYMENT_TARGET = "10.10"
+
+[build]
+rustdocflags = ["--document-private-items"]
