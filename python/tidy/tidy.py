@@ -640,22 +640,6 @@ def check_rust(file_name, lines):
             yield (idx + 1, "found an empty line following a {")
         prev_open_brace = line.endswith("{")
 
-        # check alphabetical order of extern crates
-        if line.startswith("extern crate "):
-            # strip "extern crate " from the begin and ";" from the end
-            crate_name = line[13:-1]
-            if indent not in prev_crate:
-                prev_crate[indent] = ""
-            if prev_crate[indent] > crate_name and check_alphabetical_order:
-                yield(idx + 1, decl_message.format("extern crate declaration")
-                      + decl_expected.format(prev_crate[indent])
-                      + decl_found.format(crate_name))
-            prev_crate[indent] = crate_name
-
-        if line == "}":
-            for i in [i for i in prev_crate.keys() if i > indent]:
-                del prev_crate[i]
-
         # check alphabetical order of feature attributes in lib.rs files
         if is_lib_rs_file:
             match = re.search(r"#!\[feature\((.*)\)\]", line)

@@ -108,7 +108,6 @@ class CheckTidiness(unittest.TestCase):
         errors = tidy.collect_errors_for_files(iterFile('rust_tidy.rs'), [], [tidy.check_rust], print_text=False)
         self.assertTrue('mod declaration is not in alphabetical order' in next(errors)[2])
         self.assertEqual('mod declaration spans multiple lines', next(errors)[2])
-        self.assertTrue('extern crate declaration is not in alphabetical order' in next(errors)[2])
         self.assertTrue('derivable traits list is not in alphabetical order' in next(errors)[2])
         self.assertEqual('found an empty line following a {', next(errors)[2])
         self.assertEqual('use &[T] instead of &Vec<T>', next(errors)[2])
