@@ -269,6 +269,7 @@ class PostBuildCommands(CommandBase):
                         copy2(full_name, destination)
 
         env = self.build_env(is_build=True)
+        env['RUSTDOCFLAGS'] = "--document-private-items"
         returncode = self.run_cargo_build_like_command("doc", params, env=env, **kwargs)
         if returncode:
             return returncode
