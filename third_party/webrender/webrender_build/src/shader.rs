@@ -170,6 +170,7 @@ pub fn build_shader_prefix_string<F: FnMut(&str)>(
     // GLSL requires that the version number comes first.
     let gl_version_string = match gl_version {
         ShaderVersion::Gl => "#version 150\n",
+        ShaderVersion::Gles if features.contains(&"TEXTURE_EXTERNAL_ESSL1") => "#version 100\n",
         ShaderVersion::Gles => "#version 300 es\n",
     };
     output(gl_version_string);
@@ -192,6 +193,23 @@ pub fn build_shader_prefix_string<F: FnMut(&str)>(
         ShaderKind::Fragment => "#define WR_FRAGMENT_SHADER\n",
     };
     output(kind_string);
+
+    // detect which platform we're targeting
+    let is_macos = match std::env::var("CARGO_CFG_TARGET_OS") {
+        Ok(os) => os == "macos",
+        // if this is not called from build.rs (e.g. the gpu_cache_update shader or
+        // if the optimized shader pref is disabled) we want to use the runtime value
+        Err(_) => cfg!(target_os = "macos"),
+    };
+    let is_android = match std::env::var("CARGO_CFG_TARGET_OS") {
+        Ok(os) => os == "android",
+        Err(_) => cfg!(target_os = "android"),
+    };
+    if is_macos {
+        output("#define PLATFORM_MACOS\n");
+    } else if is_android {
+        output("#define PLATFORM_ANDROID\n");
+    }
 
     // Define a constant for the vertex texture width.
     output("#define WR_MAX_VERTEX_TEXTURE_WIDTH ");

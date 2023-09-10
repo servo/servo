@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use gleam;
-use glutin;
-use webrender;
-use winit;
+extern crate gleam;
+extern crate glutin;
+extern crate webrender;
+extern crate winit;
 
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
@@ -13,6 +13,7 @@ mod boilerplate;
 use crate::boilerplate::Example;
 use gleam::gl;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 
 
@@ -93,7 +94,7 @@ impl Example for App {
         pipeline_id: PipelineId,
         _document_id: DocumentId,
     ) {
-        let bounds = LayoutRect::new(LayoutPoint::zero(), builder.content_size());
+        let bounds = LayoutRect::new(LayoutPoint::zero(), LayoutSize::new(500.0, 500.0));
         let space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
 
         builder.push_simple_stacking_context(
@@ -113,7 +114,7 @@ impl Example for App {
                 id: ExternalImageId(0),
                 channel_index: 0,
                 image_type: ExternalImageType::TextureHandle(
-                    TextureTarget::Default,
+                    ImageBufferKind::Texture2D,
                 ),
             }),
             None,
@@ -125,7 +126,7 @@ impl Example for App {
                 id: ExternalImageId(1),
                 channel_index: 0,
                 image_type: ExternalImageType::TextureHandle(
-                    TextureTarget::Default,
+                    ImageBufferKind::Texture2D,
                 ),
             }),
             None,
@@ -137,7 +138,7 @@ impl Example for App {
                 id: ExternalImageId(2),
                 channel_index: 0,
                 image_type: ExternalImageType::TextureHandle(
-                    TextureTarget::Default,
+                    ImageBufferKind::Texture2D,
                 ),
             }),
             None,
@@ -149,7 +150,7 @@ impl Example for App {
                 id: ExternalImageId(3),
                 channel_index: 0,
                 image_type: ExternalImageType::TextureHandle(
-                    TextureTarget::Default,
+                    ImageBufferKind::Texture2D,
                 ),
             }),
             None,
@@ -195,14 +196,13 @@ impl Example for App {
         false
     }
 
-    fn get_image_handlers(
+    fn get_image_handler(
         &mut self,
         gl: &dyn gl::Gl,
-    ) -> (Option<Box<dyn ExternalImageHandler>>,
-          Option<Box<dyn OutputImageHandler>>) {
+    ) -> Option<Box<dyn ExternalImageHandler>> {
         let provider = YuvImageProvider::new(gl);
         self.texture_id = provider.texture_ids[0];
-        (Some(Box::new(provider)), None)
+        Some(Box::new(provider))
     }
 
     fn draw_custom(&mut self, gl: &dyn gl::Gl) {
@@ -218,7 +218,6 @@ fn main() {
     };
 
     let opts = webrender::RendererOptions {
-        debug_flags: webrender::DebugFlags::NEW_FRAME_INDICATOR | webrender::DebugFlags::NEW_SCENE_INDICATOR,
         ..Default::default()
     };
 

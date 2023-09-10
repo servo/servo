@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::SideOffsets2D;
+use euclid::{SideOffsets2D, Angle};
 use peek_poke::PeekPoke;
 use std::ops::Not;
 // local imports
 use crate::font;
-use crate::api::{PipelineId, PropertyBinding};
+use crate::{PipelineId, PropertyBinding};
 use crate::color::ColorF;
 use crate::image::{ColorDepth, ImageKey};
 use crate::units::*;
+use std::hash::{Hash, Hasher};
 
 // ******************************************************************
 // * NOTE: some of these structs have an "IMPLICIT" comment.        *
@@ -47,6 +48,10 @@ bitflags! {
         /// compositor surface under certain (implementation specific) conditions. This
         /// is typically used for large videos, and canvas elements.
         const PREFER_COMPOSITOR_SURFACE = 1 << 3;
+        /// If set, this primitive can be passed directly to the compositor via its
+        /// ExternalImageId, and the compositor will use the native image directly.
+        /// Used as a further extension on top of PREFER_COMPOSITOR_SURFACE.
+        const SUPPORTS_EXTERNAL_COMPOSITOR_SURFACE = 1 << 4;
     }
 }
 
@@ -68,10 +73,6 @@ pub struct CommonItemProperties {
     pub clip_id: ClipId,
     /// The coordinate-space the item is in (yes, it can be really granular)
     pub spatial_id: SpatialId,
-    /// Opaque bits for our clients to use for hit-testing. This is the most
-    /// dubious "common" field, but because it's an Option, it usually only
-    /// wastes a single byte (for None).
-    pub hit_info: Option<ItemTag>,
     /// Various flags describing properties of this primitive.
     pub flags: PrimitiveFlags,
 }
@@ -86,7 +87,6 @@ impl CommonItemProperties {
             clip_rect,
             spatial_id: space_and_clip.spatial_id,
             clip_id: space_and_clip.clip_id,
-            hit_info: None,
             flags: PrimitiveFlags::default(),
         }
     }
@@ -155,6 +155,7 @@ pub enum DisplayItem {
     SetFilterOps,
     SetFilterData,
     SetFilterPrimitives,
+    SetPoints,
 
     // These marker items terminate a scope introduced by a previous item.
     PopReferenceFrame,
@@ -203,6 +204,7 @@ pub enum DebugDisplayItem {
     SetFilterOps(Vec<FilterOp>),
     SetFilterData(FilterData),
     SetFilterPrimitives(Vec<FilterPrimitive>),
+    SetPoints(Vec<LayoutPoint>),
 
     PopReferenceFrame,
     PopStackingContext,
@@ -214,7 +216,8 @@ pub struct ImageMaskClipDisplayItem {
     pub id: ClipId,
     pub parent_space_and_clip: SpaceAndClipInfo,
     pub image_mask: ImageMask,
-}
+    pub fill_rule: FillRule,
+} // IMPLICIT points: Vec<LayoutPoint>
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct RectClipDisplayItem {
@@ -306,7 +309,7 @@ pub struct ScrollFrameDisplayItem {
     pub content_rect: LayoutRect,
     pub clip_rect: LayoutRect,
     pub parent_space_and_clip: SpaceAndClipInfo,
-    pub external_id: Option<ExternalScrollId>,
+    pub external_id: ExternalScrollId,
     pub scroll_sensitivity: ScrollSensitivity,
     /// The amount this scrollframe has already been scrolled by, in the caller.
     /// This means that all the display items that are inside the scrollframe
@@ -338,6 +341,7 @@ pub struct ClearRectangleDisplayItem {
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct HitTestDisplayItem {
     pub common: CommonItemProperties,
+    pub tag: ItemTag,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
@@ -623,6 +627,15 @@ pub struct Gradient {
     pub extend_mode: ExtendMode,
 } // IMPLICIT: stops: Vec<GradientStop>
 
+impl Gradient {
+    pub fn is_valid(&self) -> bool {
+        self.start_point.x.is_finite() &&
+            self.start_point.y.is_finite() &&
+            self.end_point.x.is_finite() &&
+            self.end_point.y.is_finite()
+    }
+}
+
 /// The area
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct GradientDisplayItem {
@@ -655,6 +668,15 @@ pub struct RadialGradient {
     pub extend_mode: ExtendMode,
 } // IMPLICIT stops: Vec<GradientStop>
 
+impl RadialGradient {
+    pub fn is_valid(&self) -> bool {
+        self.center.x.is_finite() &&
+            self.center.y.is_finite() &&
+            self.start_offset.is_finite() &&
+            self.end_offset.is_finite()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct ConicGradient {
     pub center: LayoutPoint,
@@ -663,6 +685,16 @@ pub struct ConicGradient {
     pub end_offset: f32,
     pub extend_mode: ExtendMode,
 } // IMPLICIT stops: Vec<GradientStop>
+
+impl ConicGradient {
+    pub fn is_valid(&self) -> bool {
+        self.center.x.is_finite() &&
+            self.center.y.is_finite() &&
+            self.angle.is_finite() &&
+            self.start_offset.is_finite() &&
+            self.end_offset.is_finite()
+    }
+}
 
 /// Just an abstraction for bundling up a bunch of clips into a "super clip".
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
@@ -711,13 +743,77 @@ pub struct ReferenceFrameDisplayListItem {
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub enum ReferenceFrameKind {
-    /// Zoom reference frames must be a scale + translation only
-    Zoom,
     /// A normal transform matrix, may contain perspective (the CSS transform property)
-    Transform,
+    Transform {
+        /// Optionally marks the transform as only ever having a simple 2D scale or translation,
+        /// allowing for optimizations.
+        is_2d_scale_translation: bool,
+        /// Marks that the transform should be snapped. Used for transforms which animate in
+        /// response to scrolling, eg for zooming or dynamic toolbar fixed-positioning.
+        should_snap: bool,
+    },
     /// A perspective transform, that optionally scrolls relative to a specific scroll node
     Perspective {
         scrolling_relative_to: Option<ExternalScrollId>,
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, PeekPoke)]
+pub enum Rotation {
+    Degree0,
+    Degree90,
+    Degree180,
+    Degree270,
+}
+
+impl Rotation {
+    pub fn to_matrix(
+        &self,
+        size: LayoutSize,
+    ) -> LayoutTransform {
+        let (shift_center_to_origin, angle) = match self {
+            Rotation::Degree0 => {
+              (LayoutTransform::translation(-size.width / 2., -size.height / 2., 0.), Angle::degrees(0.))
+            },
+            Rotation::Degree90 => {
+              (LayoutTransform::translation(-size.height / 2., -size.width / 2., 0.), Angle::degrees(90.))
+            },
+            Rotation::Degree180 => {
+              (LayoutTransform::translation(-size.width / 2., -size.height / 2., 0.), Angle::degrees(180.))
+            },
+            Rotation::Degree270 => {
+              (LayoutTransform::translation(-size.height / 2., -size.width / 2., 0.), Angle::degrees(270.))
+            },
+        };
+        let shift_origin_to_center = LayoutTransform::translation(size.width / 2., size.height / 2., 0.);
+
+        shift_center_to_origin
+            .then(&LayoutTransform::rotation(0., 0., 1.0, angle))
+            .then(&shift_origin_to_center)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, PeekPoke)]
+pub enum ReferenceTransformBinding {
+    /// Standard reference frame which contains a precomputed transform.
+    Static {
+        binding: PropertyBinding<LayoutTransform>,
+    },
+    /// Computed reference frame which dynamically calculates the transform
+    /// based on the given parameters. The reference is the content size of
+    /// the parent iframe, which is affected by snapping.
+    Computed {
+        scale_from: Option<LayoutSize>,
+        vertical_flip: bool,
+        rotation: Rotation,
+    },
+}
+
+impl Default for ReferenceTransformBinding {
+    fn default() -> Self {
+        ReferenceTransformBinding::Static {
+            binding: Default::default(),
+        }
     }
 }
 
@@ -727,7 +823,7 @@ pub struct ReferenceFrame {
     pub transform_style: TransformStyle,
     /// The transform matrix, either the perspective matrix or the transform
     /// matrix.
-    pub transform: PropertyBinding<LayoutTransform>,
+    pub transform: ReferenceTransformBinding,
     pub id: SpatialId,
 }
 
@@ -762,7 +858,7 @@ pub enum TransformStyle {
 /// when we want to cache the output, and performance is
 /// important. Note that this is a performance hint only,
 /// which WR may choose to ignore.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, PeekPoke)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, MallocSizeOf, Serialize, PeekPoke)]
 #[repr(u8)]
 pub enum RasterSpace {
     // Rasterize in local-space, applying supplied scale to primitives.
@@ -781,6 +877,23 @@ impl RasterSpace {
         match self {
             RasterSpace::Local(scale) => Some(scale),
             RasterSpace::Screen => None,
+        }
+    }
+}
+
+impl Eq for RasterSpace {}
+
+impl Hash for RasterSpace {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            RasterSpace::Screen => {
+                0.hash(state);
+            }
+            RasterSpace::Local(scale) => {
+                // Note: this is inconsistent with the Eq impl for -0.0 (don't care).
+                1.hash(state);
+                scale.to_bits().hash(state);
+            }
         }
     }
 }
@@ -911,7 +1024,8 @@ impl FloodPrimitive {
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct BlurPrimitive {
     pub input: FilterPrimitiveInput,
-    pub radius: f32,
+    pub width: f32,
+    pub height: f32,
 }
 
 #[repr(C)]
@@ -1038,7 +1152,7 @@ pub enum FilterOp {
     /// Filter that does no transformation of the colors, needed for
     /// debug purposes only.
     Identity,
-    Blur(f32),
+    Blur(f32, f32),
     Brightness(f32),
     Contrast(f32),
     Grayscale(f32),
@@ -1230,6 +1344,7 @@ pub enum YuvColorSpace {
     Rec601 = 0,
     Rec709 = 1,
     Rec2020 = 2,
+    Identity = 3, // aka RGB as per ISO/IEC 23091-2:2019
 }
 
 #[repr(u8)]
@@ -1404,6 +1519,34 @@ impl ComplexClipRegion {
     }
 }
 
+pub const POLYGON_CLIP_VERTEX_MAX: usize = 16;
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, Eq, Hash, PeekPoke)]
+pub enum FillRule {
+    Nonzero = 0x1, // Behaves as the SVG fill-rule definition for nonzero.
+    Evenodd = 0x2, // Behaves as the SVG fill-rule definition for evenodd.
+}
+
+impl From<u8> for FillRule {
+    fn from(fill_rule: u8) -> Self {
+        match fill_rule {
+            0x1 => FillRule::Nonzero,
+            0x2 => FillRule::Evenodd,
+            _ => panic!("Unexpected FillRule value."),
+        }
+    }
+}
+
+impl From<FillRule> for u8 {
+    fn from(fill_rule: FillRule) -> Self {
+        match fill_rule {
+            FillRule::Nonzero => 0x1,
+            FillRule::Evenodd => 0x2,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, PeekPoke)]
 pub struct ClipChainId(pub u64, pub PipelineId);
 
@@ -1531,6 +1674,7 @@ impl DisplayItem {
             DisplayItem::SetFilterOps => "set_filter_ops",
             DisplayItem::SetFilterData => "set_filter_data",
             DisplayItem::SetFilterPrimitives => "set_filter_primitives",
+            DisplayItem::SetPoints => "set_points",
             DisplayItem::RadialGradient(..) => "radial_gradient",
             DisplayItem::Rectangle(..) => "rectangle",
             DisplayItem::ScrollFrame(..) => "scroll_frame",
@@ -1572,8 +1716,13 @@ impl_default_for_enums! {
     FilterOp => Identity,
     ComponentTransferFuncType => Identity,
     ClipMode => Clip,
+    FillRule => Nonzero,
     ClipId => ClipId::invalid(),
-    ReferenceFrameKind => Transform,
+    ReferenceFrameKind => Transform {
+        is_2d_scale_translation: false,
+        should_snap: false,
+    },
+    Rotation => Degree0,
     TransformStyle => Flat,
     RasterSpace => Local(f32::default()),
     MixBlendMode => Normal,

@@ -4,7 +4,7 @@
 
 use api::BorderRadius;
 use api::units::*;
-use euclid::{Point2D, Rect, Size2D, Vector2D};
+use euclid::{Point2D, Rect, Size2D, Vector2D, point2, size2};
 use euclid::{default, Transform2D, Transform3D, Scale};
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 use plane_split::{Clipper, Polygon};
@@ -66,6 +66,9 @@ pub trait VecHelper<T> {
     /// Equivalent to `mem::replace(&mut vec, Vec::new())`
     fn take(&mut self) -> Self;
 
+    /// Call clear and return self (useful for chaining with calls that move the vector).
+    fn cleared(self) -> Self;
+
     /// Functionally equivalent to `mem::replace(&mut vec, Vec::new())` but tries
     /// to keep the allocation in the caller if it is empty or replace it with a
     /// pre-allocated vector.
@@ -97,6 +100,12 @@ impl<T> VecHelper<T> for Vec<T> {
 
     fn take(&mut self) -> Self {
         replace(self, Vec::new())
+    }
+
+    fn cleared(mut self) -> Self {
+        self.clear();
+
+        self
     }
 
     fn take_and_preallocate(&mut self) -> Self {
@@ -141,14 +150,12 @@ impl ScaleOffset {
         // To check that we have a pure scale / translation:
         // Every field must match an identity matrix, except:
         //  - Any value present in tx,ty
-        //  - Any non-neg value present in sx,sy (avoid negative for reflection/rotation)
+        //  - Any value present in sx,sy
 
-        if m.m11 < 0.0 ||
-           m.m12.abs() > NEARLY_ZERO ||
+        if m.m12.abs() > NEARLY_ZERO ||
            m.m13.abs() > NEARLY_ZERO ||
            m.m14.abs() > NEARLY_ZERO ||
            m.m21.abs() > NEARLY_ZERO ||
-           m.m22 < 0.0 ||
            m.m23.abs() > NEARLY_ZERO ||
            m.m24.abs() > NEARLY_ZERO ||
            m.m31.abs() > NEARLY_ZERO ||
@@ -221,28 +228,80 @@ impl ScaleOffset {
     }
 
     pub fn map_rect<F, T>(&self, rect: &Rect<f32, F>) -> Rect<f32, T> {
+        // TODO(gw): The logic below can return an unexpected result if the supplied
+        //           rect is invalid (has size < 0). Since Gecko currently supplied
+        //           invalid rects in some cases, adding a max(0) here ensures that
+        //           mapping an invalid rect retains the property that rect.is_empty()
+        //           will return true (the mapped rect output will have size 0 instead
+        //           of a negative size). In future we could catch / assert / fix
+        //           these invalid rects earlier, and assert here instead.
+
+        let w = rect.size.width.max(0.0);
+        let h = rect.size.height.max(0.0);
+
+        let mut x0 = rect.origin.x * self.scale.x + self.offset.x;
+        let mut y0 = rect.origin.y * self.scale.y + self.offset.y;
+
+        let mut sx = w * self.scale.x;
+        let mut sy = h * self.scale.y;
+
+        // Handle negative scale. Previously, branchless float math was used to find the
+        // min / max vertices and size. However, that sequence of operations was producind
+        // additional floating point accuracy on android emulator builds, causing one test
+        // to fail an assert. Instead, we retain the same math as previously, and adjust
+        // the origin / size if required.
+
+        if self.scale.x < 0.0 {
+            x0 += sx;
+            sx = -sx;
+        }
+        if self.scale.y < 0.0 {
+            y0 += sy;
+            sy = -sy;
+        }
+
         Rect::new(
-            Point2D::new(
-                rect.origin.x * self.scale.x + self.offset.x,
-                rect.origin.y * self.scale.y + self.offset.y,
-            ),
-            Size2D::new(
-                rect.size.width * self.scale.x,
-                rect.size.height * self.scale.y,
-            )
+            Point2D::new(x0, y0),
+            Size2D::new(sx, sy),
         )
     }
 
     pub fn unmap_rect<F, T>(&self, rect: &Rect<f32, F>) -> Rect<f32, T> {
+        // TODO(gw): The logic below can return an unexpected result if the supplied
+        //           rect is invalid (has size < 0). Since Gecko currently supplied
+        //           invalid rects in some cases, adding a max(0) here ensures that
+        //           mapping an invalid rect retains the property that rect.is_empty()
+        //           will return true (the mapped rect output will have size 0 instead
+        //           of a negative size). In future we could catch / assert / fix
+        //           these invalid rects earlier, and assert here instead.
+
+        let w = rect.size.width.max(0.0);
+        let h = rect.size.height.max(0.0);
+
+        let mut x0 = (rect.origin.x - self.offset.x) / self.scale.x;
+        let mut y0 = (rect.origin.y - self.offset.y) / self.scale.y;
+
+        let mut sx = w / self.scale.x;
+        let mut sy = h / self.scale.y;
+
+        // Handle negative scale. Previously, branchless float math was used to find the
+        // min / max vertices and size. However, that sequence of operations was producind
+        // additional floating point accuracy on android emulator builds, causing one test
+        // to fail an assert. Instead, we retain the same math as previously, and adjust
+        // the origin / size if required.
+
+        if self.scale.x < 0.0 {
+            x0 += sx;
+            sx = -sx;
+        }
+        if self.scale.y < 0.0 {
+            y0 += sy;
+            sy = -sy;
+        }
+
         Rect::new(
-            Point2D::new(
-                (rect.origin.x - self.offset.x) / self.scale.x,
-                (rect.origin.y - self.offset.y) / self.scale.y,
-            ),
-            Size2D::new(
-                rect.size.width / self.scale.x,
-                rect.size.height / self.scale.y,
-            )
+            Point2D::new(x0, y0),
+            Size2D::new(sx, sy),
         )
     }
 
@@ -324,6 +383,8 @@ pub trait MatrixHelpers<Src, Dst> {
     /// Turn Z transformation into identity. This is useful when crossing "flat"
     /// transform styled stacking contexts upon traversing the coordinate systems.
     fn flatten_z_output(&mut self);
+
+    fn cast_unit<NewSrc, NewDst>(&self) -> Transform3D<f32, NewSrc, NewDst>;
 }
 
 impl<Src, Dst> MatrixHelpers<Src, Dst> for Transform3D<f32, Src, Dst> {
@@ -374,14 +435,21 @@ impl<Src, Dst> MatrixHelpers<Src, Dst> for Transform3D<f32, Src, Dst> {
         self.m21 * self.m21 + self.m22 * self.m22 > limit2
     }
 
+    /// Find out a point in `Src` that would be projected into the `target`.
     fn inverse_project(&self, target: &Point2D<f32, Dst>) -> Option<Point2D<f32, Src>> {
-        let m: Transform2D<f32, Src, Dst>;
-        m = Transform2D::new(
+        // form the linear equation for the hyperplane intersection
+        let m = Transform2D::<f32, Src, Dst>::new(
             self.m11 - target.x * self.m14, self.m12 - target.y * self.m14,
             self.m21 - target.x * self.m24, self.m22 - target.y * self.m24,
             self.m41 - target.x * self.m44, self.m42 - target.y * self.m44,
         );
-        m.inverse().map(|inv| Point2D::new(inv.m31, inv.m32))
+        let inv = m.inverse()?;
+        // we found the point, now check if it maps to the positive hemisphere
+        if inv.m31 * self.m14 + inv.m32 * self.m24 + self.m44 > 0.0 {
+            Some(Point2D::new(inv.m31, inv.m32))
+        } else {
+            None
+        }
     }
 
     fn inverse_rect_footprint(&self, rect: &Rect<f32, Dst>) -> Option<Rect<f32, Src>> {
@@ -431,7 +499,7 @@ impl<Src, Dst> MatrixHelpers<Src, Dst> for Transform3D<f32, Src, Dst> {
      *  a  b  0  1
      */
     fn is_2d_scale_translation(&self) -> bool {
-        (self.m33 - 1.0).abs() < NEARLY_ZERO && 
+        (self.m33 - 1.0).abs() < NEARLY_ZERO &&
             (self.m44 - 1.0).abs() < NEARLY_ZERO &&
             self.m12.abs() < NEARLY_ZERO && self.m13.abs() < NEARLY_ZERO && self.m14.abs() < NEARLY_ZERO &&
             self.m21.abs() < NEARLY_ZERO && self.m23.abs() < NEARLY_ZERO && self.m24.abs() < NEARLY_ZERO &&
@@ -459,6 +527,16 @@ impl<Src, Dst> MatrixHelpers<Src, Dst> for Transform3D<f32, Src, Dst> {
         self.m23 = 0.0;
         self.m33 = 1.0;
         self.m43 = 0.0;
+        //Note: we used to zero out m3? as well, see "reftests/flatten-all-flat.yaml" test
+    }
+
+    fn cast_unit<NewSrc, NewDst>(&self) -> Transform3D<f32, NewSrc, NewDst> {
+        Transform3D::new(
+            self.m11, self.m12, self.m13, self.m14,
+            self.m21, self.m22, self.m23, self.m24,
+            self.m31, self.m32, self.m33, self.m34,
+            self.m41, self.m42, self.m43, self.m44,
+        )
     }
 }
 
@@ -483,7 +561,6 @@ where
     Self: Sized,
 {
     fn from_floats(x0: f32, y0: f32, x1: f32, y1: f32) -> Self;
-    fn is_well_formed_and_nonempty(&self) -> bool;
     fn snap(&self) -> Self;
 }
 
@@ -493,10 +570,6 @@ impl<U> RectHelpers<U> for Rect<f32, U> {
             Point2D::new(x0, y0),
             Size2D::new(x1 - x0, y1 - y0),
         )
-    }
-
-    fn is_well_formed_and_nonempty(&self) -> bool {
-        self.size.width > 0.0 && self.size.height > 0.0
     }
 
     fn snap(&self) -> Self {
@@ -591,9 +664,12 @@ use euclid::vec3;
 #[cfg(test)]
 pub mod test {
     use super::*;
-    use euclid::default::{Point2D, Transform3D};
-    use euclid::Angle;
+    use euclid::default::{Point2D, Rect, Size2D, Transform3D};
+    use euclid::{Angle, approxeq::ApproxEq};
     use std::f32::consts::PI;
+    use crate::clip::{is_left_of_line, polygon_contains_point};
+    use crate::prim_store::PolygonKey;
+    use api::FillRule;
 
     #[test]
     fn inverse_project() {
@@ -606,10 +682,83 @@ pub mod test {
         assert_eq!(m1.inverse_project(&p0), Some(Point2D::new(2.0, 2.0)));
     }
 
+    #[test]
+    fn inverse_project_footprint() {
+        let m = Transform3D::new(
+            0.477499992, 0.135000005, -1.0, 0.000624999986,
+            -0.642787635, 0.766044438, 0.0, 0.0,
+            0.766044438, 0.642787635, 0.0, 0.0,
+            1137.10986, 113.71286, 402.0, 0.748749971,
+        );
+        let r = Rect::new(Point2D::zero(), Size2D::new(804.0, 804.0));
+        {
+            let points = &[
+                r.origin,
+                r.top_right(),
+                r.bottom_left(),
+                r.bottom_right(),
+            ];
+            let mi = m.inverse().unwrap();
+            // In this section, we do the forward and backward transformation
+            // to confirm that its bijective.
+            // We also do the inverse projection path, and confirm it functions the same way.
+            println!("Points:");
+            for p in points {
+                let pp = m.transform_point2d_homogeneous(*p);
+                let p3 = pp.to_point3d().unwrap();
+                let pi = mi.transform_point3d_homogeneous(p3);
+                let px = pi.to_point2d().unwrap();
+                let py = m.inverse_project(&pp.to_point2d().unwrap()).unwrap();
+                println!("\t{:?} -> {:?} -> {:?} -> ({:?} -> {:?}, {:?})", p, pp, p3, pi, px, py);
+                assert!(px.approx_eq_eps(p, &Point2D::new(0.001, 0.001)));
+                assert!(py.approx_eq_eps(p, &Point2D::new(0.001, 0.001)));
+            }
+        }
+        // project
+        let rp = project_rect(&m, &r, &Rect::new(Point2D::zero(), Size2D::new(1000.0, 1000.0))).unwrap();
+        println!("Projected {:?}", rp);
+        // one of the points ends up in the negative hemisphere
+        assert_eq!(m.inverse_project(&rp.origin), None);
+        // inverse
+        if let Some(ri) = m.inverse_rect_footprint(&rp) {
+            // inverse footprint should be larger, since it doesn't know the original Z
+            assert!(ri.contains_rect(&r), "Inverse {:?}", ri);
+        }
+    }
+
     fn validate_convert(xref: &LayoutTransform) {
         let so = ScaleOffset::from_transform(xref).unwrap();
         let xf = so.to_transform();
         assert!(xref.approx_eq(&xf));
+    }
+
+    #[test]
+    fn negative_scale_map_unmap() {
+        let xref = LayoutTransform::scale(1.0, -1.0, 1.0)
+                        .pre_translate(LayoutVector3D::new(124.0, 38.0, 0.0));
+        let so = ScaleOffset::from_transform(&xref).unwrap();
+        let local_rect = LayoutRect::new(
+            LayoutPoint::new(50.0, -100.0),
+            LayoutSize::new(200.0, 400.0),
+        );
+
+        let mapped_rect: LayoutRect = so.map_rect(&local_rect);
+        let xf_rect = project_rect(
+            &xref,
+            &local_rect,
+            &LayoutRect::max_rect(),
+        ).unwrap();
+
+        assert!(mapped_rect.origin.x.approx_eq(&xf_rect.origin.x));
+        assert!(mapped_rect.origin.y.approx_eq(&xf_rect.origin.y));
+        assert!(mapped_rect.size.width.approx_eq(&xf_rect.size.width));
+        assert!(mapped_rect.size.height.approx_eq(&xf_rect.size.height));
+
+        let unmapped_rect: LayoutRect = so.unmap_rect(&mapped_rect);
+        assert!(unmapped_rect.origin.x.approx_eq(&local_rect.origin.x));
+        assert!(unmapped_rect.origin.y.approx_eq(&local_rect.origin.y));
+        assert!(unmapped_rect.size.width.approx_eq(&local_rect.size.width));
+        assert!(unmapped_rect.size.height.approx_eq(&local_rect.size.height));
     }
 
     #[test]
@@ -691,6 +840,84 @@ pub mod test {
         let origin = m.inverse_project_2d_origin().unwrap();
         assert_eq!(origin, Point2D::new(1.0, 0.5));
         assert_eq!(m.transform_point2d(origin), Some(Point2D::zero()));
+    }
+
+    #[test]
+    fn polygon_clip_is_left_of_point() {
+        // Define points of a line through (1, -3) and (-2, 6) to test against.
+        // If the triplet consisting of these two points and the test point
+        // form a counter-clockwise triangle, then the test point is on the
+        // left. The easiest way to visualize this is with an "ascending"
+        // line from low-Y to high-Y.
+        let p0_x = 1.0;
+        let p0_y = -3.0;
+        let p1_x = -2.0;
+        let p1_y = 6.0;
+
+        // Test some points to the left of the line.
+        assert!(is_left_of_line(-9.0, 0.0, p0_x, p0_y, p1_x, p1_y) > 0.0);
+        assert!(is_left_of_line(-1.0, 1.0, p0_x, p0_y, p1_x, p1_y) > 0.0);
+        assert!(is_left_of_line(1.0, -4.0, p0_x, p0_y, p1_x, p1_y) > 0.0);
+
+        // Test some points on the line.
+        assert!(is_left_of_line(-3.0, 9.0, p0_x, p0_y, p1_x, p1_y) == 0.0);
+        assert!(is_left_of_line(0.0, 0.0, p0_x, p0_y, p1_x, p1_y) == 0.0);
+        assert!(is_left_of_line(100.0, -300.0, p0_x, p0_y, p1_x, p1_y) == 0.0);
+
+        // Test some points to the right of the line.
+        assert!(is_left_of_line(0.0, 1.0, p0_x, p0_y, p1_x, p1_y) < 0.0);
+        assert!(is_left_of_line(-4.0, 13.0, p0_x, p0_y, p1_x, p1_y) < 0.0);
+        assert!(is_left_of_line(5.0, -12.0, p0_x, p0_y, p1_x, p1_y) < 0.0);
+    }
+
+    #[test]
+    fn polygon_clip_contains_point() {
+        // We define the points of a self-overlapping polygon, which we will
+        // use to create polygons with different windings and fill rules.
+        let p0 = LayoutPoint::new(4.0, 4.0);
+        let p1 = LayoutPoint::new(6.0, 4.0);
+        let p2 = LayoutPoint::new(4.0, 7.0);
+        let p3 = LayoutPoint::new(2.0, 1.0);
+        let p4 = LayoutPoint::new(8.0, 1.0);
+        let p5 = LayoutPoint::new(6.0, 7.0);
+
+        let poly_clockwise_nonzero = PolygonKey::new(
+            &[p5, p4, p3, p2, p1, p0].to_vec(), FillRule::Nonzero
+        );
+        let poly_clockwise_evenodd = PolygonKey::new(
+            &[p5, p4, p3, p2, p1, p0].to_vec(), FillRule::Evenodd
+        );
+        let poly_counter_clockwise_nonzero = PolygonKey::new(
+            &[p0, p1, p2, p3, p4, p5].to_vec(), FillRule::Nonzero
+        );
+        let poly_counter_clockwise_evenodd = PolygonKey::new(
+            &[p0, p1, p2, p3, p4, p5].to_vec(), FillRule::Evenodd
+        );
+
+        // We define a rect that provides a bounding clip area of
+        // the polygon.
+        let rect = LayoutRect::new(LayoutPoint::new(0.0, 0.0),
+                                   LayoutSize::new(10.0, 10.0));
+
+        // And we'll test three points of interest.
+        let p_inside_once = LayoutPoint::new(5.0, 3.0);
+        let p_inside_twice = LayoutPoint::new(5.0, 5.0);
+        let p_outside = LayoutPoint::new(9.0, 9.0);
+
+        // We should get the same results for both clockwise and
+        // counter-clockwise polygons.
+        // For nonzero polygons, the inside twice point is considered inside.
+        for poly_nonzero in vec![poly_clockwise_nonzero, poly_counter_clockwise_nonzero].iter() {
+            assert_eq!(polygon_contains_point(&p_inside_once, &rect, &poly_nonzero), true);
+            assert_eq!(polygon_contains_point(&p_inside_twice, &rect, &poly_nonzero), true);
+            assert_eq!(polygon_contains_point(&p_outside, &rect, &poly_nonzero), false);
+        }
+        // For evenodd polygons, the inside twice point is considered outside.
+        for poly_evenodd in vec![poly_clockwise_evenodd, poly_counter_clockwise_evenodd].iter() {
+            assert_eq!(polygon_contains_point(&p_inside_once, &rect, &poly_evenodd), true);
+            assert_eq!(polygon_contains_point(&p_inside_twice, &rect, &poly_evenodd), false);
+            assert_eq!(polygon_contains_point(&p_outside, &rect, &poly_evenodd), false);
+        }
     }
 }
 
@@ -1083,6 +1310,56 @@ impl Recycler {
     }
 }
 
+/// Record the size of a data structure to preallocate a similar size
+/// at the next frame and avoid growing it too many time.
+#[derive(Copy, Clone, Debug)]
+pub struct Preallocator {
+    size: usize,
+}
+
+impl Preallocator {
+    pub fn new(initial_size: usize) -> Self {
+        Preallocator {
+            size: initial_size,
+        }
+    }
+
+    /// Record the size of a vector to preallocate it the next frame.
+    pub fn record_vec<T>(&mut self, vec: &Vec<T>) {
+        let len = vec.len();
+        if len > self.size {
+            self.size = len;
+        } else {
+            self.size = (self.size + len) / 2;
+        }
+    }
+
+    /// The size that we'll preallocate the vector with.
+    pub fn preallocation_size(&self) -> usize {
+        // Round up to multiple of 16 to avoid small tiny
+        // variations causing reallocations.
+        (self.size + 15) & !15
+    }
+
+    /// Preallocate vector storage.
+    ///
+    /// The preallocated amount depends on the length recorded in the last
+    /// record_vec call.
+    pub fn preallocate_vec<T>(&self, vec: &mut Vec<T>) {
+        let len = vec.len();
+        let cap = self.preallocation_size();
+        if len < cap {
+            vec.reserve(cap - len);
+        }
+    }
+}
+
+impl Default for Preallocator {
+    fn default() -> Self {
+        Self::new(0)
+    }
+}
+
 /// Arc wrapper to support measurement via MallocSizeOf.
 ///
 /// Memory reporting for Arcs is tricky because of the risk of double-counting.
@@ -1218,4 +1495,202 @@ macro_rules! c_str {
                                      as *const std::os::raw::c_char)
         }
     }
+}
+
+// Find a rectangle that is contained by the sum of r1 and r2.
+pub fn conservative_union_rect<U>(r1: &Rect<f32, U>, r2: &Rect<f32, U>) -> Rect<f32, U> {
+    //  +---+---+   +--+-+--+
+    //  |   |   |   |  | |  |
+    //  |   |   |   |  | |  |
+    //  +---+---+   +--+-+--+
+    if r1.origin.y == r2.origin.y && r1.size.height == r2.size.height {
+        if r2.min_x() <= r1.max_x() && r2.max_x() >= r1.min_x() {
+            let origin_x = f32::min(r1.origin.x, r2.origin.x);
+            let width = f32::max(r1.max_x(), r2.max_x()) - origin_x;
+
+            return Rect {
+                origin: point2(origin_x, r1.origin.y),
+                size: size2(width, r1.size.height),
+            }
+        }
+    }
+
+    //  +----+    +----+
+    //  |    |    |    |
+    //  |    |    +----+
+    //  +----+    |    |
+    //  |    |    +----+
+    //  |    |    |    |
+    //  +----+    +----+
+    if r1.origin.x == r2.origin.x && r1.size.width == r2.size.width {
+        if r2.min_y() <= r1.max_y() && r2.max_y() >= r1.min_y() {
+            let origin_y = f32::min(r1.origin.y, r2.origin.y);
+            let height = f32::max(r1.max_y(), r2.max_y()) - origin_y;
+
+            return Rect {
+                origin: point2(r1.origin.x, origin_y),
+                size: size2(r1.size.width, height),
+            }
+        }
+    }
+
+    if r1.area() >= r2.area() { *r1 } else {*r2 }
+}
+
+#[test]
+fn test_conservative_union_rect() {
+    // Adjacent, x axis
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(4.0, 2.0), size: size2(5.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 2.0), size: size2(8.0, 4.0) });
+
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(4.0, 2.0), size: size2(5.0, 4.0) },
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 2.0), size: size2(8.0, 4.0) });
+
+    // Averlapping adjacent, x axis
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(3.0, 2.0), size: size2(5.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 2.0), size: size2(7.0, 4.0) });
+
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(5.0, 2.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(5.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 2.0), size: size2(7.0, 4.0) });
+
+    // Adjacent but not touching, x axis
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(6.0, 2.0), size: size2(5.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(6.0, 2.0), size: size2(5.0, 4.0) });
+
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(-6.0, 2.0), size: size2(1.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) });
+
+
+    // Adjacent, y axis
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(1.0, 6.0), size: size2(3.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 8.0) });
+
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 5.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(1.0, 1.0), size: size2(3.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 1.0), size: size2(3.0, 8.0) });
+
+    // Averlapping adjacent, y axis
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(1.0, 3.0), size: size2(3.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 5.0) });
+
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 4.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 6.0) });
+
+    // Adjacent but not touching, y axis
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(1.0, 10.0), size: size2(3.0, 5.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 10.0), size: size2(3.0, 5.0) });
+
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 5.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(1.0, 0.0), size: size2(3.0, 3.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(1.0, 5.0), size: size2(3.0, 4.0) });
+
+
+    // Contained
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+        &LayoutRect { origin: point2(0.0, 1.0), size: size2(10.0, 11.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(0.0, 1.0), size: size2(10.0, 11.0) });
+
+    let r = conservative_union_rect(
+        &LayoutRect { origin: point2(0.0, 1.0), size: size2(10.0, 11.0) },
+        &LayoutRect { origin: point2(1.0, 2.0), size: size2(3.0, 4.0) },
+    );
+    assert_eq!(r, LayoutRect { origin: point2(0.0, 1.0), size: size2(10.0, 11.0) });
+}
+
+/// This is inspired by the `weak-table` crate.
+/// It holds a Vec of weak pointers that are garbage collected as the Vec
+pub struct WeakTable {
+    inner: Vec<std::sync::Weak<Vec<u8>>>
+}
+
+impl WeakTable {
+    pub fn new() -> WeakTable {
+        WeakTable { inner: Vec::new() }
+    }
+    pub fn insert(&mut self, x: std::sync::Weak<Vec<u8>>) {
+        if self.inner.len() == self.inner.capacity() {
+            self.remove_expired();
+
+            // We want to make sure that we change capacity()
+            // even if remove_expired() removes some entries
+            // so that we don't repeatedly hit remove_expired()
+            if self.inner.len() * 3 < self.inner.capacity() {
+                // We use a different multiple for shrinking then
+                // expanding so that we we don't accidentally
+                // oscilate.
+                self.inner.shrink_to_fit();
+            } else {
+                // Otherwise double our size
+                self.inner.reserve(self.inner.len())
+            }
+        }
+        self.inner.push(x);
+    }
+
+    fn remove_expired(&mut self) {
+        self.inner.retain(|x| x.strong_count() > 0)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = Arc<Vec<u8>>> + '_ {
+        self.inner.iter().filter_map(|x| x.upgrade())
+    }
+}
+
+#[test]
+fn weak_table() {
+    let mut tbl = WeakTable::new();
+    let mut things = Vec::new();
+    let target_count = 50;
+    for _ in 0..target_count {
+        things.push(Arc::new(vec![4]));
+    }
+    for i in &things {
+        tbl.insert(Arc::downgrade(i))
+    }
+    assert_eq!(tbl.inner.len(), target_count);
+    drop(things);
+    assert_eq!(tbl.iter().count(), 0);
+
+    // make sure that we shrink the table if it gets too big
+    // by adding a bunch of dead items
+    for _ in 0..target_count*2 {
+        tbl.insert(Arc::downgrade(&Arc::new(vec![5])))
+    }
+    assert!(tbl.inner.capacity() <= 4);
 }

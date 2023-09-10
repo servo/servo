@@ -26,10 +26,8 @@ use std::rc::Rc;
 use std::slice;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use webrender_api::{
-    DirtyRect, DocumentId, ExternalImageId, ImageData, ImageDescriptor, ImageKey, RenderApi,
-    RenderApiSender, Transaction,
-};
+use webrender::{RenderApi, RenderApiSender, Transaction};
+use webrender_api::{DirtyRect, DocumentId, ExternalImageId, ImageData, ImageDescriptor, ImageKey};
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
     WebrenderImageSource,

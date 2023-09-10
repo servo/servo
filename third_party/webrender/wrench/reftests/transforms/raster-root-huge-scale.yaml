@@ -15,8 +15,8 @@ root:
           transform-style: preserve-3d
           items:
             - type: clip
-              bounds: [10, 10, 60000, 60000]
-              clip-rect: [10, 10, 60000, 60000]
+              bounds: [0, 0, 60000, 60000]
+              clip-rect: [0, 0, 60000, 60000]
               id: 2
               complex:
                 - rect: [0, 0, 100, 100]
@@ -28,3 +28,9 @@ root:
               items:
                 - rect: 0 0 100 100
                   color: red
+            - type: box-shadow
+              bounds: 0 0 100 100
+              color: blue
+              offset: 10 20
+              blur-radius: 10
+              border-radius: [ 20, 20, 20, 20 ]

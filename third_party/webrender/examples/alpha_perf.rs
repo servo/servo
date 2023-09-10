@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid;
-use gleam;
-use glutin;
-use webrender;
-use winit;
+extern crate euclid;
+extern crate gleam;
+extern crate glutin;
+extern crate webrender;
+extern crate winit;
 
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
@@ -14,6 +14,7 @@ mod boilerplate;
 use crate::boilerplate::{Example, HandyDandyRectBuilder};
 use std::cmp;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::DeviceIntSize;
 
 

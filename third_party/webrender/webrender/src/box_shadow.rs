@@ -8,10 +8,8 @@ use api::units::*;
 use crate::clip::{ClipItemKey, ClipItemKeyKind, ClipChainId};
 use crate::scene_building::SceneBuilder;
 use crate::spatial_tree::SpatialNodeIndex;
-use crate::gpu_cache::GpuCacheHandle;
 use crate::gpu_types::BoxShadowStretchMode;
-use crate::render_task_cache::RenderTaskCacheEntryHandle;
-use crate::util::RectHelpers;
+use crate::render_task_graph::RenderTaskId;
 use crate::internal_types::LayoutPrimitiveInfo;
 
 #[derive(Debug, Clone, MallocSizeOf)]
@@ -28,8 +26,7 @@ pub struct BoxShadowClipSource {
     // The current cache key (in device-pixels), and handles
     // to the cached clip region and blurred texture.
     pub cache_key: Option<(DeviceIntSize, BoxShadowCacheKey)>,
-    pub cache_handle: Option<RenderTaskCacheEntryHandle>,
-    pub clip_data_handle: GpuCacheHandle,
+    pub render_task: Option<RenderTaskId>,
 
     // Local-space size of the required render task size.
     pub shadow_rect_alloc_size: LayoutSize,
@@ -70,6 +67,7 @@ pub struct BoxShadowCacheKey {
     pub br_top_right: DeviceIntSize,
     pub br_bottom_right: DeviceIntSize,
     pub br_bottom_left: DeviceIntSize,
+    pub device_pixel_scale: Au,
 }
 
 impl<'a> SceneBuilder<'a> {
@@ -122,7 +120,7 @@ impl<'a> SceneBuilder<'a> {
             let mut clips = Vec::with_capacity(2);
             let (final_prim_rect, clip_radius) = match clip_mode {
                 BoxShadowClipMode::Outset => {
-                    if !shadow_rect.is_well_formed_and_nonempty() {
+                    if shadow_rect.is_empty() {
                         return;
                     }
 
@@ -138,7 +136,7 @@ impl<'a> SceneBuilder<'a> {
                     (shadow_rect, shadow_radius)
                 }
                 BoxShadowClipMode::Inset => {
-                    if shadow_rect.is_well_formed_and_nonempty() {
+                    if !shadow_rect.is_empty() {
                         clips.push(ClipItemKey {
                             kind: ClipItemKeyKind::rounded_rect(
                                 shadow_rect,
@@ -208,7 +206,7 @@ impl<'a> SceneBuilder<'a> {
             let prim_info = match clip_mode {
                 BoxShadowClipMode::Outset => {
                     // Certain spread-radii make the shadow invalid.
-                    if !shadow_rect.is_well_formed_and_nonempty() {
+                    if shadow_rect.is_empty() {
                         return;
                     }
 
@@ -232,7 +230,7 @@ impl<'a> SceneBuilder<'a> {
                     // Inset shadows are still visible, even if the
                     // inset shadow rect becomes invalid (they will
                     // just look like a solid rectangle).
-                    if shadow_rect.is_well_formed_and_nonempty() {
+                    if !shadow_rect.is_empty() {
                         extra_clips.push(shadow_clip_source);
                     }
 

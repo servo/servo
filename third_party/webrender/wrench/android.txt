@@ -10,9 +10,10 @@ Follow the steps at https://github.com/rust-windowing/android-rs-glue#setting-up
     - Install both the i686-linux-android and armv7-linux-androideabi rust
       targets, as the APK will include native libraries with both architectures.
 
-    - Don't install currently published version of cargo-apk (it doesn't support newer NDKs).
-      Instead, install the git master version like so:
-        cargo install --git https://github.com/rust-windowing/android-rs-glue cargo-apk
+    - Don't install currently published version of cargo-apk as it doesn't work with the
+      version of winit and glutin we are using.
+      Instead, install the git master version of our fork like so:
+        cargo install --git https://github.com/jamienicol/android-rs-glue cargo-apk
 
     - Consider adding ~/.mozbuild/android-sdk-linux/platform-tools to your path, for the adb commands below.
 

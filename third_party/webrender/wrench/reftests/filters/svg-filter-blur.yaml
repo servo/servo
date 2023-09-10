@@ -5,7 +5,8 @@ root:
       bounds: [100, 100, 300, 300]
       filter-primitives:
       - type: blur
-        radius: 10
+        width: 10
+        height: 10
         in: previous
         color-space: srgb
       items:

@@ -10,9 +10,12 @@ root:
       - type: rect
         bounds: [0, 0, 500, 200]
         color: white
-    - type: rect
+    - type: clip
       bounds: [0, 0, 500, 200]
-      color: white
+      items:
+      - type: rect
+        bounds: [0, 0, 500, 200]
+        color: white
     - text: "The sun has frightened off the night!"
       origin: 20 40
       size: 20

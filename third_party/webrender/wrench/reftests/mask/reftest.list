@@ -1,6 +1,6 @@
-== mask.yaml mask-ref.yaml
-== mask-tiling.yaml mask-ref.yaml
-== nested-mask.yaml nested-mask-ref.yaml
+fuzzy(1,10) == mask.yaml mask-ref.yaml
+fuzzy(1,10) == mask-tiling.yaml mask-ref.yaml
+fuzzy(1,10) == nested-mask.yaml nested-mask-ref.yaml
 == nested-mask-tiling.yaml nested-mask-ref.yaml
 != mask.yaml green.yaml
 == aligned-layer-rect.yaml aligned-layer-rect-ref.yaml
@@ -12,5 +12,6 @@ platform(linux,mac) fuzzy(1,17500) == mask-atomicity-tiling.yaml mask-atomicity-
 platform(linux,mac) == mask-perspective.yaml mask-perspective.png
 == fuzzy(1,11) mask-perspective-tiling.yaml mask-perspective.yaml
 platform(linux,mac) == checkerboard.yaml checkerboard.png
-skip_on(android,device) == checkerboard.yaml checkerboard-tiling.yaml  # Fails on a Pixel2
+skip_on(android,device) fuzzy(2,1900) == checkerboard.yaml checkerboard-tiling.yaml  # Fails on a Pixel2
 == missing-mask.yaml missing-mask-ref.yaml
+platform(linux) == scaled-filter-raster-root.yaml scaled-filter-raster-root.png

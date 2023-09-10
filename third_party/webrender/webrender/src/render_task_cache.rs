@@ -11,15 +11,34 @@ use crate::device::TextureFilter;
 use crate::freelist::{FreeList, FreeListHandle, WeakFreeListHandle};
 use crate::gpu_cache::GpuCache;
 use crate::internal_types::FastHashMap;
+use crate::picture::{SurfaceIndex, SurfaceInfo};
 use crate::prim_store::image::ImageCacheKey;
-use crate::prim_store::gradient::GradientCacheKey;
+use crate::prim_store::gradient::{
+    FastLinearGradientCacheKey, LinearGradientCacheKey, RadialGradientCacheKey,
+    ConicGradientCacheKey,
+};
 use crate::prim_store::line_dec::LineDecorationCacheKey;
 use crate::resource_cache::CacheItem;
 use std::{mem, usize, f32, i32};
-use crate::texture_cache::{TextureCache, TextureCacheHandle, Eviction};
+use crate::texture_cache::{TextureCache, TextureCacheHandle, Eviction, TargetShader};
 use crate::render_target::RenderTargetKind;
-use crate::render_task::{RenderTask, RenderTaskLocation};
-use crate::render_task_graph::{RenderTaskGraph, RenderTaskId};
+use crate::render_task::{RenderTask, StaticRenderTaskSurface, RenderTaskLocation, RenderTaskKind, CachedTask};
+use crate::render_task_graph::{RenderTaskGraphBuilder, RenderTaskId};
+use crate::frame_builder::add_child_render_task;
+use euclid::Scale;
+
+const MAX_CACHE_TASK_SIZE: f32 = 4096.0;
+
+/// Describes a parent dependency for a render task. Render tasks
+/// may depend on a surface (e.g. when a surface uses a cached border)
+/// or an arbitrary render task (e.g. when a clip mask uses a blurred
+/// box-shadow input).
+pub enum RenderTaskParent {
+    /// Parent is a surface
+    Surface(SurfaceIndex),
+    /// Parent is a render task
+    RenderTask(RenderTaskId),
+}
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -29,7 +48,10 @@ pub enum RenderTaskCacheKeyKind {
     Image(ImageCacheKey),
     BorderSegment(BorderSegmentCacheKey),
     LineDecoration(LineDecorationCacheKey),
-    Gradient(GradientCacheKey),
+    FastLinearGradient(FastLinearGradientCacheKey),
+    LinearGradient(LinearGradientCacheKey),
+    RadialGradient(RadialGradientCacheKey),
+    ConicGradient(ConicGradientCacheKey),
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -44,9 +66,16 @@ pub struct RenderTaskCacheKey {
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct RenderTaskCacheEntry {
-    user_data: Option<[f32; 3]>,
+    user_data: Option<[f32; 4]>,
+    target_kind: RenderTargetKind,
     is_opaque: bool,
+    frame_id: u64,
     pub handle: TextureCacheHandle,
+    /// If a render task was generated for this cache entry on _this_ frame,
+    /// we need to track the task id here. This allows us to hook it up as
+    /// a dependency of any parent tasks that make a reqiest from the render
+    /// task cache.
+    pub render_task_id: Option<RenderTaskId>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -61,6 +90,7 @@ pub enum RenderTaskCacheMarker {}
 pub struct RenderTaskCache {
     map: FastHashMap<RenderTaskCacheKey, FreeListHandle<RenderTaskCacheMarker>>,
     cache_entries: FreeList<RenderTaskCacheEntry, RenderTaskCacheMarker>,
+    frame_id: u64,
 }
 
 pub type RenderTaskCacheEntryHandle = WeakFreeListHandle<RenderTaskCacheMarker>;
@@ -70,6 +100,7 @@ impl RenderTaskCache {
         RenderTaskCache {
             map: FastHashMap::default(),
             cache_entries: FreeList::new(),
+            frame_id: 0,
         }
     }
 
@@ -82,6 +113,7 @@ impl RenderTaskCache {
         &mut self,
         texture_cache: &mut TextureCache,
     ) {
+        self.frame_id += 1;
         profile_scope!("begin_frame");
         // Drop any items from the cache that have been
         // evicted from the texture cache.
@@ -97,17 +129,35 @@ impl RenderTaskCache {
         // from here so that this hash map doesn't
         // grow indefinitely!
         let cache_entries = &mut self.cache_entries;
+        let frame_id = self.frame_id;
 
         self.map.retain(|_, handle| {
-            let retain = texture_cache.is_allocated(
+            let mut retain = texture_cache.is_allocated(
                 &cache_entries.get(handle).handle,
             );
+            if retain {
+                let entry = cache_entries.get_mut(&handle);
+                if frame_id > entry.frame_id + 10 {
+                    texture_cache.evict_handle(&entry.handle);
+                    retain = false;
+                }
+            }
+
             if !retain {
                 let handle = mem::replace(handle, FreeListHandle::invalid());
                 cache_entries.free(handle);
             }
+
             retain
         });
+
+        // Clear out the render task ID of any remaining cache entries that were drawn
+        // on the previous frame, so we don't accidentally hook up stale dependencies
+        // when building the frame graph.
+        for (_, handle) in &self.map {
+            let entry = self.cache_entries.get_mut(handle);
+            entry.render_task_id = None;
+        }
     }
 
     fn alloc_render_task(
@@ -117,17 +167,11 @@ impl RenderTaskCache {
         texture_cache: &mut TextureCache,
     ) {
         // Find out what size to alloc in the texture cache.
-        let size = match render_task.location {
-            RenderTaskLocation::Fixed(..) |
-            RenderTaskLocation::PictureCache { .. } |
-            RenderTaskLocation::TextureCache { .. } => {
-                panic!("BUG: dynamic task was expected");
-            }
-            RenderTaskLocation::Dynamic(_, size) => size,
-        };
+        let size = render_task.location.size();
+        let target_kind = render_task.target_kind();
 
         // Select the right texture page to allocate from.
-        let image_format = match render_task.target_kind() {
+        let image_format = match target_kind {
             RenderTargetKind::Color => texture_cache.shared_color_expected_format(),
             RenderTargetKind::Alpha => texture_cache.shared_alpha_expected_format(),
         };
@@ -152,24 +196,28 @@ impl RenderTaskCache {
             descriptor,
             TextureFilter::Linear,
             None,
-            entry.user_data.unwrap_or([0.0; 3]),
+            entry.user_data.unwrap_or([0.0; 4]),
             DirtyRect::All,
             gpu_cache,
             None,
             render_task.uv_rect_kind(),
             Eviction::Auto,
+            TargetShader::Default,
         );
 
         // Get the allocation details in the texture cache, and store
-        // this in the render task. The renderer will draw this
-        // task into the appropriate layer and rect of the texture
-        // cache on this frame.
-        let (texture_id, texture_layer, uv_rect, _, _) =
+        // this in the render task. The renderer will draw this task
+        // into the appropriate rect of the texture cache on this frame.
+        let (texture_id, uv_rect, _, _, _) =
             texture_cache.get_cache_location(&entry.handle);
 
-        render_task.location = RenderTaskLocation::TextureCache {
+        let surface = StaticRenderTaskSurface::TextureCache {
             texture: texture_id,
-            layer: texture_layer,
+            target_kind,
+        };
+
+        render_task.location = RenderTaskLocation::Static {
+            surface,
             rect: uv_rect.to_i32(),
         };
     }
@@ -179,14 +227,18 @@ impl RenderTaskCache {
         key: RenderTaskCacheKey,
         texture_cache: &mut TextureCache,
         gpu_cache: &mut GpuCache,
-        render_tasks: &mut RenderTaskGraph,
-        user_data: Option<[f32; 3]>,
+        rg_builder: &mut RenderTaskGraphBuilder,
+        user_data: Option<[f32; 4]>,
         is_opaque: bool,
+        parent: RenderTaskParent,
+        surfaces: &[SurfaceInfo],
         f: F,
-    ) -> Result<RenderTaskCacheEntryHandle, ()>
+    ) -> Result<RenderTaskId, ()>
     where
-        F: FnOnce(&mut RenderTaskGraph) -> Result<RenderTaskId, ()>,
+        F: FnOnce(&mut RenderTaskGraphBuilder) -> Result<RenderTaskId, ()>,
     {
+        let frame_id = self.frame_id;
+        let size = key.size;
         // Get the texture cache handle for this cache key,
         // or create one.
         let cache_entries = &mut self.cache_entries;
@@ -194,31 +246,79 @@ impl RenderTaskCache {
             let entry = RenderTaskCacheEntry {
                 handle: TextureCacheHandle::invalid(),
                 user_data,
+                target_kind: RenderTargetKind::Color, // will be set below.
                 is_opaque,
+                frame_id,
+                render_task_id: None,
             };
             cache_entries.insert(entry)
         });
         let cache_entry = cache_entries.get_mut(entry_handle);
+        cache_entry.frame_id = self.frame_id;
 
         // Check if this texture cache handle is valid.
         if texture_cache.request(&cache_entry.handle, gpu_cache) {
             // Invoke user closure to get render task chain
             // to draw this into the texture cache.
-            let render_task_id = f(render_tasks)?;
-            render_tasks.cacheable_render_tasks.push(render_task_id);
+            let render_task_id = f(rg_builder)?;
 
             cache_entry.user_data = user_data;
             cache_entry.is_opaque = is_opaque;
+            cache_entry.render_task_id = Some(render_task_id);
+
+            let render_task = rg_builder.get_task_mut(render_task_id);
+
+            render_task.mark_cached(entry_handle.weak());
+            cache_entry.target_kind = render_task.kind.target_kind();
 
             RenderTaskCache::alloc_render_task(
-                &mut render_tasks[render_task_id],
+                render_task,
                 cache_entry,
                 gpu_cache,
                 texture_cache,
             );
         }
 
-        Ok(entry_handle.weak())
+        // If this render task cache is being drawn this frame, ensure we hook up the
+        // render task for it as a dependency of any render task that uses this as
+        // an input source.
+        if let Some(render_task_id) = cache_entry.render_task_id {
+            match parent {
+                RenderTaskParent::Surface(surface_index) => {
+                    // If parent is a surface, use helper fn to add this dependency,
+                    // which correctly takes account of the render task configuration
+                    // of the surface.
+                    add_child_render_task(
+                        surface_index,
+                        render_task_id,
+                        surfaces,
+                        rg_builder
+                    );
+                }
+                RenderTaskParent::RenderTask(parent_render_task_id) => {
+                    // For render tasks, just add it as a direct dependency on the
+                    // task graph builder.
+                    rg_builder.add_dependency(
+                        parent_render_task_id,
+                        render_task_id,
+                    );
+                }
+            }
+
+            return Ok(render_task_id);
+        }
+
+        let target_kind = cache_entry.target_kind;
+        let mut task = RenderTask::new(
+            RenderTaskLocation::CacheRequest { size, },
+            RenderTaskKind::Cached(CachedTask {
+                target_kind,
+            }),
+        );
+        task.mark_cached(entry_handle.weak());
+        let render_task_id = rg_builder.add().init(task);
+
+        Ok(render_task_id)
     }
 
     pub fn get_cache_entry(
@@ -259,9 +359,17 @@ impl RenderTaskCache {
 // Gecko tests.
 // Note: zero-square tasks are prohibited in WR task graph, so
 // we ensure each dimension to be at least the length of 1 after rounding.
-pub fn to_cache_size(size: DeviceSize) -> DeviceIntSize {
+pub fn to_cache_size(size: LayoutSize, device_pixel_scale: &mut Scale<f32, LayoutPixel, DevicePixel>) -> DeviceIntSize {
+    let mut device_size = (size * *device_pixel_scale).round();
+
+    if device_size.width > MAX_CACHE_TASK_SIZE || device_size.height > MAX_CACHE_TASK_SIZE {
+        let scale = MAX_CACHE_TASK_SIZE / f32::max(device_size.width, device_size.height);
+        *device_pixel_scale = *device_pixel_scale * Scale::new(scale);
+        device_size = (size * *device_pixel_scale).round();
+    }
+
     DeviceIntSize::new(
-        1.max(size.width.round() as i32),
-        1.max(size.height.round() as i32),
+        1.max(device_size.width as i32),
+        1.max(device_size.height as i32),
     )
 }

@@ -42,6 +42,7 @@ servo_remutex = { path = "../remutex" }
 servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }
 webgpu = { path = "../webgpu" }
+webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { path = "../webrender_traits" }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

@@ -63,10 +63,11 @@ use surfman::{
     self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,
     GLVersion, SurfaceAccess, SurfaceInfo, SurfaceType,
 };
+use webrender::{RenderApi, RenderApiSender, Transaction};
 use webrender_api::{
     units::DeviceIntSize, DirtyRect, DocumentId, ExternalImageData, ExternalImageId,
-    ExternalImageType, ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
-    RenderApi, RenderApiSender, TextureTarget, Transaction,
+    ExternalImageType, ImageBufferKind, ImageData, ImageDescriptor, ImageDescriptorFlags,
+    ImageFormat, ImageKey,
 };
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use webxr::SurfmanGL as WebXRSurfman;
@@ -608,7 +609,7 @@ impl WebGLThread {
         let descriptor_attributes = self.device.context_descriptor_attributes(&descriptor);
         let gl_version = descriptor_attributes.version;
         let has_alpha = requested_flags.contains(ContextAttributeFlags::ALPHA);
-        let texture_target = current_wr_texture_target(&self.device);
+        let image_buffer_kind = current_wr_image_buffer_kind(&self.device);
 
         self.device.make_context_current(&ctx).unwrap();
         let framebuffer = self
@@ -667,7 +668,7 @@ impl WebGLThread {
             size.to_i32(),
             has_alpha,
             id,
-            texture_target,
+            image_buffer_kind,
         );
 
         self.cached_context_info
@@ -723,7 +724,7 @@ impl WebGLThread {
             .state
             .requested_flags
             .contains(ContextAttributeFlags::ALPHA);
-        let texture_target = current_wr_texture_target(&self.device);
+        let image_buffer_kind = current_wr_image_buffer_kind(&self.device);
         Self::update_wr_external_image(
             &mut self.webrender_api,
             self.webrender_doc,
@@ -731,7 +732,7 @@ impl WebGLThread {
             has_alpha,
             context_id,
             info.image_key,
-            texture_target,
+            image_buffer_kind,
         );
 
         debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
@@ -927,10 +928,10 @@ impl WebGLThread {
         size: Size2D<i32>,
         alpha: bool,
         context_id: WebGLContextId,
-        target: TextureTarget,
+        image_buffer_kind: ImageBufferKind,
     ) -> ImageKey {
         let descriptor = Self::image_descriptor(size, alpha);
-        let data = Self::external_image_data(context_id, target);
+        let data = Self::external_image_data(context_id, image_buffer_kind);
 
         let image_key = webrender_api.generate_image_key();
         let mut txn = Transaction::new();
@@ -948,10 +949,10 @@ impl WebGLThread {
         alpha: bool,
         context_id: WebGLContextId,
         image_key: ImageKey,
-        target: TextureTarget,
+        image_buffer_kind: ImageBufferKind,
     ) {
         let descriptor = Self::image_descriptor(size, alpha);
-        let data = Self::external_image_data(context_id, target);
+        let data = Self::external_image_data(context_id, image_buffer_kind);
 
         let mut txn = Transaction::new();
         txn.update_image(image_key, descriptor, data, &DirtyRect::All);
@@ -972,11 +973,14 @@ impl WebGLThread {
     }
 
     /// Helper function to create a `ImageData::External` instance.
-    fn external_image_data(context_id: WebGLContextId, target: TextureTarget) -> ImageData {
+    fn external_image_data(
+        context_id: WebGLContextId,
+        image_buffer_kind: ImageBufferKind,
+    ) -> ImageData {
         let data = ExternalImageData {
             id: ExternalImageId(context_id.0 as u64),
             channel_index: 0,
-            image_type: ExternalImageType::TextureHandle(target),
+            image_type: ExternalImageType::TextureHandle(image_buffer_kind),
         };
         ImageData::External(data)
     }
@@ -1006,10 +1010,10 @@ struct WebGLContextInfo {
 }
 
 // TODO(pcwalton): Add `GL_TEXTURE_EXTERNAL_OES`?
-fn current_wr_texture_target(device: &Device) -> TextureTarget {
+fn current_wr_image_buffer_kind(device: &Device) -> ImageBufferKind {
     match device.surface_gl_texture_target() {
-        gl::TEXTURE_RECTANGLE => TextureTarget::Rect,
-        _ => TextureTarget::Default,
+        gl::TEXTURE_RECTANGLE => ImageBufferKind::TextureRect,
+        _ => ImageBufferKind::Texture2D,
     }
 }
 

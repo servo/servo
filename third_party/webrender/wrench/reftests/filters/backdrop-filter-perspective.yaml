@@ -4,6 +4,7 @@ root:
   items:
     - type: stacking-context
       bounds: 0 0 0 0
+      backdrop-root: true
       perspective: 500
       items:
       - type: rect

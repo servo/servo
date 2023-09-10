@@ -11,7 +11,7 @@ root:
                 opacity(0.8),
                 saturate(10),
                 sepia(0.4),
-                blur(3),
+                "blur(3,3)",
                 "drop-shadow([73, 73], 3, [0, 255, 0, 1])"]
       items:
       - type: rect

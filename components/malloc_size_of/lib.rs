@@ -62,7 +62,7 @@ use webrender_api::{
     BorderRadius, BorderStyle, BoxShadowClipMode, ColorF, ComplexClipRegion, ExtendMode,
     ExternalScrollId, FilterOp, FontInstanceKey, GlyphInstance, GradientStop, ImageKey,
     ImageRendering, LineStyle, MixBlendMode, NinePatchBorder, NormalBorder, RepeatMode,
-    ScrollSensitivity, StickyOffsetBounds, TransformStyle,
+    StickyOffsetBounds, TransformStyle,
 };
 
 /// A C function that takes a pointer to a heap allocation and returns its size.
@@ -843,8 +843,6 @@ malloc_size_of_is_0!(MixBlendMode);
 malloc_size_of_is_0!(NormalBorder);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(RepeatMode);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(ScrollSensitivity);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(StickyOffsetBounds);
 #[cfg(feature = "webrender_api")]

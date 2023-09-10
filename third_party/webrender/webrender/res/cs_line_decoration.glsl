@@ -25,7 +25,7 @@ PER_INSTANCE in vec4 aTaskRect;
 
 // The size of the mask tile. aLocalSize.x is always horizontal and .y vertical,
 // regardless of the line's orientation. The size is chosen by
-// prim_store::get_line_decoration_sizes.
+// prim_store::line_dec::get_line_decoration_sizes.
 PER_INSTANCE in vec2 aLocalSize;
 
 // A LINE_STYLE_* value, indicating what sort of line to draw.

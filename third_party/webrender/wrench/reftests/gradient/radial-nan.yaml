@@ -1,0 +1,35 @@
+---
+root:
+  items:
+    - type: radial-gradient
+      bounds: 50 50 NaN 300
+      center: 150 150
+      radius: 200 200
+      stops: [0, red, 1, blue]
+    - type: radial-gradient
+      bounds: 50 50 300 300
+      center: 150 NaN
+      radius: 200 200
+      stops: [0, red, 1, blue]
+    - type: radial-gradient
+      bounds: 50 50 300 300
+      center: 150 150
+      radius: NaN 200
+      stops: [0, red, 1, blue]
+    - type: radial-gradient
+      bounds: 50 50 300 300
+      center: 150 150
+      radius: 200 200
+      stops: [0, red, NaN, blue]
+    - type: radial-gradient
+      bounds: 50 50 300 300
+      tile-size: 50 NaN
+      center: 150 150
+      radius: 200 200
+      stops: [0, red, 1, blue]
+    - type: radial-gradient
+      bounds: 50 50 300 300
+      clip-rect: 50 10 NaN 300
+      center: 150 150
+      radius: 200 200
+      stops: [0, red, 1, blue]

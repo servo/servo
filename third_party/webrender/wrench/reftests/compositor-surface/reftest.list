@@ -1,0 +1,4 @@
+skip_on(android) fuzzy(2,500) == basic.yaml basic-ref.yaml
+== too-many-surfaces.yaml too-many-surfaces-ref.yaml
+!= picture-passthrough.yaml blank.yaml
+fuzzy(2,1000) == mix-blend.yaml mix-blend-ref.yaml

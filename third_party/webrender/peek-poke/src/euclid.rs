@@ -9,7 +9,7 @@
 // except according to those terms.
 
 use crate::{Peek, Poke};
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Transform3D, Vector2D};
+use euclid::{Point2D, Rect, Box2D, SideOffsets2D, Size2D, Transform3D, Vector2D};
 
 unsafe impl<T: Poke, U> Poke for Point2D<T, U> {
     #[inline(always)]
@@ -49,6 +49,27 @@ impl<T: Peek, U> Peek for Rect<T, U> {
     unsafe fn peek_from(bytes: *const u8, output: *mut Self) -> *const u8 {
         let bytes = Point2D::<T, U>::peek_from(bytes, &mut (*output).origin);
         let bytes = Size2D::<T, U>::peek_from(bytes, &mut (*output).size);
+        bytes
+    }
+}
+
+unsafe impl<T: Poke, U> Poke for Box2D<T, U> {
+    #[inline(always)]
+    fn max_size() -> usize {
+        Point2D::<T, U>::max_size() * 2
+    }
+    #[inline(always)]
+    unsafe fn poke_into(&self, bytes: *mut u8) -> *mut u8 {
+        let bytes = self.min.poke_into(bytes);
+        let bytes = self.max.poke_into(bytes);
+        bytes
+    }
+}
+impl<T: Peek, U> Peek for Box2D<T, U> {
+    #[inline(always)]
+    unsafe fn peek_from(bytes: *const u8, output: *mut Self) -> *const u8 {
+        let bytes = Point2D::<T, U>::peek_from(bytes, &mut (*output).min);
+        let bytes = Point2D::<T, U>::peek_from(bytes, &mut (*output).max);
         bytes
     }
 }

@@ -104,6 +104,7 @@ macro_rules! ft_dyn_fn {
 ft_dyn_fn!(FT_Get_MM_Var(face: FT_Face, desc: *mut *mut FT_MM_Var) -> FT_Error);
 ft_dyn_fn!(FT_Done_MM_Var(library: FT_Library, desc: *mut FT_MM_Var) -> FT_Error);
 ft_dyn_fn!(FT_Set_Var_Design_Coordinates(face: FT_Face, num_vals: FT_UInt, vals: *mut FT_Fixed) -> FT_Error);
+ft_dyn_fn!(FT_Get_Var_Design_Coordinates(face: FT_Face, num_vals: FT_UInt, vals: *mut FT_Fixed) -> FT_Error);
 
 extern "C" {
     fn FT_GlyphSlot_Embolden(slot: FT_GlyphSlot);
@@ -335,9 +336,9 @@ impl FontContext {
             })
         } else {
             // TODO(gw): Provide detailed error values.
-            Err(ResourceCacheError::new(
-                format!("Failed to initialize FreeType - {}", result)
-            ))
+            // Once this panic has been here for a while with no issues we should get rid of
+            // ResourceCacheError as this was the only place that could fail previously.
+            panic!("Failed to initialize FreeType - {}", result)
         }
     }
 
@@ -397,6 +398,19 @@ impl FontContext {
                     let mm_var = normal_face.mm_var;
                     let num_axis = (*mm_var).num_axis;
                     let mut coords: Vec<FT_Fixed> = Vec::with_capacity(num_axis as usize);
+
+                    // Calling this before FT_Set_Var_Design_Coordinates avoids a bug with font variations
+                    // not initialized properly in the font face, even if we ignore the result.
+                    // See bug 1647035.
+                    let mut tmp = [0; 16];
+                    let res = FT_Get_Var_Design_Coordinates(
+                        normal_face.face,
+                        num_axis.min(16),
+                        tmp.as_mut_ptr()
+                    );
+                    debug_assert!(succeeded(res));
+
+
                     for i in 0 .. num_axis {
                         let axis = (*mm_var).axis.offset(i as isize);
                         let mut value = (*axis).def;
@@ -410,7 +424,8 @@ impl FontContext {
                         }
                         coords.push(value);
                     }
-                    FT_Set_Var_Design_Coordinates(var_face, num_axis, coords.as_mut_ptr());
+                    let res = FT_Set_Var_Design_Coordinates(var_face, num_axis, coords.as_mut_ptr());
+                    debug_assert!(succeeded(res));
                 }
                 entry.insert(VariationFace(var_face));
                 Some(var_face)

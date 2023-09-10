@@ -13,4 +13,3 @@ root:
             - type: rect
               color: green
               bounds: [100, 100, 260, 260]
-              hit-testing-tag: [0, 0]

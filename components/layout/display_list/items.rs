@@ -29,11 +29,10 @@ use style::computed_values::_servo_top_layer::T as InTopLayer;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPixel, LayoutRect, LayoutTransform};
 use webrender_api::{
-    BorderRadius, ClipId, ClipMode, CommonItemProperties, ComplexClipRegion, ExternalScrollId,
-    FilterOp, GlyphInstance, GradientStop, ImageKey, MixBlendMode, PrimitiveFlags,
-    ScrollSensitivity, Shadow, SpatialId, StickyOffsetBounds, TransformStyle,
+    BorderRadius, ClipChainId, ClipId, ClipMode, CommonItemProperties, ComplexClipRegion,
+    ExternalScrollId, FilterOp, GlyphInstance, GradientStop, ImageKey, MixBlendMode,
+    PrimitiveFlags, ScrollSensitivity, Shadow, SpatialId, StickyOffsetBounds, TransformStyle,
 };
-use wr::ClipChainId;
 
 pub use style::dom::OpaqueNode;
 
@@ -497,7 +496,6 @@ pub fn empty_common_item_properties() -> CommonItemProperties {
         clip_rect: LayoutRect::max_rect(),
         clip_id: ClipId::root(wr::PipelineId::dummy()),
         spatial_id: SpatialId::root_scroll_node(wr::PipelineId::dummy()),
-        hit_info: None,
         flags: PrimitiveFlags::empty(),
     }
 }

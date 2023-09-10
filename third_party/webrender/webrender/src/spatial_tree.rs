@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::{ExternalScrollId, PropertyBinding, ReferenceFrameKind, TransformStyle};
-use api::{PipelineId, ScrollClamping, ScrollNodeState, ScrollLocation, ScrollSensitivity};
+use api::{PipelineId, ScrollClamping, ScrollNodeState, ScrollSensitivity};
 use api::units::*;
 use euclid::Transform3D;
 use crate::gpu_types::TransformPalette;
@@ -24,6 +24,13 @@ pub type ScrollStates = FastHashMap<ExternalScrollId, ScrollFrameInfo>;
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct CoordinateSystemId(pub u32);
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct StaticCoordinateSystemId(pub u32);
+
+impl StaticCoordinateSystemId {
+    pub const ROOT: StaticCoordinateSystemId = StaticCoordinateSystemId(0);
+}
 
 /// A node in the hierarchy of coordinate system
 /// transforms.
@@ -58,6 +65,14 @@ impl SpatialNodeIndex {
 //Note: these have to match ROOT_REFERENCE_FRAME_SPATIAL_ID and ROOT_SCROLL_NODE_SPATIAL_ID
 pub const ROOT_SPATIAL_NODE_INDEX: SpatialNodeIndex = SpatialNodeIndex(0);
 const TOPMOST_SCROLL_NODE_INDEX: SpatialNodeIndex = SpatialNodeIndex(1);
+
+// In some cases, the conversion from CSS pixels to device pixels can result in small
+// rounding errors when calculating the scrollable distance of a scroll frame. Apply
+// a small epsilon so that we don't detect these frames as "real" scroll frames.
+const MIN_SCROLLABLE_AMOUNT: f32 = 0.01;
+
+// The minimum size for a scroll frame for it to be considered for a scroll root.
+const MIN_SCROLL_ROOT_SIZE: f32 = 128.0;
 
 impl SpatialNodeIndex {
     pub fn new(index: usize) -> Self {
@@ -112,6 +127,9 @@ pub struct SpatialTree {
 
     /// Temporary stack of nodes to update when traversing the tree.
     nodes_to_update: Vec<(SpatialNodeIndex, TransformUpdateState)>,
+
+    /// Next id to assign when creating a new static coordinate system
+    next_static_coord_system_id: u32,
 }
 
 #[derive(Clone)]
@@ -166,16 +184,6 @@ impl<Src, Dst> CoordinateSpaceMapping<Src, Dst> {
         }
     }
 
-    pub fn visible_face(&self) -> VisibleFace {
-        match *self {
-            CoordinateSpaceMapping::Transform(ref transform) if transform.is_backface_visible() => VisibleFace::Back,
-            CoordinateSpaceMapping::Local |
-            CoordinateSpaceMapping::Transform(_) |
-            CoordinateSpaceMapping::ScaleOffset(_) => VisibleFace::Front,
-
-        }
-    }
-
     pub fn is_perspective(&self) -> bool {
         match *self {
             CoordinateSpaceMapping::Local |
@@ -195,7 +203,7 @@ impl<Src, Dst> CoordinateSpaceMapping<Src, Dst> {
     pub fn scale_factors(&self) -> (f32, f32) {
         match *self {
             CoordinateSpaceMapping::Local => (1.0, 1.0),
-            CoordinateSpaceMapping::ScaleOffset(ref scale_offset) => (scale_offset.scale.x, scale_offset.scale.y),
+            CoordinateSpaceMapping::ScaleOffset(ref scale_offset) => (scale_offset.scale.x.abs(), scale_offset.scale.y.abs()),
             CoordinateSpaceMapping::Transform(ref transform) => scale_factors(transform),
         }
     }
@@ -226,6 +234,7 @@ impl SpatialTree {
             pending_scroll_offsets: FastHashMap::default(),
             pipelines_to_discard: FastHashSet::default(),
             nodes_to_update: Vec::new(),
+            next_static_coord_system_id: 0,
         }
     }
 
@@ -265,6 +274,19 @@ impl SpatialTree {
         child_index: SpatialNodeIndex,
         parent_index: SpatialNodeIndex,
     ) -> CoordinateSpaceMapping<LayoutPixel, LayoutPixel> {
+        self.get_relative_transform_with_face(child_index, parent_index, None)
+    }
+
+    /// Calculate the relative transform from `child_index` to `parent_index`.
+    /// This method will panic if the nodes are not connected!
+    /// Also, switch the visible face to `Back` if at any stage where the
+    /// combined transform is flattened, we see the back face.
+    pub fn get_relative_transform_with_face(
+        &self,
+        child_index: SpatialNodeIndex,
+        parent_index: SpatialNodeIndex,
+        mut visible_face: Option<&mut VisibleFace>,
+    ) -> CoordinateSpaceMapping<LayoutPixel, LayoutPixel> {
         if child_index == parent_index {
             return CoordinateSpaceMapping::Local;
         }
@@ -296,6 +318,12 @@ impl SpatialTree {
                 .then(&child_transform)
                 .with_source::<LayoutPixel>()
                 .with_destination::<LayoutPixel>();
+
+            if let Some(face) = visible_face {
+                if result.is_backface_visible() {
+                    *face = VisibleFace::Back;
+                }
+            }
             return CoordinateSpaceMapping::Transform(result);
         }
 
@@ -310,6 +338,11 @@ impl SpatialTree {
             let coord_system = &self.coord_systems[coordinate_system_id.0 as usize];
 
             if coord_system.should_flatten {
+                if let Some(ref mut face) = visible_face {
+                    if transform.is_backface_visible() {
+                        **face = VisibleFace::Back;
+                    }
+                }
                 transform.flatten_z_output();
             }
 
@@ -322,8 +355,28 @@ impl SpatialTree {
                 .inverse()
                 .to_transform(),
         );
+        if let Some(face) = visible_face {
+            if transform.is_backface_visible() {
+                *face = VisibleFace::Back;
+            }
+        }
 
         CoordinateSpaceMapping::Transform(transform)
+    }
+
+    pub fn is_relative_transform_complex(
+        &self,
+        child_index: SpatialNodeIndex,
+        parent_index: SpatialNodeIndex,
+    ) -> bool {
+        if child_index == parent_index {
+            return false;
+        }
+
+        let child = &self.spatial_nodes[child_index.0 as usize];
+        let parent = &self.spatial_nodes[parent_index.0 as usize];
+
+        child.coordinate_system_id != parent.coordinate_system_id
     }
 
     fn get_world_transform_impl(
@@ -390,12 +443,10 @@ impl SpatialTree {
         let mut result = vec![];
         for node in &self.spatial_nodes {
             if let SpatialNodeType::ScrollFrame(info) = node.node_type {
-                if let Some(id) = info.external_id {
-                    result.push(ScrollNodeState {
-                        id,
-                        scroll_offset: info.offset - info.external_scroll_offset,
-                    })
-                }
+                result.push(ScrollNodeState {
+                    id: info.external_id,
+                    scroll_offset: info.offset - info.external_scroll_offset,
+                })
             }
         }
         result
@@ -409,8 +460,8 @@ impl SpatialTree {
             }
 
             match old_node.node_type {
-                SpatialNodeType::ScrollFrame(info) if info.external_id.is_some() => {
-                    scroll_states.insert(info.external_id.unwrap(), info);
+                SpatialNodeType::ScrollFrame(info) => {
+                    scroll_states.insert(info.external_id, info);
                 }
                 _ => {}
             }
@@ -435,34 +486,6 @@ impl SpatialTree {
 
         self.pending_scroll_offsets.insert(id, (origin, clamp));
         false
-    }
-
-    fn find_nearest_scrolling_ancestor(
-        &self,
-        index: Option<SpatialNodeIndex>
-    ) -> SpatialNodeIndex {
-        let index = match index {
-            Some(index) => index,
-            None => return self.topmost_scroll_node_index(),
-        };
-
-        let node = &self.spatial_nodes[index.0 as usize];
-        match node.node_type {
-            SpatialNodeType::ScrollFrame(state) if state.sensitive_to_input_events() => index,
-            _ => self.find_nearest_scrolling_ancestor(node.parent)
-        }
-    }
-
-    pub fn scroll_nearest_scrolling_ancestor(
-        &mut self,
-        scroll_location: ScrollLocation,
-        node_index: Option<SpatialNodeIndex>,
-    ) -> bool {
-        if self.spatial_nodes.is_empty() {
-            return false;
-        }
-        let node_index = self.find_nearest_scrolling_ancestor(node_index);
-        self.spatial_nodes[node_index.0 as usize].scroll(scroll_location)
     }
 
     pub fn update_tree(
@@ -528,7 +551,7 @@ impl SpatialTree {
     pub fn finalize_and_apply_pending_scroll_offsets(&mut self, old_states: ScrollStates) {
         for node in &mut self.spatial_nodes {
             let external_id = match node.node_type {
-                SpatialNodeType::ScrollFrame(ScrollFrameInfo { external_id: Some(id), ..} ) => id,
+                SpatialNodeType::ScrollFrame(ScrollFrameInfo { external_id, ..}) => external_id,
                 _ => continue,
             };
 
@@ -542,10 +565,15 @@ impl SpatialTree {
         }
     }
 
+    /// Get the static coordinate system for a given spatial node index
+    pub fn get_static_coordinate_system_id(&self, node_index: SpatialNodeIndex) -> StaticCoordinateSystemId {
+        self.spatial_nodes[node_index.0 as usize].static_coordinate_system_id
+    }
+
     pub fn add_scroll_frame(
         &mut self,
         parent_index: SpatialNodeIndex,
-        external_id: Option<ExternalScrollId>,
+        external_id: ExternalScrollId,
         pipeline_id: PipelineId,
         frame_rect: &LayoutRect,
         content_size: &LayoutSize,
@@ -553,6 +581,9 @@ impl SpatialTree {
         frame_kind: ScrollFrameKind,
         external_scroll_offset: LayoutVector2D,
     ) -> SpatialNodeIndex {
+        // Scroll frames are only 2d translations - they can't introduce a new static coord system
+        let static_coordinate_system_id = self.get_static_coordinate_system_id(parent_index);
+
         let node = SpatialNode::new_scroll_frame(
             pipeline_id,
             parent_index,
@@ -562,6 +593,7 @@ impl SpatialTree {
             scroll_sensitivity,
             frame_kind,
             external_scroll_offset,
+            static_coordinate_system_id,
         );
         self.add_spatial_node(node)
     }
@@ -575,6 +607,45 @@ impl SpatialTree {
         origin_in_parent_reference_frame: LayoutVector2D,
         pipeline_id: PipelineId,
     ) -> SpatialNodeIndex {
+
+        // Determine if this reference frame creates a new static coordinate system
+        let new_static_coord_system = match parent_index {
+            Some(..) => {
+                match kind {
+                    ReferenceFrameKind::Transform { is_2d_scale_translation: true, .. } => {
+                        // Client has guaranteed this transform will only be axis-aligned
+                        false
+                    }
+                    ReferenceFrameKind::Transform { is_2d_scale_translation: false, .. } | ReferenceFrameKind::Perspective { .. } => {
+                        // Even if client hasn't promised it's an axis-aligned transform, we can still
+                        // check this so long as the transform isn't animated (and thus could change to
+                        // anything by APZ during frame building)
+                        match source_transform {
+                            PropertyBinding::Value(m) => {
+                                !m.is_2d_scale_translation()
+                            }
+                            PropertyBinding::Binding(..) => {
+                                // Animated, so assume it may introduce a complex transform
+                                true
+                            }
+                        }
+                    }
+                }
+            }
+            None => {
+                // The root reference frame always creates a new static coord system
+                true
+            }
+        };
+
+        let static_coordinate_system_id = if new_static_coord_system {
+            let id = StaticCoordinateSystemId(self.next_static_coord_system_id);
+            self.next_static_coord_system_id += 1;
+            id
+        } else {
+            self.get_static_coordinate_system_id(parent_index.unwrap())
+        };
+
         let node = SpatialNode::new_reference_frame(
             parent_index,
             transform_style,
@@ -582,6 +653,7 @@ impl SpatialTree {
             kind,
             origin_in_parent_reference_frame,
             pipeline_id,
+            static_coordinate_system_id,
         );
         self.add_spatial_node(node)
     }
@@ -592,10 +664,14 @@ impl SpatialTree {
         sticky_frame_info: StickyFrameInfo,
         pipeline_id: PipelineId,
     ) -> SpatialNodeIndex {
+        // Sticky frames are only 2d translations - they can't introduce a new static coord system
+        let static_coordinate_system_id = self.get_static_coordinate_system_id(parent_index);
+
         let node = SpatialNode::new_sticky_frame(
             parent_index,
             sticky_frame_info,
             pipeline_id,
+            static_coordinate_system_id,
         );
         self.add_spatial_node(node)
     }
@@ -620,6 +696,31 @@ impl SpatialTree {
         self.pipelines_to_discard.insert(pipeline_id);
     }
 
+    /// Check if a given spatial node is an ancestor of another spatial node.
+    pub fn is_ancestor(
+        &self,
+        maybe_parent: SpatialNodeIndex,
+        maybe_child: SpatialNodeIndex,
+    ) -> bool {
+        // Early out if same node
+        if maybe_parent == maybe_child {
+            return false;
+        }
+
+        let mut current_node = maybe_child;
+
+        while current_node != ROOT_SPATIAL_NODE_INDEX {
+            let node = &self.spatial_nodes[current_node.0 as usize];
+            current_node = node.parent.expect("bug: no parent");
+
+            if current_node == maybe_parent {
+                return true;
+            }
+        }
+
+        false
+    }
+
     /// Find the spatial node that is the scroll root for a given spatial node.
     /// A scroll root is the first spatial node when found travelling up the
     /// spatial node tree that is an explicit scroll frame.
@@ -627,7 +728,8 @@ impl SpatialTree {
         &self,
         spatial_node_index: SpatialNodeIndex,
     ) -> SpatialNodeIndex {
-        let mut scroll_root = ROOT_SPATIAL_NODE_INDEX;
+        let mut real_scroll_root = ROOT_SPATIAL_NODE_INDEX;
+        let mut outermost_scroll_root = ROOT_SPATIAL_NODE_INDEX;
         let mut node_index = spatial_node_index;
 
         while node_index != ROOT_SPATIAL_NODE_INDEX {
@@ -635,31 +737,38 @@ impl SpatialTree {
             match node.node_type {
                 SpatialNodeType::ReferenceFrame(ref info) => {
                     match info.kind {
-                        ReferenceFrameKind::Zoom => {
-                            // We can handle scroll nodes that pass through a zoom node
+                        ReferenceFrameKind::Transform { is_2d_scale_translation: true, .. } => {
+                            // We can handle scroll nodes that pass through a 2d scale/translation node
                         }
-                        ReferenceFrameKind::Transform |
+                        ReferenceFrameKind::Transform { is_2d_scale_translation: false, .. } |
                         ReferenceFrameKind::Perspective { .. } => {
                             // When a reference frame is encountered, forget any scroll roots
                             // we have encountered, as they may end up with a non-axis-aligned transform.
-                            scroll_root = ROOT_SPATIAL_NODE_INDEX;
+                            real_scroll_root = ROOT_SPATIAL_NODE_INDEX;
+                            outermost_scroll_root = ROOT_SPATIAL_NODE_INDEX;
                         }
                     }
                 }
                 SpatialNodeType::StickyFrame(..) => {}
                 SpatialNodeType::ScrollFrame(ref info) => {
                     match info.frame_kind {
-                        ScrollFrameKind::PipelineRoot => {
+                        ScrollFrameKind::PipelineRoot { is_root_pipeline } => {
                             // Once we encounter a pipeline root, there is no need to look further
-                            break;
+                            if is_root_pipeline {
+                                break;
+                            }
                         }
                         ScrollFrameKind::Explicit => {
+                            // Store the closest scroll root we find to the root, for use
+                            // later on, even if it's not actually scrollable.
+                            outermost_scroll_root = node_index;
+
                             // If the scroll root has no scrollable area, we don't want to
                             // consider it. This helps pages that have a nested scroll root
                             // within a redundant scroll root to avoid selecting the wrong
                             // reference spatial node for a picture cache.
-                            if info.scrollable_size.width > 0.0 ||
-                               info.scrollable_size.height > 0.0 {
+                            if info.scrollable_size.width > MIN_SCROLLABLE_AMOUNT ||
+                               info.scrollable_size.height > MIN_SCROLLABLE_AMOUNT {
                                 // Since we are skipping redundant scroll roots, we may end up
                                 // selecting inner scroll roots that are very small. There is
                                 // no performance benefit to creating a slice for these roots,
@@ -667,11 +776,11 @@ impl SpatialTree {
                                 // local-space, but makes for a reasonable estimate. The value
                                 // is arbitrary, but is generally small enough to ignore things
                                 // like scroll roots around text input elements.
-                                if info.viewport_rect.size.width > 128.0 &&
-                                   info.viewport_rect.size.height > 128.0 {
+                                if info.viewport_rect.size.width > MIN_SCROLL_ROOT_SIZE &&
+                                   info.viewport_rect.size.height > MIN_SCROLL_ROOT_SIZE {
                                     // If we've found a root that is scrollable, and a reasonable
                                     // size, select that as the current root for this node
-                                    scroll_root = node_index;
+                                    real_scroll_root = node_index;
                                 }
                             }
                         }
@@ -681,7 +790,16 @@ impl SpatialTree {
             node_index = node.parent.expect("unable to find parent node");
         }
 
-        scroll_root
+        // If we didn't find any real (scrollable) frames, then return the outermost
+        // redundant scroll frame. This is important so that we can correctly find
+        // the clips defined on the content which should be handled when drawing the
+        // picture cache tiles (by definition these clips are ancestors of the
+        // scroll root selected for the picture cache).
+        if real_scroll_root == ROOT_SPATIAL_NODE_INDEX {
+            outermost_scroll_root
+        } else {
+            real_scroll_root
+        }
     }
 
     fn print_node<T: PrintTreePrinter>(
@@ -717,6 +835,7 @@ impl SpatialTree {
         pt.add_item(format!("viewport_transform: {:?}", node.viewport_transform));
         pt.add_item(format!("snapping_transform: {:?}", node.snapping_transform));
         pt.add_item(format!("coordinate_system_id: {:?}", node.coordinate_system_id));
+        pt.add_item(format!("static_coordinate_system_id: {:?}", node.static_coordinate_system_id));
 
         for child_index in &node.children {
             self.print_node(*child_index, pt);
@@ -728,12 +847,11 @@ impl SpatialTree {
     /// Get the visible face of the transfrom from the specified node to its parent.
     pub fn get_local_visible_face(&self, node_index: SpatialNodeIndex) -> VisibleFace {
         let node = &self.spatial_nodes[node_index.0 as usize];
-        let parent_index = match node.parent {
-            Some(index) => index,
-            None => return VisibleFace::Front
-        };
-        self.get_relative_transform(node_index, parent_index)
-            .visible_face()
+        let mut face = VisibleFace::Front;
+        if let Some(parent_index) = node.parent {
+            self.get_relative_transform_with_face(node_index, parent_index, Some(&mut face));
+        }
+        face
     }
 
     #[allow(dead_code)]
@@ -770,7 +888,10 @@ fn add_reference_frame(
         parent,
         TransformStyle::Preserve3D,
         PropertyBinding::Value(transform),
-        ReferenceFrameKind::Transform,
+        ReferenceFrameKind::Transform {
+            is_2d_scale_translation: false,
+            should_snap: false,
+        },
         origin_in_parent_reference_frame,
         PipelineId::dummy(),
     )
@@ -962,4 +1083,330 @@ fn test_cst_translation_rotate() {
     cst.update_tree(WorldPoint::zero(), DevicePixelScale::new(1.0), &SceneProperties::new());
 
     test_pt(100.0, 0.0, &cst, child1, root, 0.0, -100.0);
+}
+
+#[test]
+fn test_is_ancestor1() {
+    let mut st = SpatialTree::new();
+
+    let root = add_reference_frame(
+        &mut st,
+        None,
+        LayoutTransform::identity(),
+        LayoutVector2D::zero(),
+    );
+
+    let child1_0 = add_reference_frame(
+        &mut st,
+        Some(root),
+        LayoutTransform::identity(),
+        LayoutVector2D::zero(),
+    );
+
+    let child1_1 = add_reference_frame(
+        &mut st,
+        Some(child1_0),
+        LayoutTransform::identity(),
+        LayoutVector2D::zero(),
+    );
+
+    let child2 = add_reference_frame(
+        &mut st,
+        Some(root),
+        LayoutTransform::identity(),
+        LayoutVector2D::zero(),
+    );
+
+    st.update_tree(
+        WorldPoint::zero(),
+        DevicePixelScale::new(1.0),
+        &SceneProperties::new(),
+    );
+
+    assert!(!st.is_ancestor(root, root));
+    assert!(!st.is_ancestor(child1_0, child1_0));
+    assert!(!st.is_ancestor(child1_1, child1_1));
+    assert!(!st.is_ancestor(child2, child2));
+
+    assert!(st.is_ancestor(root, child1_0));
+    assert!(st.is_ancestor(root, child1_1));
+    assert!(st.is_ancestor(child1_0, child1_1));
+
+    assert!(!st.is_ancestor(child1_0, root));
+    assert!(!st.is_ancestor(child1_1, root));
+    assert!(!st.is_ancestor(child1_1, child1_0));
+
+    assert!(st.is_ancestor(root, child2));
+    assert!(!st.is_ancestor(child2, root));
+
+    assert!(!st.is_ancestor(child1_0, child2));
+    assert!(!st.is_ancestor(child1_1, child2));
+    assert!(!st.is_ancestor(child2, child1_0));
+    assert!(!st.is_ancestor(child2, child1_1));
+}
+
+/// Tests that we select the correct scroll root in the simple case.
+#[test]
+fn test_find_scroll_root_simple() {
+    let mut st = SpatialTree::new();
+
+    let root = st.add_reference_frame(
+        None,
+        TransformStyle::Flat,
+        PropertyBinding::Value(LayoutTransform::identity()),
+        ReferenceFrameKind::Transform {
+            is_2d_scale_translation: false,
+            should_snap: false,
+        },
+        LayoutVector2D::new(0.0, 0.0),
+        PipelineId::dummy(),
+    );
+
+    let scroll = st.add_scroll_frame(
+        root,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(400.0, 400.0)),
+        &LayoutSize::new(800.0, 400.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    assert_eq!(st.find_scroll_root(scroll), scroll);
+}
+
+/// Tests that we select the root scroll frame rather than the subframe if both are scrollable.
+#[test]
+fn test_find_scroll_root_sub_scroll_frame() {
+    let mut st = SpatialTree::new();
+
+    let root = st.add_reference_frame(
+        None,
+        TransformStyle::Flat,
+        PropertyBinding::Value(LayoutTransform::identity()),
+        ReferenceFrameKind::Transform {
+            is_2d_scale_translation: false,
+            should_snap: false,
+        },
+        LayoutVector2D::new(0.0, 0.0),
+        PipelineId::dummy(),
+    );
+
+    let root_scroll = st.add_scroll_frame(
+        root,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(400.0, 400.0)),
+        &LayoutSize::new(800.0, 400.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    let sub_scroll = st.add_scroll_frame(
+        root_scroll,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(400.0, 400.0)),
+        &LayoutSize::new(800.0, 400.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    assert_eq!(st.find_scroll_root(sub_scroll), root_scroll);
+}
+
+/// Tests that we select the sub scroll frame when the root scroll frame is not scrollable.
+#[test]
+fn test_find_scroll_root_not_scrollable() {
+    let mut st = SpatialTree::new();
+
+    let root = st.add_reference_frame(
+        None,
+        TransformStyle::Flat,
+        PropertyBinding::Value(LayoutTransform::identity()),
+        ReferenceFrameKind::Transform {
+            is_2d_scale_translation: false,
+            should_snap: false,
+        },
+        LayoutVector2D::new(0.0, 0.0),
+        PipelineId::dummy(),
+    );
+
+    let root_scroll = st.add_scroll_frame(
+        root,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(400.0, 400.0)),
+        &LayoutSize::new(400.0, 400.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    let sub_scroll = st.add_scroll_frame(
+        root_scroll,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(400.0, 400.0)),
+        &LayoutSize::new(800.0, 400.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    assert_eq!(st.find_scroll_root(sub_scroll), sub_scroll);
+}
+
+/// Tests that we select the sub scroll frame when the root scroll frame is too small.
+#[test]
+fn test_find_scroll_root_too_small() {
+    let mut st = SpatialTree::new();
+
+    let root = st.add_reference_frame(
+        None,
+        TransformStyle::Flat,
+        PropertyBinding::Value(LayoutTransform::identity()),
+        ReferenceFrameKind::Transform {
+            is_2d_scale_translation: false,
+            should_snap: false,
+        },
+        LayoutVector2D::new(0.0, 0.0),
+        PipelineId::dummy(),
+    );
+
+    let root_scroll = st.add_scroll_frame(
+        root,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(MIN_SCROLL_ROOT_SIZE, MIN_SCROLL_ROOT_SIZE)),
+        &LayoutSize::new(1000.0, 1000.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    let sub_scroll = st.add_scroll_frame(
+        root_scroll,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(400.0, 400.0)),
+        &LayoutSize::new(800.0, 400.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    assert_eq!(st.find_scroll_root(sub_scroll), sub_scroll);
+}
+
+/// Tests that we select the root scroll node, even if it is not scrollable,
+/// when encountering a non-axis-aligned transform.
+#[test]
+fn test_find_scroll_root_perspective() {
+    let mut st = SpatialTree::new();
+
+    let root = st.add_reference_frame(
+        None,
+        TransformStyle::Flat,
+        PropertyBinding::Value(LayoutTransform::identity()),
+        ReferenceFrameKind::Transform {
+            is_2d_scale_translation: false,
+            should_snap: false,
+        },
+        LayoutVector2D::new(0.0, 0.0),
+        PipelineId::dummy(),
+    );
+
+    let root_scroll = st.add_scroll_frame(
+        root,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(400.0, 400.0)),
+        &LayoutSize::new(400.0, 400.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    let perspective = st.add_reference_frame(
+        Some(root_scroll),
+        TransformStyle::Flat,
+        PropertyBinding::Value(LayoutTransform::identity()),
+        ReferenceFrameKind::Perspective {
+            scrolling_relative_to: None,
+        },
+        LayoutVector2D::new(0.0, 0.0),
+        PipelineId::dummy(),
+    );
+
+    let sub_scroll = st.add_scroll_frame(
+        perspective,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(400.0, 400.0)),
+        &LayoutSize::new(800.0, 400.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    assert_eq!(st.find_scroll_root(sub_scroll), root_scroll);
+}
+
+/// Tests that encountering a 2D scale or translation transform does not prevent
+/// us from selecting the sub scroll frame if the root scroll frame is unscrollable.
+#[test]
+fn test_find_scroll_root_2d_scale() {
+    let mut st = SpatialTree::new();
+
+    let root = st.add_reference_frame(
+        None,
+        TransformStyle::Flat,
+        PropertyBinding::Value(LayoutTransform::identity()),
+        ReferenceFrameKind::Transform {
+            is_2d_scale_translation: false,
+            should_snap: false,
+        },
+        LayoutVector2D::new(0.0, 0.0),
+        PipelineId::dummy(),
+    );
+
+    let root_scroll = st.add_scroll_frame(
+        root,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(400.0, 400.0)),
+        &LayoutSize::new(400.0, 400.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    let scale = st.add_reference_frame(
+        Some(root_scroll),
+        TransformStyle::Flat,
+        PropertyBinding::Value(LayoutTransform::identity()),
+        ReferenceFrameKind::Transform {
+            is_2d_scale_translation: true,
+            should_snap: false,
+        },
+        LayoutVector2D::new(0.0, 0.0),
+        PipelineId::dummy(),
+    );
+
+    let sub_scroll = st.add_scroll_frame(
+        scale,
+        ExternalScrollId(1, PipelineId::dummy()),
+        PipelineId::dummy(),
+        &LayoutRect::from_size(LayoutSize::new(400.0, 400.0)),
+        &LayoutSize::new(800.0, 400.0),
+        ScrollSensitivity::ScriptAndInputEvents,
+        ScrollFrameKind::Explicit,
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    assert_eq!(st.find_scroll_root(sub_scroll), sub_scroll);
 }

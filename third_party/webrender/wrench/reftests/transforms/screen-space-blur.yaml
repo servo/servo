@@ -7,14 +7,14 @@ root:
         - type: "stacking-context"
           transform-origin: 235 235
           transform: rotate-x(-15)
-          filters: blur(3)
+          filters: blur(3, 3)
           items:
             - image: checkerboard(2, 16, 16)
               bounds: [100, 100, 260, 260]
     - type: "stacking-context"
       transform-origin: 635 235
       transform: rotate-z(-45)
-      filters: blur(3)
+      filters: blur(3, 3)
       items:
         - image: checkerboard(2, 16, 16)
           bounds: [500, 100, 260, 260]

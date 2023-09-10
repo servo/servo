@@ -28,6 +28,7 @@ use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
+use webrender_api::ScrollSensitivity;
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -150,17 +151,16 @@ impl DisplayList {
         external_id: wr::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
-        scroll_sensitivity: wr::ScrollSensitivity,
-        external_scroll_offset: LayoutVector2D,
+        scroll_sensitivity: ScrollSensitivity,
     ) -> (ScrollTreeNodeId, wr::ClipChainId) {
         let parent_space_and_clip_info = wr::SpaceAndClipInfo {
             spatial_id: parent_scroll_node_id.spatial_id,
             clip_id: wr::ClipId::root(self.wr.pipeline_id),
         };
-
         let new_clip_id = self
             .wr
             .define_clip_rect(&parent_space_and_clip_info, clip_rect);
+
         let new_clip_chain_id = self
             .wr
             .define_clip_chain(Some(*parent_clip_chain_id), [new_clip_id]);
@@ -169,11 +169,11 @@ impl DisplayList {
             .wr
             .define_scroll_frame(
                 &parent_space_and_clip_info,
-                Some(external_id),
+                external_id,
                 content_rect,
                 clip_rect,
                 scroll_sensitivity,
-                external_scroll_offset,
+                LayoutVector2D::zero(), /* external_scroll_offset */
             )
             .spatial_id;
 
@@ -202,7 +202,7 @@ pub(crate) struct StackingContextFragment {
 impl StackingContextFragment {
     fn build_display_list(&self, builder: &mut DisplayListBuilder) {
         builder.current_scroll_node_id = self.scroll_node_id;
-        builder.current_clip_id = wr::ClipId::ClipChain(self.clip_chain_id);
+        builder.current_clip_chain_id = self.clip_chain_id;
         self.fragment
             .borrow()
             .build_display_list(builder, &self.containing_block, self.section);
@@ -964,9 +964,9 @@ impl BoxFragment {
 
         let sensitivity =
             if ComputedOverflow::Hidden == overflow_x && ComputedOverflow::Hidden == overflow_y {
-                wr::ScrollSensitivity::Script
+                ScrollSensitivity::Script
             } else {
-                wr::ScrollSensitivity::ScriptAndInputEvents
+                ScrollSensitivity::ScriptAndInputEvents
             };
 
         let padding_rect = self
@@ -984,7 +984,6 @@ impl BoxFragment {
                     .to_webrender(),
                 padding_rect,
                 sensitivity,
-                LayoutVector2D::zero(),
             ),
         )
     }
@@ -1013,7 +1012,13 @@ impl BoxFragment {
                     scrolling_relative_to: None,
                 },
             ),
-            (Some(transform), None) => (transform, wr::ReferenceFrameKind::Transform),
+            (Some(transform), None) => (
+                transform,
+                wr::ReferenceFrameKind::Transform {
+                    is_2d_scale_translation: false,
+                    should_snap: false,
+                },
+            ),
             (Some(transform), Some(perspective)) => (
                 perspective.then(&transform),
                 wr::ReferenceFrameKind::Perspective {

@@ -1,4 +1,4 @@
-== simple.yaml simple-ref.yaml
+fuzzy-if(platform(swgl),1,180000) == simple.yaml simple-ref.yaml
 == order-1.yaml order-1-ref.yaml
 == order-2.yaml order-2-ref.yaml
 == nested.yaml nested-ref.yaml
@@ -10,7 +10,7 @@ fuzzy(35,200) == nested-coord-systems.yaml nested-coord-systems-ref.yaml
 == intermediate-2.yaml intermediate-1-ref.yaml
 == split-intersect1.yaml split-intersect1-ref.yaml
 == ordering.yaml ordering-ref.yaml
-fuzzy(1,20) == near-plane.yaml near-plane.png
+fuzzy(1,20) fuzzy-if(platform(swgl),128,39) == near-plane.yaml near-plane.png
 # Note: on windows the image is rendered at a slightly different spot.
 # similarly, a lot of tests in "transform" are non-windows. TODO: investigate
 platform(linux,mac) fuzzy(1,20) == same-plane.yaml same-plane.png

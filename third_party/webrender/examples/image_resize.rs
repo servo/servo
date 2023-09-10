@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use gleam;
-use glutin;
-use webrender;
-use winit;
+extern crate gleam;
+extern crate glutin;
+extern crate webrender;
+extern crate winit;
 
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
@@ -14,6 +14,7 @@ mod image_helper;
 
 use crate::boilerplate::{Example, HandyDandyRectBuilder};
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 
 struct App {
@@ -103,7 +104,7 @@ impl Example for App {
                     &DirtyRect::All,
                 );
                 let mut txn = Transaction::new();
-                txn.generate_frame();
+                txn.generate_frame(0);
                 api.send_transaction(document_id, txn);
             }
             _ => {}

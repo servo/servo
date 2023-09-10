@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::SideOffsets2D;
-use peek_poke::{ensure_red_zone, peek_from_slice, poke_extend_vec};
+use peek_poke::{ensure_red_zone, peek_from_slice, poke_extend_vec, strip_red_zone};
 use peek_poke::{poke_inplace_slice, poke_into_vec, Poke};
 #[cfg(feature = "deserialize")]
 use serde::de::Deserializer;
@@ -20,7 +20,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 // local imports
 use crate::display_item as di;
 use crate::display_item_cache::*;
-use crate::api::{PipelineId, PropertyBinding};
+use crate::{PipelineId, PropertyBinding};
 use crate::gradient_builder::GradientBuilder;
 use crate::color::ColorF;
 use crate::font::{FontInstanceKey, GlyphInstance, GlyphOptions};
@@ -115,6 +115,18 @@ pub struct BuiltDisplayList {
     descriptor: BuiltDisplayListDescriptor,
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Deserialize, Serialize)]
+pub enum GeckoDisplayListType {
+  None,
+  Partial(f64),
+  Full(f64),
+}
+
+impl Default for GeckoDisplayListType {
+  fn default() -> Self { GeckoDisplayListType::None }
+}
+
 /// Describes the memory layout of a display list.
 ///
 /// A display list consists of some number of display list items, followed by a number of display
@@ -122,6 +134,8 @@ pub struct BuiltDisplayList {
 #[repr(C)]
 #[derive(Copy, Clone, Default, Deserialize, Serialize)]
 pub struct BuiltDisplayListDescriptor {
+    /// Gecko specific information about the display list.
+    gecko_display_list_type: GeckoDisplayListType,
     /// The first IPC time stamp: before any work has been done
     builder_start_time: u64,
     /// The second IPC time stamp: after serialization
@@ -166,6 +180,10 @@ impl DisplayListWithCache {
 
     pub fn descriptor(&self) -> &BuiltDisplayListDescriptor {
         self.display_list.descriptor()
+    }
+
+    pub fn times(&self) -> (u64, u64, u64) {
+        self.display_list.times()
     }
 
     pub fn data(&self) -> &[u8] {
@@ -221,6 +239,7 @@ pub struct BuiltDisplayListIter<'a> {
     cur_filter_primitives: ItemRange<'a, di::FilterPrimitive>,
     cur_clip_chain_items: ItemRange<'a, di::ClipId>,
     cur_complex_clip: ItemRange<'a, di::ComplexClipRegion>,
+    cur_points: ItemRange<'a, LayoutPoint>,
     peeking: Peek,
     /// Should just be initialized but never populated in release builds
     debug_stats: DebugStats,
@@ -263,7 +282,7 @@ impl DebugStats {
 
     /// Logs the stats for the given serialized slice
     #[cfg(feature = "display_list_stats")]
-    fn log_slice<T: Peek>(
+    fn log_slice<T: Copy + Default + peek_poke::Peek>(
         &mut self,
         slice_name: &'static str,
         range: &ItemRange<T>,
@@ -316,6 +335,10 @@ impl<'a, 'b> DisplayItemRef<'a, 'b> {
 
     pub fn complex_clip(&self) -> ItemRange<di::ComplexClipRegion> {
         self.iter.cur_complex_clip
+    }
+
+    pub fn points(&self) -> ItemRange<LayoutPoint> {
+        self.iter.cur_points
     }
 
     pub fn glyphs(&self) -> ItemRange<GlyphInstance> {
@@ -389,6 +412,14 @@ impl BuiltDisplayList {
             self.descriptor.builder_finish_time,
             self.descriptor.send_start_time,
         )
+    }
+
+    pub fn gecko_display_list_stats(&self) -> (f64, bool) {
+        match self.descriptor.gecko_display_list_type {
+            GeckoDisplayListType::Full(duration) => (duration, true),
+            GeckoDisplayListType::Partial(duration) => (duration, false),
+            _ => (0.0, false)
+        }
     }
 
     pub fn total_clip_nodes(&self) -> usize {
@@ -472,6 +503,9 @@ impl BuiltDisplayList {
                 Real::SetGradientStops => Debug::SetGradientStops(
                     item.iter.cur_stops.iter().collect()
                 ),
+                Real::SetPoints => Debug::SetPoints(
+                    item.iter.cur_points.iter().collect()
+                ),
                 Real::RectClip(v) => Debug::RectClip(v),
                 Real::RoundedRectClip(v) => Debug::RoundedRectClip(v),
                 Real::ImageMaskClip(v) => Debug::ImageMaskClip(v),
@@ -541,6 +575,7 @@ impl<'a> BuiltDisplayListIter<'a> {
             cur_filter_primitives: ItemRange::default(),
             cur_clip_chain_items: ItemRange::default(),
             cur_complex_clip: ItemRange::default(),
+            cur_points: ItemRange::default(),
             peeking: Peek::NotPeeking,
             debug_stats: DebugStats {
                 last_addr: data.as_ptr() as usize,
@@ -609,6 +644,7 @@ impl<'a> BuiltDisplayListIter<'a> {
         self.cur_stops = ItemRange::default();
         self.cur_complex_clip = ItemRange::default();
         self.cur_clip_chain_items = ItemRange::default();
+        self.cur_points = ItemRange::default();
         self.cur_filters = ItemRange::default();
         self.cur_filter_primitives = ItemRange::default();
         self.cur_filter_data.clear();
@@ -619,7 +655,8 @@ impl<'a> BuiltDisplayListIter<'a> {
                 SetGradientStops |
                 SetFilterOps |
                 SetFilterData |
-                SetFilterPrimitives => {
+                SetFilterPrimitives |
+                SetPoints => {
                     // These are marker items for populating other display items, don't yield them.
                     continue;
                 }
@@ -680,6 +717,10 @@ impl<'a> BuiltDisplayListIter<'a> {
             SetFilterPrimitives => {
                 self.cur_filter_primitives = skip_slice::<di::FilterPrimitive>(&mut self.data);
                 self.debug_stats.log_slice("set_filter_primitives.primitives", &self.cur_filter_primitives);
+            }
+            SetPoints => {
+                self.cur_points = skip_slice::<LayoutPoint>(&mut self.data);
+                self.debug_stats.log_slice("set_points.points", &self.cur_points);
             }
             ClipChain(_) => {
                 self.cur_clip_chain_items = skip_slice::<di::ClipId>(&mut self.data);
@@ -894,6 +935,10 @@ impl<'de> Deserialize<'de> for BuiltDisplayList {
                     DisplayListBuilder::push_iter_impl(&mut temp, stops);
                     Real::SetGradientStops
                 },
+                Debug::SetPoints(points) => {
+                    DisplayListBuilder::push_iter_impl(&mut temp, points);
+                    Real::SetPoints
+                },
                 Debug::RectClip(v) => Real::RectClip(v),
                 Debug::RoundedRectClip(v) => Real::RoundedRectClip(v),
                 Debug::ImageMaskClip(v) => Real::ImageMaskClip(v),
@@ -931,6 +976,7 @@ impl<'de> Deserialize<'de> for BuiltDisplayList {
         Ok(BuiltDisplayList {
             data,
             descriptor: BuiltDisplayListDescriptor {
+                gecko_display_list_type: GeckoDisplayListType::None,
                 builder_start_time: 0,
                 builder_finish_time: 1,
                 send_start_time: 1,
@@ -976,9 +1022,6 @@ pub struct DisplayListBuilder {
     next_clip_chain_id: u64,
     builder_start_time: u64,
 
-    /// The size of the content of this display list. This is used to allow scrolling
-    /// outside the bounds of the display list items themselves.
-    content_size: LayoutSize,
     save_state: Option<SaveState>,
 
     cache_size: usize,
@@ -986,13 +1029,12 @@ pub struct DisplayListBuilder {
 }
 
 impl DisplayListBuilder {
-    pub fn new(pipeline_id: PipelineId, content_size: LayoutSize) -> Self {
-        Self::with_capacity(pipeline_id, content_size, 0)
+    pub fn new(pipeline_id: PipelineId) -> Self {
+        Self::with_capacity(pipeline_id, 0)
     }
 
     pub fn with_capacity(
         pipeline_id: PipelineId,
-        content_size: LayoutSize,
         capacity: usize,
     ) -> Self {
         let start_time = precise_time_ns();
@@ -1009,16 +1051,10 @@ impl DisplayListBuilder {
             next_spatial_index: FIRST_SPATIAL_NODE_INDEX,
             next_clip_chain_id: 0,
             builder_start_time: start_time,
-            content_size,
             save_state: None,
             cache_size: 0,
             serialized_content_buffer: None,
         }
-    }
-
-    /// Return the content size for this display list
-    pub fn content_size(&self) -> LayoutSize {
-        self.content_size
     }
 
     /// Saves the current display list state, so it may be `restore()`'d.
@@ -1075,11 +1111,15 @@ impl DisplayListBuilder {
         W: Write
     {
         let mut temp = BuiltDisplayList::default();
+        ensure_red_zone::<di::DisplayItem>(&mut self.data);
+        temp.descriptor.extra_data_offset = self.data.len();
         mem::swap(&mut temp.data, &mut self.data);
 
         let mut index: usize = 0;
         {
-            let mut iter = temp.iter();
+            let mut cache = DisplayItemCache::new();
+            cache.update(&temp);
+            let mut iter = temp.iter_with_cache(&cache);
             while let Some(item) = iter.next_raw() {
                 if index >= range.start.unwrap_or(0) && range.end.map_or(true, |e| index < e) {
                     writeln!(sink, "{}{:?}", "  ".repeat(indent), item.item()).unwrap();
@@ -1089,6 +1129,7 @@ impl DisplayListBuilder {
         }
 
         self.data = temp.data;
+        strip_red_zone::<di::DisplayItem>(&mut self.data);
         index
     }
 
@@ -1235,9 +1276,11 @@ impl DisplayListBuilder {
     pub fn push_hit_test(
         &mut self,
         common: &di::CommonItemProperties,
+        tag: di::ItemTag,
     ) {
         let item = di::DisplayItem::HitTest(di::HitTestDisplayItem {
             common: *common,
+            tag,
         });
         self.push_item(&item);
     }
@@ -1534,8 +1577,42 @@ impl DisplayListBuilder {
             origin,
             reference_frame: di::ReferenceFrame {
                 transform_style,
-                transform,
+                transform: di::ReferenceTransformBinding::Static {
+                    binding: transform,
+                },
                 kind,
+                id,
+            },
+        });
+
+        self.push_item(&item);
+        id
+    }
+
+    pub fn push_computed_frame(
+        &mut self,
+        origin: LayoutPoint,
+        parent_spatial_id: di::SpatialId,
+        scale_from: Option<LayoutSize>,
+        vertical_flip: bool,
+        rotation: di::Rotation,
+    ) -> di::SpatialId {
+        let id = self.generate_spatial_index();
+
+        let item = di::DisplayItem::PushReferenceFrame(di::ReferenceFrameDisplayListItem {
+            parent_spatial_id,
+            origin,
+            reference_frame: di::ReferenceFrame {
+                transform_style: di::TransformStyle::Flat,
+                transform: di::ReferenceTransformBinding::Computed {
+                    scale_from,
+                    vertical_flip,
+                    rotation,
+                },
+                kind: di::ReferenceFrameKind::Transform {
+                    is_2d_scale_translation: false,
+                    should_snap: false,
+                },
                 id,
             },
         });
@@ -1696,7 +1773,7 @@ impl DisplayListBuilder {
     pub fn define_scroll_frame(
         &mut self,
         parent_space_and_clip: &di::SpaceAndClipInfo,
-        external_id: Option<di::ExternalScrollId>,
+        external_id: di::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
         scroll_sensitivity: di::ScrollSensitivity,
@@ -1742,14 +1819,25 @@ impl DisplayListBuilder {
         &mut self,
         parent_space_and_clip: &di::SpaceAndClipInfo,
         image_mask: di::ImageMask,
+        points: &[LayoutPoint],
+        fill_rule: di::FillRule,
     ) -> di::ClipId {
         let id = self.generate_clip_index();
         let item = di::DisplayItem::ImageMaskClip(di::ImageMaskClipDisplayItem {
             id,
             parent_space_and_clip: *parent_space_and_clip,
             image_mask,
+            fill_rule,
         });
 
+        // We only need to supply points if there are at least 3, which is the
+        // minimum to specify a polygon. BuiltDisplayListIter.next ensures that points
+        // are cleared between processing other display items, so we'll correctly get
+        // zero points when no SetPoints item has been pushed.
+        if points.len() >= 3 {
+            self.push_item(&di::DisplayItem::SetPoints);
+            self.push_iter(points);
+        }
         self.push_item(&item);
         id
     }
@@ -1928,7 +2016,7 @@ impl DisplayListBuilder {
         self.cache_size = cache_size;
     }
 
-    pub fn finalize(mut self) -> (PipelineId, LayoutSize, BuiltDisplayList) {
+    pub fn finalize(mut self) -> (PipelineId, BuiltDisplayList) {
         assert!(self.save_state.is_none(), "Finalized DisplayListBuilder with a pending save");
 
         if let Some(content) = self.serialized_content_buffer.take() {
@@ -1951,9 +2039,9 @@ impl DisplayListBuilder {
         let end_time = precise_time_ns();
         (
             self.pipeline_id,
-            self.content_size,
             BuiltDisplayList {
                 descriptor: BuiltDisplayListDescriptor {
+                    gecko_display_list_type: GeckoDisplayListType::None,
                     builder_start_time: self.builder_start_time,
                     builder_finish_time: end_time,
                     send_start_time: end_time,

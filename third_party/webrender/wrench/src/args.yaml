@@ -28,22 +28,14 @@ args:
       short: r
       long: rebuild
       help: Rebuild display list from scratch every frame
-  - save:
-      long: save
-      help: 'Save frames, one of: yaml, json, ron, or binary'
-      takes_value: true
   - no_subpixel_aa:
       short: a
       long: no-subpixel-aa
       help: Disable subpixel aa
-  - no_picture_caching:
-      long: no-picture-caching
-      help: Disable picture caching
   - slow_subpixel:
       long: slow-subpixel
       help: Disable dual source blending
   - headless:
-      short: h
       long: headless
       help: Enable headless rendering
   - angle:
@@ -61,11 +53,6 @@ args:
       short: s
       long: size
       help: Window size, specified as widthxheight (e.g. 1024x768), in pixels
-      takes_value: true
-  - time:
-      short: t
-      long: time
-      help: Time limit (in seconds)
       takes_value: true
   - vsync:
       long: vsync
@@ -93,6 +80,10 @@ args:
   - no_block:
       long: no-block
       help: Don't block on UI events - run event loop as fast as possible.
+  - profiler_ui:
+      long: profiler-ui
+      takes_value: true
+      help: A string describing what to show on in the profiler HUD (See https://github.com/servo/webrender/wiki/Debugging-WebRender#anchor_6).
 
 subcommands:
     - png:
@@ -115,11 +106,6 @@ subcommands:
         about: show frame(s) described by YAML, binary recording, or capture
         aliases: ['load', 'replay']
         args:
-          - queue:
-              short: q
-              long: queue
-              help: How many frames to submit to WR ahead of time (default 1) (YAML only)
-              takes_value: true
           - include:
               long: include
               help: Include the given element type. Can be specified multiple times. (rect/image/text/glyphs/border) (YAML only)
@@ -132,15 +118,6 @@ subcommands:
               short: w
               long: watch
               help: Watch the given file, reloading whenever it changes (YAML only)
-          - api:
-              long: api
-              help: Reissue Api messages for each frame (binary recording only)
-          - skip-uploads:
-              long: skip-uploads
-              help: Skip re-uploads while reissuing Api messages (BROKEN)
-          - play:
-              long: play
-              help: Play entire recording through, then quit (useful with --save) (binary recording only)
           - keyframes:
               short: k
               long: keyframes
@@ -158,13 +135,6 @@ subcommands:
               help: Select a starting frame sequence ID (YAML capture sequence only).
           - INPUT:
               help: The input YAML, binary recording, or capture directory
-              required: true
-              index: 1
-    - replay:
-        about: replay binary recording
-        args:
-          - INPUT:
-              help: The input binary file or directory
               required: true
               index: 1
     - reftest:
@@ -209,6 +179,8 @@ subcommands:
               long: sample_count
               takes_value: true
               help: number of samples to capture
+    - test_invalidation:
+        about: run invalidation tests
     - compare_perf:
         about: compare two benchmark files
         args:
@@ -220,3 +192,5 @@ subcommands:
               help: second benchmark file to compare
               required: true
               index: 2
+    - test_init:
+        about: Test for successful initialization then exit immediately
