@@ -37,6 +37,7 @@ use crate::script_thread::trace_thread;
 use crate::task::TaskBox;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
+use core::ffi::c_char;
 use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun};
 use js::glue::{JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk};
 use js::glue::{
@@ -94,7 +95,6 @@ use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, ThreadState};
 use time::{now, Tm};
-use core::ffi::c_char;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getIncumbentGlobal: Some(get_incumbent_global),
