@@ -356,7 +356,7 @@ pub fn is_dom_proxy(obj: *mut JSObject) -> bool {
     use js::glue::IsProxyHandlerFamily;
     unsafe {
         let clasp = get_object_class(obj);
-        ((*clasp).flags & js::JSCLASS_IS_PROXY) != 0 && IsProxyHandlerFamily(obj) != 0
+        ((*clasp).flags & js::JSCLASS_IS_PROXY) != 0 && IsProxyHandlerFamily(obj)
     }
 }
 
@@ -422,7 +422,7 @@ pub(crate) unsafe fn private_from_proto_check(
     let dom_class = get_dom_class(obj).or_else(|_| {
         if IsWrapper(obj) {
             trace!("found wrapper");
-            obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ 0);
+            obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ false);
             if obj.is_null() {
                 trace!("unwrapping security wrapper failed");
                 Err(())

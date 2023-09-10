@@ -3720,7 +3720,7 @@ checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#e088ddd9e9b5730320ad3eadbd9cadacee85cf52"
+source = "git+https://github.com/sagudev/mozjs.git?branch=cm-glue#614cd0cb6f2c8b482275caa19d6fbfb5a066e3ad"
 dependencies = [
  "bindgen 0.66.1",
  "cc",
@@ -3734,7 +3734,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.2"
-source = "git+https://github.com/servo/mozjs#e088ddd9e9b5730320ad3eadbd9cadacee85cf52"
+source = "git+https://github.com/sagudev/mozjs.git?branch=cm-glue#614cd0cb6f2c8b482275caa19d6fbfb5a066e3ad"
 dependencies = [
  "bindgen 0.66.1",
  "cc",

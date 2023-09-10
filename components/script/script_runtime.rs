@@ -94,6 +94,7 @@ use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, ThreadState};
 use time::{now, Tm};
+use core::ffi::c_char;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getIncumbentGlobal: Some(get_incumbent_global),
@@ -836,7 +837,7 @@ unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_
 #[allow(unsafe_code)]
 unsafe extern "C" fn servo_build_id(build_id: *mut BuildIdCharVector) -> bool {
     let servo_id = b"Servo\0";
-    SetBuildId(build_id, &servo_id[0], servo_id.len())
+    SetBuildId(build_id, servo_id[0] as *const c_char, servo_id.len())
 }
 
 #[allow(unsafe_code)]

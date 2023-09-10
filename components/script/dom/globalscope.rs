@@ -2174,7 +2174,7 @@ impl GlobalScope {
         cx: *mut JSContext,
     ) -> DomRoot<Self> {
         if IsWrapper(obj) {
-            obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ 0);
+            obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ false);
             assert!(!obj.is_null());
         }
         GlobalScope::from_object(obj)
