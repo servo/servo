@@ -4,8 +4,26 @@
 
 //! CSS table formatting contexts.
 
-use crate::block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
-use crate::block::{ISizeConstraintInput, ISizeConstraintSolution};
+use std::{cmp, fmt};
+
+use app_units::Au;
+use euclid::default::Point2D;
+use gfx_traits::print_tree::PrintTree;
+use log::{debug, trace};
+use serde::Serialize;
+use style::computed_values::{border_collapse, border_spacing, table_layout};
+use style::context::SharedStyleContext;
+use style::logical_geometry::LogicalSize;
+use style::properties::style_structs::Background;
+use style::properties::ComputedValues;
+use style::servo::restyle_damage::ServoRestyleDamage;
+use style::values::computed::Size;
+use style::values::CSSFloat;
+
+use crate::block::{
+    BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer, ISizeConstraintInput,
+    ISizeConstraintSolution,
+};
 use crate::context::LayoutContext;
 use crate::display_list::{
     BorderPaintingMode, DisplayListBuildState, StackingContextCollectionFlags,
@@ -19,24 +37,12 @@ use crate::flow_list::{FlowListIterator, MutFlowListIterator};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
 use crate::table_cell::TableCellFlow;
-use crate::table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
-use crate::table_row::{TableRowFlow, TableRowSizeData};
+use crate::table_row::{
+    self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance, TableRowFlow,
+    TableRowSizeData,
+};
 use crate::table_wrapper::TableLayout;
 use crate::{layout_debug, layout_debug_scope};
-use app_units::Au;
-use euclid::default::Point2D;
-use gfx_traits::print_tree::PrintTree;
-use log::{debug, trace};
-use serde::Serialize;
-use std::{cmp, fmt};
-use style::computed_values::{border_collapse, border_spacing, table_layout};
-use style::context::SharedStyleContext;
-use style::logical_geometry::LogicalSize;
-use style::properties::style_structs::Background;
-use style::properties::ComputedValues;
-use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::Size;
-use style::values::CSSFloat;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableFlow {}

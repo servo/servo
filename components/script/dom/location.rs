@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use net_traits::request::Referrer;
+use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
+use servo_url::{MutableOrigin, ServoUrl};
+
 use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -12,10 +17,6 @@ use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use net_traits::request::Referrer;
-use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
-use servo_url::{MutableOrigin, ServoUrl};
 
 #[derive(PartialEq)]
 enum NavigationType {

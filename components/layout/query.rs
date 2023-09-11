@@ -4,35 +4,26 @@
 
 //! Utilities for querying the layout, as needed by the layout thread.
 
-use crate::construct::ConstructionResult;
-use crate::context::LayoutContext;
-use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
-use crate::display_list::IndexableText;
-use crate::flow::{Flow, GetBaseFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, FragmentFlags, SpecificFragmentInfo};
-use crate::inline::InlineFragmentNodeFlags;
-use crate::sequential;
-use crate::wrapper::LayoutNodeLayoutData;
+use std::cmp::{max, min};
+use std::ops::Deref;
+use std::sync::{Arc, Mutex};
+
 use app_units::Au;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
 use euclid::Size2D as TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use script_layout_interface::rpc::TextIndexResponse;
-use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
-use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollIdResponse};
-use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse};
+use script_layout_interface::rpc::{
+    ContentBoxResponse, ContentBoxesResponse, LayoutRPC, NodeGeometryResponse,
+    NodeScrollIdResponse, OffsetParentResponse, ResolvedStyleResponse, TextIndexResponse,
+};
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
-use script_traits::LayoutMsg as ConstellationMsg;
-use script_traits::UntrustedNodeAddress;
+use script_traits::{LayoutMsg as ConstellationMsg, UntrustedNodeAddress};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
-use std::cmp::{max, min};
-use std::ops::Deref;
-use std::sync::{Arc, Mutex};
 use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
@@ -49,6 +40,16 @@ use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Origin};
 use style_traits::{CSSPixel, ParsingMode, ToCss};
 use webrender_api::ExternalScrollId;
+
+use crate::construct::ConstructionResult;
+use crate::context::LayoutContext;
+use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
+use crate::display_list::IndexableText;
+use crate::flow::{Flow, GetBaseFlow};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, FragmentFlags, SpecificFragmentInfo};
+use crate::inline::InlineFragmentNodeFlags;
+use crate::sequential;
+use crate::wrapper::LayoutNodeLayoutData;
 
 /// Mutable data belonging to the LayoutThread.
 ///

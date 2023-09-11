@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/// General actor system infrastructure.
-use crate::StreamId;
-use devtools_traits::PreciseTime;
-use log::{debug, warn};
-use serde_json::{Map, Value};
 use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::mem::replace;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
+
+use devtools_traits::PreciseTime;
+use log::{debug, warn};
+use serde_json::{Map, Value};
+
+/// General actor system infrastructure.
+use crate::StreamId;
 
 #[derive(PartialEq)]
 pub enum ActorMessageStatus {

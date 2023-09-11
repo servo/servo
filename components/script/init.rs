@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::jsapi::JSObject;
+
 use crate::dom::bindings::codegen::RegisterBindings;
 use crate::dom::bindings::conversions::is_dom_proxy;
 use crate::dom::bindings::proxyhandler;
 use crate::dom::bindings::utils::is_platform_object_static;
 use crate::script_runtime::JSEngineSetup;
-use js::jsapi::JSObject;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]

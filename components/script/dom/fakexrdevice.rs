@@ -2,6 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use euclid::{Point2D, Point3D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, Vector3D};
+use ipc_channel::ipc::IpcSender;
+use ipc_channel::router::ROUTER;
+use profile_traits::ipc;
+use webxr_api::{
+    EntityType, Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockRegion,
+    MockViewInit, MockViewsInit, MockWorld, TargetRayMode, Triangle, Visibility,
+};
+
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
     FakeXRDeviceMethods, FakeXRRegionType, FakeXRRigidTransformInit, FakeXRViewInit,
@@ -21,18 +34,6 @@ use crate::dom::fakexrinputcontroller::FakeXRInputController;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use euclid::{Point2D, Rect, Size2D};
-use euclid::{Point3D, RigidTransform3D, Rotation3D, Transform3D, Vector3D};
-use ipc_channel::ipc::IpcSender;
-use ipc_channel::router::ROUTER;
-use profile_traits::ipc;
-use std::cell::Cell;
-use std::rc::Rc;
-use webxr_api::{
-    EntityType, Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockRegion,
-    MockViewInit, MockViewsInit, MockWorld, TargetRayMode, Triangle, Visibility,
-};
 
 #[dom_struct]
 pub struct FakeXRDevice {

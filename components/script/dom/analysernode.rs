@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use ipc_channel::ipc::{self, IpcReceiver};
+use ipc_channel::router::ROUTER;
+use js::rust::{CustomAutoRooterGuard, HandleObject};
+use js::typedarray::{Float32Array, Uint8Array};
+use servo_media::audio::analyser_node::AnalysisEngine;
+use servo_media::audio::block::Block;
+use servo_media::audio::node::AudioNodeInit;
+
 use crate::dom::audionode::AudioNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::cell::DomRefCell;
@@ -18,14 +27,6 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcReceiver};
-use ipc_channel::router::ROUTER;
-use js::rust::{CustomAutoRooterGuard, HandleObject};
-use js::typedarray::{Float32Array, Uint8Array};
-use servo_media::audio::analyser_node::AnalysisEngine;
-use servo_media::audio::block::Block;
-use servo_media::audio::node::AudioNodeInit;
 
 #[dom_struct]
 pub struct AnalyserNode {

@@ -4,10 +4,11 @@
 
 //! The `Finite<T>` struct.
 
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use num_traits::Float;
 use std::default::Default;
 use std::ops::Deref;
+
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use num_traits::Float;
 
 /// Encapsulates the IDL restricted float type.
 #[derive(Clone, Copy, Eq, JSTraceable, PartialEq)]

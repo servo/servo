@@ -2,13 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::context::LayoutContext;
-use crate::display_list::conversions::ToWebRender;
-use crate::display_list::stacking_context::StackingContextSection;
-use crate::fragment_tree::{BoxFragment, Fragment, FragmentTree, Tag, TextFragment};
-use crate::geom::{PhysicalPoint, PhysicalRect};
-use crate::replaced::IntrinsicSizes;
-use crate::style_ext::ComputedValuesExt;
+use std::cell::OnceCell;
+use std::sync::Arc;
+
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use fnv::FnvHashMap;
@@ -16,8 +12,6 @@ use gfx::text::glyph::GlyphStore;
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::image_cache::UsePlaceholder;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId};
-use std::cell::OnceCell;
-use std::sync::Arc;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
@@ -27,6 +21,14 @@ use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
 use style_traits::CSSPixel;
 use webrender_api::{self as wr, units, ClipChainId, ClipId, CommonItemProperties};
+
+use crate::context::LayoutContext;
+use crate::display_list::conversions::ToWebRender;
+use crate::display_list::stacking_context::StackingContextSection;
+use crate::fragment_tree::{BoxFragment, Fragment, FragmentTree, Tag, TextFragment};
+use crate::geom::{PhysicalPoint, PhysicalRect};
+use crate::replaced::IntrinsicSizes;
+use crate::style_ext::ComputedValuesExt;
 
 mod background;
 mod conversions;

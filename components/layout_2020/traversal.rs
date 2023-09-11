@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::context::LayoutContext;
-use crate::dom::NodeExt;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
-use style::traversal::PerLevelTraversalData;
-use style::traversal::{recalc_style_at, DomTraversal};
+use style::traversal::{recalc_style_at, DomTraversal, PerLevelTraversalData};
+
+use crate::context::LayoutContext;
+use crate::dom::NodeExt;
 
 pub struct RecalcStyle<'a> {
     context: LayoutContext<'a>,

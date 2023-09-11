@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::rust::HandleObject;
+use servo_url::ServoUrl;
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLBaseElementBinding::HTMLBaseElementMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -12,10 +17,6 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, BindContext, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::rust::HandleObject;
-use servo_url::ServoUrl;
 
 #[dom_struct]
 pub struct HTMLBaseElement {

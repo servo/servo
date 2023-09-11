@@ -3,6 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
+use std::cell::Cell;
+
+use canvas_traits::webgl::{
+    webgl_channel, ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand,
+    WebGLError, WebGLProgramId, WebGLResult,
+};
+use dom_struct::dom_struct;
+use fnv::FnvHashSet;
+
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -15,13 +24,6 @@ use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::dom::webglshader::WebGLShader;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
-use canvas_traits::webgl::{webgl_channel, WebGLProgramId, WebGLResult};
-use canvas_traits::webgl::{
-    ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand, WebGLError,
-};
-use dom_struct::dom_struct;
-use fnv::FnvHashSet;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct WebGLProgram {

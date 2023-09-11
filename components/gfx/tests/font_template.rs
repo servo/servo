@@ -6,12 +6,13 @@
 #[cfg(not(target_os = "macos"))]
 #[test]
 fn test_font_template_descriptor() {
-    use gfx::font_context::FontContextHandle;
-    use gfx::font_template::{FontTemplate, FontTemplateDescriptor};
-    use servo_atoms::Atom;
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::PathBuf;
+
+    use gfx::font_context::FontContextHandle;
+    use gfx::font_template::{FontTemplate, FontTemplateDescriptor};
+    use servo_atoms::Atom;
     use style::values::computed::font::{FontStretch, FontWeight};
     use style::values::computed::Percentage;
     use style::values::generics::font::FontStyle;

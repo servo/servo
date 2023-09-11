@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use bluetooth_traits::BluetoothRequest;
+use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSender;
+use profile_traits::ipc;
+
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use bluetooth_traits::BluetoothRequest;
-use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use profile_traits::ipc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/tests#test-runner
 #[dom_struct]

@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::reflector::Reflector;
-use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-
 use js::jsval::JSVal;
 
 use super::bindings::codegen::Bindings::GPUCompilationInfoBinding::GPUCompilationInfoMethods;
 use super::bindings::root::Dom;
 use super::types::GPUCompilationMessage;
+use crate::dom::bindings::reflector::Reflector;
+use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub struct GPUCompilationInfo {

@@ -11,11 +11,9 @@
 //! over events from the network and events from the DOM, using async/await to avoid
 //! the need for a dedicated thread per websocket.
 
-use crate::connector::{create_tls_config, CACertificates, TlsConfig};
-use crate::cookie::Cookie;
-use crate::fetch::methods::should_be_blocked_due_to_bad_port;
-use crate::hosts::replace_host;
-use crate::http_loader::HttpState;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+
 use async_tungstenite::tokio::{client_async_tls_with_connector_and_config, ConnectStream};
 use async_tungstenite::WebSocketStream;
 use base64::Engine;
@@ -28,22 +26,24 @@ use ipc_channel::router::ROUTER;
 use lazy_static::lazy_static;
 use log::{debug, trace, warn};
 use net_traits::request::{RequestBuilder, RequestMode};
-use net_traits::{CookieSource, MessageData};
-use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
+use net_traits::{CookieSource, MessageData, WebSocketDomAction, WebSocketNetworkEvent};
 use servo_url::ServoUrl;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use tokio::net::TcpStream;
 use tokio::runtime::Runtime;
 use tokio::select;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 use tokio_rustls::TlsConnector;
-use tungstenite::error::Result as WebSocketResult;
-use tungstenite::error::{Error, ProtocolError, UrlError};
+use tungstenite::error::{Error, ProtocolError, Result as WebSocketResult, UrlError};
 use tungstenite::handshake::client::{Request, Response};
 use tungstenite::protocol::CloseFrame;
 use tungstenite::Message;
 use url::Url;
+
+use crate::connector::{create_tls_config, CACertificates, TlsConfig};
+use crate::cookie::Cookie;
+use crate::fetch::methods::should_be_blocked_due_to_bad_port;
+use crate::hosts::replace_host;
+use crate::http_loader::HttpState;
 
 // Websockets get their own tokio runtime that's independent of the one used for
 // HTTP connections, otherwise a large number of websockets could occupy all workers

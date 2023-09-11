@@ -8,12 +8,13 @@
 //! so that the other modules involved in the serialization don't have
 //! to depend on script.
 
+use std::cell::RefCell;
+use std::path::PathBuf;
+
 use malloc_size_of_derive::MallocSizeOf;
 use msg::constellation_msg::BlobId;
 use net_traits::filemanager_thread::RelativePos;
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
-use std::path::PathBuf;
 use uuid::Uuid;
 
 /// File-based blob

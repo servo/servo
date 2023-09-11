@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::WheelEventBinding;
 use crate::dom::bindings::codegen::Bindings::WheelEventBinding::WheelEventMethods;
@@ -14,9 +19,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct WheelEvent {

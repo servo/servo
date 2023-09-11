@@ -2,13 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::font::{
-    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel,
-};
-use crate::font::{GPOS, GSUB, KERN};
-use crate::platform::font_template::FontTemplateData;
-use crate::platform::macos::font_context::FontContextHandle;
-use crate::text::glyph::GlyphId;
+use std::ops::Range;
+use std::sync::Arc;
+use std::{fmt, ptr};
+
 /// Implementation of Quartz (CoreGraphics) fonts.
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
@@ -18,14 +15,20 @@ use core_foundation::string::UniChar;
 use core_graphics::font::CGGlyph;
 use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
-use core_text::font_descriptor::kCTFontDefaultOrientation;
-use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
+use core_text::font_descriptor::{
+    kCTFontDefaultOrientation, SymbolicTraitAccessors, TraitAccessors,
+};
 use log::debug;
 use servo_atoms::Atom;
-use std::ops::Range;
-use std::sync::Arc;
-use std::{fmt, ptr};
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
+
+use crate::font::{
+    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, GPOS, GSUB,
+    KERN,
+};
+use crate::platform::font_template::FontTemplateData;
+use crate::platform::macos::font_context::FontContextHandle;
+use crate::text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
 

@@ -4,11 +4,13 @@
 
 //! Helper types and traits for the handling of CSS values.
 
-use app_units::Au;
-use cssparser::ToCss as CssparserToCss;
-use cssparser::{serialize_string, ParseError, Parser, Token, UnicodeRange};
-use servo_arc::Arc;
 use std::fmt::{self, Write};
+
+use app_units::Au;
+use cssparser::{
+    serialize_string, ParseError, Parser, ToCss as CssparserToCss, Token, UnicodeRange,
+};
+use servo_arc::Arc;
 
 /// Serialises a value according to its CSS representation.
 ///
@@ -562,9 +564,10 @@ macro_rules! define_css_keyword_enum {
 
 /// Helper types for the handling of specified values.
 pub mod specified {
-    use crate::ParsingMode;
     use malloc_size_of_derive::MallocSizeOf;
     use serde::{Deserialize, Serialize};
+
+    use crate::ParsingMode;
 
     /// Whether to allow negative lengths or not.
     #[repr(u8)]

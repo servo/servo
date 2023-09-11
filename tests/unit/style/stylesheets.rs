@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use cssparser::SourceLocation;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
-use std::cell::RefCell;
 use style::context::QuirksMode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;

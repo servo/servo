@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+use std::fmt;
+use std::num::{NonZeroU32, NonZeroU64};
+use std::ops::Deref;
+
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::PixelFormat;
 use serde::{Deserialize, Serialize};
 use sparkle::gl;
-use std::borrow::Cow;
-use std::fmt;
-use std::num::{NonZeroU32, NonZeroU64};
-use std::ops::Deref;
 use webrender_api::ImageKey;
-use webxr_api::ContextId as WebXRContextId;
-use webxr_api::Error as WebXRError;
-use webxr_api::LayerId as WebXRLayerId;
-use webxr_api::LayerInit as WebXRLayerInit;
-use webxr_api::SubImages as WebXRSubImages;
+use webxr_api::{
+    ContextId as WebXRContextId, Error as WebXRError, LayerId as WebXRLayerId,
+    LayerInit as WebXRLayerInit, SubImages as WebXRSubImages,
+};
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
 pub use crate::webgl_channel::webgl_channel;

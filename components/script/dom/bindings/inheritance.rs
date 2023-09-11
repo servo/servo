@@ -4,12 +4,11 @@
 
 //! The `Castable` trait.
 
-pub use crate::dom::bindings::codegen::InheritTypes::*;
-
-use crate::dom::bindings::conversions::get_dom_class;
-use crate::dom::bindings::conversions::{DerivedFrom, IDLInterface};
-use crate::dom::bindings::reflector::DomObject;
 use std::mem;
+
+pub use crate::dom::bindings::codegen::InheritTypes::*;
+use crate::dom::bindings::conversions::{get_dom_class, DerivedFrom, IDLInterface};
+use crate::dom::bindings::reflector::DomObject;
 
 /// A trait to hold the cast functions of IDL interfaces that either derive
 /// or are derived from other interfaces.

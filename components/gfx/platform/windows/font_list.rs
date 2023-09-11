@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::text::util::unicode_plane;
-use dwrote::{Font, FontCollection, FontDescriptor};
-use lazy_static::lazy_static;
-use servo_atoms::Atom;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
+
+use dwrote::{Font, FontCollection, FontDescriptor};
+use lazy_static::lazy_static;
+use servo_atoms::Atom;
 use ucd::{Codepoint, UnicodeBlock};
+
+use crate::text::util::unicode_plane;
 
 lazy_static! {
     static ref FONT_ATOM_COUNTER: AtomicUsize = AtomicUsize::new(1);

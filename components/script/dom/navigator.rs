@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::jsval::JSVal;
+
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -20,8 +23,6 @@ use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
 use crate::dom::xrsystem::XRSystem;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsval::JSVal;
 
 #[dom_struct]
 pub struct Navigator {

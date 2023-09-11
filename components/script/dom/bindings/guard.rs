@@ -4,14 +4,14 @@
 
 //! Machinery to conditionally expose things.
 
+use js::rust::HandleObject;
+use servo_config::prefs;
+
 use crate::dom::bindings::codegen::InterfaceObjectMap;
 use crate::dom::bindings::interface::is_exposed_in;
 use crate::dom::globalscope::GlobalScope;
-use crate::realms::AlreadyInRealm;
-use crate::realms::InRealm;
+use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
-use js::rust::HandleObject;
-use servo_config::prefs;
 
 /// A container with a condition.
 pub struct Guard<T: Clone + Copy> {

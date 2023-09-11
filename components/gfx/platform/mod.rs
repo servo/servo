@@ -4,21 +4,19 @@
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub use crate::platform::freetype::{font, font_context};
-
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub use crate::platform::freetype::{font_list, font_template};
-
+#[cfg(target_os = "macos")]
+pub use crate::platform::macos::{font, font_context, font_list, font_template};
 #[cfg(target_os = "windows")]
 pub use crate::platform::windows::{font, font_context, font_list, font_template};
 
-#[cfg(target_os = "macos")]
-pub use crate::platform::macos::{font, font_context, font_list, font_template};
-
 #[cfg(any(target_os = "linux", target_os = "android"))]
 mod freetype {
-    use libc::c_char;
     use std::ffi::CStr;
     use std::str;
+
+    use libc::c_char;
 
     /// Creates a String from the given null-terminated buffer.
     /// Panics if the buffer does not contain UTF-8.

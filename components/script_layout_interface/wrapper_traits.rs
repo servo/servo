@@ -4,34 +4,28 @@
 
 #![allow(unsafe_code)]
 
-use crate::HTMLCanvasData;
-use crate::HTMLMediaData;
-use crate::LayoutNodeType;
-use crate::SVGSVGData;
-use crate::StyleAndOpaqueLayoutData;
+use std::borrow::Cow;
+use std::fmt::Debug;
+use std::sync::Arc as StdArc;
+
 use atomic_refcell::AtomicRef;
 use gfx_traits::{combine_id_with_fragment_type, ByteIndex, FragmentType};
-use html5ever::local_name;
-use html5ever::namespace_url;
-use html5ever::ns;
-use html5ever::{LocalName, Namespace};
+use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
-use std::borrow::Cow;
-use std::fmt::Debug;
-use std::sync::Arc as StdArc;
 use style::attr::AttrValue;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
-use style::dom::OpaqueNode;
-use style::dom::{LayoutIterator, NodeInfo, TElement, TNode};
+use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, TElement, TNode};
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
 use style::stylist::RuleInclusion;
 use webrender_api::ExternalScrollId;
+
+use crate::{HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData, StyleAndOpaqueLayoutData};
 
 pub trait LayoutDataTrait: Default + Send + Sync + 'static {}
 

@@ -7,16 +7,17 @@
 #[global_allocator]
 static ALLOC: Allocator = Allocator;
 
-pub use crate::platform::*;
-
 #[cfg(not(windows))]
 pub use jemalloc_sys;
 
+pub use crate::platform::*;
+
 #[cfg(not(windows))]
 mod platform {
-    use jemalloc_sys as ffi;
     use std::alloc::{GlobalAlloc, Layout};
     use std::os::raw::{c_int, c_void};
+
+    use jemalloc_sys as ffi;
 
     /// Get the size of a heap block.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
@@ -100,6 +101,7 @@ mod platform {
 mod platform {
     pub use std::alloc::System as Allocator;
     use std::os::raw::c_void;
+
     use winapi::um::heapapi::{GetProcessHeap, HeapSize, HeapValidate};
 
     /// Get the size of a heap block.

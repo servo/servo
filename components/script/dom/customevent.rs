@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::jsapi::Heap;
+use js::jsval::JSVal;
+use js::rust::{HandleObject, HandleValue};
+use servo_atoms::Atom;
+
 use crate::dom::bindings::codegen::Bindings::CustomEventBinding;
 use crate::dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -14,12 +20,6 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsapi::Heap;
-use js::jsval::JSVal;
-use js::rust::HandleObject;
-use js::rust::HandleValue;
-use servo_atoms::Atom;
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]

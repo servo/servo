@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::fmt;
+
+use bitflags::bitflags;
+use dom_struct::dom_struct;
+use itertools::Itertools;
+use style::element_state::ElementState;
+
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -13,12 +21,6 @@ use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use bitflags::bitflags;
-use dom_struct::dom_struct;
-use itertools::Itertools;
-use std::cell::Cell;
-use std::fmt;
-use style::element_state::ElementState;
 
 // https://html.spec.whatwg.org/multipage/#validity-states
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]

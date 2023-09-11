@@ -2,20 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::hosts::replace_host;
-use crate::http_loader::HANDLE;
-use futures::{task::Context, task::Poll, Future};
+use std::collections::hash_map::HashMap;
+use std::convert::TryFrom;
+use std::sync::{Arc, Mutex};
+
+use futures::task::{Context, Poll};
+use futures::Future;
 use http::uri::{Authority, Uri as Destination};
 use hyper::client::HttpConnector as HyperHttpConnector;
 use hyper::rt::Executor;
-use hyper::{service::Service, Body, Client};
+use hyper::service::Service;
+use hyper::{Body, Client};
 use hyper_rustls::HttpsConnector as HyperRustlsHttpsConnector;
 use log::warn;
 use rustls::client::WebPkiVerifier;
 use rustls::{Certificate, ClientConfig, OwnedTrustAnchor, RootCertStore, ServerName};
-use std::collections::hash_map::HashMap;
-use std::convert::TryFrom;
-use std::sync::{Arc, Mutex};
+
+use crate::hosts::replace_host;
+use crate::http_loader::HANDLE;
 
 pub const BUF_SIZE: usize = 32768;
 

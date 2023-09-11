@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::JsonPacketStream;
-use crate::StreamId;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::net::TcpStream;
+
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use ipc_channel::ipc::IpcSender;
@@ -12,9 +13,10 @@ use msg::constellation_msg::TEST_PIPELINE_ID;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::net::TcpStream;
+
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 
 #[derive(Clone, Copy)]
 #[allow(dead_code)]

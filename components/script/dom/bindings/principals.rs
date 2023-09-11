@@ -2,16 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use js::{
-    glue::{
-        CreateRustJSPrincipals, DestroyRustJSPrincipals, GetRustJSPrincipalsPrivate,
-        JSPrincipalsCallbacks,
-    },
-    jsapi::{JSPrincipals, JS_DropPrincipals, JS_HoldPrincipals},
-    rust::Runtime,
+use std::marker::PhantomData;
+use std::mem::ManuallyDrop;
+use std::ops::Deref;
+use std::ptr::NonNull;
+
+use js::glue::{
+    CreateRustJSPrincipals, DestroyRustJSPrincipals, GetRustJSPrincipalsPrivate,
+    JSPrincipalsCallbacks,
 };
+use js::jsapi::{JSPrincipals, JS_DropPrincipals, JS_HoldPrincipals};
+use js::rust::Runtime;
 use servo_url::MutableOrigin;
-use std::{marker::PhantomData, mem::ManuallyDrop, ops::Deref, ptr::NonNull};
 
 /// An owned reference to Servo's `JSPrincipals` instance.
 #[repr(transparent)]

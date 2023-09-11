@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::rust::HandleObject;
+
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -12,9 +16,6 @@ use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::node::{document_from_node, BindContext, Node, ShadowIncluding};
 use crate::dom::userscripts::load_script;
 use crate::dom::virtualmethods::VirtualMethods;
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::rust::HandleObject;
 
 #[dom_struct]
 pub struct HTMLHeadElement {

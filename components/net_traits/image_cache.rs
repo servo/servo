@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::image::base::{Image, ImageMetadata};
-use crate::request::CorsSettings;
-use crate::FetchResponseMsg;
-use crate::WebrenderIpcSender;
+use std::sync::Arc;
+
 use ipc_channel::ipc::IpcSender;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::sync::Arc;
+
+use crate::image::base::{Image, ImageMetadata};
+use crate::request::CorsSettings;
+use crate::{FetchResponseMsg, WebrenderIpcSender};
 
 // ======================================================================
 // Aux structs and enums.

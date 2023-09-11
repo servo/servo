@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::image_cache::CorsStatus;
+use std::fmt;
+
 use image::ImageFormat;
 use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::PixelFormat;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use webrender_api::ImageKey;
+
+use crate::image_cache::CorsStatus;
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct Image {

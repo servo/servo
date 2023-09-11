@@ -14,11 +14,12 @@
 //! we don't need to make the code more complex for it. The `mach` update command makes sure that
 //! those cases are not present.
 
+use std::collections::HashSet;
+use std::iter::FromIterator;
+
 use embedder_traits::resources::{self, Resource};
 use lazy_static::lazy_static;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use std::collections::HashSet;
-use std::iter::FromIterator;
 
 #[derive(Clone, Debug)]
 pub struct PubDomainRules {

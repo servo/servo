@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSharedMemory;
+use webgpu::identity::WebGPUOpResult;
+use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest};
+
+use super::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
+    GPUImageCopyTexture, GPUImageDataLayout,
+};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUSize64;
 use crate::dom::bindings::codegen::Bindings::GPUQueueBinding::GPUQueueMethods;
@@ -16,13 +24,6 @@ use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucommandencoder::{convert_ic_texture, convert_image_data_layout};
 use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt, GPUDevice};
-use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSharedMemory;
-use webgpu::{identity::WebGPUOpResult, wgt, WebGPU, WebGPUQueue, WebGPURequest};
-
-use super::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
-    GPUImageCopyTexture, GPUImageDataLayout,
-};
 
 #[dom_struct]
 pub struct GPUQueue {

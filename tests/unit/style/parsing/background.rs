@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::parsing::parse;
-use style::properties::longhands::background_size;
 use style::properties::longhands::{
-    background_attachment, background_clip, background_color, background_image,
-};
-use style::properties::longhands::{
-    background_origin, background_position_x, background_position_y, background_repeat,
+    background_attachment, background_clip, background_color, background_image, background_origin,
+    background_position_x, background_position_y, background_repeat, background_size,
 };
 use style::properties::shorthands::background;
+
+use crate::parsing::parse;
 
 #[test]
 fn background_shorthand_should_parse_all_available_properties_when_specified() {

@@ -9,9 +9,10 @@ pub type ServoGl = std::rc::Rc<dyn servo::gl::Gl>;
 #[cfg(any(target_os = "android", target_os = "windows"))]
 #[allow(non_camel_case_types)]
 pub mod egl {
-    use servo::gl::GlesFns;
     use std::ffi::CString;
     use std::os::raw::c_void;
+
+    use servo::gl::GlesFns;
 
     pub type EGLNativeWindowType = *const libc::c_void;
     pub type khronos_utime_nanoseconds_t = khronos_uint64_t;
@@ -64,14 +65,15 @@ pub mod gl {
 
 #[cfg(target_os = "macos")]
 pub mod gl {
+    use std::os::raw::c_void;
+    use std::str;
+
     use core_foundation::base::TCFType;
     use core_foundation::bundle::{
         CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName,
     };
     use core_foundation::string::CFString;
     use servo::gl::GlFns;
-    use std::os::raw::c_void;
-    use std::str;
 
     pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
         info!("Loading OpenGL...");
@@ -98,10 +100,11 @@ pub mod gl {
     target_os = "openbsd"
 ))]
 pub mod gl {
-    use libloading::{Library, Symbol};
-    use servo::gl::GlFns;
     use std::ffi::CString;
     use std::os::raw::c_void;
+
+    use libloading::{Library, Symbol};
+    use servo::gl::GlFns;
 
     pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
         info!("Loading OpenGL");

@@ -2,6 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp;
+use std::collections::HashMap;
+use std::ffi::CString;
+
+use cookie::Cookie;
+use euclid::default::{Point2D, Rect, Size2D};
+use hyper_serde::Serde;
+use ipc_channel::ipc::{self, IpcSender};
+use js::jsapi::{HandleValueArray, JSAutoRealm, JSContext, JSType, JS_IsExceptionPending};
+use js::jsval::UndefinedValue;
+use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
+use js::rust::{HandleObject, HandleValue};
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use net_traits::CookieSource::{NonHTTP, HTTP};
+use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
+use net_traits::IpcSend;
+use script_traits::webdriver_msg::{
+    WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
+};
+use servo_url::ServoUrl;
+use webdriver::common::{WebElement, WebFrame, WebWindow};
+use webdriver::error::ErrorStatus;
+
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -14,10 +37,8 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, N
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::conversions::{
-    get_property, get_property_jsval, is_array_like, root_from_object,
-};
-use crate::dom::bindings::conversions::{
-    ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
+    get_property, get_property_jsval, is_array_like, root_from_object, ConversionBehavior,
+    ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
@@ -41,29 +62,6 @@ use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::{Documents, ScriptThread};
-use cookie::Cookie;
-use euclid::default::{Point2D, Rect, Size2D};
-use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{HandleValueArray, JSAutoRealm, JSContext, JSType, JS_IsExceptionPending};
-use js::jsval::UndefinedValue;
-use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
-use js::rust::{HandleObject, HandleValue};
-use msg::constellation_msg::BrowsingContextId;
-use msg::constellation_msg::PipelineId;
-use net_traits::CookieSource::{NonHTTP, HTTP};
-use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
-use net_traits::IpcSend;
-use script_traits::webdriver_msg::WebDriverCookieError;
-use script_traits::webdriver_msg::{
-    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
-};
-use servo_url::ServoUrl;
-use std::cmp;
-use std::collections::HashMap;
-use std::ffi::CString;
-use webdriver::common::{WebElement, WebFrame, WebWindow};
-use webdriver::error::ErrorStatus;
 
 fn find_node_by_unique_id(
     documents: &Documents,

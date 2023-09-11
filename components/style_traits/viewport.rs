@@ -4,13 +4,15 @@
 
 //! Helper types for the `@viewport` rule.
 
-use crate::{CSSPixel, CssWriter, ParseError, PinchZoomFactor, ToCss};
+use std::fmt::{self, Write};
+
 use cssparser::*;
 use euclid::Size2D;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Write};
 use to_shmem_derive::ToShmem;
+
+use crate::{CSSPixel, CssWriter, ParseError, PinchZoomFactor, ToCss};
 
 define_css_keyword_enum! {
     pub enum UserZoom {

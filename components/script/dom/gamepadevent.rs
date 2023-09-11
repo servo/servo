@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+use servo_atoms::Atom;
+
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::GamepadEventBinding;
 use crate::dom::bindings::codegen::Bindings::GamepadEventBinding::GamepadEventMethods;
@@ -14,9 +18,6 @@ use crate::dom::event::Event;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use servo_atoms::Atom;
 
 #[dom_struct]
 pub struct GamepadEvent {

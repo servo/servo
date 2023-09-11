@@ -7,16 +7,6 @@ mod prefs;
 #[cfg(target_os = "windows")]
 mod vslogger;
 
-#[cfg(not(target_os = "windows"))]
-use env_logger;
-use keyboard_types::Key;
-use log::LevelFilter;
-use simpleservo::{self, gl_glue, ServoGlue, SERVO};
-use simpleservo::{
-    ContextMenuResult, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait, InitOptions,
-    InputMethodType, MediaSessionActionType, MediaSessionPlaybackState, MouseButton, PromptResult,
-    SurfmanIntegration,
-};
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
 use std::mem;
@@ -24,6 +14,16 @@ use std::os::raw::{c_char, c_uint, c_void};
 use std::slice;
 use std::str::FromStr;
 use std::sync::{Mutex, RwLock};
+
+#[cfg(not(target_os = "windows"))]
+use env_logger;
+use keyboard_types::Key;
+use log::LevelFilter;
+use simpleservo::{
+    self, gl_glue, ContextMenuResult, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait,
+    InitOptions, InputMethodType, MediaSessionActionType, MediaSessionPlaybackState, MouseButton,
+    PromptResult, ServoGlue, SurfmanIntegration, SERVO,
+};
 
 extern "C" fn default_panic_handler(msg: *const c_char) {
     let c_str: &CStr = unsafe { CStr::from_ptr(msg) };
@@ -78,13 +78,9 @@ fn redirect_stdout_stderr(handler: LogHandlerFn) -> Result<(), String> {
 //              Err(str) - The Err value can contain the string value of GetLastError.
 fn do_redirect_stdout_stderr(handler: LogHandlerFn) -> Result<(), ()> {
     use std::thread;
+
     use winapi::shared;
-    use winapi::um::handleapi;
-    use winapi::um::minwinbase;
-    use winapi::um::namedpipeapi;
-    use winapi::um::processenv;
-    use winapi::um::winbase;
-    use winapi::um::winnt;
+    use winapi::um::{handleapi, minwinbase, namedpipeapi, processenv, winbase, winnt};
 
     let mut h_read_pipe: winnt::HANDLE = handleapi::INVALID_HANDLE_VALUE;
     let mut h_write_pipe: winnt::HANDLE = handleapi::INVALID_HANDLE_VALUE;
@@ -354,9 +350,11 @@ pub extern "C" fn servo_version() -> *const c_char {
 
 #[cfg(target_os = "windows")]
 fn init_logger(modules: &[*const c_char], level: LevelFilter) {
-    use crate::vslogger::LOG_MODULE_FILTERS;
     use std::sync::Once;
+
     use vslogger::VSLogger;
+
+    use crate::vslogger::LOG_MODULE_FILTERS;
 
     static LOGGER: VSLogger = VSLogger;
     static LOGGER_INIT: Once = Once::new();

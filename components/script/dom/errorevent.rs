@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use js::jsapi::Heap;
+use js::jsval::JSVal;
+use js::rust::{HandleObject, HandleValue};
+use servo_atoms::Atom;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ErrorEventBinding;
 use crate::dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
@@ -15,12 +23,6 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsapi::Heap;
-use js::jsval::JSVal;
-use js::rust::{HandleObject, HandleValue};
-use servo_atoms::Atom;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct ErrorEvent {

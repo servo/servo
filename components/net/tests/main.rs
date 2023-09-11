@@ -19,6 +19,12 @@ mod resource_thread;
 mod subresource_integrity;
 
 use core::convert::Infallible;
+use std::fs::File;
+use std::io::{self, BufReader};
+use std::net::TcpListener as StdTcpListener;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, Weak};
+
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
@@ -42,13 +48,7 @@ use rustls::{self, Certificate, PrivateKey};
 use rustls_pemfile::{certs, pkcs8_private_keys};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
-use std::fs::File;
-use std::io::{self, BufReader};
-use std::net::TcpListener as StdTcpListener;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, Weak};
-use tokio::net::TcpListener;
-use tokio::net::TcpStream;
+use tokio::net::{TcpListener, TcpStream};
 use tokio::runtime::{Builder, Runtime};
 use tokio_rustls::{self, TlsAcceptor};
 use tokio_stream::wrappers::TcpListenerStream;

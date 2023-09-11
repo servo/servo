@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use webxr_api::{InputId, InputSource};
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceArrayBinding::XRInputSourceArrayMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -12,8 +15,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrinputsourceschangeevent::XRInputSourcesChangeEvent;
 use crate::dom::xrsession::XRSession;
-use dom_struct::dom_struct;
-use webxr_api::{InputId, InputSource};
 
 #[dom_struct]
 pub struct XRInputSourceArray {

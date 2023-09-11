@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use embedder_traits::resources::{self, Resource};
-use lazy_static::lazy_static;
-use serde_json::{self, Value};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 
+use embedder_traits::resources::{self, Resource};
+use gen::Prefs;
+use lazy_static::lazy_static;
+use serde_json::{self, Value};
+
 use crate::pref_util::Preferences;
 pub use crate::pref_util::{PrefError, PrefValue};
-use gen::Prefs;
 
 lazy_static! {
     static ref PREFS: Preferences<'static, Prefs> = {

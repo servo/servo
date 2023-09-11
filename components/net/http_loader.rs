@@ -2,35 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::connector::{
-    create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
-    Connector,
-};
-use crate::cookie;
-use crate::cookie_storage::CookieStorage;
-use crate::decoder::Decoder;
-use crate::fetch::cors_cache::CorsCache;
-use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
-use crate::hsts::HstsList;
-use crate::http_cache::{CacheKey, HttpCache};
-use crate::resource_thread::AuthCache;
-use async_recursion::async_recursion;
 use core::convert::Infallible;
+use std::collections::{HashMap, HashSet};
+use std::iter::FromIterator;
+use std::mem;
+use std::ops::Deref;
+use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
+use std::time::{Duration, SystemTime};
+
+use async_recursion::async_recursion;
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
+    HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
-use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use futures::{future, StreamExt, TryFutureExt, TryStreamExt};
 use headers::authorization::Basic;
-use headers::{AccessControlAllowCredentials, AccessControlAllowHeaders, HeaderMapExt};
 use headers::{
-    AccessControlAllowMethods, AccessControlRequestHeaders, AccessControlRequestMethod,
-    Authorization,
+    AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
+    AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestHeaders,
+    AccessControlRequestMethod, Authorization, CacheControl, ContentEncoding, ContentLength,
+    HeaderMapExt, IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
 };
-use headers::{AccessControlAllowOrigin, AccessControlMaxAge};
-use headers::{CacheControl, ContentEncoding, ContentLength};
-use headers::{IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent};
 use http::header::{
     self, HeaderValue, ACCEPT, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE,
 };
@@ -48,27 +41,17 @@ use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
     get_cors_unsafe_header_names, is_cors_non_wildcard_request_header_name,
-    is_cors_safelisted_method, is_cors_safelisted_request_header,
+    is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
+    BodyChunkResponse, CacheMode, CredentialsMode, Destination, Origin, RedirectMode, Referrer,
+    Request, RequestBuilder, RequestMode, ResponseTainting, ServiceWorkersMode,
 };
-use net_traits::request::{
-    BodyChunkRequest, BodyChunkResponse, RedirectMode, Referrer, Request, RequestBuilder,
-    RequestMode,
-};
-use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
-use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
-use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use net_traits::{
-    RedirectEndValue, RedirectStartValue, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    CookieSource, FetchMetadata, NetworkError, RedirectEndValue, RedirectStartValue,
+    ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::collections::{HashMap, HashSet};
-use std::iter::FromIterator;
-use std::mem;
-use std::ops::Deref;
-use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
-use std::time::{Duration, SystemTime};
 use time::{self, Tm};
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc::{
@@ -76,6 +59,19 @@ use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender,
 };
 use tokio_stream::wrappers::ReceiverStream;
+
+use crate::connector::{
+    create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
+    Connector,
+};
+use crate::cookie;
+use crate::cookie_storage::CookieStorage;
+use crate::decoder::Decoder;
+use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
+use crate::hsts::HstsList;
+use crate::http_cache::{CacheKey, HttpCache};
+use crate::resource_thread::AuthCache;
 
 lazy_static! {
     pub static ref HANDLE: Mutex<Option<Runtime>> = Mutex::new(Some(Runtime::new().unwrap()));

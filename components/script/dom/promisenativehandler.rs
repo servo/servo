@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::jsapi::JSContext;
+use js::rust::HandleValue;
+use malloc_size_of::MallocSizeOf;
+
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
-use dom_struct::dom_struct;
-use js::jsapi::JSContext;
-use js::rust::HandleValue;
-use malloc_size_of::MallocSizeOf;
 
 pub trait Callback: JSTraceable + MallocSizeOf {
     fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm);

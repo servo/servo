@@ -2,9 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
+use ipc_channel::router::ROUTER;
+use msg::constellation_msg::PipelineId;
+use profile_traits::ipc;
+use servo_config::pref;
+use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
+
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionInit;
-use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{XRSessionMode, XRSystemMethods};
+use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{
+    XRSessionInit, XRSessionMode, XRSystemMethods,
+};
 use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
@@ -22,15 +34,6 @@ use crate::dom::xrtest::XRTest;
 use crate::realms::InRealm;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
-use ipc_channel::router::ROUTER;
-use msg::constellation_msg::PipelineId;
-use profile_traits::ipc;
-use servo_config::pref;
-use std::cell::Cell;
-use std::rc::Rc;
-use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
 
 #[dom_struct]
 pub struct XRSystem {

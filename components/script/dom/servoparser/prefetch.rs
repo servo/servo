@@ -2,6 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use html5ever::buffer_queue::BufferQueue;
+use html5ever::tokenizer::states::RawKind;
+use html5ever::tokenizer::{
+    Tag, TagKind, Token, TokenSink, TokenSinkResult, Tokenizer as HtmlTokenizer, TokenizerResult,
+};
+use html5ever::{local_name, Attribute, LocalName};
+use js::jsapi::JSTracer;
+use msg::constellation_msg::PipelineId;
+use net_traits::request::{CorsSettings, CredentialsMode, ParserMetadata, Referrer};
+use net_traits::{CoreResourceMsg, FetchChannels, IpcSend, ReferrerPolicy, ResourceThreads};
+use servo_url::{ImmutableOrigin, ServoUrl};
+
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::document::{determine_policy_for_token, Document};
@@ -9,30 +21,6 @@ use crate::dom::htmlimageelement::{image_fetch_request, FromPictureOrSrcSet};
 use crate::dom::htmlscriptelement::script_fetch_request;
 use crate::script_module::ScriptFetchOptions;
 use crate::stylesheet_loader::stylesheet_fetch_request;
-use html5ever::buffer_queue::BufferQueue;
-use html5ever::tokenizer::states::RawKind;
-use html5ever::tokenizer::Tag;
-use html5ever::tokenizer::TagKind;
-use html5ever::tokenizer::Token;
-use html5ever::tokenizer::TokenSink;
-use html5ever::tokenizer::TokenSinkResult;
-use html5ever::tokenizer::Tokenizer as HtmlTokenizer;
-use html5ever::tokenizer::TokenizerResult;
-use html5ever::Attribute;
-use html5ever::{local_name, LocalName};
-use js::jsapi::JSTracer;
-use msg::constellation_msg::PipelineId;
-use net_traits::request::CorsSettings;
-use net_traits::request::CredentialsMode;
-use net_traits::request::ParserMetadata;
-use net_traits::request::Referrer;
-use net_traits::CoreResourceMsg;
-use net_traits::FetchChannels;
-use net_traits::IpcSend;
-use net_traits::ReferrerPolicy;
-use net_traits::ResourceThreads;
-use servo_url::ImmutableOrigin;
-use servo_url::ServoUrl;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]

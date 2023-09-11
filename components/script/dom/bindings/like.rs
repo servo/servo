@@ -6,13 +6,14 @@
 
 //! Implementation of `setlike<...>` and `maplike<..., ...>` WebIDL declarations.
 
-use crate::dom::bindings::cell::DomRefCell;
-use indexmap::{IndexMap, IndexSet};
-use js::conversions::ToJSValConvertible;
 use std::cmp::Eq;
 use std::hash::Hash;
 
+use indexmap::{IndexMap, IndexSet};
+use js::conversions::ToJSValConvertible;
+
 use super::iterable::Iterable;
+use crate::dom::bindings::cell::DomRefCell;
 
 /// Every Setlike dom_struct must implement this to provide access to underlying storage
 /// so codegen can automatically generate all setlike methods

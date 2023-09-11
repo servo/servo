@@ -2,8 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::GamepadBinding::GamepadHand;
-use crate::dom::bindings::codegen::Bindings::GamepadBinding::GamepadMethods;
+use std::cell::Cell;
+use std::ptr::NonNull;
+
+use dom_struct::dom_struct;
+use js::jsapi::{Heap, JSObject};
+
+use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
@@ -15,10 +20,6 @@ use crate::dom::gamepadbuttonlist::GamepadButtonList;
 use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
 use crate::dom::gamepadpose::GamepadPose;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
-use std::cell::Cell;
-use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct Gamepad {

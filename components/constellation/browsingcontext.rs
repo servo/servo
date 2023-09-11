@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::pipeline::Pipeline;
+use std::collections::{HashMap, HashSet};
+
 use euclid::Size2D;
 use log::warn;
 use msg::constellation_msg::{
     BrowsingContextGroupId, BrowsingContextId, PipelineId, TopLevelBrowsingContextId,
 };
-use std::collections::{HashMap, HashSet};
 use style_traits::CSSPixel;
+
+use crate::pipeline::Pipeline;
 
 /// Because a browsing context is only constructed once the document that's
 /// going to be in it becomes active (i.e. not when a pipeline is spawned), some

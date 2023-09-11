@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSender;
+use webxr_api::{
+    Handedness, InputId, MockDeviceMsg, MockInputMsg, SelectEvent, SelectKind, TargetRayMode,
+};
+
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::FakeXRRigidTransformInit;
 use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::FakeXRInputControllerMethods;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
@@ -13,11 +19,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::fakexrdevice::get_origin;
 use crate::dom::globalscope::GlobalScope;
-use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use webxr_api::{
-    Handedness, InputId, MockDeviceMsg, MockInputMsg, SelectEvent, SelectKind, TargetRayMode,
-};
 
 #[dom_struct]
 pub struct FakeXRInputController {

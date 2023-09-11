@@ -2,19 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::body::Extractable;
-use crate::body::{consume_body, BodyMixin, BodyType};
+use std::ptr::NonNull;
+use std::rc::Rc;
+use std::str::FromStr;
+
+use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
+use dom_struct::dom_struct;
+use http::header::{HeaderName, HeaderValue};
+use http::method::InvalidMethod;
+use http::Method as HttpMethod;
+use js::jsapi::JSObject;
+use js::rust::HandleObject;
+use net_traits::request::{
+    CacheMode as NetTraitsRequestCache, CredentialsMode as NetTraitsRequestCredentials,
+    Destination as NetTraitsRequestDestination, Origin, RedirectMode as NetTraitsRequestRedirect,
+    Referrer as NetTraitsRequestReferrer, Request as NetTraitsRequest,
+    RequestMode as NetTraitsRequestMode, Window,
+};
+use net_traits::ReferrerPolicy as MsgReferrerPolicy;
+use servo_url::ServoUrl;
+
+use crate::body::{consume_body, BodyMixin, BodyType, Extractable};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
-use crate::dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestDestination;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
+use crate::dom::bindings::codegen::Bindings::RequestBinding::{
+    ReferrerPolicy, RequestCache, RequestCredentials, RequestDestination, RequestInfo, RequestInit,
+    RequestMethods, RequestMode, RequestRedirect,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -25,26 +39,6 @@ use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::JSContext as SafeJSContext;
-use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
-use dom_struct::dom_struct;
-use http::header::{HeaderName, HeaderValue};
-use http::method::InvalidMethod;
-use http::Method as HttpMethod;
-use js::jsapi::JSObject;
-use js::rust::HandleObject;
-use net_traits::request::CacheMode as NetTraitsRequestCache;
-use net_traits::request::CredentialsMode as NetTraitsRequestCredentials;
-use net_traits::request::Destination as NetTraitsRequestDestination;
-use net_traits::request::RedirectMode as NetTraitsRequestRedirect;
-use net_traits::request::Referrer as NetTraitsRequestReferrer;
-use net_traits::request::Request as NetTraitsRequest;
-use net_traits::request::RequestMode as NetTraitsRequestMode;
-use net_traits::request::{Origin, Window};
-use net_traits::ReferrerPolicy as MsgReferrerPolicy;
-use servo_url::ServoUrl;
-use std::ptr::NonNull;
-use std::rc::Rc;
-use std::str::FromStr;
 
 #[dom_struct]
 pub struct Request {

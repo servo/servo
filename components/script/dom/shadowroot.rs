@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use servo_arc::Arc;
+use servo_atoms::Atom;
+use style::author_styles::AuthorStyles;
+use style::dom::TElement;
+use style::shared_lock::SharedRwLockReadGuard;
+use style::stylesheets::Stylesheet;
+use style::stylist::{CascadeData, Stylist};
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMode;
@@ -18,14 +27,6 @@ use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding, UnbindConte
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
-use dom_struct::dom_struct;
-use servo_arc::Arc;
-use servo_atoms::Atom;
-use style::author_styles::AuthorStyles;
-use style::dom::TElement;
-use style::shared_lock::SharedRwLockReadGuard;
-use style::stylesheets::Stylesheet;
-use style::stylist::{CascadeData, Stylist};
 
 /// Whether a shadow root hosts an User Agent widget.
 #[derive(JSTraceable, MallocSizeOf, PartialEq)]

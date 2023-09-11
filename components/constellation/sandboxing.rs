@@ -2,8 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::pipeline::UnprivilegedPipelineContent;
-use crate::serviceworker::ServiceWorkerUnprivilegedContent;
+use std::collections::HashMap;
+#[cfg(not(windows))]
+use std::env;
+use std::ffi::OsStr;
+use std::process;
+
 #[cfg(any(
     target_os = "macos",
     all(
@@ -19,11 +23,9 @@ use ipc_channel::Error;
 use serde::{Deserialize, Serialize};
 use servo_config::opts::Opts;
 use servo_config::prefs::PrefValue;
-use std::collections::HashMap;
-#[cfg(not(windows))]
-use std::env;
-use std::ffi::OsStr;
-use std::process;
+
+use crate::pipeline::UnprivilegedPipelineContent;
+use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 
 #[derive(Deserialize, Serialize)]
 pub enum UnprivilegedContent {
@@ -50,9 +52,10 @@ impl UnprivilegedContent {
 /// Our content process sandbox profile on Mac. As restrictive as possible.
 #[cfg(target_os = "macos")]
 pub fn content_process_sandbox_profile() -> Profile {
+    use std::path::PathBuf;
+
     use embedder_traits::resources;
     use gaol::platform;
-    use std::path::PathBuf;
 
     let mut operations = vec![
         Operation::FileReadAll(PathPattern::Literal(PathBuf::from("/dev/urandom"))),
@@ -98,8 +101,9 @@ pub fn content_process_sandbox_profile() -> Profile {
     not(target_arch = "aarch64")
 ))]
 pub fn content_process_sandbox_profile() -> Profile {
-    use embedder_traits::resources;
     use std::path::PathBuf;
+
+    use embedder_traits::resources;
 
     let mut operations = vec![Operation::FileReadAll(PathPattern::Literal(PathBuf::from(
         "/dev/urandom",

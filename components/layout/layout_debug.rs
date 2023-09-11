@@ -5,16 +5,18 @@
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
-use crate::flow::GetBaseFlow;
-use crate::flow_ref::FlowRef;
-use serde::Serialize;
-use serde_json::{to_string, to_value, Value};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::Write;
 #[cfg(debug_assertions)]
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+use serde::Serialize;
+use serde_json::{to_string, to_value, Value};
+
+use crate::flow::GetBaseFlow;
+use crate::flow_ref::FlowRef;
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
 

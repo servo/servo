@@ -2,16 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ptr;
+use std::ptr::NonNull;
+
+use dom_struct::dom_struct;
+use js::jsapi::{Heap, JSObject};
+use js::typedarray::{CreateWith, Float32Array};
+
 use crate::dom::bindings::codegen::Bindings::GamepadPoseBinding::GamepadPoseMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
-use js::typedarray::{CreateWith, Float32Array};
-use std::ptr;
-use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct GamepadPose {

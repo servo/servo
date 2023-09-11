@@ -2,87 +2,54 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::webgl_limits::GLLimitsDetect;
+use std::borrow::Cow;
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use std::{slice, thread};
+
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;
-use canvas_traits::webgl::webgl_channel;
-use canvas_traits::webgl::ActiveAttribInfo;
-use canvas_traits::webgl::ActiveUniformBlockInfo;
-use canvas_traits::webgl::ActiveUniformInfo;
-use canvas_traits::webgl::AlphaTreatment;
-use canvas_traits::webgl::GLContextAttributes;
-use canvas_traits::webgl::GLLimits;
-use canvas_traits::webgl::GlType;
-use canvas_traits::webgl::InternalFormatIntVec;
-use canvas_traits::webgl::ProgramLinkInfo;
-use canvas_traits::webgl::TexDataType;
-use canvas_traits::webgl::TexFormat;
-use canvas_traits::webgl::WebGLBufferId;
-use canvas_traits::webgl::WebGLChan;
-use canvas_traits::webgl::WebGLCommand;
-use canvas_traits::webgl::WebGLCommandBacktrace;
-use canvas_traits::webgl::WebGLContextId;
-use canvas_traits::webgl::WebGLCreateContextResult;
-use canvas_traits::webgl::WebGLFramebufferBindingRequest;
-use canvas_traits::webgl::WebGLFramebufferId;
-use canvas_traits::webgl::WebGLMsg;
-use canvas_traits::webgl::WebGLMsgSender;
-use canvas_traits::webgl::WebGLProgramId;
-use canvas_traits::webgl::WebGLQueryId;
-use canvas_traits::webgl::WebGLReceiver;
-use canvas_traits::webgl::WebGLRenderbufferId;
-use canvas_traits::webgl::WebGLSLVersion;
-use canvas_traits::webgl::WebGLSamplerId;
-use canvas_traits::webgl::WebGLSender;
-use canvas_traits::webgl::WebGLShaderId;
-use canvas_traits::webgl::WebGLSyncId;
-use canvas_traits::webgl::WebGLTextureId;
-use canvas_traits::webgl::WebGLVersion;
-use canvas_traits::webgl::WebGLVertexArrayId;
-use canvas_traits::webgl::WebXRCommand;
-use canvas_traits::webgl::WebXRLayerManagerId;
-use canvas_traits::webgl::YAxisTreatment;
+use canvas_traits::webgl::{
+    webgl_channel, ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, AlphaTreatment,
+    GLContextAttributes, GLLimits, GlType, InternalFormatIntVec, ProgramLinkInfo, TexDataType,
+    TexFormat, WebGLBufferId, WebGLChan, WebGLCommand, WebGLCommandBacktrace, WebGLContextId,
+    WebGLCreateContextResult, WebGLFramebufferBindingRequest, WebGLFramebufferId, WebGLMsg,
+    WebGLMsgSender, WebGLProgramId, WebGLQueryId, WebGLReceiver, WebGLRenderbufferId,
+    WebGLSLVersion, WebGLSamplerId, WebGLSender, WebGLShaderId, WebGLSyncId, WebGLTextureId,
+    WebGLVersion, WebGLVertexArrayId, WebXRCommand, WebXRLayerManagerId, YAxisTreatment,
+};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
 use log::{debug, error, trace, warn};
 use pixels::{self, PixelFormat};
 use sparkle::gl;
-use sparkle::gl::GLint;
-use sparkle::gl::GLuint;
-use sparkle::gl::Gl;
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::rc::Rc;
-use std::slice;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use sparkle::gl::{GLint, GLuint, Gl};
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
 use surfman::{
     self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,
     GLVersion, SurfaceAccess, SurfaceInfo, SurfaceType,
 };
 use webrender::{RenderApi, RenderApiSender, Transaction};
+use webrender_api::units::DeviceIntSize;
 use webrender_api::{
-    units::DeviceIntSize, DirtyRect, DocumentId, ExternalImageData, ExternalImageId,
-    ExternalImageType, ImageBufferKind, ImageData, ImageDescriptor, ImageDescriptorFlags,
-    ImageFormat, ImageKey,
+    DirtyRect, DocumentId, ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind,
+    ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
 };
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use webxr::SurfmanGL as WebXRSurfman;
-use webxr_api::ContextId as WebXRContextId;
-use webxr_api::Error as WebXRError;
-use webxr_api::GLContexts as WebXRContexts;
-use webxr_api::GLTypes as WebXRTypes;
-use webxr_api::LayerGrandManager as WebXRLayerGrandManager;
-use webxr_api::LayerGrandManagerAPI as WebXRLayerGrandManagerAPI;
-use webxr_api::LayerId as WebXRLayerId;
-use webxr_api::LayerInit as WebXRLayerInit;
-use webxr_api::LayerManager as WebXRLayerManager;
-use webxr_api::LayerManagerAPI as WebXRLayerManagerAPI;
-use webxr_api::LayerManagerFactory as WebXRLayerManagerFactory;
-use webxr_api::SubImages as WebXRSubImages;
+use webxr_api::{
+    ContextId as WebXRContextId, Error as WebXRError, GLContexts as WebXRContexts,
+    GLTypes as WebXRTypes, LayerGrandManager as WebXRLayerGrandManager,
+    LayerGrandManagerAPI as WebXRLayerGrandManagerAPI, LayerId as WebXRLayerId,
+    LayerInit as WebXRLayerInit, LayerManager as WebXRLayerManager,
+    LayerManagerAPI as WebXRLayerManagerAPI, LayerManagerFactory as WebXRLayerManagerFactory,
+    SubImages as WebXRSubImages,
+};
+
+use crate::webgl_limits::GLLimitsDetect;
 
 #[cfg(feature = "xr-profile")]
 fn to_ms(ns: u64) -> f64 {

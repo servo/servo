@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::jsapi::Heap;
+use js::jsval::JSVal;
+use js::rust::{HandleObject, HandleValue};
+use servo_atoms::Atom;
+
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding;
 use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding::PromiseRejectionEventMethods;
@@ -15,12 +23,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsapi::Heap;
-use js::jsval::JSVal;
-use js::rust::{HandleObject, HandleValue};
-use servo_atoms::Atom;
-use std::rc::Rc;
 
 #[dom_struct]
 pub struct PromiseRejectionEvent {

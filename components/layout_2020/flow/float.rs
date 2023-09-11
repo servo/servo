@@ -6,6 +6,19 @@
 //!
 //! See CSS 2.1 § 9.5.1: https://www.w3.org/TR/CSS2/visuren.html#float-position
 
+use std::collections::VecDeque;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
+use std::ops::Range;
+use std::{f32, mem};
+
+use euclid::num::Zero;
+use serde::Serialize;
+use servo_arc::Arc;
+use style::computed_values::float::T as FloatProperty;
+use style::properties::ComputedValues;
+use style::values::computed::{CSSPixelLength, Clear, Length};
+use style::values::specified::text::TextDecorationLine;
+
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
@@ -15,17 +28,6 @@ use crate::geom::flow_relative::{Rect, Vec2};
 use crate::positioned::PositioningContext;
 use crate::style_ext::{ComputedValuesExt, DisplayInside, PaddingBorderMargin};
 use crate::ContainingBlock;
-use euclid::num::Zero;
-use serde::Serialize;
-use servo_arc::Arc;
-use std::collections::VecDeque;
-use std::fmt::{Debug, Formatter, Result as FmtResult};
-use std::ops::Range;
-use std::{f32, mem};
-use style::computed_values::float::T as FloatProperty;
-use style::properties::ComputedValues;
-use style::values::computed::{CSSPixelLength, Clear, Length};
-use style::values::specified::text::TextDecorationLine;
 
 /// A floating box.
 #[derive(Debug, Serialize)]

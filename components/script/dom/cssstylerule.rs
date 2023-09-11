@@ -2,6 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::mem;
+
+use cssparser::{Parser as CssParser, ParserInput as CssParserInput, ToCss};
+use dom_struct::dom_struct;
+use selectors::parser::SelectorList;
+use servo_arc::Arc;
+use style::selector_parser::SelectorParser;
+use style::shared_lock::{Locked, ToCssWithGuard};
+use style::stylesheets::{Origin, StyleRule};
+
 use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::CSSStyleRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -12,15 +22,6 @@ use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::node::{stylesheets_owner_from_node, Node};
 use crate::dom::window::Window;
-use cssparser::ToCss;
-use cssparser::{Parser as CssParser, ParserInput as CssParserInput};
-use dom_struct::dom_struct;
-use selectors::parser::SelectorList;
-use servo_arc::Arc;
-use std::mem;
-use style::selector_parser::SelectorParser;
-use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{Origin, StyleRule};
 
 #[dom_struct]
 pub struct CSSStyleRule {

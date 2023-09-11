@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+use std::net::{Ipv4Addr, Ipv6Addr};
+
 use embedder_traits::resources::{self, Resource};
 use headers::{HeaderMapExt, StrictTransportSecurity};
 use http::HeaderMap;
@@ -11,8 +14,6 @@ use net_traits::IncludeSubdomains;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use servo_url::{Host, ServoUrl};
-use std::collections::HashMap;
-use std::net::{Ipv4Addr, Ipv6Addr};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct HstsEntry {

@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::filemanager_thread::FileOrigin;
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use std::str::FromStr;
 use url::Url;
 use uuid::Uuid;
+
+use crate::filemanager_thread::FileOrigin;
 
 /// Errors returned to Blob URL Store request
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

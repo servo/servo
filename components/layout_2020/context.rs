@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::display_list::WebRenderImageInfo;
+use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
+
 use fnv::FnvHashMap;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
@@ -13,10 +15,10 @@ use net_traits::image_cache::{
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::cell::RefCell;
-use std::sync::{Arc, Mutex};
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
+
+use crate::display_list::WebRenderImageInfo;
 
 pub struct LayoutContext<'a> {
     pub id: PipelineId,

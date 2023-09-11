@@ -4,13 +4,6 @@
 
 //! Timing functions.
 
-use crate::trace_dump::TraceDump;
-use ipc_channel::ipc::{self, IpcReceiver};
-use profile_traits::time::{
-    ProfilerCategory, ProfilerChan, ProfilerData, ProfilerMsg, TimerMetadata,
-};
-use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use servo_config::opts::OutputOptions;
 use std::borrow::ToOwned;
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
@@ -18,6 +11,15 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::time::Duration;
 use std::{f64, thread, u32, u64};
+
+use ipc_channel::ipc::{self, IpcReceiver};
+use profile_traits::time::{
+    ProfilerCategory, ProfilerChan, ProfilerData, ProfilerMsg, TimerMetadata,
+    TimerMetadataFrameType, TimerMetadataReflowType,
+};
+use servo_config::opts::OutputOptions;
+
+use crate::trace_dump::TraceDump;
 
 pub trait Formattable {
     fn format(&self, output: &Option<OutputOptions>) -> String;

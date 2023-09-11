@@ -11,16 +11,15 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
+use std::net::TcpStream;
+
 use bitflags::bitflags;
-use http::HeaderMap;
-use http::Method;
+use http::{HeaderMap, Method};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use std::net::TcpStream;
 use time::{self, Duration, Tm};
 use uuid::Uuid;
 

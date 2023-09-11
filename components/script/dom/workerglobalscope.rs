@@ -2,6 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::default::Default;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+use crossbeam_channel::Receiver;
+use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
+use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSender;
+use js::jsval::UndefinedValue;
+use js::panic::maybe_resume_unwind;
+use js::rust::{HandleValue, ParentRuntime};
+use msg::constellation_msg::{PipelineId, PipelineNamespace};
+use net_traits::request::{
+    CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
+};
+use net_traits::IpcSend;
+use parking_lot::Mutex;
+use script_traits::WorkerGlobalScopeInit;
+use servo_url::{MutableOrigin, ServoUrl};
+use time::precise_time_ns;
+use uuid::Uuid;
+
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
@@ -30,8 +53,10 @@ use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::{get_reports, CommonScriptMsg, Runtime, ScriptChan, ScriptPort};
-use crate::script_runtime::{ContextForRequestInterrupt, JSContext};
+use crate::script_runtime::{
+    get_reports, CommonScriptMsg, ContextForRequestInterrupt, JSContext, Runtime, ScriptChan,
+    ScriptPort,
+};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
@@ -42,27 +67,6 @@ use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::timer::TimerTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::timers::{IsInterval, TimerCallback};
-use crossbeam_channel::Receiver;
-use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
-use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use js::jsval::UndefinedValue;
-use js::panic::maybe_resume_unwind;
-use js::rust::{HandleValue, ParentRuntime};
-use msg::constellation_msg::{PipelineId, PipelineNamespace};
-use net_traits::request::{
-    CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
-};
-use net_traits::IpcSend;
-use parking_lot::Mutex;
-use script_traits::WorkerGlobalScopeInit;
-use servo_url::{MutableOrigin, ServoUrl};
-use std::default::Default;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use time::precise_time_ns;
-use uuid::Uuid;
 
 pub fn prepare_workerscope_init(
     global: &GlobalScope,

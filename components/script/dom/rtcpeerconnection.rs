@@ -2,24 +2,37 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+use servo_media::streams::registry::MediaStreamId;
+use servo_media::streams::MediaStreamType;
+use servo_media::webrtc::{
+    BundlePolicy, DataChannelEvent, DataChannelId, DataChannelState, GatheringState, IceCandidate,
+    IceConnectionState, SdpType, SessionDescription, SignalingState, WebRtcController,
+    WebRtcSignaller,
+};
+use servo_media::ServoMedia;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelInit;
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
-use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
     RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCIceConnectionState,
-    RTCIceGatheringState, RTCOfferOptions, RTCRtpTransceiverInit, RTCSignalingState,
+    RTCIceGatheringState, RTCOfferOptions, RTCPeerConnectionMethods, RTCRtpTransceiverInit,
+    RTCSignalingState,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
 };
 use crate::dom::bindings::codegen::UnionTypes::{MediaStreamTrackOrString, StringOrStringSequence};
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -40,20 +53,6 @@ use crate::realms::{enter_realm, InRealm};
 use crate::task::TaskCanceller;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use servo_media::streams::registry::MediaStreamId;
-use servo_media::streams::MediaStreamType;
-use servo_media::webrtc::{
-    BundlePolicy, DataChannelEvent, DataChannelId, DataChannelState, GatheringState, IceCandidate,
-    IceConnectionState, SdpType, SessionDescription, SignalingState, WebRtcController,
-    WebRtcSignaller,
-};
-use servo_media::ServoMedia;
-
-use std::cell::Cell;
-use std::collections::HashMap;
-use std::rc::Rc;
 
 #[dom_struct]
 pub struct RTCPeerConnection {

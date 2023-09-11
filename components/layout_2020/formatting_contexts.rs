@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::convert::TryInto;
+
+use serde::Serialize;
+use servo_arc::Arc;
+use style::logical_geometry::WritingMode;
+use style::properties::ComputedValues;
+use style::values::computed::Length;
+use style::values::specified::text::TextDecorationLine;
+
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
@@ -13,13 +22,6 @@ use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
 use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
-use serde::Serialize;
-use servo_arc::Arc;
-use std::convert::TryInto;
-use style::logical_geometry::WritingMode;
-use style::properties::ComputedValues;
-use style::values::computed::Length;
-use style::values::specified::text::TextDecorationLine;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
 #[derive(Debug, Serialize)]

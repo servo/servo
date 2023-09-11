@@ -2,17 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashSet;
+use std::default::Default;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::rust::HandleObject;
+use script_layout_interface::message::QueryMsg;
+use style::attr::AttrValue;
+use style::element_state::*;
+
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
-use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
+use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
+    EventHandlerNonNull, OnErrorEventHandlerNonNull,
+};
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -30,19 +41,9 @@ use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::rust::HandleObject;
-use script_layout_interface::message::QueryMsg;
-use std::collections::HashSet;
-use std::default::Default;
-use std::rc::Rc;
-use style::attr::AttrValue;
-use style::element_state::*;
 
 #[dom_struct]
 pub struct HTMLElement {

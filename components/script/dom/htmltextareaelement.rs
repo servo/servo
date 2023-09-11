@@ -2,6 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::default::Default;
+use std::ops::Range;
+
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::rust::HandleObject;
+use script_traits::ScriptToConstellationChan;
+use style::attr::AttrValue;
+use style::element_state::ElementState;
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -14,8 +25,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::LayoutElementHelpers;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
@@ -23,9 +33,9 @@ use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::node::window_from_node;
 use crate::dom::node::{
-    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, UnbindContext,
+    window_from_node, BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage,
+    UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
@@ -35,15 +45,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::textinput::{
     Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes,
 };
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::rust::HandleObject;
-use script_traits::ScriptToConstellationChan;
-use std::cell::Cell;
-use std::default::Default;
-use std::ops::Range;
-use style::attr::AttrValue;
-use style::element_state::ElementState;
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {

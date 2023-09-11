@@ -4,6 +4,46 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
+use std::borrow::Cow;
+use std::cell::{Cell, UnsafeCell};
+use std::default::Default;
+use std::ops::Range;
+use std::slice::from_ref;
+use std::sync::Arc as StdArc;
+use std::{cmp, iter, mem};
+
+use app_units::Au;
+use bitflags::bitflags;
+use devtools_traits::NodeInfo;
+use dom_struct::dom_struct;
+use euclid::default::{Point2D, Rect, Size2D, Vector2D};
+use html5ever::{namespace_url, ns, Namespace, Prefix, QualName};
+use js::jsapi::JSObject;
+use js::rust::HandleObject;
+use libc::{self, c_void, uintptr_t};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use net_traits::image::base::{Image, ImageMetadata};
+use script_layout_interface::message::QueryMsg;
+use script_layout_interface::{
+    HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, SVGSVGData,
+    StyleAndOpaqueLayoutData, TrustedNodeAddress,
+};
+use script_traits::{DocumentActivity, UntrustedNodeAddress};
+use selectors::matching::{
+    matches_selector_list, MatchingContext, MatchingMode, NeedsSelectorFlags,
+};
+use selectors::parser::SelectorList;
+use servo_arc::Arc;
+use servo_url::ServoUrl;
+use smallvec::SmallVec;
+use style::context::QuirksMode;
+use style::dom::OpaqueNode;
+use style::properties::ComputedValues;
+use style::selector_parser::{SelectorImpl, SelectorParser};
+use style::stylesheets::Stylesheet;
+use uuid::Uuid;
+
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
@@ -23,9 +63,10 @@ use crate::dom::bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::conversions::{self, DerivedFrom};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
-use crate::dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
-use crate::dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId};
+use crate::dom::bindings::inheritance::{
+    Castable, CharacterDataTypeId, ElementTypeId, EventTargetTypeId, HTMLElementTypeId, NodeTypeId,
+    SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
+};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, DomObjectWrap};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -63,46 +104,6 @@ use crate::dom::text::Text;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
-use app_units::Au;
-use bitflags::bitflags;
-use devtools_traits::NodeInfo;
-use dom_struct::dom_struct;
-use euclid::default::{Point2D, Rect, Size2D, Vector2D};
-use html5ever::{namespace_url, ns, Namespace, Prefix, QualName};
-use js::jsapi::JSObject;
-
-use js::rust::HandleObject;
-use libc::{self, c_void, uintptr_t};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use net_traits::image::base::{Image, ImageMetadata};
-use script_layout_interface::message::QueryMsg;
-use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType};
-use script_layout_interface::{SVGSVGData, StyleAndOpaqueLayoutData, TrustedNodeAddress};
-use script_traits::DocumentActivity;
-use script_traits::UntrustedNodeAddress;
-use selectors::matching::{
-    matches_selector_list, MatchingContext, MatchingMode, NeedsSelectorFlags,
-};
-use selectors::parser::SelectorList;
-use servo_arc::Arc;
-use servo_url::ServoUrl;
-use smallvec::SmallVec;
-use std::borrow::Cow;
-use std::cell::{Cell, UnsafeCell};
-use std::cmp;
-use std::default::Default;
-use std::iter;
-use std::mem;
-use std::ops::Range;
-use std::slice::from_ref;
-use std::sync::Arc as StdArc;
-use style::context::QuirksMode;
-use style::dom::OpaqueNode;
-use style::properties::ComputedValues;
-use style::selector_parser::{SelectorImpl, SelectorParser};
-use style::stylesheets::Stylesheet;
-use uuid::Uuid;
 
 //
 // The basic Node structure

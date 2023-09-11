@@ -6,14 +6,14 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
+use ipc_channel::ipc::IpcSender;
+use net_traits::request::RequestBuilder;
+use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg, IpcSend, ResourceThreads};
+use servo_url::ServoUrl;
+
 use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;
-use ipc_channel::ipc::IpcSender;
-use net_traits::request::RequestBuilder;
-use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
-use net_traits::{IpcSend, ResourceThreads};
-use servo_url::ServoUrl;
 
 #[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum LoadType {

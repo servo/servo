@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::str::FromStr;
+
 use synstructure::{self, decl_derive};
 
 decl_derive!([DenyPublicFields] => deny_public_fields_derive);

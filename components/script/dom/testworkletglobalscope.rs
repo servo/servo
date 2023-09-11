@@ -2,21 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+
+use crossbeam_channel::Sender;
+use dom_struct::dom_struct;
+use js::rust::Runtime;
+use msg::constellation_msg::PipelineId;
+use servo_url::ServoUrl;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::worklet::WorkletExecutor;
-use crate::dom::workletglobalscope::WorkletGlobalScope;
-use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
+use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
 use crate::script_runtime::JSContext;
-use crossbeam_channel::Sender;
-use dom_struct::dom_struct;
-use js::rust::Runtime;
-use msg::constellation_msg::PipelineId;
-use servo_url::ServoUrl;
-use std::collections::HashMap;
 
 // check-tidy: no specs after this line
 

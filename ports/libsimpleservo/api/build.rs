@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use gl_generator::{Api, Fallbacks, Profile, Registry};
-use serde_json::{self, Value};
 use std::env;
 use std::fs::File;
 use std::path::PathBuf;
+
+use gl_generator::{Api, Fallbacks, Profile, Registry};
+use serde_json::{self, Value};
 use vergen::EmitBuilder;
 
 fn main() {

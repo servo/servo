@@ -40,10 +40,9 @@ pub mod traversal;
 pub mod wrapper;
 
 // For unit tests:
-pub use self::data::LayoutData;
-pub use crate::fragment::Fragment;
-pub use crate::fragment::SpecificFragmentInfo;
-
 // We can't use servo_arc for everything in layout, because the Flow stuff uses
 // weak references.
 use servo_arc::Arc as ServoArc;
+
+pub use self::data::LayoutData;
+pub use crate::fragment::{Fragment, SpecificFragmentInfo};

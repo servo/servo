@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::root::LayoutDom;
-use crate::dom::document::{Document, LayoutDocumentHelpers};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
-use crate::layout_dom::ServoLayoutElement;
-use crate::layout_dom::ServoLayoutNode;
-use crate::layout_dom::ServoShadowRoot;
+use std::marker::PhantomData;
+
 use script_layout_interface::wrapper_traits::LayoutDataTrait;
 use selectors::matching::QuirksMode;
-use std::marker::PhantomData;
 use style::dom::{TDocument, TNode};
 use style::shared_lock::{
     SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard as StyleSharedRwLockReadGuard,
 };
 use style::stylist::Stylist;
+
+use crate::dom::bindings::root::LayoutDom;
+use crate::dom::document::{Document, LayoutDocumentHelpers};
+use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
+use crate::layout_dom::{ServoLayoutElement, ServoLayoutNode, ServoShadowRoot};
 
 // A wrapper around documents that ensures ayout can only ever access safe properties.
 pub struct ServoLayoutDocument<'dom, LayoutDataType: LayoutDataTrait> {

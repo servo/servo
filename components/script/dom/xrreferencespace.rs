@@ -2,8 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceMethods;
-use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
+use dom_struct::dom_struct;
+use euclid::RigidTransform3D;
+use webxr_api::{self, Frame, Space};
+
+use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::{
+    XRReferenceSpaceMethods, XRReferenceSpaceType,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -11,9 +16,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, ApiPose, BaseTransform, XRSession};
 use crate::dom::xrspace::XRSpace;
-use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
-use webxr_api::{self, Frame, Space};
 
 #[dom_struct]
 pub struct XRReferenceSpace {

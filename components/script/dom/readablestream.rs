@@ -2,6 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
+use std::os::raw::c_void;
+use std::ptr::{self, NonNull};
+use std::rc::Rc;
+use std::slice;
+
+use dom_struct::dom_struct;
+use js::glue::{
+    CreateReadableStreamUnderlyingSource, DeleteReadableStreamUnderlyingSource,
+    ReadableStreamUnderlyingSourceTraps,
+};
+use js::jsapi::{
+    AutoRequireNoGC, HandleObject, HandleValue, Heap, IsReadableStream, JSContext, JSObject,
+    JS_GetArrayBufferViewData, NewReadableExternalSourceStreamObject, ReadableStreamClose,
+    ReadableStreamDefaultReaderRead, ReadableStreamError, ReadableStreamGetReader,
+    ReadableStreamIsDisturbed, ReadableStreamIsLocked, ReadableStreamIsReadable,
+    ReadableStreamReaderMode, ReadableStreamReaderReleaseLock, ReadableStreamUnderlyingSource,
+    ReadableStreamUpdateDataAvailableFromSource, UnwrapReadableStream,
+};
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::{HandleValue as SafeHandleValue, IntoHandle};
+
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -13,29 +35,6 @@ use crate::dom::promise::Promise;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
-use dom_struct::dom_struct;
-use js::glue::{
-    CreateReadableStreamUnderlyingSource, DeleteReadableStreamUnderlyingSource,
-    ReadableStreamUnderlyingSourceTraps,
-};
-use js::jsapi::{
-    AutoRequireNoGC, IsReadableStream, JS_GetArrayBufferViewData,
-    NewReadableExternalSourceStreamObject, ReadableStreamClose, ReadableStreamDefaultReaderRead,
-    ReadableStreamError, ReadableStreamGetReader, ReadableStreamIsDisturbed,
-    ReadableStreamIsLocked, ReadableStreamIsReadable, ReadableStreamReaderMode,
-    ReadableStreamReaderReleaseLock, ReadableStreamUnderlyingSource,
-    ReadableStreamUpdateDataAvailableFromSource, UnwrapReadableStream,
-};
-use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject};
-use js::jsval::JSVal;
-use js::jsval::UndefinedValue;
-use js::rust::HandleValue as SafeHandleValue;
-use js::rust::IntoHandle;
-use std::cell::{Cell, RefCell};
-use std::os::raw::c_void;
-use std::ptr::{self, NonNull};
-use std::rc::Rc;
-use std::slice;
 
 static UNDERLYING_SOURCE_TRAPS: ReadableStreamUnderlyingSourceTraps =
     ReadableStreamUnderlyingSourceTraps {

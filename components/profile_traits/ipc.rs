@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::time;
-use crate::time::ProfilerCategory;
-use crate::time::ProfilerChan;
+use std::io::Error;
+
 use ipc_channel::ipc;
 use serde::{Deserialize, Serialize};
-use std::io::Error;
+
+use crate::time;
+use crate::time::{ProfilerCategory, ProfilerChan};
 
 pub struct IpcReceiver<T>
 where

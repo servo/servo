@@ -12,6 +12,10 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
+use std::cmp::Ordering;
+use std::collections::HashMap;
+use std::{f32, fmt};
+
 use embedder_traits::Cursor;
 use euclid::{SideOffsets2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
@@ -21,11 +25,8 @@ use net_traits::image::base::Image;
 use script_traits::compositor::ScrollTreeNodeId;
 use serde::Serialize;
 use servo_geometry::MaxRect;
-use std::cmp::Ordering;
-use std::collections::HashMap;
-use std::f32;
-use std::fmt;
 use style::computed_values::_servo_top_layer::T as InTopLayer;
+pub use style::dom::OpaqueNode;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPixel, LayoutRect, LayoutTransform};
 use webrender_api::{
@@ -33,8 +34,6 @@ use webrender_api::{
     ExternalScrollId, FilterOp, GlyphInstance, GradientStop, ImageKey, MixBlendMode,
     PrimitiveFlags, ScrollSensitivity, Shadow, SpatialId, StickyOffsetBounds, TransformStyle,
 };
-
-pub use style::dom::OpaqueNode;
 
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
 /// items that involve a blur. This ensures that the display item boundaries include all the ink.

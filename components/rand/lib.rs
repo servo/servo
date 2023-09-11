@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Mutex;
+use std::u64;
+
 use lazy_static::lazy_static;
 use log::trace;
 /// A random number generator which shares one instance of an `OsRng`.
@@ -19,10 +24,6 @@ use rand::rngs::OsRng;
 pub use rand::seq::SliceRandom;
 pub use rand::{Rng, RngCore, SeedableRng};
 use rand_isaac::isaac::IsaacCore;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::Mutex;
-use std::u64;
 use uuid::{Builder, Uuid};
 
 // The shared RNG which may hold on to a file descriptor

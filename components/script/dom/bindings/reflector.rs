@@ -4,6 +4,11 @@
 
 //! The `Reflector` struct.
 
+use std::default::Default;
+
+use js::jsapi::{Heap, JSObject};
+use js::rust::HandleObject;
+
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::iterable::{Iterable, IterableIterator};
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
@@ -11,9 +16,6 @@ use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
 use crate::realms::AlreadyInRealm;
 use crate::script_runtime::JSContext;
-use js::jsapi::{Heap, JSObject};
-use js::rust::HandleObject;
-use std::default::Default;
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.

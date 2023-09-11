@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ptr;
+use std::ptr::NonNull;
+
+use dom_struct::dom_struct;
+use js::jsapi::JSObject;
+use js::rust::HandleObject;
+use js::typedarray::{ArrayBuffer, CreateWith};
+
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::FileReaderSyncMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -12,12 +20,6 @@ use crate::dom::blob::Blob;
 use crate::dom::filereader::FileReaderSharedFunctionality;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsapi::JSObject;
-use js::rust::HandleObject;
-use js::typedarray::{ArrayBuffer, CreateWith};
-use std::ptr;
-use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct FileReaderSync {

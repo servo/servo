@@ -4,19 +4,17 @@
 
 //! A thread that takes a URL and streams back the binary data.
 
-use crate::connector::{
-    create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
-};
-use crate::cookie;
-use crate::cookie_storage::CookieStorage;
-use crate::fetch::cors_cache::CorsCache;
-use crate::fetch::methods::{fetch, CancellationListener, FetchContext};
-use crate::filemanager_thread::FileManager;
-use crate::hsts::HstsList;
-use crate::http_cache::HttpCache;
-use crate::http_loader::{http_redirect_fetch, HttpState, HANDLE};
-use crate::storage_thread::StorageThreadFactory;
-use crate::websocket_loader;
+use std::borrow::{Cow, ToOwned};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::{self, BufReader};
+use std::ops::Deref;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, RwLock};
+use std::thread;
+use std::time::Duration;
+
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::EmbedderProxy;
@@ -29,30 +27,31 @@ use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
-use net_traits::DiscardFetch;
-use net_traits::FetchTaskTarget;
-use net_traits::WebSocketNetworkEvent;
-use net_traits::{CookieSource, CoreResourceMsg, CoreResourceThread};
-use net_traits::{CustomResponseMediator, FetchChannels};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
-use net_traits::{ResourceThreads, WebSocketDomAction};
-use profile_traits::mem::ProfilerChan as MemProfilerChan;
-use profile_traits::mem::{Report, ReportKind, ReportsChan};
+use net_traits::{
+    CookieSource, CoreResourceMsg, CoreResourceThread, CustomResponseMediator, DiscardFetch,
+    FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads, ResourceTimingType,
+    WebSocketDomAction, WebSocketNetworkEvent,
+};
+use profile_traits::mem::{ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan};
 use profile_traits::path;
 use profile_traits::time::ProfilerChan;
 use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::borrow::{Cow, ToOwned};
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::{self, prelude::*, BufReader};
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, RwLock};
-use std::thread;
-use std::time::Duration;
+
+use crate::connector::{
+    create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
+};
+use crate::cookie_storage::CookieStorage;
+use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::methods::{fetch, CancellationListener, FetchContext};
+use crate::filemanager_thread::FileManager;
+use crate::hsts::HstsList;
+use crate::http_cache::HttpCache;
+use crate::http_loader::{http_redirect_fetch, HttpState, HANDLE};
+use crate::storage_thread::StorageThreadFactory;
+use crate::{cookie, websocket_loader};
 
 /// Load a file with CA certificate and produce a RootCertStore with the results.
 fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore> {

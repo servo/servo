@@ -2,6 +2,75 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+use std::cell::Cell;
+use std::cmp::Ordering;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::default::Default;
+use std::mem;
+use std::ptr::NonNull;
+use std::rc::Rc;
+use std::slice::from_ref;
+use std::time::{Duration, Instant};
+
+use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
+use content_security_policy::{self as csp, CspList};
+use cookie::Cookie;
+use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
+use devtools_traits::ScriptToDevtoolsControlMsg;
+use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
+use encoding_rs::{Encoding, UTF_8};
+use euclid::default::{Point2D, Rect, Size2D};
+use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
+use hyper_serde::Serde;
+use ipc_channel::ipc::{self, IpcSender};
+use js::jsapi::JSObject;
+use js::rust::HandleObject;
+use keyboard_types::{Code, Key, KeyState};
+use lazy_static::lazy_static;
+use metrics::{
+    InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
+    ProgressiveWebMetric,
+};
+use mime::{self, Mime};
+use msg::constellation_msg::BrowsingContextId;
+use net_traits::pub_domains::is_pub_domain;
+use net_traits::request::RequestBuilder;
+use net_traits::response::HttpsState;
+use net_traits::CookieSource::NonHTTP;
+use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
+use num_traits::ToPrimitive;
+use percent_encoding::percent_decode;
+use profile_traits::ipc as profile_ipc;
+use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
+use script_layout_interface::message::{Msg, PendingRestyle, ReflowGoal};
+use script_layout_interface::TrustedNodeAddress;
+use script_traits::{
+    AnimationState, DocumentActivity, MouseButton, MouseEventType, MsDuration, ScriptMsg,
+    TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
+};
+use servo_arc::Arc;
+use servo_atoms::Atom;
+use servo_config::pref;
+use servo_media::{ClientContextId, ServoMedia};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use style::attr::AttrValue;
+use style::context::QuirksMode;
+use style::invalidation::element::restyle_hints::RestyleHint;
+use style::media_queries::{Device, MediaType};
+use style::selector_parser::Snapshot;
+use style::shared_lock::SharedRwLock as StyleSharedRwLock;
+use style::str::{split_html_space_chars, str_join};
+use style::stylesheet_set::DocumentStylesheetSet;
+use style::stylesheets::{Origin, OriginSet, Stylesheet};
+use url::Host;
+use uuid::Uuid;
+use webrender_api::units::DeviceIntRect;
+
+use super::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
@@ -48,9 +117,9 @@ use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
-use crate::dom::element::CustomElementCreationMode;
 use crate::dom::element::{
-    Element, ElementCreator, ElementPerformFullscreenEnter, ElementPerformFullscreenExit,
+    CustomElementCreationMode, Element, ElementCreator, ElementPerformFullscreenEnter,
+    ElementPerformFullscreenExit,
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -78,8 +147,10 @@ use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
-use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding};
+use crate::dom::node::{
+    self, document_from_node, window_from_node, CloneChildrenFlag, Node, NodeDamage, NodeFlags,
+    ShadowIncluding,
+};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
@@ -104,81 +175,12 @@ use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext;
-use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use crate::script_runtime::{CommonScriptMsg, JSContext, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
-use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
-use content_security_policy::{self as csp, CspList};
-use cookie::Cookie;
-use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
-use devtools_traits::ScriptToDevtoolsControlMsg;
-use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
-use encoding_rs::{Encoding, UTF_8};
-use euclid::default::{Point2D, Rect, Size2D};
-use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
-use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JSObject;
-use js::rust::HandleObject;
-use keyboard_types::{Code, Key, KeyState};
-use lazy_static::lazy_static;
-use metrics::{
-    InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
-    ProgressiveWebMetric,
-};
-use mime::{self, Mime};
-use msg::constellation_msg::BrowsingContextId;
-use net_traits::pub_domains::is_pub_domain;
-use net_traits::request::RequestBuilder;
-use net_traits::response::HttpsState;
-use net_traits::CookieSource::NonHTTP;
-use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
-use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
-use num_traits::ToPrimitive;
-use percent_encoding::percent_decode;
-use profile_traits::ipc as profile_ipc;
-use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
-use script_layout_interface::message::{Msg, PendingRestyle, ReflowGoal};
-use script_layout_interface::TrustedNodeAddress;
-use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
-use script_traits::{
-    MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
-};
-use servo_arc::Arc;
-use servo_atoms::Atom;
-use servo_config::pref;
-use servo_media::{ClientContextId, ServoMedia};
-use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use std::borrow::Cow;
-use std::cell::Cell;
-use std::cmp::Ordering;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::default::Default;
-use std::mem;
-use std::ptr::NonNull;
-use std::rc::Rc;
-use std::slice::from_ref;
-use std::time::{Duration, Instant};
-use style::attr::AttrValue;
-use style::context::QuirksMode;
-use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::{Device, MediaType};
-use style::selector_parser::Snapshot;
-use style::shared_lock::SharedRwLock as StyleSharedRwLock;
-use style::str::{split_html_space_chars, str_join};
-use style::stylesheet_set::DocumentStylesheetSet;
-use style::stylesheets::{Origin, OriginSet, Stylesheet};
-use url::Host;
-use uuid::Uuid;
-use webrender_api::units::DeviceIntRect;
-
-use super::bindings::trace::{HashMapTracedValues, NoTrace};
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.

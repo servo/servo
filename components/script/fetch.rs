@@ -2,8 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
-use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
+use net_traits::request::{
+    CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
+    RequestBuilder, RequestMode, ServiceWorkersMode,
+};
+use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
+use net_traits::{
+    CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseListener,
+    FetchResponseMsg, FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming,
+    ResourceTimingType,
+};
+use servo_url::ServoUrl;
+
+use crate::dom::bindings::codegen::Bindings::RequestBinding::{RequestInfo, RequestInit};
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::error::Error;
@@ -24,20 +40,6 @@ use crate::network_listener::{
 };
 use crate::realms::{enter_realm, InRealm};
 use crate::task_source::TaskSourceName;
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
-use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, RequestBuilder, RequestMode,
-};
-use net_traits::request::{Referrer, Request as NetTraitsRequest, ServiceWorkersMode};
-use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
-use net_traits::{CoreResourceMsg, CoreResourceThread, FetchResponseMsg};
-use net_traits::{FetchChannels, FetchResponseListener, NetworkError};
-use net_traits::{FetchMetadata, FilteredMetadata, Metadata};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
-use servo_url::ServoUrl;
-use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 
 struct FetchContext {
     fetch_promise: Option<TrustedPromise>,

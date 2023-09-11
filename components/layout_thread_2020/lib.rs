@@ -8,13 +8,19 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-use lazy_static::lazy_static;
-use log::{debug, error, warn};
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::Duration;
+use std::{process, thread};
 
 use app_units::Au;
 use crossbeam_channel::{select, Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
-use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
+use euclid::default::Size2D as UntypedSize2D;
+use euclid::{Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
 use fxhash::FxHashMap;
 use gfx::font_cache_thread::FontCacheThread;
@@ -25,19 +31,17 @@ use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
 use layout::display_list::{DisplayList, WebRenderImageInfo};
 use layout::dom::DOMLayoutData;
-use layout::layout_debug;
 use layout::query::{
-    process_content_box_request, process_content_boxes_request, process_resolved_font_style_query,
-    LayoutRPCImpl, LayoutThreadData,
-};
-use layout::query::{process_element_inner_text_query, process_node_geometry_request};
-use layout::query::{process_node_scroll_area_request, process_node_scroll_id_request};
-use layout::query::{
-    process_offset_parent_query, process_resolved_style_request, process_text_index_request,
+    process_content_box_request, process_content_boxes_request, process_element_inner_text_query,
+    process_node_geometry_request, process_node_scroll_area_request,
+    process_node_scroll_id_request, process_offset_parent_query, process_resolved_font_style_query,
+    process_resolved_style_request, process_text_index_request, LayoutRPCImpl, LayoutThreadData,
 };
 use layout::traversal::RecalcStyle;
-use layout::{BoxTree, FragmentTree};
+use layout::{layout_debug, BoxTree, FragmentTree};
 use layout_traits::LayoutThreadFactory;
+use lazy_static::lazy_static;
+use log::{debug, error, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::{
@@ -49,13 +53,15 @@ use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::path;
-use profile_traits::time::{self as profile_time, profile, TimerMetadata};
-use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
+use profile_traits::time::{
+    self as profile_time, profile, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
+};
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
-use script_layout_interface::message::{LayoutThreadInit, Msg, NodesFromPointQueryType};
-use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
-use script_layout_interface::rpc::TextIndexResponse;
-use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse};
+use script_layout_interface::message::{
+    LayoutThreadInit, Msg, NodesFromPointQueryType, QueryMsg, ReflowComplete, ReflowGoal,
+    ScriptReflow,
+};
+use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, TextIndexResponse};
 use script_traits::{
     ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutControlMsg,
     LayoutMsg as ConstellationMsg, PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress,
@@ -65,14 +71,6 @@ use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts::{self, DebugOptions};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
-use std::process;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
-use std::thread;
-use std::time::Duration;
 use style::animation::DocumentAnimationSet;
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
@@ -92,9 +90,7 @@ use style::stylist::Stylist;
 use style::thread_state::{self, ThreadState};
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
-use style_traits::CSSPixel;
-use style_traits::DevicePixel;
-use style_traits::SpeculativePainter;
+use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
 use webrender_api::{units, HitTestFlags};
 
 /// Information needed by the layout thread.

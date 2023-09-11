@@ -4,19 +4,19 @@
 
 //! Property-based randomized testing for the core float layout algorithm.
 
-use lazy_static::lazy_static;
-
-use euclid::num::Zero;
-use layout_2020::flow::float::{ContainingBlockPositionInfo, FloatSide, PlacementInfo};
-use layout_2020::flow::float::{FloatBand, FloatBandNode, FloatBandTree, FloatContext};
-use layout_2020::geom::flow_relative::{Rect, Vec2};
-use quickcheck::{Arbitrary, Gen};
-use std::f32;
 use std::ops::Range;
 use std::panic::{self, PanicInfo};
 use std::sync::{Mutex, MutexGuard};
-use std::thread;
-use std::u32;
+use std::{f32, thread, u32};
+
+use euclid::num::Zero;
+use layout_2020::flow::float::{
+    ContainingBlockPositionInfo, FloatBand, FloatBandNode, FloatBandTree, FloatContext, FloatSide,
+    PlacementInfo,
+};
+use layout_2020::geom::flow_relative::{Rect, Vec2};
+use lazy_static::lazy_static;
+use quickcheck::{Arbitrary, Gen};
 use style::values::computed::{Clear, Length};
 
 lazy_static! {

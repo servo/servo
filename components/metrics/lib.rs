@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
+use std::cmp::Ordering;
+use std::collections::HashMap;
+
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use msg::constellation_msg::PipelineId;
-use profile_traits::time::TimerMetadata;
-use profile_traits::time::{send_profile_data, ProfilerCategory, ProfilerChan};
+use profile_traits::time::{send_profile_data, ProfilerCategory, ProfilerChan, TimerMetadata};
 use script_traits::{ConstellationControlMsg, LayoutMsg, ProgressiveWebMetricType};
 use servo_config::opts;
 use servo_url::ServoUrl;
-use std::cell::{Cell, RefCell};
-use std::cmp::Ordering;
-use std::collections::HashMap;
 use time::precise_time_ns;
 
 pub trait ProfilerMetadataFactory {

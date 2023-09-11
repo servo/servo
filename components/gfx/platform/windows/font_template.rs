@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::platform::windows::font_list::font_from_atom;
+use std::{fmt, io};
+
 use serde::{Deserialize, Serialize};
 use servo_atoms::Atom;
-use std::fmt;
-use std::io;
 use webrender_api::NativeFontHandle;
+
+use crate::platform::windows::font_list::font_from_atom;
 
 #[derive(Deserialize, Serialize)]
 pub struct FontTemplateData {

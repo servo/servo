@@ -2,28 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUSize64;
-use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
-    GPUCommandEncoderMethods, GPUComputePassDescriptor, GPUOrigin3D, GPURenderPassDescriptor,
-    GPUStoreOp,
-};
-use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::GPUExtent3D;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::USVString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpubuffer::GPUBuffer;
-use crate::dom::gpucommandbuffer::GPUCommandBuffer;
-use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
-use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt, GPUDevice};
-use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
-use dom_struct::dom_struct;
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashSet;
+
+use dom_struct::dom_struct;
 use webgpu::wgpu::command as wgpu_com;
 use webgpu::{self, wgt, WebGPU, WebGPURequest};
 
@@ -33,6 +16,23 @@ use super::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
 };
 use super::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureAspect;
 use super::bindings::codegen::UnionTypes::DoubleSequenceOrGPUColorDict;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUSize64;
+use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
+    GPUCommandEncoderMethods, GPUComputePassDescriptor, GPUOrigin3D, GPURenderPassDescriptor,
+    GPUStoreOp,
+};
+use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::GPUExtent3D;
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::USVString;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpubuffer::GPUBuffer;
+use crate::dom::gpucommandbuffer::GPUCommandBuffer;
+use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
+use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt, GPUDevice};
+use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 
 // TODO(sagudev): this is different now
 // https://gpuweb.github.io/gpuweb/#enumdef-encoder-state

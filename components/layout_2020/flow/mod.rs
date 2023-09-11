@@ -4,6 +4,16 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use serde::Serialize;
+use servo_arc::Arc;
+use style::computed_values::clear::T as Clear;
+use style::computed_values::float::T as Float;
+use style::logical_geometry::WritingMode;
+use style::properties::ComputedValues;
+use style::values::computed::{Length, LengthOrAuto};
+use style::Zero;
+
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{
@@ -22,15 +32,6 @@ use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use serde::Serialize;
-use servo_arc::Arc;
-use style::computed_values::clear::T as Clear;
-use style::computed_values::float::T as Float;
-use style::logical_geometry::WritingMode;
-use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto};
-use style::Zero;
 
 mod construct;
 pub mod float;

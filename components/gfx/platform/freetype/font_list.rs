@@ -2,18 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::c_str_to_string;
-use crate::text::util::is_cjk;
-use fontconfig_sys::{FcChar8, FcResultMatch, FcSetSystem};
-use fontconfig_sys::{FcConfigGetCurrent, FcConfigGetFonts, FcConfigSubstitute};
-use fontconfig_sys::{FcDefaultSubstitute, FcFontMatch, FcNameParse, FcPatternGetString};
-use fontconfig_sys::{FcFontSetDestroy, FcMatchPattern, FcPatternCreate, FcPatternDestroy};
-use fontconfig_sys::{FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy, FcPatternAddString};
-use fontconfig_sys::{FcObjectSetAdd, FcPatternGetInteger};
-use libc::{c_char, c_int};
-use log::debug;
 use std::ffi::CString;
 use std::ptr;
+
+use fontconfig_sys::{
+    FcChar8, FcConfigGetCurrent, FcConfigGetFonts, FcConfigSubstitute, FcDefaultSubstitute,
+    FcFontMatch, FcFontSetDestroy, FcFontSetList, FcMatchPattern, FcNameParse, FcObjectSetAdd,
+    FcObjectSetCreate, FcObjectSetDestroy, FcPatternAddString, FcPatternCreate, FcPatternDestroy,
+    FcPatternGetInteger, FcPatternGetString, FcResultMatch, FcSetSystem,
+};
+use libc::{c_char, c_int};
+use log::debug;
+
+use super::c_str_to_string;
+use crate::text::util::is_cjk;
 
 static FC_FAMILY: &'static [u8] = b"family\0";
 static FC_FILE: &'static [u8] = b"file\0";

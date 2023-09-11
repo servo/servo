@@ -3,6 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
+use std::cell::Cell;
+
+use canvas_traits::webgl::{
+    webgl_channel, WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
+    WebGLRenderbufferId, WebGLResult, WebGLTextureId, WebGLVersion,
+};
+use dom_struct::dom_struct;
+use euclid::Size2D;
+use webxr_api::Viewport;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
@@ -13,14 +23,6 @@ use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::xrsession::XRSession;
-use canvas_traits::webgl::WebGLFramebufferId;
-use canvas_traits::webgl::{webgl_channel, WebGLError, WebGLResult, WebGLVersion};
-use canvas_traits::webgl::{WebGLCommand, WebGLFramebufferBindingRequest};
-use canvas_traits::webgl::{WebGLRenderbufferId, WebGLTextureId};
-use dom_struct::dom_struct;
-use euclid::Size2D;
-use std::cell::Cell;
-use webxr_api::Viewport;
 
 pub enum CompleteForRendering {
     Complete,

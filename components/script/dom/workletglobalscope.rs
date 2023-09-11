@@ -2,18 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::identityhub::Identities;
-use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
-use crate::dom::paintworkletglobalscope::PaintWorkletTask;
-use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
-use crate::dom::testworkletglobalscope::TestWorkletTask;
-use crate::dom::worklet::WorkletExecutor;
-use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::JSContext;
-use crate::script_thread::MainThreadScriptMsg;
+use std::borrow::Cow;
+use std::sync::Arc;
+
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -24,16 +15,21 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use net_traits::ResourceThreads;
 use parking_lot::Mutex;
-use profile_traits::mem;
-use profile_traits::time;
-use script_traits::{Painter, ScriptMsg};
-use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
+use profile_traits::{mem, time};
+use script_traits::{Painter, ScriptMsg, ScriptToConstellationChan, TimerSchedulerMsg};
 use servo_atoms::Atom;
-use servo_url::ImmutableOrigin;
-use servo_url::MutableOrigin;
-use servo_url::ServoUrl;
-use std::borrow::Cow;
-use std::sync::Arc;
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::identityhub::Identities;
+use crate::dom::paintworkletglobalscope::{PaintWorkletGlobalScope, PaintWorkletTask};
+use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask};
+use crate::dom::worklet::WorkletExecutor;
+use crate::script_module::ScriptFetchOptions;
+use crate::script_runtime::JSContext;
+use crate::script_thread::MainThreadScriptMsg;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>

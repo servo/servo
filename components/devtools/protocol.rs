@@ -6,12 +6,13 @@
 //! [JSON packets]
 //! (https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport#JSON_Packets).
 
-use log::debug;
-use serde::Serialize;
-use serde_json::{self, Value};
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+
+use log::debug;
+use serde::Serialize;
+use serde_json::{self, Value};
 
 #[derive(Serialize)]
 pub struct ActorDescription {

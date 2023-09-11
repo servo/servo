@@ -2,6 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::str::{self, FromStr};
+
+use data_url::mime::Mime as DataUrlMime;
+use dom_struct::dom_struct;
+use http::header::{HeaderMap as HyperHeaders, HeaderName, HeaderValue};
+use js::rust::HandleObject;
+use net_traits::fetch::headers::get_value_from_header_list;
+use net_traits::request::is_cors_safelisted_request_header;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -10,15 +20,6 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{is_token, ByteString};
 use crate::dom::globalscope::GlobalScope;
-use data_url::mime::Mime as DataUrlMime;
-use dom_struct::dom_struct;
-use http::header::{HeaderMap as HyperHeaders, HeaderName, HeaderValue};
-use js::rust::HandleObject;
-use net_traits::{
-    fetch::headers::get_value_from_header_list, request::is_cors_safelisted_request_header,
-};
-use std::cell::Cell;
-use std::str::{self, FromStr};
 
 #[dom_struct]
 pub struct Headers {

@@ -2,34 +2,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::c_str_to_string;
-use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use crate::font::{FontTableTag, FractionalPixel, GPOS, GSUB, KERN};
-use crate::platform::font_context::FontContextHandle;
-use crate::platform::font_template::FontTemplateData;
-use crate::text::glyph::GlyphId;
-use crate::text::util::fixed_to_float;
-use app_units::Au;
-use freetype::freetype::FT_Sfnt_Tag;
-use freetype::freetype::{FT_Done_Face, FT_New_Face, FT_New_Memory_Face};
-use freetype::freetype::{FT_F26Dot6, FT_Face, FT_FaceRec};
-use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
-use freetype::freetype::{FT_Get_Kerning, FT_Get_Sfnt_Table, FT_Load_Sfnt_Table};
-use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
-use freetype::freetype::{FT_Int32, FT_Kerning_Mode, FT_STYLE_FLAG_ITALIC};
-use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
-use freetype::freetype::{FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_Vector};
-use freetype::succeeded;
-use freetype::tt_os2::TT_OS2;
-use log::debug;
-use servo_atoms::Atom;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_long};
 use std::sync::Arc;
 use std::{mem, ptr};
+
+use app_units::Au;
+use freetype::freetype::{
+    FT_Done_Face, FT_F26Dot6, FT_Face, FT_FaceRec, FT_Get_Char_Index, FT_Get_Kerning,
+    FT_Get_Postscript_Name, FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Int32, FT_Kerning_Mode, FT_Library,
+    FT_Load_Glyph, FT_Load_Sfnt_Table, FT_Long, FT_New_Face, FT_New_Memory_Face, FT_Set_Char_Size,
+    FT_Sfnt_Tag, FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_ULong, FT_Vector, FT_STYLE_FLAG_ITALIC,
+};
+use freetype::succeeded;
+use freetype::tt_os2::TT_OS2;
+use log::debug;
+use servo_atoms::Atom;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
+
+use super::c_str_to_string;
+use crate::font::{
+    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, GPOS, GSUB,
+    KERN,
+};
+use crate::platform::font_context::FontContextHandle;
+use crate::platform::font_template::FontTemplateData;
+use crate::text::glyph::GlyphId;
+use crate::text::util::fixed_to_float;
 
 // This constant is not present in the freetype
 // bindings due to bindgen not handling the way

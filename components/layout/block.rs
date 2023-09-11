@@ -25,30 +25,10 @@
 //!
 //!   http://dev.w3.org/csswg/css-sizing/
 
-use crate::context::LayoutContext;
-use crate::display_list::items::DisplayListSection;
-use crate::display_list::{
-    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionFlags,
-    StackingContextCollectionState,
-};
-use crate::floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use crate::flow::{
-    BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag, GetBaseFlow,
-};
-use crate::flow::{
-    FlowFlags, FragmentationContext, ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow,
-};
-use crate::flow_list::FlowList;
-use crate::fragment::{
-    CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentFlags, Overflow,
-};
-use crate::incremental::RelayoutMode;
-use crate::model::{
-    AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto,
-};
-use crate::sequential;
-use crate::traversal::PreorderFlowTraversal;
-use crate::{layout_debug, layout_debug_scope};
+use std::cmp::{max, min};
+use std::fmt;
+use std::sync::Arc;
+
 use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D};
@@ -56,9 +36,6 @@ use gfx_traits::print_tree::PrintTree;
 use log::{debug, trace};
 use serde::{Serialize, Serializer};
 use servo_geometry::MaxRect;
-use std::cmp::{max, min};
-use std::fmt;
-use std::sync::Arc;
 use style::computed_values::box_sizing::T as BoxSizing;
 use style::computed_values::display::T as Display;
 use style::computed_values::float::T as Float;
@@ -70,6 +47,28 @@ use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalS
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::{LengthPercentageOrAuto, MaxSize, Size};
+
+use crate::context::LayoutContext;
+use crate::display_list::items::DisplayListSection;
+use crate::display_list::{
+    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionFlags,
+    StackingContextCollectionState,
+};
+use crate::floats::{ClearType, FloatKind, Floats, PlacementInfo};
+use crate::flow::{
+    BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, FlowFlags, ForceNonfloatedFlag,
+    FragmentationContext, GetBaseFlow, ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow,
+};
+use crate::flow_list::FlowList;
+use crate::fragment::{
+    CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentFlags, Overflow,
+};
+use crate::incremental::RelayoutMode;
+use crate::model::{
+    AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto,
+};
+use crate::traversal::PreorderFlowTraversal;
+use crate::{layout_debug, layout_debug_scope, sequential};
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]

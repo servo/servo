@@ -2,6 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use arrayvec::ArrayVec;
+use dom_struct::dom_struct;
+use euclid::default::Size2D;
+use ipc_channel::ipc;
+use script_layout_interface::HTMLCanvasDataSource;
+use webgpu::wgpu::id;
+use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, PRESENTATION_BUFFER_COUNT};
+use webrender_api::{
+    units, ExternalImageData, ExternalImageId, ExternalImageType, ImageData, ImageDescriptor,
+    ImageDescriptorFlags, ImageFormat, ImageKey,
+};
+
+use super::bindings::codegen::Bindings::GPUTextureUsageBinding::GPUTextureUsageConstants;
+use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
+use super::bindings::error::{Error, Fallible};
+use super::bindings::root::MutNullableDom;
+use super::gputexture::GPUTexture;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::{
     GPUCanvasConfiguration, GPUCanvasContextMethods,
 };
@@ -17,24 +36,6 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
-use arrayvec::ArrayVec;
-use dom_struct::dom_struct;
-use euclid::default::Size2D;
-use ipc_channel::ipc;
-use script_layout_interface::HTMLCanvasDataSource;
-use std::cell::Cell;
-use webgpu::WebGPUTexture;
-use webgpu::{wgpu::id, wgt, WebGPU, WebGPURequest, PRESENTATION_BUFFER_COUNT};
-use webrender_api::{
-    units, ExternalImageData, ExternalImageId, ExternalImageType, ImageData, ImageDescriptor,
-    ImageDescriptorFlags, ImageFormat, ImageKey,
-};
-
-use super::bindings::codegen::Bindings::GPUTextureUsageBinding::GPUTextureUsageConstants;
-use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
-use super::bindings::error::{Error, Fallible};
-use super::bindings::root::MutNullableDom;
-use super::gputexture::GPUTexture;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct WebGPUContextId(pub u64);

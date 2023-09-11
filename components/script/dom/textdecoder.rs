@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::ToOwned;
+use std::cell::{Cell, RefCell};
+
+use dom_struct::dom_struct;
+use encoding_rs::{Decoder, DecoderResult, Encoding};
+use js::rust::HandleObject;
+
 use crate::dom::bindings::codegen::Bindings::TextDecoderBinding;
 use crate::dom::bindings::codegen::Bindings::TextDecoderBinding::{
     TextDecodeOptions, TextDecoderMethods,
@@ -12,11 +19,6 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
-use dom_struct::dom_struct;
-use encoding_rs::{Decoder, DecoderResult, Encoding};
-use js::rust::HandleObject;
-use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
 
 #[dom_struct]
 #[allow(non_snake_case)]

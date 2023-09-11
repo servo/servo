@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
+
+use dom_struct::dom_struct;
+use webgpu::{WebGPU, WebGPUCommandBuffer, WebGPURequest};
+
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::GPUCommandBufferBinding::GPUCommandBufferMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::Dom;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
-use dom_struct::dom_struct;
-use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
-use webgpu::{WebGPU, WebGPUCommandBuffer, WebGPURequest};
 
 impl Eq for DomRoot<GPUBuffer> {}
 impl Hash for DomRoot<GPUBuffer> {

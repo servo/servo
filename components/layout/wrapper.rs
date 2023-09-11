@@ -30,14 +30,16 @@
 
 #![allow(unsafe_code)]
 
-use crate::data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use script_layout_interface::wrapper_traits::GetStyleAndOpaqueLayoutData;
-use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{
+    GetStyleAndOpaqueLayoutData, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::values::computed::counters::ContentItem;
 use style::values::generics::counters::Content;
+
+use crate::data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
 
 pub trait LayoutNodeLayoutData<'dom> {
     fn borrow_layout_data(self) -> Option<AtomicRef<'dom, LayoutData>>;

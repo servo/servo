@@ -2,6 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::Ordering;
+use std::mem;
+
+use euclid::default::Rect;
+use script_traits::compositor::{ScrollTreeNodeId, ScrollableNodeInfo};
+use servo_arc::Arc as ServoArc;
+use style::computed_values::float::T as ComputedFloat;
+use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
+use style::computed_values::overflow_x::T as ComputedOverflow;
+use style::computed_values::position::T as ComputedPosition;
+use style::properties::ComputedValues;
+use style::values::computed::{ClipRectOrAuto, Length};
+use style::values::generics::box_::Perspective;
+use style::values::generics::transform;
+use style::values::specified::box_::DisplayOutside;
+use webrender_api as wr;
+use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
+use webrender_api::ScrollSensitivity;
+
 use super::DisplayList;
 use crate::cell::ArcRefCell;
 use crate::display_list::conversions::ToWebRender;
@@ -11,24 +30,6 @@ use crate::fragment_tree::{
 };
 use crate::geom::PhysicalRect;
 use crate::style_ext::ComputedValuesExt;
-use euclid::default::Rect;
-use script_traits::compositor::{ScrollTreeNodeId, ScrollableNodeInfo};
-use servo_arc::Arc as ServoArc;
-use std::cmp::Ordering;
-use std::mem;
-use style::computed_values::float::T as ComputedFloat;
-use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
-use style::computed_values::overflow_x::T as ComputedOverflow;
-use style::computed_values::position::T as ComputedPosition;
-use style::properties::ComputedValues;
-use style::values::computed::ClipRectOrAuto;
-use style::values::computed::Length;
-use style::values::generics::box_::Perspective;
-use style::values::generics::transform;
-use style::values::specified::box_::DisplayOutside;
-use webrender_api as wr;
-use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
-use webrender_api::ScrollSensitivity;
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {

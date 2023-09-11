@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::convert::TryFrom;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::jsapi::{Heap, JSObject};
+use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+
+use super::types::{GPUAdapterInfo, GPUSupportedLimits};
 use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::{
     GPUAdapterMethods, GPUDeviceDescriptor, GPUFeatureName,
 };
@@ -10,18 +18,10 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpu::response_async;
-use crate::dom::gpu::AsyncWGPUListener;
+use crate::dom::gpu::{response_async, AsyncWGPUListener};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
-use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
-use std::convert::TryFrom;
-use std::rc::Rc;
-use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
-
-use super::types::{GPUAdapterInfo, GPUSupportedLimits};
 
 #[dom_struct]
 pub struct GPUAdapter {

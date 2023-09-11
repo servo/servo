@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::parsing::parse;
 use style::properties::longhands::transition_duration;
+
+use crate::parsing::parse;
 
 #[test]
 fn test_positive_transition_duration() {

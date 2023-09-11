@@ -2,6 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::convert::TryInto;
+use std::num::NonZeroU32;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::jsapi::{Heap, JSObject, MutableHandleObject};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use msg::constellation_msg::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
+use script_traits::PortMessageTask;
+
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
     MessagePortMethods, PostMessageOptions,
@@ -17,17 +29,6 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext as SafeJSContext;
-use dom_struct::dom_struct;
-use js::jsapi::Heap;
-use js::jsapi::{JSObject, MutableHandleObject};
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use msg::constellation_msg::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
-use script_traits::PortMessageTask;
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-use std::convert::TryInto;
-use std::num::NonZeroU32;
-use std::rc::Rc;
 
 #[dom_struct]
 /// The MessagePort used in the DOM.

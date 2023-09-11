@@ -5,6 +5,14 @@
 //! Layout for elements with a CSS `display` property of `list-item`. These elements consist of a
 //! block and an extra inline fragment for the marker.
 
+use app_units::Au;
+use euclid::default::Point2D;
+use style::computed_values::list_style_type::T as ListStyleType;
+use style::computed_values::position::T as Position;
+use style::logical_geometry::LogicalSize;
+use style::properties::ComputedValues;
+use style::servo::restyle_damage::ServoRestyleDamage;
+
 use crate::block::BlockFlow;
 use crate::context::{with_thread_local_font_context, LayoutContext};
 use crate::display_list::items::DisplayListSection;
@@ -13,19 +21,11 @@ use crate::display_list::{
 };
 use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, OpaqueFlow};
-use crate::fragment::Overflow;
 use crate::fragment::{
-    CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo,
+    CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo, Overflow,
 };
 use crate::generated_content;
 use crate::inline::InlineFlow;
-use app_units::Au;
-use euclid::default::Point2D;
-use style::computed_values::list_style_type::T as ListStyleType;
-use style::computed_values::position::T as Position;
-use style::logical_geometry::LogicalSize;
-use style::properties::ComputedValues;
-use style::servo::restyle_damage::ServoRestyleDamage;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for ListItemFlow {}

@@ -4,9 +4,38 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
-use crate::dom::bindings::codegen::InterfaceObjectMap;
-use crate::dom::bindings::codegen::PrototypeList;
+use std::ffi::CString;
+use std::os::raw::{c_char, c_void};
+use std::{ptr, slice, str};
+
+use js::conversions::ToJSValConvertible;
+use js::glue::{
+    CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper, JS_GetReservedSlot,
+    UnwrapObjectDynamic, UnwrapObjectStatic, RUST_FUNCTION_VALUE_TO_JITINFO,
+};
+use js::jsapi::{
+    AtomToLinearString, CallArgs, DOMCallbacks, GetLinearStringCharAt, GetLinearStringLength,
+    GetNonCCWObjectGlobal, HandleId as RawHandleId, HandleObject as RawHandleObject, Heap, JSAtom,
+    JSContext, JSJitInfo, JSObject, JSTracer, JS_DeprecatedStringHasLatin1Chars,
+    JS_EnumerateStandardClasses, JS_FreezeObject, JS_GetLatin1StringCharsAndLength,
+    JS_IsExceptionPending, JS_IsGlobalObject, JS_ResolveStandardClass,
+    MutableHandleIdVector as RawMutableHandleIdVector, ObjectOpResult, StringIsArrayIndex,
+};
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::wrappers::{
+    JS_DeletePropertyById, JS_ForwardGetPropertyTo, JS_GetProperty, JS_GetPrototype,
+    JS_HasProperty, JS_HasPropertyById, JS_SetProperty,
+};
+use js::rust::{
+    get_object_class, is_dom_class, GCMethods, Handle, HandleId, HandleObject, HandleValue,
+    MutableHandleValue, ToString,
+};
+use js::typedarray::{CreateWith, Float32Array};
+use js::JS_CALLEE;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+
 use crate::dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
+use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList};
 use crate::dom::bindings::conversions::{
     jsstring_to_str, private_from_proto_check, PrototypeCheck,
 };
@@ -16,41 +45,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy;
 use crate::script_runtime::JSContext as SafeJSContext;
-use js::conversions::ToJSValConvertible;
-use js::glue::JS_GetReservedSlot;
-use js::glue::RUST_FUNCTION_VALUE_TO_JITINFO;
-use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
-use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
-use js::jsapi::HandleId as RawHandleId;
-use js::jsapi::HandleObject as RawHandleObject;
-use js::jsapi::MutableHandleIdVector as RawMutableHandleIdVector;
-use js::jsapi::{AtomToLinearString, GetLinearStringCharAt, GetLinearStringLength};
-use js::jsapi::{CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
-use js::jsapi::{Heap, JSContext, JS_FreezeObject};
-use js::jsapi::{JSAtom, JS_IsExceptionPending, JS_IsGlobalObject};
-use js::jsapi::{JSJitInfo, JSObject, JSTracer};
-use js::jsapi::{
-    JS_DeprecatedStringHasLatin1Chars, JS_ResolveStandardClass, ObjectOpResult, StringIsArrayIndex,
-};
-use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::wrappers::JS_DeletePropertyById;
-use js::rust::wrappers::JS_ForwardGetPropertyTo;
-use js::rust::wrappers::JS_GetProperty;
-use js::rust::wrappers::JS_GetPrototype;
-use js::rust::wrappers::JS_HasProperty;
-use js::rust::wrappers::JS_HasPropertyById;
-use js::rust::wrappers::JS_SetProperty;
-use js::rust::{get_object_class, is_dom_class, GCMethods, ToString};
-use js::rust::{Handle, HandleId, HandleObject, HandleValue, MutableHandleValue};
-use js::typedarray::{CreateWith, Float32Array};
-use js::JS_CALLEE;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use std::ffi::CString;
-use std::os::raw::{c_char, c_void};
-use std::ptr;
-use std::slice;
-use std::str;
 
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);

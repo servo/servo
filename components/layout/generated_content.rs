@@ -8,6 +8,18 @@
 //! done in parallel and is therefore a sequential pass that runs on as little of the flow tree
 //! as possible.
 
+use std::collections::{HashMap, LinkedList};
+
+use lazy_static::lazy_static;
+use script_layout_interface::wrapper_traits::PseudoElementType;
+use smallvec::SmallVec;
+use style::computed_values::list_style_type::T as ListStyleType;
+use style::properties::ComputedValues;
+use style::selector_parser::RestyleDamage;
+use style::servo::restyle_damage::ServoRestyleDamage;
+use style::values::generics::counters::ContentItem;
+use style::values::specified::list::{QuotePair, Quotes};
+
 use crate::context::{with_thread_local_font_context, LayoutContext};
 use crate::display_list::items::OpaqueNode;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
@@ -16,16 +28,6 @@ use crate::fragment::{
 };
 use crate::text::TextRunScanner;
 use crate::traversal::InorderFlowTraversal;
-use lazy_static::lazy_static;
-use script_layout_interface::wrapper_traits::PseudoElementType;
-use smallvec::SmallVec;
-use std::collections::{HashMap, LinkedList};
-use style::computed_values::list_style_type::T as ListStyleType;
-use style::properties::ComputedValues;
-use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::generics::counters::ContentItem;
-use style::values::specified::list::{QuotePair, Quotes};
 
 lazy_static! {
     static ref INITIAL_QUOTES: style::ArcSlice<QuotePair> = style::ArcSlice::from_iter_leaked(

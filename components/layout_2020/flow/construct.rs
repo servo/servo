@@ -2,6 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+use std::convert::{TryFrom, TryInto};
+
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use servo_arc::Arc;
+use style::computed_values::white_space::T as WhiteSpace;
+use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
+use style::properties::ComputedValues;
+use style::selector_parser::PseudoElement;
+use style::values::specified::text::TextDecorationLine;
+
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
@@ -12,15 +23,6 @@ use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use servo_arc::Arc;
-use std::borrow::Cow;
-use std::convert::{TryFrom, TryInto};
-use style::computed_values::white_space::T as WhiteSpace;
-use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
-use style::properties::ComputedValues;
-use style::selector_parser::PseudoElement;
-use style::values::specified::text::TextDecorationLine;
 
 impl BlockFormattingContext {
     pub fn construct<'dom, Node>(

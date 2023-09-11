@@ -22,14 +22,6 @@
 //! its hash table during the next GC. During GC, the entries of the hash table are counted
 //! as JS roots.
 
-use crate::dom::bindings::conversions::ToJSValConvertible;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::trace::trace_reflector;
-use crate::dom::promise::Promise;
-use crate::task::TaskOnce;
-use js::jsapi::JSTracer;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;
@@ -38,12 +30,23 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::{Arc, Weak};
 
+use js::jsapi::JSTracer;
+
+use crate::dom::bindings::conversions::ToJSValConvertible;
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::trace_reflector;
+use crate::dom::promise::Promise;
+use crate::task::TaskOnce;
+
 #[allow(missing_docs)] // FIXME
 mod dummy {
     // Attributes don’t apply through the macro.
-    use super::LiveDOMReferences;
     use std::cell::RefCell;
     use std::rc::Rc;
+
+    use super::LiveDOMReferences;
     thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> =
             Rc::new(RefCell::new(None)));
 }

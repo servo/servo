@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::event_loop::EventLoop;
-use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
+use std::borrow::Cow;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+
 use background_hang_monitor::HangMonitorRegister;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use compositing_traits::CompositionPipeline;
-use compositing_traits::CompositorMsg;
-use compositing_traits::CompositorProxy;
+use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::EventLoopWaker;
@@ -21,36 +23,29 @@ use layout_traits::LayoutThreadFactory;
 use log::{debug, error, warn};
 use media::WindowGLContext;
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::{
-    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
-};
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId};
-use msg::constellation_msg::{
-    PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
+    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, BrowsingContextId,
+    HangMonitorAlert, HistoryStateId, PipelineId, PipelineNamespace, PipelineNamespaceId,
+    PipelineNamespaceRequest, TopLevelBrowsingContextId,
 };
 use net::image_cache::ImageCacheImpl;
 use net_traits::image_cache::ImageCache;
 use net_traits::ResourceThreads;
-use profile_traits::mem as profile_mem;
-use profile_traits::time;
+use profile_traits::{mem as profile_mem, time};
 use script_traits::{
-    AnimationState, ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan,
+    AnimationState, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
+    InitialScriptState, LayoutControlMsg, LayoutMsg, LoadData, NewLayoutInfo, SWManagerMsg,
+    ScriptThreadFactory, ScriptToConstellationChan, TimerSchedulerMsg, WindowSizeData,
 };
-use script_traits::{DocumentActivity, InitialScriptState};
-use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
-use script_traits::{NewLayoutInfo, SWManagerMsg};
-use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
-use servo_config::{prefs, prefs::PrefValue};
+use servo_config::prefs;
+use servo_config::prefs::PrefValue;
 use servo_url::ServoUrl;
-use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 use webrender_api::DocumentId;
+
+use crate::event_loop::EventLoop;
+use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
 
 /// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an
 /// event loop (executed by a script thread) and a layout thread. A script thread

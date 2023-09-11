@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::{self, cmp, fmt};
+
+use canvas_traits::webgl::WebGLError::*;
+use canvas_traits::webgl::{TexDataType, TexFormat};
+
 use super::types::TexImageTarget;
 use super::WebGLValidator;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use crate::dom::webgltexture::{ImageInfo, WebGLTexture};
-use crate::dom::webgltexture::{TexCompression, TexCompressionValidation};
-use canvas_traits::webgl::{TexDataType, TexFormat, WebGLError::*};
-use std::{self, cmp, fmt};
+use crate::dom::webgltexture::{ImageInfo, TexCompression, TexCompressionValidation, WebGLTexture};
 
 /// The errors that the texImage* family of functions can generate.
 #[derive(Debug)]

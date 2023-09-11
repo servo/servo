@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::rpc::LayoutRPC;
-use crate::{PendingImage, TrustedNodeAddress};
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+
 use app_units::Au;
 use crossbeam_channel::{Receiver, Sender};
 use euclid::default::{Point2D, Rect};
@@ -14,16 +15,13 @@ use metrics::PaintTimeMetrics;
 use msg::constellation_msg::{BackgroundHangMonitorRegister, BrowsingContextId, PipelineId};
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
-use script_traits::Painter;
 use script_traits::{
-    ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg, ScrollState,
+    ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg, Painter, ScrollState,
     WindowSizeData,
 };
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 use style::animation::DocumentAnimationSet;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
@@ -31,6 +29,9 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::PropertyId;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
+
+use crate::rpc::LayoutRPC;
+use crate::{PendingImage, TrustedNodeAddress};
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {

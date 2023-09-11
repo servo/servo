@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::str::USVString;
-use servo_url::ServoUrl;
 use std::borrow::ToOwned;
+
+use servo_url::ServoUrl;
 use url::quirks;
+
+use crate::dom::bindings::str::USVString;
 
 #[derive(MallocSizeOf)]
 pub struct UrlHelper;

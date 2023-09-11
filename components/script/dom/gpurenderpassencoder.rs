@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use webgpu::wgpu::command::{render_ffi as wgpu_render, RenderPass};
+use webgpu::{wgt, WebGPU, WebGPURequest};
+
+use super::bindings::codegen::Bindings::GPURenderPipelineBinding::GPUIndexFormat;
+use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::GPUColor;
 use crate::dom::bindings::codegen::Bindings::GPURenderPassEncoderBinding::GPURenderPassEncoderMethods;
@@ -15,14 +21,6 @@ use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandencoder::{GPUCommandEncoder, GPUCommandEncoderState};
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
-use dom_struct::dom_struct;
-use webgpu::{
-    wgpu::command::{render_ffi as wgpu_render, RenderPass},
-    wgt, WebGPU, WebGPURequest,
-};
-
-use super::bindings::codegen::Bindings::GPURenderPipelineBinding::GPUIndexFormat;
-use super::bindings::error::Fallible;
 
 #[dom_struct]
 pub struct GPURenderPassEncoder {

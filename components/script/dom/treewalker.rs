@@ -2,19 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+
 use crate::dom::bindings::callback::ExceptionHandling::Rethrow;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
-use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
+use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::{NodeFilter, NodeFilterConstants};
 use crate::dom::bindings::codegen::Bindings::TreeWalkerBinding::TreeWalkerMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
 use crate::dom::document::Document;
 use crate::dom::node::Node;
-use dom_struct::dom_struct;
-use std::cell::Cell;
-use std::rc::Rc;
 
 // https://dom.spec.whatwg.org/#interface-treewalker
 #[dom_struct]

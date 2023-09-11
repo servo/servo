@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::create_embedder_proxy;
+use std::net::IpAddr;
+
 use ipc_channel::ipc;
 use net::connector::CACertificates;
 use net::resource_thread::new_core_resource_thread;
@@ -10,7 +11,8 @@ use net::test::parse_hostsfile;
 use net_traits::CoreResourceMsg;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
-use std::net::IpAddr;
+
+use crate::create_embedder_proxy;
 
 fn ip(s: &str) -> IpAddr {
     s.parse().unwrap()

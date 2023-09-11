@@ -4,8 +4,9 @@
 
 //! Routines for handling measuring the memory usage of arbitrary DOM nodes.
 
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::os::raw::c_void;
+
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 /// Used by codegen to include the pointer to the `MallocSizeOf` implementation of each
 /// IDL interface. This way we don't have to find the most-derived interface of DOM

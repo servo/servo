@@ -2,6 +2,39 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+use std::cell::Cell;
+use std::ops::Range;
+use std::ptr::NonNull;
+use std::{f64, ptr};
+
+use chrono::naive::{NaiveDate, NaiveDateTime};
+use chrono::{Datelike, Weekday};
+use dom_struct::dom_struct;
+use embedder_traits::FilterPattern;
+use encoding_rs::Encoding;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::jsapi::{
+    ClippedTime, DateGetMsecSinceEpoch, Handle, JSObject, JS_ClearPendingException, NewDateObject,
+    NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
+};
+use js::jsval::UndefinedValue;
+use js::rust::jsapi_wrapped::{ExecuteRegExpNoStatics, ObjectIsRegExp};
+use js::rust::{HandleObject, MutableHandleObject};
+use msg::constellation_msg::InputMethodType;
+use net_traits::blob_url_store::get_blob_origin;
+use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::{CoreResourceMsg, IpcSend};
+use profile_traits::ipc;
+use script_layout_interface::rpc::TextIndexResponse;
+use script_traits::ScriptToConstellationChan;
+use servo_atoms::Atom;
+use style::attr::AttrValue;
+use style::element_state::ElementState;
+use style::str::{split_commas, str_join};
+use unicode_bidi::{bidi_class, BidiClass};
+use url::Url;
+
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -28,14 +61,14 @@ use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{
-    FormControl, FormDatum, FormDatumValue, FormSubmitter, HTMLFormElement,
+    FormControl, FormDatum, FormDatumValue, FormSubmitter, HTMLFormElement, ResetFrom,
+    SubmittedFrom,
 };
-use crate::dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{
-    BindContext, CloneChildrenFlag, Node, NodeDamage, ShadowIncluding, UnbindContext,
+    document_from_node, window_from_node, BindContext, CloneChildrenFlag, Node, NodeDamage,
+    ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
@@ -49,38 +82,6 @@ use crate::textinput::KeyReaction::{
 };
 use crate::textinput::Lines::Single;
 use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
-use chrono::naive::{NaiveDate, NaiveDateTime};
-use chrono::{Datelike, Weekday};
-use dom_struct::dom_struct;
-use embedder_traits::FilterPattern;
-use encoding_rs::Encoding;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::jsapi::{
-    ClippedTime, DateGetMsecSinceEpoch, Handle, JSObject, JS_ClearPendingException, NewDateObject,
-    NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
-};
-use js::jsval::UndefinedValue;
-use js::rust::jsapi_wrapped::{ExecuteRegExpNoStatics, ObjectIsRegExp};
-use js::rust::{HandleObject, MutableHandleObject};
-use msg::constellation_msg::InputMethodType;
-use net_traits::blob_url_store::get_blob_origin;
-use net_traits::filemanager_thread::FileManagerThreadMsg;
-use net_traits::{CoreResourceMsg, IpcSend};
-use profile_traits::ipc;
-use script_layout_interface::rpc::TextIndexResponse;
-use script_traits::ScriptToConstellationChan;
-use servo_atoms::Atom;
-use std::borrow::Cow;
-use std::cell::Cell;
-use std::f64;
-use std::ops::Range;
-use std::ptr;
-use std::ptr::NonNull;
-use style::attr::AttrValue;
-use style::element_state::ElementState;
-use style::str::{split_commas, str_join};
-use unicode_bidi::{bidi_class, BidiClass};
-use url::Url;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";

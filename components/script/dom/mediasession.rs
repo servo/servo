@@ -2,16 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use embedder_traits::{MediaMetadata as EmbedderMediaMetadata, MediaSessionEvent};
+use script_traits::{MediaSessionActionType, ScriptMsg};
+
+use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
-use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataInit;
-use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::MediaMetadataMethods;
-use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaPositionState;
-use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionAction;
-use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionActionHandler;
-use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionMethods;
-use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::MediaSessionPlaybackState;
+use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::{
+    MediaMetadataInit, MediaMetadataMethods,
+};
+use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::{
+    MediaPositionState, MediaSessionAction, MediaSessionActionHandler, MediaSessionMethods,
+    MediaSessionPlaybackState,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -21,14 +28,6 @@ use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
 use crate::realms::{enter_realm, InRealm};
-use dom_struct::dom_struct;
-use embedder_traits::MediaMetadata as EmbedderMediaMetadata;
-use embedder_traits::MediaSessionEvent;
-use script_traits::MediaSessionActionType;
-use script_traits::ScriptMsg;
-use std::rc::Rc;
-
-use super::bindings::trace::HashMapTracedValues;
 
 #[dom_struct]
 pub struct MediaSession {

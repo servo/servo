@@ -2,6 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::ptr::NonNull;
+use std::{f64, ptr};
+
+use cssparser::{Parser, ParserInput};
+use dom_struct::dom_struct;
+use euclid::default::Transform3D;
+use euclid::Angle;
+use js::jsapi::JSObject;
+use js::rust::{CustomAutoRooterGuard, HandleObject};
+use js::typedarray::{CreateWith, Float32Array, Float64Array};
+use style::parser::ParserContext;
+
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
@@ -17,18 +30,6 @@ use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
-use cssparser::{Parser, ParserInput};
-use dom_struct::dom_struct;
-use euclid::{default::Transform3D, Angle};
-use js::jsapi::JSObject;
-use js::rust::{CustomAutoRooterGuard, HandleObject};
-use js::typedarray::CreateWith;
-use js::typedarray::{Float32Array, Float64Array};
-use std::cell::Cell;
-use std::f64;
-use std::ptr;
-use std::ptr::NonNull;
-use style::parser::ParserContext;
 
 #[dom_struct]
 #[allow(non_snake_case)]

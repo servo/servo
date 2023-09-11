@@ -2,24 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::framerate::FramerateActor;
-use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
-use crate::protocol::JsonPacketStream;
-use crate::StreamId;
-use devtools_traits::DevtoolScriptControlMsg;
-use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
-use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use msg::constellation_msg::PipelineId;
-use serde::{Serialize, Serializer};
-use serde_json::{Map, Value};
 use std::cell::RefCell;
 use std::error::Error;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+
+use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
+use devtools_traits::{DevtoolScriptControlMsg, PreciseTime, TimelineMarker, TimelineMarkerType};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use msg::constellation_msg::PipelineId;
+use serde::{Serialize, Serializer};
+use serde_json::{Map, Value};
+
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::framerate::FramerateActor;
+use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
+use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 
 pub struct TimelineActor {
     name: String,

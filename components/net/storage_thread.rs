@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::resource_thread;
+use std::borrow::ToOwned;
+use std::collections::{BTreeMap, HashMap};
+use std::path::PathBuf;
+use std::thread;
+
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use servo_url::ServoUrl;
-use std::borrow::ToOwned;
-use std::collections::BTreeMap;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::thread;
+
+use crate::resource_thread;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 

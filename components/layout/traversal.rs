@@ -4,12 +4,6 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-use crate::construct::FlowConstructor;
-use crate::context::LayoutContext;
-use crate::display_list::DisplayListBuildState;
-use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
-use crate::wrapper::ThreadSafeLayoutNodeHelpers;
-use crate::wrapper::{GetStyleAndLayoutData, LayoutNodeLayoutData};
 use log::debug;
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
@@ -18,8 +12,13 @@ use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::traversal::PerLevelTraversalData;
-use style::traversal::{recalc_style_at, DomTraversal};
+use style::traversal::{recalc_style_at, DomTraversal, PerLevelTraversalData};
+
+use crate::construct::FlowConstructor;
+use crate::context::LayoutContext;
+use crate::display_list::DisplayListBuildState;
+use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
+use crate::wrapper::{GetStyleAndLayoutData, LayoutNodeLayoutData, ThreadSafeLayoutNodeHelpers};
 
 pub struct RecalcStyleAndConstructFlows<'a> {
     context: LayoutContext<'a>,

@@ -2,6 +2,41 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::ptr;
+
+use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
+use html5ever::local_name;
+use indexmap::map::IndexMap;
+use ipc_channel::ipc;
+use js::glue::{
+    CreateWrapperProxyHandler, GetProxyPrivate, GetProxyReservedSlot, ProxyTraps,
+    SetProxyReservedSlot,
+};
+use js::jsapi::{
+    GCContext, Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
+    HandleValue as RawHandleValue, JSAutoRealm, JSContext, JSErrNum, JSObject, JSTracer,
+    JS_DefinePropertyById, JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo,
+    JS_GetOwnPropertyDescriptorById, JS_HasOwnPropertyById, JS_HasPropertyById,
+    JS_IsExceptionPending, MutableHandle as RawMutableHandle,
+    MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
+    ObjectOpResult, PropertyDescriptor, JSPROP_ENUMERATE, JSPROP_READONLY,
+};
+use js::jsval::{JSVal, NullValue, PrivateValue, UndefinedValue};
+use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
+use js::rust::{get_object_class, Handle, MutableHandle};
+use js::JSCLASS_IS_GLOBAL;
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use net_traits::request::Referrer;
+use script_traits::{
+    AuxiliaryBrowsingContextLoadInfo, HistoryEntryReplacement, LoadData, LoadOrigin, NewLayoutInfo,
+    ScriptMsg,
+};
+use serde::{Deserialize, Serialize};
+use servo_url::{ImmutableOrigin, ServoUrl};
+use style::attr::parse_integer;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::{root_from_handleobject, ToJSValConvertible};
 use crate::dom::bindings::error::{throw_dom_exception, Error, Fallible};
@@ -20,44 +55,6 @@ use crate::dom::window::Window;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::ScriptThread;
-use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
-use html5ever::local_name;
-use indexmap::map::IndexMap;
-use ipc_channel::ipc;
-use js::glue::{CreateWrapperProxyHandler, ProxyTraps};
-use js::glue::{GetProxyPrivate, GetProxyReservedSlot, SetProxyReservedSlot};
-use js::jsapi::Handle as RawHandle;
-use js::jsapi::HandleId as RawHandleId;
-use js::jsapi::HandleObject as RawHandleObject;
-use js::jsapi::HandleValue as RawHandleValue;
-use js::jsapi::MutableHandle as RawMutableHandle;
-use js::jsapi::MutableHandleObject as RawMutableHandleObject;
-use js::jsapi::MutableHandleValue as RawMutableHandleValue;
-use js::jsapi::{GCContext, JSAutoRealm, JSContext, JSErrNum, JSObject};
-use js::jsapi::{JSTracer, JS_DefinePropertyById, JSPROP_ENUMERATE, JSPROP_READONLY};
-use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo};
-use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_IsExceptionPending};
-use js::jsapi::{JS_HasOwnPropertyById, JS_HasPropertyById};
-use js::jsapi::{ObjectOpResult, PropertyDescriptor};
-use js::jsval::{JSVal, NullValue, PrivateValue, UndefinedValue};
-use js::rust::get_object_class;
-use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
-use js::rust::{Handle, MutableHandle};
-use js::JSCLASS_IS_GLOBAL;
-use msg::constellation_msg::BrowsingContextId;
-use msg::constellation_msg::PipelineId;
-use msg::constellation_msg::TopLevelBrowsingContextId;
-use net_traits::request::Referrer;
-use script_traits::{
-    AuxiliaryBrowsingContextLoadInfo, HistoryEntryReplacement, LoadData, LoadOrigin,
-};
-use script_traits::{NewLayoutInfo, ScriptMsg};
-use serde::{Deserialize, Serialize};
-use servo_url::{ImmutableOrigin, ServoUrl};
-use std::cell::Cell;
-use std::ptr;
-use style::attr::parse_integer;
 
 #[dom_struct]
 // NOTE: the browsing context for a window is managed in two places:

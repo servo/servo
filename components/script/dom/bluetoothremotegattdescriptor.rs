@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
+use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
+use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
+use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSender;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::BluetoothRemoteGATTCharacteristicMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::BluetoothRemoteGATTDescriptorMethods;
@@ -19,11 +26,6 @@ use crate::dom::bluetoothremotegattcharacteristic::{
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
-use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
-use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
-use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use std::rc::Rc;
 
 // http://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattdescriptor
 #[dom_struct]

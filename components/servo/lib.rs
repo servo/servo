@@ -17,44 +17,12 @@
 //! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
-pub use background_hang_monitor;
-pub use bluetooth;
-pub use bluetooth_traits;
-pub use canvas;
-pub use canvas_traits;
-pub use compositing;
-pub use constellation;
-pub use devtools;
-pub use devtools_traits;
-pub use embedder_traits;
-pub use euclid;
-pub use gfx;
-pub use gleam::gl;
-pub use ipc_channel;
-pub use keyboard_types;
-pub use layout_thread_2013;
-pub use layout_thread_2020;
-pub use media;
-pub use msg;
-pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
-pub use net;
-pub use net_traits;
-pub use profile;
-pub use profile_traits;
-pub use script;
-pub use script_layout_interface;
-pub use script_traits;
-pub use servo_config as config;
-pub use servo_config;
-pub use servo_geometry;
-pub use servo_url as url;
-pub use servo_url;
-pub use style;
-pub use style_traits;
-pub use webgpu;
-pub use webrender_api;
-pub use webrender_surfman;
-pub use webrender_traits;
+use std::borrow::Cow;
+use std::cmp::max;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
@@ -75,8 +43,10 @@ use compositing_traits::{
     not(target_arch = "aarch64")
 ))]
 use constellation::content_process_sandbox_profile;
-use constellation::{Constellation, InitialConstellationState, UnprivilegedContent};
-use constellation::{FromCompositorLogger, FromScriptLogger};
+use constellation::{
+    Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState,
+    UnprivilegedContent,
+};
 use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
@@ -90,36 +60,36 @@ use euclid::Scale;
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
+pub use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{error, warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
+pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
-use profile::mem as profile_mem;
-use profile::time as profile_time;
-use profile_traits::mem;
-use profile_traits::time;
+use profile::{mem as profile_mem, time as profile_time};
+use profile_traits::{mem, time};
 use script::serviceworker_manager::ServiceWorkerManager;
 use script::JSEngineSetup;
 use script_traits::{ScriptToConstellationChan, WindowSizeData};
-use servo_config::opts;
-use servo_config::{pref, prefs};
+use servo_config::{opts, pref, prefs};
 use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
-use std::borrow::Cow;
-use std::cmp::max;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::rc::Rc;
-use std::sync::Arc;
-use std::sync::Mutex;
 use surfman::GLApi;
 use webrender::{RenderApiSender, ShaderPrecacheFlags};
 use webrender_api::{DocumentId, FontInstanceKey, FontKey, ImageKey};
-use webrender_traits::WebrenderExternalImageHandlers;
-use webrender_traits::WebrenderExternalImageRegistry;
-use webrender_traits::WebrenderImageHandlerType;
+use webrender_traits::{
+    WebrenderExternalImageHandlers, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
+};
+pub use {
+    background_hang_monitor, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
+    constellation, devtools, devtools_traits, embedder_traits, euclid, gfx, ipc_channel,
+    keyboard_types, layout_thread_2013, layout_thread_2020, media, msg, net, net_traits, profile,
+    profile_traits, script, script_layout_interface, script_traits, servo_config as config,
+    servo_config, servo_geometry, servo_url as url, servo_url, style, style_traits, webgpu,
+    webrender_api, webrender_surfman, webrender_traits,
+};
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -136,8 +106,9 @@ mod media_platform {
         include!(concat!(env!("OUT_DIR"), "/gstreamer_plugins.rs"));
     }
 
-    use super::ServoMedia;
     use servo_media_gstreamer::GStreamerBackend;
+
+    use super::ServoMedia;
 
     #[cfg(any(windows, target_os = "macos"))]
     pub fn init() {

@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use style::values::specified::text::TextDecorationLine;
+
 use super::{FlexContainer, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -10,9 +15,6 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, Trav
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::DisplayGeneratingBox;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use std::borrow::Cow;
-use style::values::specified::text::TextDecorationLine;
 
 impl FlexContainer {
     pub fn construct<'dom>(

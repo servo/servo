@@ -4,6 +4,9 @@
 
 #![allow(dead_code)]
 
+use dom_struct::dom_struct;
+use servo_atoms::Atom;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -13,8 +16,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use servo_atoms::Atom;
 
 // https://html.spec.whatwg.org/multipage/#beforeunloadevent
 #[dom_struct]

@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use html5ever::{namespace_url, ns, LocalName};
+use servo_atoms::Atom;
+use style::str::HTML_SPACE_CHARACTERS;
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -10,10 +15,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::node::window_from_node;
-use dom_struct::dom_struct;
-use html5ever::{namespace_url, ns, LocalName};
-use servo_atoms::Atom;
-use style::str::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct DOMTokenList {

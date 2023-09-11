@@ -4,37 +4,35 @@
 
 // check-tidy: no specs after this line
 
+use std::borrow::ToOwned;
+use std::ptr;
+use std::ptr::NonNull;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::jsapi::{Heap, JSObject, JS_NewPlainObject, JS_NewUint8ClampedArray};
+use js::jsval::{JSVal, NullValue};
+use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue};
+use js::typedarray;
+use script_traits::serializable::BlobImpl;
+use script_traits::MsDuration;
+use servo_config::prefs;
+
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use crate::dom::bindings::codegen::Bindings::TestBindingBinding::SimpleCallback;
-use crate::dom::bindings::codegen::Bindings::TestBindingBinding::TestDictionaryParent;
-use crate::dom::bindings::codegen::Bindings::TestBindingBinding::TestDictionaryWithParent;
 use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
-    TestBindingMethods, TestDictionary,
-};
-use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
-    TestDictionaryDefaults, TestEnum, TestURLLike,
+    SimpleCallback, TestBindingMethods, TestDictionary, TestDictionaryDefaults,
+    TestDictionaryParent, TestDictionaryWithParent, TestEnum, TestURLLike,
 };
 use crate::dom::bindings::codegen::UnionTypes;
 use crate::dom::bindings::codegen::UnionTypes::{
-    BlobOrBlobSequence, BlobOrBoolean, LongOrLongSequenceSequence,
-};
-use crate::dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
-use crate::dom::bindings::codegen::UnionTypes::{
-    ByteStringOrLong, ByteStringSequenceOrLongOrString,
-};
-use crate::dom::bindings::codegen::UnionTypes::{ByteStringSequenceOrLong, DocumentOrTestTypedef};
-use crate::dom::bindings::codegen::UnionTypes::{
-    EventOrUSVString, HTMLElementOrLong, LongSequenceOrTestTypedef,
-};
-use crate::dom::bindings::codegen::UnionTypes::{
-    HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean,
-};
-use crate::dom::bindings::codegen::UnionTypes::{StringOrBoolean, UnsignedLongOrBoolean};
-use crate::dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence};
-use crate::dom::bindings::codegen::UnionTypes::{
-    StringOrUnsignedLong, StringSequenceOrUnsignedLong,
+    BlobOrBlobSequence, BlobOrBoolean, BlobOrString, BlobOrUnsignedLong, ByteStringOrLong,
+    ByteStringSequenceOrLong, ByteStringSequenceOrLongOrString, DocumentOrTestTypedef,
+    EventOrString, EventOrUSVString, HTMLElementOrLong, HTMLElementOrUnsignedLongOrStringOrBoolean,
+    LongOrLongSequenceSequence, LongSequenceOrBoolean, LongSequenceOrTestTypedef, StringOrBoolean,
+    StringOrLongSequence, StringOrStringSequence, StringOrUnsignedLong,
+    StringSequenceOrUnsignedLong, UnsignedLongOrBoolean,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
@@ -54,20 +52,6 @@ use crate::dom::url::URL;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::timers::OneshotTimerCallback;
-use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
-use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
-use js::jsval::{JSVal, NullValue};
-use js::rust::CustomAutoRooterGuard;
-use js::rust::{HandleObject, HandleValue};
-use js::typedarray;
-use script_traits::serializable::BlobImpl;
-use script_traits::MsDuration;
-use servo_config::prefs;
-use std::borrow::ToOwned;
-use std::ptr;
-use std::ptr::NonNull;
-use std::rc::Rc;
 
 #[dom_struct]
 pub struct TestBinding {

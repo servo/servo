@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use syn::parse_quote;
-use synstructure::decl_derive;
-use synstructure::quote;
+use synstructure::{decl_derive, quote};
 
 decl_derive!([JSTraceable, attributes(no_trace, custom_trace)] =>
 /// Implements `JSTraceable` on structs and enums

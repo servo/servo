@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::iter::Filter;
+use std::str::Split;
+use std::sync::MutexGuard;
+
 use base64::Engine;
 use generic_array::ArrayLength;
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use sha2::{Digest, Sha256, Sha384, Sha512};
-use std::iter::Filter;
-use std::str::Split;
-use std::sync::MutexGuard;
 
 const SUPPORTED_ALGORITHM: &'static [&'static str] = &["sha256", "sha384", "sha512"];
 pub type StaticCharVec = &'static [char];

@@ -2,6 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::ToOwned;
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use encoding_rs::{Encoding, UTF_8};
+use headers::{ContentType, HeaderMapExt};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use http::Method;
+use js::rust::HandleObject;
+use mime::{self, Mime};
+use net_traits::http_percent_encode;
+use net_traits::request::Referrer;
+use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
+use servo_atoms::Atom;
+use servo_rand::random;
+use style::attr::AttrValue;
+use style::element_state::ElementState;
+use style::str::split_html_space_chars;
+use time::{now, Duration, Tm};
+
+use super::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::body::Extractable;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrBinding::AttrMethods;
@@ -14,8 +35,10 @@ use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
@@ -47,9 +70,10 @@ use crate::dom::htmlobjectelement::HTMLObjectElement;
 use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{Node, NodeFlags};
-use crate::dom::node::{UnbindContext, VecPreOrderInsertionHelper};
+use crate::dom::node::{
+    document_from_node, window_from_node, Node, NodeFlags, UnbindContext,
+    VecPreOrderInsertionHelper,
+};
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
@@ -57,30 +81,6 @@ use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use encoding_rs::{Encoding, UTF_8};
-use headers::{ContentType, HeaderMapExt};
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use http::Method;
-use js::rust::HandleObject;
-use mime::{self, Mime};
-use net_traits::http_percent_encode;
-use net_traits::request::Referrer;
-use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
-use servo_atoms::Atom;
-use servo_rand::random;
-use std::borrow::ToOwned;
-use std::cell::Cell;
-use style::attr::AttrValue;
-use style::element_state::ElementState;
-use style::str::split_html_space_chars;
-
-use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
-use time::{now, Duration, Tm};
-
-use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
-
-use super::bindings::trace::{HashMapTracedValues, NoTrace};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);

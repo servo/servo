@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::root::LayoutDom;
-use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
-use crate::layout_dom::ServoLayoutElement;
-use crate::layout_dom::ServoLayoutNode;
-use script_layout_interface::wrapper_traits::LayoutDataTrait;
 use std::fmt;
 use std::marker::PhantomData;
+
+use script_layout_interface::wrapper_traits::LayoutDataTrait;
 use style::dom::TShadowRoot;
 use style::shared_lock::SharedRwLockReadGuard as StyleSharedRwLockReadGuard;
 use style::stylist::{CascadeData, Stylist};
+
+use crate::dom::bindings::root::LayoutDom;
+use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
+use crate::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 
 pub struct ServoShadowRoot<'dom, LayoutDataType: LayoutDataTrait> {
     /// The wrapped private DOM ShadowRoot.

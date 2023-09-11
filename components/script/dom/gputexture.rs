@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::string::String;
+
+use dom_struct::dom_struct;
+use webgpu::identity::WebGPUOpResult;
+use webgpu::wgpu::resource;
+use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
     GPUExtent3DDict, GPUTextureDimension, GPUTextureFormat, GPUTextureMethods,
@@ -17,13 +25,6 @@ use crate::dom::gpudevice::{
     convert_label, convert_texture_format, convert_texture_view_dimension, GPUDevice,
 };
 use crate::dom::gputextureview::GPUTextureView;
-use dom_struct::dom_struct;
-use std::cell::Cell;
-use std::string::String;
-use webgpu::{
-    identity::WebGPUOpResult, wgpu::resource, wgt, WebGPU, WebGPURequest, WebGPUTexture,
-    WebGPUTextureView,
-};
 
 #[dom_struct]
 pub struct GPUTexture {

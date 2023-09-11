@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::parsing::parse;
 use style::properties::longhands::{perspective_origin, transform_origin};
 use style_traits::ToCss;
+
+use crate::parsing::parse;
 
 #[test]
 fn test_clip() {
@@ -49,8 +50,9 @@ fn test_effects_parser_exhaustion() {
 
 #[test]
 fn test_parse_factor() {
-    use crate::parsing::parse;
     use style::properties::longhands::filter;
+
+    use crate::parsing::parse;
 
     assert!(parse(filter::parse, "brightness(0)").is_ok());
     assert!(parse(filter::parse, "brightness(55)").is_ok());

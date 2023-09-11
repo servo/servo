@@ -2,18 +2,42 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
-use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
-use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
-use crate::dom::bindings::codegen::UnionTypes::Float32ArrayOrUnrestrictedFloatSequence;
-use crate::dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use crate::dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
-use crate::dom::bindings::codegen::UnionTypes::Uint32ArrayOrUnsignedLongSequence;
+use std::cell::Cell;
+use std::cmp;
+use std::ptr::{self, NonNull};
+
+use canvas_traits::webgl::WebGLError::*;
+use canvas_traits::webgl::{
+    webgl_channel, GLContextAttributes, InternalFormatParameter, WebGLCommand, WebGLResult,
+    WebGLVersion,
+};
+use dom_struct::dom_struct;
+use euclid::default::{Point2D, Rect, Size2D};
+use ipc_channel::ipc::{self, IpcSharedMemory};
+use js::jsapi::{JSObject, Type};
+use js::jsval::{
+    BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, ObjectValue, UInt32Value,
+    UndefinedValue,
+};
+use js::rust::{CustomAutoRooterGuard, HandleObject};
+use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
+use script_layout_interface::HTMLCanvasDataSource;
+use servo_config::pref;
+use url::Host;
+
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
+    WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
+};
+use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
+    WebGLContextAttributes, WebGLRenderingContextMethods,
+};
+use crate::dom::bindings::codegen::UnionTypes::{
+    ArrayBufferViewOrArrayBuffer, Float32ArrayOrUnrestrictedFloatSequence,
+    ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement, Int32ArrayOrLongSequence,
+    Uint32ArrayOrUnsignedLongSequence,
+};
 use crate::dom::bindings::error::{ErrorResult, Fallible};
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -43,25 +67,6 @@ use crate::dom::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext;
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{
-    webgl_channel, GLContextAttributes, InternalFormatParameter, WebGLCommand, WebGLResult,
-    WebGLVersion,
-};
-use dom_struct::dom_struct;
-use euclid::default::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::{self, IpcSharedMemory};
-use js::jsapi::{JSObject, Type};
-use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value};
-use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::rust::{CustomAutoRooterGuard, HandleObject};
-use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
-use script_layout_interface::HTMLCanvasDataSource;
-use servo_config::pref;
-use std::cell::Cell;
-use std::cmp;
-use std::ptr::{self, NonNull};
-use url::Host;
 
 #[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]

@@ -11,32 +11,35 @@
 //!
 //! Hereafter this document is referred to as INTRINSIC.
 
-use crate::block::{
-    AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput,
-};
-use crate::block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
-use crate::context::LayoutContext;
-use crate::display_list::StackingContextCollectionState;
-use crate::display_list::{DisplayListBuildState, StackingContextCollectionFlags};
-use crate::floats::FloatKind;
-use crate::flow::{Flow, FlowClass, FlowFlags, ImmutableFlowUtils, OpaqueFlow};
-use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::model::MaybeAuto;
-use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use std::cmp::{max, min};
+use std::fmt;
+use std::ops::Add;
+
 use app_units::Au;
 use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use log::{debug, trace};
 use serde::Serialize;
-use std::cmp::{max, min};
-use std::fmt;
-use std::ops::Add;
 use style::computed_values::{position, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ComputedValues;
 use style::values::computed::Size;
 use style::values::CSSFloat;
+
+use crate::block::{
+    AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer,
+    ISizeConstraintInput, ISizeConstraintSolution, MarginsMayCollapseFlag,
+};
+use crate::context::LayoutContext;
+use crate::display_list::{
+    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+};
+use crate::floats::FloatKind;
+use crate::flow::{Flow, FlowClass, FlowFlags, ImmutableFlowUtils, OpaqueFlow};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use crate::model::MaybeAuto;
+use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub enum TableLayout {

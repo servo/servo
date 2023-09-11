@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
+use js::rust::HandleObject;
+use servo_config::pref;
+
 use crate::dom::bindings::error::{report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -34,8 +38,7 @@ use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmlframeelement::HTMLFrameElement;
 use crate::dom::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::htmlheadingelement::HTMLHeadingElement;
-use crate::dom::htmlheadingelement::HeadingLevel;
+use crate::dom::htmlheadingelement::{HTMLHeadingElement, HeadingLevel};
 use crate::dom::htmlhrelement::HTMLHRElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
@@ -84,9 +87,6 @@ use crate::dom::svgelement::SVGElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_thread::ScriptThread;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
-use js::rust::HandleObject;
-use servo_config::pref;
 
 fn create_svg_element(
     name: QualName,

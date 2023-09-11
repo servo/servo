@@ -11,43 +11,12 @@
 //! maybe it's an absolute or fixed position thing that hasn't found its containing block yet.
 //! Construction items bubble up the tree from children to parents until they find their homes.
 
-use crate::block::BlockFlow;
-use crate::context::{with_thread_local_font_context, LayoutContext};
-use crate::data::{LayoutData, LayoutDataFlags};
-use crate::display_list::items::OpaqueNode;
-use crate::flex::FlexFlow;
-use crate::floats::FloatKind;
-use crate::flow::{AbsoluteDescendants, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils};
-use crate::flow::{FlowFlags, MutableFlowUtils, MutableOwnedFlowUtils};
-use crate::flow_ref::FlowRef;
-use crate::fragment::{
-    CanvasFragmentInfo, Fragment, FragmentFlags, GeneratedContentInfo, IframeFragmentInfo,
-};
-use crate::fragment::{
-    ImageFragmentInfo, InlineAbsoluteFragmentInfo, InlineAbsoluteHypotheticalFragmentInfo,
-};
-use crate::fragment::{
-    InlineBlockFragmentInfo, MediaFragmentInfo, SpecificFragmentInfo, SvgFragmentInfo,
-};
-use crate::fragment::{
-    TableColumnFragmentInfo, UnscannedTextFragmentInfo, WhitespaceStrippingResult,
-};
-use crate::inline::{InlineFlow, InlineFragmentNodeFlags, InlineFragmentNodeInfo};
-use crate::linked_list::prepend_from;
-use crate::list_item::{ListItemFlow, ListStyleTypeContent};
-use crate::multicol::{MulticolColumnFlow, MulticolFlow};
-use crate::parallel;
-use crate::table::TableFlow;
-use crate::table_caption::TableCaptionFlow;
-use crate::table_cell::TableCellFlow;
-use crate::table_colgroup::TableColGroupFlow;
-use crate::table_row::TableRowFlow;
-use crate::table_rowgroup::TableRowGroupFlow;
-use crate::table_wrapper::TableWrapperFlow;
-use crate::text::TextRunScanner;
-use crate::traversal::PostorderNodeMutTraversal;
-use crate::wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
-use crate::ServoArc;
+use std::collections::LinkedList;
+use std::marker::PhantomData;
+use std::mem;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+
 use html5ever::{local_name, namespace_url, ns};
 use log::debug;
 use script_layout_interface::wrapper_traits::{
@@ -56,11 +25,6 @@ use script_layout_interface::wrapper_traits::{
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use servo_config::opts;
 use servo_url::ServoUrl;
-use std::collections::LinkedList;
-use std::marker::PhantomData;
-use std::mem;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
 use style::computed_values::caption_side::T as CaptionSide;
 use style::computed_values::display::T as Display;
 use style::computed_values::empty_cells::T as EmptyCells;
@@ -76,6 +40,39 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::Image;
 use style::values::generics::counters::ContentItem;
 use style::LocalName;
+
+use crate::block::BlockFlow;
+use crate::context::{with_thread_local_font_context, LayoutContext};
+use crate::data::{LayoutData, LayoutDataFlags};
+use crate::display_list::items::OpaqueNode;
+use crate::flex::FlexFlow;
+use crate::floats::FloatKind;
+use crate::flow::{
+    AbsoluteDescendants, Flow, FlowClass, FlowFlags, GetBaseFlow, ImmutableFlowUtils,
+    MutableFlowUtils, MutableOwnedFlowUtils,
+};
+use crate::flow_ref::FlowRef;
+use crate::fragment::{
+    CanvasFragmentInfo, Fragment, FragmentFlags, GeneratedContentInfo, IframeFragmentInfo,
+    ImageFragmentInfo, InlineAbsoluteFragmentInfo, InlineAbsoluteHypotheticalFragmentInfo,
+    InlineBlockFragmentInfo, MediaFragmentInfo, SpecificFragmentInfo, SvgFragmentInfo,
+    TableColumnFragmentInfo, UnscannedTextFragmentInfo, WhitespaceStrippingResult,
+};
+use crate::inline::{InlineFlow, InlineFragmentNodeFlags, InlineFragmentNodeInfo};
+use crate::linked_list::prepend_from;
+use crate::list_item::{ListItemFlow, ListStyleTypeContent};
+use crate::multicol::{MulticolColumnFlow, MulticolFlow};
+use crate::table::TableFlow;
+use crate::table_caption::TableCaptionFlow;
+use crate::table_cell::TableCellFlow;
+use crate::table_colgroup::TableColGroupFlow;
+use crate::table_row::TableRowFlow;
+use crate::table_rowgroup::TableRowGroupFlow;
+use crate::table_wrapper::TableWrapperFlow;
+use crate::text::TextRunScanner;
+use crate::traversal::PostorderNodeMutTraversal;
+use crate::wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
+use crate::{parallel, ServoArc};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]

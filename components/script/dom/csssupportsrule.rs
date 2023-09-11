@@ -2,14 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cssconditionrule::CSSConditionRule;
-use crate::dom::cssrule::SpecificCSSRule;
-use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::window::Window;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use servo_arc::Arc;
@@ -18,6 +10,15 @@ use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::supports_rule::SupportsCondition;
 use style::stylesheets::{CssRuleType, Origin, SupportsRule};
 use style_traits::{ParsingMode, ToCss};
+
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::cssconditionrule::CSSConditionRule;
+use crate::dom::cssrule::SpecificCSSRule;
+use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::window::Window;
 
 #[dom_struct]
 pub struct CSSSupportsRule {

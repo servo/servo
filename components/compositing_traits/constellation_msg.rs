@@ -2,24 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+use std::fmt;
+use std::time::Duration;
+
 use embedder_traits::Cursor;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
-use msg::constellation_msg::PipelineId;
-use msg::constellation_msg::TopLevelBrowsingContextId;
-use msg::constellation_msg::{BrowsingContextId, TraversalDirection};
-use script_traits::AnimationTickType;
-use script_traits::CompositorEvent;
-use script_traits::LogEntry;
-use script_traits::MediaSessionActionType;
-use script_traits::WebDriverCommandMsg;
-use script_traits::WindowSizeData;
-use script_traits::WindowSizeType;
+use msg::constellation_msg::{
+    BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection,
+};
+use script_traits::{
+    AnimationTickType, CompositorEvent, LogEntry, MediaSessionActionType, WebDriverCommandMsg,
+    WindowSizeData, WindowSizeType,
+};
 use servo_url::ServoUrl;
-use std::collections::HashMap;
-use std::fmt;
-use std::time::Duration;
 
 /// Messages to the constellation.
 pub enum ConstellationMsg {

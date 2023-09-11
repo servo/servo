@@ -2,21 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use js::jsval::JSVal;
+use webxr_api::SubImages;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::Dom;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::jsval::JSVal;
-use std::cell::Cell;
-use webxr_api::SubImages;
 
 #[dom_struct]
 pub struct XRRenderState {

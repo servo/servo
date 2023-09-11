@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ptr::NonNull;
+
+use dom_struct::dom_struct;
+use euclid::RigidTransform3D;
+use js::jsapi::{Heap, JSObject};
+use webxr_api::{ApiSpace, View};
+
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -10,11 +17,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
-use js::jsapi::{Heap, JSObject};
-use std::ptr::NonNull;
-use webxr_api::{ApiSpace, View};
 
 #[dom_struct]
 pub struct XRView {

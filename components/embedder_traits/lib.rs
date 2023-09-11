@@ -4,6 +4,8 @@
 
 pub mod resources;
 
+use std::fmt::{Debug, Error, Formatter};
+
 use crossbeam_channel::{Receiver, Sender};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
@@ -12,9 +14,7 @@ use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContex
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use std::fmt::{Debug, Error, Formatter};
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
-
 pub use webxr_api::MainThreadWaker as EventLoopWaker;
 
 /// A cursor for the window. This is different from a CSS cursor (see

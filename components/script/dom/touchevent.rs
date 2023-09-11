@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+
 use crate::dom::bindings::codegen::Bindings::TouchEventBinding::TouchEventMethods;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -12,8 +16,6 @@ use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::touchlist::TouchList;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct TouchEvent {

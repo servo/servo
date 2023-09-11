@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use mime::{self, Mime};
-use net::mime_classifier::{ApacheBugFlag, MimeClassifier, Mp4Matcher, NoSniffFlag};
-use net_traits::LoadContext;
 use std::env;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{self, PathBuf};
+
+use mime::{self, Mime};
+use net::mime_classifier::{ApacheBugFlag, MimeClassifier, Mp4Matcher, NoSniffFlag};
+use net_traits::LoadContext;
 
 fn read_file(path: &path::Path) -> io::Result<Vec<u8>> {
     let mut file = File::open(path)?;

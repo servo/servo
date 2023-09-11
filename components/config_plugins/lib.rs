@@ -4,14 +4,18 @@
 
 #![feature(proc_macro_diagnostic)]
 
+use std::collections::{hash_map, HashMap};
+use std::fmt::Write;
+use std::iter;
+
 use itertools::Itertools;
 use proc_macro2::{Span, TokenStream};
 use quote::*;
-use std::collections::{hash_map, HashMap};
-use std::{fmt::Write, iter};
+use syn::parse::Result;
+use syn::spanned::Spanned;
 use syn::{
-    parse::Result, parse_macro_input, spanned::Spanned, Attribute, Ident, Lit, LitStr, Meta,
-    MetaList, MetaNameValue, NestedMeta, Path,
+    parse_macro_input, Attribute, Ident, Lit, LitStr, Meta, MetaList, MetaNameValue, NestedMeta,
+    Path,
 };
 
 mod parse;

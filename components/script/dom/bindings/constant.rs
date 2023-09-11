@@ -4,12 +4,12 @@
 
 //! WebIDL constants.
 
-use crate::script_runtime::JSContext;
-use js::jsapi::JSPROP_READONLY;
-use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT};
+use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::HandleObject;
+
+use crate::script_runtime::JSContext;
 
 /// Representation of an IDL constant.
 #[derive(Clone)]

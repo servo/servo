@@ -6,9 +6,10 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
-use crate::canvas::CanvasId;
 use crossbeam_channel::Sender;
 use euclid::default::Size2D;
+
+use crate::canvas::CanvasId;
 
 pub mod canvas;
 #[macro_use]

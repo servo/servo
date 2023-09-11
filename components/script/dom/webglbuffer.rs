@@ -3,6 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
+use std::cell::Cell;
+
+use canvas_traits::webgl::{webgl_channel, WebGLBufferId, WebGLCommand, WebGLError, WebGLResult};
+use dom_struct::dom_struct;
+use ipc_channel::ipc;
+
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
 use crate::dom::bindings::inheritance::Castable;
@@ -10,11 +16,6 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
-use canvas_traits::webgl::webgl_channel;
-use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult};
-use dom_struct::dom_struct;
-use ipc_channel::ipc;
-use std::cell::Cell;
 
 fn target_is_copy_buffer(target: u32) -> bool {
     target == WebGL2RenderingContextConstants::COPY_READ_BUFFER ||

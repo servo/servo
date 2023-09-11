@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::Heap;
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::HandleObject;
+use servo_atoms::Atom;
+
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::XRInputSourcesChangeEventBinding::{
     self, XRInputSourcesChangeEventMethods,
@@ -17,12 +24,6 @@ use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrsession::XRSession;
 use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
-use js::jsapi::Heap;
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::HandleObject;
-use servo_atoms::Atom;
 
 #[dom_struct]
 pub struct XRInputSourcesChangeEvent {

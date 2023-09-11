@@ -2,21 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::data_loader::decode;
-use crate::fetch::cors_cache::CorsCache;
-use crate::fetch::headers::determine_nosniff;
-use crate::filemanager_thread::{FileManager, FILE_CHUNK_SIZE};
-use crate::http_loader::{determine_requests_referrer, http_fetch, HttpState};
-use crate::http_loader::{set_default_accept, set_default_accept_language};
-use crate::subresource_integrity::is_response_integrity_valid;
-use base64::{engine::general_purpose, Engine as _};
+use std::borrow::Cow;
+use std::fs::File;
+use std::io::{self, BufReader, Seek, SeekFrom};
+use std::ops::Bound;
+use std::sync::atomic::Ordering;
+use std::sync::{Arc, Mutex};
+use std::{mem, str};
+
+use base64::engine::general_purpose;
+use base64::Engine as _;
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
 use http::header::{self, HeaderMap, HeaderName};
-use http::Method;
-use http::StatusCode;
+use http::{Method, StatusCode};
 use ipc_channel::ipc::{self, IpcReceiver};
 use lazy_static::lazy_static;
 use log::{debug, warn};
@@ -24,30 +25,32 @@ use mime::{self, Mime};
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::request::{
-    is_cors_safelisted_method, is_cors_safelisted_request_header, Origin, ResponseTainting, Window,
-};
-use net_traits::request::{
-    BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Referrer, Request,
-    RequestMode,
+    is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
+    BodyChunkResponse, CredentialsMode, Destination, Origin, Referrer, Request, RequestMode,
+    ResponseTainting, Window,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
-use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
-use net_traits::{ResourceAttribute, ResourceTimeValue, ResourceTimingType};
+use net_traits::{
+    FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
+    ResourceTimeValue, ResourceTimingType,
+};
 use rustls::Certificate;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
-use std::borrow::Cow;
-use std::fs::File;
-use std::io::{self, BufReader, Seek, SeekFrom};
-use std::mem;
-use std::ops::Bound;
-use std::str;
-use std::sync::atomic::Ordering;
-use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::{
     unbounded_channel, UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender,
 };
+
+use crate::data_loader::decode;
+use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::headers::determine_nosniff;
+use crate::filemanager_thread::{FileManager, FILE_CHUNK_SIZE};
+use crate::http_loader::{
+    determine_requests_referrer, http_fetch, set_default_accept, set_default_accept_language,
+    HttpState,
+};
+use crate::subresource_integrity::is_response_integrity_valid;
 
 lazy_static! {
     static ref X_CONTENT_TYPE_OPTIONS: HeaderName =

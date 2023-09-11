@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use html5ever::LocalName;
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
@@ -12,8 +15,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::element::Element;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use html5ever::LocalName;
 
 #[dom_struct]
 pub struct NamedNodeMap {

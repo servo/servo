@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
+use dom_struct::dom_struct;
+
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::Dom;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct WebGLObject {

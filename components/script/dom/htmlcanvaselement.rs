@@ -2,6 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
+use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
+use dom_struct::dom_struct;
+use euclid::default::{Rect, Size2D};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use image::codecs::png::PngEncoder;
+use image::{ColorType, ImageEncoder};
+use ipc_channel::ipc::{self as ipcchan, IpcSharedMemory};
+use js::error::throw_type_error;
+use js::rust::{HandleObject, HandleValue};
+use profile_traits::ipc;
+use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
+use script_traits::ScriptMsg;
+use servo_media::streams::registry::MediaStreamId;
+use servo_media::streams::MediaStreamType;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
@@ -31,22 +48,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::JSContext;
-use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
-use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
-use dom_struct::dom_struct;
-use euclid::default::{Rect, Size2D};
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use image::codecs::png::PngEncoder;
-use image::{ColorType, ImageEncoder};
-use ipc_channel::ipc::{self as ipcchan, IpcSharedMemory};
-use js::error::throw_type_error;
-use js::rust::{HandleObject, HandleValue};
-use profile_traits::ipc;
-use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
-use script_traits::ScriptMsg;
-use servo_media::streams::registry::MediaStreamId;
-use servo_media::streams::MediaStreamType;
-use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -486,10 +487,11 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
 }
 
 pub mod utils {
-    use crate::dom::window::Window;
     use net_traits::image_cache::ImageResponse;
     use net_traits::request::CorsSettings;
     use servo_url::ServoUrl;
+
+    use crate::dom::window::Window;
 
     pub fn request_image_from_cache(
         window: &Window,

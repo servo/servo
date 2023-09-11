@@ -89,18 +89,15 @@
 //!
 //! See https://github.com/servo/servo/issues/14704
 
-use crate::browsingcontext::NewBrowsingContextInfo;
-use crate::browsingcontext::{
-    AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
-};
-use crate::event_loop::EventLoop;
-use crate::network_listener::NetworkListener;
-use crate::pipeline::{InitialPipelineState, Pipeline};
-use crate::serviceworker::ServiceWorkerUnprivilegedContent;
-use crate::session_history::{
-    JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
-};
-use crate::timer_scheduler::TimerScheduler;
+use std::borrow::{Cow, ToOwned};
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::marker::PhantomData;
+use std::mem::replace;
+use std::rc::{Rc, Weak};
+use std::sync::{Arc, Mutex};
+use std::{process, thread};
+
 use background_hang_monitor::HangMonitorRegister;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
@@ -115,9 +112,11 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
 };
-use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy};
-use embedder_traits::{MediaSessionEvent, MediaSessionPlaybackState};
-use euclid::{default::Size2D as UntypedSize2D, Size2D};
+use embedder_traits::{
+    Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState,
+};
+use euclid::default::Size2D as UntypedSize2D;
+use euclid::Size2D;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -129,59 +128,50 @@ use layout_traits::LayoutThreadFactory;
 use log::{debug, error, info, warn};
 use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{
-    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
-};
-use msg::constellation_msg::{
-    BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineNamespace,
-    PipelineNamespaceId, PipelineNamespaceRequest, TraversalDirection,
-};
-use msg::constellation_msg::{
-    BrowsingContextGroupId, BrowsingContextId, HistoryStateId, PipelineId,
-    TopLevelBrowsingContextId,
+    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, BroadcastChannelRouterId,
+    BrowsingContextGroupId, BrowsingContextId, HangMonitorAlert, HistoryStateId, MessagePortId,
+    MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
+    PipelineNamespaceRequest, TopLevelBrowsingContextId, TraversalDirection,
 };
 use net_traits::pub_domains::reg_host;
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
-use profile_traits::mem;
-use profile_traits::time;
+use profile_traits::{mem, time};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
-use script_traits::{webdriver_msg, LogEntry, ScriptToConstellationChan, ServiceWorkerMsg};
 use script_traits::{
-    AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg,
-    CompositorEvent,
+    webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
+    BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
+    DocumentActivity, DocumentState, HistoryEntryReplacement, IFrameLoadInfo,
+    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutControlMsg,
+    LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MediaSessionActionType,
+    MessagePortMsg, MouseEventType, PortMessageTask, SWManagerMsg, SWManagerSenders,
+    ScriptMsg as FromScriptMsg, ScriptThreadFactory, ScriptToConstellationChan,
+    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TimerSchedulerMsg,
+    UpdatePipelineIdReason, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
-use script_traits::{ConstellationControlMsg, DiscardBrowsingContext};
-use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData, LoadOrigin};
-use script_traits::{HistoryEntryReplacement, IFrameSizeMsg, WindowSizeData, WindowSizeType};
-use script_traits::{
-    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
-};
-use script_traits::{
-    Job, LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory,
-    ServiceWorkerManagerFactory,
-};
-use script_traits::{MediaSessionActionType, MouseEventType};
-use script_traits::{MessagePortMsg, PortMessageTask, StructuredSerializedData};
-use script_traits::{SWManagerMsg, SWManagerSenders, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_rand::{random, Rng, ServoRng, SliceRandom};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use std::borrow::{Cow, ToOwned};
-use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::marker::PhantomData;
-use std::mem::replace;
-use std::process;
-use std::rc::{Rc, Weak};
-use std::sync::{Arc, Mutex};
-use std::thread;
 use style_traits::CSSPixel;
 use webgpu::{self, WebGPU, WebGPURequest};
 use webrender::{RenderApi, RenderApiSender};
 use webrender_api::DocumentId;
 use webrender_traits::WebrenderExternalImageRegistry;
+
+use crate::browsingcontext::{
+    AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
+    NewBrowsingContextInfo,
+};
+use crate::event_loop::EventLoop;
+use crate::network_listener::NetworkListener;
+use crate::pipeline::{InitialPipelineState, Pipeline};
+use crate::serviceworker::ServiceWorkerUnprivilegedContent;
+use crate::session_history::{
+    JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
+};
+use crate::timer_scheduler::TimerScheduler;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
 

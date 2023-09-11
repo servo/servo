@@ -4,17 +4,16 @@
 
 #![deny(unsafe_code)]
 
-pub use crate::compositor::IOCompositor;
-pub use crate::compositor::ShutdownState;
+use std::rc::Rc;
 
 use compositing_traits::{CompositorProxy, CompositorReceiver, ConstellationMsg};
 use crossbeam_channel::Sender;
-use profile_traits::mem;
-use profile_traits::time;
-use std::rc::Rc;
+use profile_traits::{mem, time};
 use webrender::RenderApi;
 use webrender_api::DocumentId;
 use webrender_surfman::WebrenderSurfman;
+
+pub use crate::compositor::{IOCompositor, ShutdownState};
 
 mod compositor;
 #[cfg(feature = "gl")]

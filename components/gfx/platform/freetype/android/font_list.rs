@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::path::Path;
+
+use ucd::{Codepoint, UnicodeBlock};
+
 use super::xml::{Attribute, Node};
 use crate::text::util::is_cjk;
-use std::path::Path;
-use ucd::{Codepoint, UnicodeBlock};
 
 lazy_static! {
     static ref FONT_LIST: FontList = FontList::new();

@@ -4,18 +4,19 @@
 
 #![allow(unrooted_must_root)]
 
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
-use crate::dom::document::Document;
-use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::node::Node;
-use crate::dom::servoparser::{ParsingAlgorithm, Sink};
 use html5ever::tokenizer::TokenizerResult;
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use xml5ever::buffer_queue::BufferQueue;
 use xml5ever::tokenizer::XmlTokenizer;
 use xml5ever::tree_builder::{Tracer as XmlTracer, XmlTreeBuilder};
+
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
+use crate::dom::document::Document;
+use crate::dom::htmlscriptelement::HTMLScriptElement;
+use crate::dom::node::Node;
+use crate::dom::servoparser::{ParsingAlgorithm, Sink};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]

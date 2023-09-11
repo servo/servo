@@ -4,26 +4,26 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 
+use std::cell::Cell;
+use std::cmp;
+
+use canvas_traits::webgl::{
+    webgl_channel, TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt,
+    WebGLCommand, WebGLError, WebGLResult, WebGLTextureId,
+};
+use dom_struct::dom_struct;
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::Dom;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::dom::xrsession::XRSession;
-use canvas_traits::webgl::{
-    webgl_channel, TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt,
-    WebGLResult, WebGLTextureId,
-};
-use canvas_traits::webgl::{WebGLCommand, WebGLError};
-use dom_struct::dom_struct;
-use std::cell::Cell;
-use std::cmp;
 
 pub enum TexParameterValue {
     Float(f32),

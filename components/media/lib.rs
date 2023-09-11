@@ -7,16 +7,18 @@
 mod media_channel;
 mod media_thread;
 
-pub use crate::media_channel::glplayer_channel;
-use crate::media_channel::{GLPlayerChan, GLPlayerPipeline, GLPlayerReceiver, GLPlayerSender};
-use crate::media_thread::GLPlayerThread;
+use std::sync::{Arc, Mutex};
+
 use euclid::default::Size2D;
 use serde::{Deserialize, Serialize};
 use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
-use std::sync::{Arc, Mutex};
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
 };
+
+pub use crate::media_channel::glplayer_channel;
+use crate::media_channel::{GLPlayerChan, GLPlayerPipeline, GLPlayerReceiver, GLPlayerSender};
+use crate::media_thread::GLPlayerThread;
 
 /// These are the messages that the GLPlayer thread will forward to
 /// the video player which lives in htmlmediaelement

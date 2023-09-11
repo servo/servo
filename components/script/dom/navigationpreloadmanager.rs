@@ -2,8 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::NavigationPreloadManagerMethods;
-use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::NavigationPreloadState;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::jsval::UndefinedValue;
+
+use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::{
+    NavigationPreloadManagerMethods, NavigationPreloadState,
+};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::ByteString;
@@ -12,9 +18,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::realms::InRealm;
-use dom_struct::dom_struct;
-use js::jsval::UndefinedValue;
-use std::rc::Rc;
 
 #[dom_struct]
 pub struct NavigationPreloadManager {

@@ -3,22 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cssparser::SourceLocation;
-use euclid::Scale;
-use euclid::Size2D;
+use euclid::{Scale, Size2D};
 use selectors::parser::{AncestorHashes, Selector};
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaType};
-use style::properties::{longhands, Importance};
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
-use style::stylist::needs_revalidation_for_testing;
-use style::stylist::{ContainerConditionId, LayerId, Rule, Stylist};
+use style::stylist::{
+    needs_revalidation_for_testing, ContainerConditionId, LayerId, Rule, Stylist,
+};
 use style::thread_state::{self, ThreadState};
 
 /// Helper method to get some Rules from selector strings.

@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use profile_traits::ipc;
 use script_traits::ScriptMsg;
 use style_traits::CSSPixel;
 use webrender_api::units::DeviceIntSize;
+
+use crate::dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 
 #[dom_struct]
 pub struct Screen {

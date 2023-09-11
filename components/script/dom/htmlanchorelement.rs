@@ -2,6 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::default::Default;
+
+use dom_struct::dom_struct;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::rust::HandleObject;
+use net_traits::request::Referrer;
+use num_traits::ToPrimitive;
+use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
+use servo_atoms::Atom;
+use servo_url::ServoUrl;
+use style::attr::AttrValue;
+
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -27,16 +39,6 @@ use crate::dom::node::{document_from_node, Node};
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::rust::HandleObject;
-use net_traits::request::Referrer;
-use num_traits::ToPrimitive;
-use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
-use servo_atoms::Atom;
-use servo_url::ServoUrl;
-use std::default::Default;
-use style::attr::AttrValue;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {

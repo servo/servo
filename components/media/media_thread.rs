@@ -2,16 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+use fnv::FnvHashMap;
+use log::{trace, warn};
+use webrender_api::ExternalImageId;
+use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
+
 use crate::media_channel::{glplayer_channel, GLPlayerSender};
 /// GL player threading API entry point that lives in the
 /// constellation.
 use crate::{GLPlayerMsg, GLPlayerMsgForward};
-use fnv::FnvHashMap;
-use log::{trace, warn};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use webrender_api::ExternalImageId;
-use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 
 /// A GLPlayerThread manages the life cycle and message demultiplexing of
 /// a set of video players with GL render.

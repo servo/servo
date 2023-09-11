@@ -7,6 +7,5 @@ mod extension;
 mod extensions;
 mod wrapper;
 
-pub use self::extension::WebGLExtension;
-pub use self::extension::WebGLExtensionSpec;
+pub use self::extension::{WebGLExtension, WebGLExtensionSpec};
 pub use self::extensions::WebGLExtensions;

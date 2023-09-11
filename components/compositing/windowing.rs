@@ -4,6 +4,9 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
+use std::fmt::{Debug, Error, Formatter};
+use std::time::Duration;
+
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use euclid::Scale;
 use keyboard_types::KeyboardEvent;
@@ -12,10 +15,7 @@ use script_traits::{MediaSessionActionType, MouseButton, TouchEventType, TouchId
 use servo_geometry::DeviceIndependentPixel;
 use servo_media::player::context::{GlApi, GlContext, NativeDisplay};
 use servo_url::ServoUrl;
-use std::fmt::{Debug, Error, Formatter};
-use std::time::Duration;
 use style_traits::DevicePixel;
-
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint};
 use webrender_api::ScrollLocation;
 use webrender_surfman::WebrenderSurfman;

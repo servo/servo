@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use euclid::default::Transform3D;
+use js::rust::{CustomAutoRooterGuard, HandleObject};
+use js::typedarray::{Float32Array, Float64Array};
+
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrUnrestrictedDoubleSequence;
@@ -15,10 +20,6 @@ use crate::dom::dommatrixreadonly::{
 };
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use euclid::default::Transform3D;
-use js::rust::{CustomAutoRooterGuard, HandleObject};
-use js::typedarray::{Float32Array, Float64Array};
 
 #[dom_struct]
 pub struct DOMMatrix {

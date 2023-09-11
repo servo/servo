@@ -2,10 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::rc::Rc;
+
+use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
+use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSender;
+
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::error::ErrorResult;
+use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bluetooth::{get_gatt_children, response_async, AsyncBluetoothListener};
@@ -14,11 +20,6 @@ use crate::dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
-use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
-use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use std::cell::Cell;
-use std::rc::Rc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattserver
 #[dom_struct]

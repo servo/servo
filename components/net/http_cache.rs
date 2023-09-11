@@ -7,16 +7,21 @@
 //! A memory cache implementing the logic specified in <http://tools.ietf.org/html/rfc7234>
 //! and <http://tools.ietf.org/html/rfc7232>.
 
-use crate::fetch::methods::{Data, DoneChannel};
+use std::collections::HashMap;
+use std::ops::Bound;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
+use std::time::SystemTime;
+
 use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
 use http::header::HeaderValue;
 use http::{header, HeaderMap, Method, StatusCode};
 use log::debug;
-use malloc_size_of::Measurable;
 use malloc_size_of::{
     MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf, MallocUnconditionalSizeOf,
+    Measurable,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::request::Request;
@@ -25,13 +30,10 @@ use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
-use std::collections::HashMap;
-use std::ops::Bound;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
-use std::time::SystemTime;
 use time::{Duration, Timespec, Tm};
 use tokio::sync::mpsc::{unbounded_channel as unbounded, UnboundedSender as TokioSender};
+
+use crate::fetch::methods::{Data, DoneChannel};
 
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]

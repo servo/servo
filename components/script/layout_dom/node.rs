@@ -4,17 +4,11 @@
 
 #![allow(unsafe_code)]
 
-use super::ServoLayoutDocument;
-use super::ServoLayoutElement;
-use super::ServoShadowRoot;
-use super::ServoThreadSafeLayoutElement;
-use crate::dom::bindings::inheritance::CharacterDataTypeId;
-use crate::dom::bindings::inheritance::{NodeTypeId, TextTypeId};
-use crate::dom::bindings::root::LayoutDom;
-use crate::dom::characterdata::LayoutCharacterDataHelpers;
-use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
-use crate::dom::text::Text;
+use std::borrow::Cow;
+use std::fmt;
+use std::marker::PhantomData;
+use std::sync::Arc as StdArc;
+
 use atomic_refcell::AtomicRefCell;
 use gfx_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns};
@@ -31,15 +25,21 @@ use script_layout_interface::{
 };
 use servo_arc::Arc;
 use servo_url::ServoUrl;
-use std::borrow::Cow;
-use std::fmt;
-use std::marker::PhantomData;
-use std::sync::Arc as StdArc;
 use style;
 use style::context::SharedStyleContext;
 use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};
 use style::properties::ComputedValues;
 use style::str::is_whitespace;
+
+use super::{
+    ServoLayoutDocument, ServoLayoutElement, ServoShadowRoot, ServoThreadSafeLayoutElement,
+};
+use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId, TextTypeId};
+use crate::dom::bindings::root::LayoutDom;
+use crate::dom::characterdata::LayoutCharacterDataHelpers;
+use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
+use crate::dom::text::Text;
 
 /// A wrapper around a `LayoutDom<Node>` which provides a safe interface that
 /// can be used during layout. This implements the `LayoutNode` trait as well as

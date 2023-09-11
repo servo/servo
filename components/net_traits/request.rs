@@ -2,21 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::response::HttpsState;
-use crate::ReferrerPolicy;
-use crate::ResourceTimingType;
+use std::sync::{Arc, Mutex};
+
 use content_security_policy::{self as csp, CspList};
 use http::header::{HeaderName, AUTHORIZATION};
-use http::HeaderMap;
-use http::Method;
+use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use msg::constellation_msg::PipelineId;
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::sync::{Arc, Mutex};
+
+use crate::response::HttpsState;
+use crate::{ReferrerPolicy, ResourceTimingType};
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::display_list::border;
 use app_units::Au;
 use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D};
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
@@ -12,6 +11,8 @@ use style::properties::style_structs::Background;
 use style::values::computed::{BackgroundSize, NonNegativeLengthPercentageOrAuto};
 use style::values::specified::background::BackgroundRepeatKeyword;
 use webrender_api::BorderRadius;
+
+use crate::display_list::border;
 
 /// Placment information for both image and gradient backgrounds.
 #[derive(Clone, Copy, Debug)]

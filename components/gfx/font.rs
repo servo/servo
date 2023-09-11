@@ -2,6 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::ToOwned;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::{iter, str};
+
+use app_units::Au;
+use bitflags::bitflags;
+use euclid::default::{Point2D, Rect, Size2D};
+use log::debug;
+use serde::{Deserialize, Serialize};
+use servo_atoms::{atom, Atom};
+use smallvec::SmallVec;
+use style::computed_values::{font_stretch, font_style, font_variant_caps, font_weight};
+use style::properties::style_structs::Font as FontStyleStruct;
+use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
+use unicode_script::Script;
+use webrender_api::FontInstanceKey;
+
 use crate::font_context::{FontContext, FontSource};
 use crate::font_template::FontTemplateDescriptor;
 use crate::platform::font::{FontHandle, FontTable};
@@ -11,26 +32,6 @@ use crate::platform::font_template::FontTemplateData;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
 use crate::text::Shaper;
-use app_units::Au;
-use bitflags::bitflags;
-use euclid::default::{Point2D, Rect, Size2D};
-use log::debug;
-use serde::{Deserialize, Serialize};
-use servo_atoms::{atom, Atom};
-use smallvec::SmallVec;
-use std::borrow::ToOwned;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::iter;
-use std::rc::Rc;
-use std::str;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
-use style::computed_values::{font_stretch, font_style, font_variant_caps, font_weight};
-use style::properties::style_structs::Font as FontStyleStruct;
-use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
-use unicode_script::Script;
-use webrender_api::FontInstanceKey;
 
 #[macro_export]
 macro_rules! ot_tag {

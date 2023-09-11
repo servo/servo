@@ -2,24 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::{BaseFragment, BoxFragment, ContainingBlockManager, HoistedSharedFragment, Tag};
-use crate::cell::ArcRefCell;
-use crate::geom::flow_relative::{Rect, Sides};
-use crate::geom::PhysicalRect;
-use crate::style_ext::ComputedValuesExt;
+use std::sync::Arc;
+
 use gfx::font::FontMetrics as GfxFontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
-use std::sync::Arc;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
+
+use super::{BaseFragment, BoxFragment, ContainingBlockManager, HoistedSharedFragment, Tag};
+use crate::cell::ArcRefCell;
+use crate::geom::flow_relative::{Rect, Sides};
+use crate::geom::PhysicalRect;
+use crate::style_ext::ComputedValuesExt;
 
 #[derive(Serialize)]
 pub(crate) enum Fragment {

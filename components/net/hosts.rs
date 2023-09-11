@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use lazy_static::lazy_static;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::env;
@@ -10,6 +9,8 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Mutex;
+
+use lazy_static::lazy_static;
 
 lazy_static! {
     static ref HOST_TABLE: Mutex<Option<HashMap<String, IpAddr>>> = Mutex::new(create_host_table());

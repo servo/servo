@@ -8,10 +8,11 @@
 
 pub mod print_tree;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use malloc_size_of_derive::MallocSizeOf;
 use range::{int_range_index, RangeIndex};
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use webrender_api::{Epoch as WebRenderEpoch, FontInstanceKey, FontKey, NativeFontHandle};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.

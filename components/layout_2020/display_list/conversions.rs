@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
-use style::values::computed::Filter as ComputedFilter;
-use style::values::computed::Length;
+use style::values::computed::{Filter as ComputedFilter, Length};
 use webrender_api::{units, FilterOp, LineStyle, MixBlendMode, TransformStyle};
+
+use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 
 pub trait ToWebRender {
     type Type;

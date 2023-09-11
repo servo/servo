@@ -5,19 +5,22 @@
 //! Liberally derived from the [Firefox JS implementation]
 //! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::browsing_context::BrowsingContextActor;
-use crate::protocol::JsonPacketStream;
-use crate::StreamId;
-use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
-use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
+use std::cell::RefCell;
+use std::net::TcpStream;
+
+use devtools_traits::DevtoolScriptControlMsg::{
+    GetChildren, GetDocumentElement, GetLayout, GetRootNode, ModifyAttribute,
+};
 use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg, NodeInfo};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
-use std::cell::RefCell;
-use std::net::TcpStream;
+
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
+use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 
 pub struct InspectorActor {
     pub name: String,

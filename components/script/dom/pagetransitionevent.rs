@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+use servo_atoms::Atom;
+
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::PageTransitionEventBinding;
 use crate::dom::bindings::codegen::Bindings::PageTransitionEventBinding::PageTransitionEventMethods;
@@ -12,10 +18,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use servo_atoms::Atom;
-use std::cell::Cell;
 
 // https://html.spec.whatwg.org/multipage/#pagetransitionevent
 #[dom_struct]

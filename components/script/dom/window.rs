@@ -2,6 +2,84 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::{Cow, ToOwned};
+use std::cell::Cell;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
+use std::default::Default;
+use std::io::{stderr, stdout, Write};
+use std::ptr::NonNull;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::{cmp, env, mem};
+
+use app_units::Au;
+use backtrace::Backtrace;
+use base64::Engine;
+use bluetooth_traits::BluetoothRequest;
+use canvas_traits::webgl::WebGLChan;
+use crossbeam_channel::{unbounded, Sender, TryRecvError};
+use cssparser::{Parser, ParserInput, SourceLocation};
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
+use dom_struct::dom_struct;
+use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult};
+use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
+use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
+use ipc_channel::ipc::IpcSender;
+use ipc_channel::router::ROUTER;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::{GCReason, Heap, JSAutoRealm, JSObject, StackFormat, JSPROP_ENUMERATE, JS_GC};
+use js::jsval::{JSVal, NullValue, UndefinedValue};
+use js::rust::wrappers::JS_DefineProperty;
+use js::rust::{
+    CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
+};
+use malloc_size_of::MallocSizeOf;
+use media::WindowGLContext;
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use net_traits::image_cache::{
+    ImageCache, ImageResponder, ImageResponse, PendingImageId, PendingImageResponse,
+};
+use net_traits::storage_thread::StorageType;
+use net_traits::ResourceThreads;
+use num_traits::ToPrimitive;
+use parking_lot::Mutex as ParkMutex;
+use profile_traits::ipc as ProfiledIpc;
+use profile_traits::mem::ProfilerChan as MemProfilerChan;
+use profile_traits::time::{ProfilerChan as TimeProfilerChan, ProfilerMsg};
+use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
+use script_layout_interface::rpc::{
+    ContentBoxResponse, ContentBoxesResponse, LayoutRPC, NodeScrollIdResponse,
+    ResolvedStyleResponse, TextIndexResponse,
+};
+use script_layout_interface::{PendingImageState, TrustedNodeAddress};
+use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
+use script_traits::{
+    ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData, ScriptMsg,
+    ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerEventId,
+    TimerSchedulerMsg, WebrenderIpcSender, WindowSizeData, WindowSizeType,
+};
+use selectors::attr::CaseSensitivity;
+use servo_arc::Arc as ServoArc;
+use servo_atoms::Atom;
+use servo_geometry::{f32_rect_to_au_rect, MaxRect};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use style::dom::OpaqueNode;
+use style::error_reporting::{ContextualParseError, ParseErrorReporter};
+use style::media_queries;
+use style::parser::ParserContext as CssParserContext;
+use style::properties::style_structs::Font;
+use style::properties::{PropertyId, ShorthandId};
+use style::selector_parser::PseudoElement;
+use style::str::HTML_SPACE_CHARACTERS;
+use style::stylesheets::{CssRuleType, Origin};
+use style_traits::{CSSPixel, DevicePixel, ParsingMode};
+use url::Position;
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
+use webrender_api::{DocumentId, ExternalScrollId};
+
+use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
@@ -15,9 +93,9 @@ use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryLi
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, FrameRequestCallback, WindowMethods, WindowPostMessageOptions,
+    self, FrameRequestCallback, ScrollBehavior, ScrollToOptions, WindowMethods,
+    WindowPostMessageOptions,
 };
-use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use crate::dom::bindings::codegen::UnionTypes::{RequestOrUSVString, StringOrFunction};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -60,104 +138,21 @@ use crate::dom::webglrenderingcontext::WebGLCommandSender;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
-use crate::fetch;
 use crate::layout_image::fetch_image_for_layout;
 use crate::microtask::MicrotaskQueue;
 use crate::realms::InRealm;
 use crate::script_runtime::{
     CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
-use crate::script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
-use crate::script_thread::{ScriptThread, SendableMainThreadScriptChan};
+use crate::script_thread::{
+    ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, ScriptThread,
+    SendableMainThreadScriptChan,
+};
 use crate::task_manager::TaskManager;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::{IsInterval, TimerCallback};
 use crate::webdriver_handlers::jsval_to_webdriver;
-use crate::window_named_properties;
-use app_units::Au;
-use backtrace::Backtrace;
-use base64::Engine;
-use bluetooth_traits::BluetoothRequest;
-use canvas_traits::webgl::WebGLChan;
-use crossbeam_channel::{unbounded, Sender, TryRecvError};
-use cssparser::{Parser, ParserInput, SourceLocation};
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
-use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult};
-use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
-use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
-use ipc_channel::ipc::IpcSender;
-use ipc_channel::router::ROUTER;
-use js::conversions::ToJSValConvertible;
-use js::jsapi::Heap;
-use js::jsapi::JSAutoRealm;
-use js::jsapi::JSObject;
-use js::jsapi::JSPROP_ENUMERATE;
-use js::jsapi::{GCReason, StackFormat, JS_GC};
-use js::jsval::UndefinedValue;
-use js::jsval::{JSVal, NullValue};
-use js::rust::wrappers::JS_DefineProperty;
-use js::rust::{
-    CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
-};
-use malloc_size_of::MallocSizeOf;
-use media::WindowGLContext;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
-use net_traits::image_cache::{PendingImageId, PendingImageResponse};
-use net_traits::storage_thread::StorageType;
-use net_traits::ResourceThreads;
-use num_traits::ToPrimitive;
-use parking_lot::Mutex as ParkMutex;
-use profile_traits::ipc as ProfiledIpc;
-use profile_traits::mem::ProfilerChan as MemProfilerChan;
-use profile_traits::time::{ProfilerChan as TimeProfilerChan, ProfilerMsg};
-use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
-use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
-use script_layout_interface::rpc::{
-    NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse,
-};
-use script_layout_interface::{PendingImageState, TrustedNodeAddress};
-use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use script_traits::{ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData};
-use script_traits::{
-    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerEventId,
-};
-use script_traits::{TimerSchedulerMsg, WebrenderIpcSender, WindowSizeData, WindowSizeType};
-use selectors::attr::CaseSensitivity;
-use servo_arc::Arc as ServoArc;
-use servo_atoms::Atom;
-use servo_geometry::{f32_rect_to_au_rect, MaxRect};
-use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use std::borrow::Cow;
-use std::borrow::ToOwned;
-use std::cell::Cell;
-use std::cmp;
-use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
-use std::default::Default;
-use std::env;
-use std::io::{stderr, stdout, Write};
-use std::mem;
-use std::ptr::NonNull;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use style::dom::OpaqueNode;
-use style::error_reporting::{ContextualParseError, ParseErrorReporter};
-use style::media_queries;
-use style::parser::ParserContext as CssParserContext;
-use style::properties::style_structs::Font;
-use style::properties::{PropertyId, ShorthandId};
-use style::selector_parser::PseudoElement;
-use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{CssRuleType, Origin};
-use style_traits::{CSSPixel, DevicePixel, ParsingMode};
-use url::Position;
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
-use webrender_api::{DocumentId, ExternalScrollId};
-
-use super::bindings::trace::HashMapTracedValues;
+use crate::{fetch, window_named_properties};
 
 /// Current state of the window object
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]

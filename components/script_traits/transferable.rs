@@ -7,11 +7,13 @@
 //! so that the other modules involved in the transfer don't have
 //! to depend on script.
 
-use crate::PortMessageTask;
+use std::collections::VecDeque;
+
 use malloc_size_of_derive::MallocSizeOf;
 use msg::constellation_msg::MessagePortId;
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
+
+use crate::PortMessageTask;
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 enum MessagePortState {

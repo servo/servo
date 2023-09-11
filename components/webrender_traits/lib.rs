@@ -4,9 +4,10 @@
 
 #![deny(unsafe_code)]
 
-use euclid::default::Size2D;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+
+use euclid::default::Size2D;
 use webrender_api::units::TexelRect;
 use webrender_api::{
     ExternalImage, ExternalImageHandler, ExternalImageId, ExternalImageSource, ImageRendering,

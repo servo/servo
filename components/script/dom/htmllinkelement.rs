@@ -2,6 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::ToOwned;
+use std::cell::Cell;
+use std::default::Default;
+
+use cssparser::{Parser as CssParser, ParserInput};
+use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::rust::HandleObject;
+use net_traits::ReferrerPolicy;
+use servo_arc::Arc;
+use servo_atoms::Atom;
+use style::attr::AttrValue;
+use style::media_queries::MediaList;
+use style::parser::ParserContext as CssParserContext;
+use style::str::HTML_SPACE_CHARACTERS;
+use style::stylesheets::{CssRuleType, Origin, Stylesheet};
+use style_traits::ParsingMode;
+
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
@@ -14,9 +33,8 @@ use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
     cors_setting_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
-    set_cross_origin_attribute,
+    set_cross_origin_attribute, AttributeMutation, Element, ElementCreator,
 };
-use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{
     document_from_node, stylesheets_owner_from_node, window_from_node, BindContext, Node,
@@ -25,23 +43,6 @@ use crate::dom::node::{
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
-use cssparser::{Parser as CssParser, ParserInput};
-use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::rust::HandleObject;
-use net_traits::ReferrerPolicy;
-use servo_arc::Arc;
-use servo_atoms::Atom;
-use std::borrow::ToOwned;
-use std::cell::Cell;
-use std::default::Default;
-use style::attr::AttrValue;
-use style::media_queries::MediaList;
-use style::parser::ParserContext as CssParserContext;
-use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{CssRuleType, Origin, Stylesheet};
-use style_traits::ParsingMode;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct RequestGenerationId(u32);

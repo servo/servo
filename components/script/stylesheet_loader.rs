@@ -2,6 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::mem;
+use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
+
+use cssparser::SourceLocation;
+use encoding_rs::UTF_8;
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
+use mime::{self, Mime};
+use msg::constellation_msg::PipelineId;
+use net_traits::request::{CorsSettings, Destination, Referrer, RequestBuilder};
+use net_traits::{
+    FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
+    ResourceFetchTiming, ResourceTimingType,
+};
+use servo_arc::Arc;
+use servo_url::{ImmutableOrigin, ServoUrl};
+use style::media_queries::MediaList;
+use style::parser::ParserContext;
+use style::shared_lock::{Locked, SharedRwLock};
+use style::stylesheets::import_rule::{ImportLayer, ImportSheet};
+use style::stylesheets::{
+    CssRules, ImportRule, Origin, Stylesheet, StylesheetContents,
+    StylesheetLoader as StyleStylesheetLoader,
+};
+use style::values::CssUrl;
+
 use crate::document_loader::LoadType;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -18,30 +45,6 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
-use cssparser::SourceLocation;
-use encoding_rs::UTF_8;
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
-use mime::{self, Mime};
-use msg::constellation_msg::PipelineId;
-use net_traits::request::{CorsSettings, Destination, Referrer, RequestBuilder};
-use net_traits::{
-    FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
-};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
-use servo_arc::Arc;
-use servo_url::ImmutableOrigin;
-use servo_url::ServoUrl;
-use std::mem;
-use std::sync::atomic::AtomicBool;
-use std::sync::Mutex;
-use style::media_queries::MediaList;
-use style::parser::ParserContext;
-use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::import_rule::{ImportLayer, ImportSheet};
-use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
-use style::stylesheets::{CssRules, ImportRule, Origin, Stylesheet, StylesheetContents};
-use style::values::CssUrl;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should

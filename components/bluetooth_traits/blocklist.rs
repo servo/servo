@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use embedder_traits::resources::{self, Resource};
-use regex::Regex;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::string::String;
+
+use embedder_traits::resources::{self, Resource};
+use regex::Regex;
 
 const EXCLUDE_READS: &str = "exclude-reads";
 const EXCLUDE_WRITES: &str = "exclude-writes";

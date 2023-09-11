@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::default::Default;
+
+use devtools_traits::{TimelineMarker, TimelineMarkerType};
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+use metrics::ToMs;
+use servo_atoms::Atom;
+
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding;
@@ -26,13 +35,6 @@ use crate::dom::performance::reduce_timing_resolution;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::Window;
 use crate::task::TaskOnce;
-use devtools_traits::{TimelineMarker, TimelineMarkerType};
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use metrics::ToMs;
-use servo_atoms::Atom;
-use std::cell::Cell;
-use std::default::Default;
 
 #[dom_struct]
 pub struct Event {

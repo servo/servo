@@ -5,6 +5,12 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
+use std::cell::Cell;
+use std::num::NonZeroU32;
+use std::sync::Arc;
+use std::time::Duration;
+use std::{fmt, mem};
+
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use lazy_static::lazy_static;
 use malloc_size_of::malloc_size_of_is_0;
@@ -12,14 +18,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use size_of_test::size_of_test;
-use std::cell::Cell;
-use std::fmt;
-use std::mem;
-use std::num::NonZeroU32;
-use std::sync::Arc;
-use std::time::Duration;
-use webrender_api::ExternalScrollId;
-use webrender_api::PipelineId as WebRenderPipelineId;
+use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
 
 macro_rules! namespace_id_method {
     ($func_name:ident, $func_return_data_type:ident, $self:ident, $index_name:ident) => {

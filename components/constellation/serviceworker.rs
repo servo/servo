@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
+use std::collections::HashMap;
+
 use ipc_channel::Error;
 use script_traits::{SWManagerSenders, ServiceWorkerManagerFactory};
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, PrefValue};
 use servo_url::ImmutableOrigin;
-use std::collections::HashMap;
+
+use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
 
 /// Conceptually, this is glue to start an agent-cluster for a service worker agent.
 /// <https://html.spec.whatwg.org/multipage/#obtain-a-service-worker-agent>

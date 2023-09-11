@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use js::rust::{HandleObject, HandleValue};
+use script_traits::BroadcastMsg;
+use uuid::Uuid;
+
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
@@ -11,11 +18,6 @@ use crate::dom::bindings::structuredclone;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext as SafeJSContext;
-use dom_struct::dom_struct;
-use js::rust::{HandleObject, HandleValue};
-use script_traits::BroadcastMsg;
-use std::cell::Cell;
-use uuid::Uuid;
 
 #[dom_struct]
 pub struct BroadcastChannel {

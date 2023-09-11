@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[cfg(feature = "gl")]
-use crate::gl;
-use crate::touch::{TouchAction, TouchHandler};
-use crate::windowing::{
-    self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
-};
-use crate::InitialCompositorState;
+use std::collections::HashMap;
+use std::env;
+use std::fs::{create_dir_all, File};
+use std::io::Write;
+use std::num::NonZeroU32;
+use std::rc::Rc;
+
 use canvas::canvas_paint_thread::ImageUpdate;
 use compositing_traits::{
     CompositingReason, CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg,
@@ -40,12 +40,6 @@ use script_traits::{
     WindowSizeData, WindowSizeType,
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
-use std::collections::HashMap;
-use std::env;
-use std::fs::{create_dir_all, File};
-use std::io::Write;
-use std::num::NonZeroU32;
-use std::rc::Rc;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender;
@@ -58,6 +52,14 @@ use webrender_api::{
     HitTestFlags, PipelineId as WebRenderPipelineId, ScrollClamping, ScrollLocation, ZoomFactor,
 };
 use webrender_surfman::WebrenderSurfman;
+
+#[cfg(feature = "gl")]
+use crate::gl;
+use crate::touch::{TouchAction, TouchHandler};
+use crate::windowing::{
+    self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
+};
+use crate::InitialCompositorState;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {

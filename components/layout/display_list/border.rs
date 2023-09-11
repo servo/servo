@@ -2,19 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::display_list::ToLayout;
 use app_units::Au;
 use euclid::default::{Rect, SideOffsets2D as UntypedSideOffsets2D, Size2D as UntypedSize2D};
 use euclid::{SideOffsets2D, Size2D};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::properties::style_structs::Border;
-use style::values::computed::NumberOrPercentage;
-use style::values::computed::{BorderCornerRadius, BorderImageWidth};
-use style::values::computed::{BorderImageSideWidth, NonNegativeLengthOrNumber};
+use style::values::computed::{
+    BorderCornerRadius, BorderImageSideWidth, BorderImageWidth, NonNegativeLengthOrNumber,
+    NumberOrPercentage,
+};
 use style::values::generics::rect::Rect as StyleRect;
 use style::values::generics::NonNegative;
 use webrender_api::units::{LayoutSideOffsets, LayoutSize};
 use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, NormalBorder};
+
+use crate::display_list::ToLayout;
 
 /// Computes a border radius size against the containing size.
 ///

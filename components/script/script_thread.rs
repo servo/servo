@@ -17,7 +17,86 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
-use crate::devtools;
+use std::borrow::Cow;
+use std::cell::{Cell, RefCell};
+use std::collections::{hash_map, HashMap, HashSet};
+use std::default::Default;
+use std::ops::Deref;
+use std::option::Option;
+use std::rc::Rc;
+use std::result::Result;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, SystemTime};
+use std::{ptr, thread};
+
+use bluetooth_traits::BluetoothRequest;
+use canvas_traits::webgl::WebGLPipeline;
+use crossbeam_channel::{select, unbounded, Receiver, Sender};
+use devtools_traits::{
+    CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
+    ScriptToDevtoolsControlMsg, WorkerId,
+};
+use embedder_traits::EmbedderMsg;
+use euclid::default::{Point2D, Rect};
+use euclid::Vector2D;
+use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
+use html5ever::{local_name, namespace_url, ns};
+use hyper_serde::Serde;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
+use js::glue::GetWindowProxyClass;
+use js::jsapi::{
+    JSContext as UnsafeJSContext, JSTracer, JS_AddInterruptCallback, SetWindowProxyClass,
+};
+use js::jsval::UndefinedValue;
+use js::rust::ParentRuntime;
+use media::WindowGLContext;
+use metrics::{PaintTimeMetrics, MAX_TASK_NS};
+use mime::{self, Mime};
+use msg::constellation_msg::{
+    BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister,
+    BrowsingContextId, HangAnnotation, HistoryStateId, MonitoredComponentId,
+    MonitoredComponentType, PipelineId, PipelineNamespace, ScriptHangAnnotation,
+    TopLevelBrowsingContextId,
+};
+use net_traits::image_cache::{ImageCache, PendingImageResponse};
+use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestBuilder};
+use net_traits::storage_thread::StorageType;
+use net_traits::{
+    FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError, ReferrerPolicy,
+    ResourceFetchTiming, ResourceThreads, ResourceTimingType,
+};
+use parking_lot::Mutex;
+use percent_encoding::percent_decode;
+use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
+use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
+use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
+use script_traits::webdriver_msg::WebDriverScriptCommand;
+use script_traits::CompositorEvent::{
+    CompositionEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
+    ResizeEvent, TouchEvent, WheelEvent,
+};
+use script_traits::{
+    AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
+    DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult,
+    LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
+    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory,
+    ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
+    TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta,
+    WindowSizeData, WindowSizeType,
+};
+use servo_atoms::Atom;
+use servo_config::opts;
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use style::dom::OpaqueNode;
+use style::thread_state::{self, ThreadState};
+use time::{at_utc, get_time, precise_time_ns, Timespec};
+use url::Position;
+use webgpu::identity::WebGPUMsg;
+use webrender_api::units::LayoutPixel;
+use webrender_api::DocumentId;
+
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
@@ -31,8 +110,9 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::ThreadLocalStackRoots;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
+use crate::dom::bindings::root::{
+    Dom, DomRoot, MutNullableDom, RootCollection, ThreadLocalStackRoots,
+};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
 use crate::dom::customelementregistry::{
@@ -64,9 +144,9 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    get_reports, new_rt_and_cx, ContextForRequestInterrupt, JSContext, Runtime, ScriptPort,
+    get_reports, new_rt_and_cx, CommonScriptMsg, ContextForRequestInterrupt, JSContext, Runtime,
+    ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -80,91 +160,8 @@ use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::timer::TimerTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
-use crate::task_source::TaskSource;
-use crate::task_source::TaskSourceName;
-use crate::webdriver_handlers;
-use bluetooth_traits::BluetoothRequest;
-use canvas_traits::webgl::WebGLPipeline;
-use crossbeam_channel::{select, unbounded, Receiver, Sender};
-use devtools_traits::CSSError;
-use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
-use devtools_traits::{NavigationState, ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::EmbedderMsg;
-use euclid::default::{Point2D, Rect};
-use euclid::Vector2D;
-use headers::ReferrerPolicy as ReferrerPolicyHeader;
-use headers::{HeaderMapExt, LastModified};
-use html5ever::{local_name, namespace_url, ns};
-use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
-use js::glue::GetWindowProxyClass;
-use js::jsapi::{
-    JSContext as UnsafeJSContext, JSTracer, JS_AddInterruptCallback, SetWindowProxyClass,
-};
-use js::jsval::UndefinedValue;
-use js::rust::ParentRuntime;
-use media::WindowGLContext;
-use metrics::{PaintTimeMetrics, MAX_TASK_NS};
-use mime::{self, Mime};
-use msg::constellation_msg::{
-    BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister,
-    ScriptHangAnnotation,
-};
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
-use msg::constellation_msg::{HangAnnotation, MonitoredComponentId, MonitoredComponentType};
-use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
-use net_traits::image_cache::{ImageCache, PendingImageResponse};
-use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestBuilder};
-use net_traits::storage_thread::StorageType;
-use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
-use net_traits::{
-    Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceThreads,
-    ResourceTimingType,
-};
-use parking_lot::Mutex;
-use percent_encoding::percent_decode;
-use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
-use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
-use script_traits::webdriver_msg::WebDriverScriptCommand;
-use script_traits::CompositorEvent::{
-    CompositionEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
-    ResizeEvent, TouchEvent, WheelEvent,
-};
-use script_traits::{
-    AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult,
-    LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
-    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory,
-    ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
-    TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta,
-    WindowSizeData, WindowSizeType,
-};
-use servo_atoms::Atom;
-use servo_config::opts;
-use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use std::borrow::Cow;
-use std::cell::Cell;
-use std::cell::RefCell;
-use std::collections::{hash_map, HashMap, HashSet};
-use std::default::Default;
-use std::ops::Deref;
-use std::option::Option;
-use std::ptr;
-use std::rc::Rc;
-use std::result::Result;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
-use std::time::{Duration, SystemTime};
-use style::dom::OpaqueNode;
-use style::thread_state::{self, ThreadState};
-use time::{at_utc, get_time, precise_time_ns, Timespec};
-use url::Position;
-use webgpu::identity::WebGPUMsg;
-use webrender_api::units::LayoutPixel;
-use webrender_api::DocumentId;
+use crate::task_source::{TaskSource, TaskSourceName};
+use crate::{devtools, webdriver_handlers};
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
@@ -1457,9 +1454,8 @@ impl ScriptThread {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
-        use self::MixedMessage::FromScript;
         use self::MixedMessage::{
-            FromConstellation, FromDevtools, FromImageCache, FromWebGPUServer,
+            FromConstellation, FromDevtools, FromImageCache, FromScript, FromWebGPUServer,
         };
 
         // Handle pending resize events.

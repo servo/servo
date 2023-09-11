@@ -4,6 +4,27 @@
 
 #![allow(unrooted_must_root)]
 
+use std::borrow::Cow;
+use std::cell::Cell;
+use std::collections::vec_deque::VecDeque;
+use std::collections::HashMap;
+use std::thread;
+
+use crossbeam_channel::{unbounded, Receiver, Sender};
+use html5ever::buffer_queue::BufferQueue;
+use html5ever::tendril::fmt::UTF8;
+use html5ever::tendril::{SendTendril, StrTendril, Tendril};
+use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
+use html5ever::tree_builder::{
+    ElementFlags, NextParserState, NodeOrText as HtmlNodeOrText, QuirksMode, TreeBuilder,
+    TreeBuilderOpts, TreeSink,
+};
+use html5ever::{
+    local_name, namespace_url, ns, Attribute as HtmlAttribute, ExpandedName, QualName,
+};
+use servo_url::ServoUrl;
+use style::context::QuirksMode as ServoQuirksMode;
+
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -20,25 +41,6 @@ use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{create_element_for_token, ElementAttribute, ParsingAlgorithm};
 use crate::dom::virtualmethods::vtable_for;
-use crossbeam_channel::{unbounded, Receiver, Sender};
-use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::fmt::UTF8;
-use html5ever::tendril::{SendTendril, StrTendril, Tendril};
-use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
-use html5ever::tree_builder::{
-    ElementFlags, NextParserState, NodeOrText as HtmlNodeOrText, QuirksMode, TreeSink,
-};
-use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
-use html5ever::{
-    local_name, namespace_url, ns, Attribute as HtmlAttribute, ExpandedName, QualName,
-};
-use servo_url::ServoUrl;
-use std::borrow::Cow;
-use std::cell::Cell;
-use std::collections::vec_deque::VecDeque;
-use std::collections::HashMap;
-use std::thread;
-use style::context::QuirksMode as ServoQuirksMode;
 
 type ParseNodeId = usize;
 

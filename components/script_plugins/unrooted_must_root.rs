@@ -2,19 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{in_derive_expn, match_def_path, symbols};
-
 use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_driver::plugin::Registry;
-use rustc_hir::intravisit as visit;
-use rustc_hir::{self as hir, ExprKind};
+use rustc_hir::{self as hir, intravisit as visit, ExprKind};
 use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass};
 use rustc_middle::ty;
 use rustc_session::declare_lint;
 use rustc_span::def_id::LocalDefId;
 use rustc_span::source_map;
-use rustc_span::symbol::sym;
-use rustc_span::symbol::Symbol;
+use rustc_span::symbol::{sym, Symbol};
+
+use crate::{in_derive_expn, match_def_path, symbols};
 
 declare_lint!(
     UNROOTED_MUST_ROOT,

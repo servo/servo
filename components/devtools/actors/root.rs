@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::net::TcpStream;
+
+use serde::Serialize;
+use serde_json::{Map, Value};
+
 /// Liberally derived from the [Firefox JS implementation]
 /// (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/root.js).
 /// Connection point for all new remote devtools interactions, providing lists of know actors
@@ -13,9 +18,6 @@ use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerMsg};
 use crate::protocol::{ActorDescription, JsonPacketStream};
 use crate::StreamId;
-use serde::Serialize;
-use serde_json::{Map, Value};
-use std::net::TcpStream;
 
 #[derive(Serialize)]
 struct ActorTraits {

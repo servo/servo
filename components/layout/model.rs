@@ -4,16 +4,17 @@
 
 //! Borders, padding, and margins.
 
-use crate::fragment::Fragment;
+use std::cmp::{max, min};
+use std::fmt;
+
 use app_units::Au;
 use euclid::SideOffsets2D;
 use serde::Serialize;
-use std::cmp::{max, min};
-use std::fmt;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::MaxSize;
-use style::values::computed::{LengthPercentageOrAuto, Size};
+use style::values::computed::{LengthPercentageOrAuto, MaxSize, Size};
+
+use crate::fragment::Fragment;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Clone, Copy, Debug)]

@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use cssparser::{Parser, ParserInput};
+use dom_struct::dom_struct;
+use servo_arc::Arc;
+use style::media_queries::MediaList as StyleMediaList;
+use style::parser::ParserContext;
+use style::shared_lock::{Locked, ToCssWithGuard};
+use style::stylesheets::{CssRuleType, MediaRule, Origin};
+use style_traits::{ParsingMode, ToCss};
+
 use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -12,14 +21,6 @@ use crate::dom::cssrule::SpecificCSSRule;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::medialist::MediaList;
 use crate::dom::window::Window;
-use cssparser::{Parser, ParserInput};
-use dom_struct::dom_struct;
-use servo_arc::Arc;
-use style::media_queries::MediaList as StyleMediaList;
-use style::parser::ParserContext;
-use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{CssRuleType, MediaRule, Origin};
-use style_traits::{ParsingMode, ToCss};
 
 #[dom_struct]
 pub struct CSSMediaRule {

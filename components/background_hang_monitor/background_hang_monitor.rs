@@ -2,24 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::sampler::{NativeStack, Sampler};
-use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use ipc_channel::router::ROUTER;
-use log::warn;
-use msg::constellation_msg::MonitoredComponentId;
-use msg::constellation_msg::{
-    BackgroundHangMonitor, BackgroundHangMonitorClone, BackgroundHangMonitorExitSignal,
-    BackgroundHangMonitorRegister,
-};
-use msg::constellation_msg::{
-    BackgroundHangMonitorControlMsg, HangAlert, HangAnnotation, HangMonitorAlert,
-};
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
+
+use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
+use log::warn;
+use msg::constellation_msg::{
+    BackgroundHangMonitor, BackgroundHangMonitorClone, BackgroundHangMonitorControlMsg,
+    BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, HangAlert, HangAnnotation,
+    HangMonitorAlert, MonitoredComponentId,
+};
+
+use crate::sampler::{NativeStack, Sampler};
 
 #[derive(Clone)]
 pub struct HangMonitorRegister {

@@ -2,15 +2,52 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::collections::VecDeque;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use std::{f64, mem};
+
+use dom_struct::dom_struct;
+use embedder_traits::resources::{self, Resource as EmbedderResource};
+use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
+use euclid::default::Size2D;
+use headers::{ContentLength, ContentRange, HeaderMapExt};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use http::header::{self, HeaderMap, HeaderValue};
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
+use js::jsapi::JSAutoRealm;
+use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
+use net_traits::image::base::Image;
+use net_traits::request::Destination;
+use net_traits::{
+    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata, NetworkError,
+    ResourceFetchTiming, ResourceTimingType,
+};
+use script_layout_interface::HTMLMediaData;
+use script_traits::{ImageUpdate, WebrenderIpcSender};
+use servo_config::pref;
+use servo_media::player::audio::AudioRenderer;
+use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
+use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, SeekLock, StreamType};
+use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
+use servo_url::ServoUrl;
+use time::{self, Duration, Timespec};
+use webrender_api::{
+    ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageData,
+    ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
+};
+
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::audiotrack::AudioTrack;
 use crate::dom::audiotracklist::AudioTrackList;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
-use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants;
-use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::{
+    CanPlayTypeResult, HTMLMediaElementConstants, HTMLMediaElementMethods,
+};
 use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
@@ -18,8 +55,9 @@ use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding:
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
-use crate::dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
+use crate::dom::bindings::codegen::InheritTypes::{
+    ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
+};
 use crate::dom::bindings::codegen::UnionTypes::{
     MediaStreamOrBlob, VideoTrackOrAudioTrackOrTextTrack,
 };
@@ -34,8 +72,8 @@ use crate::dom::blob::Blob;
 use crate::dom::document::Document;
 use crate::dom::element::{
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
+    AttributeMutation, Element, ElementCreator,
 };
-use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -65,39 +103,6 @@ use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingLi
 use crate::realms::{enter_realm, InRealm};
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use embedder_traits::resources::{self, Resource as EmbedderResource};
-use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
-use euclid::default::Size2D;
-use headers::{ContentLength, ContentRange, HeaderMapExt};
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use http::header::{self, HeaderMap, HeaderValue};
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
-use js::jsapi::JSAutoRealm;
-use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
-use net_traits::image::base::Image;
-use net_traits::request::Destination;
-use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
-use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
-use script_layout_interface::HTMLMediaData;
-use script_traits::{ImageUpdate, WebrenderIpcSender};
-use servo_config::pref;
-use servo_media::player::audio::AudioRenderer;
-use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
-use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, SeekLock, StreamType};
-use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
-use servo_url::ServoUrl;
-use std::cell::Cell;
-use std::collections::VecDeque;
-use std::f64;
-use std::mem;
-use std::rc::Rc;
-use std::sync::{Arc, Mutex};
-use time::{self, Duration, Timespec};
-use webrender_api::ImageKey;
-use webrender_api::{ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind};
-use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
 #[derive(PartialEq)]
 enum FrameStatus {

@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use webgpu::wgt::AdapterInfo;
+
 use super::bindings::codegen::Bindings::GPUAdapterInfoBinding::GPUAdapterInfoMethods;
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::DomRoot;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::globalscope::GlobalScope;
 use crate::test::DOMString;
-use dom_struct::dom_struct;
-use webgpu::wgt::AdapterInfo;
 
 #[dom_struct]
 pub struct GPUAdapterInfo {

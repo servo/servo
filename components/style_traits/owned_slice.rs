@@ -6,13 +6,14 @@
 
 //! A replacement for `Box<[T]>` that cbindgen can understand.
 
-use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
-use serde::de::{Deserialize, Deserializer};
-use serde::ser::{Serialize, Serializer};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
 use std::{fmt, iter, mem, slice};
+
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
+use serde::de::{Deserialize, Deserializer};
+use serde::ser::{Serialize, Serializer};
 use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
 /// A struct that basically replaces a `Box<[T]>`, but which cbindgen can

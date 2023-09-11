@@ -2,6 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::f32;
+
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
+use servo_media::audio::panner_node::{
+    DistanceModel, PannerNodeMessage, PannerNodeOptions, PanningModel,
+};
+use servo_media::audio::param::{ParamDir, ParamType};
+
 use crate::dom::audionode::AudioNode;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -12,10 +23,7 @@ use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
     AudioParamMethods, AutomationRate,
 };
 use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::{
-    DistanceModelType, PanningModelType,
-};
-use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::{
-    PannerNodeMethods, PannerOptions,
+    DistanceModelType, PannerNodeMethods, PannerOptions, PanningModelType,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -23,14 +31,6 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
-use servo_media::audio::panner_node::PannerNodeMessage;
-use servo_media::audio::panner_node::{DistanceModel, PannerNodeOptions, PanningModel};
-use servo_media::audio::param::{ParamDir, ParamType};
-use std::cell::Cell;
-use std::f32;
 
 #[dom_struct]
 pub struct PannerNode {

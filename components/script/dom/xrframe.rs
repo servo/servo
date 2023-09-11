@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use webxr_api::{Frame, LayerId, SubImages};
+
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
@@ -17,11 +22,6 @@ use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::{ApiPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use crate::dom::xrviewerpose::XRViewerPose;
-use dom_struct::dom_struct;
-use std::cell::Cell;
-use webxr_api::Frame;
-use webxr_api::LayerId;
-use webxr_api::SubImages;
 
 #[dom_struct]
 pub struct XRFrame {

@@ -2,13 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::convert::TryInto;
+
+use canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLTextureId};
+use dom_struct::dom_struct;
+use euclid::{Rect, Size2D};
+use js::rust::HandleObject;
+use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
+
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
-use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerInit;
-use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
-use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLRenderingContext;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
+    XRWebGLLayerInit, XRWebGLLayerMethods, XRWebGLRenderingContext,
+};
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -23,17 +30,6 @@ use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
-use canvas_traits::webgl::WebGLCommand;
-use canvas_traits::webgl::WebGLContextId;
-use canvas_traits::webgl::WebGLTextureId;
-use dom_struct::dom_struct;
-use euclid::{Rect, Size2D};
-use js::rust::HandleObject;
-use std::convert::TryInto;
-use webxr_api::ContextId as WebXRContextId;
-use webxr_api::LayerId;
-use webxr_api::LayerInit;
-use webxr_api::Viewport;
 
 impl<'a> From<&'a XRWebGLLayerInit> for LayerInit {
     fn from(init: &'a XRWebGLLayerInit) -> LayerInit {

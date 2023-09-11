@@ -4,26 +4,31 @@
 
 pub mod test;
 
-use bitflags::bitflags;
-use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
-use bluetooth_traits::scanfilter::{
-    BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions,
-};
-use bluetooth_traits::{BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothServiceMsg};
-use bluetooth_traits::{BluetoothDeviceMsg, BluetoothRequest, BluetoothResponse, GATTType};
-use bluetooth_traits::{BluetoothError, BluetoothResponseResult, BluetoothResult};
-use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
-use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
-use embedder_traits::{EmbedderMsg, EmbedderProxy};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use log::warn;
-use servo_config::pref;
-use servo_rand::{self, Rng};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, HashSet};
 use std::string::String;
 use std::thread;
 use std::time::Duration;
+
+use bitflags::bitflags;
+use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
+use bluetooth_traits::scanfilter::{
+    BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions,
+};
+use bluetooth_traits::{
+    BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothDeviceMsg, BluetoothError,
+    BluetoothRequest, BluetoothResponse, BluetoothResponseResult, BluetoothResult,
+    BluetoothServiceMsg, GATTType,
+};
+use device::bluetooth::{
+    BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic, BluetoothGATTDescriptor,
+    BluetoothGATTService,
+};
+use embedder_traits::{EmbedderMsg, EmbedderProxy};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use log::warn;
+use servo_config::pref;
+use servo_rand::{self, Rng};
 
 // A transaction not completed within 30 seconds shall time out. Such a transaction shall be considered to have failed.
 // https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=286439 (Vol. 3, page 480)

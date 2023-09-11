@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ptr::NonNull;
+
+use dom_struct::dom_struct;
+use euclid::{Angle, RigidTransform3D, Rotation3D, Vector3D};
+use js::jsapi::{Heap, JSObject};
+use js::rust::HandleObject;
+use webxr_api::{ApiSpace, Ray};
+
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, XRRayMethods};
 use crate::dom::bindings::error::{Error, Fallible};
@@ -13,12 +21,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::script_runtime::JSContext;
-use dom_struct::dom_struct;
-use euclid::{Angle, RigidTransform3D, Rotation3D, Vector3D};
-use js::jsapi::{Heap, JSObject};
-use js::rust::HandleObject;
-use std::ptr::NonNull;
-use webxr_api::{ApiSpace, Ray};
 
 #[dom_struct]
 pub struct XRRay {

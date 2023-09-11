@@ -2,6 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant};
+
+use crossbeam_channel::{after, unbounded, Receiver, Sender};
+use devtools_traits::DevtoolScriptControlMsg;
+use dom_struct::dom_struct;
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
+use js::jsapi::{JSContext, JS_AddInterruptCallback};
+use js::jsval::UndefinedValue;
+use msg::constellation_msg::PipelineId;
+use net_traits::request::{CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder};
+use net_traits::{CustomResponseMediator, IpcSend};
+use parking_lot::Mutex;
+use script_traits::{ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
+use servo_config::pref;
+use servo_rand::random;
+use servo_url::ServoUrl;
+use style::thread_state::{self, ThreadState};
+
 use crate::devtools;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::abstractworkerglobalscope::{run_worker_event_loop, WorkerEventLoopMethods};
@@ -29,26 +51,6 @@ use crate::script_runtime::{
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
-use crossbeam_channel::{after, unbounded, Receiver, Sender};
-use devtools_traits::DevtoolScriptControlMsg;
-use dom_struct::dom_struct;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use ipc_channel::router::ROUTER;
-use js::jsapi::{JSContext, JS_AddInterruptCallback};
-use js::jsval::UndefinedValue;
-use msg::constellation_msg::PipelineId;
-use net_traits::request::{CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder};
-use net_traits::{CustomResponseMediator, IpcSend};
-use parking_lot::Mutex;
-use script_traits::{ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
-use servo_config::pref;
-use servo_rand::random;
-use servo_url::ServoUrl;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
-use std::thread::{self, JoinHandle};
-use std::time::{Duration, Instant};
-use style::thread_state::{self, ThreadState};
 
 /// Messages used to control service worker event loop
 pub enum ServiceWorkerScriptMsg {

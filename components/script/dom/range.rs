@@ -2,18 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, UnsafeCell};
+use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
+
+use deny_public_fields::DenyPublicFields;
+use dom_struct::dom_struct;
+use js::jsapi::JSTracer;
+use js::rust::HandleObject;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeConstants;
-use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
+use crate::dom::bindings::codegen::Bindings::RangeBinding::{RangeConstants, RangeMethods};
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
+use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom};
 use crate::dom::bindings::str::DOMString;
@@ -28,13 +34,6 @@ use crate::dom::node::{Node, ShadowIncluding, UnbindContext};
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 use crate::dom::window::Window;
-use deny_public_fields::DenyPublicFields;
-use dom_struct::dom_struct;
-use js::jsapi::JSTracer;
-use js::rust::HandleObject;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use std::cell::{Cell, UnsafeCell};
-use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 
 #[dom_struct]
 pub struct Range {

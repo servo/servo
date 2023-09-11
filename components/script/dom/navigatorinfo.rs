@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::str::DOMString;
 use std::borrow::Cow;
+
+use crate::dom::bindings::str::DOMString;
 
 #[allow(non_snake_case)]
 pub fn Product() -> DOMString {

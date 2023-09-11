@@ -2,19 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::AnimationState;
-use crate::AuxiliaryBrowsingContextLoadInfo;
-use crate::BroadcastMsg;
-use crate::DocumentState;
-use crate::IFrameLoadInfoWithData;
-use crate::LayoutControlMsg;
-use crate::LoadData;
-use crate::MessagePortMsg;
-use crate::PortMessageTask;
-use crate::StructuredSerializedData;
-use crate::WindowSizeType;
-use crate::WorkerGlobalScopeInit;
-use crate::WorkerScriptLoadOrigin;
+use std::collections::{HashMap, VecDeque};
+use std::fmt;
+
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{EmbedderMsg, MediaSessionEvent};
@@ -23,24 +13,25 @@ use euclid::Size2D;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{
-    BroadcastChannelRouterId, BrowsingContextId, MessagePortId, MessagePortRouterId, PipelineId,
-    TopLevelBrowsingContextId,
+    BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
+    MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId,
+    TopLevelBrowsingContextId, TraversalDirection,
 };
-use msg::constellation_msg::{HistoryStateId, TraversalDirection};
-use msg::constellation_msg::{ServiceWorkerId, ServiceWorkerRegistrationId};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
-use serde::Deserialize;
-use serde::Serialize;
-use servo_url::ImmutableOrigin;
-use servo_url::ServoUrl;
+use serde::{Deserialize, Serialize};
+use servo_url::{ImmutableOrigin, ServoUrl};
 use smallvec::SmallVec;
-use std::collections::{HashMap, VecDeque};
-use std::fmt;
 use style_traits::CSSPixel;
 use webgpu::{wgpu, WebGPU, WebGPUResponseResult};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+
+use crate::{
+    AnimationState, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, DocumentState,
+    IFrameLoadInfoWithData, LayoutControlMsg, LoadData, MessagePortMsg, PortMessageTask,
+    StructuredSerializedData, WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+};
 
 /// An iframe sizing operation.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]

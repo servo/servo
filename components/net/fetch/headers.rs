@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use headers::HeaderMap;
-use net_traits::fetch::headers::get_value_from_header_list;
 use std::iter::Peekable;
 use std::str::Chars;
+
+use headers::HeaderMap;
+use net_traits::fetch::headers::get_value_from_header_list;
 
 /// <https://fetch.spec.whatwg.org/#http-tab-or-space>
 const HTTP_TAB_OR_SPACE: &[char] = &['\u{0009}', '\u{0020}'];

@@ -6,9 +6,10 @@
 
 mod constellation_msg;
 
-pub use constellation_msg::ConstellationMsg;
+use std::fmt::{Debug, Error, Formatter};
 
 use canvas::canvas_paint_thread::ImageUpdate;
+pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::EventLoopWaker;
 use euclid::Rect;
@@ -21,7 +22,6 @@ use script_traits::{
     AnimationState, ConstellationControlMsg, EventResult, LayoutControlMsg, MouseButton,
     MouseEventType,
 };
-use std::fmt::{Debug, Error, Formatter};
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use webrender_api::{self, FontInstanceKey, FontKey, ImageKey};

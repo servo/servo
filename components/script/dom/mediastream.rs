@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+use servo_media::streams::registry::MediaStreamId;
+use servo_media::streams::MediaStreamType;
+
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::error::Fallible;
@@ -12,10 +17,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
-use js::rust::HandleObject;
-use servo_media::streams::registry::MediaStreamId;
-use servo_media::streams::MediaStreamType;
 
 #[dom_struct]
 pub struct MediaStream {

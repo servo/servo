@@ -29,6 +29,31 @@
 //! The `unsafe_no_jsmanaged_fields!()` macro adds an empty implementation of
 //! `JSTraceable` to a datatype.
 
+use std::collections::hash_map::RandomState;
+use std::collections::HashMap;
+use std::fmt::Display;
+use std::hash::{BuildHasher, Hash};
+use std::mem;
+use std::ops::{Deref, DerefMut};
+
+use indexmap::IndexMap;
+/// A trait to allow tracing (only) DOM objects.
+pub use js::gc::Traceable as JSTraceable;
+use js::glue::{CallObjectTracer, CallScriptTracer, CallStringTracer, CallValueTracer};
+use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, TraceKind};
+use js::jsval::JSVal;
+use js::rust::{GCMethods, Handle};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use parking_lot::RwLock;
+use servo_arc::Arc as ServoArc;
+use smallvec::SmallVec;
+use style::author_styles::AuthorStyles;
+use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
+use tendril::fmt::UTF8;
+use tendril::stream::LossyDecoder;
+use tendril::TendrilSink;
+use webxr_api::{Finger, Hand};
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -44,34 +69,6 @@ use crate::dom::htmlmediaelement::HTMLMediaElementFetchContext;
 use crate::script_runtime::{ContextForRequestInterrupt, StreamConsumer};
 use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
-use indexmap::IndexMap;
-use js::glue::{CallObjectTracer, CallScriptTracer, CallStringTracer, CallValueTracer};
-use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, TraceKind};
-use js::jsval::JSVal;
-use js::rust::{GCMethods, Handle};
-
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use parking_lot::RwLock;
-use servo_arc::Arc as ServoArc;
-use smallvec::SmallVec;
-
-use std::collections::hash_map::RandomState;
-use std::collections::HashMap;
-use std::fmt::Display;
-use std::hash::{BuildHasher, Hash};
-use std::mem;
-
-use std::ops::{Deref, DerefMut};
-
-use style::author_styles::AuthorStyles;
-use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
-use tendril::fmt::UTF8;
-use tendril::stream::LossyDecoder;
-use tendril::TendrilSink;
-use webxr_api::{Finger, Hand};
-
-/// A trait to allow tracing (only) DOM objects.
-pub use js::gc::Traceable as JSTraceable;
 
 /// A trait to allow tracing only DOM sub-objects.
 pub unsafe trait CustomTraceable {

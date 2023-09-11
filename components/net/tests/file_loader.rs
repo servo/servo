@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::env;
+
 use url::Url;
 
 #[test]
