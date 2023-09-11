@@ -37,7 +37,7 @@ pub fn get_default_url(url_opt: Option<String>) -> ServoUrl {
     });
 
     if let Some(url) = cmdline_url.clone() {
-        if url.scheme() == "file" && url.domain().is_none() {
+        if url.scheme() == "file" && url.host().is_none() {
             let url_path = url.path();
 
             // Check if the URL path corresponds to a file

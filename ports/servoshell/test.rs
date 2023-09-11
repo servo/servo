@@ -198,7 +198,7 @@ fn parse_url_command_line() {
     assert_eq!(cmdline_url.into_string(), expected_result);
 
      //should resolve in location bar
-     let location_bar_url = location_bar_input_to_url(input);
+     let location_bar_url = location_bar_input_to_url(input).unwrap();
      assert_eq!(location_bar_url.scheme(), "file");
      assert_eq!(location_bar_url.into_string(), expected_result)
 }
