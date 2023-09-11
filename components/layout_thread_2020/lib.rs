@@ -8,17 +8,11 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-#[macro_use]
-extern crate crossbeam_channel;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate profile_traits;
+use lazy_static::lazy_static;
+use log::{debug, error, warn};
 
 use app_units::Au;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::{select, Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
 use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
@@ -54,6 +48,7 @@ use msg::constellation_msg::{
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
+use profile_traits::path;
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
@@ -100,7 +95,7 @@ use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
-use webrender_api::{units, HitTestFlags, ScrollClamping};
+use webrender_api::{units, HitTestFlags};
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -1178,11 +1173,8 @@ impl LayoutThread {
             .insert(state.scroll_id, state.scroll_offset);
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-        self.webrender_api.send_scroll_node(
-            units::LayoutPoint::from_untyped(point),
-            state.scroll_id,
-            ScrollClamping::ToContentBounds,
-        );
+        self.webrender_api
+            .send_scroll_node(units::LayoutPoint::from_untyped(point), state.scroll_id);
     }
 
     fn set_scroll_states<'a, 'b>(
@@ -1289,7 +1281,7 @@ impl LayoutThread {
             .maybe_observe_paint_time(self, epoch, is_contentful);
 
         self.webrender_api
-            .send_display_list(display_list.compositor_info, display_list.wr.finalize());
+            .send_display_list(display_list.compositor_info, display_list.wr.finalize().1);
 
         self.update_iframe_sizes(iframe_sizes);
 

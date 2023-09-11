@@ -27,6 +27,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use gfx::text::glyph::GlyphStore;
 use gfx::text::text_run::GlyphRun;
+use serde::Serialize;
 use servo_arc::Arc;
 use std::cell::OnceCell;
 use style::computed_values::white_space::T as WhiteSpace;

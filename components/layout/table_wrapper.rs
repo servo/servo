@@ -26,6 +26,8 @@ use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use app_units::Au;
 use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
+use log::{debug, trace};
+use serde::Serialize;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;

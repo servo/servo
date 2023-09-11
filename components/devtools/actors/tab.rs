@@ -7,6 +7,7 @@ use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActor
 use crate::actors::root::RootActor;
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
+use serde::Serialize;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 

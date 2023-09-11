@@ -2,20 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef WR_FEATURE_PIXEL_LOCAL_STORAGE
-// For now, we need both extensions here, in order to initialize
-// the PLS to the current framebuffer color. In future, we can
-// possibly remove that requirement, or at least support the
-// other framebuffer fetch extensions that provide the same
-// functionality.
-#extension GL_EXT_shader_pixel_local_storage : require
-#extension GL_ARM_shader_framebuffer_fetch : require
-#endif
-
 #ifdef WR_FEATURE_TEXTURE_EXTERNAL
 // Please check https://www.khronos.org/registry/OpenGL/extensions/OES/OES_EGL_image_external_essl3.txt
 // for this extension.
 #extension GL_OES_EGL_image_external_essl3 : require
+#endif
+
+#ifdef WR_FEATURE_TEXTURE_EXTERNAL_ESSL1
+// Some GLES 3 devices do not support GL_OES_EGL_image_external_essl3, so we
+// must use GL_OES_EGL_image_external instead and make the shader ESSL1
+// compatible.
+#extension GL_OES_EGL_image_external : require
 #endif
 
 #ifdef WR_FEATURE_ADVANCED_BLEND
@@ -32,10 +29,21 @@
 
 #include base
 
-#if defined(WR_FEATURE_TEXTURE_EXTERNAL) || defined(WR_FEATURE_TEXTURE_RECT) || defined(WR_FEATURE_TEXTURE_2D)
-#define TEX_SAMPLE(sampler, tex_coord) texture(sampler, tex_coord.xy)
+#if defined(WR_FEATURE_TEXTURE_EXTERNAL_ESSL1)
+#define TEX_SAMPLE(sampler, tex_coord) texture2D(sampler, tex_coord.xy)
 #else
-#define TEX_SAMPLE(sampler, tex_coord) texture(sampler, tex_coord)
+#define TEX_SAMPLE(sampler, tex_coord) texture(sampler, tex_coord.xy)
+#endif
+
+#if defined(WR_FEATURE_TEXTURE_EXTERNAL) && defined(PLATFORM_ANDROID)
+// On some Mali GPUs we have encountered crashes in glDrawElements when using
+// textureSize(samplerExternalOES) in a vertex shader without potentially
+// sampling from the texture. This tricks the driver in to thinking the texture
+// may be sampled from, avoiding the crash. See bug 1692848.
+uniform bool u_mali_workaround_dummy;
+#define TEX_SIZE(sampler) (u_mali_workaround_dummy ? ivec2(texture(sampler, vec2(0.0, 0.0)).rr) : textureSize(sampler, 0))
+#else
+#define TEX_SIZE(sampler) textureSize(sampler, 0)
 #endif
 
 //======================================================================================
@@ -50,7 +58,7 @@
     uniform mat4 uTransform;       // Orthographic projection
 
     // Attribute inputs
-    in vec2 aPosition;
+    attribute vec2 aPosition;
 
     // get_fetch_uv is a macro to work around a macOS Intel driver parsing bug.
     // TODO: convert back to a function once the driver issues are resolved, if ever.
@@ -66,67 +74,24 @@
 #ifdef WR_FRAGMENT_SHADER
     // Uniform inputs
 
-    #ifdef WR_FEATURE_PIXEL_LOCAL_STORAGE
-        // Define the storage class of the pixel local storage.
-        // If defined as writable, it's a compile time error to
-        // have a normal fragment output variable declared.
-        #if defined(PLS_READONLY)
-            #define PLS_BLOCK __pixel_local_inEXT
-        #elif defined(PLS_WRITEONLY)
-            #define PLS_BLOCK __pixel_local_outEXT
-        #else
-            #define PLS_BLOCK __pixel_localEXT
-        #endif
-
-        // The structure of pixel local storage. Right now, it's
-        // just the current framebuffer color. In future, we have
-        // (at least) 12 bytes of space we can store extra info
-        // here (such as clip mask values).
-        PLS_BLOCK FrameBuffer {
-            layout(rgba8) highp vec4 color;
-        } PLS;
-
-        #ifndef PLS_READONLY
-        // Write the output of a fragment shader to PLS. Applies
-        // premultipled alpha blending by default, since the blender
-        // is disabled when PLS is active.
-        // TODO(gw): Properly support alpha blend mode for webgl / canvas.
-        void write_output(vec4 color) {
-            PLS.color = color + PLS.color * (1.0 - color.a);
-        }
-
-        // Write a raw value straight to PLS, if the fragment shader has
-        // already applied blending.
-        void write_output_raw(vec4 color) {
-            PLS.color = color;
-        }
-        #endif
-
-        #ifndef PLS_WRITEONLY
-        // Retrieve the current framebuffer color. Useful in conjunction with
-        // the write_output_raw function.
-        vec4 get_current_framebuffer_color() {
-            return PLS.color;
-        }
-        #endif
-    #else
-        // Fragment shader outputs
-        #ifdef WR_FEATURE_ADVANCED_BLEND
-            layout(blend_support_all_equations) out;
-        #endif
-
-        #ifdef WR_FEATURE_DUAL_SOURCE_BLENDING
-            layout(location = 0, index = 0) out vec4 oFragColor;
-            layout(location = 0, index = 1) out vec4 oFragBlend;
-        #else
-            out vec4 oFragColor;
-        #endif
-
-        // Write an output color in normal (non-PLS) shaders.
-        void write_output(vec4 color) {
-            oFragColor = color;
-        }
+    // Fragment shader outputs
+    #ifdef WR_FEATURE_ADVANCED_BLEND
+        layout(blend_support_all_equations) out;
     #endif
+
+    #if __VERSION__ == 100
+        #define oFragColor gl_FragColor
+    #elif defined(WR_FEATURE_DUAL_SOURCE_BLENDING)
+        layout(location = 0, index = 0) out vec4 oFragColor;
+        layout(location = 0, index = 1) out vec4 oFragBlend;
+    #else
+        out vec4 oFragColor;
+    #endif
+
+    // Write an output color in normal shaders.
+    void write_output(vec4 color) {
+        oFragColor = color;
+    }
 
     #define EPSILON                     0.0001
 
@@ -138,11 +103,14 @@
         return dot(normalize(perp_dir), dir_to_p0);
     }
 
+// fwidth is not defined in ESSL 1, but that's okay because we don't need
+// it for any ESSL 1 shader variants.
+#if __VERSION__ != 100
     /// Find the appropriate half range to apply the AA approximation over.
     /// This range represents a coefficient to go from one CSS pixel to half a device pixel.
     float compute_aa_range(vec2 position) {
         // The constant factor is chosen to compensate for the fact that length(fw) is equal
-        // to sqrt(2) times the device pixel ratio in the typical case. 0.5/sqrt(2) = 0.35355.
+        // to sqrt(2) times the device pixel ratio in the typical case.
         //
         // This coefficient is chosen to ensure that any sample 0.5 pixels or more inside of
         // the shape has no anti-aliasing applied to it (since pixels are sampled at their center,
@@ -157,33 +125,38 @@
         // We may want to adjust this constant in specific scenarios (for example keep the principled
         // value for straight edges where we want pixel-perfect equivalence with non antialiased lines
         // when axis aligned, while selecting a larger and smoother aa range on curves).
-        return 0.35355 * length(fwidth(position));
+        //
+        // As a further optimization, we compute the reciprocal of this range, such that we
+        // can then use the cheaper inversesqrt() instead of length(). This also elides a
+        // division that would otherwise be necessary inside distance_aa.
+        #ifdef SWGL
+            // SWGL uses an approximation for fwidth() such that it returns equal x and y.
+            // Thus, sqrt(2)/length(w) = sqrt(2)/sqrt(x*x + x*x) = recip(x).
+            return recip(fwidth(position).x);
+        #else
+            // sqrt(2)/length(w) = inversesqrt(0.5 * dot(w, w))
+            vec2 w = fwidth(position);
+            return inversesqrt(0.5 * dot(w, w));
+        #endif
     }
+#endif
 
     /// Return the blending coefficient for distance antialiasing.
     ///
     /// 0.0 means inside the shape, 1.0 means outside.
     ///
-    /// This cubic polynomial approximates the area of a 1x1 pixel square under a
-    /// line, given the signed Euclidean distance from the center of the square to
-    /// that line. Calculating the *exact* area would require taking into account
-    /// not only this distance but also the angle of the line. However, in
-    /// practice, this complexity is not required, as the area is roughly the same
-    /// regardless of the angle.
-    ///
-    /// The coefficients of this polynomial were determined through least-squares
-    /// regression and are accurate to within 2.16% of the total area of the pixel
-    /// square 95% of the time, with a maximum error of 3.53%.
+    /// This makes the simplifying assumption that the area of a 1x1 pixel square
+    /// under a line is reasonably similar to just the signed Euclidian distance
+    /// from the center of the square to that line. This diverges slightly from
+    /// better approximations of the exact area, but the difference between the
+    /// methods is not perceptibly noticeable, while this approximation is much
+    /// faster to compute.
     ///
     /// See the comments in `compute_aa_range()` for more information on the
     /// cutoff values of -0.5 and 0.5.
     float distance_aa(float aa_range, float signed_distance) {
-        float dist = 0.5 * signed_distance / aa_range;
-        if (dist <= -0.5 + EPSILON)
-            return 1.0;
-        if (dist >= 0.5 - EPSILON)
-            return 0.0;
-        return 0.5 + dist * (0.8431027 * dist * dist - 1.14453603);
+        float dist = signed_distance * aa_range;
+        return clamp(0.5 - dist, 0.0, 1.0);
     }
 
     /// Component-wise selection.
@@ -214,14 +187,10 @@ uniform sampler2D sColor2;
 uniform sampler2DRect sColor0;
 uniform sampler2DRect sColor1;
 uniform sampler2DRect sColor2;
-#elif defined WR_FEATURE_TEXTURE_EXTERNAL
+#elif defined(WR_FEATURE_TEXTURE_EXTERNAL) || defined(WR_FEATURE_TEXTURE_EXTERNAL_ESSL1)
 uniform samplerExternalOES sColor0;
 uniform samplerExternalOES sColor1;
 uniform samplerExternalOES sColor2;
-#else
-uniform sampler2DArray sColor0;
-uniform sampler2DArray sColor1;
-uniform sampler2DArray sColor2;
 #endif
 
 #ifdef WR_FEATURE_DITHERING

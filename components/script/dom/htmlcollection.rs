@@ -13,7 +13,7 @@ use crate::dom::element::Element;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, QualName};
+use html5ever::{local_name, namespace_url, ns, LocalName, QualName};
 use servo_atoms::Atom;
 use std::cell::Cell;
 use style::str::split_html_space_chars;

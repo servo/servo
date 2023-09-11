@@ -5,6 +5,7 @@
  use std::{cell::{RefCell, Cell}, sync::Arc, time::Instant};
 
 use egui::{TopBottomPanel, Modifiers, Key};
+use log::{warn, trace};
 use servo::{servo_url::ServoUrl, compositing::windowing::EmbedderEvent};
 use servo::webrender_surfman::WebrenderSurfman;
 

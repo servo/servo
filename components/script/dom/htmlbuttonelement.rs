@@ -23,7 +23,7 @@ use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, LocalName, Prefix};
 use js::rust::HandleObject;
 use std::cell::Cell;
 use std::default::Default;

@@ -1,0 +1,15 @@
+# Verify that clip-chains are correctly applied to root level blend containers (which get
+# optimized to be tile caches).
+---
+root:
+  items:
+    - type: clip
+      id: 2
+      bounds: [ 50, 50, 100, 100 ]
+    - type: stacking-context
+      blend-container: true
+      clip-node: 2
+      items:
+        - type: rect
+          bounds: [ 0, 0, 200, 200 ]
+          color: blue

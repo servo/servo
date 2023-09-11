@@ -5,6 +5,7 @@
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
+use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_config::pref_util::PrefValue;
 use servo_config::prefs::pref_map;

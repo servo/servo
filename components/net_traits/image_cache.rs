@@ -7,6 +7,9 @@ use crate::request::CorsSettings;
 use crate::FetchResponseMsg;
 use crate::WebrenderIpcSender;
 use ipc_channel::ipc::IpcSender;
+use log::debug;
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::sync::Arc;
 

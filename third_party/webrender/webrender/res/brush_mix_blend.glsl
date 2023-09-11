@@ -2,25 +2,55 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#define VECS_PER_MIX_BLEND_BRUSH 3
-#define VECS_PER_SPECIFIC_BRUSH VECS_PER_MIX_BLEND_BRUSH
-
-#define WR_BRUSH_VS_FUNCTION mix_blend_brush_vs
-#define WR_BRUSH_FS_FUNCTION mix_blend_brush_fs
+#define VECS_PER_SPECIFIC_BRUSH 3
+#define WR_FEATURE_TEXTURE_2D
 
 #include shared,prim_shared,brush
 
-#define V_SRC_UV            varying_vec4_0.xy
-#define V_SRC_LAYER         varying_vec4_0.w
+// UV and bounds for the source image
+varying vec2 v_src_uv;
+flat varying vec4 v_src_uv_sample_bounds;
 
-#define V_BACKDROP_UV       varying_vec4_1.xy
-#define V_BACKDROP_LAYER    varying_vec4_1.w
+// UV and bounds for the backdrop image
+varying vec2 v_backdrop_uv;
+flat varying vec4 v_backdrop_uv_sample_bounds;
 
-#define V_OP                flat_varying_ivec4_0.x
+#if defined(PLATFORM_ANDROID) && !defined(SWGL)
+// Work around Adreno 3xx driver bug. See the v_perspective comment in
+// brush_image or bug 1630356 for details.
+flat varying vec2 v_perspective_vec;
+#define v_perspective v_perspective_vec.x
+#else
+// Flag to allow perspective interpolation of UV.
+flat varying float v_perspective;
+#endif
+
+// mix-blend op
+flat varying int v_op;
 
 #ifdef WR_VERTEX_SHADER
 
-void mix_blend_brush_vs(
+void get_uv(
+    int res_address,
+    vec2 f,
+    ivec2 texture_size,
+    float perspective_f,
+    out vec2 out_uv,
+    out vec4 out_uv_sample_bounds
+) {
+    ImageSource res = fetch_image_source(res_address);
+    vec2 uv0 = res.uv_rect.p0;
+    vec2 uv1 = res.uv_rect.p1;
+
+    vec2 inv_texture_size = vec2(1.0) / vec2(texture_size);
+    f = get_image_quad_uv(res_address, f);
+    vec2 uv = mix(uv0, uv1, f);
+
+    out_uv = uv * inv_texture_size * perspective_f;
+    out_uv_sample_bounds = vec4(uv0 + vec2(0.5), uv1 - vec2(0.5)) * inv_texture_size.xyxy;
+}
+
+void brush_vs(
     VertexInfo vi,
     int prim_address,
     RectWithSize local_rect,
@@ -32,26 +62,29 @@ void mix_blend_brush_vs(
     int brush_flags,
     vec4 unused
 ) {
-    //Note: this is unsafe for `vi.world_pos.w <= 0.0`
-    vec2 device_pos = vi.world_pos.xy * pic_task.device_pixel_scale / max(0.0, vi.world_pos.w);
-    vec2 texture_size = vec2(textureSize(sPrevPassColor, 0));
-    V_OP = prim_user_data.x;
+    vec2 f = (vi.local_pos - local_rect.p0) / local_rect.size;
+    float perspective_interpolate = (brush_flags & BRUSH_FLAG_PERSPECTIVE_INTERPOLATION) != 0 ? 1.0 : 0.0;
+    float perspective_f = mix(vi.world_pos.w, 1.0, perspective_interpolate);
+    v_perspective = perspective_interpolate;
+    v_op = prim_user_data.x;
 
-    PictureTask src_task = fetch_picture_task(prim_user_data.z);
-    vec2 src_device_pos = vi.world_pos.xy * (src_task.device_pixel_scale / max(0.0, vi.world_pos.w));
-    vec2 src_uv = src_device_pos +
-                  src_task.common_data.task_rect.p0 -
-                  src_task.content_origin;
-    V_SRC_UV = src_uv / texture_size;
-    V_SRC_LAYER = src_task.common_data.texture_layer_index;
+    get_uv(
+        prim_user_data.y,
+        f,
+        TEX_SIZE(sColor0).xy,
+        1.0,
+        v_backdrop_uv,
+        v_backdrop_uv_sample_bounds
+    );
 
-    RenderTaskCommonData backdrop_task = fetch_render_task_common_data(prim_user_data.y);
-    float src_to_backdrop_scale = pic_task.device_pixel_scale / src_task.device_pixel_scale;
-    vec2 backdrop_uv = device_pos +
-                       backdrop_task.task_rect.p0 -
-                       src_task.content_origin * src_to_backdrop_scale;
-    V_BACKDROP_UV = backdrop_uv / texture_size;
-    V_BACKDROP_LAYER = backdrop_task.texture_layer_index;
+    get_uv(
+        prim_user_data.z,
+        f,
+        TEX_SIZE(sColor1).xy,
+        perspective_f,
+        v_src_uv,
+        v_src_uv_sample_bounds
+    );
 }
 #endif
 
@@ -213,9 +246,16 @@ const int MixBlendMode_Saturation  = 13;
 const int MixBlendMode_Color       = 14;
 const int MixBlendMode_Luminosity  = 15;
 
-Fragment mix_blend_brush_fs() {
-    vec4 Cb = textureLod(sPrevPassColor, vec3(V_BACKDROP_UV, V_BACKDROP_LAYER), 0.0);
-    vec4 Cs = textureLod(sPrevPassColor, vec3(V_SRC_UV, V_SRC_LAYER), 0.0);
+Fragment brush_fs() {
+    float perspective_divisor = mix(gl_FragCoord.w, 1.0, v_perspective);
+
+    vec2 src_uv = v_src_uv * perspective_divisor;
+    src_uv = clamp(src_uv, v_src_uv_sample_bounds.xy, v_src_uv_sample_bounds.zw);
+
+    vec2 backdrop_uv = clamp(v_backdrop_uv, v_backdrop_uv_sample_bounds.xy, v_backdrop_uv_sample_bounds.zw);
+
+    vec4 Cb = texture(sColor0, backdrop_uv);
+    vec4 Cs = texture(sColor1, src_uv);
 
     // The mix-blend-mode functions assume no premultiplied alpha
     if (Cb.a != 0.0) {
@@ -229,7 +269,7 @@ Fragment mix_blend_brush_fs() {
     // Return yellow if none of the branches match (shouldn't happen).
     vec4 result = vec4(1.0, 1.0, 0.0, 1.0);
 
-    switch (V_OP) {
+    switch (v_op) {
         case MixBlendMode_Multiply:
             result.rgb = Multiply(Cb.rgb, Cs.rgb);
             break;
@@ -293,10 +333,3 @@ Fragment mix_blend_brush_fs() {
     return Fragment(result);
 }
 #endif
-
-// Undef macro names that could be re-defined by other shaders.
-#undef V_SRC_UV
-#undef V_SRC_LAYER
-#undef V_BACKDROP_UV
-#undef V_BACKDROP_LAYER
-#undef V_OP

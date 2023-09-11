@@ -4,6 +4,7 @@
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::StreamId;
+use serde::Serialize;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 

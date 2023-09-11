@@ -9,6 +9,8 @@ use crate::{ResourceFetchTiming, ResourceTimingType};
 use headers::{ContentType, HeaderMapExt};
 use http::{HeaderMap, StatusCode};
 use hyper_serde::Serde;
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::sync::atomic::AtomicBool;

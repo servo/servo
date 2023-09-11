@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// Preprocess the radii for computing the distance approximation. This should
+// be used in the vertex shader if possible to avoid doing expensive division
+// in the fragment shader. When dealing with a point (zero radii), approximate
+// it as an ellipse with very small radii so that we don't need to branch.
+vec2 inverse_radii_squared(vec2 radii) {
+    return 1.0 / max(radii * radii, 1.0e-6);
+}
+
 #ifdef WR_FRAGMENT_SHADER
 
 // One iteration of Newton's method on the 2D equation of an ellipse:
@@ -18,76 +26,60 @@
 //
 // See G. Taubin, "Distance Approximations for Rasterizing Implicit
 // Curves", section 3.
-float distance_to_ellipse(vec2 p, vec2 radii, float aa_range) {
-    float dist;
-    if (any(lessThanEqual(radii, vec2(0.0)))) {
-        dist = length(p);
-    } else {
-        vec2 invRadiiSq = 1.0 / (radii * radii);
-        float g = dot(p * p * invRadiiSq, vec2(1.0)) - 1.0;
-        vec2 dG = 2.0 * p * invRadiiSq;
-        dist = g * inversesqrt(dot(dG, dG));
-    }
-    return clamp(dist, -aa_range, aa_range);
+//
+// A scale relative to the unit scale of the ellipse may be passed in to cause
+// the math to degenerate to length(p) when scale is 0, or otherwise give the
+// normal distance approximation if scale is 1.
+float distance_to_ellipse_approx(vec2 p, vec2 inv_radii_sq, float scale) {
+    vec2 p_r = p * inv_radii_sq;
+    float g = dot(p, p_r) - scale;
+    vec2 dG = (1.0 + scale) * p_r;
+    return g * inversesqrt(dot(dG, dG));
 }
 
-float clip_against_ellipse_if_needed(
+// Slower but more accurate version that uses the exact distance when dealing
+// with a 0-radius point distance and otherwise uses the faster approximation
+// when dealing with non-zero radii.
+float distance_to_ellipse(vec2 p, vec2 radii) {
+    return distance_to_ellipse_approx(p, inverse_radii_squared(radii),
+                                      float(all(greaterThan(radii, vec2(0.0)))));
+}
+
+float distance_to_rounded_rect(
     vec2 pos,
-    float current_distance,
-    vec4 ellipse_center_radius,
-    vec2 sign_modifier,
-    float aa_range
+    vec4 center_radius_tl,
+    vec4 center_radius_tr,
+    vec4 center_radius_br,
+    vec4 center_radius_bl,
+    vec4 rect_bounds
 ) {
-    if (!all(lessThan(sign_modifier * pos, sign_modifier * ellipse_center_radius.xy))) {
-      return current_distance;
+    // Clip against each ellipse. If the fragment is in a corner, one of the
+    // branches below will select it as the corner to calculate the distance
+    // to. We want to choose the smallest distance inside either of the axis
+    // bounds as the overall distance we use to compare which corner is closer
+    // than another. If outside any ellipse, default to a small offset so a
+    // negative distance is returned for it.
+    vec4 corner = vec4(vec2(1.0e-6), vec2(1.0));
+    center_radius_tl.xy = center_radius_tl.xy - pos;
+    center_radius_tr.xy = (center_radius_tr.xy - pos) * vec2(-1.0, 1.0);
+    center_radius_br.xy = pos - center_radius_br.xy;
+    center_radius_bl.xy = (center_radius_bl.xy - pos) * vec2(1.0, -1.0);
+    if (min(center_radius_tl.x, center_radius_tl.y) > min(corner.x, corner.y)) {
+        corner = center_radius_tl;
+    }
+    if (min(center_radius_tr.x, center_radius_tr.y) > min(corner.x, corner.y)) {
+        corner = center_radius_tr;
+    }
+    if (min(center_radius_br.x, center_radius_br.y) > min(corner.x, corner.y)) {
+        corner = center_radius_br;
+    }
+    if (min(center_radius_bl.x, center_radius_bl.y) > min(corner.x, corner.y)) {
+        corner = center_radius_bl;
     }
 
-    float distance = distance_to_ellipse(pos - ellipse_center_radius.xy,
-                                         ellipse_center_radius.zw,
-                                         aa_range);
-
-    return max(distance, current_distance);
-}
-
-float rounded_rect(vec2 pos,
-                   vec4 clip_center_radius_tl,
-                   vec4 clip_center_radius_tr,
-                   vec4 clip_center_radius_br,
-                   vec4 clip_center_radius_bl,
-                   float aa_range) {
-    // Start with a negative value (means "inside") for all fragments that are not
-    // in a corner. If the fragment is in a corner, one of the clip_against_ellipse_if_needed
-    // calls below will update it.
-    float current_distance = -aa_range;
-
-    // Clip against each ellipse.
-    current_distance = clip_against_ellipse_if_needed(pos,
-                                                      current_distance,
-                                                      clip_center_radius_tl,
-                                                      vec2(1.0),
-                                                      aa_range);
-
-    current_distance = clip_against_ellipse_if_needed(pos,
-                                                      current_distance,
-                                                      clip_center_radius_tr,
-                                                      vec2(-1.0, 1.0),
-                                                      aa_range);
-
-    current_distance = clip_against_ellipse_if_needed(pos,
-                                                      current_distance,
-                                                      clip_center_radius_br,
-                                                      vec2(-1.0),
-                                                      aa_range);
-
-    current_distance = clip_against_ellipse_if_needed(pos,
-                                                      current_distance,
-                                                      clip_center_radius_bl,
-                                                      vec2(1.0, -1.0),
-                                                      aa_range);
-
-    // Apply AA
-    // See comment in ps_border_corner about the choice of constants.
-
-    return distance_aa(aa_range, current_distance);
+    // Calculate the distance of the selected corner and the rectangle bounds,
+    // whichever is greater.
+    return max(distance_to_ellipse_approx(corner.xy, corner.zw, 1.0),
+               signed_distance_rect(pos, rect_bounds.xy, rect_bounds.zw));
 }
 #endif

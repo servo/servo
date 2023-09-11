@@ -1,0 +1,12 @@
+---
+root:
+  items:
+    - type: rect
+      bounds: 50 50 2000 300
+      color: blue
+
+    - type: gradient
+      bounds: 50 50 400 300
+      start: 0 0
+      end: 100 20
+      stops: [0.0, red, 1.0, blue]

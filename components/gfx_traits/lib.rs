@@ -6,16 +6,11 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate malloc_size_of_derive;
-#[macro_use]
-extern crate range;
-#[macro_use]
-extern crate serde;
-
 pub mod print_tree;
 
-use range::RangeIndex;
+use malloc_size_of_derive::MallocSizeOf;
+use range::{int_range_index, RangeIndex};
+use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use webrender_api::{Epoch as WebRenderEpoch, FontInstanceKey, FontKey, NativeFontHandle};
 

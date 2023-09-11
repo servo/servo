@@ -4,13 +4,26 @@
 
 // Composite a picture cache tile into the framebuffer.
 
-#include shared,yuv
+// This shader must remain compatible with ESSL 1, at least for the
+// WR_FEATURE_TEXTURE_EXTERNAL_ESSL1 feature, so that it can be used to render
+// video on GLES devices without GL_OES_EGL_image_external_essl3 support.
+// This means we cannot use textureSize(), int inputs/outputs, etc.
+
+#include shared
+
+#ifdef WR_FEATURE_YUV
+#include yuv
+#endif
 
 #ifdef WR_FEATURE_YUV
 flat varying mat3 vYuvColorMatrix;
+flat varying vec3 vYuvOffsetVector;
 flat varying float vYuvCoefficient;
 flat varying int vYuvFormat;
-flat varying vec3 vYuvLayers;
+#ifdef SWGL_DRAW_SPAN
+flat varying int vYuvColorSpace;
+flat varying int vRescaleFactor;
+#endif
 varying vec2 vUV_y;
 varying vec2 vUV_u;
 varying vec2 vUV_v;
@@ -18,29 +31,32 @@ flat varying vec4 vUVBounds_y;
 flat varying vec4 vUVBounds_u;
 flat varying vec4 vUVBounds_v;
 #else
-flat varying vec4 vColor;
-flat varying float vLayer;
 varying vec2 vUv;
+#ifndef WR_FEATURE_FAST_PATH
+flat varying vec4 vColor;
 flat varying vec4 vUVBounds;
+#endif
+#ifdef WR_FEATURE_TEXTURE_EXTERNAL_ESSL1
+uniform vec2 uTextureSize;
+#endif
 #endif
 
 #ifdef WR_VERTEX_SHADER
 // CPU side data is in CompositeInstance (gpu_types.rs) and is
 // converted to GPU data using desc::COMPOSITE (renderer.rs) by
 // filling vaos.composite_vao with VertexArrayKind::Composite.
-PER_INSTANCE in vec4 aDeviceRect;
-PER_INSTANCE in vec4 aDeviceClipRect;
-PER_INSTANCE in vec4 aColor;
-PER_INSTANCE in vec4 aParams;
-PER_INSTANCE in vec3 aTextureLayers;
+PER_INSTANCE attribute vec4 aDeviceRect;
+PER_INSTANCE attribute vec4 aDeviceClipRect;
+PER_INSTANCE attribute vec4 aColor;
+PER_INSTANCE attribute vec4 aParams;
 
 #ifdef WR_FEATURE_YUV
 // YUV treats these as a UV clip rect (clamp)
-PER_INSTANCE in vec4 aUvRect0;
-PER_INSTANCE in vec4 aUvRect1;
-PER_INSTANCE in vec4 aUvRect2;
+PER_INSTANCE attribute vec4 aUvRect0;
+PER_INSTANCE attribute vec4 aUvRect1;
+PER_INSTANCE attribute vec4 aUvRect2;
 #else
-PER_INSTANCE in vec4 aUvRect0;
+PER_INSTANCE attribute vec4 aUvRect0;
 #endif
 
 void main(void) {
@@ -59,15 +75,23 @@ void main(void) {
     float yuv_coefficient = aParams.w;
 
     vYuvColorMatrix = get_yuv_color_matrix(yuv_color_space);
+    vYuvOffsetVector = get_yuv_offset_vector(yuv_color_space);
     vYuvCoefficient = yuv_coefficient;
     vYuvFormat = yuv_format;
 
-    vYuvLayers = aTextureLayers.xyz;
+#ifdef SWGL_DRAW_SPAN
+    // swgl_commitTextureLinearYUV needs to know the color space specifier and
+    // also needs to know how many bits of scaling are required to normalize
+    // HDR textures.
+    vYuvColorSpace = yuv_color_space;
+    vRescaleFactor = int(log2(yuv_coefficient));
+#endif
+
     write_uv_rect(
         aUvRect0.xy,
         aUvRect0.zw,
         uv,
-        TEX_SIZE(sColor0),
+        TEX_SIZE_YUV(sColor0),
         vUV_y,
         vUVBounds_y
     );
@@ -75,7 +99,7 @@ void main(void) {
         aUvRect1.xy,
         aUvRect1.zw,
         uv,
-        TEX_SIZE(sColor1),
+        TEX_SIZE_YUV(sColor1),
         vUV_u,
         vUVBounds_u
     );
@@ -83,31 +107,41 @@ void main(void) {
         aUvRect2.xy,
         aUvRect2.zw,
         uv,
-        TEX_SIZE(sColor2),
+        TEX_SIZE_YUV(sColor2),
         vUV_v,
         vUVBounds_v
     );
 #else
-    vUv = mix(aUvRect0.xy, aUvRect0.zw, uv);
+    uv = mix(aUvRect0.xy, aUvRect0.zw, uv);
     // flip_y might have the UV rect "upside down", make sure
     // clamp works correctly:
-    vUVBounds = vec4(aUvRect0.x, min(aUvRect0.y, aUvRect0.w),
-                     aUvRect0.z, max(aUvRect0.y, aUvRect0.w));
+    vec4 uvBounds = vec4(aUvRect0.x, min(aUvRect0.y, aUvRect0.w),
+                         aUvRect0.z, max(aUvRect0.y, aUvRect0.w));
     int rescale_uv = int(aParams.y);
     if (rescale_uv == 1)
     {
         // using an atlas, so UVs are in pixels, and need to be
         // normalized and clamped.
-        vec2 texture_size = TEX_SIZE(sColor0);
-        vUVBounds += vec4(0.5, 0.5, -0.5, -0.5);
+#if defined(WR_FEATURE_TEXTURE_RECT)
+        vec2 texture_size = vec2(1.0, 1.0);
+#elif defined(WR_FEATURE_TEXTURE_EXTERNAL_ESSL1)
+        vec2 texture_size = uTextureSize;
+#else
+        vec2 texture_size = vec2(TEX_SIZE(sColor0));
+#endif
+        uvBounds += vec4(0.5, 0.5, -0.5, -0.5);
     #ifndef WR_FEATURE_TEXTURE_RECT
-        vUv /= texture_size;
-        vUVBounds /= texture_size.xyxy;
+        uv /= texture_size;
+        uvBounds /= texture_size.xyxy;
     #endif
     }
-    // Pass through color and texture array layer
+
+    vUv = uv;
+#ifndef WR_FEATURE_FAST_PATH
+    vUVBounds = uvBounds;
+    // Pass through color
     vColor = aColor;
-    vLayer = aTextureLayers.x;
+#endif
 #endif
 
     gl_Position = uTransform * vec4(clipped_world_pos, aParams.x /* z_id */, 1.0);
@@ -120,8 +154,8 @@ void main(void) {
     vec4 color = sample_yuv(
         vYuvFormat,
         vYuvColorMatrix,
+        vYuvOffsetVector,
         vYuvCoefficient,
-        vYuvLayers,
         vUV_y,
         vUV_u,
         vUV_v,
@@ -130,15 +164,58 @@ void main(void) {
         vUVBounds_v
     );
 #else
-    // The color is just the texture sample modulated by a supplied color
-    vec2 uv = clamp(vUv.xy, vUVBounds.xy, vUVBounds.zw);
-#   if defined(WR_FEATURE_TEXTURE_EXTERNAL) || defined(WR_FEATURE_TEXTURE_2D) || defined(WR_FEATURE_TEXTURE_RECT)
-    vec4 texel = TEX_SAMPLE(sColor0, vec3(uv, vLayer));
-#   else
-    vec4 texel = textureLod(sColor0, vec3(uv, vLayer), 0.0);
-#   endif
+    // The color is just the texture sample modulated by a supplied color.
+    // In the fast path we avoid clamping the UV coordinates and modulating by the color.
+#ifdef WR_FEATURE_FAST_PATH
+    vec2 uv = vUv;
+#else
+    vec2 uv = clamp(vUv, vUVBounds.xy, vUVBounds.zw);
+#endif
+    vec4 texel = TEX_SAMPLE(sColor0, uv);
+#ifdef WR_FEATURE_FAST_PATH
+    vec4 color = texel;
+#else
     vec4 color = vColor * texel;
+#endif
 #endif
     write_output(color);
 }
+
+#ifdef SWGL_DRAW_SPAN
+void swgl_drawSpanRGBA8() {
+#ifdef WR_FEATURE_YUV
+    if (vYuvFormat == YUV_FORMAT_PLANAR) {
+        swgl_commitTextureLinearYUV(sColor0, vUV_y, vUVBounds_y,
+                                    sColor1, vUV_u, vUVBounds_u,
+                                    sColor2, vUV_v, vUVBounds_v,
+                                    vYuvColorSpace, vRescaleFactor);
+    } else if (vYuvFormat == YUV_FORMAT_NV12) {
+        swgl_commitTextureLinearYUV(sColor0, vUV_y, vUVBounds_y,
+                                    sColor1, vUV_u, vUVBounds_u,
+                                    vYuvColorSpace, vRescaleFactor);
+    } else if (vYuvFormat == YUV_FORMAT_INTERLEAVED) {
+        swgl_commitTextureLinearYUV(sColor0, vUV_y, vUVBounds_y,
+                                    vYuvColorSpace, vRescaleFactor);
+    }
+#else
+#ifdef WR_FEATURE_FAST_PATH
+    vec4 color = vec4(1.0);
+#ifdef WR_FEATURE_TEXTURE_RECT
+    vec4 uvBounds = vec4(vec2(0.0), vec2(textureSize(sColor0)));
+#else
+    vec4 uvBounds = vec4(0.0, 0.0, 1.0, 1.0);
+#endif
+#else
+    vec4 color = vColor;
+    vec4 uvBounds = vUVBounds;
+#endif
+    if (color != vec4(1.0)) {
+        swgl_commitTextureColorRGBA8(sColor0, vUv, uvBounds, color);
+    } else {
+        swgl_commitTextureRGBA8(sColor0, vUv, uvBounds);
+    }
+#endif
+}
+#endif
+
 #endif

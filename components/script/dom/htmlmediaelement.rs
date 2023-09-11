@@ -70,7 +70,7 @@ use embedder_traits::resources::{self, Resource as EmbedderResource};
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -96,7 +96,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use time::{self, Duration, Timespec};
 use webrender_api::ImageKey;
-use webrender_api::{ExternalImageData, ExternalImageId, ExternalImageType, TextureTarget};
+use webrender_api::{ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind};
 use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
 #[derive(PartialEq)]
@@ -225,9 +225,9 @@ impl VideoFrameRenderer for MediaFrameRenderer {
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
                     let texture_target = if frame.is_external_oes() {
-                        TextureTarget::External
+                        ImageBufferKind::TextureExternal
                     } else {
-                        TextureTarget::Default
+                        ImageBufferKind::Texture2D
                     };
 
                     ImageData::External(ExternalImageData {
@@ -254,9 +254,9 @@ impl VideoFrameRenderer for MediaFrameRenderer {
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
                     let texture_target = if frame.is_external_oes() {
-                        TextureTarget::External
+                        ImageBufferKind::TextureExternal
                     } else {
-                        TextureTarget::Default
+                        ImageBufferKind::Texture2D
                     };
 
                     ImageData::External(ExternalImageData {

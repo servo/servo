@@ -9,7 +9,7 @@ macro_rules! make_getter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            element.get_string_attribute(&local_name!($htmlname))
+            element.get_string_attribute(&html5ever::local_name!($htmlname))
         }
     );
 );
@@ -21,7 +21,7 @@ macro_rules! make_bool_getter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            element.has_attribute(&local_name!($htmlname))
+            element.has_attribute(&html5ever::local_name!($htmlname))
         }
     );
 );
@@ -40,7 +40,7 @@ macro_rules! make_limited_int_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(&local_name!($htmlname), value);
+            element.set_int_attribute(&html5ever::local_name!($htmlname), value);
             Ok(())
         }
     );
@@ -54,7 +54,7 @@ macro_rules! make_int_setter(
             use crate::dom::element::Element;
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(&local_name!($htmlname), value)
+            element.set_int_attribute(&html5ever::local_name!($htmlname), value)
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -69,7 +69,7 @@ macro_rules! make_int_getter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            element.get_int_attribute(&local_name!($htmlname), $default)
+            element.get_int_attribute(&html5ever::local_name!($htmlname), $default)
         }
     );
 
@@ -85,7 +85,7 @@ macro_rules! make_uint_getter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            element.get_uint_attribute(&local_name!($htmlname), $default)
+            element.get_uint_attribute(&html5ever::local_name!($htmlname), $default)
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -100,7 +100,7 @@ macro_rules! make_url_getter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            element.get_url_attribute(&local_name!($htmlname))
+            element.get_url_attribute(&html5ever::local_name!($htmlname))
         }
     );
 );
@@ -112,7 +112,7 @@ macro_rules! make_url_setter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            element.set_url_attribute(&local_name!($htmlname),
+            element.set_url_attribute(&html5ever::local_name!($htmlname),
                                          value);
         }
     );
@@ -126,7 +126,7 @@ macro_rules! make_form_action_getter(
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             let doc = crate::dom::node::document_from_node(self);
-            let attr = element.get_attribute(&ns!(), &local_name!($htmlname));
+            let attr = element.get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname));
             let value = attr.as_ref().map(|attr| attr.value());
             let value = match value {
                 Some(ref value) if !value.is_empty() => &***value,
@@ -162,7 +162,7 @@ macro_rules! make_enumerated_getter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            let mut val = element.get_string_attribute(&local_name!($htmlname));
+            let mut val = element.get_string_attribute(&html5ever::local_name!($htmlname));
             val.make_ascii_lowercase();
             // https://html.spec.whatwg.org/multipage/#attr-fs-method
             match &*val {
@@ -182,7 +182,7 @@ macro_rules! make_setter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            element.set_string_attribute(&local_name!($htmlname), value)
+            element.set_string_attribute(&html5ever::local_name!($htmlname), value)
         }
     );
 );
@@ -194,7 +194,7 @@ macro_rules! make_bool_setter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            element.set_bool_attribute(&local_name!($htmlname), value)
+            element.set_bool_attribute(&html5ever::local_name!($htmlname), value)
         }
     );
 );
@@ -212,7 +212,7 @@ macro_rules! make_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&local_name!($htmlname), value)
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value)
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -235,7 +235,7 @@ macro_rules! make_limited_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&local_name!($htmlname), value);
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value);
             Ok(())
         }
     );
@@ -251,7 +251,7 @@ macro_rules! make_atomic_setter(
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            element.set_atomic_attribute(&local_name!($htmlname), value)
+            element.set_atomic_attribute(&html5ever::local_name!($htmlname), value)
         }
     );
 );
@@ -265,7 +265,7 @@ macro_rules! make_legacy_color_setter(
             use style::attr::AttrValue;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_legacy_color(value.into());
-            element.set_attribute(&local_name!($htmlname), value)
+            element.set_attribute(&html5ever::local_name!($htmlname), value)
         }
     );
 );
@@ -278,7 +278,7 @@ macro_rules! make_dimension_setter(
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_dimension(value.into());
-            element.set_attribute(&local_name!($htmlname), value)
+            element.set_attribute(&html5ever::local_name!($htmlname), value)
         }
     );
 );
@@ -291,7 +291,7 @@ macro_rules! make_nonzero_dimension_setter(
             use crate::dom::element::Element;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_nonzero_dimension(value.into());
-            element.set_attribute(&local_name!($htmlname), value)
+            element.set_attribute(&html5ever::local_name!($htmlname), value)
         }
     );
 );

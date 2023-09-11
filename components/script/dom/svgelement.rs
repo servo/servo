@@ -12,7 +12,7 @@ use crate::dom::node::window_from_node;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use style::element_state::ElementState;
 

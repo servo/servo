@@ -4,6 +4,7 @@
 
 use crate::text::util::unicode_plane;
 use dwrote::{Font, FontCollection, FontDescriptor};
+use lazy_static::lazy_static;
 use servo_atoms::Atom;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};

@@ -481,14 +481,16 @@ class CommandBase(object):
         elif self.config["build"]["incremental"] is not None:
             env["CARGO_INCREMENTAL"] = "0"
 
+        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "")
+
         if self.config["build"]["rustflags"]:
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
+            env['RUSTFLAGS'] += " " + self.config["build"]["rustflags"]
 
         # Turn on rust's version of lld if we are on x86 Linux.
         # TODO(mrobinson): Gradually turn this on for more platforms, when support stabilizes.
         # See https://github.com/rust-lang/rust/issues/39915
         if not self.cross_compile_target and effective_target == "x86_64-unknown-linux-gnu":
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + servo.platform.get().linker_flag()
+            env['RUSTFLAGS'] += " " + servo.platform.get().linker_flag()
 
         if not (self.config["build"]["ccache"] == ""):
             env['CCACHE'] = self.config["build"]["ccache"]
@@ -497,9 +499,8 @@ class CommandBase(object):
         if self.cross_compile_target and (
             self.cross_compile_target.startswith('arm')
                 or self.cross_compile_target.startswith('aarch64')):
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
+            env['RUSTFLAGS'] += " -C target-feature=+neon"
 
-        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
         env["CARGO_TARGET_DIR"] = servo.util.get_target_dir()
 
         if self.config["build"]["thinlto"]:

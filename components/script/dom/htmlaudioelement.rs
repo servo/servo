@@ -14,7 +14,7 @@ use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, QualName};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
 use js::rust::HandleObject;
 
 #[dom_struct]

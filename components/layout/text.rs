@@ -14,6 +14,7 @@ use gfx::font::{self, FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOpt
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
+use log::debug;
 use range::Range;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;

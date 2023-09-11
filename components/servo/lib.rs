@@ -17,9 +17,6 @@
 //! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
-#[macro_use]
-extern crate log;
-
 pub use background_hang_monitor;
 pub use bluetooth;
 pub use bluetooth_traits;
@@ -32,11 +29,14 @@ pub use devtools_traits;
 pub use embedder_traits;
 pub use euclid;
 pub use gfx;
+pub use gleam::gl;
 pub use ipc_channel;
+pub use keyboard_types;
 pub use layout_thread_2013;
 pub use layout_thread_2020;
 pub use media;
 pub use msg;
+pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub use net;
 pub use net_traits;
 pub use profile;
@@ -44,24 +44,17 @@ pub use profile_traits;
 pub use script;
 pub use script_layout_interface;
 pub use script_traits;
+pub use servo_config as config;
 pub use servo_config;
 pub use servo_geometry;
+pub use servo_url as url;
 pub use servo_url;
 pub use style;
 pub use style_traits;
 pub use webgpu;
 pub use webrender_api;
-use webrender_api::{DocumentId, FontInstanceKey, FontKey, ImageKey, RenderApiSender};
 pub use webrender_surfman;
 pub use webrender_traits;
-
-#[cfg(feature = "webdriver")]
-fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
-    webdriver_server::start_server(port, constellation);
-}
-
-#[cfg(not(feature = "webdriver"))]
-fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
@@ -87,7 +80,7 @@ use constellation::{FromCompositorLogger, FromScriptLogger};
 use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
-use euclid::{Scale, Size2D};
+use euclid::Scale;
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -98,7 +91,7 @@ use euclid::{Scale, Size2D};
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
-use log::{trace, Log, Metadata, Record};
+use log::{error, trace, warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
@@ -122,16 +115,19 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use surfman::GLApi;
-use webrender::ShaderPrecacheFlags;
+use webrender::{RenderApiSender, ShaderPrecacheFlags};
+use webrender_api::{DocumentId, FontInstanceKey, FontKey, ImageKey};
 use webrender_traits::WebrenderExternalImageHandlers;
 use webrender_traits::WebrenderExternalImageRegistry;
 use webrender_traits::WebrenderImageHandlerType;
 
-pub use gleam::gl;
-pub use keyboard_types;
-pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
-pub use servo_config as config;
-pub use servo_url as url;
+#[cfg(feature = "webdriver")]
+fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
+    webdriver_server::start_server(port, constellation);
+}
+
+#[cfg(not(feature = "webdriver"))]
+fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
@@ -220,9 +216,11 @@ impl webrender_api::RenderNotifier for RenderNotifier {
         Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
     }
 
-    fn wake_up(&self) {
-        self.compositor_proxy
-            .recomposite(CompositingReason::NewWebRenderFrame);
+    fn wake_up(&self, composite_needed: bool) {
+        if composite_needed {
+            self.compositor_proxy
+                .recomposite(CompositingReason::NewWebRenderFrame);
+        }
     }
 
     fn new_frame_ready(
@@ -236,7 +234,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
             self.compositor_proxy
                 .send(CompositorMsg::NewScrollFrameReady(composite_needed));
         } else {
-            self.wake_up();
+            self.wake_up(true);
         }
     }
 }
@@ -336,7 +334,7 @@ where
             None
         };
 
-        let coordinates = window.get_coordinates();
+        let coordinates: compositing::windowing::EmbedderCoordinates = window.get_coordinates();
         let device_pixel_ratio = coordinates.hidpi_factor.get();
         let viewport_size = coordinates.viewport.size.to_f32() / device_pixel_ratio;
 
@@ -348,10 +346,6 @@ where
             );
 
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
-
-            // Cast from `DeviceIndependentPixel` to `DevicePixel`
-            let window_size = Size2D::from_untyped(viewport_size.to_i32().to_untyped());
-
             webrender::Renderer::new(
                 webrender_gl.clone(),
                 render_notifier,
@@ -372,20 +366,12 @@ where
                     ..Default::default()
                 },
                 None,
-                window_size,
             )
             .expect("Unable to initialize webrender!")
         };
 
         let webrender_api = webrender_api_sender.create_api();
-        let wr_document_layer = 0; //TODO
-        let webrender_document =
-            webrender_api.add_document(coordinates.framebuffer, wr_document_layer);
-        webrender_api.set_document_view(
-            webrender_document,
-            coordinates.get_viewport(),
-            coordinates.hidpi_factor.get(),
-        );
+        let webrender_document = webrender_api.add_document(coordinates.get_viewport().size);
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -578,8 +564,9 @@ where
                 self.compositor.on_wheel_event(delta, location);
             },
 
-            EmbedderEvent::Scroll(delta, cursor, phase) => {
-                self.compositor.on_scroll_event(delta, cursor, phase);
+            EmbedderEvent::Scroll(scroll_location, cursor, phase) => {
+                self.compositor
+                    .on_scroll_event(scroll_location, cursor, phase);
             },
 
             EmbedderEvent::Zoom(magnification) => {

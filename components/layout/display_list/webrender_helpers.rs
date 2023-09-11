@@ -9,6 +9,7 @@
 
 use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, ClipScrollNodeType, ClipType};
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
+use log::trace;
 use msg::constellation_msg::PipelineId;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId, ScrollableNodeInfo};
 use webrender_api::units::{LayoutPoint, LayoutSize, LayoutVector2D};
@@ -45,6 +46,7 @@ impl<'a> ClipScrollState<'a> {
 
         let root_clip_chain =
             builder.define_clip_chain(None, [ClipId::root(state.compositor_info.pipeline_id)]);
+
         state.add_clip_node_mapping(0, root_clip_chain);
         state.add_clip_node_mapping(1, root_clip_chain);
 
@@ -110,11 +112,7 @@ impl DisplayList {
         epoch: Epoch,
     ) -> (DisplayListBuilder, CompositorDisplayListInfo, IsContentful) {
         let webrender_pipeline = pipeline_id.to_webrender();
-        let mut builder = DisplayListBuilder::with_capacity(
-            webrender_pipeline,
-            self.bounds().size,
-            1024 * 1024, // 1 MB of space
-        );
+        let mut builder = DisplayListBuilder::new(webrender_pipeline);
 
         let content_size = self.bounds().size;
         let mut state = ClipScrollState::new(
@@ -152,17 +150,16 @@ impl DisplayItem {
         let internal_clip_id = clip_and_scroll_indices
             .clipping
             .unwrap_or(clip_and_scroll_indices.scrolling);
-        let current_clip_id = state.webrender_clip_id_for_index(internal_clip_id.to_index());
+        let current_clip_chain_id = state.webrender_clip_id_for_index(internal_clip_id.to_index());
         let hit_test_bounds = self.bounds().intersection(&self.base().clip_rect);
 
         let build_common_item_properties = |base: &BaseDisplayItem| {
             CommonItemProperties {
                 clip_rect: base.clip_rect,
                 spatial_id: current_scroll_node_id.spatial_id,
-                clip_id: ClipId::ClipChain(current_clip_id),
+                clip_id: ClipId::ClipChain(current_clip_chain_id),
                 // TODO(gw): Make use of the WR backface visibility functionality.
                 flags: PrimitiveFlags::default(),
-                hit_info: None,
             }
         };
 
@@ -183,10 +180,15 @@ impl DisplayItem {
                 current_scroll_node_id,
             );
 
-            let mut common = build_common_item_properties(base);
-            common.hit_info = Some((hit_test_index as u64, 0u16));
-            common.clip_rect = bounds;
-            builder.push_hit_test(&common);
+            builder.push_hit_test(
+                &CommonItemProperties {
+                    clip_rect: bounds,
+                    spatial_id: current_scroll_node_id.spatial_id,
+                    clip_id: ClipId::ClipChain(current_clip_chain_id),
+                    flags: PrimitiveFlags::default(),
+                },
+                (hit_test_index as u64, 0u16),
+            );
         };
 
         match *self {
@@ -298,7 +300,13 @@ impl DisplayItem {
                                         scrolling_relative_to: None,
                                     },
                                 ),
-                                (Some(t), None) => (t, ReferenceFrameKind::Transform),
+                                (Some(t), None) => (
+                                    t,
+                                    ReferenceFrameKind::Transform {
+                                        is_2d_scale_translation: false,
+                                        should_snap: false,
+                                    },
+                                ),
                                 (Some(t), Some(p)) => (
                                     p.then(&t),
                                     ReferenceFrameKind::Perspective {
@@ -317,7 +325,7 @@ impl DisplayItem {
                         );
 
                         let index = frame_index.to_index();
-                        state.add_clip_node_mapping(index, current_clip_id);
+                        state.add_clip_node_mapping(index, current_clip_chain_id);
                         state.register_spatial_node(
                             index,
                             new_spatial_id,
@@ -404,7 +412,7 @@ impl DisplayItem {
                         let spatial_id = builder
                             .define_scroll_frame(
                                 &parent_space_and_clip_info,
-                                Some(external_id),
+                                external_id,
                                 node.content_rect,
                                 item_rect,
                                 scroll_sensitivity,

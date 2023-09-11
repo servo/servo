@@ -11,6 +11,7 @@ use crate::platform::font::FontHandle;
 pub use crate::platform::font_context::FontContextHandle;
 use app_units::Au;
 use fnv::FnvHasher;
+use log::debug;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_arc::Arc;
 use std::cell::RefCell;

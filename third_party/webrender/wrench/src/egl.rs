@@ -467,7 +467,7 @@ unsafe fn choose_fbconfig(display: ffi::egl::types::EGLDisplay,
                 value
             }
         )
-    };
+    }
 
     let desc = PixelFormat {
         hardware_accelerated: attrib!(display, config_id, ffi::egl::CONFIG_CAVEAT)

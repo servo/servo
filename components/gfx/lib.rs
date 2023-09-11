@@ -4,19 +4,7 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde;
-#[macro_use]
-extern crate servo_atoms;
-
 // Fonts
-#[macro_use]
 pub mod font;
 pub mod font_cache_thread;
 pub mod font_context;

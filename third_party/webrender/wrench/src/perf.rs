@@ -14,7 +14,7 @@ use std::sync::mpsc::Receiver;
 use crate::wrench::{Wrench, WrenchThing};
 use crate::yaml_frame_reader::YamlFrameReader;
 use webrender::DebugFlags;
-use webrender::api::DebugCommand;
+use webrender::render_api::DebugCommand;
 
 const COLOR_DEFAULT: &str = "\x1b[0m";
 const COLOR_RED: &str = "\x1b[31m";

@@ -15,6 +15,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::Image;
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
+use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use std::fmt;
 use std::sync::{Arc, Mutex};

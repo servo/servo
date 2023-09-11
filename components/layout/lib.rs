@@ -4,22 +4,6 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate html5ever;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate range;
-#[macro_use]
-extern crate serde;
-#[macro_use]
-extern crate size_of_test;
-
-#[macro_use]
 pub mod layout_debug;
 
 mod block;

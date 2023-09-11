@@ -15,10 +15,11 @@ use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 #[cfg(not(target_os = "macos"))]
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock, RwLockReadGuard, mpsc::Sender};
+use std::sync::{Arc, RwLock, RwLockReadGuard};
 use std::collections::HashMap;
 // local imports
-use crate::api::IdNamespace;
+use crate::IdNamespace;
+use crate::channel::Sender;
 use crate::color::ColorU;
 use crate::units::LayoutPoint;
 

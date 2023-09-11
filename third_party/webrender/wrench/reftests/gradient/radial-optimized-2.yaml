@@ -1,0 +1,8 @@
+---
+root:
+  items:
+    - type: radial-gradient
+      bounds: 50 50 500 500
+      center: 150 150
+      radius: 20 40
+      stops: [0, red, 4, [0,0,0,0]]

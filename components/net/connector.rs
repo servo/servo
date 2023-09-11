@@ -10,6 +10,7 @@ use hyper::client::HttpConnector as HyperHttpConnector;
 use hyper::rt::Executor;
 use hyper::{service::Service, Body, Client};
 use hyper_rustls::HttpsConnector as HyperRustlsHttpsConnector;
+use log::warn;
 use rustls::client::WebPkiVerifier;
 use rustls::{Certificate, ClientConfig, OwnedTrustAnchor, RootCertStore, ServerName};
 use std::collections::hash_map::HashMap;

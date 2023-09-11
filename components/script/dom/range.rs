@@ -28,6 +28,7 @@ use crate::dom::node::{Node, ShadowIncluding, UnbindContext};
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 use crate::dom::window::Window;
+use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
 use js::jsapi::JSTracer;
 use js::rust::HandleObject;

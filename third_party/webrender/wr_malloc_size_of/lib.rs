@@ -17,6 +17,7 @@ use std::hash::{BuildHasher, Hash};
 use std::mem::size_of;
 use std::ops::Range;
 use std::os::raw::c_void;
+use std::path::PathBuf;
 
 /// A C function that takes a pointer to a heap allocation and returns its size.
 type VoidPtrToSizeFn = unsafe extern "C" fn(ptr: *const c_void) -> usize;
@@ -307,6 +308,15 @@ malloc_size_of_hash_map!(std::collections::HashMap<K, V, S>);
 impl<T> MallocSizeOf for std::marker::PhantomData<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
+    }
+}
+
+impl MallocSizeOf for PathBuf {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self.to_str() {
+            Some(s) => unsafe { ops.malloc_size_of(s.as_ptr()) },
+            None => self.as_os_str().len(),
+        }
     }
 }
 

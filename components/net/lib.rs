@@ -4,19 +4,6 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate malloc_size_of_derive;
-#[macro_use]
-extern crate profile_traits;
-#[macro_use]
-extern crate serde;
-#[macro_use]
-extern crate servo_config;
-
 pub mod connector;
 pub mod cookie;
 pub mod cookie_storage;

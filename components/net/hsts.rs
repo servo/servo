@@ -5,8 +5,10 @@
 use embedder_traits::resources::{self, Resource};
 use headers::{HeaderMapExt, StrictTransportSecurity};
 use http::HeaderMap;
+use log::info;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::IncludeSubdomains;
+use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use servo_url::{Host, ServoUrl};
 use std::collections::HashMap;

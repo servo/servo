@@ -1,10 +1,10 @@
     platform(linux,mac) == border-with-rounded-clip.yaml border-with-rounded-clip.png
-== clip-mode.yaml clip-mode.png
-== clip-ellipse.yaml clip-ellipse.png
+fuzzy-if(platform(swgl),1,4) == clip-mode.yaml clip-mode.png
+fuzzy-if(platform(swgl),1,80) == clip-ellipse.yaml clip-ellipse.png
 platform(linux,mac) == clip-45-degree-rotation.yaml clip-45-degree-rotation-ref.png
 == clip-3d-transform.yaml clip-3d-transform-ref.yaml
 fuzzy(1,4) == clip-corner-overlap.yaml clip-corner-overlap-ref.yaml
-fuzzy(8,60) == custom-clip-chains.yaml custom-clip-chains-ref.yaml
+fuzzy(9,60) == custom-clip-chains.yaml custom-clip-chains-ref.yaml
 == custom-clip-chain-node-ancestors.yaml custom-clip-chain-node-ancestors-ref.yaml
 == fixed-position-clipping.yaml fixed-position-clipping-ref.yaml
 platform(linux,mac) == segmentation-with-other-coordinate-system-clip.yaml segmentation-with-other-coordinate-system-clip.png
@@ -16,3 +16,6 @@ color_targets(1) alpha_targets(0) == clip-out-rotation.yaml blank.yaml # Unexpec
 == clipped-occlusion.yaml clipped-occlusion-ref.yaml
 == clip-empty-inner-rect.yaml clip-empty-inner-rect-ref.yaml
 == iframe-nested-in-stacking-context.yaml iframe-nested-in-stacking-context-ref.yaml
+== clip-rectangle-redundant-sc.yaml clip-rectangle-redundant-sc-ref.yaml
+fuzzy(128,707) == clip-filter-raster-root.yaml clip-filter-raster-root-ref.yaml
+== blend-container.yaml blend-container-ref.yaml

@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[macro_use]
-extern crate log;
-#[macro_use]
-pub extern crate wgpu_core as wgpu;
-pub extern crate wgpu_types as wgt;
+use log::{error, warn};
+use wgpu::gfx_select;
+pub use wgpu_core as wgpu;
+pub use wgpu_types as wgt;
 
 pub mod identity;
 
@@ -27,10 +26,8 @@ use std::rc::Rc;
 use std::slice;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use webrender_api::{
-    DirtyRect, DocumentId, ExternalImageId, ImageData, ImageDescriptor, ImageKey, RenderApi,
-    RenderApiSender, Transaction,
-};
+use webrender::{RenderApi, RenderApiSender, Transaction};
+use webrender_api::{DirtyRect, DocumentId, ExternalImageId, ImageData, ImageDescriptor, ImageKey};
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
     WebrenderImageSource,

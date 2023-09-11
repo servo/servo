@@ -1,0 +1,250 @@
+diff --git a/webrender/src/hit_test.rs b/webrender/src/hit_test.rs
+index 4a73e2158d..e095d8db0c 100644
+--- a/webrender/src/hit_test.rs
++++ b/webrender/src/hit_test.rs
+@@ -2,13 +2,14 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-use api::{BorderRadius, ClipMode, HitTestItem, HitTestResult, ItemTag, PrimitiveFlags};
++use api::{BorderRadius, ClipMode, HitTestItem, HitTestResult, ItemTag, PrimitiveFlags, HitTestFlags};
+ use api::{PipelineId, ApiHitTester, ClipId};
+ use api::units::*;
+ use crate::clip::{ClipItemKind, ClipStore, ClipNode, rounded_rectangle_contains_point};
+ use crate::clip::{polygon_contains_point};
+ use crate::prim_store::PolygonKey;
+ use crate::scene_builder_thread::Interners;
++use crate::spatial_node::SpatialNodeType;
+ use crate::spatial_tree::{SpatialNodeIndex, SpatialTree};
+ use crate::internal_types::{FastHashMap, FastHashSet, LayoutPrimitiveInfo};
+ use std::ops;
+@@ -45,8 +46,9 @@ impl ApiHitTester for SharedHitTester {
+     fn hit_test(&self,
+         pipeline_id: Option<PipelineId>,
+         point: WorldPoint,
++        flags: HitTestFlags,
+     ) -> HitTestResult {
+-        self.get_ref().hit_test(HitTest::new(pipeline_id, point))
++        self.get_ref().hit_test(HitTest::new(pipeline_id, point, flags))
+     }
+ }
+ 
+@@ -355,6 +357,7 @@ impl HitTester {
+         self.spatial_nodes.clear();
+ 
+         self.spatial_nodes.reserve(spatial_tree.spatial_nodes.len());
++        self.pipeline_root_nodes.clear();
+         for (index, node) in spatial_tree.spatial_nodes.iter().enumerate() {
+             let index = SpatialNodeIndex::new(index);
+ 
+@@ -380,6 +383,8 @@ impl HitTester {
+     }
+ 
+     pub fn hit_test(&self, test: HitTest) -> HitTestResult {
++        let point = test.get_absolute_point(self);
++
+         let mut result = HitTestResult::default();
+ 
+         let mut current_spatial_node_index = SpatialNodeIndex::INVALID;
+@@ -402,7 +407,7 @@ impl HitTester {
+                 point_in_layer = scroll_node
+                     .world_content_transform
+                     .inverse()
+-                    .and_then(|inverted| inverted.transform_point2d(test.point));
++                    .and_then(|inverted| inverted.transform_point2d(point));
+                 current_spatial_node_index = item.spatial_node_index;
+             }
+ 
+@@ -426,7 +431,7 @@ impl HitTester {
+                         .world_content_transform;
+                     let transformed_point = match transform
+                         .inverse()
+-                        .and_then(|inverted| inverted.transform_point2d(test.point))
++                        .and_then(|inverted| inverted.transform_point2d(point))
+                     {
+                         Some(point) => point,
+                         None => {
+@@ -457,7 +462,7 @@ impl HitTester {
+                     point_in_viewport = root_node
+                         .world_viewport_transform
+                         .inverse()
+-                        .and_then(|inverted| inverted.transform_point2d(test.point))
++                        .and_then(|inverted| inverted.transform_point2d(point))
+                         .map(|pt| pt - scroll_node.external_scroll_offset);
+ 
+                     current_root_spatial_node_index = root_spatial_node_index;
+@@ -470,6 +475,10 @@ impl HitTester {
+                         point_in_viewport,
+                         point_relative_to_item: point_in_layer - item.rect.origin.to_vector(),
+                     });
++
++                    if !test.flags.contains(HitTestFlags::FIND_ALL) {
++                        return result;
++                    }
+                 }
+             }
+         }
+@@ -477,24 +486,51 @@ impl HitTester {
+         result.items.dedup();
+         result
+     }
++
++    fn get_pipeline_root(&self, pipeline_id: PipelineId) -> &HitTestSpatialNode {
++        &self.spatial_nodes[self.pipeline_root_nodes[&pipeline_id].0 as usize]
++    }
++
+ }
+ 
+ #[derive(MallocSizeOf)]
+ pub struct HitTest {
+     pipeline_id: Option<PipelineId>,
+     point: WorldPoint,
++    flags: HitTestFlags,
+ }
+ 
+ impl HitTest {
+     pub fn new(
+         pipeline_id: Option<PipelineId>,
+         point: WorldPoint,
++        flags: HitTestFlags,
+     ) -> HitTest {
+         HitTest {
+             pipeline_id,
+             point,
++            flags
+         }
+     }
++
++    fn get_absolute_point(&self, hit_tester: &HitTester) -> WorldPoint {
++        if !self.flags.contains(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT) {
++            return self.point;
++        }
++
++        let point = LayoutPoint::new(self.point.x, self.point.y);
++        self.pipeline_id
++            .and_then(|id|
++                hit_tester
++                    .get_pipeline_root(id)
++                    .world_viewport_transform
++                    .transform_point2d(point)
++            )
++            .unwrap_or_else(|| {
++                WorldPoint::new(self.point.x, self.point.y)
++            })
++    }
++
+ }
+ 
+ /// Collect clips for a given ClipId, convert and add them to the hit testing
+diff --git a/webrender/src/render_api.rs b/webrender/src/render_api.rs
+index b84fa2c63a..b2c8a64e88 100644
+--- a/webrender/src/render_api.rs
++++ b/webrender/src/render_api.rs
+@@ -10,6 +10,7 @@ use std::marker::PhantomData;
+ use std::path::PathBuf;
+ use std::sync::Arc;
+ use std::u32;
++use api::HitTestFlags;
+ use time::precise_time_ns;
+ //use crate::api::peek_poke::PeekPoke;
+ use crate::api::channel::{Sender, single_msg_channel, unbounded_channel};
+@@ -812,7 +813,7 @@ pub enum FrameMsg {
+     ///
+     UpdateEpoch(PipelineId, Epoch),
+     ///
+-    HitTest(Option<PipelineId>, WorldPoint, Sender<HitTestResult>),
++    HitTest(Option<PipelineId>, WorldPoint, HitTestFlags, Sender<HitTestResult>),
+     ///
+     RequestHitTester(Sender<Arc<dyn ApiHitTester>>),
+     ///
+@@ -1297,12 +1298,13 @@ impl RenderApi {
+         document_id: DocumentId,
+         pipeline_id: Option<PipelineId>,
+         point: WorldPoint,
++        flags: HitTestFlags,
+     ) -> HitTestResult {
+         let (tx, rx) = single_msg_channel();
+ 
+         self.send_frame_msg(
+             document_id,
+-            FrameMsg::HitTest(pipeline_id, point, tx)
++            FrameMsg::HitTest(pipeline_id, point, flags, tx)
+         );
+         rx.recv().unwrap()
+     }
+diff --git a/webrender/src/render_backend.rs b/webrender/src/render_backend.rs
+index 96bc600484..825e981b5c 100644
+--- a/webrender/src/render_backend.rs
++++ b/webrender/src/render_backend.rs
+@@ -535,14 +535,14 @@ impl Document {
+             FrameMsg::UpdateEpoch(pipeline_id, epoch) => {
+                 self.scene.pipeline_epochs.insert(pipeline_id, epoch);
+             }
+-            FrameMsg::HitTest(pipeline_id, point, tx) => {
++            FrameMsg::HitTest(pipeline_id, point, flags, tx) => {
+                 if !self.hit_tester_is_valid {
+                     self.rebuild_hit_tester();
+                 }
+ 
+                 let result = match self.hit_tester {
+                     Some(ref hit_tester) => {
+-                        hit_tester.hit_test(HitTest::new(pipeline_id, point))
++                        hit_tester.hit_test(HitTest::new(pipeline_id, point, flags))
+                     }
+                     None => HitTestResult { items: Vec::new() },
+                 };
+diff --git a/webrender_api/src/lib.rs b/webrender_api/src/lib.rs
+index 7dc887ade9..b0446c1d0b 100644
+--- a/webrender_api/src/lib.rs
++++ b/webrender_api/src/lib.rs
+@@ -278,7 +278,7 @@ pub trait ApiHitTester: Send + Sync {
+     /// hit results so that only items inside that pipeline are matched. The vector
+     /// of hit results will contain all display items that match, ordered from
+     /// front to back.
+-    fn hit_test(&self, pipeline_id: Option<PipelineId>, point: WorldPoint) -> HitTestResult;
++    fn hit_test(&self, pipeline_id: Option<PipelineId>, point: WorldPoint, flags: HitTestFlags) -> HitTestResult;
+ }
+ 
+ /// A hit tester requested to the render backend thread but not necessarily ready yet.
+@@ -322,6 +322,17 @@ pub struct HitTestResult {
+     pub items: Vec<HitTestItem>,
+ }
+ 
++bitflags! {
++    #[derive(Deserialize, MallocSizeOf, Serialize)]
++    ///
++    pub struct HitTestFlags: u8 {
++        ///
++        const FIND_ALL = 0b00000001;
++        ///
++        const POINT_RELATIVE_TO_PIPELINE_VIEWPORT = 0b00000010;
++    }
++}
++
+ impl Drop for NotificationRequest {
+     fn drop(&mut self) {
+         if let Some(ref mut handler) = self.handler {
+diff --git a/wrench/src/main.rs b/wrench/src/main.rs
+index 7dc037ebb2..843512f595 100644
+--- a/wrench/src/main.rs
++++ b/wrench/src/main.rs
+@@ -965,6 +965,7 @@ fn render<'a>(
+                                 wrench.document_id,
+                                 None,
+                                 cursor_position,
++                                HitTestFlags::empty(),
+                             );
+ 
+                             println!("Hit test results:");
+diff --git a/wrench/src/rawtest.rs b/wrench/src/rawtest.rs
+index 580f1cb015..b86b583617 100644
+--- a/wrench/src/rawtest.rs
++++ b/wrench/src/rawtest.rs
+@@ -1393,6 +1393,7 @@ impl<'a> RawtestHarness<'a> {
+                 self.wrench.document_id,
+                 None,
+                 point,
++                HitTetFlags::empty(),
+             )
+         };
+ 

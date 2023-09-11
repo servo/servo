@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[macro_use]
-extern crate malloc_size_of_derive;
-
 use app_units::{Au, MAX_AU, MIN_AU};
 use euclid::{
     default::{Point2D, Rect, Size2D},
     Length,
 };
+use malloc_size_of_derive::MallocSizeOf;
 use std::f32;
 use webrender_api::units::{FramebufferPixel, LayoutPoint, LayoutRect, LayoutSize};
 

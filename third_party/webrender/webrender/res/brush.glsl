@@ -46,65 +46,13 @@
 ///   other brush types don't use it.
 ///
 
-#ifdef WR_FEATURE_MULTI_BRUSH
-flat varying int v_brush_kind;
+#if (defined(WR_FEATURE_ALPHA_PASS) || defined(WR_FEATURE_ANTIALIASING)) && !defined(SWGL_ANTIALIAS)
+varying vec2 v_local_pos;
 #endif
-
-// A few varying slots for the brushes to use.
-// Using these instead of adding dedicated varyings avoids using a high
-// number of varyings in the multi-brush shader.
-flat varying vec4 flat_varying_vec4_0;
-flat varying vec4 flat_varying_vec4_1;
-flat varying vec4 flat_varying_vec4_2;
-flat varying vec4 flat_varying_vec4_3;
-flat varying vec4 flat_varying_vec4_4;
-
-flat varying ivec4 flat_varying_ivec4_0;
-
-varying vec4 varying_vec4_0;
-varying vec4 varying_vec4_1;
-
-flat varying HIGHP_FS_ADDRESS int flat_varying_highp_int_address_0;
 
 #ifdef WR_VERTEX_SHADER
 
-#define FWD_DECLARE_VS_FUNCTION(name)   \
-void name(                              \
-    VertexInfo vi,                      \
-    int prim_address,                   \
-    RectWithSize local_rect,            \
-    RectWithSize segment_rect,          \
-    ivec4 prim_user_data,               \
-    int specific_resource_address,      \
-    mat4 transform,                     \
-    PictureTask pic_task,               \
-    int brush_flags,                    \
-    vec4 segment_data                   \
-);
-
-// Forward-declare all brush vertex entry points.
-FWD_DECLARE_VS_FUNCTION(image_brush_vs)
-FWD_DECLARE_VS_FUNCTION(solid_brush_vs)
-FWD_DECLARE_VS_FUNCTION(blend_brush_vs)
-FWD_DECLARE_VS_FUNCTION(mix_blend_brush_vs)
-FWD_DECLARE_VS_FUNCTION(linear_gradient_brush_vs)
-FWD_DECLARE_VS_FUNCTION(radial_gradient_brush_vs)
-FWD_DECLARE_VS_FUNCTION(conic_gradient_brush_vs)
-FWD_DECLARE_VS_FUNCTION(yuv_brush_vs)
-FWD_DECLARE_VS_FUNCTION(opacity_brush_vs)
-FWD_DECLARE_VS_FUNCTION(text_brush_vs)
-
-// Forward-declare the text vertex shader entry point which is currently
-// different from other brushes.
-void text_shader_main(
-    Instance instance,
-    PrimitiveHeader ph,
-    Transform transform,
-    PictureTask task,
-    ClipArea clip_area
-);
-
-void multi_brush_vs(
+void brush_vs(
     VertexInfo vi,
     int prim_address,
     RectWithSize local_rect,
@@ -114,8 +62,17 @@ void multi_brush_vs(
     mat4 transform,
     PictureTask pic_task,
     int brush_flags,
-    vec4 texel_rect,
-    int brush_kind
+    vec4 segment_data
+);
+
+// Forward-declare the text vertex shader entry point which is currently
+// different from other brushes.
+void text_shader_main(
+    Instance instance,
+    PrimitiveHeader ph,
+    Transform transform,
+    PictureTask task,
+    ClipArea clip_area
 );
 
 #define VECS_PER_SEGMENT                    2
@@ -148,18 +105,8 @@ void brush_shader_main_vs(
         segment_rect = ph.local_rect;
         segment_data = vec4(0.0);
     } else {
-        // This contraption is needed by the Mac GLSL compiler which falls
-        // over (generating garbage values) if:
-        // - we use a variable insead of the ACTUAL_VECS_PER_BRUSH define,
-        // - this compile time condition is done inside of vecs_per_brush.
-        #ifdef WR_FEATURE_MULTI_BRUSH
-        #define ACTUAL_VECS_PER_BRUSH vecs_per_brush(instance.brush_kind)
-        #else
-        #define ACTUAL_VECS_PER_BRUSH VECS_PER_SPECIFIC_BRUSH
-        #endif
-
         int segment_address = ph.specific_prim_address +
-                              ACTUAL_VECS_PER_BRUSH +
+                              VECS_PER_SPECIFIC_BRUSH +
                               instance.segment_index * VECS_PER_SEGMENT;
 
         vec4[2] segment_info = fetch_from_gpu_cache_2(segment_address);
@@ -190,17 +137,15 @@ void brush_shader_main_vs(
         //           items. For now, just ensure it has no
         //           effect. We can tidy this up as we move
         //           more items to be brush shaders.
-#ifdef WR_FEATURE_ALPHA_PASS
+#if defined(WR_FEATURE_ALPHA_PASS) && !defined(SWGL_ANTIALIAS)
         init_transform_vs(vec4(vec2(-1.0e16), vec2(1.0e16)));
 #endif
     } else {
-        bvec4 edge_mask = notEqual(edge_flags & ivec4(1, 2, 4, 8), ivec4(0));
-
         vi = write_transform_vertex(
             segment_rect,
             ph.local_rect,
             ph.local_clip_rect,
-            mix(vec4(0.0), vec4(1.0), edge_mask),
+            edge_flags,
             ph.z,
             transform,
             pic_task
@@ -213,31 +158,20 @@ void brush_shader_main_vs(
     //           shaders that don't clip in the future,
     //           but it's reasonable to assume that one
     //           implies the other, for now.
-#ifdef WR_FEATURE_ALPHA_PASS
+    // SW-WR may decay some requests for alpha-pass shaders to
+    // the opaque version if only the clip-mask is required. In
+    // that case the opaque vertex shader must still write out
+    // the clip information, which is cheap to do for SWGL.
+#if defined(WR_FEATURE_ALPHA_PASS) || defined(SWGL_CLIP_MASK)
     write_clip(
         vi.world_pos,
-        clip_area
+        clip_area,
+        pic_task
     );
 #endif
 
     // Run the specific brush VS code to write interpolators.
-#ifdef WR_FEATURE_MULTI_BRUSH
-    v_brush_kind = instance.brush_kind;
-    multi_brush_vs(
-        vi,
-        ph.specific_prim_address,
-        ph.local_rect,
-        segment_rect,
-        ph.user_data,
-        instance.resource_address,
-        transform.m,
-        pic_task,
-        brush_flags,
-        segment_data,
-        instance.brush_kind
-    );
-#else
-    WR_BRUSH_VS_FUNCTION(
+    brush_vs(
         vi,
         ph.specific_prim_address,
         ph.local_rect,
@@ -249,8 +183,10 @@ void brush_shader_main_vs(
         brush_flags,
         segment_data
     );
-#endif
 
+#if (defined(WR_FEATURE_ALPHA_PASS) || defined(WR_FEATURE_ANTIALIASING)) && !defined(SWGL_ANTIALIAS)
+    v_local_pos = vi.local_pos;
+#endif
 }
 
 #ifndef WR_VERTEX_SHADER_MAIN_FUNCTION
@@ -274,31 +210,22 @@ void main(void) {
 
 #ifdef WR_FRAGMENT_SHADER
 
-// Foward-declare all brush entry-points.
-Fragment image_brush_fs();
-Fragment solid_brush_fs();
-Fragment blend_brush_fs();
-Fragment mix_blend_brush_fs();
-Fragment linear_gradient_brush_fs();
-Fragment radial_gradient_brush_fs();
-Fragment conic_gradient_brush_fs();
-Fragment yuv_brush_fs();
-Fragment opacity_brush_fs();
-Fragment text_brush_fs();
-Fragment multi_brush_fs(int brush_kind);
+float antialias_brush() {
+#if (defined(WR_FEATURE_ALPHA_PASS) || defined(WR_FEATURE_ANTIALIASING)) && !defined(SWGL_ANTIALIAS)
+    return init_transform_fs(v_local_pos);
+#else
+    return 1.0;
+#endif
+}
+
+Fragment brush_fs();
 
 void main(void) {
 #ifdef WR_FEATURE_DEBUG_OVERDRAW
     oFragColor = WR_DEBUG_OVERDRAW_COLOR;
 #else
 
-    // Run the specific brush FS code to output the color.
-#ifdef WR_FEATURE_MULTI_BRUSH
-    Fragment frag = multi_brush_fs(v_brush_kind);
-#else
-    Fragment frag = WR_BRUSH_FS_FUNCTION();
-#endif
-
+    Fragment frag = brush_fs();
 
 #ifdef WR_FEATURE_ALPHA_PASS
     // Apply the clip mask

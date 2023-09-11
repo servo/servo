@@ -10,13 +10,6 @@ use crate::canvas::CanvasId;
 use crossbeam_channel::Sender;
 use euclid::default::Size2D;
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate malloc_size_of_derive;
-#[macro_use]
-extern crate serde;
-
 pub mod canvas;
 #[macro_use]
 pub mod webgl;

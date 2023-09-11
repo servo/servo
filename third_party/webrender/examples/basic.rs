@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid;
-use gleam;
-use glutin;
-use webrender;
-use winit;
+extern crate euclid;
+extern crate gleam;
+extern crate glutin;
+extern crate webrender;
+extern crate winit;
 
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
@@ -17,6 +17,7 @@ use winit::TouchPhase;
 use std::collections::HashMap;
 use webrender::ShaderPrecacheFlags;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 
 
@@ -190,7 +191,7 @@ impl Example for App {
         pipeline_id: PipelineId,
         _document_id: DocumentId,
     ) {
-        let content_bounds = LayoutRect::new(LayoutPoint::zero(), builder.content_size());
+        let content_bounds = LayoutRect::new(LayoutPoint::zero(), LayoutSize::new(800.0, 600.0));
         let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
         let spatial_id = root_space_and_clip.spatial_id;
 
@@ -220,6 +221,8 @@ impl Example for App {
         let mask_clip_id = builder.define_clip_image_mask(
             &root_space_and_clip,
             mask,
+            &vec![],
+            FillRule::Nonzero,
         );
         let clip_id = builder.define_clip_rounded_rect(
             &SpaceAndClipInfo {
@@ -312,7 +315,7 @@ impl Example for App {
         }
 
         if !txn.is_empty() {
-            txn.generate_frame();
+            txn.generate_frame(0);
             api.send_transaction(document_id, txn);
         }
 

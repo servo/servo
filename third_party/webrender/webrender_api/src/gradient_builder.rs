@@ -132,7 +132,9 @@ impl GradientBuilder {
         let first = *stops.first().unwrap();
         let last = *stops.last().unwrap();
 
-        assert!(first.offset <= last.offset);
+        // Express the assertion so that if one of the offsets is NaN, we don't panic
+        // and instead take the branch that handles degenerate gradients.
+        assert!(!(first.offset > last.offset));
 
         let stops_delta = last.offset - first.offset;
 

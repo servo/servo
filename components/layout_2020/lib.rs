@@ -5,11 +5,6 @@
 #![deny(unsafe_code)]
 #![feature(once_cell)]
 
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde;
-
 mod cell;
 pub mod context;
 pub mod display_list;

@@ -4,9 +4,6 @@
 
 #![allow(non_snake_case)]
 
-#[macro_use]
-extern crate log;
-
 use android_logger::{self, Filter};
 use gstreamer::debug_set_threshold_from_string;
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};

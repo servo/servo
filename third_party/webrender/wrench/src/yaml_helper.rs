@@ -52,6 +52,8 @@ fn string_to_color(color: &str) -> Option<ColorF> {
         "white" => Some(ColorF::new(1.0, 1.0, 1.0, 1.0)),
         "black" => Some(ColorF::new(0.0, 0.0, 0.0, 1.0)),
         "yellow" => Some(ColorF::new(1.0, 1.0, 0.0, 1.0)),
+        "cyan" => Some(ColorF::new(0.0, 1.0, 1.0, 1.0)),
+        "magenta" => Some(ColorF::new(1.0, 0.0, 1.0, 1.0)),
         "transparent" => Some(ColorF::new(1.0, 1.0, 1.0, 0.0)),
         s => {
             let items: Vec<f32> = s.split_whitespace()
@@ -561,8 +563,8 @@ impl YamlHelper for Yaml {
                 ("component-transfer", _, _) => {
                     Some(FilterOp::ComponentTransfer)
                 }
-                ("blur", ref args, _) if args.len() == 1 => {
-                    Some(FilterOp::Blur(args[0].parse().unwrap()))
+                ("blur", ref args, _) if args.len() == 2 => {
+                    Some(FilterOp::Blur(args[0].parse().unwrap(), args[1].parse().unwrap()))
                 }
                 ("brightness", ref args, _) if args.len() == 1 => {
                     Some(FilterOp::Brightness(args[0].parse().unwrap()))
@@ -717,7 +719,8 @@ impl YamlHelper for Yaml {
                 "blur" => {
                     FilterPrimitiveKind::Blur(BlurPrimitive {
                         input: self["in"].as_filter_input().unwrap(),
-                        radius: self["radius"].as_f32().unwrap(),
+                        width: self["width"].as_f32().unwrap(),
+                        height: self["height"].as_f32().unwrap(),
                     })
                 }
                 "opacity" => {

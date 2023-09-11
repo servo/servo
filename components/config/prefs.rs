@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use embedder_traits::resources::{self, Resource};
+use lazy_static::lazy_static;
 use serde_json::{self, Value};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -85,6 +86,7 @@ pub fn read_prefs_map(txt: &str) -> Result<HashMap<String, PrefValue>, PrefError
 }
 
 mod gen {
+    use serde::{Deserialize, Serialize};
     use servo_config_plugins::build_structs;
 
     // The number of layout threads is calculated if it is not present in `prefs.json`.

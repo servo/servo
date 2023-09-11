@@ -110,7 +110,7 @@ use compositing_traits::{
     CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, SendableFrameTree,
     WebrenderMsg,
 };
-use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
+use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
@@ -126,6 +126,7 @@ use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
+use log::{debug, error, info, warn};
 use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
@@ -178,7 +179,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use style_traits::CSSPixel;
 use webgpu::{self, WebGPU, WebGPURequest};
-use webrender_api::{DocumentId, RenderApi, RenderApiSender};
+use webrender::{RenderApi, RenderApiSender};
+use webrender_api::DocumentId;
 use webrender_traits::WebrenderExternalImageRegistry;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;

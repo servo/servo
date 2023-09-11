@@ -8,6 +8,7 @@ use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use arboard::Clipboard;
 use euclid::{Point2D, Vector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
+use log::{error, debug, warn, info};
 use servo::compositing::windowing::{WebRenderDebugOption, EmbedderEvent};
 use servo::embedder_traits::{
     ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt, PermissionRequest,

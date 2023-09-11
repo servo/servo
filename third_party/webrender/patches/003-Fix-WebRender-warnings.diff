@@ -1,0 +1,221 @@
+diff --git a/webrender/build.rs b/webrender/build.rs
+index 60b4a96c23..adc5dbf2e8 100644
+--- a/webrender/build.rs
++++ b/webrender/build.rs
+@@ -2,8 +2,6 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+-extern crate webrender_build;
+-
+ use std::borrow::Cow;
+ use std::env;
+ use std::fs::{canonicalize, read_dir, File};
+diff --git a/webrender/src/device/gl.rs b/webrender/src/device/gl.rs
+index eb272e56d6..5e0c050378 100644
+--- a/webrender/src/device/gl.rs
++++ b/webrender/src/device/gl.rs
+@@ -386,6 +386,7 @@ impl<T> Drop for VBO<T> {
+ pub struct ExternalTexture {
+     id: gl::GLuint,
+     target: gl::GLuint,
++    #[allow(dead_code)]
+     swizzle: Swizzle,
+     uv_rect: TexelRect,
+ }
+diff --git a/webrender/src/hit_test.rs b/webrender/src/hit_test.rs
+index e095d8db0c..0bd02cd426 100644
+--- a/webrender/src/hit_test.rs
++++ b/webrender/src/hit_test.rs
+@@ -6,10 +6,9 @@ use api::{BorderRadius, ClipMode, HitTestItem, HitTestResult, ItemTag, Primitive
+ use api::{PipelineId, ApiHitTester, ClipId};
+ use api::units::*;
+ use crate::clip::{ClipItemKind, ClipStore, ClipNode, rounded_rectangle_contains_point};
+-use crate::clip::{polygon_contains_point};
++use crate::clip::polygon_contains_point;
+ use crate::prim_store::PolygonKey;
+ use crate::scene_builder_thread::Interners;
+-use crate::spatial_node::SpatialNodeType;
+ use crate::spatial_tree::{SpatialNodeIndex, SpatialTree};
+ use crate::internal_types::{FastHashMap, FastHashSet, LayoutPrimitiveInfo};
+ use std::ops;
+diff --git a/webrender/src/internal_types.rs b/webrender/src/internal_types.rs
+index 07f937c6a0..9819850db0 100644
+--- a/webrender/src/internal_types.rs
++++ b/webrender/src/internal_types.rs
+@@ -536,6 +536,7 @@ pub enum ResultMsg {
+ 
+ #[derive(Clone, Debug)]
+ pub struct ResourceCacheError {
++    #[allow(dead_code)]
+     description: String,
+ }
+ 
+diff --git a/webrender/src/lib.rs b/webrender/src/lib.rs
+index 34bc9fb49b..cc200e30eb 100644
+--- a/webrender/src/lib.rs
++++ b/webrender/src/lib.rs
+@@ -71,8 +71,7 @@ extern crate serde;
+ extern crate tracy_rs;
+ #[macro_use]
+ extern crate derive_more;
+-extern crate malloc_size_of;
+-extern crate svg_fmt;
++use malloc_size_of;
+ 
+ #[macro_use]
+ mod profiler;
+@@ -163,41 +162,14 @@ mod platform {
+     }
+ }
+ 
+-#[cfg(target_os = "macos")]
+-extern crate core_foundation;
+-#[cfg(target_os = "macos")]
+-extern crate core_graphics;
+-#[cfg(target_os = "macos")]
+-extern crate core_text;
+-
+-#[cfg(all(unix, not(target_os = "macos")))]
+-extern crate freetype;
+-#[cfg(all(unix, not(target_os = "macos")))]
+-extern crate libc;
+-
+-#[cfg(target_os = "windows")]
+-extern crate dwrote;
+-
+-extern crate bincode;
+-extern crate byteorder;
+-pub extern crate euclid;
+-extern crate fxhash;
+-extern crate gleam;
+-extern crate num_traits;
+-extern crate plane_split;
+-extern crate rayon;
+-#[cfg(feature = "ron")]
+-extern crate ron;
++pub use euclid;
+ #[macro_use]
+ extern crate smallvec;
+-extern crate time;
+-#[cfg(all(feature = "capture", feature = "png"))]
+-extern crate png;
+ #[cfg(test)]
+-extern crate rand;
++use rand;
+ 
+-pub extern crate api;
+-extern crate webrender_build;
++pub use api;
++use webrender_build;
+ 
+ #[doc(hidden)]
+ pub use crate::composite::{CompositorConfig, Compositor, CompositorCapabilities, CompositorSurfaceTransform};
+diff --git a/webrender/src/profiler.rs b/webrender/src/profiler.rs
+index 40c091d617..702fa634ff 100644
+--- a/webrender/src/profiler.rs
++++ b/webrender/src/profiler.rs
+@@ -1362,6 +1362,7 @@ pub struct Counter {
+     change_indicator: u8,
+ 
+     /// Only used to check that the constants match the real index.
++    #[allow(dead_code)]
+     index: usize,
+ 
+     graph: Option<Graph>,
+diff --git a/webrender/src/render_target.rs b/webrender/src/render_target.rs
+index d31176047b..301ce4ec4d 100644
+--- a/webrender/src/render_target.rs
++++ b/webrender/src/render_target.rs
+@@ -10,7 +10,7 @@ use crate::batch::{ClipBatcher, BatchBuilder};
+ use crate::spatial_tree::{SpatialTree, ROOT_SPATIAL_NODE_INDEX};
+ use crate::clip::ClipStore;
+ use crate::composite::CompositeState;
+-use crate::frame_builder::{FrameGlobalResources};
++use crate::frame_builder::FrameGlobalResources;
+ use crate::gpu_cache::{GpuCache, GpuCacheAddress};
+ use crate::gpu_types::{BorderInstance, SvgFilterInstance, BlurDirection, BlurInstance, PrimitiveHeaders, ScalingInstance};
+ use crate::gpu_types::{TransformPalette, ZBufferIdGenerator};
+@@ -819,10 +819,10 @@ fn add_svg_filter_instances(
+     let generic_int = match filter {
+         SvgFilterInfo::Blend(mode) => *mode as u16,
+         SvgFilterInfo::ComponentTransfer(data) =>
+-            ((data.r_func.to_int() << 12 |
++            (data.r_func.to_int() << 12 |
+               data.g_func.to_int() << 8 |
+               data.b_func.to_int() << 4 |
+-              data.a_func.to_int()) as u16),
++              data.a_func.to_int()) as u16,
+         SvgFilterInfo::Composite(operator) =>
+             operator.as_int() as u16,
+         SvgFilterInfo::LinearToSrgb |
+diff --git a/webrender_api/src/image.rs b/webrender_api/src/image.rs
+index 238d004814..23c660b647 100644
+--- a/webrender_api/src/image.rs
++++ b/webrender_api/src/image.rs
+@@ -326,10 +326,9 @@ pub enum ImageData {
+ }
+ 
+ mod serde_image_data_raw {
+-    extern crate serde_bytes;
+-
+-    use std::sync::Arc;
+     use serde::{Deserializer, Serializer};
++    use serde_bytes;
++    use std::sync::Arc;
+ 
+     pub fn serialize<S: Serializer>(bytes: &Arc<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error> {
+         serde_bytes::serialize(bytes.as_slice(), serializer)
+diff --git a/webrender_api/src/lib.rs b/webrender_api/src/lib.rs
+index b0446c1d0b..f5cda1fbf6 100644
+--- a/webrender_api/src/lib.rs
++++ b/webrender_api/src/lib.rs
+@@ -15,29 +15,20 @@
+ #![cfg_attr(feature = "cargo-clippy", allow(clippy::float_cmp, clippy::too_many_arguments))]
+ #![cfg_attr(feature = "cargo-clippy", allow(clippy::unreadable_literal, clippy::new_without_default))]
+ 
+-pub extern crate crossbeam_channel;
+-pub extern crate euclid;
++pub use crossbeam_channel;
++pub use euclid;
+ 
+-extern crate app_units;
+ #[macro_use]
+ extern crate bitflags;
+-extern crate byteorder;
+ #[cfg(feature = "nightly")]
+ extern crate core;
+-#[cfg(target_os = "macos")]
+-extern crate core_foundation;
+-#[cfg(target_os = "macos")]
+-extern crate core_graphics;
+-extern crate derive_more;
+ #[macro_use]
+ extern crate malloc_size_of_derive;
+-extern crate serde;
+ #[macro_use]
+ extern crate serde_derive;
+-extern crate time;
+ 
+-extern crate malloc_size_of;
+-extern crate peek_poke;
++use malloc_size_of;
++use peek_poke;
+ 
+ pub mod channel;
+ mod color;
+diff --git a/wr_malloc_size_of/lib.rs b/wr_malloc_size_of/lib.rs
+index 38b049095e..abd982ffe8 100644
+--- a/wr_malloc_size_of/lib.rs
++++ b/wr_malloc_size_of/lib.rs
+@@ -10,8 +10,8 @@
+ 
+ //! A reduced fork of Firefox's malloc_size_of crate, for bundling with WebRender.
+ 
+-extern crate app_units;
+-extern crate euclid;
++use app_units;
++use euclid;
+ 
+ use std::hash::{BuildHasher, Hash};
+ use std::mem::size_of;

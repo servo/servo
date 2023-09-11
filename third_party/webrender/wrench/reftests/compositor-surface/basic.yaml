@@ -1,0 +1,22 @@
+# Test that basic functionality of non-opaque compositor surfaces
+# is blending correctly, and that subpixel AA is used outside the
+# compositor surface region.
+---
+root:
+  items:
+    - type: rect
+      bounds: [50, 50, 462, 462]
+      color: green
+    - type: rect
+      bounds: [125, 125, 312, 312]
+      color: [128, 128, 128, 0.5]
+    - image: transparent-checkerboard(2,16,16)
+      bounds: [150, 150, 262, 262]
+      prefer-compositor-surface: true
+    - type: rect
+      bounds: [200, 200, 162, 162]
+      color: [0, 0, 255, 0.5]
+    - text: "Subpixel AA Text"
+      origin: 80 100
+      size: 20
+      color: black

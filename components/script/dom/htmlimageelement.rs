@@ -53,7 +53,7 @@ use app_units::{Au, AU_PER_PX};
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
-use html5ever::{LocalName, Prefix, QualName};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
 use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;

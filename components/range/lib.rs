@@ -4,11 +4,8 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate malloc_size_of_derive;
-#[macro_use]
-extern crate serde;
-
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 use std::cmp::{self, max, min};
 use std::fmt;
 use std::ops;

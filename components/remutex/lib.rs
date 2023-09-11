@@ -10,16 +10,13 @@
 //! It provides the same interface as https://github.com/rust-lang/rust/blob/5edaa7eefd76d4996dcf85dfc1c1a3f737087257/src/libstd/sys_common/remutex.rs
 //! so if those types are ever exported, we should be able to replace this implemtation.
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-
 use std::cell::{Cell, UnsafeCell};
 use std::num::NonZeroUsize;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLockResult};
+
+use log::trace;
 
 /// A type for thread ids.
 
@@ -28,7 +25,7 @@ use std::sync::{LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLoc
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct ThreadId(NonZeroUsize);
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref THREAD_COUNT: AtomicUsize = AtomicUsize::new(1);
 }
 

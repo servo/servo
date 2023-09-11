@@ -1,0 +1,62 @@
+diff --git a/example-compositor/compositor/Cargo.toml b/example-compositor/compositor/Cargo.toml
+index 4202332c41..02c6ebe0ce 100644
+--- a/example-compositor/compositor/Cargo.toml
++++ b/example-compositor/compositor/Cargo.toml
+@@ -7,7 +7,7 @@ license = "MPL-2.0"
+ 
+ [dependencies]
+ webrender = { path = "../../webrender" }
+-gleam = "0.13.1"
++gleam = "0.15"
+ 
+ [target.'cfg(windows)'.dependencies]
+ compositor-windows = { path = "../compositor-windows" }
+diff --git a/examples/Cargo.toml b/examples/Cargo.toml
+index 556b67d1ed..f1a4718b04 100644
+--- a/examples/Cargo.toml
++++ b/examples/Cargo.toml
+@@ -57,7 +57,7 @@ debug = ["webrender/capture", "webrender/profiler"]
+ app_units = "0.7"
+ env_logger = "0.5"
+ euclid = "0.22"
+-gleam = "0.13"
++gleam = "0.15"
+ glutin = "0.21"
+ rayon = "1"
+ webrender = { path = "../webrender" }
+diff --git a/swgl/Cargo.toml b/swgl/Cargo.toml
+index 9b7624b13e..2e84e2267c 100644
+--- a/swgl/Cargo.toml
++++ b/swgl/Cargo.toml
+@@ -12,4 +12,4 @@ glsl-to-cxx = { path = "../glsl-to-cxx" }
+ webrender_build = { path = "../webrender_build" }
+ 
+ [dependencies]
+-gleam = "0.13.1"
++gleam = "0.15"
+diff --git a/webrender/Cargo.toml b/webrender/Cargo.toml
+index 40064a1573..e82ac85718 100644
+--- a/webrender/Cargo.toml
++++ b/webrender/Cargo.toml
+@@ -33,7 +33,7 @@ byteorder = "1.0"
+ cstr = "0.2"
+ euclid = { version = "0.22.0", features = ["serde"] }
+ fxhash = "0.2.1"
+-gleam = "0.13.1"
++gleam = "0.15"
+ lazy_static = "1"
+ log = "0.4"
+ malloc_size_of_derive = "0.1"
+diff --git a/wrench/Cargo.toml b/wrench/Cargo.toml
+index 7d2345be43..f51e4202ff 100644
+--- a/wrench/Cargo.toml
++++ b/wrench/Cargo.toml
+@@ -9,7 +9,7 @@ edition = "2018"
+ [dependencies]
+ base64 = "0.12"
+ env_logger = { version = "0.5", optional = true }
+-gleam = "0.13"
++gleam = "0.15"
+ glutin = "0.21"
+ clap = { version = "2", features = ["yaml"] }
+ log = "0.4"

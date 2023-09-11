@@ -16,7 +16,7 @@ use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, LocalName, Prefix};
 use js::rust::HandleObject;
 use style::element_state::ElementState;
 

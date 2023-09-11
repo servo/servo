@@ -5,6 +5,7 @@
 //! https://drafts.csswg.org/css-sizing/
 
 use crate::style_ext::ComputedValuesExt;
+use serde::Serialize;
 use style::logical_geometry::WritingMode;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;

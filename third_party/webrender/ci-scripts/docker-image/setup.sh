@@ -14,15 +14,19 @@ test "$(whoami)" == 'root'
 # Install stuff we need
 apt-get -y update
 apt-get install -y \
+    bison \
     bzip2 \
     cmake \
     curl \
+    flex \
     gcc \
     git \
     g++ \
     libfontconfig1-dev \
     libgl1-mesa-dev \
     libx11-dev \
+    llvm-dev \
+    ninja-build \
     openjdk-8-jdk \
     pkg-config \
     python \
@@ -31,7 +35,10 @@ apt-get install -y \
     python-setuptools \
     python-voluptuous \
     python-yaml \
-    software-properties-common
+    python3-pip \
+    python3-mako \
+    software-properties-common \
+    clang
 
 # Other stuff we need
 pip install servo-tidy==0.3.0

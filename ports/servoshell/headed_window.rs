@@ -11,6 +11,7 @@ use euclid::{
     Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit,
     Vector2D, Vector3D,
 };
+use log::{trace, debug, info};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
@@ -542,7 +543,9 @@ impl WindowMethods for Window {
         let inner_size = Size2D::new(width as f32, height as f32) * dpr;
         let viewport_size = inner_size - Size2D::new(0f32, toolbar_height);
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
-        let viewport = DeviceIntRect::new(viewport_origin, viewport_size.to_i32());
+        let viewport = DeviceIntRect::new(
+            viewport_origin, viewport_size.to_i32()
+        );
 
         let framebuffer = DeviceIntSize::from_untyped(viewport.size.to_untyped());
         EmbedderCoordinates {

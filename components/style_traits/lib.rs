@@ -10,12 +10,10 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code, missing_docs)]
 
-#[macro_use]
-extern crate size_of_test;
-
 use bitflags::bitflags;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use size_of_test::size_of_test;
 #[cfg(feature = "servo")]
 pub use webrender_api::units::DevicePixel;
 

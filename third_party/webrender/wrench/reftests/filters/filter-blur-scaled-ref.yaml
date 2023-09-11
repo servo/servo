@@ -4,7 +4,7 @@ root:
   items:
     - type: stacking-context
       bounds: [0, 0, 500, 500]
-      filters: blur(10)
+      filters: blur(10, 10)
       items:
         - type: rect
           bounds: [50, 50, 250, 250]

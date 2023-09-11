@@ -6,6 +6,7 @@ use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::protocol::{ActorDescription, Method};
 use crate::StreamId;
+use serde::Serialize;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 

@@ -15,20 +15,27 @@ typedef float GLfloat;
 typedef double GLdouble;
 
 typedef uint32_t GLenum;
-typedef int32_t GLboolean;
+typedef uint8_t GLboolean;
 typedef uint32_t GLbitfield;
 
 typedef int32_t GLsizei;
 typedef size_t GLsizeiptr;
 typedef intptr_t GLintptr;
 
+#define GL_FALSE 0
+#define GL_TRUE 1
+
+#define GL_NONE 0
+
 #define GL_NO_ERROR 0
 
 #define GL_RGBA32F 0x8814
 #define GL_RGBA8 0x8058
 #define GL_R8 0x8229
+#define GL_R16 0x822A
 #define GL_RGBA32I 0x8D82
 #define GL_BGRA8 0x93A1
+#define GL_RG8 0x822B
 
 #define GL_BYTE 0x1400
 #define GL_UNSIGNED_BYTE 0x1401
@@ -37,6 +44,7 @@ typedef intptr_t GLintptr;
 #define GL_INT 0x1404
 #define GL_UNSIGNED_INT 0x1405
 #define GL_FLOAT 0x1406
+#define GL_DOUBLE 0x1408
 
 #define GL_RED 0x1903
 #define GL_GREEN 0x1904
@@ -46,6 +54,7 @@ typedef intptr_t GLintptr;
 #define GL_RGBA 0x1908
 #define GL_RGBA_INTEGER 0x8D99
 #define GL_BGRA 0x80E1
+#define GL_RG 0x8227
 
 #define GL_DEPTH_COMPONENT 0x1902
 #define GL_DEPTH_COMPONENT16 0x81A5
@@ -146,6 +155,8 @@ typedef intptr_t GLintptr;
 #define GL_ONE_MINUS_SRC1_ALPHA 0x88FB
 
 #define GL_FUNC_ADD 0x8006
+#define GL_MIN 0x8007
+#define GL_MAX 0x8008
 
 #define GL_NEVER 0x0200
 #define GL_LESS 0x0201
@@ -165,6 +176,9 @@ typedef intptr_t GLintptr;
 #define GL_VERSION 0x1F02
 #define GL_EXTENSIONS 0x1F03
 #define GL_NUM_EXTENSIONS 0x821D
+#define GL_MINOR_VERSION 0x821C
+#define GL_MAJOR_VERSION 0x821B
+#define GL_SHADING_LANGUAGE_VERSION 0x8B8C
 
 #define GL_POINTS 0x0000
 #define GL_LINES 0x0001
@@ -174,3 +188,29 @@ typedef intptr_t GLintptr;
 #define GL_TRIANGLE_STRIP 0x0005
 #define GL_TRIANGLE_FAN 0x0006
 #define GL_QUADS 0x0007
+
+#define GL_UNSIGNED_INT_8_8_8_8_REV 0x8367
+
+#define GL_RGB_422_APPLE 0x8A1F
+#define GL_UNSIGNED_SHORT_8_8_APPLE 0x85BA
+#define GL_UNSIGNED_SHORT_8_8_REV_APPLE 0x85BB
+#define GL_RGB_RAW_422_APPLE 0x8A51
+
+#define GL_MULTIPLY_KHR 0x9294
+#define GL_SCREEN_KHR 0x9295
+#define GL_OVERLAY_KHR 0x9296
+#define GL_DARKEN_KHR 0x9297
+#define GL_LIGHTEN_KHR 0x9298
+#define GL_COLORDODGE_KHR 0x9299
+#define GL_COLORBURN_KHR 0x929A
+#define GL_HARDLIGHT_KHR 0x929B
+#define GL_SOFTLIGHT_KHR 0x929C
+#define GL_DIFFERENCE_KHR 0x929E
+#define GL_EXCLUSION_KHR 0x92A0
+#define GL_HSL_HUE_KHR 0x92AD
+#define GL_HSL_SATURATION_KHR 0x92AE
+#define GL_HSL_COLOR_KHR 0x92AF
+#define GL_HSL_LUMINOSITY_KHR 0x92B0
+
+#define SWGL_BLEND_DROP_SHADOW 0xB001
+#define SWGL_BLEND_SUBPIXEL_TEXT 0xB002

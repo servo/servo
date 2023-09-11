@@ -13,6 +13,7 @@ use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use headers::{ContentType, Cookie, HeaderMapExt};
 use http::{header, HeaderMap, Method, StatusCode};
+use serde::Serialize;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 use time::Tm;

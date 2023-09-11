@@ -73,6 +73,9 @@ packages = [
 
     # Duplicated by servo-media.
     "uuid",
+
+    # style/webxr (0.62) vs. mozjs_sys (0.66)
+    "bindgen",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

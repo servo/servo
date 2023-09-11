@@ -16,7 +16,7 @@ use crate::dom::virtualmethods::vtable_for;
 use crate::script_thread::ScriptThread;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Namespace, Prefix};
+use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::mem;

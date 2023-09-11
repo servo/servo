@@ -4,70 +4,114 @@
 
 #include shared,clip_shared
 
-varying vec4 vLocalPos;
+varying vec2 vLocalPos;
 varying vec2 vClipMaskImageUv;
 
-flat varying vec4 vClipMaskUvRect;
 flat varying vec4 vClipMaskUvInnerRect;
-flat varying float vLayer;
 
 #ifdef WR_VERTEX_SHADER
-struct ImageMaskData {
-    vec2 local_mask_size;
+
+PER_INSTANCE in vec4 aClipTileRect;
+PER_INSTANCE in ivec2 aClipDataResourceAddress;
+PER_INSTANCE in vec4 aClipLocalRect;
+
+struct ClipMaskInstanceImage {
+    ClipMaskInstanceCommon base;
+    RectWithSize tile_rect;
+    ivec2 resource_address;
+    RectWithSize local_rect;
 };
 
-ImageMaskData fetch_mask_data(ivec2 address) {
-    vec4 data = fetch_from_gpu_cache_1_direct(address);
-    ImageMaskData mask_data = ImageMaskData(data.xy);
-    return mask_data;
+ClipMaskInstanceImage fetch_clip_item() {
+    ClipMaskInstanceImage cmi;
+
+    cmi.base = fetch_clip_item_common();
+
+    cmi.tile_rect = RectWithSize(aClipTileRect.xy, aClipTileRect.zw);
+    cmi.resource_address = aClipDataResourceAddress;
+    cmi.local_rect = RectWithSize(aClipLocalRect.xy, aClipLocalRect.zw);
+
+    return cmi;
+}
+
+struct ClipImageVertexInfo {
+    vec2 local_pos;
+    vec4 world_pos;
+};
+
+// This differs from write_clip_tile_vertex in that we forward transform the
+// primitive's local-space tile rect into the target space. We use scissoring
+// to ensure that the primitive does not draw outside the target bounds.
+ClipImageVertexInfo write_clip_image_vertex(RectWithSize tile_rect,
+                                            RectWithSize local_clip_rect,
+                                            Transform prim_transform,
+                                            Transform clip_transform,
+                                            RectWithSize sub_rect,
+                                            vec2 task_origin,
+                                            vec2 screen_origin,
+                                            float device_pixel_scale) {
+    vec2 local_pos = clamp_rect(tile_rect.p0 + aPosition.xy * tile_rect.size, local_clip_rect);
+    vec4 world_pos = prim_transform.m * vec4(local_pos, 0.0, 1.0);
+    vec4 final_pos = vec4(
+        world_pos.xy * device_pixel_scale + (task_origin - screen_origin) * world_pos.w,
+        0.0,
+        world_pos.w
+    );
+    gl_Position = uTransform * final_pos;
+
+    init_transform_vs(
+        clip_transform.is_axis_aligned
+            ? vec4(vec2(-1.0e16), vec2(1.0e16))
+            : vec4(local_clip_rect.p0, local_clip_rect.p0 + local_clip_rect.size));
+
+    ClipImageVertexInfo vi = ClipImageVertexInfo(local_pos, world_pos);
+    return vi;
 }
 
 void main(void) {
-    ClipMaskInstance cmi = fetch_clip_item();
-    Transform clip_transform = fetch_transform(cmi.clip_transform_id);
-    Transform prim_transform = fetch_transform(cmi.prim_transform_id);
-    ImageMaskData mask = fetch_mask_data(cmi.clip_data_address);
-    RectWithSize local_rect = RectWithSize(cmi.local_pos, mask.local_mask_size);
-    ImageResource res = fetch_image_resource_direct(cmi.resource_address);
+    ClipMaskInstanceImage cmi = fetch_clip_item();
+    Transform clip_transform = fetch_transform(cmi.base.clip_transform_id);
+    Transform prim_transform = fetch_transform(cmi.base.prim_transform_id);
+    ImageSource res = fetch_image_source_direct(cmi.resource_address);
 
-    ClipVertexInfo vi = write_clip_tile_vertex(
-        local_rect,
+    ClipImageVertexInfo vi = write_clip_image_vertex(
+        cmi.tile_rect,
+        cmi.local_rect,
         prim_transform,
         clip_transform,
-        cmi.sub_rect,
-        cmi.task_origin,
-        cmi.screen_origin,
-        cmi.device_pixel_scale
+        cmi.base.sub_rect,
+        cmi.base.task_origin,
+        cmi.base.screen_origin,
+        cmi.base.device_pixel_scale
     );
     vLocalPos = vi.local_pos;
-    vLayer = res.layer;
-    vClipMaskImageUv = (vi.local_pos.xy - cmi.tile_rect.p0 * vi.local_pos.w) / cmi.tile_rect.size;
+    vec2 uv = (vi.local_pos - cmi.tile_rect.p0) / cmi.tile_rect.size;
 
-    vec2 texture_size = vec2(textureSize(sColor0, 0));
-    vClipMaskUvRect = vec4(res.uv_rect.p0, res.uv_rect.p1 - res.uv_rect.p0) / texture_size.xyxy;
+    vec2 texture_size = vec2(TEX_SIZE(sColor0));
+    vec4 uv_rect = vec4(res.uv_rect.p0, res.uv_rect.p1);
+    vClipMaskImageUv = mix(uv_rect.xy, uv_rect.zw, uv) / texture_size;
+
     // applying a half-texel offset to the UV boundaries to prevent linear samples from the outside
-    vec4 inner_rect = vec4(res.uv_rect.p0, res.uv_rect.p1);
-    vClipMaskUvInnerRect = (inner_rect + vec4(0.5, 0.5, -0.5, -0.5)) / texture_size.xyxy;
+    vClipMaskUvInnerRect = (uv_rect + vec4(0.5, 0.5, -0.5, -0.5)) / texture_size.xyxy;
 }
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
 void main(void) {
-    vec2 local_pos = vLocalPos.xy / vLocalPos.w;
-    float alpha = vLocalPos.w > 0.0 ? init_transform_fs(local_pos) : 0.0;
-
-    // TODO: Handle repeating masks?
-    vec2 clamped_mask_uv = clamp(vClipMaskImageUv, vec2(0.0, 0.0), vLocalPos.ww);
-
-    // Ensure we don't draw outside of our tile.
-    // FIXME(emilio): Can we do this earlier?
-    if (clamped_mask_uv != vClipMaskImageUv)
-        discard;
-
-    vec2 source_uv = clamp(
-        clamped_mask_uv / vLocalPos.w * vClipMaskUvRect.zw + vClipMaskUvRect.xy,
-        vClipMaskUvInnerRect.xy, vClipMaskUvInnerRect.zw);
-    float clip_alpha = texture(sColor0, vec3(source_uv, vLayer)).r; //careful: texture has type A8
-    oFragColor = vec4(alpha * clip_alpha, 1.0, 1.0, 1.0);
+    float alpha = init_transform_rough_fs(vLocalPos);
+    vec2 source_uv = clamp(vClipMaskImageUv, vClipMaskUvInnerRect.xy, vClipMaskUvInnerRect.zw);
+    float clip_alpha = texture(sColor0, source_uv).r; //careful: texture has type A8
+    oFragColor = vec4(mix(1.0, clip_alpha, alpha), 0.0, 0.0, 1.0);
 }
+
+#ifdef SWGL_DRAW_SPAN
+void swgl_drawSpanR8() {
+    if (has_valid_transform_bounds()) {
+        return;
+    }
+
+    swgl_commitTextureLinearR8(sColor0, vClipMaskImageUv, vClipMaskUvInnerRect);
+}
+#endif
+
 #endif

@@ -1,0 +1,16 @@
+---
+root:
+  items:
+    - type: rect
+      bounds: 50 50 2000 300
+      color: blue
+
+    - type: conic-gradient
+      bounds: 50 50 2000 300
+      center: 150 150
+      angle: 0.0
+      stops: [0.0, red,
+              0.125, blue,
+              0.375, blue,
+              0.5, yellow,
+              1.0, red]

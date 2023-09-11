@@ -9,7 +9,7 @@ root:
       - type: stacking-context
         bounds: [0, 0, 300, 300]
         # Blur will be 20 * 10(scale) = 200 and it should then be clamped to 100
-        filters: blur(20)
+        filters: blur(20, 20)
         items:
         - type: rect
           bounds: [0, 0, 10, 10]
@@ -23,7 +23,7 @@ root:
         # Blur should be 500 * 0.1(scale) = 50. This tests to make sure clamping
         # does not occur before applying scale factors, otherwise 500 would be
         # clamped to 100.
-        filters: blur(500)
+        filters: blur(500, 500)
         items:
         - type: rect
           bounds: [0, 0, 1000, 1000]

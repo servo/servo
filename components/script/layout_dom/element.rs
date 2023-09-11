@@ -12,7 +12,7 @@ use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::node::{LayoutNodeHelpers, NodeFlags};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use html5ever::{LocalName, Namespace};
+use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
 use script_layout_interface::wrapper_traits::{
     GetStyleAndOpaqueLayoutData, LayoutDataTrait, LayoutNode, PseudoElementType,
     ThreadSafeLayoutElement, ThreadSafeLayoutNode,

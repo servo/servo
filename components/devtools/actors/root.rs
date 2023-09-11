@@ -13,6 +13,7 @@ use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerMsg};
 use crate::protocol::{ActorDescription, JsonPacketStream};
 use crate::StreamId;
+use serde::Serialize;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 

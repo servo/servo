@@ -4,10 +4,10 @@ include blend/reftest.list
 include border/reftest.list
 include boxshadow/reftest.list
 include clip/reftest.list
+include compositor-surface/reftest.list
 include filters/reftest.list
 include gradient/reftest.list
 include image/reftest.list
-include invalidation/reftest.list
 include mask/reftest.list
 include performance/reftest.list
 include scrolling/reftest.list

@@ -9,6 +9,7 @@ use euclid::default::Rect;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::BrowsingContextId;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use webdriver::common::{WebElement, WebFrame, WebWindow};

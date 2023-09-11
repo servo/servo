@@ -334,15 +334,6 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b25d992356d2eb0ed82172f5248873db5560c4721f564b13cb5193bda5e668e"
-dependencies = [
- "byteorder",
-]
-
-[[package]]
-name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
@@ -388,6 +379,27 @@ dependencies = [
  "rustc-hash",
  "shlex",
  "syn 1.0.103",
+ "which",
+]
+
+[[package]]
+name = "bindgen"
+version = "0.66.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b84e06fc203107bfbad243f4aba2af864eb7db3b1cf46ea0a023b0b433d2a7"
+dependencies = [
+ "bitflags 2.4.0",
+ "cexpr",
+ "clang-sys",
+ "lazy_static",
+ "lazycell",
+ "peeking_take_while",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "rustc-hash",
+ "shlex",
+ "syn 2.0.29",
  "which",
 ]
 
@@ -970,6 +982,7 @@ dependencies = [
  "servo_url",
  "style_traits",
  "webgpu",
+ "webrender",
  "webrender_api",
  "webrender_traits",
  "webxr-api",
@@ -1186,22 +1199,12 @@ dependencies = [
 
 [[package]]
 name = "cstr"
-version = "0.1.7"
+version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19f7a08ed4ecd7e077d4cee63937473e6f7cf57b702a9114ef41751b2cbc0f60"
+checksum = "8aa998c33a6d3271e3678950a22134cd7dd27cef86dee1b611b5b14207d1d90b"
 dependencies = [
- "cstr-macros",
- "procedural-masquerade",
-]
-
-[[package]]
-name = "cstr-macros"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd670e5ff58768ef624207fb95709ce63b8d05573fb9a05165f0eef471ea6a3a"
-dependencies = [
- "procedural-masquerade",
- "syn 1.0.103",
+ "proc-macro2",
+ "quote",
 ]
 
 [[package]]
@@ -1545,9 +1548,9 @@ dependencies = [
 
 [[package]]
 name = "encoding_c"
-version = "0.9.7"
+version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1891d977f814fd638c3b964987778665b5d1dc8690f46c4c7adc91466ad1c78a"
+checksum = "9af727805f3b0d79956bde5b35732669fb5c5d45a94893798e7b7e70cfbf9cc1"
 dependencies = [
  "encoding_rs",
 ]
@@ -1649,6 +1652,17 @@ checksum = "64f18991e7bf11e7ffee451b5318b5c1a73c52d0d0ada6e5a3017c8c1ced6a21"
 dependencies = [
  "libc",
  "str-buf",
+]
+
+[[package]]
+name = "etagere"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcf22f748754352918e082e0039335ee92454a5d62bcaf69b5e8daf5907d9644"
+dependencies = [
+ "euclid",
+ "serde",
+ "svg_fmt",
 ]
 
 [[package]]
@@ -2119,9 +2133,9 @@ dependencies = [
 
 [[package]]
 name = "gleam"
-version = "0.12.2"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6da1b0a7e3f0833efe2c59f11c0e196d6208735018693c340eded4bd7aacb49"
+checksum = "0173481f2bb6e809bf4985de2e86c83876d84d2805830e3301cd37355e897f0f"
 dependencies = [
  "gl_generator 0.14.0",
 ]
@@ -3699,8 +3713,9 @@ checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#8dcf64e1dd1c362b2af3abb735f100bdff8a627d"
+source = "git+https://github.com/servo/mozjs#d7f6f30cb9bfd3e7e4d1ff7d605059369acdf25d"
 dependencies = [
+ "bindgen 0.66.1",
  "cc",
  "lazy_static",
  "libc",
@@ -3712,9 +3727,9 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.2"
-source = "git+https://github.com/servo/mozjs#8dcf64e1dd1c362b2af3abb735f100bdff8a627d"
+source = "git+https://github.com/servo/mozjs#d7f6f30cb9bfd3e7e4d1ff7d605059369acdf25d"
 dependencies = [
- "bindgen",
+ "bindgen 0.66.1",
  "cc",
  "encoding_c",
  "encoding_c_mem",
@@ -4481,12 +4496,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "procedural-masquerade"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f1383dff4092fe903ac180e391a8d4121cc48f08ccf850614b0290c6673b69d"
-
-[[package]]
 name = "profile"
 version = "0.0.1"
 dependencies = [
@@ -4732,11 +4741,11 @@ checksum = "3582f63211428f83597b51b2ddb88e2a91a9d52d12831f9d08f5e624e8977422"
 
 [[package]]
 name = "ron"
-version = "0.5.1"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ece421e0c4129b90e4a35b6f625e472e96c552136f5093a2f4fa2bbb75a62d5"
+checksum = "86018df177b1beef6c7c8ef949969c4f7cb9a9344181b92486b23c79995bdaa4"
 dependencies = [
- "base64 0.10.1",
+ "base64 0.13.0",
  "bitflags 1.3.2",
  "serde",
 ]
@@ -5813,7 +5822,7 @@ dependencies = [
  "app_units",
  "arrayvec 0.7.4",
  "atomic_refcell",
- "bindgen",
+ "bindgen 0.62.0",
  "bitflags 1.3.2",
  "byteorder",
  "cssparser",
@@ -6822,6 +6831,7 @@ dependencies = [
  "serde",
  "servo_config",
  "smallvec",
+ "webrender",
  "webrender_api",
  "webrender_traits",
  "wgpu-core",
@@ -6851,17 +6861,17 @@ dependencies = [
 name = "webrender"
 version = "0.61.0"
 dependencies = [
- "backtrace",
  "bincode",
  "bitflags 1.3.2",
  "build-parallel",
  "byteorder",
- "cfg-if 0.1.10",
  "core-foundation 0.9.3",
  "core-graphics",
  "core-text",
  "cstr",
+ "derive_more",
  "dwrote",
+ "etagere",
  "euclid",
  "freetype",
  "fxhash",
@@ -6872,11 +6882,11 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "num-traits",
+ "objc",
  "plane-split",
  "rayon",
- "ron 0.5.1",
+ "ron 0.6.6",
  "serde",
- "sig",
  "smallvec",
  "svg_fmt",
  "time 0.1.45",
@@ -6895,6 +6905,7 @@ dependencies = [
  "byteorder",
  "core-foundation 0.9.3",
  "core-graphics",
+ "crossbeam-channel",
  "derive_more",
  "euclid",
  "malloc_size_of_derive",
@@ -6936,7 +6947,7 @@ version = "0.0.1"
 source = "git+https://github.com/servo/webxr#b29816a530a7519e30124c6e636511857c32433d"
 dependencies = [
  "android_injected_glue",
- "bindgen",
+ "bindgen 0.62.0",
  "crossbeam-channel",
  "euclid",
  "gl_generator 0.13.1",

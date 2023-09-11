@@ -11,6 +11,7 @@ use fontconfig_sys::{FcFontSetDestroy, FcMatchPattern, FcPatternCreate, FcPatter
 use fontconfig_sys::{FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy, FcPatternAddString};
 use fontconfig_sys::{FcObjectSetAdd, FcPatternGetInteger};
 use libc::{c_char, c_int};
+use log::debug;
 use std::ffi::CString;
 use std::ptr;
 

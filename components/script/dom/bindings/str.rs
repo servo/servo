@@ -7,6 +7,7 @@ use chrono::prelude::{Utc, Weekday};
 use chrono::{Datelike, TimeZone};
 use cssparser::CowRcStr;
 use html5ever::{LocalName, Namespace};
+use lazy_static::lazy_static;
 use regex::Regex;
 use servo_atoms::Atom;
 use std::borrow::{Borrow, Cow, ToOwned};

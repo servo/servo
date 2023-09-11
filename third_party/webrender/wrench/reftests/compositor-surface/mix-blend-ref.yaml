@@ -1,0 +1,17 @@
+---
+root:
+  items:
+    - type: stacking-context
+      blend-container: true
+      items:
+        - type: rect
+          bounds: [50, 50, 362, 362]
+          color: green
+        - image: transparent-checkerboard(2,16,16)
+          bounds: [100, 100, 262, 262]
+        - type: stacking-context
+          mix-blend-mode: multiply
+          items:
+            - type: rect
+              bounds: [150, 150, 162, 162]
+              color: red

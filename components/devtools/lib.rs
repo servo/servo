@@ -12,11 +12,6 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde;
-
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::console::{ConsoleActor, Root};
@@ -38,7 +33,9 @@ use devtools_traits::{
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin, PromptResult};
 use ipc_channel::ipc::{self, IpcSender};
+use log::{debug, warn};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use serde::Serialize;
 use servo_rand::RngCore;
 use std::borrow::ToOwned;
 use std::collections::hash_map::Entry::{Occupied, Vacant};

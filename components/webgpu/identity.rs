@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{ErrorScopeId, WebGPUDevice, WebGPURequest};
-use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::PipelineId;
-use serde::{Deserialize, Serialize};
-use wgpu::{
+use crate::wgpu::{
     id::{
         AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePipelineId,
         DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPipelineId, SamplerId,
@@ -14,7 +10,11 @@ use wgpu::{
     },
     identity::{GlobalIdentityHandlerFactory, IdentityHandler, IdentityHandlerFactory},
 };
-use wgt::Backend;
+use crate::wgt::Backend;
+use crate::{ErrorScopeId, WebGPUDevice, WebGPURequest};
+use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::PipelineId;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGPUOpResult {

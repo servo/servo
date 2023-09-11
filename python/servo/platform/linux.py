@@ -17,14 +17,14 @@ from .. import util
 from .base import Base
 
 # Please keep these in sync with the packages in README.md
-APT_PKGS = ['git', 'curl', 'autoconf', 'libx11-dev', 'libfreetype6-dev',
+APT_PKGS = ['git', 'curl', 'libx11-dev', 'libfreetype6-dev',
             'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
             'build-essential', 'cmake', 'liblzma-dev', 'libxmu6', 'libxmu-dev',
             "libxcb-render0-dev", "libxcb-shape0-dev", "libxcb-xfixes0-dev",
             'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev',
             'libharfbuzz-dev', 'ccache', 'clang', 'libunwind-dev',
             'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
-            'libgstreamer-plugins-bad1.0-dev', 'autoconf2.13',
+            'libgstreamer-plugins-bad1.0-dev',
             'libunwind-dev', 'llvm-dev']
 DNF_PKGS = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
             'libunwind-devel', 'mesa-libGL-devel', 'mesa-libEGL-devel',
@@ -32,7 +32,7 @@ DNF_PKGS = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
             'fontconfig-devel', 'cabextract', 'ttmkfdir', 'expat-devel',
             'rpm-build', 'cmake', 'libXcursor-devel', 'libXmu-devel',
             'dbus-devel', 'ncurses-devel', 'harfbuzz-devel', 'ccache',
-            'clang', 'clang-libs', 'llvm', 'autoconf213', 'python3-devel',
+            'clang', 'clang-libs', 'llvm', 'python3-devel',
             'gstreamer1-devel', 'gstreamer1-plugins-base-devel',
             'gstreamer1-plugins-bad-free-devel', 'libjpeg-turbo-devel',
             'zlib', 'libjpeg']
@@ -42,7 +42,7 @@ XBPS_PKGS = ['libtool', 'gcc', 'libXi-devel', 'freetype-devel',
              'fontconfig-devel', 'cabextract', 'expat-devel', 'cmake',
              'cmake', 'libXcursor-devel', 'libXmu-devel', 'dbus-devel',
              'ncurses-devel', 'harfbuzz-devel', 'ccache', 'glu-devel',
-             'clang', 'gstreamer1-devel', 'autoconf213',
+             'clang', 'gstreamer1-devel',
              'gst-plugins-base1-devel', 'gst-plugins-bad1-devel']
 
 GSTREAMER_URL = \

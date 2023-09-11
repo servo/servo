@@ -64,8 +64,8 @@ pub(super) fn painting_area<'a>(
     };
     // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
     let mut common = builder.common_properties(*painting_area, &fb.fragment.style);
-    if let Some(clip_id) = clip {
-        common.clip_id = clip_id
+    if let Some(clip_chain_id) = clip {
+        common.clip_id = wr::ClipId::ClipChain(clip_chain_id)
     }
     (painting_area, common)
 }

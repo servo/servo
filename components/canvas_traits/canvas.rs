@@ -5,6 +5,8 @@
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use std::default::Default;
 use std::str::FromStr;

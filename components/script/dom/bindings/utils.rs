@@ -278,7 +278,7 @@ pub unsafe fn find_enum_value<'a, T>(
 /// <https://heycam.github.io/webidl/#dfn-platform-object>
 pub fn is_platform_object_dynamic(obj: *mut JSObject, cx: *mut JSContext) -> bool {
     is_platform_object(obj, &|o| unsafe {
-        UnwrapObjectDynamic(o, cx, /* stopAtWindowProxy = */ 0)
+        UnwrapObjectDynamic(o, cx, /* stopAtWindowProxy = */ false)
     })
 }
 

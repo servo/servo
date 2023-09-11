@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[macro_use]
-extern crate syn;
-#[macro_use]
-extern crate synstructure;
+use syn::parse_quote;
+use synstructure::decl_derive;
+use synstructure::quote;
 
 decl_derive!([JSTraceable, attributes(no_trace, custom_trace)] =>
 /// Implements `JSTraceable` on structs and enums

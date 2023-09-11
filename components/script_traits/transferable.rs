@@ -8,7 +8,9 @@
 //! to depend on script.
 
 use crate::PortMessageTask;
+use malloc_size_of_derive::MallocSizeOf;
 use msg::constellation_msg::MessagePortId;
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]

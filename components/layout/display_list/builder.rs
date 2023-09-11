@@ -32,6 +32,7 @@ use crate::inline::InlineFragmentNodeFlags;
 use crate::model::MaybeAuto;
 use crate::table_cell::CollapsedBordersForCell;
 use app_units::{Au, AU_PER_PX};
+use bitflags::bitflags;
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use embedder_traits::Cursor;
 use euclid::{
@@ -43,6 +44,7 @@ use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
 use ipc_channel::ipc;
+use log::{debug, warn};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
@@ -69,10 +71,11 @@ use style::values::specified::ui::CursorKind;
 use style::values::RGBA;
 use style_traits::{CSSPixel, ToCss};
 use webrender_api::units::{LayoutRect, LayoutTransform, LayoutVector2D};
-use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
-use webrender_api::{ColorU, ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle};
-use webrender_api::{NinePatchBorder, NinePatchBorderSource, NormalBorder, PropertyBinding};
-use webrender_api::{ScrollSensitivity, StickyOffsetBounds};
+use webrender_api::{
+    self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ColorU,
+    ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder,
+    NinePatchBorderSource, NormalBorder, PropertyBinding, ScrollSensitivity, StickyOffsetBounds,
+};
 
 static THREAD_TINT_COLORS: [ColorF; 8] = [
     ColorF {
@@ -829,9 +832,10 @@ impl Fragment {
             index,
         );
 
-        if placement.tile_size.is_empty() {
-            return;
-        }
+        let placement = match placement {
+            Some(placement) => placement,
+            None => return,
+        };
 
         state.clipping_and_scrolling_scope(|state| {
             if !placement.clip_radii.is_zero() {
@@ -950,6 +954,11 @@ impl Fragment {
             border::radii(absolute_bounds, style.get_border()),
             index,
         );
+
+        let placement = match placement {
+            Some(placement) => placement,
+            None => return,
+        };
 
         state.clipping_and_scrolling_scope(|state| {
             if !placement.clip_radii.is_zero() {
@@ -1185,19 +1194,20 @@ impl Fragment {
         let border_style_struct = style.get_border();
         let border_image_outset =
             border::image_outset(border_style_struct.border_image_outset, border_width);
-        let border_image_area = bounds.outer_rect(border_image_outset).size;
+        let border_image_area = bounds.outer_rect(border_image_outset);
+        let border_image_size = border_image_area.size;
         let border_image_width = border::image_width(
             &border_style_struct.border_image_width,
             border_width.to_layout(),
-            border_image_area,
+            border_image_size,
         );
         let border_image_repeat = &border_style_struct.border_image_repeat;
         let border_image_fill = border_style_struct.border_image_slice.fill;
         let border_image_slice = &border_style_struct.border_image_slice.offsets;
 
         let mut stops = Vec::new();
-        let mut width = border_image_area.width.to_px() as u32;
-        let mut height = border_image_area.height.to_px() as u32;
+        let mut width = border_image_size.width.to_px() as u32;
+        let mut height = border_image_size.height.to_px() as u32;
         let source = match image {
             Image::Url(ref image_url) => {
                 let url = image_url.url()?;
@@ -1215,7 +1225,7 @@ impl Fragment {
                     state,
                     style,
                     paint_worklet,
-                    border_image_area,
+                    border_image_size,
                 )?;
                 width = image.width;
                 height = image.height;
@@ -1229,7 +1239,7 @@ impl Fragment {
                     compat_mode: _,
                 } => {
                     let (wr_gradient, linear_stops) =
-                        gradient::linear(style, border_image_area, items, *direction, *repeating);
+                        gradient::linear(style, border_image_size, items, *direction, *repeating);
                     stops = linear_stops;
                     NinePatchBorderSource::Gradient(wr_gradient)
                 },
@@ -1242,7 +1252,7 @@ impl Fragment {
                 } => {
                     let (wr_gradient, radial_stops) = gradient::radial(
                         style,
-                        border_image_area,
+                        border_image_size,
                         items,
                         shape,
                         position,
@@ -1266,17 +1276,12 @@ impl Fragment {
             fill: border_image_fill,
             repeat_horizontal: border_image_repeat.0.to_layout(),
             repeat_vertical: border_image_repeat.1.to_layout(),
-            outset: SideOffsets2D::new(
-                border_image_outset.top.to_f32_px(),
-                border_image_outset.right.to_f32_px(),
-                border_image_outset.bottom.to_f32_px(),
-                border_image_outset.left.to_f32_px(),
-            ),
+            outset: SideOffsets2D::zero(),
         });
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
             webrender_api::BorderDisplayItem {
-                bounds: bounds.to_layout(),
+                bounds: border_image_area.to_layout(),
                 common: items::empty_common_item_properties(),
                 widths: border_image_width,
                 details,
@@ -2113,7 +2118,7 @@ impl Fragment {
         }
 
         // Text
-        let mut glyphs = convert_text_run_to_glyphs(
+        let (largest_advance, mut glyphs) = convert_text_run_to_glyphs(
             text_fragment.run.clone(),
             text_fragment.range,
             baseline_origin,
@@ -2127,6 +2132,22 @@ impl Fragment {
         };
         state.indexable_text.insert(self.node, indexable_text);
 
+        // FIXME(mrobinson, #30313): This is a serious hack to enable a WebRender upgrade.
+        // Servo is not calculating glyph boundaries and is instead relying on the
+        // measured size of the content box here -- which is based on the positioning
+        // of the text. The issue is that glyphs can extend beyond the boundaries
+        // established by their brush origin and advance. Servo should be measuring
+        // the ink boundary rectangle based on the brush origin and the glyph extents
+        // instead.
+        //
+        // We don't yet have that information here, so in the meantime simply expand
+        // the boundary rectangle of the text by the largest character advance of the
+        // painted text run in all directions. This is used as a heuristic for a
+        // reasonable amount of "fudge" space to include the entire text run.
+        let inflated_bounds = stacking_relative_content_box
+            .inflate(largest_advance, largest_advance)
+            .to_layout();
+
         // Process glyphs in chunks to avoid overflowing WebRender's internal limits (#17230).
         while !glyphs.is_empty() {
             let mut rest_of_glyphs = vec![];
@@ -2138,7 +2159,7 @@ impl Fragment {
             state.add_display_item(DisplayItem::Text(CommonDisplayItem::with_data(
                 base.clone(),
                 webrender_api::TextDisplayItem {
-                    bounds: stacking_relative_content_box.to_layout(),
+                    bounds: inflated_bounds,
                     common: items::empty_common_item_properties(),
                     font_key: text_fragment.run.font_key,
                     color: text_color.to_layout(),
@@ -3009,7 +3030,8 @@ fn convert_text_run_to_glyphs(
     text_run: Arc<TextRun>,
     range: Range<ByteIndex>,
     mut origin: Point2D<Au>,
-) -> Vec<GlyphInstance> {
+) -> (Au, Vec<GlyphInstance>) {
+    let mut largest_advance = Au(0);
     let mut glyphs = vec![];
 
     for slice in text_run.natural_word_slices_in_visual_order(&range) {
@@ -3019,6 +3041,8 @@ fn convert_text_run_to_glyphs(
             } else {
                 glyph.advance()
             };
+            largest_advance = largest_advance.max(glyph.advance());
+
             if !slice.glyphs.is_whitespace() {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = origin + glyph_offset.to_vector();
@@ -3031,7 +3055,7 @@ fn convert_text_run_to_glyphs(
             origin.x += glyph_advance;
         }
     }
-    return glyphs;
+    (largest_advance, glyphs)
 }
 
 pub struct IndexableTextItem {

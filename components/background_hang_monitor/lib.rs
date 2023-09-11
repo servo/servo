@@ -4,11 +4,6 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate crossbeam_channel;
-#[macro_use]
-extern crate log;
-
 pub mod background_hang_monitor;
 mod sampler;
 #[cfg(all(

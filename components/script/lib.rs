@@ -21,38 +21,17 @@
 #![register_tool(unrooted_must_root_lint)]
 #![register_tool(trace_in_no_trace_lint)]
 
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate crossbeam_channel;
-#[macro_use]
-extern crate cssparser;
-#[macro_use]
-extern crate deny_public_fields;
-#[macro_use]
-extern crate domobject_derive;
-#[macro_use]
-extern crate html5ever;
+// These are used a lot so let's keep them for now
 #[macro_use]
 extern crate js;
 #[macro_use]
 extern crate jstraceable_derive;
 #[macro_use]
-extern crate lazy_static;
-#[macro_use]
 extern crate log;
-#[macro_use]
-extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
 #[macro_use]
-extern crate profile_traits;
-#[macro_use]
-extern crate serde;
-#[macro_use]
 extern crate servo_atoms;
-#[macro_use]
-extern crate style;
 
 mod animation_timeline;
 mod animations;

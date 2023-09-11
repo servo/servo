@@ -37,6 +37,7 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use encoding_rs::UTF_8;
+use html5ever::local_name;
 use hyper_serde::Serde;
 use indexmap::IndexSet;
 use ipc_channel::ipc;

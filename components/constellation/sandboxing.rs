@@ -16,6 +16,7 @@ use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 ))]
 use gaol::profile::{Operation, PathPattern, Profile};
 use ipc_channel::Error;
+use serde::{Deserialize, Serialize};
 use servo_config::opts::Opts;
 use servo_config::prefs::PrefValue;
 use std::collections::HashMap;
@@ -128,7 +129,7 @@ pub fn content_process_sandbox_profile() -> Profile {
     all(target_arch = "aarch64", not(target_os = "macos"))
 ))]
 pub fn content_process_sandbox_profile() {
-    error!("Sandboxed multiprocess is not supported on this platform.");
+    log::error!("Sandboxed multiprocess is not supported on this platform.");
     process::exit(1);
 }
 
@@ -218,7 +219,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
 
 #[cfg(any(target_os = "windows", target_os = "ios"))]
 pub fn spawn_multiprocess(_content: UnprivilegedContent) -> Result<(), Error> {
-    error!("Multiprocess is not supported on Windows or iOS.");
+    log::error!("Multiprocess is not supported on Windows or iOS.");
     process::exit(1);
 }
 

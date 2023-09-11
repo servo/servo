@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use lazy_static::lazy_static;
+use log::trace;
 /// A random number generator which shares one instance of an `OsRng`.
 ///
 /// A problem with `OsRng`, which is inherited by `StdRng` and so
@@ -11,12 +13,6 @@
 ///
 /// This crate fixes that, by only using one `OsRng`, which is just
 /// used to seed and re-seed an `ServoRng`.
-
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-
 use rand::distributions::{Distribution, Standard};
 use rand::rngs::adapter::ReseedingRng;
 use rand::rngs::OsRng;

@@ -5,7 +5,7 @@
 #![crate_name = "swgl"]
 #![crate_type = "lib"]
 
-use gleam;
+extern crate gleam;
 
 mod swgl_fns;
 

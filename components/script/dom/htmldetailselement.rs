@@ -15,7 +15,7 @@ use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, LocalName, Prefix};
 use js::rust::HandleObject;
 use std::cell::Cell;
 

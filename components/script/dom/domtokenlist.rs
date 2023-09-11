@@ -11,7 +11,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::node::window_from_node;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{namespace_url, ns, LocalName};
 use servo_atoms::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
 

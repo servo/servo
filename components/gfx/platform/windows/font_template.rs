@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::platform::windows::font_list::font_from_atom;
+use serde::{Deserialize, Serialize};
 use servo_atoms::Atom;
 use std::fmt;
 use std::io;

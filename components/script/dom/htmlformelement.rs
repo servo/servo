@@ -60,7 +60,7 @@ use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentType, HeaderMapExt};
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use http::Method;
 use js::rust::HandleObject;
 use mime::{self, Mime};

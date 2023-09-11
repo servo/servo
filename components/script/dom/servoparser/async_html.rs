@@ -29,7 +29,9 @@ use html5ever::tree_builder::{
     ElementFlags, NextParserState, NodeOrText as HtmlNodeOrText, QuirksMode, TreeSink,
 };
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
-use html5ever::{Attribute as HtmlAttribute, ExpandedName, QualName};
+use html5ever::{
+    local_name, namespace_url, ns, Attribute as HtmlAttribute, ExpandedName, QualName,
+};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
