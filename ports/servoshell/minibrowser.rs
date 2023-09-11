@@ -17,6 +17,7 @@ use servo::webrender_surfman::WebrenderSurfman;
 use crate::browser::Browser;
 use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
+use crate::parser::sanitize_url;
 use crate::window_trait::WindowPortsMethods;
 
 pub struct Minibrowser {
@@ -130,11 +131,12 @@ impl Minibrowser {
                 MinibrowserEvent::Go => {
                     let browser_id = browser.browser_id().unwrap();
                     let location = self.location.borrow();
-                    let Ok(url) = ServoUrl::parse(&location) else {
+                    if let Some(url) = sanitize_url(&location.clone()) {
+                        app_event_queue.push(EmbedderEvent::LoadUrl(browser_id, url));
+                    } else {
                         warn!("failed to parse location");
                         break;
-                    };
-                    app_event_queue.push(EmbedderEvent::LoadUrl(browser_id, url));
+                    }
                 },
             }
         }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::env;
+use std::{env, fs};
 use std::path::Path;
 
 use log::warn;
@@ -26,7 +26,8 @@ pub fn get_default_url(url_opt: Option<String>) -> ServoUrl {
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
 
-    let cmdline_url = url_opt.map(|s| s.to_string()).and_then(|url_string| {
+    let mut new_url= None;
+    let cmdline_url = url_opt.clone().map(|s| s.to_string()).and_then(|url_string| {
         parse_url_or_filename(&cwd, &url_string)
             .map_err(|error| {
                 warn!("URL parsing failed ({:?}).", error);
@@ -35,13 +36,28 @@ pub fn get_default_url(url_opt: Option<String>) -> ServoUrl {
             .ok()
     });
 
+    if let Some(url) = cmdline_url.clone() {
+        if url.scheme() == "file" && url.domain().is_none() {
+            let url_path = url.path();
+
+            // Check if the URL path corresponds to a file
+            if fs::metadata(url_path).map(|metadata| metadata.is_file()).unwrap_or(false) {
+                new_url =  cmdline_url;
+            }
+        }
+    }
+
+    if new_url.is_none() {
+        new_url = sanitize_url(url_opt.unwrap().as_str());
+    }
+
     let pref_url = {
         let homepage_url = pref!(shell.homepage);
         parse_url_or_filename(&cwd, &homepage_url).ok()
     };
     let blank_url = ServoUrl::parse("about:blank").ok();
 
-    cmdline_url.or(pref_url).or(blank_url).unwrap()
+    new_url.or(pref_url).or(blank_url).unwrap()
 }
 
 pub fn sanitize_url(request: &str) -> Option<ServoUrl> {
