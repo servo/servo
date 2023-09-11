@@ -312,7 +312,7 @@ dependencies = [
  "log",
  "mach",
  "msg",
- "nix 0.14.1",
+ "nix 0.25.1",
  "serde_json",
  "unwind-sys",
 ]
@@ -3931,19 +3931,6 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nix"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c722bee1037d430d0f8e687bbdbf222f27cc6e4e68d5caf630857bb2b6dbdce"
-dependencies = [
- "bitflags 1.3.2",
- "cc",
- "cfg-if 0.1.10",
- "libc",
- "void",
-]
-
-[[package]]
-name = "nix"
 version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa52e972a9a719cecb6864fb88568781eb706bac2cd1d4f04a648542dbf78069"
@@ -3965,6 +3952,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
  "memoffset",
+ "pin-utils",
 ]
 
 [[package]]
