@@ -73,7 +73,7 @@ impl App {
             minibrowser: None,
         };
 
-        if opts::get().minibrowser && window.winit_window().is_some() {
+        if !opts::get().without_minibrowser && window.winit_window().is_some() {
             // Make sure the gl context is made current.
             let webrender_surfman = window.webrender_surfman();
             let webrender_gl = match webrender_surfman.connection().gl_api() {
