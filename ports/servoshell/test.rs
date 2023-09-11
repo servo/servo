@@ -16,7 +16,7 @@ const FAKE_CWD: &'static str = "C:/fake/cwd";
 
 #[test]
 fn test_argument_parsing() {
-    let fake_cwd: &Path = Path::new(FAKE_CWD);
+    let fake_cwd = Path::new(FAKE_CWD);
     assert!(parse_url_or_filename(fake_cwd, "http://example.net:invalid").is_err());
 
     let url = parse_url_or_filename(fake_cwd, "http://example.net").unwrap();
@@ -33,7 +33,7 @@ fn test_argument_parsing() {
 #[test]
 #[cfg(not(target_os = "windows"))]
 fn test_file_path_parsing() {
-    let fake_cwd: &Path = Path::new(FAKE_CWD);
+    let fake_cwd = Path::new(FAKE_CWD);
 
     let url = parse_url_or_filename(fake_cwd, "bar.html").unwrap();
     assert_eq!(url.scheme(), "file");

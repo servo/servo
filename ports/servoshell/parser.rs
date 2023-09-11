@@ -48,7 +48,7 @@ pub fn get_default_url(url_opt: Option<String>) -> ServoUrl {
     }
 
     if new_url.is_none() {
-        new_url = sanitize_url(url_opt.unwrap().as_str());
+        new_url = location_bar_input_to_url(url_opt.unwrap().as_str());
     }
 
     let pref_url = {
