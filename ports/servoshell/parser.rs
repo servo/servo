@@ -60,12 +60,14 @@ pub fn get_default_url(url_opt: Option<String>) -> ServoUrl {
     new_url.or(pref_url).or(blank_url).unwrap()
 }
 
-pub fn sanitize_url(request: &str) -> Option<ServoUrl> {
+pub fn location_bar_input_to_url(request: &str) -> Option<ServoUrl> {
     let request = request.trim();
     ServoUrl::parse(request)
         .ok()
         .or_else(|| {
-            if request.contains('/') || is_reg_domain(request) {
+            if request.starts_with('/') {
+                ServoUrl::parse(&format!("file://{}", request)).ok()
+            } else if request.contains('/') || is_reg_domain(request) {
                 ServoUrl::parse(&format!("https://{}", request)).ok()
             } else {
                 None

@@ -25,7 +25,7 @@ use servo::webrender_api::ScrollLocation;
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
-use crate::parser::sanitize_url;
+use crate::parser::location_bar_input_to_url;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct Browser<Window: WindowPortsMethods + ?Sized> {
@@ -122,7 +122,7 @@ where
                     let title = "URL or search query";
                     let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
                     if let Some(input) = input {
-                        if let Some(url) = sanitize_url(&input) {
+                        if let Some(url) = location_bar_input_to_url(&input) {
                             if let Some(id) = self.browser_id {
                                 self.event_queue.push(EmbedderEvent::LoadUrl(id, url));
                             }

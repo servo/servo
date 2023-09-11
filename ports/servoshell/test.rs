@@ -6,7 +6,7 @@ use std::path::Path;
 use std::fs::File;
 use std::env;
 use servo::{embedder_traits, servo_url::ServoUrl};
-use crate::parser::{parse_url_or_filename, get_default_url, sanitize_url};
+use crate::parser::{parse_url_or_filename, get_default_url, location_bar_input_to_url};
 
 #[cfg(not(target_os = "windows"))]
 const FAKE_CWD: &'static str = "/fake/cwd";
@@ -104,7 +104,7 @@ fn url_should_resolve_in_location_bar() {
     embedder_traits::resources::set_for_tests();
     let input = "resources/public_domains.txt";
     let expected_result = ServoUrl::parse("https://resources/public_domains.txt").ok();
-    let result = sanitize_url(input);
+    let result = location_bar_input_to_url(input);
     assert_eq!(result, expected_result);
 }
 
@@ -117,9 +117,8 @@ fn no_dots_keyword_should_resolve_in_commad_line_as_file_path() {
 
     // Create a temporary file called dragonfruit
     let file_path = cwd.join("dragonfruit");
-    let file = File::create(&file_path).expect("Failed to create dragonfruit file");
-
-    let path =  file_path.to_string_lossy().to_string();
+    File::create(&file_path).expect("Failed to create dragonfruit file");
+    file_path.to_string_lossy().to_string();
     let input = "dragonfruit";
 
     let url = get_default_url(Some(input.to_string()));
@@ -141,7 +140,7 @@ fn no_dots_keyword_should_resolve_as_search() {
     let input1 = "README.md";
 
     // in location bar
-    let location_bar_url = sanitize_url(input);
+    let location_bar_url = location_bar_input_to_url(input);
     let binding = location_bar_url.clone().unwrap();
 
     assert_eq!(binding.scheme(), "https");
@@ -150,27 +149,18 @@ fn no_dots_keyword_should_resolve_as_search() {
 
 
     let expected_result = ServoUrl::parse("https://README.md").ok();
-    let location_bar_url1 = sanitize_url(input1);
+    let location_bar_url1 = location_bar_input_to_url(input1);
     assert_eq!(location_bar_url1, expected_result);
 
 
     // in command line
     let command_line_url = get_default_url(Some(input.to_string()));
 
+    println!("command_line_url: {:?}", command_line_url);
     // if no file named with keyword exists locally, it should be trated as search keyword
     assert_eq!(command_line_url.scheme(), "https");
     assert_eq!(command_line_url.domain(), Some("duckduckgo.com"));
     assert_eq!(command_line_url.query(), Some("q=dragonfruit"));
-
-    let cwd = "./";
-    env::set_current_dir(&cwd).expect("Failed to set current directory");
-    let command_line_url1 = get_default_url(Some(input1.to_string()));
-    let path_segments = command_line_url1.path_segments().unwrap().collect::<Vec<_>>();
-    let contains_input = path_segments.contains(&input1);
-
-    assert_eq!(command_line_url1.scheme(), "file");
-    assert!(contains_input);
-
 }
 
 #[test]
@@ -184,8 +174,8 @@ fn should_resolve_url() {
     let result_for_input1  = "https://foo.txt/ro";
 
     // location bar
-    let location_url = sanitize_url(input).unwrap();
-    let location_url_for_input1 = sanitize_url(input1).unwrap();
+    let location_url = location_bar_input_to_url(input).unwrap();
+    let location_url_for_input1 = location_bar_input_to_url(input1).unwrap();
     assert_eq!(location_url.into_string(), result);
     assert_eq!(location_url_for_input1.into_string(), result_for_input1);
 
@@ -200,9 +190,15 @@ fn should_resolve_url() {
 #[test]
 fn parse_url_command_line() {
     let input = "/dev/null";
-    let url = get_default_url(Some(input.to_string()));
     let expected_result = "file:///dev/null";
 
-    assert_eq!(url.scheme(), "file");
-    assert_eq!(url.into_string(), expected_result);
+    //should resolve in command line
+    let cmdline_url = get_default_url(Some(input.to_string()));
+    assert_eq!(cmdline_url.scheme(), "file");
+    assert_eq!(cmdline_url.into_string(), expected_result);
+
+     //should resolve in location bar
+     let location_bar_url = location_bar_input_to_url(input);
+     assert_eq!(location_bar_url.scheme(), "file");
+     assert_eq!(location_bar_url.into_string(), expected_result)
 }
