@@ -98,7 +98,7 @@ use euclid::{Scale, Size2D};
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
-use log::{Log, Metadata, Record};
+use log::{trace, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
