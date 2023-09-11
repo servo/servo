@@ -104,7 +104,10 @@ impl App {
         // frame, set this to false, so we can avoid an unnecessary recomposite.
         let mut need_recomposite = true;
 
+        // If we have a minibrowser, ask the compositor to notify us when a new frame
+        // is ready to present, so that we can paint the minibrowser then present.
         let external_present = app.minibrowser.is_some();
+
         let t_start = Instant::now();
         let mut t = t_start;
         let ev_waker = events_loop.create_event_loop_waker();
@@ -153,9 +156,6 @@ impl App {
 
                     let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
                     let mut servo = servo_data.servo;
-
-                    // If we have a minibrowser, ask the compositor to notify us when a new frame
-                    // is ready to present, so that we can paint the minibrowser then present.
                     servo.set_external_present(external_present);
 
                     servo.handle_events(vec![EmbedderEvent::NewBrowser(initial_url.to_owned(), servo_data.browser_id)]);
