@@ -252,7 +252,8 @@ impl App {
                     window.winit_window().unwrap().request_redraw();
 
                     // We don’t need the compositor to paint to this frame during the redraw event.
-                    need_recomposite = false;
+                    // TODO(servo#30331) broken on macOS?
+                    // need_recomposite = false;
                 },
                 Some(PumpResult::Resize) => {
                     // The window was resized.
