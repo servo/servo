@@ -2768,11 +2768,11 @@ dependencies = [
 
 [[package]]
 name = "hyper_serde"
-version = "0.13.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4193ebe2b9ecb7d04dd1a777c25f3294e10310fe5583e1006a3f47779d6c6a01"
+checksum = "b143883955063687b24c94ba55ec90f7b77aa2a8cc7c238f2045cb3813f3d905"
 dependencies = [
- "cookie 0.12.0",
+ "cookie 0.16.2",
  "headers",
  "http",
  "hyper",
