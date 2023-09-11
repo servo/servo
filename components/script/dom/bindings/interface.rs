@@ -431,7 +431,7 @@ pub fn define_guarded_properties(
 /// be exposed in the global object `obj`.
 pub fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
     unsafe {
-        let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ 0);
+        let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ false);
         let dom_class = get_dom_class(unwrapped).unwrap();
         globals.contains(dom_class.global)
     }

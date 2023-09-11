@@ -113,7 +113,7 @@ unsafe fn html_constructor(
 
     // The new_target might be a cross-compartment wrapper. Get the underlying object
     // so we can do the spec's object-identity checks.
-    rooted!(in(*cx) let new_target_unwrapped = UnwrapObjectDynamic(call_args.new_target().to_object(), *cx, 1));
+    rooted!(in(*cx) let new_target_unwrapped = UnwrapObjectDynamic(call_args.new_target().to_object(), *cx, true));
     if new_target_unwrapped.is_null() {
         throw_dom_exception(cx, global, Error::Type("new.target is null".to_owned()));
         return Err(());

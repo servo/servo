@@ -19,7 +19,7 @@ from .base import Base
 
 DEPS_URL = "https://github.com/servo/servo-build-deps/releases/download/msvc-deps/"
 DEPENDENCIES = {
-    "moztools": "3.2",
+    "moztools": "4.0",
 }
 
 URL_BASE = "https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/"

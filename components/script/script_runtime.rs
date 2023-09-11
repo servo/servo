@@ -37,6 +37,7 @@ use crate::script_thread::trace_thread;
 use crate::task::TaskBox;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
+use core::ffi::c_char;
 use js::glue::{CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun};
 use js::glue::{JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk};
 use js::glue::{
@@ -836,7 +837,7 @@ unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_
 #[allow(unsafe_code)]
 unsafe extern "C" fn servo_build_id(build_id: *mut BuildIdCharVector) -> bool {
     let servo_id = b"Servo\0";
-    SetBuildId(build_id, &servo_id[0], servo_id.len())
+    SetBuildId(build_id, servo_id[0] as *const c_char, servo_id.len())
 }
 
 #[allow(unsafe_code)]
