@@ -62,7 +62,7 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 pub use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
-use log::{error, warn, Log, Metadata, Record};
+use log::{error, trace, warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
 pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
@@ -717,6 +717,7 @@ where
         }
         let mut need_resize = false;
         for event in events {
+            trace!("servo <- embedder EmbedderEvent {:?}", event);
             need_resize |= self.handle_window_event(event);
         }
         if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
@@ -763,6 +764,10 @@ where
 
     pub fn present(&mut self) {
         self.compositor.present();
+    }
+
+    pub fn recomposite(&mut self) {
+        self.compositor.composite();
     }
 }
 
