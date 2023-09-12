@@ -47,7 +47,7 @@ enum PumpResult {
 impl App {
     pub fn run(
         no_native_titlebar: bool,
-        device_pixels_per_px: Option<f32>,
+        device_pixel_ratio_override: Option<f32>,
         user_agent: Option<String>,
         url: Option<String>,
     ) {
@@ -55,13 +55,16 @@ impl App {
 
         // Implements window methods, used by compositor.
         let window = if opts::get().headless {
-            headless_window::Window::new(opts::get().initial_window_size, device_pixels_per_px)
+            headless_window::Window::new(
+                opts::get().initial_window_size,
+                device_pixel_ratio_override,
+            )
         } else {
             Rc::new(headed_window::Window::new(
                 opts::get().initial_window_size,
                 &events_loop,
                 no_native_titlebar,
-                device_pixels_per_px,
+                device_pixel_ratio_override,
             ))
         };
 

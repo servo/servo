@@ -25,13 +25,13 @@ pub struct Window {
     webrender_surfman: WebrenderSurfman,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
-    device_pixels_per_px: Option<f32>,
+    device_pixel_ratio_override: Option<f32>,
 }
 
 impl Window {
     pub fn new(
         size: Size2D<u32, DeviceIndependentPixel>,
-        device_pixels_per_px: Option<f32>,
+        device_pixel_ratio_override: Option<f32>,
     ) -> Rc<dyn WindowPortsMethods> {
         // Initialize surfman
         let connection = Connection::new().expect("Failed to create connection");
@@ -47,15 +47,15 @@ impl Window {
             webrender_surfman,
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
-            device_pixels_per_px,
+            device_pixel_ratio_override,
         };
 
         Rc::new(window)
     }
 
     fn servo_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        match self.device_pixels_per_px {
-            Some(device_pixels_per_px) => Scale::new(device_pixels_per_px),
+        match self.device_pixel_ratio_override {
+            Some(override_value) => Scale::new(override_value),
             _ => Scale::new(1.0),
         }
     }
