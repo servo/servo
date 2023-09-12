@@ -4,48 +4,44 @@
 
 //! A winit window implementation.
 
-use crate::events_loop::{EventsLoop, WakerEvent};
-use crate::keyutils::keyboard_event_from_winit;
-use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{
-    Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit,
-    Vector2D, Vector3D,
-};
-use log::{trace, debug, info};
-#[cfg(any(target_os = "linux", target_os = "windows"))]
-use winit::window::Icon;
-use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::rc::Rc;
+
+use euclid::{Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
+use log::{debug, info, trace};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
-use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
-use servo::compositing::windowing::{AnimationState, MouseWindowEvent, EmbedderEvent};
-use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
+use servo::compositing::windowing::{
+    AnimationState, EmbedderCoordinates, EmbedderEvent, MouseWindowEvent, WindowMethods,
+};
 use servo::embedder_traits::Cursor;
+use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::script_traits::{TouchEventType, WheelDelta, WheelMode};
-use servo::servo_config::opts;
-use servo::servo_config::pref;
+use servo::servo_config::{opts, pref};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_surfman::WebrenderSurfman;
 use servo_media::player::context::{GlApi, GlContext as PlayerGLContext, NativeDisplay};
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-use std::rc::Rc;
 #[cfg(target_os = "linux")]
 use surfman::platform::generic::multi::connection::NativeConnection;
 #[cfg(target_os = "linux")]
 use surfman::platform::generic::multi::context::NativeContext;
-use surfman::Connection;
-use surfman::Context;
-use surfman::Device;
-use surfman::GLApi;
-use surfman::GLVersion;
-use surfman::SurfaceType;
+use surfman::{Connection, Context, Device, GLApi, GLVersion, SurfaceType};
 #[cfg(target_os = "windows")]
 use winapi;
 use winit::dpi::{LogicalPosition, PhysicalPosition, PhysicalSize};
-use winit::event::ModifiersState;
+use winit::event::{
+    ElementState, KeyboardInput, ModifiersState, MouseButton, MouseScrollDelta, TouchPhase,
+    VirtualKeyCode,
+};
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+use winit::window::Icon;
+
+use crate::events_loop::{EventsLoop, WakerEvent};
+use crate::keyutils::keyboard_event_from_winit;
+use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct Window {
     winit_window: winit::window::Window,
@@ -107,7 +103,9 @@ impl Window {
             .with_inner_size(PhysicalSize::new(width as f64, height as f64))
             .with_visible(visible);
 
-        let winit_window = window_builder.build(events_loop.as_winit()).expect("Failed to create window.");
+        let winit_window = window_builder
+            .build(events_loop.as_winit())
+            .expect("Failed to create window.");
 
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         {
@@ -115,7 +113,11 @@ impl Window {
             winit_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
 
-        let primary_monitor = events_loop.as_winit().available_monitors().nth(0).expect("No monitor detected");
+        let primary_monitor = events_loop
+            .as_winit()
+            .available_monitors()
+            .nth(0)
+            .expect("No monitor detected");
 
         let PhysicalSize {
             width: screen_width,
@@ -127,8 +129,8 @@ impl Window {
 
         // Initialize surfman
         let display_handle = winit_window.raw_display_handle();
-        let connection =
-            Connection::from_raw_display_handle(display_handle).expect("Failed to create connection");
+        let connection = Connection::from_raw_display_handle(display_handle)
+            .expect("Failed to create connection");
         let adapter = connection
             .create_adapter()
             .expect("Failed to create adapter");
@@ -310,9 +312,7 @@ impl WindowPortsMethods for Window {
 
     fn page_height(&self) -> f32 {
         let dpr = self.servo_hidpi_factor();
-        let size = self
-            .winit_window
-            .inner_size();
+        let size = self.winit_window.inner_size();
         size.height as f32 * dpr.get()
     }
 
@@ -332,12 +332,13 @@ impl WindowPortsMethods for Window {
 
     fn set_fullscreen(&self, state: bool) {
         if self.fullscreen.get() != state {
-            self.winit_window
-                .set_fullscreen(
-                    if state {
-                        Some(winit::window::Fullscreen::Borderless(Some(self.primary_monitor.clone())))
-                    } else { None }
-                );
+            self.winit_window.set_fullscreen(if state {
+                Some(winit::window::Fullscreen::Borderless(Some(
+                    self.primary_monitor.clone(),
+                )))
+            } else {
+                None
+            });
         }
         self.fullscreen.set(state);
     }
@@ -400,7 +401,9 @@ impl WindowPortsMethods for Window {
     fn queue_embedder_events_for_winit_event(&self, event: winit::event::WindowEvent<'_>) {
         match event {
             winit::event::WindowEvent::ReceivedCharacter(ch) => self.handle_received_character(ch),
-            winit::event::WindowEvent::KeyboardInput { input, .. } => self.handle_keyboard_input(input),
+            winit::event::WindowEvent::KeyboardInput { input, .. } => {
+                self.handle_keyboard_input(input)
+            },
             winit::event::WindowEvent::ModifiersChanged(state) => self.modifiers_state.set(state),
             winit::event::WindowEvent::MouseInput { state, button, .. } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
@@ -489,7 +492,7 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>
+        event_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>,
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
@@ -498,7 +501,8 @@ impl WindowPortsMethods for Window {
             .with_inner_size(size)
             .with_visible(true);
 
-        let winit_window = window_builder.build(event_loop)
+        let winit_window = window_builder
+            .build(event_loop)
             .expect("Failed to create window.");
 
         let pose = Rc::new(XRWindowPose {
@@ -523,9 +527,7 @@ impl WindowMethods for Window {
         // Needed to convince the type system that winit's physical pixels
         // are actually device pixels.
         let dpr: Scale<f32, DeviceIndependentPixel, DevicePixel> = Scale::new(1.0);
-        let PhysicalSize { width, height } = self
-            .winit_window
-            .outer_size();
+        let PhysicalSize { width, height } = self.winit_window.outer_size();
         let PhysicalPosition { x, y } = self
             .winit_window
             .outer_position()
@@ -534,18 +536,14 @@ impl WindowMethods for Window {
         let win_origin = (Point2D::new(x as f32, y as f32) * dpr).to_i32();
         let screen = (self.screen_size.to_f32() * dpr).to_i32();
 
-        let PhysicalSize { width, height } = self
-            .winit_window
-            .inner_size();
+        let PhysicalSize { width, height } = self.winit_window.inner_size();
 
         // Subtract the minibrowser toolbar height if any
         let toolbar_height = self.toolbar_height.get();
         let inner_size = Size2D::new(width as f32, height as f32) * dpr;
         let viewport_size = inner_size - Size2D::new(0f32, toolbar_height);
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
-        let viewport = DeviceIntRect::new(
-            viewport_origin, viewport_size.to_i32()
-        );
+        let viewport = DeviceIntRect::new(viewport_origin, viewport_size.to_i32());
 
         let framebuffer = DeviceIntSize::from_untyped(viewport.size.to_untyped());
         EmbedderCoordinates {

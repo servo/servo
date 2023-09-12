@@ -9,8 +9,9 @@
 //! FIXME: if/when a future version of the `backtrace` crate has
 //! https://github.com/rust-lang/backtrace-rs/pull/265, use that instead.
 
-use backtrace::{BytesOrWideString, PrintFmt};
 use std::fmt::{self, Write};
+
+use backtrace::{BytesOrWideString, PrintFmt};
 
 #[inline(never)]
 pub(crate) fn print(w: &mut dyn std::io::Write) -> Result<(), std::io::Error> {

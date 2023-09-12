@@ -4,11 +4,11 @@
 
 //! An event loop implementation that works in headless mode.
 
-use log::warn;
-use servo::embedder_traits::EventLoopWaker;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
+use log::warn;
+use servo::embedder_traits::EventLoopWaker;
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
@@ -34,14 +34,18 @@ impl EventsLoop {
     // but on Linux, the event loop requires a X11 server.
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
     pub fn new(_headless: bool, _has_output_file: bool) -> EventsLoop {
-        EventsLoop(EventLoop::Winit(Some(winit::event_loop::EventLoopBuilder::with_user_event().build())))
+        EventsLoop(EventLoop::Winit(Some(
+            winit::event_loop::EventLoopBuilder::with_user_event().build(),
+        )))
     }
     #[cfg(target_os = "linux")]
     pub fn new(headless: bool, _has_output_file: bool) -> EventsLoop {
         EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
-            EventLoop::Winit(Some(winit::event_loop::EventLoopBuilder::with_user_event().build()))
+            EventLoop::Winit(Some(
+                winit::event_loop::EventLoopBuilder::with_user_event().build(),
+            ))
         })
     }
     #[cfg(target_os = "macos")]
@@ -82,30 +86,27 @@ impl EventsLoop {
     }
 
     pub fn run_forever<F: 'static>(self, mut callback: F)
-    where F: FnMut(
-        winit::event::Event<'_, WakerEvent>,
-        Option<&winit::event_loop::EventLoopWindowTarget<WakerEvent>>,
-        &mut winit::event_loop::ControlFlow
-    ) {
+    where
+        F: FnMut(
+            winit::event::Event<'_, WakerEvent>,
+            Option<&winit::event_loop::EventLoopWindowTarget<WakerEvent>>,
+            &mut winit::event_loop::ControlFlow,
+        ),
+    {
         match self.0 {
             EventLoop::Winit(events_loop) => {
-                let events_loop = events_loop
-                    .expect("Can't run an unavailable event loop.");
+                let events_loop = events_loop.expect("Can't run an unavailable event loop.");
                 events_loop.run(move |e, window_target, ref mut control_flow| {
                     callback(e, Some(window_target), control_flow)
                 });
-            }
+            },
             EventLoop::Headless(ref data) => {
                 let (flag, condvar) = &**data;
                 let mut event = winit::event::Event::NewEvents(winit::event::StartCause::Init);
                 loop {
                     self.sleep(flag, condvar);
                     let mut control_flow = winit::event_loop::ControlFlow::Poll;
-                    callback(
-                        event,
-                        None,
-                        &mut control_flow
-                    );
+                    callback(event, None, &mut control_flow);
                     event = winit::event::Event::<WakerEvent>::UserEvent(WakerEvent);
 
                     if control_flow != winit::event_loop::ControlFlow::Poll {

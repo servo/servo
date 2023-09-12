@@ -2,14 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
- use std::{cell::{RefCell, Cell}, sync::Arc, time::Instant};
+use std::cell::{Cell, RefCell};
+use std::sync::Arc;
+use std::time::Instant;
 
-use egui::{TopBottomPanel, Modifiers, Key};
-use log::{warn, trace};
-use servo::{servo_url::ServoUrl, compositing::windowing::EmbedderEvent};
+use egui::{Key, Modifiers, TopBottomPanel};
+use log::{trace, warn};
+use servo::compositing::windowing::EmbedderEvent;
+use servo::servo_url::ServoUrl;
 use servo::webrender_surfman::WebrenderSurfman;
 
-use crate::{egui_glue::EguiGlow, events_loop::EventsLoop, browser::Browser, window_trait::WindowPortsMethods};
+use crate::browser::Browser;
+use crate::egui_glue::EguiGlow;
+use crate::events_loop::EventsLoop;
+use crate::window_trait::WindowPortsMethods;
 
 pub struct Minibrowser {
     pub context: EguiGlow,
@@ -30,9 +36,7 @@ pub enum MinibrowserEvent {
 impl Minibrowser {
     pub fn new(webrender_surfman: &WebrenderSurfman, events_loop: &EventsLoop) -> Self {
         let gl = unsafe {
-            glow::Context::from_loader_function(|s| {
-                webrender_surfman.get_proc_address(s)
-            })
+            glow::Context::from_loader_function(|s| webrender_surfman.get_proc_address(s))
         };
 
         Self {
@@ -48,8 +52,19 @@ impl Minibrowser {
     /// Update the minibrowser, but don’t paint.
     pub fn update(&mut self, window: &winit::window::Window, reason: &'static str) {
         let now = Instant::now();
-        trace!("{:?} since last update ({})", now - self.last_update, reason);
-        let Self { context, event_queue, toolbar_height, last_update, location, location_dirty } = self;
+        trace!(
+            "{:?} since last update ({})",
+            now - self.last_update,
+            reason
+        );
+        let Self {
+            context,
+            event_queue,
+            toolbar_height,
+            last_update,
+            location,
+            location_dirty,
+        } = self;
         let _duration = context.run(window, |ctx| {
             TopBottomPanel::top("toolbar").show(ctx, |ui| {
                 ui.allocate_ui_with_layout(
@@ -71,7 +86,9 @@ impl Minibrowser {
                         if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
                             location_field.request_focus();
                         }
-                        if location_field.lost_focus() && ui.input(|i| i.clone().key_pressed(Key::Enter)) {
+                        if location_field.lost_focus() &&
+                            ui.input(|i| i.clone().key_pressed(Key::Enter))
+                        {
                             event_queue.borrow_mut().push(MinibrowserEvent::Go);
                             location_dirty.set(false);
                         }
@@ -92,7 +109,8 @@ impl Minibrowser {
     /// Takes any outstanding events from the [Minibrowser], converting them to [EmbedderEvent] and
     /// routing those to the App event queue.
     pub fn queue_embedder_events_for_minibrowser_events(
-        &self, browser: &Browser<dyn WindowPortsMethods>,
+        &self,
+        browser: &Browser<dyn WindowPortsMethods>,
         app_event_queue: &mut Vec<EmbedderEvent>,
     ) {
         for event in self.event_queue.borrow_mut().drain(..) {
@@ -112,7 +130,10 @@ impl Minibrowser {
 
     /// Updates the location field from the given [Browser], unless the user has started editing it
     /// without clicking Go, returning true iff the location has changed (needing an egui update).
-    pub fn update_location_in_toolbar(&mut self, browser: &mut Browser<dyn WindowPortsMethods>) -> bool {
+    pub fn update_location_in_toolbar(
+        &mut self,
+        browser: &mut Browser<dyn WindowPortsMethods>,
+    ) -> bool {
         // User edited without clicking Go?
         if self.location_dirty.get() {
             return false;

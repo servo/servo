@@ -4,6 +4,22 @@
 
 //! Application entry point, runs the event loop.
 
+use std::cell::{Cell, RefCell, RefMut};
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::time::Instant;
+
+use gleam::gl;
+use log::{trace, warn};
+use servo::compositing::windowing::EmbedderEvent;
+use servo::config::opts;
+use servo::servo_config::pref;
+use servo::Servo;
+use surfman::GLApi;
+use webxr::glwindow::GlWindowDiscovery;
+use winit::event_loop::EventLoopWindowTarget;
+use winit::window::WindowId;
+
 use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
@@ -11,20 +27,6 @@ use crate::minibrowser::Minibrowser;
 use crate::parser::get_default_url;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
-use gleam::gl;
-use log::{trace, warn};
-use servo::compositing::windowing::EmbedderEvent;
-use servo::config::opts;
-use servo::servo_config::pref;
-use servo::Servo;
-use std::cell::{Cell, RefCell, RefMut};
-use std::collections::HashMap;
-use std::rc::Rc;
-use std::time::Instant;
-use surfman::GLApi;
-use webxr::glwindow::GlWindowDiscovery;
-use winit::window::WindowId;
-use winit::event_loop::EventLoopWindowTarget;
 
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
@@ -80,7 +82,9 @@ impl App {
             // Make sure the gl context is made current.
             let webrender_surfman = window.webrender_surfman();
             let webrender_gl = match webrender_surfman.connection().gl_api() {
-                GLApi::GL => unsafe { gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s)) },
+                GLApi::GL => unsafe {
+                    gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s))
+                },
                 GLApi::GLES => unsafe {
                     gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
                 },
@@ -124,7 +128,8 @@ impl App {
                 winit::event::Event::NewEvents(winit::event::StartCause::Init) => {
                     let surfman = window.webrender_surfman();
 
-                    let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && ! opts::get().headless {
+                    let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless
+                    {
                         let window = window.clone();
                         // This should be safe because run_forever does, in fact,
                         // run forever. The event loop window target doesn't get
@@ -134,7 +139,7 @@ impl App {
                         let w = unsafe {
                             std::mem::transmute::<
                                 &EventLoopWindowTarget<WakerEvent>,
-                                &'static EventLoopWindowTarget<WakerEvent>
+                                &'static EventLoopWindowTarget<WakerEvent>,
                             >(w.unwrap())
                         };
                         let factory = Box::new(move || Ok(window.new_glwindow(w)));
@@ -150,21 +155,21 @@ impl App {
 
                     let window = window.clone();
                     // Implements embedder methods, used by libservo and constellation.
-                    let embedder = Box::new(EmbedderCallbacks::new(
-                        ev_waker.clone(),
-                        xr_discovery,
-                    ));
+                    let embedder = Box::new(EmbedderCallbacks::new(ev_waker.clone(), xr_discovery));
 
                     let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
                     let mut servo = servo_data.servo;
                     servo.set_external_present(external_present);
 
-                    servo.handle_events(vec![EmbedderEvent::NewBrowser(initial_url.to_owned(), servo_data.browser_id)]);
+                    servo.handle_events(vec![EmbedderEvent::NewBrowser(
+                        initial_url.to_owned(),
+                        servo_data.browser_id,
+                    )]);
                     servo.setup_logging();
 
                     app.windows.insert(window.id(), window.clone());
                     app.servo = Some(servo);
-                }
+                },
 
                 winit::event::Event::RedrawRequested(_) => {
                     // We need to redraw the window for some reason.
@@ -186,9 +191,9 @@ impl App {
 
                     // By default, the next RedrawRequested event will need to recomposite.
                     need_recomposite = true;
-                }
+                },
 
-                _ => {}
+                _ => {},
             }
 
             // If self.servo is None here, it means that we're in the process of shutting down,
@@ -233,7 +238,8 @@ impl App {
                 if minibrowser.update_location_in_toolbar(browser) {
                     // Update the minibrowser immediately. While we could update by requesting a
                     // redraw, doing so would delay the location update by two frames.
-                    minibrowser.update(window.winit_window().unwrap(), "update_location_in_toolbar");
+                    minibrowser
+                        .update(window.winit_window().unwrap(), "update_location_in_toolbar");
                 }
             }
 
@@ -271,7 +277,7 @@ impl App {
                     if external_present {
                         app.servo.as_mut().unwrap().present();
                     }
-                }
+                },
                 None => {},
             }
         });
@@ -309,15 +315,13 @@ impl App {
             // Window level events
             winit::event::Event::WindowEvent {
                 window_id, event, ..
-            } => {
-                match self.windows.get(&window_id) {
-                    None => {
-                        warn!("Got an event from unknown window");
-                    },
-                    Some(window) => {
-                        window.queue_embedder_events_for_winit_event(event);
-                    },
-                }
+            } => match self.windows.get(&window_id) {
+                None => {
+                    warn!("Got an event from unknown window");
+                },
+                Some(window) => {
+                    window.queue_embedder_events_for_winit_event(event);
+                },
             },
 
             winit::event::Event::LoopDestroyed |
@@ -364,7 +368,11 @@ impl App {
             // Route embedder events from the Browser to the relevant Servo components,
             // receives and collects embedder messages from various Servo components,
             // and runs the compositor.
-            need_resize |= self.servo.as_mut().unwrap().handle_events(browser.get_events());
+            need_resize |= self
+                .servo
+                .as_mut()
+                .unwrap()
+                .handle_events(browser.get_events());
             if browser.shutdown_requested() {
                 return Some(PumpResult::Shutdown);
             }

@@ -2,55 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[cfg(any(target_os = "macos", target_os = "linux"))]
-#[macro_use]
-extern crate sig;
+use std::io::Write;
+use std::{env, panic, process, thread};
 
-#[cfg(test)]
-mod test;
-
-mod app;
-mod backtrace;
-mod browser;
-mod crash_handler;
-mod egui_glue;
-mod embedder;
-mod events_loop;
-mod headed_window;
-mod headless_window;
-mod keyutils;
-mod minibrowser;
-mod parser;
-mod prefs;
-mod resources;
-mod window_trait;
-
-use app::App;
 use getopts::Options;
+use log::{error, warn};
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::servo_config::pref;
-use std::env;
-use std::io::Write;
-use std::panic;
-use std::process;
-use std::thread;
-use log::{warn,error};
 
-pub mod platform {
-    #[cfg(target_os = "macos")]
-    pub use crate::platform::macos::deinit;
-
-    #[cfg(target_os = "macos")]
-    pub mod macos;
-
-    #[cfg(not(target_os = "macos"))]
-    pub fn deinit(_clean_shutdown: bool) {}
-}
+use crate::app::App;
 
 pub fn main() {
-    crash_handler::install();
+    crate::crash_handler::install();
 
-    resources::init();
+    crate::resources::init();
 
     // Parse the command line options and store them globally
     let args: Vec<String> = env::args().collect();
@@ -103,7 +68,7 @@ pub fn main() {
         },
     };
 
-    prefs::register_user_prefs(&opts_matches);
+    crate::prefs::register_user_prefs(&opts_matches);
 
     // TODO: once log-panics is released, can this be replaced by
     // log_panics::init()?
@@ -133,7 +98,7 @@ pub fn main() {
             let _ = writeln!(&mut stderr, "{} (thread {})", msg, name);
         }
         if env::var("RUST_BACKTRACE").is_ok() {
-            let _ = backtrace::print(&mut stderr);
+            let _ = crate::backtrace::print(&mut stderr);
         }
         drop(stderr);
 
@@ -171,11 +136,20 @@ pub fn main() {
         None
     };
 
-    App::run(do_not_use_native_titlebar, device_pixels_per_px, user_agent, url_opt.map(|s| s.to_string()));
+    App::run(
+        do_not_use_native_titlebar,
+        device_pixels_per_px,
+        user_agent,
+        url_opt.map(|s| s.to_string()),
+    );
 
-    platform::deinit(clean_shutdown)
+    crate::platform::deinit(clean_shutdown)
 }
 
 pub fn servo_version() -> String {
-    format!("Servo {}-{}", env!("CARGO_PKG_VERSION"), env!("VERGEN_GIT_SHA"))
+    format!(
+        "Servo {}-{}",
+        env!("CARGO_PKG_VERSION"),
+        env!("VERGEN_GIT_SHA")
+    )
 }

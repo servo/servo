@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
-use std::thread;
 use std::time::Duration;
+use std::{ptr, thread};
 
 pub fn deinit(clean_shutdown: bool) {
     // An unfortunate hack to make sure the linker's dead code stripping doesn't strip our
