@@ -156,7 +156,6 @@ fn no_dots_keyword_should_resolve_as_search() {
     // in command line
     let command_line_url = get_default_url(Some(input.to_string()));
 
-    println!("command_line_url: {:?}", command_line_url);
     // if no file named with keyword exists locally, it should be trated as search keyword
     assert_eq!(command_line_url.scheme(), "https");
     assert_eq!(command_line_url.domain(), Some("duckduckgo.com"));
@@ -168,6 +167,7 @@ fn should_resolve_url() {
     embedder_traits::resources::set_for_tests();
     let input = "nic.md/ro"; // known tld
     let input1= "foo.txt/ro"; // not a known tld
+    let input2= "data:text/html,a";
 
     // This is the expected result form cmdline_url as well because this file doesn't exists locally
     let result = "https://nic.md/ro";
@@ -176,14 +176,20 @@ fn should_resolve_url() {
     // location bar
     let location_url = location_bar_input_to_url(input).unwrap();
     let location_url_for_input1 = location_bar_input_to_url(input1).unwrap();
+    let location_url_for_input2 = location_bar_input_to_url(input2).unwrap();
     assert_eq!(location_url.into_string(), result);
     assert_eq!(location_url_for_input1.into_string(), result_for_input1);
+    // input should resolve to itself
+    assert_eq!(location_url_for_input2.into_string(), input2);
 
     // cmdline url
     let cmdline_url = get_default_url(Some(input.to_string()));
     let cmdline_url_for_input1 = get_default_url(Some(input1.to_string()));
+    let cmdline_url_for_input2 = get_default_url(Some(input2.to_string()));
     assert_eq!(cmdline_url.into_string(), result);
     assert_eq!(cmdline_url_for_input1.into_string(), result_for_input1);
+    // input should resolve to itself
+    assert_eq!(cmdline_url_for_input2.into_string(), input2);
 }
 
 #[cfg(target_os = "linux")]
