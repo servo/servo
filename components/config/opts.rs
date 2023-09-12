@@ -127,8 +127,8 @@ pub struct Opts {
     /// Print Progressive Web Metrics to console.
     pub print_pwm: bool,
 
-    /// True to disable minibrowser
-    pub no_minibrowser: bool,
+    /// True to enable minibrowser
+    pub minibrowser: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -413,7 +413,7 @@ pub fn default_opts() -> Opts {
         unminify_js: false,
         local_script_source: None,
         print_pwm: false,
-        no_minibrowser: true,
+        minibrowser: true,
     }
 }
 
@@ -768,7 +768,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         unminify_js: opt_match.opt_present("unminify-js"),
         local_script_source: opt_match.opt_str("local-script-source"),
         print_pwm: opt_match.opt_present("print-pwm"),
-        no_minibrowser: !opt_match.opt_present("no-minibrowser"),
+        minibrowser: !opt_match.opt_present("no-minibrowser"),
     };
 
     set_options(opts);

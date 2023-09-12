@@ -112,7 +112,7 @@ where
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'L', || {
-                if !opts::get().no_minibrowser {
+                if !opts::get().minibrowser {
                     let url: String = if let Some(ref current_url) = self.current_url {
                         current_url.to_string()
                     } else {
