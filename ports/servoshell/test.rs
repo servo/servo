@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::Path;
-use std::fs::File;
 use std::env;
-use servo::{embedder_traits, servo_url::ServoUrl};
-use crate::parser::{parse_url_or_filename, get_default_url, location_bar_input_to_url};
+use std::fs::File;
+use std::path::Path;
+
+use servo::embedder_traits;
+use servo::servo_url::ServoUrl;
+
+use crate::parser::{get_default_url, location_bar_input_to_url, parse_url_or_filename};
 
 #[cfg(not(target_os = "windows"))]
 const FAKE_CWD: &'static str = "/fake/cwd";
@@ -147,11 +150,9 @@ fn no_dots_keyword_should_resolve_as_search() {
     assert_eq!(binding.domain(), Some("duckduckgo.com"));
     assert_eq!(binding.query(), Some("q=dragonfruit"));
 
-
     let expected_result = ServoUrl::parse("https://README.md").ok();
     let location_bar_url1 = location_bar_input_to_url(input1);
     assert_eq!(location_bar_url1, expected_result);
-
 
     // in command line
     let command_line_url = get_default_url(Some(input.to_string()));
@@ -166,12 +167,12 @@ fn no_dots_keyword_should_resolve_as_search() {
 fn should_resolve_url() {
     embedder_traits::resources::set_for_tests();
     let input = "nic.md/ro"; // known tld
-    let input1= "foo.txt/ro"; // not a known tld
-    let input2= "data:text/html,a";
+    let input1 = "foo.txt/ro"; // not a known tld
+    let input2 = "data:text/html,a";
 
     // This is the expected result form cmdline_url as well because this file doesn't exists locally
     let result = "https://nic.md/ro";
-    let result_for_input1  = "https://foo.txt/ro";
+    let result_for_input1 = "https://foo.txt/ro";
 
     // location bar
     let location_url = location_bar_input_to_url(input).unwrap();
@@ -203,8 +204,8 @@ fn parse_url_command_line() {
     assert_eq!(cmdline_url.scheme(), "file");
     assert_eq!(cmdline_url.into_string(), expected_result);
 
-     //should resolve in location bar
-     let location_bar_url = location_bar_input_to_url(input).unwrap();
-     assert_eq!(location_bar_url.scheme(), "file");
-     assert_eq!(location_bar_url.into_string(), expected_result)
+    //should resolve in location bar
+    let location_bar_url = location_bar_input_to_url(input).unwrap();
+    assert_eq!(location_bar_url.scheme(), "file");
+    assert_eq!(location_bar_url.into_string(), expected_result)
 }
