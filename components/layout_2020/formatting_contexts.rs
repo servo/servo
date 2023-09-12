@@ -75,7 +75,7 @@ impl IndependentFormattingContext {
         match contents.try_into() {
             Ok(non_replaced) => {
                 let contents = match display_inside {
-                    DisplayInside::Flow { is_list_item } |
+                    DisplayInside::Flow { is_list_item, .. } |
                     DisplayInside::FlowRoot { is_list_item } => {
                         NonReplacedFormattingContextContents::Flow(
                             BlockFormattingContext::construct(

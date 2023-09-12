@@ -65,6 +65,7 @@ impl BlockFormattingContext {
             has_first_formatted_line: true,
             contains_floats: false,
             ends_with_whitespace: false,
+            has_inline_content_or_nonzero_border_padding_margin: true,
         };
         let contents = BlockContainer::InlineFormattingContext(ifc);
         let bfc = Self {
@@ -189,7 +190,6 @@ impl BlockContainer {
             ongoing_inline_formatting_context: InlineFormattingContext::new(
                 text_decoration_line,
                 /* has_first_formatted_line = */ true,
-                /* ends_with_whitespace */ false,
             ),
             ongoing_inline_boxes_stack: Vec::new(),
             anonymous_style: None,
@@ -288,6 +288,11 @@ where
         );
         if output.is_empty() {
             return;
+        }
+
+        if has_uncollapsible_content {
+            self.ongoing_inline_formatting_context
+                .has_inline_content_or_nonzero_border_padding_margin = true;
         }
 
         self.ongoing_inline_formatting_context.ends_with_whitespace =
@@ -455,6 +460,7 @@ where
             &info.new_replacing_style(marker_style),
             DisplayInside::Flow {
                 is_list_item: false,
+                is_table_part: false,
             },
             Contents::OfPseudoElement(contents),
         );
@@ -466,8 +472,13 @@ where
         display_inside: DisplayInside,
         contents: Contents,
     ) -> ArcRefCell<InlineLevelBox> {
-        let box_ = if let (DisplayInside::Flow { is_list_item }, false) =
-            (display_inside, contents.is_replaced())
+        let box_ = if let (
+            DisplayInside::Flow {
+                is_list_item,
+                is_table_part,
+            },
+            false,
+        ) = (display_inside, contents.is_replaced())
         {
             // We found un inline box.
             // Whatever happened before, all we need to do before recurring
@@ -480,6 +491,11 @@ where
                 children: vec![],
             });
 
+            if is_table_part {
+                self.ongoing_inline_formatting_context
+                    .has_inline_content_or_nonzero_border_padding_margin = true;
+            }
+
             if is_list_item {
                 if let Some(marker_contents) = crate::lists::make_marker(self.context, info) {
                     // Ignore `list-style-position` here:
@@ -487,6 +503,15 @@ where
                     // https://drafts.csswg.org/css-lists/#list-style-position-outside
                     self.handle_list_item_marker_inside(info, marker_contents)
                 }
+            }
+
+            let writing_mode = self.info.style.writing_mode;
+            if !info
+                .style
+                .inline_padding_border_margin_is_definitely_zero(writing_mode)
+            {
+                self.ongoing_inline_formatting_context
+                    .has_inline_content_or_nonzero_border_padding_margin = true;
             }
 
             // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
@@ -502,6 +527,8 @@ where
             ArcRefCell::new(InlineLevelBox::InlineBox(inline_box))
         } else {
             self.ongoing_inline_formatting_context.ends_with_whitespace = false;
+            self.ongoing_inline_formatting_context
+                .has_inline_content_or_nonzero_border_padding_margin = true;
             ArcRefCell::new(InlineLevelBox::Atomic(
                 IndependentFormattingContext::construct(
                     self.context,
@@ -566,14 +593,23 @@ where
 
         let propagated_text_decoration_line =
             self.ongoing_inline_formatting_context.text_decoration_line;
+        let has_inline_content_or_nonzero_border_padding_margin = self
+            .ongoing_inline_formatting_context
+            .has_inline_content_or_nonzero_border_padding_margin;
 
         // We found a block level element, so the ongoing inline formatting
         // context needs to be ended.
         self.end_ongoing_inline_formatting_context();
 
+        self.ongoing_inline_formatting_context
+            .has_inline_content_or_nonzero_border_padding_margin =
+            has_inline_content_or_nonzero_border_padding_margin;
+        self.ongoing_inline_formatting_context
+            .has_inline_content_or_nonzero_border_padding_margin = false;
+
         let kind = match contents.try_into() {
             Ok(contents) => match display_inside {
-                DisplayInside::Flow { is_list_item }
+                DisplayInside::Flow { is_list_item, .. }
                     if !info.style.establishes_block_formatting_context() =>
                 {
                     BlockLevelCreator::SameFormattingContextBlock(
@@ -673,6 +709,8 @@ where
             self.ongoing_inline_formatting_context
                 .has_first_formatted_line = false;
             self.ongoing_inline_formatting_context.ends_with_whitespace = false;
+            self.ongoing_inline_formatting_context
+                .has_inline_content_or_nonzero_border_padding_margin = false;
             return;
         }
 
@@ -692,7 +730,6 @@ where
         let mut ifc = InlineFormattingContext::new(
             self.ongoing_inline_formatting_context.text_decoration_line,
             /* has_first_formatted_line = */ false,
-            /* ends_with_whitespace */ false,
         );
         std::mem::swap(&mut self.ongoing_inline_formatting_context, &mut ifc);
         let kind = BlockLevelCreator::SameFormattingContextBlock(

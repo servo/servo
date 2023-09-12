@@ -50,8 +50,13 @@ pub(crate) enum DisplayOutside {
 pub(crate) enum DisplayInside {
     // “list-items are limited to the Flow Layout display types”
     // https://drafts.csswg.org/css-display/#list-items
-    Flow { is_list_item: bool },
-    FlowRoot { is_list_item: bool },
+    Flow {
+        is_list_item: bool,
+        is_table_part: bool,
+    },
+    FlowRoot {
+        is_list_item: bool,
+    },
     Flex,
 }
 
@@ -111,6 +116,7 @@ pub(crate) trait ComputedValuesExt {
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Option<Length>>;
+    fn inline_padding_border_margin_is_definitely_zero(&self, writing_mode: WritingMode) -> bool;
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
     fn padding(
         &self,
@@ -279,6 +285,25 @@ impl ComputedValuesExt for ComputedValues {
                 }
             },
         }
+    }
+
+    fn inline_padding_border_margin_is_definitely_zero(&self, writing_mode: WritingMode) -> bool {
+        let padding = self.padding(writing_mode);
+        let border = self.border_width(writing_mode);
+        let margin = self.margin(writing_mode);
+        padding.inline_start.is_definitely_zero() &&
+            padding.inline_end.is_definitely_zero() &&
+            border.inline_sum().is_zero() &&
+            margin
+                .inline_start
+                .non_auto()
+                .map(|value| value.is_definitely_zero())
+                .unwrap_or(true) &&
+            margin
+                .inline_end
+                .non_auto()
+                .map(|value| value.is_definitely_zero())
+                .unwrap_or(true)
     }
 
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
@@ -495,6 +520,7 @@ impl From<stylo::Display> for Display {
         let inside = match packed.inside() {
             stylo::DisplayInside::Flow => DisplayInside::Flow {
                 is_list_item: packed.is_list_item(),
+                is_table_part: false,
             },
             stylo::DisplayInside::FlowRoot => DisplayInside::FlowRoot {
                 is_list_item: packed.is_list_item(),
@@ -515,6 +541,7 @@ impl From<stylo::Display> for Display {
             stylo::DisplayInside::TableRow |
             stylo::DisplayInside::TableCell => DisplayInside::Flow {
                 is_list_item: packed.is_list_item(),
+                is_table_part: true,
             },
         };
         let outside = match packed.outside() {

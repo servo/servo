@@ -236,6 +236,7 @@ fn traverse_pseudo_element_contents<'dom, Node>(
                     outside: DisplayOutside::Inline,
                     inside: DisplayInside::Flow {
                         is_list_item: false,
+                        is_table_part: false,
                     },
                 };
                 // `display` is not inherited, so we get the initial value

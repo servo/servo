@@ -60,6 +60,10 @@ pub(crate) struct InlineFormattingContext {
     /// > within the same inline formatting context—is collapsed to have zero advance width.
     /// > (It is invisible, but retains its soft wrap opportunity, if any.)
     pub(super) ends_with_whitespace: bool,
+    /// Whether or not this [`InlineFormattingContext`] will definitely collapse through.
+    /// Note: This is only a heuristic for now, so even if this is true, the IFC may
+    /// indeed collapse through.
+    pub(super) has_inline_content_or_nonzero_border_padding_margin: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -1051,14 +1055,14 @@ impl InlineFormattingContext {
     pub(super) fn new(
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
-        ends_with_whitespace: bool,
     ) -> InlineFormattingContext {
         InlineFormattingContext {
             inline_level_boxes: Default::default(),
             text_decoration_line,
             has_first_formatted_line,
             contains_floats: false,
-            ends_with_whitespace,
+            ends_with_whitespace: false,
+            has_inline_content_or_nonzero_border_padding_margin: false,
         }
     }
 
@@ -1256,12 +1260,13 @@ impl InlineFormattingContext {
             inline_box_state_stack: Vec::new(),
         };
 
-        // FIXME(pcwalton): This assumes that margins never collapse through inline formatting
-        // contexts (i.e. that inline formatting contexts are never empty). Is that right?
-        // FIXME(mrobinson): This should not happen if the IFC collapses through.
         if let Some(ref mut sequential_layout_state) = ifc.sequential_layout_state {
-            sequential_layout_state.collapse_margins();
-            // FIXME(mrobinson): Collapse margins in the containing block offsets as well??
+            // FIXME(mrobinson): This is only a heuristic, but we need to be able to
+            // rewind layout if we find out that an IFC is going to have a zero block
+            // size. We can't do this yet.
+            if self.has_inline_content_or_nonzero_border_padding_margin {
+                sequential_layout_state.collapse_margins();
+            }
         }
 
         let mut iterator = InlineBoxChildIter::from_formatting_context(self);
@@ -1331,8 +1336,11 @@ impl InlineFormattingContext {
 
         let mut collapsible_margins_in_children = CollapsedBlockMargins::zero();
         let content_block_size = ifc.current_line.start_position.block;
+        let zero_block_size = content_block_size == Length::zero();
+        assert!(self.has_inline_content_or_nonzero_border_padding_margin || zero_block_size);
+
         collapsible_margins_in_children.collapsed_through =
-            content_block_size == Length::zero() && collapsible_with_parent_start_margin.0;
+            zero_block_size && collapsible_with_parent_start_margin.0;
 
         return FlowLayout {
             fragments: ifc.fragments,

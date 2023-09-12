@@ -167,7 +167,7 @@ jobs:
     name: Results
     needs: ["parse-comment", "run-try"]
     runs-on: ubuntu-latest
-    if: ${{ always() && fromJson(needs.parse-comment.outputs.configuration).try}}
+    if: ${{ always() && fromJson(needs.parse-comment.outputs.configuration).platforms[0] != null }}
     steps:
       - name: Success
         if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
