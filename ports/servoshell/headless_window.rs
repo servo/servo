@@ -7,7 +7,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use euclid::{Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
+use euclid::{Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
 };
@@ -52,13 +52,6 @@ impl Window {
 
         Rc::new(window)
     }
-
-    fn servo_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        match self.device_pixel_ratio_override {
-            Some(override_value) => Scale::new(override_value),
-            _ => Scale::new(1.0),
-        }
-    }
 }
 
 impl WindowPortsMethods for Window {
@@ -74,6 +67,16 @@ impl WindowPortsMethods for Window {
         unsafe { winit::window::WindowId::dummy() }
     }
 
+    fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        Scale::new(1.0)
+    }
+
+    fn device_pixel_ratio_override(
+        &self,
+    ) -> Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> {
+        self.device_pixel_ratio_override.map(Scale::new)
+    }
+
     fn page_height(&self) -> f32 {
         let height = self
             .webrender_surfman
@@ -81,7 +84,7 @@ impl WindowPortsMethods for Window {
             .unwrap_or(None)
             .map(|info| info.size.height)
             .unwrap_or(0);
-        let dpr = self.servo_hidpi_factor();
+        let dpr = self.hidpi_factor();
         height as f32 * dpr.get()
     }
 
@@ -112,14 +115,14 @@ impl WindowPortsMethods for Window {
         None
     }
 
-    fn set_toolbar_height(&self, _height: f32) {
+    fn set_toolbar_height(&self, _height: Length<f32, DeviceIndependentPixel>) {
         unimplemented!("headless Window only")
     }
 }
 
 impl WindowMethods for Window {
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        let dpr = self.servo_hidpi_factor();
+        let dpr = self.hidpi_factor();
         let size = self
             .webrender_surfman
             .context_surface_info()

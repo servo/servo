@@ -5,8 +5,12 @@
 //! Definition of Window.
 //! Implemented by headless and headed windows.
 
+use euclid::{Length, Scale};
 use servo::compositing::windowing::{EmbedderEvent, WindowMethods};
+use servo::config::opts;
 use servo::embedder_traits::Cursor;
+use servo::servo_geometry::DeviceIndependentPixel;
+use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
 use crate::events_loop::WakerEvent;
@@ -18,6 +22,17 @@ pub trait WindowPortsMethods: WindowMethods {
     fn get_events(&self) -> Vec<EmbedderEvent>;
     fn id(&self) -> winit::window::WindowId;
     fn has_events(&self) -> bool;
+    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        self.device_pixel_ratio_override()
+            .unwrap_or_else(|| match opts::get().output_file {
+                Some(_) => Scale::new(1.0),
+                None => self.device_hidpi_factor(),
+            })
+    }
+    fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
+    fn device_pixel_ratio_override(
+        &self,
+    ) -> Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>;
     fn page_height(&self) -> f32;
     fn get_fullscreen(&self) -> bool;
     fn queue_embedder_events_for_winit_event(&self, event: winit::event::WindowEvent<'_>);
@@ -32,5 +47,5 @@ pub trait WindowPortsMethods: WindowMethods {
         events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>,
     ) -> Box<dyn webxr::glwindow::GlWindow>;
     fn winit_window(&self) -> Option<&winit::window::Window>;
-    fn set_toolbar_height(&self, height: f32);
+    fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>);
 }

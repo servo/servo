@@ -7,8 +7,10 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use egui::{Key, Modifiers, TopBottomPanel};
+use euclid::Length;
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
+use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::webrender_surfman::WebrenderSurfman;
 
@@ -20,7 +22,7 @@ use crate::window_trait::WindowPortsMethods;
 pub struct Minibrowser {
     pub context: EguiGlow,
     pub event_queue: RefCell<Vec<MinibrowserEvent>>,
-    pub toolbar_height: Cell<f32>,
+    pub toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     last_update: Instant,
     location: RefCell<String>,
 
@@ -34,15 +36,25 @@ pub enum MinibrowserEvent {
 }
 
 impl Minibrowser {
-    pub fn new(webrender_surfman: &WebrenderSurfman, events_loop: &EventsLoop) -> Self {
+    pub fn new(
+        webrender_surfman: &WebrenderSurfman,
+        events_loop: &EventsLoop,
+        window: &dyn WindowPortsMethods,
+    ) -> Self {
         let gl = unsafe {
             glow::Context::from_loader_function(|s| webrender_surfman.get_proc_address(s))
         };
 
+        // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
+        let context = EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None);
+        context
+            .egui_ctx
+            .set_pixels_per_point(window.hidpi_factor().get());
+
         Self {
-            context: EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
+            context,
             event_queue: RefCell::new(vec![]),
-            toolbar_height: 0f32.into(),
+            toolbar_height: Default::default(),
             last_update: Instant::now(),
             location: RefCell::new(String::default()),
             location_dirty: false.into(),
@@ -96,7 +108,7 @@ impl Minibrowser {
                 );
             });
 
-            toolbar_height.set(ctx.used_rect().height());
+            toolbar_height.set(Length::new(ctx.used_rect().height()));
             *last_update = now;
         });
     }
