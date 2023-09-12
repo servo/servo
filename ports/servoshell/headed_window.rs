@@ -60,7 +60,7 @@ pub struct Window {
     keys_down: RefCell<HashMap<VirtualKeyCode, Key>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
-    device_pixels_per_px: Option<f32>,
+    device_pixel_ratio_override: Option<f32>,
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
     modifiers_state: Cell<ModifiersState>,
 }
@@ -82,7 +82,7 @@ impl Window {
         win_size: Size2D<u32, DeviceIndependentPixel>,
         events_loop: &EventsLoop,
         no_native_titlebar: bool,
-        device_pixels_per_px: Option<f32>,
+        device_pixel_ratio_override: Option<f32>,
     ) -> Window {
         let opts = opts::get();
 
@@ -157,7 +157,7 @@ impl Window {
             inner_size: Cell::new(inner_size),
             primary_monitor,
             screen_size,
-            device_pixels_per_px,
+            device_pixel_ratio_override,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(0.0),
@@ -291,8 +291,8 @@ impl Window {
     }
 
     fn servo_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        match self.device_pixels_per_px {
-            Some(device_pixels_per_px) => Scale::new(device_pixels_per_px),
+        match self.device_pixel_ratio_override {
+            Some(override_value) => Scale::new(override_value),
             _ => match opts::get().output_file {
                 Some(_) => Scale::new(1.0),
                 None => self.device_hidpi_factor(),

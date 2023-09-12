@@ -121,7 +121,7 @@ pub fn main() {
     let clean_shutdown = opts_matches.opt_present("clean-shutdown");
     let do_not_use_native_titlebar =
         opts_matches.opt_present("no-native-titlebar") || !(pref!(shell.native_titlebar.enabled));
-    let device_pixels_per_px = opts_matches.opt_str("device-pixel-ratio").map(|dppx_str| {
+    let device_pixel_ratio_override = opts_matches.opt_str("device-pixel-ratio").map(|dppx_str| {
         dppx_str.parse().unwrap_or_else(|err| {
             error!("Error parsing option: --device-pixel-ratio ({})", err);
             process::exit(1);
@@ -138,7 +138,7 @@ pub fn main() {
 
     App::run(
         do_not_use_native_titlebar,
-        device_pixels_per_px,
+        device_pixel_ratio_override,
         user_agent,
         url_opt.map(|s| s.to_string()),
     );
