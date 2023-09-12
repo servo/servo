@@ -71,9 +71,6 @@ packages = [
     "paste",
     "syn",
 
-    # Duplicated by servo-media.
-    "uuid",
-
     # style/webxr (0.62) vs. mozjs_sys (0.66)
     "bindgen",
 ]
