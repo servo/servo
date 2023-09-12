@@ -17,7 +17,7 @@ async-tungstenite = { version = "0.22", features = ["tokio-rustls-webpki-roots"]
 atomic_refcell = "0.1.11"
 arrayvec = "0.7"
 backtrace = "0.3"
-base64 = "0.21.3"
+base64 = "0.21.4"
 bitflags = "2.4"
 byteorder = "1.0"
 cfg-if = "1.0.0"
