@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::Path;
+
 use crate::parser::parse_url_or_filename;
 
 #[cfg(not(target_os = "windows"))]

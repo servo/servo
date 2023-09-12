@@ -7,9 +7,13 @@ pub fn install() {}
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 pub fn install() {
-    use crate::backtrace;
+    use std::io::Write;
+    use std::sync::atomic;
+    use std::thread;
+
     use sig::ffi::Sig;
-    use std::{io::Write, sync::atomic, thread};
+
+    use crate::backtrace;
 
     extern "C" fn handler(sig: i32) {
         // Only print crash message and backtrace the first time, to avoid

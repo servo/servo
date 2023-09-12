@@ -2,32 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
-use crate::parser::sanitize_url;
-use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use std::fs::File;
+use std::io::Write;
+use std::rc::Rc;
+use std::time::Duration;
+use std::{env, thread};
+
 use arboard::Clipboard;
 use euclid::{Point2D, Vector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
-use log::{error, debug, trace, warn, info};
-use servo::compositing::windowing::{WebRenderDebugOption, EmbedderEvent};
+use log::{debug, error, info, trace, warn};
+use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::embedder_traits::{
     ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt, PermissionRequest,
     PromptDefinition, PromptOrigin, PromptResult,
 };
-use servo::msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
-use servo::msg::constellation_msg::TraversalDirection;
+use servo::msg::constellation_msg::{TopLevelBrowsingContextId as BrowserId, TraversalDirection};
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
-use std::env;
-use std::fs::File;
-use std::io::Write;
-
-use std::rc::Rc;
-use std::thread;
-use std::time::Duration;
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
+
+use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
+use crate::parser::sanitize_url;
+use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
@@ -282,7 +281,11 @@ where
     pub fn handle_servo_events(&mut self, events: Vec<(Option<BrowserId>, EmbedderMsg)>) -> bool {
         let mut need_present = false;
         for (browser_id, msg) in events {
-            trace!("embedder <- servo EmbedderMsg ({:?}, {:?})", browser_id.map(|x| format!("{}", x)), msg);
+            trace!(
+                "embedder <- servo EmbedderMsg ({:?}, {:?})",
+                browser_id.map(|x| format!("{}", x)),
+                msg
+            );
             match msg {
                 EmbedderMsg::Status(_status) => {
                     // FIXME: surface this status string in the UI somehow
@@ -422,7 +425,8 @@ where
                     self.handle_key_from_servo(browser_id, key_event);
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
-                    let contents = self.clipboard
+                    let contents = self
+                        .clipboard
                         .as_mut()
                         .and_then(|clipboard| clipboard.get_text().ok())
                         .unwrap_or_else(|| {
@@ -482,7 +486,8 @@ where
                     if let Err(e) = sender.send(selected) {
                         let reason =
                             format!("Failed to send GetSelectedBluetoothDevice response: {}", e);
-                        self.event_queue.push(EmbedderEvent::SendError(None, reason));
+                        self.event_queue
+                            .push(EmbedderEvent::SendError(None, reason));
                     };
                 },
                 EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
@@ -495,7 +500,8 @@ where
                     };
                     if let Err(e) = res {
                         let reason = format!("Failed to send SelectFiles response: {}", e);
-                        self.event_queue.push(EmbedderEvent::SendError(None, reason));
+                        self.event_queue
+                            .push(EmbedderEvent::SendError(None, reason));
                     };
                 },
                 EmbedderMsg::PromptPermission(prompt, sender) => {

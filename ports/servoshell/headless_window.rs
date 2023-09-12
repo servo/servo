@@ -4,23 +4,22 @@
 
 //! A headless window implementation.
 
-use crate::events_loop::WakerEvent;
-use crate::window_trait::WindowPortsMethods;
+use std::cell::Cell;
+use std::rc::Rc;
+
 use euclid::{Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
-use servo::compositing::windowing::{AnimationState, EmbedderEvent};
-use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
+use servo::compositing::windowing::{
+    AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
+};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_surfman::WebrenderSurfman;
 use servo_media::player::context as MediaPlayerCtxt;
-use std::cell::Cell;
-use std::rc::Rc;
-use surfman::Connection;
-use surfman::Context;
-use surfman::Device;
-use surfman::SurfaceType;
+use surfman::{Connection, Context, Device, SurfaceType};
 
+use crate::events_loop::WakerEvent;
+use crate::window_trait::WindowPortsMethods;
 
 pub struct Window {
     webrender_surfman: WebrenderSurfman,
@@ -104,7 +103,7 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        _events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>
+        _events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>,
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         unimplemented!()
     }

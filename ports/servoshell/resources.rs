@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo::embedder_traits::resources::{self, Resource};
-use std::env;
-use std::fs;
-use std::io;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::{env, fs, io};
+
+use servo::embedder_traits::resources::{self, Resource};
 
 lazy_static::lazy_static! {
     static ref CMD_RESOURCE_DIR: Mutex<Option<String>> = Mutex::new(None);
