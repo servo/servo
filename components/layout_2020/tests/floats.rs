@@ -14,7 +14,7 @@ use layout_2020::flow::float::{
     ContainingBlockPositionInfo, FloatBand, FloatBandNode, FloatBandTree, FloatContext, FloatSide,
     PlacementInfo,
 };
-use layout_2020::geom::flow_relative::{Rect, Vec2};
+use layout_2020::geom::{LogicalRect, LogicalVec2};
 use lazy_static::lazy_static;
 use quickcheck::{Arbitrary, Gen};
 use style::values::computed::{Clear, Length};
@@ -352,7 +352,7 @@ impl Arbitrary for FloatInput {
         let clear = u8::arbitrary(generator);
         FloatInput {
             info: PlacementInfo {
-                size: Vec2 {
+                size: LogicalVec2 {
                     inline: Length::new(width as f32),
                     block: Length::new(height as f32),
                 },
@@ -424,7 +424,7 @@ struct FloatPlacement {
 // Information about the placement of a float.
 #[derive(Clone)]
 struct PlacedFloat {
-    origin: Vec2<Length>,
+    origin: LogicalVec2<Length>,
     info: PlacementInfo,
     ceiling: Length,
     containing_block_info: ContainingBlockPositionInfo,
@@ -453,8 +453,8 @@ impl Drop for FloatPlacement {
 }
 
 impl PlacedFloat {
-    fn rect(&self) -> Rect<Length> {
-        Rect {
+    fn rect(&self) -> LogicalRect<Length> {
+        LogicalRect {
             start_corner: self.origin.clone(),
             size: self.info.size.clone(),
         }

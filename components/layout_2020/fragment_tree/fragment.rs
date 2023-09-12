@@ -19,8 +19,7 @@ use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{BaseFragment, BoxFragment, ContainingBlockManager, HoistedSharedFragment, Tag};
 use crate::cell::ArcRefCell;
-use crate::geom::flow_relative::{Rect, Sides};
-use crate::geom::PhysicalRect;
+use crate::geom::{LogicalRect, LogicalSides, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
 #[derive(Serialize)]
@@ -68,7 +67,7 @@ pub(crate) struct CollapsedMargin {
 #[derive(Serialize)]
 pub(crate) struct AnonymousFragment {
     pub base: BaseFragment,
-    pub rect: Rect<Length>,
+    pub rect: LogicalRect<Length>,
     pub children: Vec<ArcRefCell<Fragment>>,
     pub mode: WritingMode,
 
@@ -104,7 +103,7 @@ pub(crate) struct TextFragment {
     pub base: BaseFragment,
     #[serde(skip_serializing)]
     pub parent_style: ServoArc<ComputedValues>,
-    pub rect: Rect<Length>,
+    pub rect: LogicalRect<Length>,
     pub font_metrics: FontMetrics,
     #[serde(skip_serializing)]
     pub font_key: FontInstanceKey,
@@ -118,7 +117,7 @@ pub(crate) struct ImageFragment {
     pub base: BaseFragment,
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
-    pub rect: Rect<Length>,
+    pub rect: LogicalRect<Length>,
     #[serde(skip_serializing)]
     pub image_key: ImageKey,
 }
@@ -128,7 +127,7 @@ pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
-    pub rect: Rect<Length>,
+    pub rect: LogicalRect<Length>,
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
 }
@@ -247,7 +246,7 @@ impl Fragment {
 }
 
 impl AnonymousFragment {
-    pub fn new(rect: Rect<Length>, children: Vec<Fragment>, mode: WritingMode) -> Self {
+    pub fn new(rect: LogicalRect<Length>, children: Vec<Fragment>, mode: WritingMode) -> Self {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.
         let containing_block = PhysicalRect::zero();
@@ -320,7 +319,7 @@ impl IFrameFragment {
 }
 
 impl CollapsedBlockMargins {
-    pub fn from_margin(margin: &Sides<Length>) -> Self {
+    pub fn from_margin(margin: &LogicalSides<Length>) -> Self {
         Self {
             collapsed_through: false,
             start: CollapsedMargin::new(margin.block_start),

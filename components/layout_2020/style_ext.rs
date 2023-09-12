@@ -19,7 +19,7 @@ use style::Zero;
 use webrender_api as wr;
 
 use crate::geom::{
-    flow_relative, LengthOrAuto, LengthPercentageOrAuto, PhysicalSides, PhysicalSize,
+    LengthOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
 };
 use crate::ContainingBlock;
 
@@ -58,21 +58,21 @@ pub(crate) enum DisplayInside {
 /// Percentages resolved but not `auto` margins
 #[derive(Clone)]
 pub(crate) struct PaddingBorderMargin {
-    pub padding: flow_relative::Sides<Length>,
-    pub border: flow_relative::Sides<Length>,
-    pub margin: flow_relative::Sides<LengthOrAuto>,
+    pub padding: LogicalSides<Length>,
+    pub border: LogicalSides<Length>,
+    pub margin: LogicalSides<LengthOrAuto>,
 
     /// Pre-computed sums in each axis
-    pub padding_border_sums: flow_relative::Vec2<Length>,
+    pub padding_border_sums: LogicalVec2<Length>,
 }
 
 impl PaddingBorderMargin {
     pub(crate) fn zero() -> Self {
         Self {
-            padding: flow_relative::Sides::zero(),
-            border: flow_relative::Sides::zero(),
-            margin: flow_relative::Sides::zero(),
-            padding_border_sums: flow_relative::Vec2::zero(),
+            padding: LogicalSides::zero(),
+            border: LogicalSides::zero(),
+            margin: LogicalSides::zero(),
+            padding_border_sums: LogicalVec2::zero(),
         }
     }
 }
@@ -83,47 +83,44 @@ pub(crate) trait ComputedValuesExt {
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
-    ) -> flow_relative::Sides<LengthPercentageOrAuto<'_>>;
+    ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>>;
+    ) -> LogicalVec2<LengthPercentageOrAuto<'_>>;
     fn min_box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>>;
+    ) -> LogicalVec2<LengthPercentageOrAuto<'_>>;
     fn max_box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Vec2<Option<&LengthPercentage>>;
+    ) -> LogicalVec2<Option<&LengthPercentage>>;
     fn content_box_size(
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> flow_relative::Vec2<LengthOrAuto>;
+    ) -> LogicalVec2<LengthOrAuto>;
     fn content_min_box_size(
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> flow_relative::Vec2<LengthOrAuto>;
+    ) -> LogicalVec2<LengthOrAuto>;
     fn content_max_box_size(
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> flow_relative::Vec2<Option<Length>>;
+    ) -> LogicalVec2<Option<Length>>;
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
     fn padding(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Sides<&LengthPercentage>;
-    fn border_width(
-        &self,
-        containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Sides<Length>;
+    ) -> LogicalSides<&LengthPercentage>;
+    fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Length>;
     fn margin(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Sides<LengthPercentageOrAuto<'_>>;
+    ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn has_transform_or_perspective(&self) -> bool;
     fn effective_z_index(&self) -> i32;
     fn establishes_block_formatting_context(&self) -> bool;
@@ -160,9 +157,9 @@ impl ComputedValuesExt for ComputedValues {
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
-    ) -> flow_relative::Sides<LengthPercentageOrAuto<'_>> {
+    ) -> LogicalSides<LengthPercentageOrAuto<'_>> {
         let position = self.get_position();
-        flow_relative::Sides::from_physical(
+        LogicalSides::from_physical(
             &PhysicalSides::new(
                 position.top.as_ref(),
                 position.right.as_ref(),
@@ -176,9 +173,9 @@ impl ComputedValuesExt for ComputedValues {
     fn box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>> {
+    ) -> LogicalVec2<LengthPercentageOrAuto<'_>> {
         let position = self.get_position();
-        flow_relative::Vec2::from_physical_size(
+        LogicalVec2::from_physical_size(
             &PhysicalSize::new(
                 size_to_length(&position.width),
                 size_to_length(&position.height),
@@ -190,9 +187,9 @@ impl ComputedValuesExt for ComputedValues {
     fn min_box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>> {
+    ) -> LogicalVec2<LengthPercentageOrAuto<'_>> {
         let position = self.get_position();
-        flow_relative::Vec2::from_physical_size(
+        LogicalVec2::from_physical_size(
             &PhysicalSize::new(
                 size_to_length(&position.min_width),
                 size_to_length(&position.min_height),
@@ -204,7 +201,7 @@ impl ComputedValuesExt for ComputedValues {
     fn max_box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Vec2<Option<&LengthPercentage>> {
+    ) -> LogicalVec2<Option<&LengthPercentage>> {
         fn unwrap(max_size: &MaxSize<NonNegativeLengthPercentage>) -> Option<&LengthPercentage> {
             match max_size {
                 MaxSize::LengthPercentage(length) => Some(&length.0),
@@ -212,7 +209,7 @@ impl ComputedValuesExt for ComputedValues {
             }
         }
         let position = self.get_position();
-        flow_relative::Vec2::from_physical_size(
+        LogicalVec2::from_physical_size(
             &PhysicalSize::new(unwrap(&position.max_width), unwrap(&position.max_height)),
             containing_block_writing_mode,
         )
@@ -222,13 +219,13 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> flow_relative::Vec2<LengthOrAuto> {
+    ) -> LogicalVec2<LengthOrAuto> {
         let box_size = self
             .box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => box_size,
-            BoxSizing::BorderBox => flow_relative::Vec2 {
+            BoxSizing::BorderBox => LogicalVec2 {
                 // These may be negative, but will later be clamped by `min-width`/`min-height`
                 // which is clamped to zero.
                 inline: box_size.inline.map(|i| i - pbm.padding_border_sums.inline),
@@ -241,13 +238,13 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> flow_relative::Vec2<LengthOrAuto> {
+    ) -> LogicalVec2<LengthOrAuto> {
         let min_box_size = self
             .min_box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => min_box_size,
-            BoxSizing::BorderBox => flow_relative::Vec2 {
+            BoxSizing::BorderBox => LogicalVec2 {
                 // Clamp to zero to make sure the used size components are non-negative
                 inline: min_box_size
                     .inline
@@ -263,7 +260,7 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> flow_relative::Vec2<Option<Length>> {
+    ) -> LogicalVec2<Option<Length>> {
         let max_box_size = self
             .max_box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
@@ -272,7 +269,7 @@ impl ComputedValuesExt for ComputedValues {
             BoxSizing::BorderBox => {
                 // This may be negative, but will later be clamped by `min-width`
                 // which itself is clamped to zero.
-                flow_relative::Vec2 {
+                LogicalVec2 {
                     inline: max_box_size
                         .inline
                         .map(|i| i - pbm.padding_border_sums.inline),
@@ -291,7 +288,7 @@ impl ComputedValuesExt for ComputedValues {
             .percentages_relative_to(cbis);
         let border = self.border_width(containing_block.style.writing_mode);
         PaddingBorderMargin {
-            padding_border_sums: flow_relative::Vec2 {
+            padding_border_sums: LogicalVec2 {
                 inline: padding.inline_sum() + border.inline_sum(),
                 block: padding.block_sum() + border.block_sum(),
             },
@@ -306,9 +303,9 @@ impl ComputedValuesExt for ComputedValues {
     fn padding(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Sides<&LengthPercentage> {
+    ) -> LogicalSides<&LengthPercentage> {
         let padding = self.get_padding();
-        flow_relative::Sides::from_physical(
+        LogicalSides::from_physical(
             &PhysicalSides::new(
                 &padding.padding_top.0,
                 &padding.padding_right.0,
@@ -319,12 +316,9 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    fn border_width(
-        &self,
-        containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Sides<Length> {
+    fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Length> {
         let border = self.get_border();
-        flow_relative::Sides::from_physical(
+        LogicalSides::from_physical(
             &PhysicalSides::new(
                 border.border_top_width.0,
                 border.border_right_width.0,
@@ -338,9 +332,9 @@ impl ComputedValuesExt for ComputedValues {
     fn margin(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> flow_relative::Sides<LengthPercentageOrAuto<'_>> {
+    ) -> LogicalSides<LengthPercentageOrAuto<'_>> {
         let margin = self.get_margin();
-        flow_relative::Sides::from_physical(
+        LogicalSides::from_physical(
             &PhysicalSides::new(
                 margin.margin_top.as_ref(),
                 margin.margin_right.as_ref(),

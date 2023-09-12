@@ -23,8 +23,7 @@ use webrender_api::ImageKey;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
-use crate::geom::flow_relative::{Rect, Vec2};
-use crate::geom::PhysicalSize;
+use crate::geom::{LogicalRect, LogicalVec2, PhysicalSize};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
@@ -211,9 +210,9 @@ impl ReplacedContent {
         }
     }
 
-    fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> Vec2<Option<Length>> {
+    fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> LogicalVec2<Option<Length>> {
         let intrinsic_size = PhysicalSize::new(self.intrinsic.width, self.intrinsic.height);
-        Vec2::from_physical_size(&intrinsic_size, style.writing_mode)
+        LogicalVec2::from_physical_size(&intrinsic_size, style.writing_mode)
     }
 
     pub fn inline_size_over_block_size_intrinsic_ratio(
@@ -246,7 +245,7 @@ impl ReplacedContent {
     pub fn make_fragments<'a>(
         &'a self,
         style: &ServoArc<ComputedValues>,
-        size: Vec2<Length>,
+        size: LogicalVec2<Length>,
     ) -> Vec<Fragment> {
         match &self.kind {
             ReplacedContentKind::Image(image) => image
@@ -256,8 +255,8 @@ impl ReplacedContent {
                     Fragment::Image(ImageFragment {
                         base: self.base_fragment_info.into(),
                         style: style.clone(),
-                        rect: Rect {
-                            start_corner: Vec2::zero(),
+                        rect: LogicalRect {
+                            start_corner: LogicalVec2::zero(),
                             size,
                         },
                         image_key,
@@ -271,8 +270,8 @@ impl ReplacedContent {
                     style: style.clone(),
                     pipeline_id: iframe.pipeline_id,
                     browsing_context_id: iframe.browsing_context_id,
-                    rect: Rect {
-                        start_corner: Vec2::zero(),
+                    rect: LogicalRect {
+                        start_corner: LogicalVec2::zero(),
                         size,
                     },
                 })]
@@ -305,8 +304,8 @@ impl ReplacedContent {
                 vec![Fragment::Image(ImageFragment {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),
-                    rect: Rect {
-                        start_corner: Vec2::zero(),
+                    rect: LogicalRect {
+                        start_corner: LogicalVec2::zero(),
                         size,
                     },
                     image_key,
@@ -324,9 +323,9 @@ impl ReplacedContent {
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
-        box_size: Option<Vec2<LengthOrAuto>>,
+        box_size: Option<LogicalVec2<LengthOrAuto>>,
         pbm: &PaddingBorderMargin,
-    ) -> Vec2<Length> {
+    ) -> LogicalVec2<Length> {
         let mode = style.writing_mode;
         let intrinsic_size = self.flow_relative_intrinsic_size(style);
         let intrinsic_ratio = self.inline_size_over_block_size_intrinsic_ratio(style);
@@ -344,12 +343,12 @@ impl ReplacedContent {
             //  the largest rectangle that has a 2:1 ratio and fits the device instead.”
             // “height of the largest rectangle that has a 2:1 ratio, has a height not greater
             //  than 150px, and has a width not greater than the device width.”
-            Vec2::from_physical_size(
+            LogicalVec2::from_physical_size(
                 &PhysicalSize::new(Length::new(300.), Length::new(150.)),
                 mode,
             )
         };
-        let clamp = |inline_size: Length, block_size: Length| Vec2 {
+        let clamp = |inline_size: Length, block_size: Length| LogicalVec2 {
             inline: inline_size.clamp_between_extremums(min_box_size.inline, max_box_size.inline),
             block: block_size.clamp_between_extremums(min_box_size.block, max_box_size.block),
         };
@@ -447,27 +446,27 @@ impl ReplacedContent {
                     violation(block_size, min_box_size.block, max_box_size.block),
                 ) {
                     // Row 1.
-                    (Violation::None, Violation::None) => Vec2 {
+                    (Violation::None, Violation::None) => LogicalVec2 {
                         inline: inline_size,
                         block: block_size,
                     },
                     // Row 2.
-                    (Violation::Above(max_inline_size), Violation::None) => Vec2 {
+                    (Violation::Above(max_inline_size), Violation::None) => LogicalVec2 {
                         inline: max_inline_size,
                         block: (max_inline_size / i_over_b).max(min_box_size.block),
                     },
                     // Row 3.
-                    (Violation::Below(min_inline_size), Violation::None) => Vec2 {
+                    (Violation::Below(min_inline_size), Violation::None) => LogicalVec2 {
                         inline: min_inline_size,
                         block: (min_inline_size / i_over_b).clamp_below_max(max_box_size.block),
                     },
                     // Row 4.
-                    (Violation::None, Violation::Above(max_block_size)) => Vec2 {
+                    (Violation::None, Violation::Above(max_block_size)) => LogicalVec2 {
                         inline: (max_block_size * i_over_b).max(min_box_size.inline),
                         block: max_block_size,
                     },
                     // Row 5.
-                    (Violation::None, Violation::Below(min_block_size)) => Vec2 {
+                    (Violation::None, Violation::Below(min_block_size)) => LogicalVec2 {
                         inline: (min_block_size * i_over_b).clamp_below_max(max_box_size.inline),
                         block: min_block_size,
                     },
@@ -477,13 +476,13 @@ impl ReplacedContent {
                             max_block_size.px() / block_size.px()
                         {
                             // Row 6.
-                            Vec2 {
+                            LogicalVec2 {
                                 inline: max_inline_size,
                                 block: (max_inline_size / i_over_b).max(min_box_size.block),
                             }
                         } else {
                             // Row 7.
-                            Vec2 {
+                            LogicalVec2 {
                                 inline: (max_block_size * i_over_b).max(min_box_size.inline),
                                 block: max_block_size,
                             }
@@ -495,14 +494,14 @@ impl ReplacedContent {
                             min_block_size.px() / block_size.px()
                         {
                             // Row 8.
-                            Vec2 {
+                            LogicalVec2 {
                                 inline: (min_block_size * i_over_b)
                                     .clamp_below_max(max_box_size.inline),
                                 block: min_block_size,
                             }
                         } else {
                             // Row 9.
-                            Vec2 {
+                            LogicalVec2 {
                                 inline: min_inline_size,
                                 block: (min_inline_size / i_over_b)
                                     .clamp_below_max(max_box_size.block),
@@ -510,14 +509,18 @@ impl ReplacedContent {
                         }
                     },
                     // Row 10.
-                    (Violation::Below(min_inline_size), Violation::Above(max_block_size)) => Vec2 {
-                        inline: min_inline_size,
-                        block: max_block_size,
+                    (Violation::Below(min_inline_size), Violation::Above(max_block_size)) => {
+                        LogicalVec2 {
+                            inline: min_inline_size,
+                            block: max_block_size,
+                        }
                     },
                     // Row 11.
-                    (Violation::Above(max_inline_size), Violation::Below(min_block_size)) => Vec2 {
-                        inline: max_inline_size,
-                        block: min_block_size,
+                    (Violation::Above(max_inline_size), Violation::Below(min_block_size)) => {
+                        LogicalVec2 {
+                            inline: max_inline_size,
+                            block: min_block_size,
+                        }
                     },
                 }
             },

@@ -22,8 +22,7 @@ use crate::flow::inline::InlineLevelBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::FragmentTree;
-use crate::geom::flow_relative::Vec2;
-use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
+use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContent;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayInside};
@@ -274,7 +273,7 @@ impl BoxTree {
             PhysicalSize::new(Length::new(viewport.width), Length::new(viewport.height)),
         );
         let initial_containing_block = DefiniteContainingBlock {
-            size: Vec2 {
+            size: LogicalVec2 {
                 inline: physical_containing_block.size.width,
                 block: physical_containing_block.size.height,
             },

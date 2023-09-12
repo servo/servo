@@ -31,8 +31,7 @@ use crate::fragment_tree::{
     AnonymousFragment, BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
     FontMetrics, Fragment, HoistedSharedFragment, TextFragment,
 };
-use crate::geom::flow_relative::{Rect, Vec2};
-use crate::geom::LengthOrAuto;
+use crate::geom::{LengthOrAuto, LogicalRect, LogicalVec2};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -98,7 +97,7 @@ pub(crate) struct TextRun {
 struct LineUnderConstruction {
     /// The position where this line will start once it is laid out. This includes any
     /// offset from `text-indent`.
-    start_position: Vec2<Length>,
+    start_position: LogicalVec2<Length>,
 
     /// The current inline position in the line being laid out into [`LineItems`] in this
     /// [`InlineFormattingContext`] independent of the depth in the nesting level.
@@ -128,11 +127,11 @@ struct LineUnderConstruction {
     /// context boundaries) where we can fit the line box without overlapping floats.
     /// Note that when this is not empty, its start corner takes precedence over
     /// [`LineUnderConstruction::start_position`].
-    placement_among_floats: OnceCell<Rect<Length>>,
+    placement_among_floats: OnceCell<LogicalRect<Length>>,
 }
 
 impl LineUnderConstruction {
-    fn new(start_position: Vec2<Length>) -> Self {
+    fn new(start_position: LogicalVec2<Length>) -> Self {
         Self {
             inline_position: start_position.inline.clone(),
             trailing_whitespace_advance: Length::zero(),
@@ -151,7 +150,7 @@ impl LineUnderConstruction {
         }
     }
 
-    fn replace_placement_among_floats(&mut self, new_placement: Rect<Length>) {
+    fn replace_placement_among_floats(&mut self, new_placement: LogicalRect<Length>) {
         self.placement_among_floats.take();
         let _ = self.placement_among_floats.set(new_placement);
     }
@@ -380,7 +379,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let positioning_context_length = state.positioning_context.len();
         let fragments = layout_line_items(line_items, layout_context, &mut state);
 
-        let size = Vec2 {
+        let size = LogicalVec2 {
             inline: self.containing_block.inline_size,
             block: state.max_block_size,
         };
@@ -388,7 +387,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // The inline part of this start offset was taken into account when determining
         // the inline start of the line in `calculate_inline_start_for_current_line` so
         // we do not need to include it in the `start_corner` of the line's main Fragment.
-        let start_corner = Vec2 {
+        let start_corner = LogicalVec2 {
             inline: Length::zero(),
             block: block_start_position,
         };
@@ -405,13 +404,13 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
             self.fragments
                 .push(Fragment::Anonymous(AnonymousFragment::new(
-                    Rect { start_corner, size },
+                    LogicalRect { start_corner, size },
                     fragments,
                     self.containing_block.style.writing_mode,
                 )));
         }
 
-        self.current_line = LineUnderConstruction::new(Vec2 {
+        self.current_line = LineUnderConstruction::new(LogicalVec2 {
             inline: Length::zero(),
             block: block_end_position,
         });
@@ -508,13 +507,16 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     /// This tells us whether or not the new potential line will fit in the current block position
     /// or need to be moved. In addition, the placement rect determines the inline start and end
     /// of the line if it's used as the final placement among floats.
-    fn place_line_among_floats(&self, potential_line_size: &Vec2<Length>) -> Rect<Length> {
+    fn place_line_among_floats(
+        &self,
+        potential_line_size: &LogicalVec2<Length>,
+    ) -> LogicalRect<Length> {
         let sequential_layout_state = self
             .sequential_layout_state
             .as_ref()
             .expect("Should not have called this function without having floats.");
 
-        let ifc_offset_in_float_container = Vec2 {
+        let ifc_offset_in_float_container = LogicalVec2 {
             inline: sequential_layout_state
                 .floats
                 .containing_block_info
@@ -545,7 +547,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     /// line or the next.
     fn new_potential_line_size_causes_line_break(
         &mut self,
-        potential_line_size: &Vec2<Length>,
+        potential_line_size: &LogicalVec2<Length>,
     ) -> bool {
         let available_line_space = if self.sequential_layout_state.is_some() {
             self.current_line
@@ -554,7 +556,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .size
                 .clone()
         } else {
-            Vec2 {
+            LogicalVec2 {
                 inline: self.containing_block.inline_size,
                 block: Length::new(f32::INFINITY),
             }
@@ -794,7 +796,7 @@ impl InlineFormattingContext {
             containing_block,
             sequential_layout_state,
             fragments: Vec::new(),
-            current_line: LineUnderConstruction::new(Vec2 {
+            current_line: LineUnderConstruction::new(LogicalVec2 {
                 inline: first_line_inline_start,
                 block: Length::zero(),
             }),
@@ -998,7 +1000,7 @@ impl IndependentFormattingContext {
                 let fragments = replaced
                     .contents
                     .make_fragments(&replaced.style, size.clone());
-                let content_rect = Rect {
+                let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
                     size,
                 };
@@ -1074,9 +1076,9 @@ impl IndependentFormattingContext {
                 let block_size = tentative_block_size
                     .clamp_between_extremums(min_box_size.block, max_box_size.block);
 
-                let content_rect = Rect {
+                let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
-                    size: Vec2 {
+                    size: LogicalVec2 {
                         block: block_size,
                         inline: inline_size,
                     },
@@ -1097,7 +1099,7 @@ impl IndependentFormattingContext {
         };
 
         let size = &pbm_sums.sum() + &fragment.content_rect.size;
-        let new_potential_line_size = Vec2 {
+        let new_potential_line_size = LogicalVec2 {
             inline: ifc.current_line.inline_position + size.inline,
             block: ifc.current_line.block_size.max(size.block),
         };
@@ -1279,7 +1281,7 @@ impl TextRun {
                 advance_from_text_run +
                 ifc.current_line.inline_position;
 
-            let new_potential_line_size = Vec2 {
+            let new_potential_line_size = LogicalVec2 {
                 inline: new_total_advance,
                 block: new_max_height_of_line,
             };
@@ -1373,7 +1375,7 @@ impl FloatBox {
             // position of the current line. In order to determine that we regenerate the
             // placement among floats for the current line, which may adjust its inline
             // start position.
-            let new_placement = ifc.place_line_among_floats(&Vec2 {
+            let new_placement = ifc.place_line_among_floats(&LogicalVec2 {
                 inline: ifc.current_line.inline_position,
                 block: ifc.current_line.block_size,
             });
@@ -1611,12 +1613,12 @@ impl TextRunLineItem {
             .iter()
             .map(|glyph_store| Length::from(glyph_store.total_advance()))
             .sum();
-        let rect = Rect {
-            start_corner: Vec2 {
+        let rect = LogicalRect {
+            start_corner: LogicalVec2 {
                 block: Length::zero(),
                 inline: state.inline_position - state.inline_start_of_parent,
             },
-            size: Vec2 {
+            size: LogicalVec2 {
                 block: self.line_height(),
                 inline: inline_advance,
             },
@@ -1688,12 +1690,12 @@ impl InlineBoxLineItem {
             return None;
         }
 
-        let mut content_rect = Rect {
-            start_corner: Vec2 {
+        let mut content_rect = LogicalRect {
+            start_corner: LogicalVec2 {
                 inline: state.inline_position - state.inline_start_of_parent,
                 block: Length::zero(),
             },
-            size: Vec2 {
+            size: LogicalVec2 {
                 inline: nested_state.inline_position - state.inline_position,
                 block: nested_state.max_block_size,
             },
@@ -1743,7 +1745,7 @@ impl InlineBoxLineItem {
 
 struct AtomicLineItem {
     fragment: BoxFragment,
-    size: Vec2<Length>,
+    size: LogicalVec2<Length>,
     positioning_context: Option<PositioningContext>,
 }
 
@@ -1786,7 +1788,7 @@ impl AbsolutelyPositionedLineItem {
         let style = AtomicRef::map(box_.borrow(), |box_| box_.context.style());
         let initial_start_corner = match Display::from(style.get_box().original_display) {
             Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { outside, inside: _ }) => {
-                Vec2 {
+                LogicalVec2 {
                     inline: match outside {
                         DisplayOutside::Inline => {
                             state.inline_position - state.inline_start_of_parent
@@ -1829,7 +1831,7 @@ impl FloatLineItem {
         // fragments are children of these InlineBoxes and not children of the inline
         // formatting context, so that they are parented properly for StackingContext
         // properties such as opacity & filters.
-        let distance_from_parent_to_ifc = Vec2 {
+        let distance_from_parent_to_ifc = LogicalVec2 {
             inline: state.inline_start_of_parent,
             block: state.line_block_start,
         };
