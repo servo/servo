@@ -485,7 +485,7 @@ dependencies = [
  "log",
  "servo_config",
  "servo_rand",
- "uuid 1.4.1",
+ "uuid",
 ]
 
 [[package]]
@@ -1343,7 +1343,7 @@ dependencies = [
  "servo_rand",
  "servo_url",
  "time 0.1.45",
- "uuid 1.4.1",
+ "uuid",
 ]
 
 [[package]]
@@ -1360,7 +1360,7 @@ dependencies = [
  "serde",
  "servo_url",
  "time 0.1.45",
- "uuid 1.4.1",
+ "uuid",
 ]
 
 [[package]]
@@ -2905,7 +2905,7 @@ dependencies = [
  "rand",
  "serde",
  "tempfile",
- "uuid 1.4.1",
+ "uuid",
  "windows",
 ]
 
@@ -3468,7 +3468,7 @@ dependencies = [
  "time 0.1.45",
  "tokio",
  "url",
- "uuid 1.4.1",
+ "uuid",
  "void",
  "webrender_api",
  "xml5ever",
@@ -3873,7 +3873,7 @@ dependencies = [
  "tokio-test",
  "tungstenite",
  "url",
- "uuid 1.4.1",
+ "uuid",
  "webpki-roots",
  "webrender_api",
 ]
@@ -3919,7 +3919,7 @@ dependencies = [
  "std_test_override",
  "time 0.1.45",
  "url",
- "uuid 1.4.1",
+ "uuid",
  "webrender_api",
 ]
 
@@ -4960,7 +4960,7 @@ dependencies = [
  "unicode-segmentation",
  "url",
  "utf-8",
- "uuid 1.4.1",
+ "uuid",
  "webdriver",
  "webgpu",
  "webrender_api",
@@ -5055,7 +5055,7 @@ dependencies = [
  "std_test_override",
  "style_traits",
  "time 0.1.45",
- "uuid 1.4.1",
+ "uuid",
  "webdriver",
  "webgpu",
  "webrender_api",
@@ -5213,7 +5213,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "servo-media-audio",
  "servo-media-player",
@@ -5225,7 +5225,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.2.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5247,7 +5247,7 @@ dependencies = [
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "boxfnonce",
  "ipc-channel",
@@ -5262,7 +5262,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5296,7 +5296,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -5306,7 +5306,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5319,7 +5319,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5332,7 +5332,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -5344,27 +5344,27 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "lazy_static",
- "uuid 0.8.2",
+ "uuid",
 ]
 
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "boxfnonce",
  "lazy_static",
  "log",
  "servo-media-streams",
- "uuid 0.8.2",
+ "uuid",
 ]
 
 [[package]]
@@ -5436,7 +5436,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#e6168e5ff2a19d42fa6bc2aed7782f0396b9e984"
+source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5452,7 +5452,7 @@ dependencies = [
  "rand",
  "rand_core",
  "rand_isaac",
- "uuid 1.4.1",
+ "uuid",
 ]
 
 [[package]]
@@ -5473,7 +5473,7 @@ dependencies = [
  "servo_rand",
  "to_shmem",
  "url",
- "uuid 1.4.1",
+ "uuid",
 ]
 
 [[package]]
@@ -6507,15 +6507,6 @@ checksum = "05e42f7c18b8f902290b009cde6d651262f956c98bc51bca4cd1d511c9cd85c7"
 
 [[package]]
 name = "uuid"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
-dependencies = [
- "getrandom",
-]
-
-[[package]]
-name = "uuid"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79daa5ed5740825c40b389c5e50312b9c86df53fccd33f281df655642b43869d"
@@ -6815,7 +6806,7 @@ dependencies = [
  "servo_config",
  "servo_url",
  "style_traits",
- "uuid 1.4.1",
+ "uuid",
  "webdriver",
 ]
 
