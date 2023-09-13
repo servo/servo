@@ -707,6 +707,22 @@ impl InlineFormattingContext {
                                         self.pending_whitespace + advance;
                                     self.pending_whitespace = Length::zero();
                                 } else {
+                                    let white_space =
+                                        text_run.parent_style.get_inherited_text().white_space;
+                                    if white_space.preserve_newlines() {
+                                        let last_byte = text_run
+                                            .text
+                                            .as_bytes()
+                                            .get(run.range.end().to_usize() - 1);
+                                        if last_byte == Some(&b'\n') {
+                                            self.had_non_whitespace_content_yet = true;
+                                            self.current_line.max_content += advance;
+                                            self.forced_line_break();
+                                            self.current_line = ContentSizes::zero();
+                                            continue;
+                                        }
+                                    }
+
                                     // Discard any leading whitespace in the IFC. This will always be trimmed.
                                     if !self.had_non_whitespace_content_yet {
                                         continue;
