@@ -527,9 +527,9 @@ fn winit_position_to_euclid_point<T>(position: PhysicalPosition<T>) -> Point2D<T
 
 impl WindowMethods for Window {
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        let win_size = winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32();
-        let win_origin = self.winit_window.outer_position().unwrap_or_default();
-        let win_origin = winit_position_to_euclid_point(win_origin).to_i32();
+        let window_size = winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32();
+        let window_origin = self.winit_window.outer_position().unwrap_or_default();
+        let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
         let inner_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
 
         // Subtract the minibrowser toolbar height if any
@@ -543,7 +543,7 @@ impl WindowMethods for Window {
         EmbedderCoordinates {
             viewport,
             framebuffer: viewport.size,
-            window: (win_size, win_origin),
+            window: (window_size, window_origin),
             screen,
             // FIXME: Winit doesn't have API for available size. Fallback to screen size
             screen_avail: screen,
