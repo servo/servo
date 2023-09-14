@@ -52,6 +52,7 @@ impl EguiGlow {
     /// For automatic shader version detection set `shader_version` to `None`.
     pub fn new<E>(
         event_loop: &winit::event_loop::EventLoopWindowTarget<E>,
+        window: &winit::window::Window,
         gl: std::sync::Arc<glow::Context>,
         shader_version: Option<ShaderVersion>,
     ) -> Self {
@@ -61,9 +62,12 @@ impl EguiGlow {
             })
             .unwrap();
 
+        let mut egui_winit = egui_winit::State::new(event_loop);
+        egui_winit.set_pixels_per_point(window.scale_factor() as f32);
+
         Self {
             egui_ctx: Default::default(),
-            egui_winit: egui_winit::State::new(event_loop),
+            egui_winit,
             painter,
             shapes: Default::default(),
             textures_delta: Default::default(),

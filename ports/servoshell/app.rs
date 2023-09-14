@@ -81,7 +81,8 @@ impl App {
             minibrowser: None,
         };
 
-        if opts::get().minibrowser && window.winit_window().is_some() {
+        if opts::get().minibrowser {
+            if let Some(winit_window) = window.winit_window() {
             // Make sure the gl context is made current.
             let webrender_surfman = window.webrender_surfman();
             let webrender_gl = match webrender_surfman.connection().gl_api() {
@@ -97,7 +98,8 @@ impl App {
 
             // Set up egui context for minibrowser ui
             // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
-            app.minibrowser = Some(Minibrowser::new(&webrender_surfman, &events_loop).into());
+            app.minibrowser = Some(Minibrowser::new(&webrender_surfman, &events_loop, winit_window).into());
+            }
         }
 
         if let Some(mut minibrowser) = app.minibrowser() {

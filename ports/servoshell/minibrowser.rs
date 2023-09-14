@@ -11,6 +11,7 @@ use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::servo_url::ServoUrl;
 use servo::webrender_surfman::WebrenderSurfman;
+use winit::window::Window;
 
 use crate::browser::Browser;
 use crate::egui_glue::EguiGlow;
@@ -34,13 +35,13 @@ pub enum MinibrowserEvent {
 }
 
 impl Minibrowser {
-    pub fn new(webrender_surfman: &WebrenderSurfman, events_loop: &EventsLoop) -> Self {
+    pub fn new(webrender_surfman: &WebrenderSurfman, events_loop: &EventsLoop, window: &Window) -> Self {
         let gl = unsafe {
             glow::Context::from_loader_function(|s| webrender_surfman.get_proc_address(s))
         };
 
         Self {
-            context: EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None),
+            context: EguiGlow::new(events_loop.as_winit(), window, Arc::new(gl), None),
             event_queue: RefCell::new(vec![]),
             toolbar_height: 0f32.into(),
             last_update: Instant::now(),
