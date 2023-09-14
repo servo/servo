@@ -46,8 +46,8 @@ use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 pub struct Window {
     winit_window: winit::window::Window,
     webrender_surfman: WebrenderSurfman,
-    screen_size: Size2D<u32, DeviceIndependentPixel>,
-    inner_size: Cell<Size2D<u32, DeviceIndependentPixel>>,
+    screen_size: Size2D<u32, DevicePixel>,
+    inner_size: Cell<Size2D<u32, DevicePixel>>,
     toolbar_height: Cell<f32>,
     mouse_down_button: Cell<Option<winit::event::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
@@ -119,13 +119,8 @@ impl Window {
             .nth(0)
             .expect("No monitor detected");
 
-        let PhysicalSize {
-            width: screen_width,
-            height: screen_height,
-        } = primary_monitor.size();
-        let screen_size = Size2D::new(screen_width, screen_height);
-        let PhysicalSize { width, height } = winit_window.inner_size();
-        let inner_size = Size2D::new(width, height);
+        let screen_size = winit_size_to_euclid_size(primary_monitor.size());
+        let inner_size = winit_size_to_euclid_size(winit_window.inner_size());
 
         // Initialize surfman
         let display_handle = winit_window.raw_display_handle();
@@ -522,34 +517,33 @@ impl WindowPortsMethods for Window {
     }
 }
 
+fn winit_size_to_euclid_size<T>(size: PhysicalSize<T>) -> Size2D<T, DevicePixel> {
+    Size2D::new(size.width, size.height)
+}
+
+fn winit_position_to_euclid_point<T>(position: PhysicalPosition<T>) -> Point2D<T, DevicePixel> {
+    Point2D::new(position.x, position.y)
+}
+
 impl WindowMethods for Window {
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        // Needed to convince the type system that winit's physical pixels
-        // are actually device pixels.
-        let dpr: Scale<f32, DeviceIndependentPixel, DevicePixel> = Scale::new(1.0);
-        let PhysicalSize { width, height } = self.winit_window.outer_size();
-        let PhysicalPosition { x, y } = self
-            .winit_window
-            .outer_position()
-            .unwrap_or(PhysicalPosition::new(0, 0));
-        let win_size = (Size2D::new(width as f32, height as f32) * dpr).to_i32();
-        let win_origin = (Point2D::new(x as f32, y as f32) * dpr).to_i32();
-        let screen = (self.screen_size.to_f32() * dpr).to_i32();
-
-        let PhysicalSize { width, height } = self.winit_window.inner_size();
+        let window_size = winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32();
+        let window_origin = self.winit_window.outer_position().unwrap_or_default();
+        let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
+        let inner_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
 
         // Subtract the minibrowser toolbar height if any
         let toolbar_height = self.toolbar_height.get();
-        let inner_size = Size2D::new(width as f32, height as f32) * dpr;
         let viewport_size = inner_size - Size2D::new(0f32, toolbar_height);
+
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
         let viewport = DeviceIntRect::new(viewport_origin, viewport_size.to_i32());
+        let screen = self.screen_size.to_i32();
 
-        let framebuffer = DeviceIntSize::from_untyped(viewport.size.to_untyped());
         EmbedderCoordinates {
             viewport,
-            framebuffer,
-            window: (win_size, win_origin),
+            framebuffer: viewport.size,
+            window: (window_size, window_origin),
             screen,
             // FIXME: Winit doesn't have API for available size. Fallback to screen size
             screen_avail: screen,
