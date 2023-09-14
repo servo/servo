@@ -9,9 +9,10 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
+use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::types::{GPUAdapterInfo, GPUSupportedLimits};
 use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::{
-    GPUAdapterMethods, GPUDeviceDescriptor, GPUFeatureName,
+    GPUAdapterMethods, GPUDeviceDescriptor,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -20,6 +21,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpu::{response_async, AsyncWGPUListener};
 use crate::dom::gpudevice::GPUDevice;
+use crate::dom::gpusupportedfeatures::gpu_to_wgt_feature;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 
@@ -32,6 +34,7 @@ pub struct GPUAdapter {
     name: DOMString,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
+    features: Dom<GPUSupportedFeatures>,
     limits: Dom<GPUSupportedLimits>,
     info: Dom<GPUAdapterInfo>,
     #[no_trace]
@@ -43,6 +46,7 @@ impl GPUAdapter {
         channel: WebGPU,
         name: DOMString,
         extensions: Heap<*mut JSObject>,
+        features: &GPUSupportedFeatures,
         limits: &GPUSupportedLimits,
         info: &GPUAdapterInfo,
         adapter: WebGPUAdapter,
@@ -52,6 +56,7 @@ impl GPUAdapter {
             channel,
             name,
             extensions,
+            features: Dom::from_ref(features),
             limits: Dom::from_ref(limits),
             info: Dom::from_ref(info),
             adapter,
@@ -63,15 +68,17 @@ impl GPUAdapter {
         channel: WebGPU,
         name: DOMString,
         extensions: Heap<*mut JSObject>,
+        features: wgt::Features,
         limits: wgt::Limits,
         info: wgt::AdapterInfo,
         adapter: WebGPUAdapter,
     ) -> DomRoot<Self> {
+        let features = GPUSupportedFeatures::Constructor(global, None, features).unwrap();
         let limits = GPUSupportedLimits::new(global, limits);
         let info = GPUAdapterInfo::new(global, info);
         reflect_dom_object(
             Box::new(GPUAdapter::new_inherited(
-                channel, name, extensions, &limits, &info, adapter,
+                channel, name, extensions, &features, &limits, &info, adapter,
             )),
             global,
         )
@@ -86,35 +93,14 @@ impl GPUAdapterMethods for GPUAdapter {
         let sender = response_async(&promise, self);
         let mut features = wgt::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
-            match ext {
-                GPUFeatureName::Depth_clip_control => {
-                    features.insert(wgt::Features::DEPTH_CLIP_CONTROL)
-                },
-                GPUFeatureName::Depth24unorm_stencil8 => {
-                    promise.reject_error(Error::Type(String::from(
-                        "depth24unorm_stencil8 is not supported by wgpu",
-                    )));
-                    return promise;
-                },
-                GPUFeatureName::Depth32float_stencil8 => {
-                    features.insert(wgt::Features::DEPTH32FLOAT_STENCIL8)
-                },
-                GPUFeatureName::Pipeline_statistics_query => {
-                    features.insert(wgt::Features::PIPELINE_STATISTICS_QUERY)
-                },
-                GPUFeatureName::Texture_compression_bc => {
-                    features.insert(wgt::Features::TEXTURE_COMPRESSION_BC)
-                },
-                GPUFeatureName::Texture_compression_etc2 => {
-                    features.insert(wgt::Features::TEXTURE_COMPRESSION_ETC2)
-                },
-                GPUFeatureName::Texture_compression_astc => {
-                    features.insert(wgt::Features::TEXTURE_COMPRESSION_ASTC)
-                },
-                GPUFeatureName::Timestamp_query => features.insert(wgt::Features::TIMESTAMP_QUERY),
-                GPUFeatureName::Indirect_first_instance => {
-                    features.insert(wgt::Features::INDIRECT_FIRST_INSTANCE)
-                },
+            if let Some(feature) = gpu_to_wgt_feature(ext) {
+                features.insert(feature);
+            } else {
+                promise.reject_error(Error::Type(format!(
+                    "{} is not supported feature",
+                    ext.as_str()
+                )));
+                return promise;
             }
         }
 
@@ -236,7 +222,12 @@ impl GPUAdapterMethods for GPUAdapter {
         promise
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-limits
+    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-features
+    fn Features(&self) -> DomRoot<GPUSupportedFeatures> {
+        DomRoot::from_ref(&self.features)
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-limits
     fn Limits(&self) -> DomRoot<GPUSupportedLimits> {
         DomRoot::from_ref(&self.limits)
     }
@@ -255,6 +246,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     self.channel.clone(),
                     &self,
                     Heap::default(),
+                    descriptor.features,
                     descriptor.limits,
                     device_id,
                     queue_id,

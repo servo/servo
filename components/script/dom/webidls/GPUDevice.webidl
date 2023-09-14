@@ -5,7 +5,7 @@
 // https://gpuweb.github.io/gpuweb/#gpudevice
 [Exposed=(Window, DedicatedWorker), /*Serializable,*/ Pref="dom.webgpu.enabled"]
 interface GPUDevice: EventTarget {
-    //[SameObject] readonly attribute GPUSupportedFeatures features;
+    [SameObject] readonly attribute GPUSupportedFeatures features;
     [SameObject] readonly attribute GPUSupportedLimits limits;
 
     // Overriding the name to avoid collision with `class Queue` in gcc

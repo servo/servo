@@ -58,6 +58,7 @@ pub enum WebGPUResponse {
     RequestAdapter {
         adapter_info: wgt::AdapterInfo,
         adapter_id: WebGPUAdapter,
+        features: wgt::Features,
         limits: wgt::Limits,
         channel: WebGPU,
     },
@@ -892,13 +893,17 @@ impl<'a> WGPU<'a> {
                         let adapter = WebGPUAdapter(adapter_id);
                         self.adapters.push(adapter);
                         let global = &self.global;
+                        // TODO: can we do this lazily
                         let info =
                             gfx_select!(adapter_id => global.adapter_get_info(adapter_id)).unwrap();
                         let limits =
                             gfx_select!(adapter_id => global.adapter_limits(adapter_id)).unwrap();
+                        let features =
+                            gfx_select!(adapter_id => global.adapter_features(adapter_id)).unwrap();
                         if let Err(e) = sender.send(Ok(WebGPUResponse::RequestAdapter {
                             adapter_info: info,
                             adapter_id: adapter,
+                            features,
                             limits,
                             channel: WebGPU(self.sender.clone()),
                         })) {
