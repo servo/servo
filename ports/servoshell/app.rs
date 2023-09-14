@@ -83,22 +83,23 @@ impl App {
 
         if opts::get().minibrowser {
             if let Some(winit_window) = window.winit_window() {
-            // Make sure the gl context is made current.
-            let webrender_surfman = window.webrender_surfman();
-            let webrender_gl = match webrender_surfman.connection().gl_api() {
-                GLApi::GL => unsafe {
-                    gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s))
-                },
-                GLApi::GLES => unsafe {
-                    gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
-                },
-            };
-            webrender_surfman.make_gl_context_current().unwrap();
-            debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
+                // Make sure the gl context is made current.
+                let webrender_surfman = window.webrender_surfman();
+                let webrender_gl = match webrender_surfman.connection().gl_api() {
+                    GLApi::GL => unsafe {
+                        gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s))
+                    },
+                    GLApi::GLES => unsafe {
+                        gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
+                    },
+                };
+                webrender_surfman.make_gl_context_current().unwrap();
+                debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
 
-            // Set up egui context for minibrowser ui
-            // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
-            app.minibrowser = Some(Minibrowser::new(&webrender_surfman, &events_loop, winit_window).into());
+                // Set up egui context for minibrowser ui
+                // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
+                app.minibrowser =
+                    Some(Minibrowser::new(&webrender_surfman, &events_loop, winit_window).into());
             }
         }
 

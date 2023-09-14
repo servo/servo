@@ -35,7 +35,11 @@ pub enum MinibrowserEvent {
 }
 
 impl Minibrowser {
-    pub fn new(webrender_surfman: &WebrenderSurfman, events_loop: &EventsLoop, window: &Window) -> Self {
+    pub fn new(
+        webrender_surfman: &WebrenderSurfman,
+        events_loop: &EventsLoop,
+        window: &Window,
+    ) -> Self {
         let gl = unsafe {
             glow::Context::from_loader_function(|s| webrender_surfman.get_proc_address(s))
         };
