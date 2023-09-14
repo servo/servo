@@ -13,23 +13,23 @@ exclude = [".cargo"]
 [workspace.dependencies]
 accountable-refcell = "0.2.0"
 app_units = "0.7"
+arrayvec = "0.7"
 async-tungstenite = { version = "0.22", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.11"
-arrayvec = "0.7"
 backtrace = "0.3"
 base64 = "0.21.4"
 bitflags = "2.4"
 byteorder = "1.0"
 cfg-if = "1.0.0"
-encoding_rs = "0.8"
-euclid = "0.22"
-cookie = "0.12"
 content-security-policy = { version = "0.5", features = ["serde"] }
+cookie = "0.12"
 crossbeam-channel = "0.5"
 cssparser = "0.29"
 darling = { version = "0.13", default-features = false }
 data-url = "0.1.0"
+encoding_rs = "0.8"
 env_logger = "0.8"
+euclid = "0.22"
 fnv = "1.0"
 fxhash = "0.2"
 getopts = "0.2.11"
@@ -38,7 +38,7 @@ headers = "0.3"
 html5ever = "0.26"
 http = "0.2"
 hyper = "0.14"
-hyper-rustls = { version = "0.24", default-features = false, features = ["webpki-tokio", "http1", "http2", "tls12", "logging", "acceptor"] }
+hyper-rustls = { version = "0.24", default-features = false, features = ["acceptor", "http1", "http2", "logging", "tls12", "webpki-tokio"] }
 hyper_serde = "0.13"
 image = "0.24"
 imsz = "0.2"
@@ -68,16 +68,15 @@ rustls-pemfile = "1.0.3"
 serde = "1.0.60"
 serde_bytes = "0.11"
 serde_json = "1.0"
-syn = { version = "1", default-features = false, features = ["clone-impls", "derive", "parsing"] }
-synstructure = "0.12"
 smallbitvec = "2.3.0"
 smallvec = "1.11"
 sparkle = "0.1.25"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
-# NOTE: the sm-angle feature only enables angle on windows, not other platforms!
+# NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
 surfman = { version = "0.8", features = ["chains", "sm-angle", "sm-angle-default"] }
-thin-slice = "0.1.0"
+syn = { version = "1", default-features = false, features = ["clone-impls", "derive", "parsing"] }
+synstructure = "0.12"
 time = "0.1.41"
 tokio = "1"
 tokio-rustls = "0.24"
@@ -87,8 +86,8 @@ unicode-script = "0.5"
 url = "2.4"
 uuid = { version = "1.4.1", features = ["v4"] }
 webdriver = "0.48.0"
-webpki-roots = "0.23"
 webpki = "0.22"
+webpki-roots = "0.23"
 webrender = { git = "https://github.com/servo/webrender", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender" }
 winapi = "0.3"
