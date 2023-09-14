@@ -144,6 +144,7 @@ impl AsyncWGPUListener for GPU {
             Ok(WebGPUResponse::RequestAdapter {
                 adapter_info,
                 adapter_id,
+                features,
                 limits,
                 channel,
             }) => {
@@ -156,6 +157,7 @@ impl AsyncWGPUListener for GPU {
                         adapter_id.0.backend()
                     )),
                     Heap::default(),
+                    features,
                     limits,
                     adapter_info,
                     adapter_id,

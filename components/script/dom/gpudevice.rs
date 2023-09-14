@@ -82,6 +82,7 @@ use crate::dom::gpurenderbundleencoder::GPURenderBundleEncoder;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use crate::dom::gpusampler::GPUSampler;
 use crate::dom::gpushadermodule::GPUShaderModule;
+use crate::dom::gpusupportedfeatures::GPUSupportedFeatures;
 use crate::dom::gputexture::GPUTexture;
 use crate::dom::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::dom::gpuvalidationerror::GPUValidationError;
@@ -120,6 +121,7 @@ pub struct GPUDevice {
     adapter: Dom<GPUAdapter>,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
+    features: Dom<GPUSupportedFeatures>,
     limits: Dom<GPUSupportedLimits>,
     label: DomRefCell<USVString>,
     #[no_trace]
@@ -136,6 +138,7 @@ impl GPUDevice {
         channel: WebGPU,
         adapter: &GPUAdapter,
         extensions: Heap<*mut JSObject>,
+        features: &GPUSupportedFeatures,
         limits: &GPUSupportedLimits,
         device: webgpu::WebGPUDevice,
         queue: &GPUQueue,
@@ -146,6 +149,7 @@ impl GPUDevice {
             channel,
             adapter: Dom::from_ref(adapter),
             extensions,
+            features: Dom::from_ref(features),
             limits: Dom::from_ref(limits),
             label: DomRefCell::new(USVString::from(label)),
             device,
@@ -165,6 +169,7 @@ impl GPUDevice {
         channel: WebGPU,
         adapter: &GPUAdapter,
         extensions: Heap<*mut JSObject>,
+        features: wgt::Features,
         limits: wgt::Limits,
         device: webgpu::WebGPUDevice,
         queue: webgpu::WebGPUQueue,
@@ -172,9 +177,10 @@ impl GPUDevice {
     ) -> DomRoot<Self> {
         let queue = GPUQueue::new(global, channel.clone(), queue);
         let limits = GPUSupportedLimits::new(global, limits);
+        let features = GPUSupportedFeatures::Constructor(global, None, features).unwrap();
         let device = reflect_dom_object(
             Box::new(GPUDevice::new_inherited(
-                channel, adapter, extensions, &limits, device, &queue, label,
+                channel, adapter, extensions, &features, &limits, device, &queue, label,
             )),
             global,
         );
@@ -343,6 +349,11 @@ impl GPUDevice {
 }
 
 impl GPUDeviceMethods for GPUDevice {
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-features
+    fn Features(&self) -> DomRoot<GPUSupportedFeatures> {
+        DomRoot::from_ref(&self.features)
+    }
+
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-limits
     fn Limits(&self) -> DomRoot<GPUSupportedLimits> {
         DomRoot::from_ref(&self.limits)

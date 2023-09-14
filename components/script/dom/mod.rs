@@ -348,6 +348,7 @@ pub mod gpurenderpipeline;
 pub mod gpusampler;
 pub mod gpushadermodule;
 pub mod gpushaderstage;
+pub mod gpusupportedfeatures;
 pub mod gpusupportedlimits;
 pub mod gputexture;
 pub mod gputextureusage;
