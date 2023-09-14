@@ -61,9 +61,12 @@ impl EguiGlow {
             })
             .unwrap();
 
+        let mut egui_winit = egui_winit::State::new(event_loop);
+        egui_winit.set_pixels_per_point(2.);
+
         Self {
             egui_ctx: Default::default(),
-            egui_winit: egui_winit::State::new(event_loop),
+            egui_winit,
             painter,
             shapes: Default::default(),
             textures_delta: Default::default(),
