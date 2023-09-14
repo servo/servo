@@ -716,7 +716,6 @@ impl InlineFormattingContext {
                                             .get(run.range.end().to_usize() - 1);
                                         if last_byte == Some(&b'\n') {
                                             self.had_non_whitespace_content_yet = true;
-                                            self.current_line.max_content += advance;
                                             self.forced_line_break();
                                             self.current_line = ContentSizes::zero();
                                             continue;
@@ -1273,8 +1272,10 @@ impl TextRun {
         let mut advance_from_text_run = Length::zero();
         let mut iterator = runs.iter().enumerate();
         while let Some((run_index, run)) = iterator.next() {
+            let is_whitespace = run.glyph_store.is_whitespace();
+
             // If this whitespace forces a line break, finish the line and reset everything.
-            if run.glyph_store.is_whitespace() && white_space.preserve_newlines() {
+            if is_whitespace && white_space.preserve_newlines() {
                 let last_byte = self.text.as_bytes().get(run.range.end().to_usize() - 1);
                 if last_byte == Some(&b'\n') {
                     // TODO: We shouldn't need to force the creation of a TextRun here, but only TextRuns are
@@ -1307,7 +1308,8 @@ impl TextRun {
             // TODO(mrobinson): If this doesn't fit on the current line and there is content we
             // need to line break, but this requires rewinding LineItems and adding them to the
             // next line.
-            let can_break = break_at_start || run_index != 0;
+            let is_non_preserved_whitespace = is_whitespace && !white_space.preserve_spaces();
+            let can_break = !is_non_preserved_whitespace && (break_at_start || run_index != 0);
             if ifc.new_potential_line_size_causes_line_break(&new_potential_line_size) && can_break
             {
                 add_glyphs_to_current_line(
