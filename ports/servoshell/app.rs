@@ -10,13 +10,14 @@ use std::rc::Rc;
 use std::time::Instant;
 
 use gleam::gl;
-use log::{trace, warn};
+use log::{info, trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::config::opts;
 use servo::servo_config::pref;
 use servo::Servo;
 use surfman::GLApi;
 use webxr::glwindow::GlWindowDiscovery;
+use winit::event::WindowEvent;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::WindowId;
 
@@ -95,9 +96,8 @@ impl App {
             webrender_surfman.make_gl_context_current().unwrap();
             debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
 
-            // Set up egui context for minibrowser ui
-            // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
-            app.minibrowser = Some(Minibrowser::new(&webrender_surfman, &events_loop).into());
+            app.minibrowser =
+                Some(Minibrowser::new(&webrender_surfman, &events_loop, window.as_ref()).into());
         }
 
         if let Some(mut minibrowser) = app.minibrowser() {
@@ -119,15 +119,23 @@ impl App {
         let t_start = Instant::now();
         let mut t = t_start;
         let ev_waker = events_loop.create_event_loop_waker();
-        events_loop.run_forever(move |e, w, control_flow| {
+        events_loop.run_forever(move |event, w, control_flow| {
             let now = Instant::now();
-            match e {
-                // Uncomment to filter out logging of DeviceEvent, which can be very noisy.
+            match event {
+                // Uncomment to filter out logging of common events, which can be very noisy.
                 // winit::event::Event::DeviceEvent { .. } => {},
-                _ => trace!("@{:?} (+{:?}) {:?}", now - t_start, now - t, e),
+                // winit::event::Event::WindowEvent {
+                //     event: WindowEvent::CursorMoved { .. },
+                //     ..
+                // } => {},
+                // winit::event::Event::MainEventsCleared => {},
+                // winit::event::Event::RedrawEventsCleared => {},
+                // winit::event::Event::UserEvent(..) => {},
+                // winit::event::Event::NewEvents(..) => {},
+                _ => trace!("@{:?} (+{:?}) {:?}", now - t_start, now - t, event),
             }
             t = now;
-            match e {
+            match event {
                 winit::event::Event::NewEvents(winit::event::StartCause::Init) => {
                     let surfman = window.webrender_surfman();
 
@@ -182,7 +190,7 @@ impl App {
                 return;
             }
 
-            if let winit::event::Event::RedrawRequested(_) = e {
+            if let winit::event::Event::RedrawRequested(_) = event {
                 // We need to redraw the window for some reason.
                 trace!("RedrawRequested");
 
@@ -207,20 +215,45 @@ impl App {
             // Handle the event
             let mut consumed = false;
             if let Some(mut minibrowser) = app.minibrowser() {
-                if let winit::event::Event::WindowEvent { ref event, .. } = e {
-                    let response = minibrowser.context.on_event(&event);
-                    if response.repaint {
-                        // Request a winit redraw event, so we can recomposite, update and paint the
-                        // minibrowser, and present the new frame.
-                        window.winit_window().unwrap().request_redraw();
-                    }
+                match event {
+                    winit::event::Event::WindowEvent {
+                        event: WindowEvent::ScaleFactorChanged { scale_factor, .. },
+                        ..
+                    } => {
+                        // Intercept any ScaleFactorChanged events away from EguiGlow::on_event, so
+                        // we can use our own logic for calculating the scale factor and set egui’s
+                        // scale factor to that value manually.
+                        let effective_scale_factor = window.hidpi_factor().get();
+                        info!(
+                            "window scale factor changed to {}, setting scale factor to {}",
+                            scale_factor, effective_scale_factor
+                        );
+                        minibrowser
+                            .context
+                            .egui_ctx
+                            .set_pixels_per_point(effective_scale_factor);
 
-                    // TODO how do we handle the tab key? (see doc for consumed)
-                    consumed = response.consumed;
+                        // Request a winit redraw event, so we can recomposite, update and paint
+                        // the minibrowser, and present the new frame.
+                        window.winit_window().unwrap().request_redraw();
+                    },
+                    winit::event::Event::WindowEvent { ref event, .. } => {
+                        let response = minibrowser.context.on_event(&event);
+                        if response.repaint {
+                            // Request a winit redraw event, so we can recomposite, update and paint
+                            // the minibrowser, and present the new frame.
+                            window.winit_window().unwrap().request_redraw();
+                        }
+
+                        // TODO how do we handle the tab key? (see doc for consumed)
+                        // Note that servo doesn’t yet support tabbing through links and inputs
+                        consumed = response.consumed;
+                    },
+                    _ => {},
                 }
             }
             if !consumed {
-                app.queue_embedder_events_for_winit_event(e);
+                app.queue_embedder_events_for_winit_event(event);
             }
 
             let animating = app.is_animating();

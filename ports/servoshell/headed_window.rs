@@ -8,7 +8,8 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use euclid::{Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
+use euclid::num::Zero;
+use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use log::{debug, info, trace};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use servo::compositing::windowing::{
@@ -48,7 +49,7 @@ pub struct Window {
     webrender_surfman: WebrenderSurfman,
     screen_size: Size2D<u32, DevicePixel>,
     inner_size: Cell<Size2D<u32, DevicePixel>>,
-    toolbar_height: Cell<f32>,
+    toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     mouse_down_button: Cell<Option<winit::event::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
     primary_monitor: winit::monitor::MonitorHandle,
@@ -155,7 +156,7 @@ impl Window {
             device_pixel_ratio_override,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
-            toolbar_height: Cell::new(0.0),
+            toolbar_height: Cell::new(Default::default()),
         }
     }
 
@@ -241,7 +242,7 @@ impl Window {
     ) {
         use servo::script_traits::MouseButton;
 
-        let max_pixel_dist = 10.0 * self.servo_hidpi_factor().get();
+        let max_pixel_dist = 10.0 * self.hidpi_factor().get();
         let mouse_button = match &button {
             winit::event::MouseButton::Left => MouseButton::Left,
             winit::event::MouseButton::Right => MouseButton::Right,
@@ -280,20 +281,6 @@ impl Window {
             .borrow_mut()
             .push(EmbedderEvent::MouseWindowEventClass(event));
     }
-
-    fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        Scale::new(self.winit_window.scale_factor() as f32)
-    }
-
-    fn servo_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        match self.device_pixel_ratio_override {
-            Some(override_value) => Scale::new(override_value),
-            _ => match opts::get().output_file {
-                Some(_) => Scale::new(1.0),
-                None => self.device_hidpi_factor(),
-            },
-        }
-    }
 }
 
 impl WindowPortsMethods for Window {
@@ -305,8 +292,18 @@ impl WindowPortsMethods for Window {
         !self.event_queue.borrow().is_empty()
     }
 
+    fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        Scale::new(self.winit_window.scale_factor() as f32)
+    }
+
+    fn device_pixel_ratio_override(
+        &self,
+    ) -> Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> {
+        self.device_pixel_ratio_override.map(Scale::new)
+    }
+
     fn page_height(&self) -> f32 {
-        let dpr = self.servo_hidpi_factor();
+        let dpr = self.hidpi_factor();
         let size = self.winit_window.inner_size();
         size.height as f32 * dpr.get()
     }
@@ -406,14 +403,13 @@ impl WindowPortsMethods for Window {
                 }
             },
             winit::event::WindowEvent::CursorMoved { position, .. } => {
-                let (x, y): (f64, f64) = position.into();
-                let y = y - f64::from(self.toolbar_height.get());
-                self.mouse_pos.set(Point2D::new(x, y).to_i32());
+                let toolbar_height = self.toolbar_height.get() * self.hidpi_factor();
+                let mut position = winit_position_to_euclid_point(position).to_f32();
+                position -= Size2D::from_lengths(Length::zero(), toolbar_height);
+                self.mouse_pos.set(position.to_i32());
                 self.event_queue
                     .borrow_mut()
-                    .push(EmbedderEvent::MouseWindowMoveEventClass(Point2D::new(
-                        x as f32, y as f32,
-                    )));
+                    .push(EmbedderEvent::MouseWindowMoveEventClass(position.to_f32()));
             },
             winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
@@ -512,7 +508,7 @@ impl WindowPortsMethods for Window {
         Some(&self.winit_window)
     }
 
-    fn set_toolbar_height(&self, height: f32) {
+    fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>) {
         self.toolbar_height.set(height);
     }
 }
@@ -533,8 +529,8 @@ impl WindowMethods for Window {
         let inner_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
 
         // Subtract the minibrowser toolbar height if any
-        let toolbar_height = self.toolbar_height.get();
-        let viewport_size = inner_size - Size2D::new(0f32, toolbar_height);
+        let toolbar_height = self.toolbar_height.get() * self.hidpi_factor();
+        let viewport_size = inner_size - Size2D::from_lengths(Length::zero(), toolbar_height);
 
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
         let viewport = DeviceIntRect::new(viewport_origin, viewport_size.to_i32());
@@ -547,7 +543,7 @@ impl WindowMethods for Window {
             screen,
             // FIXME: Winit doesn't have API for available size. Fallback to screen size
             screen_avail: screen,
-            hidpi_factor: self.servo_hidpi_factor(),
+            hidpi_factor: self.hidpi_factor(),
         }
     }
 
