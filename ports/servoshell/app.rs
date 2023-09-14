@@ -173,29 +173,6 @@ impl App {
                     app.windows.insert(window.id(), window.clone());
                     app.servo = Some(servo);
                 },
-
-                winit::event::Event::RedrawRequested(_) => {
-                    // We need to redraw the window for some reason.
-                    trace!("RedrawRequested");
-
-                    // WARNING: do not defer painting or presenting to some later tick of the event
-                    // loop or servoshell may become unresponsive! (servo#30312)
-                    if need_recomposite {
-                        trace!("need_recomposite");
-                        app.servo.as_mut().unwrap().recomposite();
-                    }
-                    if let Some(mut minibrowser) = app.minibrowser() {
-                        minibrowser.update(window.winit_window().unwrap(), "RedrawRequested");
-                        minibrowser.paint(window.winit_window().unwrap());
-                    }
-                    if external_present {
-                        app.servo.as_mut().unwrap().present();
-                    }
-
-                    // By default, the next RedrawRequested event will need to recomposite.
-                    need_recomposite = true;
-                },
-
                 _ => {},
             }
 
@@ -203,6 +180,28 @@ impl App {
             // let's ignore events.
             if app.servo.is_none() {
                 return;
+            }
+
+            if let winit::event::Event::RedrawRequested(_) = e {
+                // We need to redraw the window for some reason.
+                trace!("RedrawRequested");
+
+                // WARNING: do not defer painting or presenting to some later tick of the event
+                // loop or servoshell may become unresponsive! (servo#30312)
+                if need_recomposite {
+                    trace!("need_recomposite");
+                    app.servo.as_mut().unwrap().recomposite();
+                }
+                if let Some(mut minibrowser) = app.minibrowser() {
+                    minibrowser.update(window.winit_window().unwrap(), "RedrawRequested");
+                    minibrowser.paint(window.winit_window().unwrap());
+                }
+                if external_present {
+                    app.servo.as_mut().unwrap().present();
+                }
+
+                // By default, the next RedrawRequested event will need to recomposite.
+                need_recomposite = true;
             }
 
             // Handle the event
