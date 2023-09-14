@@ -109,15 +109,16 @@ impl GPUAdapterMethods for GPUAdapter {
             limits: wgt::Limits::default(),
             label: None,
         };
-        if let Some(lim) = &descriptor.requiredLimits {
-            for (k, v) in (*lim).iter() {
-                let v = u32::try_from(*v).unwrap_or(u32::MAX);
-                match k.as_ref() {
+        if let Some(limits) = &descriptor.requiredLimits {
+            for (limit, value) in (*limits).iter() {
+                let v = u32::try_from(*value).unwrap_or(u32::MAX);
+                match limit.as_ref() {
                     "maxTextureDimension1D" => desc.limits.max_texture_dimension_1d = v,
                     "maxTextureDimension2D" => desc.limits.max_texture_dimension_2d = v,
                     "maxTextureDimension3D" => desc.limits.max_texture_dimension_3d = v,
                     "maxTextureArrayLayers" => desc.limits.max_texture_array_layers = v,
                     "maxBindGroups" => desc.limits.max_bind_groups = v,
+                    "maxBindingsPerBindGroup" => desc.limits.max_bindings_per_bind_group = v,
                     "maxDynamicUniformBuffersPerPipelineLayout" => {
                         desc.limits.max_dynamic_uniform_buffers_per_pipeline_layout = v
                     },
@@ -150,6 +151,7 @@ impl GPUAdapterMethods for GPUAdapter {
                         desc.limits.min_storage_buffer_offset_alignment = v
                     },
                     "maxVertexBuffers" => desc.limits.max_vertex_buffers = v,
+                    "maxBufferSize" => desc.limits.max_buffer_size = *value,
                     "maxVertexAttributes" => desc.limits.max_vertex_attributes = v,
                     "maxVertexBufferArrayStride" => desc.limits.max_vertex_buffer_array_stride = v,
                     "maxInterStageShaderComponents" => {
@@ -168,9 +170,10 @@ impl GPUAdapterMethods for GPUAdapter {
                         desc.limits.max_compute_workgroups_per_dimension = v
                     },
                     _ => {
-                        error!("Unknown required limit: {k} with value {v}");
-                        promise.reject_error(Error::Operation);
-                        return promise;
+                        error!("Unknown required limit: {limit} with value {value}");
+                        // we should reject but spec is still evolving
+                        // promise.reject_error(Error::Operation);
+                        // return promise;
                     },
                 }
             }

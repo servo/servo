@@ -59,6 +59,11 @@ impl GPUSupportedLimitsMethods for GPUSupportedLimits {
         self.limits.max_bind_groups
     }
 
+    /// https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxbindingsperbindgroup
+    fn MaxBindingsPerBindGroup(&self) -> u32 {
+        self.limits.max_bindings_per_bind_group
+    }
+
     /// https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxdynamicuniformbuffersperpipelinelayout
     fn MaxDynamicUniformBuffersPerPipelineLayout(&self) -> u32 {
         self.limits.max_dynamic_uniform_buffers_per_pipeline_layout
@@ -95,13 +100,13 @@ impl GPUSupportedLimitsMethods for GPUSupportedLimits {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxuniformbufferbindingsize
-    fn MaxUniformBufferBindingSize(&self) -> u32 {
-        self.limits.max_uniform_buffer_binding_size
+    fn MaxUniformBufferBindingSize(&self) -> u64 {
+        self.limits.max_uniform_buffer_binding_size as u64
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragebufferbindingsize
-    fn MaxStorageBufferBindingSize(&self) -> u32 {
-        self.limits.max_storage_buffer_binding_size
+    fn MaxStorageBufferBindingSize(&self) -> u64 {
+        self.limits.max_storage_buffer_binding_size as u64
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-minuniformbufferoffsetalignment
@@ -117,6 +122,11 @@ impl GPUSupportedLimitsMethods for GPUSupportedLimits {
     /// https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxvertexbuffers
     fn MaxVertexBuffers(&self) -> u32 {
         self.limits.max_vertex_buffers
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxbuffersize
+    fn MaxBufferSize(&self) -> u64 {
+        self.limits.max_buffer_size
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxvertexattributes
