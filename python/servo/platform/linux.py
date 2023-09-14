@@ -65,7 +65,7 @@ class Linux(Base):
         distrib = distro.name()
         version = distro.version()
 
-        if distrib in ['LinuxMint', 'Linux Mint', 'KDE neon', 'Pop!_OS']:
+        if distrib in ['LinuxMint', 'Linux Mint', 'KDE neon', 'Pop!_OS', 'TUXEDO OS']:
             if '.' in version:
                 major, _ = version.split('.', 1)
             else:
