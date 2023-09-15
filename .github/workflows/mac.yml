@@ -83,7 +83,7 @@ jobs:
           locked: true
       - name: Bootstrap
         run: |
-          python3 -m pip install --upgrade pip virtualenv
+          python3 -m pip install --upgrade pip
           python3 ./mach bootstrap
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})

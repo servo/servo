@@ -80,19 +80,6 @@ CATEGORIES = {
     }
 }
 
-# Possible names of executables
-# NOTE: Windows Python doesn't provide versioned executables, so we must use
-# the plain names. On MSYS, we still use Windows Python.
-PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
-
-
-def _get_exec_path(names, is_valid_path=lambda _path: True):
-    for name in names:
-        path = shutil.which(name)
-        if path and is_valid_path(path):
-            return path
-    return None
-
 
 def _get_virtualenv_script_dir():
     # Virtualenv calls its scripts folder "bin" on linux/OSX/MSYS64 but "Scripts" on Windows
@@ -130,32 +117,18 @@ def _process_exec(args):
 
 
 def _activate_virtualenv(topdir):
-    virtualenv_path = os.path.join(topdir, "python", "_virtualenv%d.%d" % (sys.version_info[0], sys.version_info[1]))
-    python = sys.executable   # If there was no python, mach wouldn't have run at all!
-    if not python:
-        sys.exit('Failed to find python executable for starting virtualenv.')
+    virtualenv_path = os.path.join(topdir, "python", "_venv%d.%d" % (sys.version_info[0], sys.version_info[1]))
+    python = sys.executable
 
-    script_dir = _get_virtualenv_script_dir()
-    activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
-    need_pip_upgrade = False
-    if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
-        import importlib
-        try:
-            importlib.import_module('virtualenv')
-        except ModuleNotFoundError:
-            sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
-
-        _process_exec([python, "-m", "virtualenv", "-p", python, "--system-site-packages", virtualenv_path])
-
-        # We want to upgrade pip when virtualenv created for the first time
-        need_pip_upgrade = True
-
-    exec(compile(open(activate_path).read(), activate_path, 'exec'), dict(__file__=activate_path))
-
-    python = _get_exec_path(PYTHON_NAMES,
-                            is_valid_path=lambda path: path.startswith(virtualenv_path))
-    if not python:
-        sys.exit("Python executable in virtualenv failed to activate.")
+    if not in_venv():
+        venv_python_path = os.path.join(
+            virtualenv_path,
+            _get_virtualenv_script_dir(),
+            "python"
+        )
+        if not os.path.exists(virtualenv_path):
+            _process_exec([python, "-m", "venv", "--system-site-packages", virtualenv_path])
+        os.execv(venv_python_path, [venv_python_path] + sys.argv)
 
     # TODO: Right now, we iteratively install all the requirements by invoking
     # `pip install` each time. If it were the case that there were conflicting
@@ -167,11 +140,6 @@ def _activate_virtualenv(topdir):
         os.path.join("python", "requirements.txt"),
         os.path.join(WPT_RUNNER_PATH, "requirements.txt",),
     ]
-
-    if need_pip_upgrade:
-        # Upgrade pip when virtualenv is created to fix the issue
-        # https://github.com/servo/servo/issues/11074
-        _process_exec([python, "-m", "pip", "install", "-I", "-U", "pip"])
 
     for req_rel_path in requirements_paths:
         req_path = os.path.join(topdir, req_rel_path)
@@ -187,6 +155,10 @@ def _activate_virtualenv(topdir):
         _process_exec([python, "-m", "pip", "install", "-I", "-r", req_path])
 
         open(marker_path, 'w').close()
+
+
+def in_venv():
+    return sys.prefix != sys.base_prefix
 
 
 def _ensure_case_insensitive_if_windows():
