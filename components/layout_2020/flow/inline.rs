@@ -707,6 +707,17 @@ impl InlineFormattingContext {
                                         self.pending_whitespace + advance;
                                     self.pending_whitespace = Length::zero();
                                 } else {
+                                    // If this run is a forced line break, we *must* break the line
+                                    // and start measuring from the inline origin once more.
+                                    if text_run
+                                        .glyph_run_is_whitespace_ending_with_preserved_newline(run)
+                                    {
+                                        self.had_non_whitespace_content_yet = true;
+                                        self.forced_line_break();
+                                        self.current_line = ContentSizes::zero();
+                                        continue;
+                                    }
+
                                     // Discard any leading whitespace in the IFC. This will always be trimmed.
                                     if !self.had_non_whitespace_content_yet {
                                         continue;
@@ -1106,6 +1117,15 @@ impl IndependentFormattingContext {
 
         if ifc.new_potential_line_size_causes_line_break(&new_potential_line_size) {
             ifc.finish_current_line_and_reset(layout_context);
+
+            // Calling `new_potential_line_size_causes_line_break()` here triggers the
+            // new line to be positioned among floats. This should never ask for a line
+            // break because it is the first content on the line.
+            let will_break = ifc.new_potential_line_size_causes_line_break(&LogicalVec2 {
+                inline: size.inline,
+                block: size.block,
+            });
+            assert!(!will_break);
         }
 
         ifc.push_line_item(
@@ -1205,6 +1225,23 @@ impl TextRun {
         })
     }
 
+    fn glyph_run_is_whitespace_ending_with_preserved_newline(&self, run: &GlyphRun) -> bool {
+        if !run.glyph_store.is_whitespace() {
+            return false;
+        }
+        if !self
+            .parent_style
+            .get_inherited_text()
+            .white_space
+            .preserve_newlines()
+        {
+            return false;
+        }
+
+        let last_byte = self.text.as_bytes().get(run.range.end().to_usize() - 1);
+        last_byte == Some(&b'\n')
+    }
+
     fn layout_into_line_items(
         &self,
         layout_context: &LayoutContext,
@@ -1254,54 +1291,23 @@ impl TextRun {
         let new_max_height_of_line = ifc.current_line.block_size.max(line_height);
 
         let mut glyphs = vec![];
-        let mut advance_from_text_run = Length::zero();
+        let mut text_run_inline_size = Length::zero();
         let mut iterator = runs.iter().enumerate();
         while let Some((run_index, run)) = iterator.next() {
             // If this whitespace forces a line break, finish the line and reset everything.
-            if run.glyph_store.is_whitespace() && white_space.preserve_newlines() {
-                let last_byte = self.text.as_bytes().get(run.range.end().to_usize() - 1);
-                if last_byte == Some(&b'\n') {
-                    // TODO: We shouldn't need to force the creation of a TextRun here, but only TextRuns are
-                    // influencing line height calculation of lineboxes (and not all inline boxes on a line).
-                    // Once that is fixed, we can avoid adding an empty TextRun here.
-                    add_glyphs_to_current_line(
-                        ifc,
-                        glyphs.drain(..).collect(),
-                        advance_from_text_run,
-                        true,
-                    );
-                    ifc.finish_current_line_and_reset(layout_context);
-                    advance_from_text_run = Length::zero();
-                    continue;
-                }
-            }
-
-            let new_advance_from_glyph_run = Length::from(run.glyph_store.total_advance());
-            let new_total_advance = new_advance_from_glyph_run +
-                advance_from_text_run +
-                ifc.current_line.inline_position;
-
-            let new_potential_line_size = LogicalVec2 {
-                inline: new_total_advance,
-                block: new_max_height_of_line,
-            };
-
-            // If we cannot break at the start according to the text breaker and this is the first
-            // unbreakable run of glyphs then we cannot break in any case.
-            // TODO(mrobinson): If this doesn't fit on the current line and there is content we
-            // need to line break, but this requires rewinding LineItems and adding them to the
-            // next line.
-            let can_break = break_at_start || run_index != 0;
-            if ifc.new_potential_line_size_causes_line_break(&new_potential_line_size) && can_break
-            {
+            if self.glyph_run_is_whitespace_ending_with_preserved_newline(run) {
+                // TODO: We shouldn't need to force the creation of a TextRun here, but only TextRuns are
+                // influencing line height calculation of lineboxes (and not all inline boxes on a line).
+                // Once that is fixed, we can avoid adding an empty TextRun here.
                 add_glyphs_to_current_line(
                     ifc,
                     glyphs.drain(..).collect(),
-                    advance_from_text_run,
+                    text_run_inline_size,
                     true,
                 );
                 ifc.finish_current_line_and_reset(layout_context);
-                advance_from_text_run = Length::zero();
+                text_run_inline_size = Length::zero();
+                continue;
             }
 
             // From <https://www.w3.org/TR/css-text-3/#white-space-phase-2>:
@@ -1314,25 +1320,62 @@ impl TextRun {
             // This prevents whitespace from being added to the beginning of a line. We could
             // trim it later, but we don't want it to come into play when determining line
             // width.
-            if run.glyph_store.is_whitespace() &&
-                !white_space.preserve_spaces() &&
-                !ifc.current_line.has_content
-            {
+            let is_non_preserved_whitespace =
+                run.glyph_store.is_whitespace() && !white_space.preserve_spaces();
+            if is_non_preserved_whitespace && !ifc.current_line.has_content {
                 continue;
             }
 
-            advance_from_text_run += Length::from(run.glyph_store.total_advance());
+            let advance_from_glyph_run = Length::from(run.glyph_store.total_advance());
+            let new_potential_inline_end_position =
+                advance_from_glyph_run + text_run_inline_size + ifc.current_line.inline_position;
+
+            let new_potential_line_size = LogicalVec2 {
+                inline: new_potential_inline_end_position,
+                block: new_max_height_of_line,
+            };
+
+            // If we cannot break at the start according to the text breaker and this is the first
+            // unbreakable run of glyphs then we cannot break in any case. We never break for
+            // non-preserved white space though. This type of white space can hang off the end of
+            // lines, because it is always trimmed due to phase 2 of the white space processing
+            // rules from css-text-3.
+            //
+            // TODO(mrobinson): If this doesn't fit on the current line and there is content we
+            // need to line break, but this requires rewinding LineItems and adding them to the
+            // next line.
+            if !is_non_preserved_whitespace {
+                let can_break = break_at_start || run_index != 0;
+                if ifc.new_potential_line_size_causes_line_break(&new_potential_line_size) &&
+                    can_break
+                {
+                    add_glyphs_to_current_line(
+                        ifc,
+                        glyphs.drain(..).collect(),
+                        text_run_inline_size,
+                        true,
+                    );
+                    ifc.finish_current_line_and_reset(layout_context);
+                    text_run_inline_size = Length::zero();
+
+                    // Calling `new_potential_line_size_causes_line_break()` here triggers the
+                    // new line to be positioned among floats. This should never ask for a line
+                    // break because it is the first content on the line.
+                    let will_break = ifc.new_potential_line_size_causes_line_break(&LogicalVec2 {
+                        inline: advance_from_glyph_run,
+                        block: line_height,
+                    });
+                    assert!(!will_break);
+                }
+            }
+
+            text_run_inline_size += Length::from(run.glyph_store.total_advance());
             glyphs.push(run.glyph_store.clone());
             ifc.current_line.has_content = true;
             ifc.propagate_current_nesting_level_white_space_style();
         }
 
-        add_glyphs_to_current_line(
-            ifc,
-            glyphs.drain(..).collect(),
-            advance_from_text_run,
-            false,
-        );
+        add_glyphs_to_current_line(ifc, glyphs.drain(..).collect(), text_run_inline_size, false);
     }
 }
 
