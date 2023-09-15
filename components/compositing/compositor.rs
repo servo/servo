@@ -664,7 +664,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.waiting_for_results_of_scroll = true;
 
                 let mut txn = Transaction::new();
-                txn.scroll_node_with_id(point, scroll_id, ScrollClamping::ToContentBounds);
+                txn.scroll_node_with_id(point, scroll_id, ScrollClamping::NoClamping);
                 txn.generate_frame(0);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
