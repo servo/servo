@@ -709,7 +709,9 @@ impl InlineFormattingContext {
                                 } else {
                                     // If this run is a forced line break, we *must* break the line
                                     // and start measuring from the inline origin once more.
-                                    if text_run.glyph_run_ends_with_preserved_newline(run) {
+                                    if text_run
+                                        .glyph_run_is_whitespace_ending_with_preserved_newline(run)
+                                    {
                                         self.had_non_whitespace_content_yet = true;
                                         self.forced_line_break();
                                         self.current_line = ContentSizes::zero();
@@ -1223,7 +1225,7 @@ impl TextRun {
         })
     }
 
-    fn glyph_run_ends_with_preserved_newline(&self, run: &GlyphRun) -> bool {
+    fn glyph_run_is_whitespace_ending_with_preserved_newline(&self, run: &GlyphRun) -> bool {
         if !run.glyph_store.is_whitespace() {
             return false;
         }
@@ -1289,22 +1291,22 @@ impl TextRun {
         let new_max_height_of_line = ifc.current_line.block_size.max(line_height);
 
         let mut glyphs = vec![];
-        let mut advance_from_text_run = Length::zero();
+        let mut text_run_inline_size = Length::zero();
         let mut iterator = runs.iter().enumerate();
         while let Some((run_index, run)) = iterator.next() {
             // If this whitespace forces a line break, finish the line and reset everything.
-            if self.glyph_run_ends_with_preserved_newline(run) {
+            if self.glyph_run_is_whitespace_ending_with_preserved_newline(run) {
                 // TODO: We shouldn't need to force the creation of a TextRun here, but only TextRuns are
                 // influencing line height calculation of lineboxes (and not all inline boxes on a line).
                 // Once that is fixed, we can avoid adding an empty TextRun here.
                 add_glyphs_to_current_line(
                     ifc,
                     glyphs.drain(..).collect(),
-                    advance_from_text_run,
+                    text_run_inline_size,
                     true,
                 );
                 ifc.finish_current_line_and_reset(layout_context);
-                advance_from_text_run = Length::zero();
+                text_run_inline_size = Length::zero();
                 continue;
             }
 
@@ -1324,13 +1326,12 @@ impl TextRun {
                 continue;
             }
 
-            let new_advance_from_glyph_run = Length::from(run.glyph_store.total_advance());
-            let new_total_advance = new_advance_from_glyph_run +
-                advance_from_text_run +
-                ifc.current_line.inline_position;
+            let advance_from_glyph_run = Length::from(run.glyph_store.total_advance());
+            let new_potential_inline_end_position =
+                advance_from_glyph_run + text_run_inline_size + ifc.current_line.inline_position;
 
             let new_potential_line_size = LogicalVec2 {
-                inline: new_total_advance,
+                inline: new_potential_inline_end_position,
                 block: new_max_height_of_line,
             };
 
@@ -1351,35 +1352,30 @@ impl TextRun {
                     add_glyphs_to_current_line(
                         ifc,
                         glyphs.drain(..).collect(),
-                        advance_from_text_run,
+                        text_run_inline_size,
                         true,
                     );
                     ifc.finish_current_line_and_reset(layout_context);
-                    advance_from_text_run = Length::zero();
+                    text_run_inline_size = Length::zero();
 
                     // Calling `new_potential_line_size_causes_line_break()` here triggers the
                     // new line to be positioned among floats. This should never ask for a line
                     // break because it is the first content on the line.
                     let will_break = ifc.new_potential_line_size_causes_line_break(&LogicalVec2 {
-                        inline: new_advance_from_glyph_run,
+                        inline: advance_from_glyph_run,
                         block: line_height,
                     });
                     assert!(!will_break);
                 }
             }
 
-            advance_from_text_run += Length::from(run.glyph_store.total_advance());
+            text_run_inline_size += Length::from(run.glyph_store.total_advance());
             glyphs.push(run.glyph_store.clone());
             ifc.current_line.has_content = true;
             ifc.propagate_current_nesting_level_white_space_style();
         }
 
-        add_glyphs_to_current_line(
-            ifc,
-            glyphs.drain(..).collect(),
-            advance_from_text_run,
-            false,
-        );
+        add_glyphs_to_current_line(ifc, glyphs.drain(..).collect(), text_run_inline_size, false);
     }
 }
 
