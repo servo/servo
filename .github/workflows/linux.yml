@@ -71,6 +71,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+      - name: Install taplo
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: taplo-cli
+          locked: true
       - name: Bootstrap Python
         run: python3 -m pip install --upgrade pip virtualenv
       - name: Bootstrap dependencies

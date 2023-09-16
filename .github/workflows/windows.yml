@@ -61,6 +61,11 @@ jobs:
           echo "C:\\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
+      - name: Install taplo
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: taplo-cli
+          locked: true
       - name: Bootstrap
         run: |
           python -m pip install --upgrade pip virtualenv
