@@ -21,7 +21,6 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
     "ahash",
-    "arrayvec",
     "base64",
     "bitflags",
     "cfg-if",
@@ -32,7 +31,6 @@ packages = [
     "gl_generator",
     "itoa",
     "libloading",
-    "lyon_geom",
     "mio",
     "nix",
     "num-rational",
