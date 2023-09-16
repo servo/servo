@@ -8,6 +8,7 @@
 # except according to those terms.
 
 import os
+import shutil
 import subprocess
 from typing import Dict, Optional
 
@@ -96,8 +97,20 @@ class Base:
         )
 
     def bootstrap(self, force: bool):
-        if not self._platform_bootstrap(force):
+        installed_something = self._platform_bootstrap(force)
+        installed_something |= self.install_taplo(force)
+        if not installed_something:
             print("Dependencies were already installed!")
+
+    def install_taplo(self, force: bool) -> bool:
+        if not force and shutil.which("taplo") is not None:
+            return False
+
+        if subprocess.call(["cargo", "install", "taplo-cli", "--locked"],
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
+            raise EnvironmentError("Installation of taplo failed.")
+
+        return True
 
     def passive_bootstrap(self) -> bool:
         """A bootstrap method that is called without explicitly invoking `./mach bootstrap`
