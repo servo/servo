@@ -173,6 +173,11 @@ def get_pr_number() -> Optional[str]:
     if "issue" in github_context["event"]:
         return str(github_context["event"]["issue"]["number"])
 
+    # If we have an 'number' in the context, this was triggered by "pull_request" or
+    # "pull_request_target" event.
+    if "number" in github_context["event"]:
+        return str(github_context["event"]["number"])
+
     return None
 
 

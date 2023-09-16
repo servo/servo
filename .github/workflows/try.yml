@@ -1,13 +1,15 @@
 name: Try
 
 on:
+  pull_request_target:
+    types: [labeled]
   issue_comment:
     types: [created]
 
 jobs:
   parse-comment:
-    name: Process Comment
-    if: ${{ github.event.issue.pull_request }}
+    name: Trigger Try (${{ github.event.name }})
+    if: ${{ github.event_name == 'pull_request_target' || github.event.issue.pull_request  }}
     runs-on: ubuntu-latest
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
@@ -26,43 +28,121 @@ jobs:
                 })
             }
 
-            let tokens = context.payload.comment.body.split(/\s+/);
-            let tagIndex = tokens.indexOf("@bors-servo");
-            if (tagIndex == -1 || tagIndex + 1 >= tokens.length) {
-              return { try: false };
+            function combineWPTLayoutOptions(layout, newLayout) {
+                let has2013 = layout == "2013" || layout == "all";
+                let has2020 = layout == "2020" || layout == "all";
+                let adding2013 = newLayout == "2013";
+                let adding2020 = newLayout == "2020";
+
+                if ((adding2020 && has2020) || (adding2013 && has2013)) {
+                  return layout;
+                }
+                if (adding2020) {
+                  return has2013 ? "all" : "2020";
+                }
+                if (adding2013) {
+                  return has2020 ? "all" : "2013";
+                }
+                return layout;
             }
 
-            let tryString = tokens[tagIndex + 1];
-            console.log("Found try string: '" + tryString + "'");
-            let returnValue = { try: false };
-            if (tryString == "try") {
-              returnValue = { try: true, platform: 'all', layout: 'all', unit_tests: true, };
-            } else if (tryString == "try=wpt") {
-              returnValue = { try: true, platform: 'linux', layout: '2013', unit_tests: false };
-            } else if (tryString == "try=wpt-2020") {
-              returnValue = { try: true, platform: 'linux', layout: '2020', unit_tests: false };
-            } else if (tryString == "try=linux") {
-              returnValue = { try: true, platform: 'linux', layout: 'none', unit_tests: true };
-            } else if (tryString == "try=mac") {
-              returnValue = { try: true, platform: 'macos', layout: 'none', unit_tests: true };
-            } else if (tryString == "try=windows") {
-              returnValue = { try: true, platform: 'windows', layout: 'none', unit_tests: true };
-            } else {
-              makeComment("🤔 Unknown try string '" + tryString + "'");
-              return returnValue;
-            }
-
-            if (returnValue.try) {
-              let username = context.payload.comment.user.login;
-              let result = await github.rest.repos.getCollaboratorPermissionLevel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                username
-              });
-              if (!result.data.user.permissions.push) {
-                makeComment('🔒 User @' + username + ' does not have permission to trigger try jobs.');
-                return { try: false };
+            function addPlatformToConfiguration(platform, configuration) {
+              if (!configuration.platforms.includes(platform)) {
+                configuration.platforms.push(platform);
               }
+            }
+
+            function updateConfigurationFromString(tryString, configuration) {
+                if (tryString.includes("full")) {
+                  configuration.platforms = ["linux", "macos", "windows"];
+                  configuration.unit_tests = true;
+                  configuration.layout = "all";
+                  return configuration;
+                }
+
+                if (tryString.includes("linux")) {
+                  addPlatformToConfiguration("linux", configuration);
+                  configuration.unit_tests = true;
+                } else if (tryString.includes("macos")) {
+                  addPlatformToConfiguration("macos", configuration);
+                  configuration.unit_tests = true;
+                } else if (tryString.includes("win")) {
+                  addPlatformToConfiguration("windows", configuration);
+                  configuration.unit_tests = true;
+                }
+
+                if (tryString.includes("wpt")) {
+                  addPlatformToConfiguration("linux", configuration);
+                  if (tryString.includes("2020")) {
+                    configuration.layout = combineWPTLayoutOptions(configuration.layout, "2020");
+                  } else {
+                    configuration.layout = combineWPTLayoutOptions(configuration.layout, "2013");
+                  }
+                }
+            }
+
+            let configuration = {
+              platforms: [],
+              layout: "none",
+              unit_tests: false,
+            };
+
+            if (context.eventName == "pull_request_target") {
+              let try_labels = [];
+              for (const label of context.payload.pull_request.labels) {
+                if (!label.name.startsWith("T-")) {
+                  continue;
+                }
+
+                // Try to remove the label. If that fails, it's likely that another
+                // workflow has already processed it or a user has removed it.
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    name: label.name,
+                  });
+                } catch (exception) {
+                  console.log("Assuming '" + label.name + "' is already removed: " + exception);
+                  continue;
+                }
+
+                console.log("Found label: " + label.name);
+                updateConfigurationFromString(label.name, configuration);
+              }
+            } else {
+              let tokens = context.payload.comment.body.split(/\s+/);
+              let tagIndex = tokens.indexOf("@bors-servo");
+              if (tagIndex == -1 || tagIndex + 1 >= tokens.length) {
+                return { platforms: [] };
+              }
+
+
+              let tryString = tokens[tagIndex + 1];
+              console.log("Found try string: '" + tryString + "'");
+              if (tryString == "try") {
+                updateConfigurationFromString("full", configuration);
+              } else {
+                updateConfigurationFromString(tryString, configuration);
+              }
+            }
+
+            console.log(JSON.stringify(configuration));
+
+            if (configuration.platforms.length == 0) {
+                return { platforms: [] };
+            }
+
+            let username = context.payload.sender.login;
+            let result = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username
+            });
+            if (!result.data.user.permissions.push) {
+              makeComment('🔒 User @' + username + ' does not have permission to trigger try jobs.');
+              return { platforms: [] };
             }
 
             const url = context.serverUrl +
@@ -70,18 +150,18 @@ jobs:
               "/" + context.repo.repo +
               "/actions/runs/" + context.runId;
             const formattedURL = "[#" + context.runId + "](" + url + ")";
-            makeComment("🔨 Triggering try run (" + formattedURL + ") with platform=" + returnValue.platform + " and layout=" + returnValue.layout);
-            return returnValue;
+            let platformsString = configuration.platforms.toString();
+            makeComment("🔨 Triggering try run (" + formattedURL + ") with platforms=" +
+                        platformsString + " and layout=" + configuration.layout);
+            return configuration;
 
   run-try:
     name: Run Try
     needs: ["parse-comment"]
-    if: ${{ fromJson(needs.parse-comment.outputs.configuration).try}}
+    if: ${{ fromJson(needs.parse-comment.outputs.configuration).platforms[0] != null }}
     uses: ./.github/workflows/main.yml
     with:
-      platform: ${{ fromJson(needs.parse-comment.outputs.configuration).platform }}
-      layout: ${{ fromJson(needs.parse-comment.outputs.configuration).layout }}
-      unit-tests: ${{ fromJson(needs.parse-comment.outputs.configuration).unit_tests }}
+      configuration: ${{ needs.parse-comment.outputs.configuration }}
 
   results:
     name: Results
