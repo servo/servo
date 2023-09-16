@@ -60,6 +60,7 @@ jobs:
           python -m pip install --upgrade pip virtualenv
           python mach fetch
           python mach bootstrap-gstreamer
+          choco install wixtoolset
       - name: Release build
         run: python mach build --release
       - name: Copy resources
