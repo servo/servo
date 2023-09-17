@@ -398,6 +398,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "bindgen"
+version = "0.68.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "726e4313eb6ec35d2730258ad4e15b547ee75d6afaa1361a922e78e59b7d8078"
+dependencies = [
+ "bitflags 2.4.0",
+ "cexpr",
+ "clang-sys",
+ "lazy_static",
+ "lazycell",
+ "peeking_take_while",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "rustc-hash",
+ "shlex",
+ "syn 2.0.32",
+ "which",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3686,9 +3707,9 @@ checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#d7f6f30cb9bfd3e7e4d1ff7d605059369acdf25d"
+source = "git+https://github.com/servo/mozjs#72bd691611dc857dba93fa0df41c4f26088411e7"
 dependencies = [
- "bindgen 0.66.1",
+ "bindgen 0.68.1",
  "cc",
  "lazy_static",
  "libc",
@@ -3700,9 +3721,9 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.2"
-source = "git+https://github.com/servo/mozjs#d7f6f30cb9bfd3e7e4d1ff7d605059369acdf25d"
+source = "git+https://github.com/servo/mozjs#72bd691611dc857dba93fa0df41c4f26088411e7"
 dependencies = [
- "bindgen 0.66.1",
+ "bindgen 0.68.1",
  "cc",
  "encoding_c",
  "encoding_c_mem",
