@@ -304,7 +304,6 @@ pub fn write(
         let policy = CloneDataPolicy {
             allowIntraClusterClonableSharedObjects_: false,
             allowSharedMemoryObjects_: false,
-            allowErrorStackFrames_: false,
         };
         let result = JS_WriteStructuredClone(
             *cx,
@@ -381,7 +380,6 @@ pub fn read(
             &CloneDataPolicy {
                 allowIntraClusterClonableSharedObjects_: false,
                 allowSharedMemoryObjects_: false,
-                allowErrorStackFrames_: false,
             },
             &STRUCTURED_CLONE_CALLBACKS,
             sc_holder_ptr as *mut raw::c_void,
