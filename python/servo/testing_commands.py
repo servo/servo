@@ -57,6 +57,20 @@ TEST_SUITES = OrderedDict([
 TEST_SUITES_BY_PREFIX = {path: k for k, v in TEST_SUITES.items() if "paths" in v for path in v["paths"]}
 
 
+def format_toml_files_with_taplo(check_only: bool = True) -> int:
+    taplo = shutil.which("taplo")
+    if taplo is None:
+        print("Taplo is not installed.")
+        print("It should be installed using `./mach bootstrap`, \
+                but it can be installed manually using `cargo install taplo-cli --locked`")
+        return 1
+
+    if check_only:
+        return call([taplo, "fmt", "--check"], env={'RUST_LOG': 'error'})
+    else:
+        return call([taplo, "fmt"], env={'RUST_LOG': 'error'})
+
+
 @CommandProvider
 class MachCommands(CommandBase):
     DEFAULT_RENDER_MODE = "cpu"
@@ -279,7 +293,9 @@ class MachCommands(CommandBase):
         if rustfmt_failed:
             print("Run `./mach fmt` to fix the formatting")
 
-        return tidy_failed or manifest_dirty or rustfmt_failed
+        taplo_failed = format_toml_files_with_taplo()
+
+        return tidy_failed or manifest_dirty or rustfmt_failed or taplo_failed
 
     @Command('test-scripts',
              description='Run tests for all build and support scripts.',
@@ -370,9 +386,12 @@ class MachCommands(CommandBase):
         return wpt.manifestupdate.update(check_clean=False)
 
     @Command('fmt',
-             description='Format the Rust and CPP source files with rustfmt',
+             description='Format Rust and TOML files',
              category='testing')
     def format_code(self):
+        result = format_toml_files_with_taplo(check_only=False)
+        if result != 0:
+            return result
         return call(["cargo", "fmt"])
 
     @Command('update-wpt',

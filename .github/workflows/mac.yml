@@ -60,6 +60,11 @@ jobs:
           fetch-depth: 2
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
+      - name: Install taplo
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: taplo-cli
+          locked: true
       - name: Bootstrap
         run: |
           python3 -m pip install --upgrade pip virtualenv
