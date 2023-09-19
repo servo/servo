@@ -67,7 +67,9 @@ packages = [
     "foreign-types-shared",
     "metal",
     "paste",
+    # duplicate old mozilla crates (style, shmem, derive_common, ...)
     "syn",
+    "synstructure",
 
     # style/webxr (0.62) vs. mozjs_sys (0.66)
     "bindgen",
