@@ -139,51 +139,9 @@ public class ServoSurface extends SurfaceView
     public void makeCurrent() {
     }
 
-    // OnGestureListener
-    public void onLongPress(MotionEvent e) {
-    }
-
-    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        return true;
-    }
-
-    public boolean onSingleTapUp(MotionEvent e) {
-        return false;
-    }
-
-    public void onShowPress(MotionEvent e) {
-    }
-
-    // OnScaleGestureListener
-    @Override
-    public boolean onScaleBegin(ScaleGestureDetector detector) {
-        if (mScroller.isFinished()) {
-            mZoomFactor = detector.getScaleFactor();
-            mZooming = true;
-            mServo.pinchZoomStart(mZoomFactor, 0, 0);
-            startLooping();
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean onScale(ScaleGestureDetector detector) {
-        mZoomFactor *= detector.getScaleFactor();
-        return true;
-    }
-
-    @Override
-    public void onScaleEnd(ScaleGestureDetector detector) {
-        mZoomFactor = detector.getScaleFactor();
-        mZooming = false;
-        mServo.pinchZoomEnd(mZoomFactor, 0, 0);
-    }
-
 
     private void startLooping() {
-      // In case we were already drawing.
+      //In case we were already drawing.
       Choreographer.getInstance().removeFrameCallback(this);
 
       Choreographer.getInstance().postFrameCallback(this);
@@ -191,6 +149,7 @@ public class ServoSurface extends SurfaceView
 
 
     public void doFrame(long frameTimeNanos) {
+        Log.i(LOGTAG, ":::doFrame");
         if (!mRedrawing) {
             mRedrawing = true;
             mClient.onRedrawing(mRedrawing);
@@ -271,7 +230,7 @@ public class ServoSurface extends SurfaceView
 
     public void loadUri(String uri) {
         if (mServo != null) {
-            inGLThread(() -> mServo.loadUri(uri));
+            mServo.loadUri(uri);
         } else {
             mInitialUri = uri;
         }
@@ -319,6 +278,92 @@ public class ServoSurface extends SurfaceView
         return true;
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent e) {
+        mGestureDetector.onTouchEvent(e);
+        mScaleGestureDetector.onTouchEvent(e);
+
+        int action = e.getActionMasked();
+
+        float x = e.getX();
+        float y = e.getY();
+
+        int pointerIndex = e.getActionIndex();
+        int pointerId = e.getPointerId(pointerIndex);
+        switch (action) {
+            case (MotionEvent.ACTION_DOWN):
+            case (MotionEvent.ACTION_POINTER_DOWN):
+                //mServo.touchDown(x, y, pointerId);
+                mFlinging = false;
+                mScroller.forceFinished(true);
+                mCurX = (int) x;
+                mLastX = mCurX;
+                mCurY = (int) y;
+                mLastY = mCurY;
+                return true;
+            case (MotionEvent.ACTION_MOVE):
+                mCurX = (int) x;
+                mCurY = (int) y;
+                //mServo.touchMove(x, y, pointerId);
+                return true;
+            case (MotionEvent.ACTION_UP):
+            case (MotionEvent.ACTION_POINTER_UP):
+                //mServo.touchUp(x, y, pointerId);
+                return true;
+            case (MotionEvent.ACTION_CANCEL):
+                //mServo.touchCancel(x, y, pointerId);
+                return true;
+            default:
+                return true;
+        }
+    }
+
+    // OnGestureListener
+    public void onLongPress(MotionEvent e) {
+    }
+
+    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+        Log.i(LOGTAG, ":::::::onScroll");
+        mServo.scroll((int) -distanceX, (int) -distanceY, (int) e1.getX(), (int) e1.getY());
+        return true;
+    }
+
+    public boolean onSingleTapUp(MotionEvent e) {
+        Log.i(LOGTAG, String.format("::onSingleTapUp %1$f %2$f", e.getX(), e.getY()));
+        click(e.getX(), e.getY());
+        return false;
+    }
+
+    public void onShowPress(MotionEvent e) {
+    }
+
+    // OnScaleGestureListener
+    @Override
+    public boolean onScaleBegin(ScaleGestureDetector detector) {
+        if (mScroller.isFinished()) {
+            mZoomFactor = detector.getScaleFactor();
+            mZooming = true;
+            mServo.pinchZoomStart(mZoomFactor, 0, 0);
+            startLooping();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean onScale(ScaleGestureDetector detector) {
+        mZoomFactor *= detector.getScaleFactor();
+        return true;
+    }
+
+    @Override
+    public void onScaleEnd(ScaleGestureDetector detector) {
+        mZoomFactor = detector.getScaleFactor();
+        mZooming = false;
+        mServo.pinchZoomEnd(mZoomFactor, 0, 0);
+    }
+
     private void initGestures(Context context) {
         mGestureDetector = new GestureDetector(context, this);
         mScaleGestureDetector = new ScaleGestureDetector(context, this);
@@ -352,26 +397,28 @@ public class ServoSurface extends SurfaceView
             options.coordinates = coords;
             options.enableLogs = true;
             options.enableSubpixelTextAntialiasing = true;
-            mSurface.inGLThread(() -> {
+
+            if (mSurface.mServo == null) {
                 mSurface.mServo = new Servo(options, mSurface, mSurface, mClient, mActivity, surface);
-            });
+            }
+
         }
 
         public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-          Log.d(LOGTAG, "GLThread::surfaceChanged");
-          ServoCoordinates coords = new ServoCoordinates();
-          coords.width = width;
-          coords.height = height;
-          coords.fb_width = width;
-          coords.fb_height = height;
+            Log.d(LOGTAG, "GLThread::surfaceChanged");
+            ServoCoordinates coords = new ServoCoordinates();
+            coords.width = width;
+            coords.height = height;
+            coords.fb_width = width;
+            coords.fb_height = height;
 
-          mSurface.inGLThread(() -> {
-              mSurface.mServo.resize(coords);
-          });
+            if (mSurface.mServo != null) {
+                mSurface.mServo.resize(coords);
+            }
         }
 
         public void surfaceDestroyed(SurfaceHolder holder) {
-          Log.d(LOGTAG, "GLThread::surfaceDestroyed");
+            Log.d(LOGTAG, "GLThread::surfaceDestroyed");
         }
 
         public void shutdown() {

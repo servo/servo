@@ -183,7 +183,7 @@ public class ServoView extends GLSurfaceView
             options.url = uri;
             options.logStr = mServoLog;
             options.gstDebugStr = mGstDebug;
-            mServo = new Servo(options, this, this, mClient, mActivity);
+            mServo = new Servo(options, this, this, mClient, mActivity, this.getHolder().getSurface());
         });
     }
 

@@ -28,11 +28,19 @@ struct HostCallbacks {
 }
 
 extern "C" {
- fn ANativeWindow_fromSurface( env: *mut jni::sys::JNIEnv, surface: JObject) -> *mut c_void; 
+    fn ANativeWindow_fromSurface(
+        env: *mut jni::sys::JNIEnv,
+        surface: JObject
+    ) -> *mut c_void;
 }
 
 #[no_mangle]
 pub fn android_main() {
+    // FIXME(mukilan): this android_main is only present to stop
+    // the java side 'System.loadLibrary('simpleservo') call from
+    // failing due to undefined reference to android_main introduced
+    // by winit's android-activity crate. There is no way to disable
+    // this currently.
 }
 
 fn call<F>(env: &JNIEnv, f: F)
@@ -64,8 +72,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     callbacks_obj: JObject,
     surface: JObject
 ) {
-    let widget = unsafe { #[allow(unsafe_code)] ANativeWindow_fromSurface(env.get_native_interface(), surface) };
-    let (mut opts, log, log_str, gst_debug_str) = match get_options(&env, opts, widget) {
+    let (mut opts, log, log_str, gst_debug_str) = match get_options(&env, opts, surface) {
         Ok((opts, log, log_str, gst_debug_str)) => (opts, log, log_str, gst_debug_str),
         Err(err) => {
             throw(&env, &err);
@@ -811,7 +818,7 @@ fn get_string(env: &JNIEnv, obj: JObject, field: &str) -> Result<Option<String>,
 fn get_options(
     env: &JNIEnv,
     opts: JObject,
-    widget: *mut c_void
+    surface: JObject
 ) -> Result<(InitOptions, bool, Option<String>, Option<String>), String> {
     let args = get_string(env, opts, "args")?;
     let url = get_string(env, opts, "url")?;
@@ -852,6 +859,9 @@ fn get_options(
         // } else {
         //     VRInitOptions::VRExternal(vr_pointer)
         // },
+    let native_window = unsafe {
+        ANativeWindow_fromSurface(env.get_native_interface(), surface)
+    };
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),
         coordinates,
@@ -859,7 +869,7 @@ fn get_options(
         xr_discovery: None,
         gl_context_pointer: None,
         native_display_pointer: None,
-        surfman_integration: simpleservo::SurfmanIntegration::Widget(widget),
+        surfman_integration: simpleservo::SurfmanIntegration::Widget(native_window),
         prefs: None,
     };
     Ok((opts, log, log_str, gst_debug_str))
