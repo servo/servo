@@ -242,6 +242,9 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// Waiting for external code to call present.
     waiting_on_present: bool,
+
+    /// Resume sender
+    resume_sender: Option<Sender<()>>
 }
 
 #[derive(Clone, Copy)]
@@ -1256,6 +1259,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 point.cast(),
             ),
             TouchAction::Zoom(magnification, scroll_delta) => {
+                //info!("[COMP] Starting zoom");
                 let cursor = Point2D::new(-1, -1); // Make sure this hits the base layer.
 
                 // The order of these events doesn't matter, because zoom is handled by
@@ -1333,6 +1337,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn process_pending_scroll_events(&mut self) {
+        // info!("[COMP] process pending scroll zooms");
         // Batch up all scroll events into one, or else we'll do way too much painting.
         let mut combined_scroll_event: Option<ScrollEvent> = None;
         let mut combined_magnification = 1.0;

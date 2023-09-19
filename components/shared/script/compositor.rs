@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Defines data structures which are consumed by the Compositor.
+use log::info;
 
 use embedder_traits::Cursor;
 use serde::{Deserialize, Serialize};
@@ -102,6 +103,7 @@ impl ScrollTreeNode {
             None => return None,
         };
 
+        info!("XXXX SCROLL");
         if info.scroll_sensitivity != ScrollSensitivity::ScriptAndInputEvents {
             return None;
         }
@@ -136,6 +138,8 @@ impl ScrollTreeNode {
         if scrollable_width > 0. {
             info.offset.x = (info.offset.x + delta.x).min(0.0).max(-scrollable_width);
         }
+
+        info!("[SCROLLL] {delta:?} {0:?}", info.offset);
 
         if scrollable_height > 0. {
             info.offset.y = (info.offset.y + delta.y).min(0.0).max(-scrollable_height);
