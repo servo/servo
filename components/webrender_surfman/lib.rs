@@ -216,4 +216,28 @@ impl WebrenderSurfman {
         let ref context = self.0.context.borrow();
         device.get_proc_address(context, name)
     }
+
+    pub fn unbind_native_surface_from_context(&self) -> Result<(), Error> {
+        let mut device = self.0.device.borrow_mut();
+        let mut context = self.0.context.borrow_mut();
+        let mut surface = device.unbind_surface_from_context(&mut context)?.unwrap();
+        let _ = device.destroy_surface(&mut context, &mut surface)?;
+        Ok(())
+    }
+
+    pub fn bind_native_surface_to_context(&self, native_widget: NativeWidget) -> Result<(), Error> {
+        let mut device = self.0.device.borrow_mut();
+        let mut context = self.0.context.borrow_mut();
+        let surface_access = SurfaceAccess::GPUOnly;
+        let surface_type = SurfaceType::Widget { native_widget };
+        let surface = device.create_surface(&context, surface_access, surface_type)?;
+        device
+            .bind_surface_to_context(&mut context, surface)
+            .map_err(|(err, mut surface)| {
+                let _ = device.destroy_surface(&mut context, &mut surface);
+                err
+            })?;
+        device.make_context_current(&context)?;
+        Ok(())
+    }
 }

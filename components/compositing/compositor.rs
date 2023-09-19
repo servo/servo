@@ -17,7 +17,7 @@ use compositing_traits::{
     CompositorReceiver, ConstellationMsg, FontToCompositorMsg, ForwardedToCompositorMsg,
     SendableFrameTree,
 };
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Sender, Receiver, bounded};
 use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
@@ -49,10 +49,10 @@ use webrender_api::units::{
     LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
-    self, BuiltDisplayList, ClipId, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
-    ExternalScrollId, HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding,
-    ReferenceFrameKind, ScrollClamping, ScrollLocation, SpaceAndClipInfo, SpatialId,
-    TransformStyle, ZoomFactor,
+    self, BuiltDisplayList, Checkpoint, ClipId, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
+    ExternalScrollId, HitTestFlags, NotificationHandler, NotificationRequest,
+    PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind, ScrollClamping,
+    ScrollLocation, SpaceAndClipInfo, SpatialId, TransformStyle, ZoomFactor,
 };
 use webrender_surfman::WebrenderSurfman;
 
@@ -251,6 +251,9 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// Waiting for external code to call present.
     waiting_on_present: bool,
+
+    /// Resume sender
+    resume_sender: Option<Sender<()>>
 }
 
 #[derive(Clone, Copy)]
@@ -417,6 +420,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             convert_mouse_to_touch,
             waiting_on_pending_frame: false,
             waiting_on_present: false,
+            resume_sender: None
         }
     }
 
@@ -499,6 +503,49 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
+    }
+
+    pub fn pause(&mut self) {
+        info!("Pausing compositor");
+        let mut txn = Transaction::new();
+        let (resume_sender, receiver) =  bounded(1);
+        let (pause_sender, pause_receiver) =  bounded(1);
+        struct ResumeEvent { sender: Sender<()>, receiver: Receiver<()> }
+        impl NotificationHandler for ResumeEvent {
+            fn notify(&self, when: Checkpoint) {
+                self.sender.send(());
+                let _ = self.receiver.recv();
+            }
+        }
+
+        let event = ResumeEvent { sender: pause_sender, receiver };
+        txn.notify(NotificationRequest::new(
+            Checkpoint::SceneBuilt,
+            Box::new(event) as Box<dyn NotificationHandler>,
+        ));
+
+        self.webrender_api
+            .send_transaction(self.webrender_document, txn);
+        self.resume_sender = Some(resume_sender);
+        pause_receiver.recv();
+        self.shutdown_state = ShutdownState::ShuttingDown;
+        self.webrender_surfman.unbind_native_surface_from_context();
+
+    }
+
+    #[allow(unsafe_code)]
+    pub fn resume(&mut self, native_widget: *mut c_void, coords: DeviceIntSize) {
+        info!("Resuming compositor: {native_widget:?}");
+        // Reinitialize webrender surfman and bind to context
+        let connection = self.webrender_surfman.connection();
+        let native_widget = unsafe {
+            connection.create_native_widget_from_ptr(native_widget, coords.to_untyped())
+        };
+        self.webrender_surfman.bind_native_surface_to_context(native_widget);
+        if let Some(sender) = self.resume_sender.take() {
+            self.shutdown_state = ShutdownState::NotShuttingDown;
+            sender.send(());
+        }
     }
 
     fn handle_browser_message(&mut self, msg: CompositorMsg) -> bool {

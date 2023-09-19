@@ -20,6 +20,8 @@ use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DeviceP
 use webrender_api::ScrollLocation;
 use webrender_surfman::WebrenderSurfman;
 
+use libc::c_void;
+
 #[derive(Clone)]
 pub enum MouseWindowEvent {
     Click(MouseButton, DevicePoint),
@@ -105,6 +107,10 @@ pub enum EmbedderEvent {
     ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
+    /// TODO Pause the compository when underlying native surface is lost,
+    PauseCompositor,
+    /// TODO Resume the compository when underlying native surface is regained
+    ResumeCompositor(*mut c_void, DeviceIntSize)
 }
 
 impl Debug for EmbedderEvent {
@@ -139,6 +145,8 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::ChangeBrowserVisibility(..) => write!(f, "ChangeBrowserVisibility"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
+            EmbedderEvent::PauseCompositor => write!(f, "PauseCompositor"),
+            EmbedderEvent::ResumeCompositor(..) => write!(f, "ResumeCompositor"),
         }
     }
 }
