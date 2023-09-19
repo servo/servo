@@ -496,7 +496,12 @@ where
             EmbedderEvent::Resize => {
                 return self.compositor.on_resize_window_event();
             },
-
+            EmbedderEvent::PauseCompositor => {
+                self.compositor.pause();
+            },
+            EmbedderEvent::ResumeCompositor(native_widget, coords) => {
+                self.compositor.resume(native_widget, coords);
+            },
             EmbedderEvent::AllowNavigationResponse(pipeline_id, allowed) => {
                 let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allowed);
                 if let Err(e) = self.constellation_chan.send(msg) {

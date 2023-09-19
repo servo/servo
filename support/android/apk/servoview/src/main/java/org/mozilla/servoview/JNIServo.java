@@ -66,6 +66,9 @@ public class JNIServo {
 
     public native void click(float x, float y);
 
+    public native void pauseCompositor();
+    public native void resumeCompositor(Surface surface, ServoCoordinates coords);
+
     public native void mediaSessionAction(int action);
 
     public static class ServoOptions {

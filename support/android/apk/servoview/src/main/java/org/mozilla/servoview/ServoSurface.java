@@ -61,6 +61,7 @@ public class ServoSurface extends SurfaceView
     private float mZoomFactor = 1;
     private boolean mRedrawing;
     private boolean mAnimating;
+    private boolean mPaused = false;
 
     public ServoSurface(Context context) {
         super(context);
@@ -398,8 +399,11 @@ public class ServoSurface extends SurfaceView
             options.enableLogs = true;
             options.enableSubpixelTextAntialiasing = true;
 
-            if (mSurface.mServo == null) {
+            if (mSurface.mServo == null && !mPaused) {
                 mSurface.mServo = new Servo(options, mSurface, mSurface, mClient, mActivity, surface);
+            } else {
+                mPaused = false;
+                mSurface.mServo.resumeCompositor(surface, coords);
             }
 
         }
@@ -419,6 +423,8 @@ public class ServoSurface extends SurfaceView
 
         public void surfaceDestroyed(SurfaceHolder holder) {
             Log.d(LOGTAG, "GLThread::surfaceDestroyed");
+            mPaused = true;
+            mSurface.mServo.pauseCompositor();
         }
 
         public void shutdown() {

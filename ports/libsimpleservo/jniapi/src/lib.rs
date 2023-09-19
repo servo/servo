@@ -355,6 +355,35 @@ pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jflo
 }
 
 #[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_pauseCompositor(
+    env: JNIEnv,
+    _: JClass
+) {
+    debug!("pauseCompositor");
+    call(&env, |s| { s.pause_compositor() });
+}
+
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_resumeCompositor(
+    env: JNIEnv,
+    _: JClass,
+    surface: JObject,
+    coordinates: JObject
+) {
+    debug!("resumeCompositor");
+    let widget = unsafe {
+        ANativeWindow_fromSurface(env.get_native_interface(), surface)
+    };
+    let coords = jni_coords_to_rust_coords(&env, coordinates);
+    match coords {
+        Ok(coords) => call(
+            &env, |s| { s.resume_compositor(widget, coords.clone()) }
+        ),
+        Err(error) => throw(&env, &error),
+    }
+}
+
+#[no_mangle]
 pub fn Java_org_mozilla_servoview_JNIServo_mediaSessionAction(
     env: JNIEnv,
     _: JClass,

@@ -569,6 +569,17 @@ impl ServoGlue {
         self.process_event(EmbedderEvent::Keyboard(key_event))
     }
 
+    pub fn pause_compositor(&mut self) -> Result<(), &'static str> {
+        self.process_event(EmbedderEvent::PauseCompositor)
+    }
+
+    pub fn resume_compositor(&mut self, native_surface: *mut c_void, coords: Coordinates) -> Result<(), &'static str> {
+        if native_surface.is_null() {
+            panic!("null passed for native_surface");
+        }
+        self.process_event(EmbedderEvent::ResumeCompositor(native_surface, coords.framebuffer))
+    }
+
     pub fn media_session_action(
         &mut self,
         action: MediaSessionActionType,
