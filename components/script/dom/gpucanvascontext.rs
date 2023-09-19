@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
@@ -103,14 +103,17 @@ pub struct GPUCanvasContext {
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
     canvas: HTMLCanvasElementOrOffscreenCanvas,
+    #[ignore_malloc_size_of = "manual writing is hard"]
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configuration-slot>
+    config: RefCell<Option<GPUCanvasConfiguration>>,
     // TODO: can we have wgpu surface that is hw accelerated inside wr ...
     #[ignore_malloc_size_of = "Defined in webrender"]
     #[no_trace]
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     context_id: WebGPUContextId,
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot>
     texture: MutNullableDom<GPUTexture>,
 }
 
@@ -128,6 +131,7 @@ impl GPUCanvasContext {
             webrender_image: Cell::new(None),
             context_id: WebGPUContextId(external_id.0),
             texture: MutNullableDom::default(),
+            config: RefCell::default(),
         }
     }
 
@@ -199,6 +203,12 @@ impl GPUCanvasContext {
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.get_size(),
         }
     }
+
+    pub fn recreate(&self) {
+        if let Some(config) = self.config.take() {
+            self.Configure(&config)
+        }
+    }
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
@@ -216,6 +226,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure
     fn Configure(&self, descriptor: &GPUCanvasConfiguration) {
+        self.Unconfigure();
         // Step 1 is let
         // Step 2
         // TODO: device features
@@ -245,6 +256,9 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             parent: GPUObjectDescriptorBase { label: None },
             dimension: GPUTextureDimension::_2d,
         };
+
+        // Step 5
+        self.config.replace(Some(descriptor.clone()));
 
         // Step 8
         let image_desc = ImageDescriptor {
