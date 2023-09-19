@@ -584,6 +584,13 @@ impl Element {
                 node.parent_directionality()
             })
     }
+
+    pub(crate) fn is_root(&self) -> bool {
+        match self.node.GetParentNode() {
+            None => false,
+            Some(node) => node.is::<Document>(),
+        }
+    }
 }
 
 #[inline]
@@ -3194,10 +3201,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
     }
 
     fn is_root(&self) -> bool {
-        match self.node.GetParentNode() {
-            None => false,
-            Some(node) => node.is::<Document>(),
-        }
+        Element::is_root(self)
     }
 
     fn is_empty(&self) -> bool {

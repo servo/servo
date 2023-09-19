@@ -1721,26 +1721,13 @@ impl Window {
 
         // Step 7 & 8
         // TODO: Consider `block-end` and `inline-end` overflow direction.
-        let body = self.Document().GetBody();
-        let (x, y) = match body {
-            Some(e) => {
-                // This doesn't properly take into account the overflow set on <body>
-                // and the root element, which might affect how much the root can
-                // scroll. That requires properly handling propagating those values
-                // according to the rules defined in in the specification at:
-                // https://w3c.github.io/csswg-drafts/css-overflow/#overflow-propagation
-                let scroll_area = e.upcast::<Node>().bounding_content_box_or_zero();
-                (
-                    xfinite
-                        .min(scroll_area.width().to_f64_px() - viewport.width as f64)
-                        .max(0.0f64),
-                    yfinite
-                        .min(scroll_area.height().to_f64_px() - viewport.height as f64)
-                        .max(0.0f64),
-                )
-            },
-            None => (xfinite.max(0.0f64), yfinite.max(0.0f64)),
-        };
+        let scrolling_area = self.scrolling_area_query(None);
+        let x = xfinite
+            .min(scrolling_area.width() as f64 - viewport.width as f64)
+            .max(0.0f64);
+        let y = yfinite
+            .min(scrolling_area.height() as f64 - viewport.height as f64)
+            .max(0.0f64);
 
         // Step 10
         //TODO handling ongoing smooth scrolling
@@ -2113,11 +2100,14 @@ impl Window {
         self.layout_rpc.node_geometry().client_rect
     }
 
-    pub fn scroll_area_query(&self, node: &Node) -> UntypedRect<i32> {
-        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node.to_opaque())) {
+    /// Find the scroll area of the given node, if it is not None. If the node
+    /// is None, find the scroll area of the viewport.
+    pub fn scrolling_area_query(&self, node: Option<&Node>) -> UntypedRect<i32> {
+        let opaque = node.map(|node| node.to_opaque());
+        if !self.layout_reflow(QueryMsg::ScrollingAreaQuery(opaque)) {
             return Rect::zero();
         }
-        self.layout_rpc.node_scroll_area().client_rect
+        self.layout_rpc.scrolling_area().client_rect
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
@@ -2748,7 +2738,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
             &QueryMsg::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
             &QueryMsg::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
             &QueryMsg::ClientRectQuery(_n) => "\tClientRectQuery",
-            &QueryMsg::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
+            &QueryMsg::ScrollingAreaQuery(_n) => "\tNodeScrollGeometryQuery",
             &QueryMsg::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
             &QueryMsg::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
             &QueryMsg::ResolvedFontStyleQuery(..) => "\nResolvedFontStyleQuery",

@@ -3,6 +3,7 @@
 <title></title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<div style="position: absolute; top: 0; left: 0; width: 10000px; height: 10000px; background: purple"></div>
 <script>
 test(function() {
     scrollTo(0, 5000);
@@ -18,4 +19,3 @@ test(function() {
     assert_equals(pageYOffset, 0);
 });
 </script>
-<div style="position: absolute; top: 0; left: 0; width: 10000px; height: 10000px; background: purple"></div>

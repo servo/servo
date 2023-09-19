@@ -56,7 +56,7 @@ pub struct LayoutThreadData {
     pub scroll_id_response: Option<ExternalScrollId>,
 
     /// A queued response for the scroll {top, left, width, height} of a node in pixels.
-    pub scroll_area_response: Rect<i32>,
+    pub scrolling_area_response: Rect<i32>,
 
     /// A queued response for the resolved style property of an element.
     pub resolved_style_response: String,
@@ -115,9 +115,9 @@ impl LayoutRPC for LayoutRPCImpl {
         }
     }
 
-    fn node_scroll_area(&self) -> NodeGeometryResponse {
+    fn scrolling_area(&self) -> NodeGeometryResponse {
         NodeGeometryResponse {
-            client_rect: self.0.lock().unwrap().scroll_area_response,
+            client_rect: self.0.lock().unwrap().scrolling_area_response,
         }
     }
 
@@ -201,14 +201,19 @@ pub fn process_node_scroll_id_request<'dom>(
 
 /// https://drafts.csswg.org/cssom-view/#scrolling-area
 pub fn process_node_scroll_area_request(
-    requested_node: OpaqueNode,
+    requested_node: Option<OpaqueNode>,
     fragment_tree: Option<Arc<FragmentTree>>,
 ) -> Rect<i32> {
-    if let Some(fragment_tree) = fragment_tree {
-        fragment_tree.get_scroll_area_for_node(requested_node)
-    } else {
-        Rect::zero()
-    }
+    let rect = match (fragment_tree, requested_node) {
+        (Some(tree), Some(node)) => tree.get_scrolling_area_for_node(node),
+        (Some(tree), None) => tree.get_scrolling_area_for_viewport(),
+        _ => return Rect::zero(),
+    };
+
+    Rect::new(
+        Point2D::new(rect.origin.x.px() as i32, rect.origin.y.px() as i32),
+        Size2D::new(rect.size.width.px() as i32, rect.size.height.px() as i32),
+    )
 }
 
 /// Return the resolved value of property for a given (pseudo)element.
