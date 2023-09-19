@@ -13,10 +13,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::*;
 use syn::parse::Result;
 use syn::spanned::Spanned;
-use syn::{
-    parse_macro_input, Attribute, Ident, Lit, LitStr, Meta, MetaList, MetaNameValue, NestedMeta,
-    Path,
-};
+use syn::{parse_macro_input, Attribute, Ident, LitStr, Path};
 
 mod parse;
 use parse::*;
@@ -199,23 +196,19 @@ impl Field {
 }
 
 fn attr_to_pref_name(attr: &Attribute) -> Option<LitStr> {
-    attr.parse_meta().ok().and_then(|meta| {
-        if let Meta::List(MetaList { path, nested, .. }) = meta {
-            if path.is_ident("serde") {
-                if let Some(NestedMeta::Meta(Meta::NameValue(MetaNameValue {
-                    ref path,
-                    lit: Lit::Str(val),
-                    ..
-                }))) = nested.iter().next()
-                {
-                    if path.is_ident("rename") {
-                        return Some(val.clone());
-                    }
-                }
+    if attr.path().is_ident("serde") {
+        // If `parse_nested_meta()` fails, `result` will remain None.
+        let mut result = None;
+        let _ = attr.parse_nested_meta(|meta| {
+            if meta.path.is_ident("rename") {
+                result = Some(meta.value()?.parse()?);
             }
-        }
+            Ok(())
+        });
+        result
+    } else {
         None
-    })
+    }
 }
 
 fn err<S: Spanned>(s: S, msg: &str) -> syn::Error {
