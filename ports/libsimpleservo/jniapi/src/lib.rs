@@ -15,7 +15,6 @@ use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
-use log::Level;
 use simpleservo::{
     self, deinit, gl_glue, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait,
     InitOptions, InputMethodType, MediaSessionPlaybackState, MouseButton, PromptResult, ServoGlue,
@@ -112,6 +111,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
 
         android_logger::init_once(
             Config::default()
+            .with_max_level(log::LevelFilter::Debug)
             .with_filter(filter_builder.build())
             .with_tag("simpleservo")
         )
