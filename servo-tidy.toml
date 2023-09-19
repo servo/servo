@@ -67,7 +67,8 @@ packages = [
     "foreign-types-shared",
     "metal",
     "paste",
-    # duplicate old mozilla crates (style, shmem, derive_common, ...)
+
+    # Duplicated by Gecko crates that haven't been updated yet (style, shmem, derive_common, ...).
     "syn",
     "synstructure",
 

@@ -197,31 +197,18 @@ impl Field {
 
 fn attr_to_pref_name(attr: &Attribute) -> Option<LitStr> {
     if attr.path().is_ident("serde") {
-        let mut res = None;
-        // if this fails result is still None
+        // If `parse_nested_meta()` fails, `result` will remain None.
+        let mut result = None;
         let _ = attr.parse_nested_meta(|meta| {
             if meta.path.is_ident("rename") {
-                res = Some(meta.value()?.parse()?);
+                result = Some(meta.value()?.parse()?);
             }
             Ok(())
         });
-        res
+        result
     } else {
         None
     }
-    /*let mut res = None;
-    attr.parse_nested_meta(|meta| {
-        if meta.path.is_ident("serde") {
-            meta.parse_nested_meta(|meta| {
-                if meta.path.is_ident("rename") {
-                    res = Some(meta.value()?.parse()?);
-                }
-                Ok(())
-            })?;
-        }
-        Ok(())
-    }).unwrap();
-    return res;*/
 }
 
 fn err<S: Spanned>(s: S, msg: &str) -> syn::Error {

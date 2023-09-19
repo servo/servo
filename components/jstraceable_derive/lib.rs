@@ -150,8 +150,9 @@ fn js_traceable_derive(s: synstructure::Structure) -> proc_macro2::TokenStream {
     let match_body = s.each(|binding| {
         for attr in binding.ast().attrs.iter() {
             if attr.path().is_ident("no_trace") {
-                // if reason is not provided we do JSTraceable check
-                if attr.meta.require_name_value().is_err() {
+                // if no reason is provided to `no_trace`
+                if !matches!(attr.meta, syn::Meta::NameValue(_)) {
+                    // assert that binded type does not implement traceable
                     asserts.extend(assert_not_impl_traceable(&binding.ast().ty));
                 }
                 return None;
