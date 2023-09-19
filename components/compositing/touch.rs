@@ -79,6 +79,7 @@ impl TouchHandler {
     }
 
     pub fn on_touch_down(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
+        //info!("[TOUCH] down {id:?}");
         let point = TouchPoint::new(id, point);
         self.active_touch_points.push(point);
 
@@ -92,6 +93,7 @@ impl TouchHandler {
     }
 
     pub fn on_touch_move(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) -> TouchAction {
+        //info!("[TOUCH] move {id:?}");
         let idx = match self.active_touch_points.iter_mut().position(|t| t.id == id) {
             Some(i) => i,
             None => {
@@ -125,6 +127,7 @@ impl TouchHandler {
                 let (d1, c1) = self.pinch_distance_and_center();
 
                 let magnification = d1 / d0;
+                info!("[PINCHING] mag: {magnification}");
                 let scroll_delta = c1 - c0 * Scale::new(magnification);
 
                 TouchAction::Zoom(magnification, scroll_delta)
@@ -143,6 +146,7 @@ impl TouchHandler {
     }
 
     pub fn on_touch_up(&mut self, id: TouchId, _point: Point2D<f32, DevicePixel>) -> TouchAction {
+        //info!("[TOUCH] up {id:?}");
         match self.active_touch_points.iter().position(|t| t.id == id) {
             Some(i) => {
                 self.active_touch_points.swap_remove(i);
@@ -176,6 +180,7 @@ impl TouchHandler {
     }
 
     pub fn on_touch_cancel(&mut self, id: TouchId, _point: Point2D<f32, DevicePixel>) {
+        //info!("[TOUCH] cancel {id:?}");
         match self.active_touch_points.iter().position(|t| t.id == id) {
             Some(i) => {
                 self.active_touch_points.swap_remove(i);
