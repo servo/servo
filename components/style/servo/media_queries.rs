@@ -12,6 +12,7 @@ use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::values::computed::CSSPixelLength;
 use crate::values::computed::Context;
+use crate::values::computed::Resolution;
 use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::specified::ViewportVariant;
 use crate::values::KeyframesName;
@@ -252,9 +253,19 @@ fn eval_scan(_: &Context, _: Option<Scan>) -> bool {
     false
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#resolution
+fn eval_resolution(context: &Context) -> Resolution {
+    Resolution::from_dppx(context.device().device_pixel_ratio.0)
+}
+
+/// https://compat.spec.whatwg.org/#css-media-queries-webkit-device-pixel-ratio
+fn eval_device_pixel_ratio(context: &Context) -> f32 {
+    eval_resolution(context).dppx()
+}
+
 lazy_static! {
     /// A list with all the media features that Servo supports.
-    pub static ref MEDIA_FEATURES: [QueryFeatureDescription; 2] = [
+    pub static ref MEDIA_FEATURES: [QueryFeatureDescription; 5] = [
         feature!(
             atom!("width"),
             AllowsRanges::Yes,
@@ -265,6 +276,24 @@ lazy_static! {
             atom!("scan"),
             AllowsRanges::No,
             keyword_evaluator!(eval_scan, Scan),
+            FeatureFlags::empty(),
+        ),
+        feature!(
+            atom!("resolution"),
+            AllowsRanges::Yes,
+            Evaluator::Resolution(eval_resolution),
+            FeatureFlags::empty(),
+        ),
+        feature!(
+            atom!("device-pixel-ratio"),
+            AllowsRanges::Yes,
+            Evaluator::Float(eval_device_pixel_ratio),
+            FeatureFlags::WEBKIT_PREFIX,
+        ),
+        feature!(
+            atom!("-moz-device-pixel-ratio"),
+            AllowsRanges::Yes,
+            Evaluator::Float(eval_device_pixel_ratio),
             FeatureFlags::empty(),
         ),
     ];
