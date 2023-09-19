@@ -112,7 +112,7 @@
   "session-history.max-length": 20,
   "shell.background-color.rgba": [1.0, 1.0, 1.0, 1.0],
   "shell.crash_reporter.enabled": false,
-  "shell.homepage": "https://servo.org",
+  "shell.homepage": "https://demo.servo.org/experiments/physicsParticles",
   "shell.keep_screen_on.enabled": false,
   "shell.native-orientation": "both",
   "shell.native-titlebar.enabled": true,
