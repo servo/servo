@@ -75,7 +75,7 @@ string_cache = "0.8"
 string_cache_codegen = "0.5"
 # NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
 surfman = { version = "0.8", features = ["chains", "sm-angle", "sm-angle-default"] }
-syn = { version = "1", default-features = false, features = ["clone-impls", "derive", "parsing"] }
+syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.12"
 time = "0.1.41"
 tokio = "1"
