@@ -349,7 +349,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
+pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jfloat, y: jfloat) {
     debug!("click");
     call(&env, |s| s.click(x as f32, y as f32));
 }
