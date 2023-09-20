@@ -328,12 +328,6 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
-
-[[package]]
-name = "base64"
 version = "0.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ba43ea6f343b788c8764558649e08df62f86c6ef251fdaeb1ffd010a9ae50a2"
@@ -1008,7 +1002,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "754c060c4a3342c5824d14caeba6c588716e9327f50558532685ef56718e0461"
 dependencies = [
- "base64 0.21.4",
+ "base64",
  "bitflags 2.4.0",
  "once_cell",
  "percent-encoding",
@@ -2622,7 +2616,7 @@ version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06683b93020a07e3dbcf5f8c0f6d40080d725bea7936fc01ad345c01b97dc270"
 dependencies = [
- "base64 0.21.4",
+ "base64",
  "bytes",
  "headers-core",
  "http",
@@ -3809,7 +3803,7 @@ version = "0.0.1"
 dependencies = [
  "async-recursion",
  "async-tungstenite",
- "base64 0.21.4",
+ "base64",
  "brotli",
  "bytes",
  "content-security-policy",
@@ -4724,22 +4718,11 @@ checksum = "3582f63211428f83597b51b2ddb88e2a91a9d52d12831f9d08f5e624e8977422"
 
 [[package]]
 name = "ron"
-version = "0.6.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86018df177b1beef6c7c8ef949969c4f7cb9a9344181b92486b23c79995bdaa4"
-dependencies = [
- "base64 0.13.0",
- "bitflags 1.3.2",
- "serde",
-]
-
-[[package]]
-name = "ron"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b91f7eff05f748767f183df4320a63d6936e9c6107d97c9e6bdd9784f4289c94"
 dependencies = [
- "base64 0.21.4",
+ "base64",
  "bitflags 2.4.0",
  "serde",
  "serde_derive",
@@ -4797,7 +4780,7 @@ version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2d3987094b1d07b653b7dfdc3f70ce9a1da9c51ac18c1b06b662e4f9a0e9f4b2"
 dependencies = [
- "base64 0.21.4",
+ "base64",
 ]
 
 [[package]]
@@ -4862,7 +4845,7 @@ dependencies = [
  "arrayvec",
  "atomic_refcell",
  "backtrace",
- "base64 0.21.4",
+ "base64",
  "bitflags 2.4.0",
  "bluetooth_traits",
  "canvas_traits",
@@ -6742,11 +6725,11 @@ dependencies = [
 
 [[package]]
 name = "webdriver"
-version = "0.48.0"
+version = "0.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf9ae70f0cb12332fe144def990a9e62b20db2361b8784f879bb2814aad6c763"
+checksum = "bc8773336cf1ad6ffadae7d73fea436e5c4d6345a467292902876cb0f7b72107"
 dependencies = [
- "base64 0.13.0",
+ "base64",
  "bytes",
  "cookie 0.16.2",
  "http",
@@ -6766,7 +6749,7 @@ dependencies = [
 name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
- "base64 0.21.4",
+ "base64",
  "compositing_traits",
  "cookie 0.12.0",
  "crossbeam-channel",
@@ -6857,7 +6840,7 @@ dependencies = [
  "objc",
  "plane-split",
  "rayon",
- "ron 0.6.6",
+ "ron",
  "serde",
  "smallvec",
  "svg_fmt",
@@ -6964,7 +6947,7 @@ dependencies = [
  "naga",
  "parking_lot",
  "profiling",
- "ron 0.8.1",
+ "ron",
  "rustc-hash",
  "serde",
  "smallvec",

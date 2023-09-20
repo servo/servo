@@ -81,6 +81,41 @@ impl BrowserCapabilities for ServoCapabilities {
     ) -> Result<bool, WebDriverError> {
         todo!()
     }
+
+    fn webauthn_virtual_authenticators(
+        &mut self,
+        _: &serde_json::Map<std::string::String, Value>,
+    ) -> Result<bool, WebDriverError> {
+        todo!()
+    }
+
+    fn webauthn_extension_uvm(
+        &mut self,
+        _: &serde_json::Map<std::string::String, Value>,
+    ) -> Result<bool, WebDriverError> {
+        todo!()
+    }
+
+    fn webauthn_extension_prf(
+        &mut self,
+        _: &serde_json::Map<std::string::String, Value>,
+    ) -> Result<bool, WebDriverError> {
+        todo!()
+    }
+
+    fn webauthn_extension_large_blob(
+        &mut self,
+        _: &serde_json::Map<std::string::String, Value>,
+    ) -> Result<bool, WebDriverError> {
+        todo!()
+    }
+
+    fn webauthn_extension_cred_blob(
+        &mut self,
+        _: &serde_json::Map<std::string::String, Value>,
+    ) -> Result<bool, WebDriverError> {
+        todo!()
+    }
 }
 
 fn get_platform_name() -> Option<String> {
