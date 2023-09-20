@@ -684,25 +684,13 @@ impl WebGLThread {
 
         // Reset framebuffer bindings as appropriate.
         framebuffer_rebinding_info.apply(&self.device, &data.ctx, &*data.gl);
+        debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
-        // Update WR image if needed.
-        let info = self.cached_context_info.get_mut(&context_id).unwrap();
         let has_alpha = data
             .state
             .requested_flags
             .contains(ContextAttributeFlags::ALPHA);
-        let image_buffer_kind = current_wr_image_buffer_kind(&self.device);
-        Self::update_wr_external_image(
-            &mut self.webrender_api,
-            self.webrender_doc,
-            size.to_i32(),
-            has_alpha,
-            context_id,
-            info.image_key,
-            image_buffer_kind,
-        );
-
-        debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
+        self.update_wr_image_for_context(context_id, size.to_i32(), has_alpha);
 
         Ok(())
     }
@@ -818,6 +806,7 @@ impl WebGLThread {
             debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
             let SurfaceInfo {
+                size,
                 framebuffer_object,
                 id,
                 ..
@@ -830,6 +819,12 @@ impl WebGLThread {
                 "... rebound framebuffer {}, new back buffer surface is {:?}",
                 framebuffer_object, id
             );
+
+            let has_alpha = data
+                .state
+                .requested_flags
+                .contains(ContextAttributeFlags::ALPHA);
+            self.update_wr_image_for_context(context_id, size, has_alpha);
         }
 
         #[allow(unused)]
@@ -908,22 +903,23 @@ impl WebGLThread {
         image_key
     }
 
-    /// Updates a `ImageKey` that uses shared textures.
-    fn update_wr_external_image(
-        webrender_api: &mut RenderApi,
-        webrender_doc: DocumentId,
-        size: Size2D<i32>,
-        alpha: bool,
+    /// Tell WebRender to invalidate any cached tiles for a given `WebGLContextId`
+    /// when the underlying surface has changed e.g due to resize or buffer swap
+    fn update_wr_image_for_context(
+        &mut self,
         context_id: WebGLContextId,
-        image_key: ImageKey,
-        image_buffer_kind: ImageBufferKind,
+        size: Size2D<i32>,
+        has_alpha: bool,
     ) {
-        let descriptor = Self::image_descriptor(size, alpha);
-        let data = Self::external_image_data(context_id, image_buffer_kind);
+        let info = self.cached_context_info.get(&context_id).unwrap();
+        let image_buffer_kind = current_wr_image_buffer_kind(&self.device);
+
+        let descriptor = Self::image_descriptor(size, has_alpha);
+        let image_data = Self::external_image_data(context_id, image_buffer_kind);
 
         let mut txn = Transaction::new();
-        txn.update_image(image_key, descriptor, data, &DirtyRect::All);
-        webrender_api.send_transaction(webrender_doc, txn);
+        txn.update_image(info.image_key, descriptor, image_data, &DirtyRect::All);
+        self.webrender_api.send_transaction(self.webrender_doc, txn);
     }
 
     /// Helper function to create a `ImageDescriptor`.
