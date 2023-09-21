@@ -20,7 +20,7 @@ webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 libc = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-core-foundation = "0.6"
+core-foundation = "0.9"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { workspace = true }
