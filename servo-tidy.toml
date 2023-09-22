@@ -28,7 +28,6 @@ packages = [
     "core-foundation",
     "core-foundation-sys",
     "futures",
-    "gl_generator",
     "itoa",
     "libloading",
     "mio",

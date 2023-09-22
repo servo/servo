@@ -2128,17 +2128,6 @@ checksum = "6fb8d784f27acf97159b40fc4db5ecd8aa23b9ad5ef69cdd136d3bc80665f0c0"
 
 [[package]]
 name = "gl_generator"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca98bbde17256e02d17336a6bdb5a50f7d0ccacee502e191d3e3d0ec2f96f84a"
-dependencies = [
- "khronos_api",
- "log",
- "xml-rs",
-]
-
-[[package]]
-name = "gl_generator"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a95dfc23a2b4a9a2f5ab41d194f8bfda3cabec42af4e39f08c339eb2a0c124d"
@@ -2154,7 +2143,7 @@ version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0173481f2bb6e809bf4985de2e86c83876d84d2805830e3301cd37355e897f0f"
 dependencies = [
- "gl_generator 0.14.0",
+ "gl_generator",
 ]
 
 [[package]]
@@ -3690,12 +3679,12 @@ dependencies = [
 
 [[package]]
 name = "mozangle"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "094982bba06f6658a8a7997983e44efb9b129cb032050cb3ec845e875e618ea0"
+checksum = "3a1fa5a876b07f6e97ecea31b3f1ef03fc3718af65429965559a5f09c563c7d5"
 dependencies = [
  "cc",
- "gl_generator 0.13.1",
+ "gl_generator",
  "lazy_static",
  "walkdir",
 ]
@@ -5548,7 +5537,7 @@ version = "0.0.1"
 dependencies = [
  "core-foundation 0.6.4",
  "getopts",
- "gl_generator 0.14.0",
+ "gl_generator",
  "ipc-channel",
  "libc",
  "libloading 0.8.0",
@@ -5695,7 +5684,7 @@ version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74fc6c6346da9177de9894230716709c223c62adbf910a5c1e6096b2ee2e58e0"
 dependencies = [
- "gl_generator 0.14.0",
+ "gl_generator",
 ]
 
 [[package]]
@@ -5918,7 +5907,7 @@ dependencies = [
  "core-graphics",
  "euclid",
  "fnv",
- "gl_generator 0.14.0",
+ "gl_generator",
  "io-surface",
  "lazy_static",
  "libc",
@@ -6923,7 +6912,7 @@ dependencies = [
  "bindgen 0.66.1",
  "crossbeam-channel",
  "euclid",
- "gl_generator 0.14.0",
+ "gl_generator",
  "gvr-sys",
  "log",
  "serde",
