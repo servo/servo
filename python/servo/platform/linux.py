@@ -16,7 +16,15 @@ import distro
 from .. import util
 from .base import Base
 
-# Please keep these in sync with the packages in README.md
+# Please keep these in sync with the packages on the wiki, using the instructions below
+# https://github.com/servo/servo/wiki/Building
+
+# https://packages.debian.org
+# https://packages.ubuntu.com
+# 1. open devtools
+# 2. paste in the whole APT_PKGS = [...]
+# 3. copy(`sudo apt install ${APT_PKGS.join(" ")}`)
+# 4. paste into https://github.com/servo/servo/wiki/Building#debian-based-distributions
 APT_PKGS = ['git', 'curl', 'libx11-dev', 'libfreetype6-dev',
             'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
             'build-essential', 'cmake', 'liblzma-dev', 'libxmu6', 'libxmu-dev',
@@ -25,7 +33,13 @@ APT_PKGS = ['git', 'curl', 'libx11-dev', 'libfreetype6-dev',
             'libharfbuzz-dev', 'ccache', 'clang', 'libunwind-dev',
             'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
             'libgstreamer-plugins-bad1.0-dev',
-            'libunwind-dev', 'llvm-dev']
+            'libunwind-dev', 'llvm-dev', 'libvulkan1']
+
+# https://packages.fedoraproject.org
+# 1. open devtools
+# 2. paste in the whole DNF_PKGS = [...]
+# 3. copy(`sudo dnf install ${DNF_PKGS.join(" ")}`)
+# 4. paste into https://github.com/servo/servo/wiki/Building#fedora
 DNF_PKGS = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
             'libunwind-devel', 'mesa-libGL-devel', 'mesa-libEGL-devel',
             'glib2-devel', 'libX11-devel', 'libXrandr-devel', 'gperf',
@@ -35,7 +49,13 @@ DNF_PKGS = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
             'clang', 'clang-libs', 'llvm', 'python3-devel',
             'gstreamer1-devel', 'gstreamer1-plugins-base-devel',
             'gstreamer1-plugins-bad-free-devel', 'libjpeg-turbo-devel',
-            'zlib', 'libjpeg']
+            'zlib', 'libjpeg', 'vulkan-loader']
+
+# https://voidlinux.org/packages/
+# 1. open devtools
+# 2. paste in the whole XBPS_PKGS = [...]
+# 3. copy(`sudo xbps-install ${XBPS_PKGS.join(" ")}`)
+# 4. paste into https://github.com/servo/servo/wiki/Building#void-linux
 XBPS_PKGS = ['libtool', 'gcc', 'libXi-devel', 'freetype-devel',
              'libunwind-devel', 'MesaLib-devel', 'glib-devel', 'pkg-config',
              'libX11-devel', 'libXrandr-devel', 'gperf', 'bzip2-devel',
@@ -43,7 +63,7 @@ XBPS_PKGS = ['libtool', 'gcc', 'libXi-devel', 'freetype-devel',
              'cmake', 'libXcursor-devel', 'libXmu-devel', 'dbus-devel',
              'ncurses-devel', 'harfbuzz-devel', 'ccache', 'glu-devel',
              'clang', 'gstreamer1-devel',
-             'gst-plugins-base1-devel', 'gst-plugins-bad1-devel']
+             'gst-plugins-base1-devel', 'gst-plugins-bad1-devel', 'vulkan-loader']
 
 GSTREAMER_URL = \
     "https://github.com/servo/servo-build-deps/releases/download/linux/gstreamer-1.16-x86_64-linux-gnu.20190515.tar.gz"

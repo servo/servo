@@ -166,7 +166,11 @@ Run Servo with the command:
 
 * `GStreamer` >=1.16
 * `gst-plugins-bad` >=1.16
-
+* `libXcursor`
+* `libXrandr`
+* `libXi`
+* `libxkbcommon`
+* `vulkan-loader`
 
 ## Developing
 
