@@ -43,8 +43,8 @@ impl CaptureConfig {
             resource_id: 0,
             #[cfg(feature = "capture")]
             pretty: ron::ser::PrettyConfig::new()
-                .with_enumerate_arrays(true)
-                .with_indentor(" ".to_string()),
+                .enumerate_arrays(true)
+                .indentor(" ".to_string()),
         }
     }
 

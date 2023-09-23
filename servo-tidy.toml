@@ -21,7 +21,6 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
     "ahash",
-    "base64",
     "bitflags",
     "cfg-if",
     "cookie",
@@ -34,7 +33,6 @@ packages = [
     "nix",
     "num-rational",
     "redox_syscall",
-    "ron",
     "socket2",
     "time",
     "wasi",
