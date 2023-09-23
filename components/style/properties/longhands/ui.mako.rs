@@ -279,13 +279,14 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "animation-composition",
     "replace add accumulate",
-    engines="gecko",
+    engines="gecko servo",
     need_index=True,
     animation_value_type="none",
     vector=True,
     gecko_enum_prefix="CompositeOperation",
     gecko_inexhaustive=True,
     gecko_pref="layout.css.animation-composition.enabled",
+    servo_pref="layout.unimplemented",
     spec="https://drafts.csswg.org/css-animations-2/#animation-composition",
 )}
 
