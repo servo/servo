@@ -528,6 +528,13 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
     type Error = StyleParseErrorKind<'i>;
 }
 
+fn font_tech_enabled() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.font-tech.enabled");
+    #[cfg(feature = "servo")]
+    return false;
+}
+
 impl Parse for Source {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -562,7 +569,7 @@ impl Parse for Source {
         };
 
         // Parse optional tech()
-        let tech_flags = if static_prefs::pref!("layout.css.font-tech.enabled") && input
+        let tech_flags = if font_tech_enabled() && input
             .try_parse(|input| input.expect_function_matching("tech"))
             .is_ok()
         {
