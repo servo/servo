@@ -170,10 +170,12 @@ impl SupportsCondition {
                     input.slice_from(pos).to_owned()
                 )))
             },
+            #[cfg(feature = "gecko")]
             "font-format" if static_prefs::pref!("layout.css.font-tech.enabled") => {
                 let kw = FontFaceSourceFormatKeyword::parse(input)?;
                 Ok(SupportsCondition::FontFormat(kw))
             },
+            #[cfg(feature = "gecko")]
             "font-tech" if static_prefs::pref!("layout.css.font-tech.enabled") => {
                 let flag = FontFaceSourceTechFlags::parse_one(input)?;
                 Ok(SupportsCondition::FontTech(flag))
@@ -244,11 +246,13 @@ fn eval_moz_bool_pref(name: &CStr, cx: &ParserContext) -> bool {
     unsafe { bindings::Gecko_GetBoolPrefValue(name.as_ptr()) }
 }
 
+#[cfg(feature = "gecko")]
 fn eval_font_format(kw: &FontFaceSourceFormatKeyword) -> bool {
     use crate::gecko_bindings::bindings;
     unsafe { bindings::Gecko_IsFontFormatSupported(*kw) }
 }
 
+#[cfg(feature = "gecko")]
 fn eval_font_tech(flag: &FontFaceSourceTechFlags) -> bool {
     use crate::gecko_bindings::bindings;
     unsafe { bindings::Gecko_IsFontTechSupported(*flag) }
@@ -256,6 +260,16 @@ fn eval_font_tech(flag: &FontFaceSourceTechFlags) -> bool {
 
 #[cfg(feature = "servo")]
 fn eval_moz_bool_pref(_: &CStr, _: &ParserContext) -> bool {
+    false
+}
+
+#[cfg(feature = "servo")]
+fn eval_font_format(_: &FontFaceSourceFormatKeyword) -> bool {
+    false
+}
+
+#[cfg(feature = "servo")]
+fn eval_font_tech(_: &FontFaceSourceTechFlags) -> bool {
     false
 }
 
