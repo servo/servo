@@ -7,6 +7,7 @@
 
 use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::TElement;
+#[cfg(feature = "gecko")]
 use crate::properties::longhands::contain::SpecifiedValue;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::longhands::float::computed_value::T as Float;
@@ -247,6 +248,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .add_flags(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE);
         }
 
+        #[cfg(feature = "gecko")]
         if self.style
             .get_box()
             .clone_contain()
