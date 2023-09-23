@@ -740,7 +740,7 @@ impl SpecifiedValueInfo for Color {
             "currentColor",
             "transparent",
         ]);
-        if static_prefs::pref!("layout.css.color-mix.enabled") {
+        if allow_color_mix() {
             f(&["color-mix"]);
         }
     }
