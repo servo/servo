@@ -21,11 +21,17 @@ use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 fn trig_enabled() -> bool {
-    static_prefs::pref!("layout.css.trig.enabled")
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.trig.enabled");
+    #[cfg(feature = "servo")]
+    return false;
 }
 
 fn nan_inf_enabled() -> bool {
-    static_prefs::pref!("layout.css.nan-inf.enabled")
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.nan-inf.enabled");
+    #[cfg(feature = "servo")]
+    return false;
 }
 
 /// The name of the mathematical function that we're parsing.
@@ -301,13 +307,6 @@ impl generic::CalcNodeLeaf for Leaf {
 
         Ok(())
     }
-}
-
-fn trig_enabled() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.trig.enabled");
-    #[cfg(feature = "servo")]
-    return false;
 }
 
 /// A calc node representation for specified values.
