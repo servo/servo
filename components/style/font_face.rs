@@ -52,6 +52,7 @@ impl OneOrMoreSeparated for Source {
 
 /// Keywords for the font-face src descriptor's format() function.
 #[derive(Clone, Copy, Debug, Eq, Parse, PartialEq, ToCss, ToShmem)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum FontFaceSourceFormatKeyword {
@@ -83,6 +84,7 @@ pub enum FontFaceSourceListComponent {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, ToCss, ToShmem)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum FontFaceSourceFormat {
@@ -359,8 +361,20 @@ impl<'a> FontFace<'a> {
                         // We support only opentype fonts and truetype is an alias for
                         // that format. Sources without format hints need to be
                         // downloaded in case we support them.
-                        url_source.format_hint.as_ref().map_or(true,
-                            |hint| hint == "truetype" || hint == "opentype" || hint == "woff")
+                        url_source
+                            .format_hint
+                            .as_ref()
+                            .map_or(true, |hint| match hint {
+                                FontFaceSourceFormat::Keyword(
+                                    FontFaceSourceFormatKeyword::Truetype
+                                    | FontFaceSourceFormatKeyword::Opentype
+                                    | FontFaceSourceFormatKeyword::Woff,
+                                ) => true,
+                                FontFaceSourceFormat::String(s) => {
+                                    s == "truetype" || s == "opentype" || s == "woff"
+                                }
+                                _ => false,
+                            })
                     } else {
                         true
                     }
