@@ -74,6 +74,7 @@ bitflags! {
     /// Flags for the @font-face tech() function, indicating font technologies
     /// required by the resource.
     #[derive(ToShmem)]
+    #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
     #[repr(C)]
     pub struct FontFaceSourceTechFlags: u16 {
         /// Font requires OpenType feature support.
