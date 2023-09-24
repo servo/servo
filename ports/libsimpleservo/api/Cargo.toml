@@ -35,7 +35,7 @@ vergen = { version = "8.0.0", features = ["git", "gitcl"] }
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "native-bluetooth", "webdriver"]
+default = ["max_log_level", "native-bluetooth", "webdriver", "media-gstreamer"]
 googlevr = ["libservo/googlevr"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]

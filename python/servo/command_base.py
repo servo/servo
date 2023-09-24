@@ -52,6 +52,18 @@ class BuildType(Enum):
     RELEASE = 2
 
 
+class MediaStack(Enum):
+    """ Media stack """
+    DUMMY = 1
+    GSTREAMER = 2
+
+    def is_dummy(self) -> bool:
+        return self == MediaStack.DUMMY
+
+    def is_gstreamer(self) -> bool:
+        return self == MediaStack.GSTREAMER
+
+
 @contextlib.contextmanager
 def cd(new_path):
     """Context manager for changing the current working directory"""
@@ -211,6 +223,7 @@ class CommandBase(object):
     def __init__(self, context):
         self.context = context
         self.features = []
+        self.media_stack: Optional[MediaStack] = None
         self.cross_compile_target = None
         self.is_android_build = False
         self.target_path = util.get_target_dir()
@@ -833,9 +846,10 @@ class CommandBase(object):
            platform and the value of the '--media-stack' command-line argument.
            The chosen media stack is written into the `features` instance variable."""
         if not media_stack:
+            if self.media_stack is not None:
+                return  # already configured
             if self.config["build"]["media-stack"] != "auto":
-                media_stack = self.config["build"]["media-stack"]
-                assert media_stack
+                media_stack = self.config["build"]["media-stack"].lower()
             elif (
                 not self.cross_compile_target
                 or ("armv7" in self.cross_compile_target and self.is_android_build)
@@ -844,8 +858,15 @@ class CommandBase(object):
                 media_stack = "gstreamer"
             else:
                 media_stack = "dummy"
-        if media_stack != "dummy":
-            self.features += ["media-" + media_stack]
+
+        assert media_stack
+        media_stack = media_stack.lower()
+        if media_stack == "gstreamer":
+            self.media_stack = MediaStack.GSTREAMER
+        elif media_stack == "dummy":
+            self.media_stack = MediaStack.DUMMY
+        else:
+            raise RuntimeError(f"Wrong media stack {media_stack}")
 
     def run_cargo_build_like_command(
         self, command: str, cargo_args: List[str],
@@ -858,6 +879,7 @@ class CommandBase(object):
         env = env or self.build_env()
 
         args = []
+        port = None
         if "--manifest-path" not in cargo_args:
             if libsimpleservo or self.is_android_build:
                 if self.is_android_build:
@@ -888,6 +910,10 @@ class CommandBase(object):
                 features.append("webgl-backtrace")
             if self.config["build"]["dom-backtrace"]:
                 features.append("dom-backtrace")
+
+            if self.media_stack.is_dummy() and "--no-default-features" not in cargo_args:
+                args += ["--no-default-features"]
+
             args += ["--features", " ".join(features)]
 
         if with_debug_assertions or self.config["build"]["debug-assertions"]:

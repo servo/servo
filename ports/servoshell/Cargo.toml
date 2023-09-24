@@ -30,7 +30,7 @@ ProductName = "Servo"
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "native-bluetooth", "webdriver"]
+default = ["max_log_level", "native-bluetooth", "webdriver", "media-gstreamer"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 max_log_level = ["log/release_max_level_info"]

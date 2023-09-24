@@ -60,7 +60,6 @@ class MachCommands(CommandBase):
     def build(self, build_type: BuildType, jobs=None, params=None, no_package=False,
               verbose=False, very_verbose=False, libsimpleservo=False, **kwargs):
         opts = params or []
-        has_media_stack = "media-gstreamer" in self.features
 
         if build_type == BuildType.RELEASE:
             opts += ["--release"]
@@ -171,7 +170,7 @@ class MachCommands(CommandBase):
                     status = 1
 
                 # copy needed gstreamer DLLs in to servo.exe dir
-                if has_media_stack:
+                if self.media_stack.is_gstreamer():
                     print("Packaging gstreamer DLLs")
                     if not package_gstreamer_dlls(env, servo_exe_dir, target_triple):
                         status = 1
@@ -187,7 +186,7 @@ class MachCommands(CommandBase):
                 servo_bin_dir = os.path.dirname(servo_path)
                 assert os.path.exists(servo_bin_dir)
 
-                if has_media_stack:
+                if self.media_stack.is_gstreamer():
                     print("Packaging gstreamer dylibs")
                     if not package_gstreamer_dylibs(self.cross_compile_target, servo_path):
                         return 1
