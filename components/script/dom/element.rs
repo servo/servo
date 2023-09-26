@@ -558,10 +558,9 @@ impl Element {
 
     // https://html.spec.whatwg.org/multipage/#translation-mode
     pub fn is_translate_enabled(&self) -> bool {
-        // TODO change this to local_name! when html5ever updates
-        let name = &LocalName::from("translate");
+        let name = &html5ever::local_name!("translate");
         if self.has_attribute(name) {
-            match &*self.get_string_attribute(name) {
+            match_ignore_ascii_case! { &*self.get_string_attribute(name),
                 "yes" | "" => return true,
                 "no" => return false,
                 _ => {},
@@ -572,7 +571,7 @@ impl Element {
                 return elem.is_translate_enabled();
             }
         }
-        true // whatwg/html#5239
+        true
     }
 
     // https://html.spec.whatwg.org/multipage/#the-directionality
