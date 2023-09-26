@@ -516,8 +516,7 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-translate
     fn SetTranslate(&self, yesno: bool) {
         self.upcast::<Element>().set_string_attribute(
-            // TODO change this to local_name! when html5ever updates
-            &LocalName::from("translate"),
+            &html5ever::local_name!("translate"),
             match yesno {
                 true => DOMString::from("yes"),
                 false => DOMString::from("no"),
