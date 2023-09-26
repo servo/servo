@@ -308,6 +308,8 @@ pub fn create_native_html_element(
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:isindex-2
         local_name!("isindex") => make!(HTMLUnknownElement),
         local_name!("kbd") => make!(HTMLElement),
+        // https://html.spec.whatwg.org/multipage/#keygen
+        local_name!("keygen") => make!(HTMLUnknownElement),
         local_name!("label") => make!(HTMLLabelElement),
         local_name!("legend") => make!(HTMLLegendElement),
         local_name!("li") => make!(HTMLLIElement),
