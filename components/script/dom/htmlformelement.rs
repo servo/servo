@@ -366,7 +366,10 @@ impl HTMLFormElementMethods for HTMLFormElement {
                             elem.downcast::<HTMLTextAreaElement>().unwrap().form_owner()
                         },
                         _ => {
-                            debug_assert!(!elem.downcast::<HTMLElement>().unwrap().is_listed_element());
+                            debug_assert!(!elem
+                                .downcast::<HTMLElement>()
+                                .unwrap()
+                                .is_listed_element());
                             return false;
                         },
                     },
