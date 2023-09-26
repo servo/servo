@@ -1182,13 +1182,6 @@ impl TreeSink for Sink {
 
         if let Some(control) = control {
             control.set_form_owner_from_parser(&form);
-        } else {
-            // TODO remove this code when keygen is implemented.
-            assert_eq!(
-                node.NodeName(),
-                "KEYGEN",
-                "Unknown form-associatable element"
-            );
         }
     }
 
