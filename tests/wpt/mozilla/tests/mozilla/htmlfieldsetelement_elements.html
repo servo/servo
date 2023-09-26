@@ -7,6 +7,7 @@
     <fieldset>
       <button>Click!</button>
     </fieldset>
+    <!-- The keygen element should not be recognized as a listed element -->
     <keygen name="key">
     <textarea>
       A
@@ -31,17 +32,16 @@
   <script>
   test(function() {
     var fs = document.getElementById("fs");
-    assert_equals(fs.elements.length, 10);
+    assert_equals(fs.elements.length, 9);
     assert_true(fs.elements[0] instanceof HTMLInputElement, "Should be HTMLInputElement");
     assert_true(fs.elements[1] instanceof HTMLFieldSetElement, "Should be HTMLFieldSetElement");
     assert_true(fs.elements[2] instanceof HTMLButtonElement, "Should be HTMLButtonElement");
-    assert_true(fs.elements[3] instanceof HTMLUnknownElement, "Should be HTMLUnknownElement");
-    assert_true(fs.elements[4] instanceof HTMLTextAreaElement, "Should be HTMLTextAreaElement");
-    assert_true(fs.elements[5] instanceof HTMLSelectElement, "Should be HTMLSelectElement");
+    assert_true(fs.elements[3] instanceof HTMLTextAreaElement, "Should be HTMLTextAreaElement");
+    assert_true(fs.elements[4] instanceof HTMLSelectElement, "Should be HTMLSelectElement");
+    assert_true(fs.elements[5] instanceof HTMLInputElement, "Should be HTMLInputElement");
     assert_true(fs.elements[6] instanceof HTMLInputElement, "Should be HTMLInputElement");
-    assert_true(fs.elements[7] instanceof HTMLInputElement, "Should be HTMLInputElement");
-    assert_true(fs.elements[8] instanceof HTMLOutputElement, "Should be HTMLOutputElement");
-    assert_true(fs.elements[9] instanceof HTMLObjectElement, "Should be HTMLObjectElement");
+    assert_true(fs.elements[7] instanceof HTMLOutputElement, "Should be HTMLOutputElement");
+    assert_true(fs.elements[8] instanceof HTMLObjectElement, "Should be HTMLObjectElement");
   });
   </script>
 </html>
