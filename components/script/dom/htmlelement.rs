@@ -521,7 +521,8 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-dir
     fn Dir(&self) -> DOMString {
-        let dir = self.upcast::<Element>()
+        let dir = self
+            .upcast::<Element>()
             .get_string_attribute(&local_name!("dir"))
             .to_ascii_lowercase();
 
@@ -535,14 +536,13 @@ impl HTMLElementMethods for HTMLElement {
     fn SetDir(&self, mut dir: DOMString) {
         dir.make_ascii_lowercase();
 
-        self.upcast::<Element>()
-            .set_string_attribute(
-                &local_name!("dir"),
-                match &*dir {
-                    "ltr" | "rtl" | "auto" => DOMString::from(dir),
-                    _ => DOMString::new()
-                }
-            )
+        self.upcast::<Element>().set_string_attribute(
+            &local_name!("dir"),
+            match &*dir {
+                "ltr" | "rtl" | "auto" => DOMString::from(dir),
+                _ => DOMString::new(),
+            },
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-contenteditable
@@ -783,17 +783,17 @@ impl HTMLElement {
         }
 
         if element_direction == "auto" {
-                if let Some(directionality) = self
-                    .downcast::<HTMLInputElement>()
-                    .and_then(|input| input.auto_directionality())
-                {
-                    return Some(directionality);
-                }
+            if let Some(directionality) = self
+                .downcast::<HTMLInputElement>()
+                .and_then(|input| input.auto_directionality())
+            {
+                return Some(directionality);
+            }
 
-                if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-                    return Some(area.auto_directionality());
-                }
-                    }
+            if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
+                return Some(area.auto_directionality());
+            }
+        }
 
         // TODO(NeverHappened): Implement condition
         // If the element's dir attribute is in the auto state OR
