@@ -339,7 +339,9 @@ impl Display {
                 };
                 Display::from3(DisplayOutside::Block, inside, self.is_list_item())
             },
-            DisplayOutside::Block | DisplayOutside::XUL | DisplayOutside::None => *self,
+            DisplayOutside::Block | DisplayOutside::None => *self,
+            #[cfg(feature = "gecko")]
+            DisplayOutside::XUL => *self,
             _ => Display::Block,
         }
     }
