@@ -107,6 +107,7 @@ impl CSSStyleRuleMethods for CSSStyleRule {
             stylesheet_origin: Origin::Author,
             namespaces: &namespaces,
             url_data: &url_data,
+            for_supports_rule: false,
         };
         let mut css_parser = CssParserInput::new(&*value);
         let mut css_parser = CssParser::new(&mut css_parser);
