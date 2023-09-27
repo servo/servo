@@ -27,6 +27,7 @@ use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
+#[cfg(feature = "gecko")]
 use std::mem;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
