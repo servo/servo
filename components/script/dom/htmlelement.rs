@@ -129,11 +129,6 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_setter!(SetHidden, "hidden");
 
-    // https://html.spec.whatwg.org/multipage/#the-dir-attribute
-    make_getter!(Dir, "dir");
-    // https://html.spec.whatwg.org/multipage/#the-dir-attribute
-    make_setter!(SetDir, "dir");
-
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 
@@ -524,6 +519,32 @@ impl HTMLElementMethods for HTMLElement {
         );
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-dir
+    fn Dir(&self) -> DOMString {
+        let dir = self.upcast::<Element>()
+            .get_string_attribute(&local_name!("dir"))
+            .to_ascii_lowercase();
+
+        match &*dir {
+            "ltr" | "rtl" | "auto" => DOMString::from(dir),
+            _ => DOMString::new(),
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-dir
+    fn SetDir(&self, mut dir: DOMString) {
+        dir.make_ascii_lowercase();
+
+        self.upcast::<Element>()
+            .set_string_attribute(
+                &local_name!("dir"),
+                match &*dir {
+                    "ltr" | "rtl" | "auto" => DOMString::from(dir),
+                    _ => DOMString::new()
+                }
+            )
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-contenteditable
     fn ContentEditable(&self) -> DOMString {
         // TODO: https://github.com/servo/servo/issues/12776
@@ -762,17 +783,17 @@ impl HTMLElement {
         }
 
         if element_direction == "auto" {
-            if let Some(directionality) = self
-                .downcast::<HTMLInputElement>()
-                .and_then(|input| input.auto_directionality())
-            {
-                return Some(directionality);
-            }
+                if let Some(directionality) = self
+                    .downcast::<HTMLInputElement>()
+                    .and_then(|input| input.auto_directionality())
+                {
+                    return Some(directionality);
+                }
 
-            if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-                return Some(area.auto_directionality());
-            }
-        }
+                if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
+                    return Some(area.auto_directionality());
+                }
+                    }
 
         // TODO(NeverHappened): Implement condition
         // If the element's dir attribute is in the auto state OR
