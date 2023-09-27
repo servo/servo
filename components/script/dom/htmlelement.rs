@@ -124,6 +124,11 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#attr-lang
     make_setter!(SetLang, "lang");
 
+    // https://html.spec.whatwg.org/multipage/#the-dir-attribute
+    make_enumerated_getter!(Dir, "dir", "", "ltr" | "rtl" | "auto");
+    // https://html.spec.whatwg.org/multipage/#the-dir-attribute
+    make_setter!(SetDir, "dir");
+
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_getter!(Hidden, "hidden");
     // https://html.spec.whatwg.org/multipage/#dom-hidden
@@ -517,32 +522,6 @@ impl HTMLElementMethods for HTMLElement {
                 false => DOMString::from("no"),
             },
         );
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-dir
-    fn Dir(&self) -> DOMString {
-        let dir = self
-            .upcast::<Element>()
-            .get_string_attribute(&local_name!("dir"))
-            .to_ascii_lowercase();
-
-        match &*dir {
-            "ltr" | "rtl" | "auto" => DOMString::from(dir),
-            _ => DOMString::new(),
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-dir
-    fn SetDir(&self, mut dir: DOMString) {
-        dir.make_ascii_lowercase();
-
-        self.upcast::<Element>().set_string_attribute(
-            &local_name!("dir"),
-            match &*dir {
-                "ltr" | "rtl" | "auto" => DOMString::from(dir),
-                _ => DOMString::new(),
-            },
-        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-contenteditable
