@@ -248,15 +248,22 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 }
 
 #[derive(Clone, Copy)]
-struct ScrollZoomEvent {
-    /// Change the pinch zoom level by this factor
-    magnification: f32,
+struct ScrollEvent {
     /// Scroll by this offset, or to Start or End
     scroll_location: ScrollLocation,
     /// Apply changes to the frame at this location
     cursor: DeviceIntPoint,
     /// The number of OS events that have been coalesced together into this one event.
     event_count: u32,
+}
+
+#[derive(Clone, Copy)]
+enum ScrollZoomEvent {
+    /// An pinch zoom event that magnifies the view by the given factor.
+    PinchZoom(f32),
+    /// A scroll event that scrolls the scroll node at the given location by the
+    /// given amount.
+    Scroll(ScrollEvent),
 }
 
 #[derive(Debug, PartialEq)]
@@ -375,7 +382,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             shutdown_state: ShutdownState::NotShuttingDown,
             page_zoom: Scale::new(1.0),
             viewport_zoom: PinchZoomFactor::new(1.0),
-            min_viewport_zoom: None,
+            min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
             max_viewport_zoom: None,
             zoom_action: false,
             zoom_time: 0f64,
@@ -867,10 +874,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    /// Create a WebRender display list for the root pipeline in the given transaction.
-    /// This display list contains a full-screen iframe with the root content pipeline
-    /// with any pinch zoom transform applied to it.
-    fn set_root_display_list(&self, transaction: &mut Transaction) {
+    /// Set the root pipeline for our WebRender scene. If there is no pinch zoom applied,
+    /// the root pipeline is the root content pipeline. If there is pinch zoom, the root
+    /// content pipeline is wrapped in a display list that applies a pinch zoom
+    /// transformation to it.
+    fn set_root_content_pipeline_handling_pinch_zoom(&self, transaction: &mut Transaction) {
         let root_content_pipeline = match self.root_content_pipeline.id {
             Some(id) => id.to_webrender(),
             None => return,
@@ -941,7 +949,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
 
         let mut txn = Transaction::new();
-        self.set_root_display_list(&mut txn);
+        self.set_root_content_pipeline_handling_pinch_zoom(&mut txn);
         txn.generate_frame(0);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
@@ -1219,14 +1227,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             ),
             TouchAction::Zoom(magnification, scroll_delta) => {
                 let cursor = Point2D::new(-1, -1); // Make sure this hits the base layer.
-                self.pending_scroll_zoom_events.push(ScrollZoomEvent {
-                    magnification: magnification,
-                    scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
-                        scroll_delta.to_untyped(),
-                    )),
-                    cursor: cursor,
-                    event_count: 1,
-                });
+
+                // The order of these events doesn't matter, because zoom is handled by
+                // a root display list and the scroll event here is handled by the scroll
+                // applied to the content display list.
+                self.pending_scroll_zoom_events
+                    .push(ScrollZoomEvent::PinchZoom(magnification));
+                self.pending_scroll_zoom_events
+                    .push(ScrollZoomEvent::Scroll(ScrollEvent {
+                        scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
+                            scroll_delta.to_untyped(),
+                        )),
+                        cursor: cursor,
+                        event_count: 1,
+                    }));
             },
             TouchAction::DispatchEvent => {
                 self.send_touch_event(TouchEventType::Move, identifier, point);
@@ -1280,107 +1294,126 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
-        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
-            magnification: 1.0,
-            scroll_location,
-            cursor: cursor,
-            event_count: 1,
-        });
+        self.pending_scroll_zoom_events
+            .push(ScrollZoomEvent::Scroll(ScrollEvent {
+                scroll_location: scroll_location,
+                cursor,
+                event_count: 1,
+            }));
     }
 
     fn process_pending_scroll_events(&mut self) {
         // Batch up all scroll events into one, or else we'll do way too much painting.
-        let mut last_combined_event: Option<ScrollZoomEvent> = None;
+        let mut combined_scroll_event: Option<ScrollEvent> = None;
+        let mut combined_magnification = 1.0;
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
-            let this_cursor = scroll_event.cursor;
-
-            let this_delta = match scroll_event.scroll_location {
-                ScrollLocation::Delta(delta) => delta,
-                ScrollLocation::Start | ScrollLocation::End => {
-                    // If this is an event which is scrolling to the start or end of the page,
-                    // disregard other pending events and exit the loop.
-                    last_combined_event = Some(scroll_event);
-                    break;
+            match scroll_event {
+                ScrollZoomEvent::PinchZoom(magnification) => {
+                    combined_magnification *= magnification
                 },
-            };
+                ScrollZoomEvent::Scroll(scroll_event_info) => {
+                    let combined_event = match combined_scroll_event.as_mut() {
+                        None => {
+                            combined_scroll_event = Some(scroll_event_info);
+                            continue;
+                        },
+                        Some(combined_event) => combined_event,
+                    };
 
-            match &mut last_combined_event {
-                last_combined_event @ &mut None => {
-                    *last_combined_event = Some(ScrollZoomEvent {
-                        magnification: scroll_event.magnification,
-                        scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
-                            this_delta.to_untyped(),
-                        )),
-                        cursor: this_cursor,
-                        event_count: 1,
-                    })
-                },
-                &mut Some(ref mut last_combined_event) => {
-                    // Mac OS X sometimes delivers scroll events out of vsync during a
-                    // fling. This causes events to get bunched up occasionally, causing
-                    // nasty-looking "pops". To mitigate this, during a fling we average
-                    // deltas instead of summing them.
-                    if let ScrollLocation::Delta(delta) = last_combined_event.scroll_location {
-                        let old_event_count = Scale::new(last_combined_event.event_count as f32);
-                        last_combined_event.event_count += 1;
-                        let new_event_count = Scale::new(last_combined_event.event_count as f32);
-                        last_combined_event.scroll_location = ScrollLocation::Delta(
-                            (delta * old_event_count + this_delta) / new_event_count,
-                        );
+                    match (
+                        combined_event.scroll_location,
+                        scroll_event_info.scroll_location,
+                    ) {
+                        (ScrollLocation::Delta(old_delta), ScrollLocation::Delta(new_delta)) => {
+                            // Mac OS X sometimes delivers scroll events out of vsync during a
+                            // fling. This causes events to get bunched up occasionally, causing
+                            // nasty-looking "pops". To mitigate this, during a fling we average
+                            // deltas instead of summing them.
+                            let old_event_count = Scale::new(combined_event.event_count as f32);
+                            combined_event.event_count += 1;
+                            let new_event_count = Scale::new(combined_event.event_count as f32);
+                            combined_event.scroll_location = ScrollLocation::Delta(
+                                (old_delta * old_event_count + new_delta) / new_event_count,
+                            );
+                        },
+                        (ScrollLocation::Start, _) | (ScrollLocation::End, _) => {
+                            // Once we see Start or End, we shouldn't process any more events.
+                            break;
+                        },
+                        (_, ScrollLocation::Start) | (_, ScrollLocation::End) => {
+                            // If this is an event which is scrolling to the start or end of the page,
+                            // disregard other pending events and exit the loop.
+                            *combined_event = scroll_event_info;
+                            break;
+                        },
                     }
-                    last_combined_event.magnification *= scroll_event.magnification;
                 },
             }
         }
 
-        if let Some(combined_event) = last_combined_event {
-            let scroll_location = match combined_event.scroll_location {
-                ScrollLocation::Delta(delta) => {
-                    let scaled_delta =
-                        (Vector2D::from_untyped(delta.to_untyped()) / self.scale).to_untyped();
-                    let calculated_delta = LayoutVector2D::from_untyped(scaled_delta);
-                    ScrollLocation::Delta(calculated_delta)
-                },
-                // Leave ScrollLocation unchanged if it is Start or End location.
-                sl @ ScrollLocation::Start | sl @ ScrollLocation::End => sl,
-            };
+        let zoom_changed =
+            self.set_pinch_zoom_level(self.pinch_zoom_level() * combined_magnification);
+        let scroll_result = combined_scroll_event.and_then(|combined_event| {
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
-            let cursor = WorldPoint::from_untyped(cursor);
-            let mut txn = Transaction::new();
+            self.scroll_node_at_world_point(
+                WorldPoint::from_untyped(cursor),
+                combined_event.scroll_location,
+            )
+        });
+        if !zoom_changed && scroll_result.is_none() {
+            return;
+        }
 
-            let result = match self.hit_test_at_point(cursor) {
-                Some(result) => result,
-                None => return,
-            };
+        let mut transaction = Transaction::new();
+        if zoom_changed {
+            self.set_root_content_pipeline_handling_pinch_zoom(&mut transaction);
+        }
 
-            if let Some(details) = self.pipeline_details.get_mut(&result.pipeline_id) {
-                match details
-                    .scroll_tree
-                    .scroll_node_or_ancestor(&result.scroll_tree_node, scroll_location)
-                {
-                    Some((external_id, offset)) => {
-                        let scroll_origin = LayoutPoint::new(-offset.x, -offset.y);
-                        txn.scroll_node_with_id(
-                            scroll_origin,
-                            external_id,
-                            ScrollClamping::NoClamping,
-                        );
-                    },
-                    None => {},
-                }
-            }
-            self.send_scroll_positions_to_layout_for_pipeline(&result.pipeline_id);
-
-            if combined_event.magnification != 1.0 {
-                let old_zoom = self.pinch_zoom_level();
-                self.set_pinch_zoom_level(old_zoom * combined_event.magnification);
-                self.set_root_display_list(&mut txn);
-            }
-            txn.generate_frame(0);
-            self.webrender_api
-                .send_transaction(self.webrender_document, txn);
+        if let Some((pipeline_id, external_id, offset)) = scroll_result {
+            let scroll_origin = LayoutPoint::new(-offset.x, -offset.y);
+            transaction.scroll_node_with_id(scroll_origin, external_id, ScrollClamping::NoClamping);
+            self.send_scroll_positions_to_layout_for_pipeline(&pipeline_id);
             self.waiting_for_results_of_scroll = true
         }
+
+        transaction.generate_frame(0);
+        self.webrender_api
+            .send_transaction(self.webrender_document, transaction);
+    }
+
+    /// Perform a hit test at the given [`WorldPoint`] and apply the [`ScrollLocation`]
+    /// scrolling to the applicable scroll node under that point. If a scroll was
+    /// performed, returns the [`PipelineId`] of the node scrolled, the id, and the final
+    /// scroll delta.
+    fn scroll_node_at_world_point(
+        &mut self,
+        cursor: WorldPoint,
+        scroll_location: ScrollLocation,
+    ) -> Option<(PipelineId, ExternalScrollId, LayoutVector2D)> {
+        let scroll_location = match scroll_location {
+            ScrollLocation::Delta(delta) => {
+                let scaled_delta =
+                    (Vector2D::from_untyped(delta.to_untyped()) / self.scale).to_untyped();
+                let calculated_delta = LayoutVector2D::from_untyped(scaled_delta);
+                ScrollLocation::Delta(calculated_delta)
+            },
+            // Leave ScrollLocation unchanged if it is Start or End location.
+            ScrollLocation::Start | ScrollLocation::End => scroll_location,
+        };
+
+        let hit_test_result = match self.hit_test_at_point(cursor) {
+            Some(result) => result,
+            None => return None,
+        };
+
+        let pipeline_details = match self.pipeline_details.get_mut(&hit_test_result.pipeline_id) {
+            Some(details) => details,
+            None => return None,
+        };
+        pipeline_details
+            .scroll_tree
+            .scroll_node_or_ancestor(&hit_test_result.scroll_tree_node, scroll_location)
+            .map(|(external_id, offset)| (hit_test_result.pipeline_id, external_id, offset))
     }
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
@@ -1472,12 +1505,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     /// Simulate a pinch zoom
     pub fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
-        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
-            magnification: magnification,
-            scroll_location: ScrollLocation::Delta(Vector2D::zero()), // TODO: Scroll to keep the center in view?
-            cursor: Point2D::new(-1, -1), // Make sure this hits the base layer.
-            event_count: 1,
-        });
+        // TODO: Scroll to keep the center in view?
+        self.pending_scroll_zoom_events
+            .push(ScrollZoomEvent::PinchZoom(magnification));
     }
 
     fn send_scroll_positions_to_layout_for_pipeline(&self, pipeline_id: &PipelineId) {
@@ -1950,14 +1980,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.viewport_zoom.get()
     }
 
-    fn set_pinch_zoom_level(&mut self, mut zoom: f32) {
+    fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
         if let Some(min) = self.min_viewport_zoom {
             zoom = f32::max(min.get(), zoom);
         }
         if let Some(max) = self.max_viewport_zoom {
             zoom = f32::min(max.get(), zoom);
         }
-        self.viewport_zoom = PinchZoomFactor::new(zoom);
+
+        let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
+        old_zoom != self.viewport_zoom
     }
 
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
