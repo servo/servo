@@ -62,7 +62,7 @@ use crate::display_list::items::{
     PushTextShadowDisplayItem, StackingContext, StackingContextType, StickyFrameData,
     TextOrientation, WebRenderImageInfo,
 };
-use crate::display_list::{border, gradient, ToLayout};
+use crate::display_list::{border, gradient, FilterToLayout, ToLayout};
 use crate::flow::{BaseFlow, Flow, FlowFlags};
 use crate::flow_ref::FlowRef;
 use crate::fragment::{
@@ -1975,8 +1975,14 @@ impl Fragment {
             .translate(-border_box_offset.to_vector());
 
         // Create the filter pipeline.
+        let current_color = self.style().clone_color();
         let effects = self.style().get_effects();
-        let mut filters: Vec<FilterOp> = effects.filter.0.iter().map(ToLayout::to_layout).collect();
+        let mut filters: Vec<FilterOp> = effects
+            .filter
+            .0
+            .iter()
+            .map(|filter| FilterToLayout::to_layout(filter, &current_color))
+            .collect();
         if effects.opacity != 1.0 {
             filters.push(FilterOp::Opacity(effects.opacity.into(), effects.opacity));
         }

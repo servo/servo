@@ -92,6 +92,7 @@ pub use self::GenericFilter as Filter;
 ///
 /// Contrary to the canonical order from the spec, the color is serialised
 /// first, like in Gecko and Webkit.
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Animate,
     Clone,

@@ -23,7 +23,7 @@ use webrender_api::ScrollSensitivity;
 
 use super::DisplayList;
 use crate::cell::ArcRefCell;
-use crate::display_list::conversions::ToWebRender;
+use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
 use crate::display_list::DisplayListBuilder;
 use crate::fragment_tree::{
     AnonymousFragment, BoxFragment, ContainingBlockManager, Fragment, FragmentTree,
@@ -341,11 +341,12 @@ impl StackingContext {
         }
 
         // Create the filter pipeline.
+        let current_color = style.clone_color();
         let mut filters: Vec<wr::FilterOp> = effects
             .filter
             .0
             .iter()
-            .map(ToWebRender::to_webrender)
+            .map(|filter| FilterToWebRender::to_webrender(filter, &current_color))
             .collect();
         if effects.opacity != 1.0 {
             filters.push(wr::FilterOp::Opacity(

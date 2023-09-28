@@ -17,6 +17,11 @@ pub trait ToLayout {
     fn to_layout(&self) -> Self::Type;
 }
 
+pub trait FilterToLayout {
+    type Type;
+    fn to_layout(&self, current_color: &RGBA) -> Self::Type;
+}
+
 impl ToLayout for BorderStyle {
     type Type = wr::BorderStyle;
     fn to_layout(&self) -> Self::Type {
@@ -35,9 +40,9 @@ impl ToLayout for BorderStyle {
     }
 }
 
-impl ToLayout for Filter {
+impl FilterToLayout for Filter {
     type Type = wr::FilterOp;
-    fn to_layout(&self) -> Self::Type {
+    fn to_layout(&self, current_color: &RGBA) -> Self::Type {
         match *self {
             Filter::Blur(radius) => wr::FilterOp::Blur(radius.px(), radius.px()),
             Filter::Brightness(amount) => wr::FilterOp::Brightness(amount.0),
@@ -48,8 +53,14 @@ impl ToLayout for Filter {
             Filter::Opacity(amount) => wr::FilterOp::Opacity(amount.0.into(), amount.0),
             Filter::Saturate(amount) => wr::FilterOp::Saturate(amount.0),
             Filter::Sepia(amount) => wr::FilterOp::Sepia(amount.0),
-            // Statically check that DropShadow is impossible.
-            Filter::DropShadow(ref shadow) => match *shadow {},
+            Filter::DropShadow(ref shadow) => wr::FilterOp::DropShadow(wr::Shadow {
+                blur_radius: shadow.blur.px(),
+                offset: wr::units::LayoutVector2D::new(
+                    shadow.horizontal.px(),
+                    shadow.vertical.px(),
+                ),
+                color: shadow.color.clone().into_rgba(*current_color).to_layout(),
+            }),
             // Statically check that Url is impossible.
             Filter::Url(ref url) => match *url {},
         }

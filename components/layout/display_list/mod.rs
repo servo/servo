@@ -6,7 +6,7 @@ pub use self::builder::{
     BorderPaintingMode, DisplayListBuildState, IndexableText, StackingContextCollectionFlags,
     StackingContextCollectionState,
 };
-pub use self::conversions::ToLayout;
+pub use self::conversions::{FilterToLayout, ToLayout};
 
 mod background;
 mod border;
