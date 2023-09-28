@@ -63,6 +63,16 @@ class MediaStack(Enum):
     def is_gstreamer(self) -> bool:
         return self == MediaStack.GSTREAMER
 
+    @staticmethod
+    def from_str(s: str):
+        s = s.lower()
+        if s == "gstreamer":
+            return MediaStack.GSTREAMER
+        elif s == "dummy":
+            return MediaStack.DUMMY
+        else:
+            raise RuntimeError(f"Got unknown media stack {s}")
+
 
 @contextlib.contextmanager
 def cd(new_path):
@@ -845,28 +855,21 @@ class CommandBase(object):
         """Determine what media stack to use based on the value of the build target
            platform and the value of the '--media-stack' command-line argument.
            The chosen media stack is written into the `features` instance variable."""
-        if not media_stack:
-            if self.media_stack is not None:
-                return  # already configured
-            if self.config["build"]["media-stack"] != "auto":
-                media_stack = self.config["build"]["media-stack"].lower()
-            elif (
-                not self.cross_compile_target
-                or ("armv7" in self.cross_compile_target and self.is_android_build)
-                or "x86_64" in self.cross_compile_target
-            ):
-                media_stack = "gstreamer"
-            else:
-                media_stack = "dummy"
 
-        assert media_stack
-        media_stack = media_stack.lower()
-        if media_stack == "gstreamer":
+        if media_stack:  # In this case, the media stack is already configured.
+            self.media_stack = MediaStack.from_str(media_stack.lower())
+            return
+
+        if self.config["build"]["media-stack"] != "auto":
+            self.media_stack = MediaStack.from_str(self.config["build"]["media-stack"].lower())
+        elif (
+            not self.cross_compile_target
+            or ("armv7" in self.cross_compile_target and self.is_android_build)
+            or "x86_64" in self.cross_compile_target
+        ):
             self.media_stack = MediaStack.GSTREAMER
-        elif media_stack == "dummy":
-            self.media_stack = MediaStack.DUMMY
         else:
-            raise RuntimeError(f"Wrong media stack {media_stack}")
+            self.media_stack = MediaStack.DUMMY
 
     def run_cargo_build_like_command(
         self, command: str, cargo_args: List[str],
@@ -879,7 +882,6 @@ class CommandBase(object):
         env = env or self.build_env()
 
         args = []
-        port = None
         if "--manifest-path" not in cargo_args:
             if libsimpleservo or self.is_android_build:
                 if self.is_android_build:
