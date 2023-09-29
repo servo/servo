@@ -76,6 +76,13 @@ def toBindingModuleFile(arg):
     return re.sub("((_workers)?$)", "Binding\\1", MakeNativeName(arg))
 
 
+def toBindingModuleFileFromDescriptor(desc):
+    if desc.maybeGetSuperModule() is not None:
+        return toBindingModuleFile(desc.maybeGetSuperModule())
+    else:
+        return toBindingModuleFile(desc.name)
+
+
 def stripTrailingWhitespace(text):
     tail = '\n' if text.endswith('\n') else ''
     lines = text.splitlines()
@@ -8068,8 +8075,8 @@ class GlobalGenRoots():
     def InterfaceObjectMapData(config):
         pairs = []
         for d in config.getDescriptors(hasInterfaceObject=True, isInline=False):
+            binding_mod = toBindingModuleFileFromDescriptor(d)
             binding_ns = toBindingNamespace(d.name)
-            binding_mod = toBindingModuleFile(d.name)
             pairs.append((d.name, binding_mod, binding_ns))
             for alias in d.interface.legacyWindowAliases:
                 pairs.append((alias, binding_mod, binding_ns))
@@ -8142,7 +8149,7 @@ class GlobalGenRoots():
             return getModuleFromObject(d).split('::')[-1]
 
         descriptors = config.getDescriptors(register=True, isIteratorInterface=False)
-        descriptors = (set(toBindingModuleFile(d.name) for d in descriptors)
+        descriptors = (set(toBindingModuleFile(d.name) for d in descriptors if d.maybeGetSuperModule() is None)
                        | set(leafModule(d) for d in config.callbacks)
                        | set(leafModule(d) for d in config.getDictionaries()))
         curr = CGList([CGGeneric("pub mod %s;\n" % name) for name in sorted(descriptors)])
