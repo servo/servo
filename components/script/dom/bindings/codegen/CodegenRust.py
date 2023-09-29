@@ -59,6 +59,20 @@ def toStringBool(arg):
 
 
 def toBindingNamespace(arg):
+    """
+    Namespaces are *_Bindings
+
+    actual path is `codegen::Bindings::{toBindingModuleFile(name)}::{toBindingNamespace(name)}`
+    """
+    return re.sub("((_workers)?$)", "_Binding\\1", MakeNativeName(arg))
+
+
+def toBindingModuleFile(arg):
+    """
+    Module files are *Bindings
+
+    actual path is `codegen::Bindings::{toBindingModuleFile(name)}::{toBindingNamespace(name)}`
+    """
     return re.sub("((_workers)?$)", "Binding\\1", MakeNativeName(arg))
 
 
@@ -733,7 +747,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                     enum,
                     getEnumValueName(defaultValue.value))
             else:
-                raise("We don't currently support default values that aren't null, boolean or default dictionary")
+                raise NotImplementedError("We don't currently support default values that aren't \
+                                          null, boolean or default dictionary")
         elif dictionaries:
             if defaultValue:
                 assert isinstance(defaultValue, IDLDefaultDictionaryValue)
@@ -2877,7 +2892,7 @@ assert!(%(copyFunc)s(*cx, %(obj)s.handle(), unforgeable_holder.handle()));
 
 class CGWrapMethod(CGAbstractMethod):
     """
-    Class that generates the FooBinding::Wrap function for non-callback
+    Class that generates the Foo_Binding::Wrap function for non-callback
     interfaces.
     """
     def __init__(self, descriptor):
@@ -2977,7 +2992,7 @@ DomRoot::from_ref(&*root)\
 
 class CGWrapGlobalMethod(CGAbstractMethod):
     """
-    Class that generates the FooBinding::Wrap function for global interfaces.
+    Class that generates the Foo_Binding::Wrap function for global interfaces.
     """
     def __init__(self, descriptor, properties):
         assert not descriptor.interface.isCallback()
@@ -7135,10 +7150,10 @@ class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def definition_body(self):
         return CGList([
             CGGeneric("proxy_handlers::%s.store(\n"
-                      "    Bindings::%s::DefineProxyHandler() as *mut _,\n"
+                      "    Bindings::%s::%s::DefineProxyHandler() as *mut _,\n"
                       "    std::sync::atomic::Ordering::Release,\n"
                       ");"
-                      % (desc.name, '::'.join([desc.name + 'Binding'] * 2)))
+                      % (desc.name, toBindingModuleFile(desc.name), toBindingNamespace(desc.name)))
             for desc in self.descriptors
         ], "\n")
 
@@ -8053,12 +8068,13 @@ class GlobalGenRoots():
     def InterfaceObjectMapData(config):
         pairs = []
         for d in config.getDescriptors(hasInterfaceObject=True, isInline=False):
-            binding = toBindingNamespace(d.name)
-            pairs.append((d.name, binding, binding))
+            binding_ns = toBindingNamespace(d.name)
+            binding_mod = toBindingModuleFile(d.name)
+            pairs.append((d.name, binding_mod, binding_ns))
             for alias in d.interface.legacyWindowAliases:
-                pairs.append((alias, binding, binding))
+                pairs.append((alias, binding_mod, binding_ns))
             for ctor in d.interface.legacyFactoryFunctions:
-                pairs.append((ctor.identifier.name, binding, binding))
+                pairs.append((ctor.identifier.name, binding_mod, binding_ns))
         pairs.sort(key=operator.itemgetter(0))
         mappings = [
             CGGeneric('"%s": "codegen::Bindings::%s::%s::DefineDOMInterface"' % pair)
@@ -8126,7 +8142,7 @@ class GlobalGenRoots():
             return getModuleFromObject(d).split('::')[-1]
 
         descriptors = config.getDescriptors(register=True, isIteratorInterface=False)
-        descriptors = (set(toBindingNamespace(d.name) for d in descriptors)
+        descriptors = (set(toBindingModuleFile(d.name) for d in descriptors)
                        | set(leafModule(d) for d in config.callbacks)
                        | set(leafModule(d) for d in config.getDictionaries()))
         curr = CGList([CGGeneric("pub mod %s;\n" % name) for name in sorted(descriptors)])
