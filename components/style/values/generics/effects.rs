@@ -110,9 +110,9 @@ pub use self::GenericFilter as Filter;
 pub struct GenericSimpleShadow<Color, SizeLength, ShapeLength> {
     /// Color.
     pub color: Color,
-    /// Horizontal offset.
+    /// Horizontal radius.
     pub horizontal: SizeLength,
-    /// Vertical offset.
+    /// Vertical radius.
     pub vertical: SizeLength,
     /// Blur radius.
     pub blur: ShapeLength,
