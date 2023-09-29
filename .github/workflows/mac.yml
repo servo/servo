@@ -79,6 +79,7 @@ jobs:
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-mac' }}
+        timeout-minutes: 30 # https://github.com/servo/servo/issues/30275
         run: python3 ./mach test-unit --release
       - name: Package
         run: python3 ./mach package --release
