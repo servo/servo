@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use webgpu::{WebGPUBindGroupLayout, WebGPURenderPipeline};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPURenderPipelineBinding::GPURenderPipelineMethods;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderPipelineMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};

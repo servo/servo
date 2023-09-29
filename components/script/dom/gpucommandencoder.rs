@@ -10,19 +10,16 @@ use dom_struct::dom_struct;
 use webgpu::wgpu::command as wgpu_com;
 use webgpu::{self, wgt, WebGPU, WebGPURequest};
 
-use super::bindings::codegen::Bindings::GPUCommandBufferBinding::GPUCommandBufferDescriptor;
-use super::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
-    GPUImageCopyBuffer, GPUImageCopyTexture, GPUImageDataLayout, GPULoadOp,
+use super::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUCommandBufferDescriptor, GPUImageCopyBuffer, GPUImageCopyTexture, GPUImageDataLayout,
+    GPULoadOp, GPUTextureAspect,
 };
-use super::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureAspect;
 use super::bindings::codegen::UnionTypes::DoubleSequenceOrGPUColorDict;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUSize64;
-use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
-    GPUCommandEncoderMethods, GPUComputePassDescriptor, GPUOrigin3D, GPURenderPassDescriptor,
-    GPUStoreOp,
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUCommandEncoderMethods, GPUComputePassDescriptor, GPUExtent3D, GPUOrigin3D,
+    GPURenderPassDescriptor, GPUSize64, GPUStoreOp,
 };
-use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::GPUExtent3D;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::jsval::JSVal;
 
-use super::bindings::codegen::Bindings::GPUCompilationInfoBinding::GPUCompilationInfoMethods;
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUCompilationInfoMethods;
 use super::bindings::root::Dom;
 use super::types::GPUCompilationMessage;
 use crate::dom::bindings::reflector::Reflector;

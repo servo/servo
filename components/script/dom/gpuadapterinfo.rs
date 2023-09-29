@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use webgpu::wgt::AdapterInfo;
 
-use super::bindings::codegen::Bindings::GPUAdapterInfoBinding::GPUAdapterInfoMethods;
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUAdapterInfoMethods;
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::DomRoot;
 use crate::dom::bindings::reflector::Reflector;

@@ -11,11 +11,9 @@ use webgpu::wgpu::resource;
 use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
-    GPUExtent3DDict, GPUTextureDimension, GPUTextureFormat, GPUTextureMethods,
-};
-use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::{
-    GPUTextureAspect, GPUTextureViewDescriptor,
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUExtent3DDict, GPUTextureAspect, GPUTextureDimension, GPUTextureFormat, GPUTextureMethods,
+    GPUTextureViewDescriptor,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};

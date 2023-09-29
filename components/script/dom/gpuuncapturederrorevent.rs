@@ -7,10 +7,9 @@ use js::rust::HandleObject;
 use servo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::GPUUncapturedErrorEventBinding::{
-    GPUUncapturedErrorEventInit, GPUUncapturedErrorEventMethods,
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUError, GPUUncapturedErrorEventInit, GPUUncapturedErrorEventMethods,
 };
-use crate::dom::bindings::codegen::Bindings::GPUValidationErrorBinding::GPUError;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;

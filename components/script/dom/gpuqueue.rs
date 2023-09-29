@@ -7,13 +7,11 @@ use ipc_channel::ipc::IpcSharedMemory;
 use webgpu::identity::WebGPUOpResult;
 use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest};
 
-use super::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
-    GPUImageCopyTexture, GPUImageDataLayout,
-};
+use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUSize64;
-use crate::dom::bindings::codegen::Bindings::GPUQueueBinding::GPUQueueMethods;
-use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::GPUExtent3D;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUExtent3D, GPUQueueMethods, GPUSize64,
+};
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};

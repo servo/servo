@@ -6,8 +6,8 @@
 
 use dom_struct::dom_struct;
 
-use super::bindings::codegen::Bindings::GPUDeviceLostInfoBinding::GPUDeviceLostReason;
-use crate::dom::bindings::codegen::Bindings::GPUDeviceLostInfoBinding::GPUDeviceLostInfoMethods;
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostInfoMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;

@@ -17,8 +17,9 @@ use webgpu::wgpu::device::HostMap;
 use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::{GPUBufferMethods, GPUSize64};
-use crate::dom::bindings::codegen::Bindings::GPUMapModeBinding::GPUMapModeConstants;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUBufferMethods, GPUMapModeConstants, GPUSize64,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
