@@ -501,6 +501,7 @@ where
             },
             EmbedderEvent::ResumeCompositor(native_widget, coords) => {
                 self.compositor.resume(native_widget, coords);
+                self.compositor.composite();
             },
             EmbedderEvent::AllowNavigationResponse(pipeline_id, allowed) => {
                 let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allowed);
