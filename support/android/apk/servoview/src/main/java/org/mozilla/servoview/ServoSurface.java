@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.opengl.GLUtils;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.view.Surface;
@@ -399,6 +400,9 @@ public class ServoSurface extends SurfaceView
             options.enableLogs = true;
             options.enableSubpixelTextAntialiasing = true;
 
+            DisplayMetrics metrics = new DisplayMetrics();
+            mActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+            options.density = metrics.density;
             if (mSurface.mServo == null && !mPaused) {
                 mSurface.mServo = new Servo(options, mSurface, mSurface, mClient, mActivity, surface);
             } else {
