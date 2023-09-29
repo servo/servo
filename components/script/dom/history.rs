@@ -16,7 +16,7 @@ use script_traits::{ScriptMsg, StructuredSerializedData};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
-use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationBinding::LocationMethods;
+use crate::dom::bindings::codegen::Bindings::LocationBinding::Location_Binding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;

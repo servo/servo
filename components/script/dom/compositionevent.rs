@@ -8,7 +8,7 @@ use js::rust::HandleObject;
 use crate::dom::bindings::codegen::Bindings::CompositionEventBinding::{
     self, CompositionEventMethods,
 };
-use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventBinding::UIEventMethods;
+use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEvent_Binding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;

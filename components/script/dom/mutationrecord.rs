@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace};
 
-use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
+use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecord_Binding::MutationRecordMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;

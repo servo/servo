@@ -30,7 +30,7 @@ use swapper::{swapper, Swapper};
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::{WorkletMethods, WorkletOptions};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
