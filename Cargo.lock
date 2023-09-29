@@ -1487,13 +1487,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "ecolor"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfdf4e52dbbb615cfd30cf5a5265335c217b5fd8d669593cea74a517d9c605af"
+
+[[package]]
 name = "egui"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3aef8ec3ae1b772f340170c65bf27d5b8c28f543a0116c844d2ac08d01123e7"
 dependencies = [
  "ahash 0.8.3",
- "epaint",
+ "epaint 0.22.0",
+ "log",
+ "nohash-hasher",
+]
+
+[[package]]
+name = "egui"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8bd69fed5fcf4fbb8225b24e80ea6193b61e17a625db105ef0c4d71dde6eb8b7"
+dependencies = [
+ "ahash 0.8.3",
+ "epaint 0.23.0",
  "log",
  "nohash-hasher",
 ]
@@ -1504,12 +1522,25 @@ version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a49155fd4a0a4fb21224407a91de0030847972ef90fc64edb63621caea61cb2"
 dependencies = [
- "arboard",
- "egui",
+ "egui 0.22.0",
  "instant",
  "log",
  "raw-window-handle",
+ "winit",
+]
+
+[[package]]
+name = "egui-winit"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c15479a96d9fadccf5dac690bdc6373b97b8e1c0dd28367058f25a5298da0195"
+dependencies = [
+ "arboard",
+ "egui 0.23.0",
+ "log",
+ "raw-window-handle",
  "smithay-clipboard",
+ "web-time",
  "winit",
 ]
 
@@ -1520,8 +1551,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f8c2752cdf1b0ef5fcda59a898cacabad974d4f5880e92a420b2c917022da64"
 dependencies = [
  "bytemuck",
- "egui",
- "egui-winit",
+ "egui 0.22.0",
+ "egui-winit 0.22.0",
  "glow",
  "log",
  "memoffset",
@@ -1543,6 +1574,12 @@ checksum = "3857d743a6e0741cdd60b622a74c7a36ea75f5f8f11b793b41d905d2c9721a4b"
 dependencies = [
  "bytemuck",
 ]
+
+[[package]]
+name = "emath"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ef2b29de53074e575c18b694167ccbe6e5191f7b25fe65175a0d905a32eeec0"
 
 [[package]]
 name = "embedder_traits"
@@ -1632,8 +1669,23 @@ dependencies = [
  "ahash 0.8.3",
  "atomic_refcell",
  "bytemuck",
- "ecolor",
- "emath",
+ "ecolor 0.22.0",
+ "emath 0.22.0",
+ "log",
+ "nohash-hasher",
+ "parking_lot",
+]
+
+[[package]]
+name = "epaint"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58067b840d009143934d91d8dcb8ded054d8301d7c11a517ace0a99bb1e1595e"
+dependencies = [
+ "ab_glyph",
+ "ahash 0.8.3",
+ "ecolor 0.23.0",
+ "emath 0.23.0",
  "log",
  "nohash-hasher",
  "parking_lot",
@@ -5428,8 +5480,8 @@ dependencies = [
  "backtrace",
  "cc",
  "cfg-if 1.0.0",
- "egui",
- "egui-winit",
+ "egui 0.22.0",
+ "egui-winit 0.23.0",
  "egui_glow",
  "euclid",
  "getopts",
@@ -6709,6 +6761,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b85cbef8c220a6abc02aefd892dfc0fc23afb1c6a426316ec33253a3877249b"
 dependencies = [
  "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "web-time"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19353897b48e2c4d849a2d73cb0aeb16dc2be4e00c565abfc11eb65a806e47de"
+dependencies = [
+ "js-sys",
+ "once_cell",
  "wasm-bindgen",
 ]
 

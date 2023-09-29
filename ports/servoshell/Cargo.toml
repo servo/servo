@@ -49,7 +49,7 @@ backtrace = { workspace = true }
 cfg-if = { workspace = true }
 egui = "0.22.0"
 egui_glow = { version = "0.22.0", features = ["winit"] }
-egui-winit = { version = "0.22.0", default-features = false, features = ["clipboard", "wayland"] }
+egui-winit = { version = "0.23.0", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 getopts = { workspace = true }
 gleam = { workspace = true }
