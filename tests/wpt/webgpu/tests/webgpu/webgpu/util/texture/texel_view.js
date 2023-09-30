@@ -2,8 +2,10 @@
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
  **/ import { assert, memcpy } from '../../../common/util/util.js';
 import { kTextureFormatInfo } from '../../format_info.js';
+import { generatePrettyTable } from '../pretty_diff_tables.js';
 import { reifyExtent3D, reifyOrigin3D } from '../unions.js';
 
+import { fullSubrectCoordinates } from './base.js';
 import { kTexelRepresentationInfo, makeClampToRange } from './texel_data.js';
 
 /** Function taking some x,y,z coordinates and returning `Readonly<T>`. */
@@ -118,5 +120,42 @@ export class TexelView {
         }
       }
     }
+  }
+
+  /** Returns a pretty table string of the given coordinates and their values. */
+  // MAINTENANCE_TODO: Unify some internal helpers with those in texture_ok.ts.
+  toString(subrectOrigin, subrectSize) {
+    const info = kTextureFormatInfo[this.format];
+    const repr = kTexelRepresentationInfo[this.format];
+
+    const integerSampleType = info.sampleType === 'uint' || info.sampleType === 'sint';
+    const numberToString = integerSampleType ? n => n.toFixed() : n => n.toPrecision(6);
+
+    const componentOrderStr = repr.componentOrder.join(',') + ':';
+    const subrectCoords = [...fullSubrectCoordinates(subrectOrigin, subrectSize)];
+
+    const printCoords = (function* () {
+      yield* [' coords', '==', 'X,Y,Z:'];
+      for (const coords of subrectCoords) yield `${coords.x},${coords.y},${coords.z}`;
+    })();
+    const printActualBytes = (function* (t) {
+      yield* [' act. texel bytes (little-endian)', '==', '0x:'];
+      for (const coords of subrectCoords) {
+        yield Array.from(t.bytes(coords), b => b.toString(16).padStart(2, '0')).join(' ');
+      }
+    })(this);
+    const printActualColors = (function* (t) {
+      yield* [' act. colors', '==', componentOrderStr];
+      for (const coords of subrectCoords) {
+        const pixel = t.color(coords);
+        yield `${repr.componentOrder.map(ch => numberToString(pixel[ch])).join(',')}`;
+      }
+    })(this);
+
+    const opts = {
+      fillToWidth: 120,
+      numberToString,
+    };
+    return `${generatePrettyTable(opts, [printCoords, printActualBytes, printActualColors])}`;
   }
 }

@@ -28,15 +28,20 @@ export const kBit = {
       min: BigInt(0x0010_0000_0000_0000n),
       max: BigInt(0x7fef_ffff_ffff_ffffn),
       zero: BigInt(0x0000_0000_0000_0000n),
+      subnormal: {
+        min: BigInt(0x0000_0000_0000_0001n),
+        max: BigInt(0x000f_ffff_ffff_ffffn),
+      },
+      infinity: BigInt(0x7ff0_0000_0000_0000n),
       nearest_max: BigInt(0x7fef_ffff_ffff_fffen),
       less_than_one: BigInt(0x3fef_ffff_ffff_ffffn),
       pi: {
         whole: BigInt(0x4009_21fb_5444_2d18n),
         three_quarters: BigInt(0x4002_d97c_7f33_21d2n),
         half: BigInt(0x3ff9_21fb_5444_2d18n),
-        third: BigInt(0x3ff0_c152_382d_7366n),
+        third: BigInt(0x3ff0_c152_382d_7365n),
         quarter: BigInt(0x3fe9_21fb_5444_2d18n),
-        sixth: BigInt(0x3fe0_c152_382d_7366n),
+        sixth: BigInt(0x3fe0_c152_382d_7365n),
       },
       e: BigInt(0x4005_bf0a_8b14_5769n),
     },
@@ -44,31 +49,23 @@ export const kBit = {
       max: BigInt(0x8010_0000_0000_0000n),
       min: BigInt(0xffef_ffff_ffff_ffffn),
       zero: BigInt(0x8000_0000_0000_0000n),
+      subnormal: {
+        max: BigInt(0x8000_0000_0000_0001n),
+        min: BigInt(0x800f_ffff_ffff_ffffn),
+      },
+      infinity: BigInt(0xfff0_0000_0000_0000n),
       nearest_min: BigInt(0xffef_ffff_ffff_fffen),
       less_than_one: BigInt(0xbfef_ffff_ffff_ffffn),
       pi: {
         whole: BigInt(0xc009_21fb_5444_2d18n),
         three_quarters: BigInt(0xc002_d97c_7f33_21d2n),
         half: BigInt(0xbff9_21fb_5444_2d18n),
-        third: BigInt(0xbff0_c152_382d_7366n),
+        third: BigInt(0xbff0_c152_382d_7365n),
         quarter: BigInt(0xbfe9_21fb_5444_2d18n),
-        sixth: BigInt(0xbfe0_c152_382d_7366n),
+        sixth: BigInt(0xbfe0_c152_382d_7365n),
       },
     },
-    subnormal: {
-      positive: {
-        min: BigInt(0x0000_0000_0000_0001n),
-        max: BigInt(0x000f_ffff_ffff_ffffn),
-      },
-      negative: {
-        max: BigInt(0x8000_0000_0000_0001n),
-        min: BigInt(0x800f_ffff_ffff_ffffn),
-      },
-    },
-    infinity: {
-      positive: BigInt(0x7ff0_0000_0000_0000n),
-      negative: BigInt(0xfff0_0000_0000_0000n),
-    },
+    max_ulp: BigInt(0x7ca0_0000_0000_0000n),
   },
 
   // Limits of f32
@@ -77,6 +74,11 @@ export const kBit = {
       min: 0x0080_0000,
       max: 0x7f7f_ffff,
       zero: 0x0000_0000,
+      subnormal: {
+        min: 0x0000_0001,
+        max: 0x007f_ffff,
+      },
+      infinity: 0x7f80_0000,
       nearest_max: 0x7f7f_fffe,
       less_than_one: 0x3f7f_ffff,
       pi: {
@@ -93,6 +95,11 @@ export const kBit = {
       max: 0x8080_0000,
       min: 0xff7f_ffff,
       zero: 0x8000_0000,
+      subnormal: {
+        max: 0x8000_0001,
+        min: 0x807f_ffff,
+      },
+      infinity: 0xff80_0000,
       nearest_min: 0xff7f_fffe,
       less_than_one: 0xbf7f_ffff,
       pi: {
@@ -104,20 +111,7 @@ export const kBit = {
         sixth: 0xbf06_0a92,
       },
     },
-    subnormal: {
-      positive: {
-        min: 0x0000_0001,
-        max: 0x007f_ffff,
-      },
-      negative: {
-        max: 0x8000_0001,
-        min: 0x807f_ffff,
-      },
-    },
-    infinity: {
-      positive: 0x7f80_0000,
-      negative: 0xff80_0000,
-    },
+    max_ulp: 0x7380_0000,
   },
 
   // Limits of f16
@@ -126,6 +120,11 @@ export const kBit = {
       min: 0x0400,
       max: 0x7bff,
       zero: 0x0000,
+      subnormal: {
+        min: 0x0001,
+        max: 0x03ff,
+      },
+      infinity: 0x7c00,
       nearest_max: 0x7bfe,
       less_than_one: 0x3bff,
       pi: {
@@ -142,6 +141,11 @@ export const kBit = {
       max: 0x8400,
       min: 0xfbff,
       zero: 0x8000,
+      subnormal: {
+        max: 0x8001,
+        min: 0x83ff,
+      },
+      infinity: 0xfc00,
       nearest_min: 0xfbfe,
       less_than_one: 0xbbff,
       pi: {
@@ -153,58 +157,13 @@ export const kBit = {
         sixth: 0xb830,
       },
     },
-    subnormal: {
-      positive: {
-        min: 0x0001,
-        max: 0x03ff,
-      },
-      negative: {
-        max: 0x8001,
-        min: 0x83ff,
-      },
-    },
-    infinity: {
-      positive: 0x7c00,
-      negative: 0xfc00,
-    },
+    max_ulp: 0x5000,
   },
 
-  // 32-bit representation of power(2, n) n = {-31, ..., 31}
-  // A uint32 representation as a JS `number`
-  // {toMinus31, ..., to31} ie. {-31, ..., 31}
+  // Uint32 representation of power(2, n) n = {0, ..., 31}
+  // Stored as a JS `number`
+  // {to0, ..., to31} ie. {0, ..., 31}
   powTwo: {
-    toMinus1: 0x3f00_0000,
-    toMinus2: 0x3e80_0000,
-    toMinus3: 0x3e00_0000,
-    toMinus4: 0x3d80_0000,
-    toMinus5: 0x3d00_0000,
-    toMinus6: 0x3c80_0000,
-    toMinus7: 0x3c00_0000,
-    toMinus8: 0x3b80_0000,
-    toMinus9: 0x3b00_0000,
-    toMinus10: 0x3a80_0000,
-    toMinus11: 0x3a00_0000,
-    toMinus12: 0x3980_0000,
-    toMinus13: 0x3900_0000,
-    toMinus14: 0x3880_0000,
-    toMinus15: 0x3800_0000,
-    toMinus16: 0x3780_0000,
-    toMinus17: 0x3700_0000,
-    toMinus18: 0x3680_0000,
-    toMinus19: 0x3600_0000,
-    toMinus20: 0x3580_0000,
-    toMinus21: 0x3500_0000,
-    toMinus22: 0x3480_0000,
-    toMinus23: 0x3400_0000,
-    toMinus24: 0x3380_0000,
-    toMinus25: 0x3300_0000,
-    toMinus26: 0x3280_0000,
-    toMinus27: 0x3200_0000,
-    toMinus28: 0x3180_0000,
-    toMinus29: 0x3100_0000,
-    toMinus30: 0x3080_0000,
-    toMinus31: 0x3000_0000,
-
     to0: 0x0000_0001,
     to1: 0x0000_0002,
     to2: 0x0000_0004,
@@ -239,42 +198,10 @@ export const kBit = {
     to31: 0x8000_0000,
   },
 
-  // 32-bit representation of  of -1 * power(2, n) n = {-31, ..., 31}
-  // An int32 represented as a JS `number`
-  // {toMinus31, ..., to31} ie. {-31, ..., 31}
+  // Int32 representation of  of -1 * power(2, n) n = {0, ..., 31}
+  // Stored as a JS `number`
+  // {to0, ..., to31} ie. {0, ..., 31}
   negPowTwo: {
-    toMinus1: 0xbf00_0000,
-    toMinus2: 0xbe80_0000,
-    toMinus3: 0xbe00_0000,
-    toMinus4: 0xbd80_0000,
-    toMinus5: 0xbd00_0000,
-    toMinus6: 0xbc80_0000,
-    toMinus7: 0xbc00_0000,
-    toMinus8: 0xbb80_0000,
-    toMinus9: 0xbb00_0000,
-    toMinus10: 0xba80_0000,
-    toMinus11: 0xba00_0000,
-    toMinus12: 0xb980_0000,
-    toMinus13: 0xb900_0000,
-    toMinus14: 0xb880_0000,
-    toMinus15: 0xb800_0000,
-    toMinus16: 0xb780_0000,
-    toMinus17: 0xb700_0000,
-    toMinus18: 0xb680_0000,
-    toMinus19: 0xb600_0000,
-    toMinus20: 0xb580_0000,
-    toMinus21: 0xb500_0000,
-    toMinus22: 0xb480_0000,
-    toMinus23: 0xb400_0000,
-    toMinus24: 0xb380_0000,
-    toMinus25: 0xb300_0000,
-    toMinus26: 0xb280_0000,
-    toMinus27: 0xb200_0000,
-    toMinus28: 0xb180_0000,
-    toMinus29: 0xb100_0000,
-    toMinus30: 0xb080_0000,
-    toMinus31: 0xb000_0000,
-
     to0: 0xffff_ffff,
     to1: 0xffff_fffe,
     to2: 0xffff_fffc,
@@ -377,6 +304,12 @@ export const kValue = {
     positive: {
       min: reinterpretU64AsF64(kBit.f64.positive.min),
       max: reinterpretU64AsF64(kBit.f64.positive.max),
+      zero: reinterpretU64AsF64(kBit.f64.positive.zero),
+      subnormal: {
+        min: reinterpretU64AsF64(kBit.f64.positive.subnormal.min),
+        max: reinterpretU64AsF64(kBit.f64.positive.subnormal.max),
+      },
+      infinity: reinterpretU64AsF64(kBit.f64.positive.infinity),
       nearest_max: reinterpretU64AsF64(kBit.f64.positive.nearest_max),
       less_than_one: reinterpretU64AsF64(kBit.f64.positive.less_than_one),
       pi: {
@@ -392,6 +325,12 @@ export const kValue = {
     negative: {
       max: reinterpretU64AsF64(kBit.f64.negative.max),
       min: reinterpretU64AsF64(kBit.f64.negative.min),
+      zero: reinterpretU64AsF64(kBit.f64.negative.zero),
+      subnormal: {
+        max: reinterpretU64AsF64(kBit.f64.negative.subnormal.max),
+        min: reinterpretU64AsF64(kBit.f64.negative.subnormal.min),
+      },
+      infinity: reinterpretU64AsF64(kBit.f64.negative.infinity),
       nearest_min: reinterpretU64AsF64(kBit.f64.negative.nearest_min),
       less_than_one: reinterpretU64AsF64(kBit.f64.negative.less_than_one), // -0.999999940395
       pi: {
@@ -403,20 +342,7 @@ export const kValue = {
         sixth: reinterpretU64AsF64(kBit.f64.negative.pi.sixth),
       },
     },
-    subnormal: {
-      positive: {
-        min: reinterpretU64AsF64(kBit.f64.subnormal.positive.min),
-        max: reinterpretU64AsF64(kBit.f64.subnormal.positive.max),
-      },
-      negative: {
-        max: reinterpretU64AsF64(kBit.f64.subnormal.negative.max),
-        min: reinterpretU64AsF64(kBit.f64.subnormal.negative.min),
-      },
-    },
-    infinity: {
-      positive: reinterpretU64AsF64(kBit.f64.infinity.positive),
-      negative: reinterpretU64AsF64(kBit.f64.infinity.negative),
-    },
+    max_ulp: reinterpretU64AsF64(kBit.f64.max_ulp),
   },
 
   // Limits of f32
@@ -424,6 +350,13 @@ export const kValue = {
     positive: {
       min: reinterpretU32AsF32(kBit.f32.positive.min),
       max: reinterpretU32AsF32(kBit.f32.positive.max),
+      zero: reinterpretU32AsF32(kBit.f32.positive.zero),
+      subnormal: {
+        min: reinterpretU32AsF32(kBit.f32.positive.subnormal.min),
+        max: reinterpretU32AsF32(kBit.f32.positive.subnormal.max),
+      },
+      infinity: reinterpretU32AsF32(kBit.f32.positive.infinity),
+
       nearest_max: reinterpretU32AsF32(kBit.f32.positive.nearest_max),
       less_than_one: reinterpretU32AsF32(kBit.f32.positive.less_than_one),
       pi: {
@@ -450,6 +383,12 @@ export const kValue = {
     negative: {
       max: reinterpretU32AsF32(kBit.f32.negative.max),
       min: reinterpretU32AsF32(kBit.f32.negative.min),
+      zero: reinterpretU32AsF32(kBit.f32.negative.zero),
+      subnormal: {
+        max: reinterpretU32AsF32(kBit.f32.negative.subnormal.max),
+        min: reinterpretU32AsF32(kBit.f32.negative.subnormal.min),
+      },
+      infinity: reinterpretU32AsF32(kBit.f32.negative.infinity),
       nearest_min: reinterpretU32AsF32(kBit.f32.negative.nearest_min),
       less_than_one: reinterpretU32AsF32(kBit.f32.negative.less_than_one), // -0.999999940395
       pi: {
@@ -475,20 +414,8 @@ export const kValue = {
         reinterpretF64AsU64(reinterpretU32AsF32(kBit.f32.positive.max) / 2 + 2 ** 127) - BigInt(1)
       ),
     },
-    subnormal: {
-      positive: {
-        min: reinterpretU32AsF32(kBit.f32.subnormal.positive.min),
-        max: reinterpretU32AsF32(kBit.f32.subnormal.positive.max),
-      },
-      negative: {
-        max: reinterpretU32AsF32(kBit.f32.subnormal.negative.max),
-        min: reinterpretU32AsF32(kBit.f32.subnormal.negative.min),
-      },
-    },
-    infinity: {
-      positive: reinterpretU32AsF32(kBit.f32.infinity.positive),
-      negative: reinterpretU32AsF32(kBit.f32.infinity.negative),
-    },
+    max_ulp: reinterpretU32AsF32(kBit.f32.max_ulp),
+    emax: 127,
   },
 
   // Limits of i16
@@ -515,6 +442,11 @@ export const kValue = {
       min: reinterpretU16AsF16(kBit.f16.positive.min),
       max: reinterpretU16AsF16(kBit.f16.positive.max),
       zero: reinterpretU16AsF16(kBit.f16.positive.zero),
+      subnormal: {
+        min: reinterpretU16AsF16(kBit.f16.positive.subnormal.min),
+        max: reinterpretU16AsF16(kBit.f16.positive.subnormal.max),
+      },
+      infinity: reinterpretU16AsF16(kBit.f16.positive.infinity),
       nearest_max: reinterpretU16AsF16(kBit.f16.positive.nearest_max),
       less_than_one: reinterpretU16AsF16(kBit.f16.positive.less_than_one),
       pi: {
@@ -542,6 +474,11 @@ export const kValue = {
       max: reinterpretU16AsF16(kBit.f16.negative.max),
       min: reinterpretU16AsF16(kBit.f16.negative.min),
       zero: reinterpretU16AsF16(kBit.f16.negative.zero),
+      subnormal: {
+        max: reinterpretU16AsF16(kBit.f16.negative.subnormal.max),
+        min: reinterpretU16AsF16(kBit.f16.negative.subnormal.min),
+      },
+      infinity: reinterpretU16AsF16(kBit.f16.negative.infinity),
       nearest_min: reinterpretU16AsF16(kBit.f16.negative.nearest_min),
       less_than_one: reinterpretU16AsF16(kBit.f16.negative.less_than_one), // -0.9996
       pi: {
@@ -567,157 +504,8 @@ export const kValue = {
         reinterpretF64AsU64(reinterpretU16AsF16(kBit.f16.positive.max) / 2 + 2 ** 15) - BigInt(1)
       ),
     },
-    subnormal: {
-      positive: {
-        min: reinterpretU16AsF16(kBit.f16.subnormal.positive.min),
-        max: reinterpretU16AsF16(kBit.f16.subnormal.positive.max),
-      },
-      negative: {
-        max: reinterpretU16AsF16(kBit.f16.subnormal.negative.max),
-        min: reinterpretU16AsF16(kBit.f16.subnormal.negative.min),
-      },
-    },
-    infinity: {
-      positive: reinterpretU16AsF16(kBit.f16.infinity.positive),
-      negative: reinterpretU16AsF16(kBit.f16.infinity.negative),
-    },
-  },
-
-  powTwo: {
-    to0: Math.pow(2, 0),
-    to1: Math.pow(2, 1),
-    to2: Math.pow(2, 2),
-    to3: Math.pow(2, 3),
-    to4: Math.pow(2, 4),
-    to5: Math.pow(2, 5),
-    to6: Math.pow(2, 6),
-    to7: Math.pow(2, 7),
-    to8: Math.pow(2, 8),
-    to9: Math.pow(2, 9),
-    to10: Math.pow(2, 10),
-    to11: Math.pow(2, 11),
-    to12: Math.pow(2, 12),
-    to13: Math.pow(2, 13),
-    to14: Math.pow(2, 14),
-    to15: Math.pow(2, 15),
-    to16: Math.pow(2, 16),
-    to17: Math.pow(2, 17),
-    to18: Math.pow(2, 18),
-    to19: Math.pow(2, 19),
-    to20: Math.pow(2, 20),
-    to21: Math.pow(2, 21),
-    to22: Math.pow(2, 22),
-    to23: Math.pow(2, 23),
-    to24: Math.pow(2, 24),
-    to25: Math.pow(2, 25),
-    to26: Math.pow(2, 26),
-    to27: Math.pow(2, 27),
-    to28: Math.pow(2, 28),
-    to29: Math.pow(2, 29),
-    to30: Math.pow(2, 30),
-    to31: Math.pow(2, 31),
-    to32: Math.pow(2, 32),
-
-    toMinus1: Math.pow(2, -1),
-    toMinus2: Math.pow(2, -2),
-    toMinus3: Math.pow(2, -3),
-    toMinus4: Math.pow(2, -4),
-    toMinus5: Math.pow(2, -5),
-    toMinus6: Math.pow(2, -6),
-    toMinus7: Math.pow(2, -7),
-    toMinus8: Math.pow(2, -8),
-    toMinus9: Math.pow(2, -9),
-    toMinus10: Math.pow(2, -10),
-    toMinus11: Math.pow(2, -11),
-    toMinus12: Math.pow(2, -12),
-    toMinus13: Math.pow(2, -13),
-    toMinus14: Math.pow(2, -14),
-    toMinus15: Math.pow(2, -15),
-    toMinus16: Math.pow(2, -16),
-    toMinus17: Math.pow(2, -17),
-    toMinus18: Math.pow(2, -18),
-    toMinus19: Math.pow(2, -19),
-    toMinus20: Math.pow(2, -20),
-    toMinus21: Math.pow(2, -21),
-    toMinus22: Math.pow(2, -22),
-    toMinus23: Math.pow(2, -23),
-    toMinus24: Math.pow(2, -24),
-    toMinus25: Math.pow(2, -25),
-    toMinus26: Math.pow(2, -26),
-    toMinus27: Math.pow(2, -27),
-    toMinus28: Math.pow(2, -28),
-    toMinus29: Math.pow(2, -29),
-    toMinus30: Math.pow(2, -30),
-    toMinus31: Math.pow(2, -31),
-    toMinus32: Math.pow(2, -32),
-  },
-  negPowTwo: {
-    to0: -Math.pow(2, 0),
-    to1: -Math.pow(2, 1),
-    to2: -Math.pow(2, 2),
-    to3: -Math.pow(2, 3),
-    to4: -Math.pow(2, 4),
-    to5: -Math.pow(2, 5),
-    to6: -Math.pow(2, 6),
-    to7: -Math.pow(2, 7),
-    to8: -Math.pow(2, 8),
-    to9: -Math.pow(2, 9),
-    to10: -Math.pow(2, 10),
-    to11: -Math.pow(2, 11),
-    to12: -Math.pow(2, 12),
-    to13: -Math.pow(2, 13),
-    to14: -Math.pow(2, 14),
-    to15: -Math.pow(2, 15),
-    to16: -Math.pow(2, 16),
-    to17: -Math.pow(2, 17),
-    to18: -Math.pow(2, 18),
-    to19: -Math.pow(2, 19),
-    to20: -Math.pow(2, 20),
-    to21: -Math.pow(2, 21),
-    to22: -Math.pow(2, 22),
-    to23: -Math.pow(2, 23),
-    to24: -Math.pow(2, 24),
-    to25: -Math.pow(2, 25),
-    to26: -Math.pow(2, 26),
-    to27: -Math.pow(2, 27),
-    to28: -Math.pow(2, 28),
-    to29: -Math.pow(2, 29),
-    to30: -Math.pow(2, 30),
-    to31: -Math.pow(2, 31),
-    to32: -Math.pow(2, 32),
-
-    toMinus1: -Math.pow(2, -1),
-    toMinus2: -Math.pow(2, -2),
-    toMinus3: -Math.pow(2, -3),
-    toMinus4: -Math.pow(2, -4),
-    toMinus5: -Math.pow(2, -5),
-    toMinus6: -Math.pow(2, -6),
-    toMinus7: -Math.pow(2, -7),
-    toMinus8: -Math.pow(2, -8),
-    toMinus9: -Math.pow(2, -9),
-    toMinus10: -Math.pow(2, -10),
-    toMinus11: -Math.pow(2, -11),
-    toMinus12: -Math.pow(2, -12),
-    toMinus13: -Math.pow(2, -13),
-    toMinus14: -Math.pow(2, -14),
-    toMinus15: -Math.pow(2, -15),
-    toMinus16: -Math.pow(2, -16),
-    toMinus17: -Math.pow(2, -17),
-    toMinus18: -Math.pow(2, -18),
-    toMinus19: -Math.pow(2, -19),
-    toMinus20: -Math.pow(2, -20),
-    toMinus21: -Math.pow(2, -21),
-    toMinus22: -Math.pow(2, -22),
-    toMinus23: -Math.pow(2, -23),
-    toMinus24: -Math.pow(2, -24),
-    toMinus25: -Math.pow(2, -25),
-    toMinus26: -Math.pow(2, -26),
-    toMinus27: -Math.pow(2, -27),
-    toMinus28: -Math.pow(2, -28),
-    toMinus29: -Math.pow(2, -29),
-    toMinus30: -Math.pow(2, -30),
-    toMinus31: -Math.pow(2, -31),
-    toMinus32: -Math.pow(2, -32),
+    max_ulp: reinterpretU16AsF16(kBit.f16.max_ulp),
+    emax: 15,
   },
 
   // Limits of i8

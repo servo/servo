@@ -19,6 +19,8 @@ import {
 import { validQueryPart } from '../internal/query/validQueryPart.js';
 import { assert, unreachable } from '../util/util.js';
 
+import { logToWebsocket } from './websocket_logger.js';
+
 export function makeTestGroup(fixture) {
   return new TestGroup(fixture);
 }
@@ -28,6 +30,9 @@ export function makeTestGroup(fixture) {
 export function makeTestGroupForUnitTesting(fixture) {
   return new TestGroup(fixture);
 }
+
+/** Parameter name for batch number (see also TestBuilder.batch). */
+const kBatchParamName = 'batch__';
 
 export class TestGroup {
   seen = new Set();
@@ -73,6 +78,16 @@ export class TestGroup {
     for (const test of this.tests) {
       test.validate();
     }
+  }
+
+  collectNonEmptyTests() {
+    const testPaths = [];
+    for (const test of this.tests) {
+      if (test.computeCaseCount() > 0) {
+        testPaths.push({ testPath: test.testPath });
+      }
+    }
+    return testPaths;
   }
 }
 
@@ -127,6 +142,7 @@ class TestBuilder {
     };
   }
 
+  /** Perform various validation/"lint" chenks. */
   validate() {
     const testPathString = this.testPath.join(kPathSeparator);
     assert(this.testFn !== undefined, () => {
@@ -142,13 +158,18 @@ class TestBuilder {
     }
 
     const seen = new Set();
-    for (const [caseParams, subcases] of builderIterateCasesWithSubcases(this.testCases)) {
+    for (const [caseParams, subcases] of builderIterateCasesWithSubcases(this.testCases, null)) {
       for (const subcaseParams of subcases ?? [{}]) {
         const params = mergeParams(caseParams, subcaseParams);
-        assert(this.batchSize === 0 || !('batch__' in params));
+        assert(this.batchSize === 0 || !(kBatchParamName in params));
 
         // stringifyPublicParams also checks for invalid params values
-        const testcaseString = stringifyPublicParams(params);
+        let testcaseString;
+        try {
+          testcaseString = stringifyPublicParams(params);
+        } catch (e) {
+          throw new Error(`${e}: ${testPathString}`);
+        }
 
         // A (hopefully) unique representation of a params value.
         const testcaseStringUnique = stringifyPublicParamsUniquely(params);
@@ -160,6 +181,18 @@ class TestBuilder {
         seen.add(testcaseStringUnique);
       }
     }
+  }
+
+  computeCaseCount() {
+    if (this.testCases === undefined) {
+      return 1;
+    }
+
+    let caseCount = 0;
+    for (const [_caseParams, _subcases] of builderIterateCasesWithSubcases(this.testCases, null)) {
+      caseCount++;
+    }
+    return caseCount;
   }
 
   params(cases) {
@@ -186,48 +219,69 @@ class TestBuilder {
     }
   }
 
-  *iterate() {
+  makeCaseSpecific(params, subcases) {
     assert(this.testFn !== undefined, 'No test function (.fn()) for test');
+    return new RunCaseSpecific(
+      this.testPath,
+      params,
+      this.isUnimplemented,
+      subcases,
+      this.fixture,
+      this.testFn,
+      this.beforeFn,
+      this.testCreationStack
+    );
+  }
+
+  *iterate(caseFilter) {
     this.testCases ??= kUnitCaseParamsBuilder;
-    for (const [caseParams, subcases] of builderIterateCasesWithSubcases(this.testCases)) {
+
+    // Remove the batch__ from the caseFilter because the params builder doesn't
+    // know about it (we don't add it until later in this function).
+    let filterToBatch;
+    const caseFilterWithoutBatch = caseFilter ? { ...caseFilter } : null;
+    if (caseFilterWithoutBatch && kBatchParamName in caseFilterWithoutBatch) {
+      const batchParam = caseFilterWithoutBatch[kBatchParamName];
+      assert(typeof batchParam === 'number');
+      filterToBatch = batchParam;
+      delete caseFilterWithoutBatch[kBatchParamName];
+    }
+
+    for (const [caseParams, subcases] of builderIterateCasesWithSubcases(
+      this.testCases,
+      caseFilterWithoutBatch
+    )) {
+      // If batches are not used, yield just one case.
       if (this.batchSize === 0 || subcases === undefined) {
-        yield new RunCaseSpecific(
-          this.testPath,
-          caseParams,
-          this.isUnimplemented,
-          subcases,
-          this.fixture,
-          this.testFn,
-          this.beforeFn,
-          this.testCreationStack
+        yield this.makeCaseSpecific(caseParams, subcases);
+        continue;
+      }
+
+      // Same if there ends up being only one batch.
+      const subcaseArray = Array.from(subcases);
+      if (subcaseArray.length <= this.batchSize) {
+        yield this.makeCaseSpecific(caseParams, subcaseArray);
+        continue;
+      }
+
+      // There are multiple batches. Helper function for this case:
+      const makeCaseForBatch = batch => {
+        const sliceStart = batch * this.batchSize;
+        return this.makeCaseSpecific(
+          { ...caseParams, [kBatchParamName]: batch },
+          subcaseArray.slice(sliceStart, Math.min(subcaseArray.length, sliceStart + this.batchSize))
         );
-      } else {
-        const subcaseArray = Array.from(subcases);
-        if (subcaseArray.length <= this.batchSize) {
-          yield new RunCaseSpecific(
-            this.testPath,
-            caseParams,
-            this.isUnimplemented,
-            subcaseArray,
-            this.fixture,
-            this.testFn,
-            this.beforeFn,
-            this.testCreationStack
-          );
-        } else {
-          for (let i = 0; i < subcaseArray.length; i = i + this.batchSize) {
-            yield new RunCaseSpecific(
-              this.testPath,
-              { ...caseParams, batch__: i / this.batchSize },
-              this.isUnimplemented,
-              subcaseArray.slice(i, Math.min(subcaseArray.length, i + this.batchSize)),
-              this.fixture,
-              this.testFn,
-              this.beforeFn,
-              this.testCreationStack
-            );
-          }
-        }
+      };
+
+      // If we filter to just one batch, yield it.
+      if (filterToBatch !== undefined) {
+        yield makeCaseForBatch(filterToBatch);
+        continue;
+      }
+
+      // Finally, if not, yield all of the batches.
+      for (let batch = 0; batch * this.batchSize < subcaseArray.length; ++batch) {
+        yield makeCaseForBatch(batch);
       }
     }
   }
@@ -254,6 +308,18 @@ class RunCaseSpecific {
     this.testCreationStack = testCreationStack;
   }
 
+  computeSubcaseCount() {
+    if (this.subcases) {
+      let count = 0;
+      for (const _subcase of this.subcases) {
+        count++;
+      }
+      return count;
+    } else {
+      return 1;
+    }
+  }
+
   async runTest(rec, sharedState, params, throwSkip, expectedStatus) {
     try {
       rec.beginSubCase();
@@ -276,8 +342,9 @@ class RunCaseSpecific {
       // or unexpected validation/OOM error from the GPUDevice.
       if (throwSkip && ex instanceof SkipTestCase) {
         throw ex;
+      } else {
+        rec.threw(ex);
       }
-      rec.threw(ex);
     } finally {
       try {
         rec.endSubCase(expectedStatus);
@@ -466,6 +533,13 @@ class RunCaseSpecific {
       rec.threw(ex);
     } finally {
       rec.finish();
+
+      const msg = {
+        q: selfQuery.toString(),
+        timems: rec.result.timems,
+        nonskippedSubcaseCount: rec.nonskippedSubcaseCount,
+      };
+      logToWebsocket(JSON.stringify(msg));
     }
   }
 }

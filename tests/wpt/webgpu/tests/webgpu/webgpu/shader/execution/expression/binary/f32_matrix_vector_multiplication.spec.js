@@ -15,311 +15,45 @@ import { binary, compoundBinary } from './binary.js';
 
 export const g = makeTestGroup(GPUTest);
 
+// Cases: matCxR_vecC_[non_]const
+const mat_vec_cases = [2, 3, 4]
+  .flatMap(cols =>
+    [2, 3, 4].flatMap(rows =>
+      [true, false].map(nonConst => ({
+        [`mat${cols}x${rows}_vec${cols}_${nonConst ? 'non_const' : 'const'}`]: () => {
+          return FP.f32.generateMatrixVectorToVectorCases(
+            sparseMatrixF32Range(cols, rows),
+            sparseVectorF32Range(cols),
+            nonConst ? 'unfiltered' : 'finite',
+            FP.f32.multiplicationMatrixVectorInterval
+          );
+        },
+      }))
+    )
+  )
+  .reduce((a, b) => ({ ...a, ...b }), {});
+
+// Cases: vecR_matCxR_[non_]const
+const vec_mat_cases = [2, 3, 4]
+  .flatMap(rows =>
+    [2, 3, 4].flatMap(cols =>
+      [true, false].map(nonConst => ({
+        [`vec${rows}_mat${cols}x${rows}_${nonConst ? 'non_const' : 'const'}`]: () => {
+          return FP.f32.generateVectorMatrixToVectorCases(
+            sparseVectorF32Range(rows),
+            sparseMatrixF32Range(cols, rows),
+            nonConst ? 'unfiltered' : 'finite',
+            FP.f32.multiplicationVectorMatrixInterval
+          );
+        },
+      }))
+    )
+  )
+  .reduce((a, b) => ({ ...a, ...b }), {});
+
 export const d = makeCaseCache('binary/f32_matrix_vector_multiplication', {
-  mat2x2_vec2_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(2, 2),
-      sparseVectorF32Range(2),
-      'finite',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat2x2_vec2_non_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(2, 2),
-      sparseVectorF32Range(2),
-      'unfiltered',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat2x3_vec2_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(2, 3),
-      sparseVectorF32Range(2),
-      'finite',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat2x3_vec2_non_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(2, 3),
-      sparseVectorF32Range(2),
-      'unfiltered',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat2x4_vec2_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(2, 4),
-      sparseVectorF32Range(2),
-      'finite',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat2x4_vec2_non_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(2, 4),
-      sparseVectorF32Range(2),
-      'unfiltered',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat3x2_vec3_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(3, 2),
-      sparseVectorF32Range(3),
-      'finite',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat3x2_vec3_non_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(3, 2),
-      sparseVectorF32Range(3),
-      'unfiltered',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat3x3_vec3_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(3, 3),
-      sparseVectorF32Range(3),
-      'finite',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat3x3_vec3_non_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(3, 3),
-      sparseVectorF32Range(3),
-      'unfiltered',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat3x4_vec3_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(3, 4),
-      sparseVectorF32Range(3),
-      'finite',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat3x4_vec3_non_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(3, 4),
-      sparseVectorF32Range(3),
-      'unfiltered',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat4x2_vec4_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(4, 2),
-      sparseVectorF32Range(4),
-      'finite',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat4x2_vec4_non_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(4, 2),
-      sparseVectorF32Range(4),
-      'unfiltered',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat4x3_vec4_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(4, 3),
-      sparseVectorF32Range(4),
-      'finite',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat4x3_vec4_non_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(4, 3),
-      sparseVectorF32Range(4),
-      'unfiltered',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat4x4_vec4_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(4, 4),
-      sparseVectorF32Range(4),
-      'finite',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  mat4x4_vec4_non_const: () => {
-    return FP.f32.generateMatrixVectorToVectorCases(
-      sparseMatrixF32Range(4, 4),
-      sparseVectorF32Range(4),
-      'unfiltered',
-      FP.f32.multiplicationMatrixVectorInterval
-    );
-  },
-  vec2_mat2x2_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(2),
-      sparseMatrixF32Range(2, 2),
-      'finite',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec2_mat2x2_non_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(2),
-      sparseMatrixF32Range(2, 2),
-      'unfiltered',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec2_mat3x2_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(2),
-      sparseMatrixF32Range(3, 2),
-      'finite',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec2_mat3x2_non_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(2),
-      sparseMatrixF32Range(3, 2),
-      'unfiltered',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec2_mat4x2_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(2),
-      sparseMatrixF32Range(4, 2),
-      'finite',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec2_mat4x2_non_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(2),
-      sparseMatrixF32Range(4, 2),
-      'unfiltered',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec3_mat2x3_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(3),
-      sparseMatrixF32Range(2, 3),
-      'finite',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec3_mat2x3_non_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(3),
-      sparseMatrixF32Range(2, 3),
-      'unfiltered',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec3_mat3x3_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(3),
-      sparseMatrixF32Range(3, 3),
-      'finite',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec3_mat3x3_non_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(3),
-      sparseMatrixF32Range(3, 3),
-      'unfiltered',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec3_mat4x3_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(3),
-      sparseMatrixF32Range(4, 3),
-      'finite',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec3_mat4x3_non_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(3),
-      sparseMatrixF32Range(4, 3),
-      'unfiltered',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec4_mat2x4_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(4),
-      sparseMatrixF32Range(2, 4),
-      'finite',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec4_mat2x4_non_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(4),
-      sparseMatrixF32Range(2, 4),
-      'unfiltered',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec4_mat3x4_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(4),
-      sparseMatrixF32Range(3, 4),
-      'finite',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec4_mat3x4_non_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(4),
-      sparseMatrixF32Range(3, 4),
-      'unfiltered',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec4_mat4x4_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(4),
-      sparseMatrixF32Range(4, 4),
-      'finite',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  vec4_mat4x4_non_const: () => {
-    return FP.f32.generateVectorMatrixToVectorCases(
-      sparseVectorF32Range(4),
-      sparseMatrixF32Range(4, 4),
-      'unfiltered',
-      FP.f32.multiplicationVectorMatrixInterval
-    );
-  },
-  subtraction_mat2x2_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(2, 2),
-      sparseMatrixF32Range(2, 2),
-      'finite',
-      FP.f32.subtractionMatrixMatrixInterval
-    );
-  },
-  subtraction_mat2x2_non_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(2, 2),
-      sparseMatrixF32Range(2, 2),
-      'unfiltered',
-      FP.f32.subtractionMatrixMatrixInterval
-    );
-  },
+  ...mat_vec_cases,
+  ...vec_mat_cases,
 });
 
 g.test('matrix_vector')

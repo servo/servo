@@ -10,13 +10,13 @@ Returns clamp(e, 0.0, 1.0). Component-wise when T is a vector.
 `;
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeF32 } from '../../../../../util/conversion.js';
+import { TypeAbstractFloat, TypeF16, TypeF32 } from '../../../../../util/conversion.js';
 import { FP } from '../../../../../util/floating_point.js';
-import { fullF32Range, linearRange } from '../../../../../util/math.js';
+import { fullF16Range, fullF32Range, fullF64Range, linearRange } from '../../../../../util/math.js';
 import { makeCaseCache } from '../../case_cache.js';
-import { allInputSources, run } from '../../expression.js';
+import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
 
-import { builtin } from './builtin.js';
+import { abstractBuiltin, builtin } from './builtin.js';
 
 export const g = makeTestGroup(GPUTest);
 
@@ -25,7 +25,7 @@ export const d = makeCaseCache('saturate', {
     return FP.f32.generateScalarToIntervalCases(
       [
         // Non-clamped values
-        ...linearRange(0.0, 1.0, 100),
+        ...linearRange(0.0, 1.0, 20),
         ...fullF32Range(),
       ],
 
@@ -33,14 +33,49 @@ export const d = makeCaseCache('saturate', {
       FP.f32.saturateInterval
     );
   },
+  f16: () => {
+    return FP.f16.generateScalarToIntervalCases(
+      [
+        // Non-clamped values
+        ...linearRange(0.0, 1.0, 20),
+        ...fullF16Range(),
+      ],
+
+      'unfiltered',
+      FP.f16.saturateInterval
+    );
+  },
+  abstract: () => {
+    return FP.abstract.generateScalarToIntervalCases(
+      [
+        // Non-clamped values
+        ...linearRange(0.0, 1.0, 20),
+        ...fullF64Range(),
+      ],
+
+      'unfiltered',
+      FP.abstract.saturateInterval
+    );
+  },
 });
 
 g.test('abstract_float')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
   .desc(`abstract float tests`)
-  .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
-  .unimplemented();
-
+  .params(u =>
+    u.combine('inputSource', onlyConstInputSource).combine('vectorize', [undefined, 2, 3, 4])
+  )
+  .fn(async t => {
+    const cases = await d.get('abstract');
+    await run(
+      t,
+      abstractBuiltin('saturate'),
+      [TypeAbstractFloat],
+      TypeAbstractFloat,
+      t.params,
+      cases
+    );
+  });
 g.test('f32')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
   .desc(`f32 tests`)
@@ -54,4 +89,10 @@ g.test('f16')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
   .desc(`f16 tests`)
   .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
-  .unimplemented();
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  })
+  .fn(async t => {
+    const cases = await d.get('f16');
+    await run(t, builtin('saturate'), [TypeF16], TypeF16, t.params, cases);
+  });

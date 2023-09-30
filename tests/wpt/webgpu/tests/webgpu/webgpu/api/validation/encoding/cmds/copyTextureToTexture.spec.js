@@ -356,6 +356,8 @@ Test the formats of textures in copyTextureToTexture must be copy-compatible.
     const srcFormatInfo = kTextureFormatInfo[srcFormat];
     const dstFormatInfo = kTextureFormatInfo[dstFormat];
 
+    t.skipIfTextureFormatNotSupported(srcFormat, dstFormat);
+
     const textureSize = {
       width: lcm(srcFormatInfo.blockWidth, dstFormatInfo.blockWidth),
       height: lcm(srcFormatInfo.blockHeight, dstFormatInfo.blockHeight),
@@ -771,6 +773,7 @@ TODO: Express the offsets in "block size" so as to be able to test non-4x4 compr
   .beforeAllSubcases(t => {
     const { format } = t.params;
     t.selectDeviceOrSkipTestCase(kTextureFormatInfo[format].feature);
+    t.skipIfCopyTextureToTextureNotSupportedForFormat(format);
   })
   .fn(t => {
     const { format, dimension, copyBoxOffsets, srcCopyLevel, dstCopyLevel } = t.params;

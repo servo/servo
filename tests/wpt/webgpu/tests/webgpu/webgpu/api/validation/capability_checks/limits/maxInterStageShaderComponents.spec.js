@@ -112,6 +112,11 @@ g.test('createRenderPipeline,at_over')
       .combine('sampleMaskIn', [false, true])
       .combine('sampleMaskOut', [false, true])
   )
+  .beforeAllSubcases(t => {
+    if (t.isCompatibility && (t.params.sampleMaskIn || t.params.sampleMaskOut)) {
+      t.skip('sample_mask not supported in compatibility mode');
+    }
+  })
   .fn(async t => {
     const {
       limitTest,

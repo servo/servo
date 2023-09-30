@@ -117,35 +117,35 @@ g.test('linear_memory')
   .params(u =>
     u
       .combineWithParams([
-        { storageClass: 'storage', storageMode: 'read', access: 'read', dynamicOffset: false },
+        { addressSpace: 'storage', storageMode: 'read', access: 'read', dynamicOffset: false },
         {
-          storageClass: 'storage',
+          addressSpace: 'storage',
           storageMode: 'read_write',
           access: 'read',
           dynamicOffset: false,
         },
         {
-          storageClass: 'storage',
+          addressSpace: 'storage',
           storageMode: 'read_write',
           access: 'write',
           dynamicOffset: false,
         },
-        { storageClass: 'storage', storageMode: 'read', access: 'read', dynamicOffset: true },
-        { storageClass: 'storage', storageMode: 'read_write', access: 'read', dynamicOffset: true },
+        { addressSpace: 'storage', storageMode: 'read', access: 'read', dynamicOffset: true },
+        { addressSpace: 'storage', storageMode: 'read_write', access: 'read', dynamicOffset: true },
         {
-          storageClass: 'storage',
+          addressSpace: 'storage',
           storageMode: 'read_write',
           access: 'write',
           dynamicOffset: true,
         },
-        { storageClass: 'uniform', access: 'read', dynamicOffset: false },
-        { storageClass: 'uniform', access: 'read', dynamicOffset: true },
-        { storageClass: 'private', access: 'read' },
-        { storageClass: 'private', access: 'write' },
-        { storageClass: 'function', access: 'read' },
-        { storageClass: 'function', access: 'write' },
-        { storageClass: 'workgroup', access: 'read' },
-        { storageClass: 'workgroup', access: 'write' },
+        { addressSpace: 'uniform', access: 'read', dynamicOffset: false },
+        { addressSpace: 'uniform', access: 'read', dynamicOffset: true },
+        { addressSpace: 'private', access: 'read' },
+        { addressSpace: 'private', access: 'write' },
+        { addressSpace: 'function', access: 'read' },
+        { addressSpace: 'function', access: 'write' },
+        { addressSpace: 'workgroup', access: 'read' },
+        { addressSpace: 'workgroup', access: 'write' },
       ])
       .combineWithParams([
         { containerType: 'array' },
@@ -164,7 +164,7 @@ g.test('linear_memory')
   )
   .fn(t => {
     const {
-      storageClass,
+      addressSpace,
       storageMode,
       access,
       dynamicOffset,
@@ -197,14 +197,14 @@ struct S {
 };`;
 
     const testGroupBGLEntires = [];
-    switch (storageClass) {
+    switch (addressSpace) {
       case 'uniform':
       case 'storage':
         {
           assert(_kTypeInfo.layout !== undefined);
           const layout = _kTypeInfo.layout;
           bufferBindingSize = align(layout.size, layout.alignment);
-          const qualifiers = storageClass === 'storage' ? `storage, ${storageMode}` : storageClass;
+          const qualifiers = addressSpace === 'storage' ? `storage, ${storageMode}` : addressSpace;
           globalSource += `
 struct TestData {
   data: ${type},
@@ -216,7 +216,7 @@ struct TestData {
             visibility: GPUShaderStage.COMPUTE,
             buffer: {
               type:
-                storageClass === 'uniform'
+                addressSpace === 'uniform'
                   ? 'uniform'
                   : storageMode === 'read'
                   ? 'read-only-storage'
@@ -231,7 +231,7 @@ struct TestData {
       case 'workgroup':
         usesCanary = true;
         globalSource += structDecl;
-        globalSource += `var<${storageClass}> s: S;`;
+        globalSource += `var<${addressSpace}> s: S;`;
         break;
 
       case 'function':
@@ -308,7 +308,7 @@ struct TestData {
             case 'read':
               {
                 let exprLoadElement = isAtomic ? `atomicLoad(&${exprElement})` : exprElement;
-                if (storageClass === 'uniform' && containerType === 'array') {
+                if (addressSpace === 'uniform' && containerType === 'array') {
                   // Scalar types will be wrapped in a vec4 to satisfy array element size
                   // requirements for the uniform address space, so we need an additional index
                   // accessor expression.

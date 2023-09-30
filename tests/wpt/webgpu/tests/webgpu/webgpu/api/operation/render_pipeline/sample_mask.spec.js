@@ -262,6 +262,9 @@ struct FragmentOutput2 {
 class F extends TextureTestMixin(GPUTest) {
   async init() {
     await super.init();
+    if (this.isCompatibility) {
+      this.skip('WGSL sample_mask is not supported in compatibility mode');
+    }
     // Create a 2x2 color texture to sample from
     // texel 0 - Red
     // texel 1 - Green

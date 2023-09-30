@@ -8,7 +8,6 @@ TODO: make sure tests are complete.
 import { kUnitCaseParamsBuilder } from '../../../common/framework/params_builder.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import {
-  kLimitInfo,
   kShaderStages,
   kShaderStageCombinations,
   kStorageTextureAccessValues,
@@ -63,19 +62,18 @@ g.test('maximum_binding_limit')
   `
   )
   .paramsSubcasesOnly(u =>
-    u //
-      .combine('binding', [
-        1,
-        4,
-        8,
-        256,
-        kLimitInfo.maxBindingsPerBindGroup.default - 1,
-        kLimitInfo.maxBindingsPerBindGroup.default,
-      ])
+    u.combine('bindingVariant', [1, 4, 8, 256, 'default', 'default-minus-one'])
   )
   .fn(t => {
-    const { binding } = t.params;
+    const { bindingVariant } = t.params;
     const entries = [];
+
+    const binding =
+      bindingVariant === 'default'
+        ? t.device.limits.maxBindingsPerBindGroup
+        : bindingVariant === 'default-minus-one'
+        ? t.device.limits.maxBindingsPerBindGroup - 1
+        : bindingVariant;
 
     entries.push({
       binding,
@@ -83,7 +81,7 @@ g.test('maximum_binding_limit')
       buffer: { type: 'storage' },
     });
 
-    const success = binding < kLimitInfo.maxBindingsPerBindGroup.default;
+    const success = binding < t.device.limits.maxBindingsPerBindGroup;
 
     t.expectValidationError(() => {
       t.device.createBindGroupLayout({
@@ -234,7 +232,10 @@ g.test('max_dynamic_buffers')
     const { type, extraDynamicBuffers, staticBuffers } = t.params;
     const info = bufferBindingTypeInfo({ type });
 
-    const dynamicBufferCount = info.perPipelineLimitClass.maxDynamic + extraDynamicBuffers;
+    const limitName = info.perPipelineLimitClass.maxDynamicLimit;
+    const bufferCount = limitName ? t.getDefaultLimit(limitName) : 0;
+    const dynamicBufferCount = bufferCount + extraDynamicBuffers;
+    const perStageLimit = t.getDefaultLimit(info.perStageLimitClass.maxLimit);
 
     const entries = [];
     for (let i = 0; i < dynamicBufferCount; i++) {
@@ -259,7 +260,7 @@ g.test('max_dynamic_buffers')
 
     t.expectValidationError(() => {
       t.device.createBindGroupLayout(descriptor);
-    }, extraDynamicBuffers > 0);
+    }, extraDynamicBuffers > 0 || entries.length > perStageLimit);
   });
 
 /**
@@ -297,7 +298,7 @@ const kMaxResourcesCases = kUnitCaseParamsBuilder
   .combine('extraVisibility', kShaderStages)
   .filter(p => (bindingTypeInfo(p.extraEntry).validStages & p.extraVisibility) !== 0);
 
-// Should never fail unless kLimitInfo.maxBindingsPerBindGroup.default is exceeded, because the validation for
+// Should never fail unless limitInfo.maxBindingsPerBindGroup.default is exceeded, because the validation for
 // resources-of-type-per-stage is in pipeline layout creation.
 g.test('max_resources_per_stage,in_bind_group_layout')
   .desc(
@@ -313,7 +314,7 @@ g.test('max_resources_per_stage,in_bind_group_layout')
   .fn(t => {
     const { maxedEntry, extraEntry, maxedVisibility, extraVisibility } = t.params;
     const maxedTypeInfo = bindingTypeInfo(maxedEntry);
-    const maxedCount = maxedTypeInfo.perStageLimitClass.max;
+    const maxedCount = t.getDefaultLimit(maxedTypeInfo.perStageLimitClass.maxLimit);
     const extraTypeInfo = bindingTypeInfo(extraEntry);
 
     const maxResourceBindings = [];
@@ -364,7 +365,7 @@ g.test('max_resources_per_stage,in_pipeline_layout')
   .fn(t => {
     const { maxedEntry, extraEntry, maxedVisibility, extraVisibility } = t.params;
     const maxedTypeInfo = bindingTypeInfo(maxedEntry);
-    const maxedCount = maxedTypeInfo.perStageLimitClass.max;
+    const maxedCount = t.getDefaultLimit(maxedTypeInfo.perStageLimitClass.maxLimit);
     const extraTypeInfo = bindingTypeInfo(extraEntry);
 
     const maxResourceBindings = [];

@@ -195,7 +195,7 @@ const kAbstractFloat = new Set([
   ]);
   const kInvalidF16s = new Set([
     '1.1eh', // Missing exponent value
-    '1.1e%2h', // Invalid exponent sign
+    '1.1e!2h', // Invalid exponent sign
     '1.1e+h', // Missing exponent with sign
     '1.0e+999999h', // Too large
     '0x1.0p+999999h', // Too large hex
@@ -279,7 +279,7 @@ const kAbstractFloat = new Set([
     '1u', // unsigned int
     '1f', // no conversion from f32 to f16
     '1.1eh', // Missing exponent value
-    '1.1e%2h', // Invalid exponent sign
+    '1.1e!2h', // Invalid exponent sign
     '1.1e+h', // Missing exponent with sign
     '1.0e+999999h', // Too large
     '0x1.0p+999999h', // Too large hex

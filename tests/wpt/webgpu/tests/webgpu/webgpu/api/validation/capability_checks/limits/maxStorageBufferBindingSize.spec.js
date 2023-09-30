@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
  **/ import { align, roundDown } from '../../../../util/math.js';
-import { kMaximumLimitBaseParams, makeLimitTestGroup, getDefaultLimit } from './limit_utils.js';
+import { kMaximumLimitBaseParams, makeLimitTestGroup } from './limit_utils.js';
 
 const kBufferParts = ['wholeBuffer', 'biggerBufferWithOffset'];
 
@@ -139,6 +139,6 @@ g.test('validate,maxBufferSize')
   .desc(`Test that ${limit} <= maxBufferSize`)
   .fn(t => {
     const { adapter, defaultLimit, adapterLimit } = t;
-    t.expect(defaultLimit <= getDefaultLimit('maxBufferSize'));
+    t.expect(defaultLimit <= t.getDefaultLimit('maxBufferSize'));
     t.expect(adapterLimit <= adapter.limits.maxBufferSize);
   });

@@ -660,6 +660,7 @@ g.test('destination_texture,format')
   )
   .beforeAllSubcases(t => {
     const { format } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
     t.selectDeviceOrSkipTestCase(kTextureFormatInfo[format].feature);
   })
   .fn(async t => {

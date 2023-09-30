@@ -4,10 +4,8 @@
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { getGPU } from '../../../../../common/util/navigator_gpu.js';
 import { assert, range, reorder } from '../../../../../common/util/util.js';
-import { kLimitInfo } from '../../../../capability_info.js';
-import { kTextureFormatInfo } from '../../../../format_info.js';
+import { getDefaultLimitsForAdapter } from '../../../../capability_info.js';
 import { GPUTestBase } from '../../../../gpu_test.js';
-import { align } from '../../../../util/math.js';
 
 export const kCreatePipelineTypes = [
   'createRenderPipeline',
@@ -63,19 +61,6 @@ function getWGSLBindings(order, bindGroupTest, storageDefinitionWGSLSnippetFn, n
         )}) @binding(${i}) ${storageDefinitionWGSLSnippetFn(i, id)};`
     )
   ).join('\n        ');
-}
-
-/**
- * Given an array of GPUColorTargetState return the number of bytes per sample
- */
-export function computeBytesPerSample(targets) {
-  let bytesPerSample = 0;
-  for (const { format } of targets) {
-    const info = kTextureFormatInfo[format];
-    const alignedBytesPerSample = align(bytesPerSample, info.colorRender.alignment);
-    bytesPerSample = alignedBytesPerSample + info.colorRender.byteCost;
-  }
-  return bytesPerSample;
 }
 
 export function getPerStageWGSLForBindingCombinationImpl(
@@ -251,8 +236,9 @@ export const kMinimumLimitValueTests = [
   'underMinimum',
 ];
 
-export function getDefaultLimit(limit) {
-  return kLimitInfo[limit].default;
+export function getDefaultLimitForAdapter(adapter, limit) {
+  const limitInfo = getDefaultLimitsForAdapter(adapter);
+  return limitInfo[limit].default;
 }
 
 const kMinimumLimits = new Set([
@@ -283,7 +269,7 @@ export class LimitTestsImpl extends GPUTestBase {
     const gpu = getGPU(this.rec);
     this._adapter = await gpu.requestAdapter();
     const limit = this.limit;
-    this.defaultLimit = getDefaultLimit(limit);
+    this.defaultLimit = getDefaultLimitForAdapter(this.adapter, limit);
     this.adapterLimit = this.adapter.limits[limit];
     assert(!Number.isNaN(this.defaultLimit));
     assert(!Number.isNaN(this.adapterLimit));
@@ -311,7 +297,7 @@ export class LimitTestsImpl extends GPUTestBase {
   getDefaultOrAdapterLimit(limit, limitMode) {
     switch (limitMode) {
       case 'defaultLimit':
-        return getDefaultLimit(limit);
+        return getDefaultLimitForAdapter(this.adapter, limit);
       case 'adapterLimit':
         return this.adapter.limits[limit];
     }
@@ -332,7 +318,9 @@ export class LimitTestsImpl extends GPUTestBase {
       for (const [extraLimitStr, limitMode] of Object.entries(extraLimits)) {
         const extraLimit = extraLimitStr;
         requiredLimits[extraLimit] =
-          limitMode === 'defaultLimit' ? getDefaultLimit(extraLimit) : adapter.limits[extraLimit];
+          limitMode === 'defaultLimit'
+            ? getDefaultLimitForAdapter(adapter, extraLimit)
+            : adapter.limits[extraLimit];
       }
     }
 

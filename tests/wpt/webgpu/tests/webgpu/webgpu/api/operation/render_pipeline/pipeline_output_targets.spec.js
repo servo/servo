@@ -5,8 +5,11 @@
 `;
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { range } from '../../../../common/util/util.js';
-import { kLimitInfo } from '../../../capability_info.js';
-import { kRenderableColorTextureFormats, kTextureFormatInfo } from '../../../format_info.js';
+import {
+  computeBytesPerSampleFromFormats,
+  kRenderableColorTextureFormats,
+  kTextureFormatInfo,
+} from '../../../format_info.js';
 import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { getFragmentShaderCodeWithOutput, getPlainTypeInfo } from '../../../util/shader.js';
 import { kTexelRepresentationInfo } from '../../../util/texture/texel_data.js';
@@ -28,11 +31,14 @@ export const g = makeTestGroup(TextureTestMixin(GPUTest));
 // Values to write into each attachment
 // We make values different for each attachment index and each channel
 // to make sure they didn't get mixed up
+
+// Clamp alpha to 3 to avoid comparing a large expected value with a max 3 value for rgb10a2uint
+// MAINTENANCE_TODO: Make TexelRepresentation.numericRange per-component and use that.
 const attachmentsIntWriteValues = [
-  { R: 1, G: 2, B: 3, A: 4 },
-  { R: 5, G: 6, B: 7, A: 8 },
-  { R: 9, G: 10, B: 11, A: 12 },
-  { R: 13, G: 14, B: 15, A: 16 },
+  { R: 1, G: 2, B: 3, A: 1 },
+  { R: 5, G: 6, B: 7, A: 2 },
+  { R: 9, G: 10, B: 11, A: 3 },
+  { R: 13, G: 14, B: 15, A: 0 },
 ];
 
 const attachmentsFloatWriteValues = [
@@ -49,24 +55,25 @@ g.test('color,attachments')
       .combine('format', kRenderableColorTextureFormats)
       .beginSubcases()
       .combine('attachmentCount', [2, 3, 4])
-      .filter(t => {
-        // We only need to test formats that have a valid color attachment bytes per sample.
-        const pixelByteCost = kTextureFormatInfo[t.format].colorRender?.byteCost;
-        return (
-          pixelByteCost !== undefined &&
-          pixelByteCost * t.attachmentCount <= kLimitInfo.maxColorAttachmentBytesPerSample.default
-        );
-      })
       .expand('emptyAttachmentId', p => range(p.attachmentCount, i => i))
   )
   .beforeAllSubcases(t => {
     const info = kTextureFormatInfo[t.params.format];
+    t.skipIfTextureFormatNotSupported(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
     const { format, attachmentCount, emptyAttachmentId } = t.params;
     const componentCount = kTexelRepresentationInfo[format].componentOrder.length;
     const info = kTextureFormatInfo[format];
+
+    // We only need to test formats that have a valid color attachment bytes per sample.
+    const pixelByteCost = kTextureFormatInfo[format].colorRender?.byteCost;
+    t.skipIf(
+      pixelByteCost === undefined ||
+        computeBytesPerSampleFromFormats(range(attachmentCount, () => format)) >
+          t.device.limits.maxColorAttachmentBytesPerSample
+    );
 
     const writeValues =
       info.color.type === 'sint' || info.color.type === 'uint'
@@ -156,6 +163,7 @@ g.test('color,component_count')
   )
   .beforeAllSubcases(t => {
     const info = kTextureFormatInfo[t.params.format];
+    t.skipIfTextureFormatNotSupported(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {

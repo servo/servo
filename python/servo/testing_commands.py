@@ -782,6 +782,8 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
         res = call(["npm", "run", "wpt"], cwd=clone_dir)
         if res != 0:
             return res
+        # https://github.com/gpuweb/cts/pull/2770
+        delete(path.join(clone_dir, "out-wpt", "cts-chunked2sec.https.html"))
         cts_html = path.join(clone_dir, "out-wpt", "cts.https.html")
         # patch
         with open(cts_html, 'r') as file:

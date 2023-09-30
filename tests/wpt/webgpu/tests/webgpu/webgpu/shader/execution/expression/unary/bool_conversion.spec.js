@@ -9,18 +9,22 @@ import { anyOf } from '../../../../util/compare.js';
 import {
   bool,
   f32,
+  f16,
   i32,
   TypeBool,
   TypeF32,
+  TypeF16,
   TypeI32,
   TypeU32,
   u32,
 } from '../../../../util/conversion.js';
 import {
   fullF32Range,
+  fullF16Range,
   fullI32Range,
   fullU32Range,
   isSubnormalNumberF32,
+  isSubnormalNumberF16,
 } from '../../../../util/math.js';
 import { makeCaseCache } from '../case_cache.js';
 import { allInputSources, run } from '../expression.js';
@@ -56,6 +60,18 @@ export const d = makeCaseCache('unary/bool_conversion', {
         expected.push(bool(false));
       }
       return { input: f32(f), expected: anyOf(...expected) };
+    });
+  },
+  f16: () => {
+    return fullF16Range().map(f => {
+      const expected = [];
+      if (f !== 0) {
+        expected.push(bool(true));
+      }
+      if (isSubnormalNumberF16(f)) {
+        expected.push(bool(false));
+      }
+      return { input: f16(f), expected: anyOf(...expected) };
     });
   },
 });
@@ -139,4 +155,10 @@ The result is false if e is 0.0 or -0.0, and true otherwise.
 `
   )
   .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
-  .unimplemented();
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  })
+  .fn(async t => {
+    const cases = await d.get('f16');
+    await run(t, vectorizeToExpression(t.params.vectorize), [TypeF16], TypeBool, t.params, cases);
+  });

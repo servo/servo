@@ -85,6 +85,15 @@ export function physicalMipSize(baseSize, format, dimension, level) {
 }
 
 /**
+ * Compute the "physical size" of a mip level: the size of the level, rounded up to a
+ * multiple of the texel block size.
+ */
+export function physicalMipSizeFromTexture(texture, mipLevel) {
+  const size = physicalMipSize(texture, texture.format, texture.dimension, mipLevel);
+  return [size.width, size.height, size.depthOrArrayLayers];
+}
+
+/**
  * Compute the "virtual size" of a mip level of a texture (not accounting for texel block rounding).
  *
  * MAINTENANCE_TODO: Change input/output to Required<GPUExtent3DDict> for consistency.
@@ -196,4 +205,19 @@ export function reifyTextureViewDescriptor(textureDescriptor, view) {
     baseArrayLayer,
     arrayLayerCount,
   };
+}
+
+/**
+ * Get generator of all the coordinates in a subrect.
+ * @param subrectOrigin - Subrect origin
+ * @param subrectSize - Subrect size
+ */
+export function* fullSubrectCoordinates(subrectOrigin, subrectSize) {
+  for (let z = subrectOrigin.z; z < subrectOrigin.z + subrectSize.depthOrArrayLayers; ++z) {
+    for (let y = subrectOrigin.y; y < subrectOrigin.y + subrectSize.height; ++y) {
+      for (let x = subrectOrigin.x; x < subrectOrigin.x + subrectSize.width; ++x) {
+        yield { x, y, z };
+      }
+    }
+  }
 }

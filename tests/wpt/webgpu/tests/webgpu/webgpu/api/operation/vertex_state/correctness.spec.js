@@ -1,15 +1,18 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
  **/ export const description = `
-TODO: Test more corner case values for Float16 / Float32 (INF, NaN, +-0, ...) and reduce the
+TODO: Test more corner case values for Float16 / Float32 (INF, NaN, ...) and reduce the
 float tolerance.
 `;
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { assert, memcpy, unreachable } from '../../../../common/util/util.js';
 import {
-  kMaxVertexAttributes,
-  kMaxVertexBufferArrayStride,
-  kMaxVertexBuffers,
+  assert,
+  filterUniqueValueTestVariants,
+  makeValueTestVariant,
+  memcpy,
+  unreachable,
+} from '../../../../common/util/util.js';
+import {
   kPerStageBindingLimits,
   kVertexFormatInfo,
   kVertexFormats,
@@ -59,8 +62,11 @@ class VertexStateTest extends GPUTest {
     // than maxVertexAttributes = 16.
     // However this might not work in the future for implementations that allow even more vertex
     // attributes so there will need to be larger changes when that happens.
-    const maxUniformBuffers = kPerStageBindingLimits['uniformBuf'].max;
-    assert(maxUniformBuffers + kPerStageBindingLimits['storageBuf'].max >= kMaxVertexAttributes);
+    const maxUniformBuffers = this.getDefaultLimit(kPerStageBindingLimits['uniformBuf'].maxLimit);
+    assert(
+      maxUniformBuffers + this.getDefaultLimit(kPerStageBindingLimits['storageBuf'].maxLimit) >=
+        this.device.limits.maxVertexAttributes
+    );
 
     let vsInputs = '';
     let vsChecks = '';
@@ -138,7 +144,7 @@ fn check(success : bool) {
 }
 
 fn floatsSimilar(a : f32, b : f32, tolerance : f32) -> bool {
-  // TODO do we check for + and - 0?
+  // Note: -0.0 and 0.0 have different bit patterns, but compare as equal.
   return abs(a - b) < tolerance;
 }
 
@@ -257,7 +263,8 @@ struct VSOutputs {
 
     switch (formatInfo.type) {
       case 'float': {
-        const data = [42.42, 0.0, 1.0, -1.0, 1000, -18.7, 25.17];
+        // -0.0 and +0.0 have different bit patterns, but compare as equal.
+        const data = [42.42, 0.0, -0.0, 1.0, -1.0, 1000, -18.7, 25.17];
         const expectedData = new Float32Array(data).buffer;
         const vertexData =
           bitSize === 32
@@ -564,11 +571,21 @@ g.test('vertex_format_to_shader_format_conversion')
       .combine('format', kVertexFormats)
       .combine('shaderComponentCount', [1, 2, 3, 4])
       .beginSubcases()
-      .combine('slot', [0, 1, kMaxVertexBuffers - 1])
-      .combine('shaderLocation', [0, 1, kMaxVertexAttributes - 1])
+      .combine('slotVariant', [
+        { mult: 0, add: 0 },
+        { mult: 0, add: 1 },
+        { mult: 1, add: -1 },
+      ])
+      .combine('shaderLocationVariant', [
+        { mult: 0, add: 0 },
+        { mult: 0, add: 1 },
+        { mult: 1, add: -1 },
+      ])
   )
   .fn(t => {
-    const { format, shaderComponentCount, slot, shaderLocation } = t.params;
+    const { format, shaderComponentCount, slotVariant, shaderLocationVariant } = t.params;
+    const slot = t.makeLimitVariant('maxVertexBuffers', slotVariant);
+    const shaderLocation = t.makeLimitVariant('maxVertexAttributes', shaderLocationVariant);
     t.runTest([
       {
         slot,
@@ -647,30 +664,40 @@ g.test('non_zero_array_stride_and_attribute_offset')
     u //
       .combine('format', kVertexFormats)
       .beginSubcases()
-      .expand('arrayStride', p => {
+      .expand('arrayStrideVariant', p => {
         const formatInfo = kVertexFormatInfo[p.format];
         const formatSize = formatInfo.bytesPerComponent * formatInfo.componentCount;
 
-        return [align(formatSize, 4), align(formatSize, 4) + 4, kMaxVertexBufferArrayStride];
+        return [
+          { mult: 0, add: align(formatSize, 4) },
+          { mult: 0, add: align(formatSize, 4) + 4 },
+          { mult: 1, add: 0 },
+        ];
       })
-      .expand('offset', p => {
+      .expand('offsetVariant', p => {
         const formatInfo = kVertexFormatInfo[p.format];
         const formatSize = formatInfo.bytesPerComponent * formatInfo.componentCount;
-        return new Set(
-          [
-            0,
-            formatSize,
-            4,
-            p.arrayStride / 2,
-            p.arrayStride - formatSize * 2,
-            p.arrayStride - formatSize - 4,
-            p.arrayStride - formatSize,
-          ].map(offset => clamp(offset, { min: 0, max: p.arrayStride - formatSize }))
-        );
+        return [
+          { mult: 0, add: 0 },
+          { mult: 0, add: formatSize },
+          { mult: 0, add: 4 },
+          { mult: 0.5, add: 0 },
+          { mult: 1, add: -formatSize * 2 },
+          { mult: 1, add: -formatSize - 4 },
+          { mult: 1, add: -formatSize },
+        ];
       })
   )
   .fn(t => {
-    const { format, arrayStride, offset } = t.params;
+    const { format, arrayStrideVariant, offsetVariant } = t.params;
+    const arrayStride = t.makeLimitVariant('maxVertexBufferArrayStride', arrayStrideVariant);
+    const formatInfo = kVertexFormatInfo[format];
+    const formatSize = formatInfo.bytesPerComponent * formatInfo.componentCount;
+    const offset = clamp(makeValueTestVariant(arrayStride, offsetVariant), {
+      min: 0,
+      max: arrayStride - formatSize,
+    });
+
     t.runTest([
       {
         slot: 0,
@@ -728,11 +755,16 @@ g.test('vertex_buffer_used_multiple_times_overlapped')
     u //
       .combine('format', kVertexFormats)
       .beginSubcases()
-      .combine('vbCount', [2, 3, kMaxVertexBuffers])
+      .combine('vbCountVariant', [
+        { mult: 0, add: 2 },
+        { mult: 0, add: 3 },
+        { mult: 1, add: 0 },
+      ])
       .combine('additionalVBOffset', [0, 4, 120])
   )
   .fn(t => {
-    const { format, vbCount, additionalVBOffset } = t.params;
+    const { format, vbCountVariant, additionalVBOffset } = t.params;
+    const vbCount = t.makeLimitVariant('maxVertexBuffers', vbCountVariant);
     const kVertexCount = 20;
     const kInstanceCount = 1;
     const formatInfo = kVertexFormatInfo[format];
@@ -830,11 +862,16 @@ g.test('vertex_buffer_used_multiple_times_interleaved')
     u //
       .combine('format', kVertexFormats)
       .beginSubcases()
-      .combine('vbCount', [2, 3, kMaxVertexBuffers])
+      .combine('vbCountVariant', [
+        { mult: 0, add: 2 },
+        { mult: 0, add: 3 },
+        { mult: 1, add: 0 },
+      ])
       .combine('additionalVBOffset', [0, 4, 120])
   )
   .fn(t => {
-    const { format, vbCount, additionalVBOffset } = t.params;
+    const { format, vbCountVariant, additionalVBOffset } = t.params;
+    const vbCount = t.makeLimitVariant('maxVertexBuffers', vbCountVariant);
     const kVertexCount = 20;
     const kInstanceCount = 1;
     const formatInfo = kVertexFormatInfo[format];
@@ -910,13 +947,17 @@ g.test('max_buffers_and_attribs')
   .params(u => u.combine('format', kVertexFormats))
   .fn(t => {
     const { format } = t.params;
-    const attributesPerBuffer = Math.ceil(kMaxVertexAttributes / kMaxVertexBuffers);
+    // In compat mode, @builtin(vertex_index) and @builtin(instance_index) each take an attribute
+    const maxVertexBuffers = t.device.limits.maxVertexBuffers;
+    const deviceMaxVertexAttributes = t.device.limits.maxVertexAttributes;
+    const maxVertexAttributes = deviceMaxVertexAttributes - (t.isCompatibility ? 2 : 0);
+    const attributesPerBuffer = Math.ceil(maxVertexAttributes / maxVertexBuffers);
     let attributesEmitted = 0;
 
     const state = [];
-    for (let i = 0; i < kMaxVertexBuffers; i++) {
+    for (let i = 0; i < maxVertexBuffers; i++) {
       const attributes = [];
-      for (let j = 0; j < attributesPerBuffer && attributesEmitted < kMaxVertexAttributes; j++) {
+      for (let j = 0; j < attributesPerBuffer && attributesEmitted < maxVertexAttributes; j++) {
         attributes.push({ format, offset: 0, shaderLocation: attributesEmitted });
         attributesEmitted++;
       }
@@ -941,25 +982,26 @@ g.test('array_stride_zero')
       .combine('format', kVertexFormats)
       .beginSubcases()
       .combine('stepMode', ['vertex', 'instance'])
-      .expand('offset', p => {
+      .expand('offsetVariant', p => {
         const formatInfo = kVertexFormatInfo[p.format];
         const formatSize = formatInfo.bytesPerComponent * formatInfo.componentCount;
-        return new Set([
-          0,
-          4,
-          8,
-          formatSize,
-          formatSize * 2,
-          kMaxVertexBufferArrayStride / 2,
-          kMaxVertexBufferArrayStride - formatSize - 4,
-          kMaxVertexBufferArrayStride - formatSize - 8,
-          kMaxVertexBufferArrayStride - formatSize,
-          kMaxVertexBufferArrayStride - formatSize * 2,
+        return filterUniqueValueTestVariants([
+          { mult: 0, add: 0 },
+          { mult: 0, add: 4 },
+          { mult: 0, add: 8 },
+          { mult: 0, add: formatSize },
+          { mult: 0, add: formatSize * 2 },
+          { mult: 0.5, add: 0 },
+          { mult: 1, add: -formatSize - 4 },
+          { mult: 1, add: -formatSize - 8 },
+          { mult: 1, add: -formatSize },
+          { mult: 1, add: -formatSize * 2 },
         ]);
       })
   )
   .fn(t => {
-    const { format, stepMode, offset } = t.params;
+    const { format, stepMode, offsetVariant } = t.params;
+    const offset = t.makeLimitVariant('maxVertexBufferArrayStride', offsetVariant);
     const kCount = 10;
 
     // Create the stride 0 part of the test, first by faking a single vertex being drawn and
@@ -1024,7 +1066,7 @@ g.test('discontiguous_location_and_attribs')
   .fn(t => {
     t.runTest([
       {
-        slot: kMaxVertexBuffers - 1,
+        slot: t.device.limits.maxVertexBuffers - 1,
         arrayStride: 4,
         stepMode: 'vertex',
         attributes: [
@@ -1037,7 +1079,13 @@ g.test('discontiguous_location_and_attribs')
         arrayStride: 16,
         stepMode: 'instance',
         vbOffset: 1000,
-        attributes: [{ format: 'uint32x4', offset: 0, shaderLocation: kMaxVertexAttributes - 1 }],
+        attributes: [
+          {
+            format: 'uint32x4',
+            offset: 0,
+            shaderLocation: t.device.limits.maxVertexAttributes - 1,
+          },
+        ],
       },
     ]);
   });
@@ -1051,8 +1099,10 @@ g.test('overlapping_attributes')
   .fn(t => {
     const { format } = t.params;
 
+    // In compat mode, @builtin(vertex_index) and @builtin(instance_index) each take an attribute
+    const maxVertexAttributes = t.device.limits.maxVertexAttributes - (t.isCompatibility ? 2 : 0);
     const attributes = [];
-    for (let i = 0; i < kMaxVertexAttributes; i++) {
+    for (let i = 0; i < maxVertexAttributes; i++) {
       attributes.push({ format, offset: 0, shaderLocation: i });
     }
 

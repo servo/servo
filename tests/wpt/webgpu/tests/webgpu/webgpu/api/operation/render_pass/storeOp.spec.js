@@ -151,6 +151,9 @@ g.test('render_pass_store_op,color_attachment_only')
       .combine('mipLevel', kMipLevel)
       .combine('arrayLayer', kArrayLayers)
   )
+  .beforeAllSubcases(t => {
+    t.skipIfTextureFormatNotSupported(t.params.colorFormat);
+  })
   .fn(t => {
     const colorAttachment = t.device.createTexture({
       format: t.params.colorFormat,

@@ -17,9 +17,11 @@ import {
   TypeVec,
   TypeBool,
   TypeF32,
+  TypeF16,
   TypeI32,
   TypeU32,
   f32,
+  f16,
   i32,
   u32,
   False,
@@ -48,6 +50,10 @@ const dataType = {
     type: TypeF32,
     constructor: f32,
   },
+  h: {
+    type: TypeF16,
+    constructor: f16,
+  },
   i: {
     type: TypeI32,
     constructor: i32,
@@ -64,9 +70,14 @@ g.test('scalar')
   .params(u =>
     u
       .combine('inputSource', allInputSources)
-      .combine('component', ['b', 'f', 'i', 'u'])
+      .combine('component', ['b', 'f', 'h', 'i', 'u'])
       .combine('overload', ['scalar', 'vec2', 'vec3', 'vec4'])
   )
+  .beforeAllSubcases(t => {
+    if (t.params.component === 'h') {
+      t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
+    }
+  })
   .fn(async t => {
     const componentType = dataType[t.params.component].type;
     const cons = dataType[t.params.component].constructor;
@@ -134,9 +145,14 @@ g.test('vector')
   .params(u =>
     u
       .combine('inputSource', allInputSources)
-      .combine('component', ['b', 'f', 'i', 'u'])
+      .combine('component', ['b', 'f', 'h', 'i', 'u'])
       .combine('overload', ['vec2', 'vec3', 'vec4'])
   )
+  .beforeAllSubcases(t => {
+    if (t.params.component === 'h') {
+      t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
+    }
+  })
   .fn(async t => {
     const componentType = dataType[t.params.component].type;
     const cons = dataType[t.params.component].constructor;
