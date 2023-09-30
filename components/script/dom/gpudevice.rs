@@ -53,7 +53,7 @@ use crate::dom::bindings::codegen::Bindings::GPUSamplerBinding::{
     GPUAddressMode, GPUCompareFunction, GPUFilterMode, GPUSamplerDescriptor,
 };
 use crate::dom::bindings::codegen::Bindings::GPUShaderModuleBinding::GPUShaderModuleDescriptor;
-use crate::dom::bindings::codegen::Bindings::GPUSupportedLimitsBinding::GPUSupportedLimitsBinding::GPUSupportedLimitsMethods;
+use crate::dom::bindings::codegen::Bindings::GPUSupportedLimitsBinding::GPUSupportedLimits_Binding::GPUSupportedLimitsMethods;
 use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
     GPUExtent3D, GPUExtent3DDict, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
 };

@@ -16,7 +16,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding;
 use crate::dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;

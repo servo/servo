@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
-use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
+use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContext_Binding::BaseAudioContextMethods;
 use crate::dom::bindings::codegen::UnionTypes::AudioContextLatencyCategoryOrDouble;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;

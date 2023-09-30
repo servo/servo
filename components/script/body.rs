@@ -21,7 +21,7 @@ use script_traits::serializable::BlobImpl;
 use url::form_urlencoded;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobBinding::BlobMethods;
+use crate::dom::bindings::codegen::Bindings::BlobBinding::Blob_Binding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};

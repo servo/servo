@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 
-use crate::dom::bindings::codegen::Bindings::XRSubImageBinding::XRSubImageBinding::XRSubImageMethods;
+use crate::dom::bindings::codegen::Bindings::XRSubImageBinding::XRSubImage_Binding::XRSubImageMethods;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::xrviewport::XRViewport;

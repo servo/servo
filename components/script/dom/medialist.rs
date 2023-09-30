@@ -12,7 +12,7 @@ use style::stylesheets::{CssRuleType, Origin};
 use style_traits::{ParsingMode, ToCss};
 
 use crate::dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
