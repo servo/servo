@@ -14,6 +14,7 @@ Navigator includes NavigatorLanguage;
 //Navigator includes NavigatorStorageUtils;
 Navigator includes NavigatorPlugins;
 Navigator includes NavigatorCookies;
+Navigator includes NavigatorGPU;
 
 // https://html.spec.whatwg.org/multipage/#navigatorid
 [Exposed=(Window,Worker)]
@@ -68,9 +69,4 @@ partial interface Navigator {
 // https://w3c.github.io/gamepad/#navigator-interface-extension
 partial interface Navigator {
     [Pref="dom.gamepad.enabled"] GamepadList getGamepads();
-};
-
-[Exposed=Window]
-partial interface Navigator {
-    [SameObject, Pref="dom.webgpu.enabled"] readonly attribute GPU gpu;
 };

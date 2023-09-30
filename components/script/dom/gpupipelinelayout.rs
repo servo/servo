@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use webgpu::{WebGPUBindGroupLayout, WebGPUPipelineLayout};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutMethods;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUPipelineLayoutMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;

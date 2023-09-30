@@ -6,10 +6,11 @@ use dom_struct::dom_struct;
 use webgpu::wgpu::command::{bundle_ffi as wgpu_bundle, RenderBundleEncoder};
 use webgpu::{wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
 
-use super::bindings::codegen::Bindings::GPURenderPipelineBinding::GPUIndexFormat;
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPURenderBundleBinding::GPURenderBundleDescriptor;
-use crate::dom::bindings::codegen::Bindings::GPURenderBundleEncoderBinding::GPURenderBundleEncoderMethods;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPURenderBundleDescriptor, GPURenderBundleEncoderMethods,
+};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;

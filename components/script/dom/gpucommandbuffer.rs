@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use webgpu::{WebGPU, WebGPUCommandBuffer, WebGPURequest};
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
-use crate::dom::bindings::codegen::Bindings::GPUCommandBufferBinding::GPUCommandBufferMethods;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUCommandBufferMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;

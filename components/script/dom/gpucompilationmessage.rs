@@ -6,7 +6,7 @@
 
 use dom_struct::dom_struct;
 
-use super::bindings::codegen::Bindings::GPUCompilationMessageBinding::{
+use super::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCompilationMessageMethods, GPUCompilationMessageType,
 };
 use super::bindings::root::DomRoot;

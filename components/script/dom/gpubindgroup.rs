@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use webgpu::{WebGPUBindGroup, WebGPUDevice};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUBindGroupBinding::GPUBindGroupMethods;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUBindGroupMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;

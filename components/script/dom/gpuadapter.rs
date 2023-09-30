@@ -11,7 +11,7 @@ use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, WebGPURe
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::types::{GPUAdapterInfo, GPUSupportedLimits};
-use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::{
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAdapterMethods, GPUDeviceDescriptor,
 };
 use crate::dom::bindings::error::Error;

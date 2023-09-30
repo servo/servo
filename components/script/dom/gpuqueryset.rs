@@ -6,7 +6,7 @@
 
 use dom_struct::dom_struct;
 
-use super::bindings::codegen::Bindings::GPUQuerySetBinding::GPUQuerySetMethods;
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUQuerySetMethods;
 use super::bindings::str::USVString;
 use crate::dom::bindings::reflector::Reflector;
 
