@@ -15,9 +15,11 @@ import {
   floatBitsToNormalULPFromZero,
   kFloat32Format,
   kFloat16Format,
+  kUFloat9e5Format,
   numberToFloat32Bits,
   float32BitsToNumber,
   numberToFloatBits,
+  ufloatM9E5BitsToNumber,
 } from '../conversion.js';
 import { clamp, signExtend } from '../math.js';
 
@@ -420,6 +422,10 @@ function makeNormalizedInfo(componentOrder, bitLength, opt) {
  */
 function makeIntegerInfo(componentOrder, bitLength, opt) {
   assert(bitLength <= 32);
+  const numericRange = opt.signed
+    ? { min: -(2 ** (bitLength - 1)), max: 2 ** (bitLength - 1) - 1 }
+    : { min: 0, max: 2 ** bitLength - 1 };
+  const maxUnsignedValue = 2 ** bitLength;
   const encode = applyEach(
     n => (assertInIntegerRange(n, bitLength, opt.signed), n),
     componentOrder
@@ -429,6 +435,12 @@ function makeIntegerInfo(componentOrder, bitLength, opt) {
     n => (assertInIntegerRange(n, bitLength, opt.signed), n),
     componentOrder
   );
+
+  const bitsToNumber = applyEach(n => {
+    const decodedN = opt.signed ? (n > numericRange.max ? n - maxUnsignedValue : n) : n;
+    assertInIntegerRange(decodedN, bitLength, opt.signed);
+    return decodedN;
+  }, componentOrder);
 
   let bitsToULPFromZero;
   if (opt.signed) {
@@ -450,11 +462,9 @@ function makeIntegerInfo(componentOrder, bitLength, opt) {
     pack: components => packComponents(componentOrder, components, bitLength, dataType),
     unpackBits: data => unpackComponentsBits(componentOrder, data, bitLength),
     numberToBits: applyEach(v => v & bitMask, componentOrder),
-    bitsToNumber: decode,
+    bitsToNumber,
     bitsToULPFromZero,
-    numericRange: opt.signed
-      ? { min: -(2 ** (bitLength - 1)), max: 2 ** (bitLength - 1) - 1 }
-      : { min: 0, max: 2 ** bitLength - 1 },
+    numericRange,
   };
 }
 
@@ -549,7 +559,6 @@ const identity = n => n;
 
 const kFloat11Format = { signed: 0, exponentBits: 5, mantissaBits: 6, bias: 15 };
 const kFloat10Format = { signed: 0, exponentBits: 5, mantissaBits: 5, bias: 15 };
-const kFloat9e5Format = { signed: 0, exponentBits: 5, mantissaBits: 9, bias: 15 };
 
 export const kTexelRepresentationInfo = {
   ...{
@@ -588,6 +597,58 @@ export const kTexelRepresentationInfo = {
     rgba32float: makeFloatInfo(kRGBA, 32),
   },
   ...{
+    rgb10a2uint: {
+      componentOrder: kRGBA,
+      componentInfo: {
+        R: { dataType: 'uint', bitLength: 10 },
+        G: { dataType: 'uint', bitLength: 10 },
+        B: { dataType: 'uint', bitLength: 10 },
+        A: { dataType: 'uint', bitLength: 2 },
+      },
+      encode: components => {
+        assertInIntegerRange(components.R, 10, false);
+        assertInIntegerRange(components.G, 10, false);
+        assertInIntegerRange(components.B, 10, false);
+        assertInIntegerRange(components.A, 2, false);
+        return components;
+      },
+      decode: components => {
+        assertInIntegerRange(components.R, 10, false);
+        assertInIntegerRange(components.G, 10, false);
+        assertInIntegerRange(components.B, 10, false);
+        assertInIntegerRange(components.A, 2, false);
+        return components;
+      },
+      pack: components =>
+        packComponents(
+          kRGBA,
+          components,
+          {
+            R: 10,
+            G: 10,
+            B: 10,
+            A: 2,
+          },
+          'uint'
+        ),
+
+      unpackBits: data => unpackComponentsBits(kRGBA, data, { R: 10, G: 10, B: 10, A: 2 }),
+      numberToBits: components => ({
+        R: components.R & 0x3ff,
+        G: components.G & 0x3ff,
+        B: components.B & 0x3ff,
+        A: components.A & 0x3,
+      }),
+      bitsToNumber: components => {
+        assertInIntegerRange(components.R, 10, false);
+        assertInIntegerRange(components.G, 10, false);
+        assertInIntegerRange(components.B, 10, false);
+        assertInIntegerRange(components.A, 2, false);
+        return components;
+      },
+      bitsToULPFromZero: components => components,
+      numericRange: null,
+    },
     rgb10a2unorm: {
       componentOrder: kRGBA,
       componentInfo: {
@@ -701,14 +762,16 @@ export const kTexelRepresentationInfo = {
             components.B ?? unreachable()
           ),
         ]).buffer,
-      // For the purpose of unpacking, expand into three "ufloat14" values.
       unpackBits: data => {
-        // Pretend the exponent part is A so we can use unpackComponentsBits.
-        const parts = unpackComponentsBits(kRGBA, data, { R: 9, G: 9, B: 9, A: 5 });
+        const encoded = (data[3] << 24) | (data[2] << 16) | (data[1] << 8) | data[0];
+        const redMantissa = (encoded >>> 0) & 0b111111111;
+        const greenMantissa = (encoded >>> 9) & 0b111111111;
+        const blueMantissa = (encoded >>> 18) & 0b111111111;
+        const exponentSharedBits = ((encoded >>> 27) & 0b11111) << 9;
         return {
-          R: (parts.A << 9) | parts.R,
-          G: (parts.A << 9) | parts.G,
-          B: (parts.A << 9) | parts.B,
+          R: exponentSharedBits | redMantissa,
+          G: exponentSharedBits | greenMantissa,
+          B: exponentSharedBits | blueMantissa,
         };
       },
       numberToBits: components => ({
@@ -717,14 +780,14 @@ export const kTexelRepresentationInfo = {
         B: float32ToFloatBits(components.B ?? unreachable(), 0, 5, 9, 15),
       }),
       bitsToNumber: components => ({
-        R: floatBitsToNumber(components.R, kFloat9e5Format),
-        G: floatBitsToNumber(components.G, kFloat9e5Format),
-        B: floatBitsToNumber(components.B, kFloat9e5Format),
+        R: ufloatM9E5BitsToNumber(components.R, kUFloat9e5Format),
+        G: ufloatM9E5BitsToNumber(components.G, kUFloat9e5Format),
+        B: ufloatM9E5BitsToNumber(components.B, kUFloat9e5Format),
       }),
       bitsToULPFromZero: components => ({
-        R: floatBitsToNormalULPFromZero(components.R, kFloat9e5Format),
-        G: floatBitsToNormalULPFromZero(components.G, kFloat9e5Format),
-        B: floatBitsToNormalULPFromZero(components.B, kFloat9e5Format),
+        R: floatBitsToNormalULPFromZero(components.R, kUFloat9e5Format),
+        G: floatBitsToNormalULPFromZero(components.G, kUFloat9e5Format),
+        B: floatBitsToNormalULPFromZero(components.B, kUFloat9e5Format),
       }),
       numericRange: { min: 0, max: Number.POSITIVE_INFINITY },
     },
@@ -822,7 +885,7 @@ export function getSingleDataType(format) {
 }
 
 /**
- *  Get traits for generating code to readback data from a component.
+ * Get traits for generating code to readback data from a component.
  * @param {ComponentDataType} dataType - The input component data type.
  * @returns A dictionary containing the respective `ReadbackTypedArray` and `shaderType`.
  */

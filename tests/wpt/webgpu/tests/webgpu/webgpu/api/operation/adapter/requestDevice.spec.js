@@ -10,7 +10,12 @@ import { Fixture } from '../../../../common/framework/fixture.js';
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { getGPU } from '../../../../common/util/navigator_gpu.js';
 import { assert, assertReject, raceWithRejectOnTimeout } from '../../../../common/util/util.js';
-import { kFeatureNames, kLimitInfo, kLimits } from '../../../capability_info.js';
+import {
+  getDefaultLimitsForAdapter,
+  kFeatureNames,
+  kLimits,
+  kLimitClasses,
+} from '../../../capability_info.js';
 import { clamp, isPowerOfTwo } from '../../../util/math.js';
 
 export const g = makeTestGroup(Fixture);
@@ -36,10 +41,11 @@ g.test('default')
     // Default device should have no features.
     t.expect(device.features.size === 0, 'Default device should not have any features');
     // All limits should be defaults.
+    const limitInfo = getDefaultLimitsForAdapter(adapter);
     for (const limit of kLimits) {
       t.expect(
-        device.limits[limit] === kLimitInfo[limit].default,
-        `Expected ${limit} == default: ${device.limits[limit]} != ${kLimitInfo[limit].default}`
+        device.limits[limit] === limitInfo[limit].default,
+        `Expected ${limit} == default: ${device.limits[limit]} != ${limitInfo[limit].default}`
       );
     }
 
@@ -231,10 +237,11 @@ g.test('limits,supported')
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null);
 
+    const limitInfo = getDefaultLimitsForAdapter(adapter);
     let value = -1;
     switch (limitValue) {
       case 'default':
-        value = kLimitInfo[limit].default;
+        value = limitInfo[limit].default;
         break;
       case 'adapter':
         value = adapter.limits[limit];
@@ -264,7 +271,7 @@ g.test('limit,better_than_supported')
       .combine('limit', kLimits)
       .beginSubcases()
       .expandWithParams(p => {
-        switch (kLimitInfo[p.limit].class) {
+        switch (kLimitClasses[p.limit]) {
           case 'maximum':
             return [
               { mul: 1, add: 1 },
@@ -287,9 +294,10 @@ g.test('limit,better_than_supported')
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null);
 
+    const limitInfo = getDefaultLimitsForAdapter(adapter);
     const value = adapter.limits[limit] * mul + add;
     const requiredLimits = {
-      [limit]: clamp(value, { min: 0, max: kLimitInfo[limit].maximumValue }),
+      [limit]: clamp(value, { min: 0, max: limitInfo[limit].maximumValue }),
     };
 
     t.shouldReject('OperationError', adapter.requestDevice({ requiredLimits }));
@@ -308,7 +316,7 @@ g.test('limit,worse_than_default')
       .combine('limit', kLimits)
       .beginSubcases()
       .expandWithParams(p => {
-        switch (kLimitInfo[p.limit].class) {
+        switch (kLimitClasses[p.limit]) {
           case 'maximum':
             return [
               { mul: 1, add: -1 },
@@ -331,13 +339,14 @@ g.test('limit,worse_than_default')
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null);
 
-    const value = kLimitInfo[limit].default * mul + add;
+    const limitInfo = getDefaultLimitsForAdapter(adapter);
+    const value = limitInfo[limit].default * mul + add;
     const requiredLimits = {
-      [limit]: clamp(value, { min: 0, max: kLimitInfo[limit].maximumValue }),
+      [limit]: clamp(value, { min: 0, max: limitInfo[limit].maximumValue }),
     };
 
     let success;
-    switch (kLimitInfo[limit].class) {
+    switch (limitInfo[limit].class) {
       case 'alignment':
         success = isPowerOfTwo(value);
         break;
@@ -350,7 +359,7 @@ g.test('limit,worse_than_default')
       const device = await adapter.requestDevice({ requiredLimits });
       assert(device !== null);
       t.expect(
-        device.limits[limit] === kLimitInfo[limit].default,
+        device.limits[limit] === limitInfo[limit].default,
         'Devices reported limit should match the default limit'
       );
 

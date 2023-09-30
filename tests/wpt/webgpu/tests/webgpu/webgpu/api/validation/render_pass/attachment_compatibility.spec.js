@@ -5,7 +5,7 @@ Validation for attachment compatibility between render passes, bundles, and pipe
 `;
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { range } from '../../../../common/util/util.js';
-import { kTextureSampleCounts, kMaxColorAttachments } from '../../../capability_info.js';
+import { kMaxColorAttachmentsToTest, kTextureSampleCounts } from '../../../capability_info.js';
 import {
   kRegularTextureFormats,
   kSizedDepthStencilFormats,
@@ -16,7 +16,7 @@ import {
 } from '../../../format_info.js';
 import { ValidationTest } from '../validation_test.js';
 
-const kColorAttachmentCounts = range(kMaxColorAttachments, i => i + 1);
+const kColorAttachmentCounts = range(kMaxColorAttachmentsToTest, i => i + 1);
 const kColorAttachments = kColorAttachmentCounts
   .map(count => {
     // generate cases with 0..1 null attachments at different location
@@ -166,6 +166,9 @@ g.test('render_pass_and_bundle,color_format')
   )
   .fn(t => {
     const { passFormat, bundleFormat } = t.params;
+
+    t.skipIfTextureFormatNotSupported(passFormat, bundleFormat);
+
     const bundleEncoder = t.device.createRenderBundleEncoder({
       colorFormats: [bundleFormat],
     });
@@ -228,6 +231,18 @@ g.test('render_pass_and_bundle,color_sparse')
   )
   .fn(t => {
     const { passAttachments, bundleAttachments } = t.params;
+
+    const maxColorAttachments = t.device.limits.maxColorAttachments;
+    t.skipIf(
+      passAttachments.length > maxColorAttachments,
+      `num passAttachments: ${passAttachments.length} > maxColorAttachments for device: ${maxColorAttachments}`
+    );
+
+    t.skipIf(
+      bundleAttachments.length > maxColorAttachments,
+      `num bundleAttachments: ${bundleAttachments.length} > maxColorAttachments for device: ${maxColorAttachments}`
+    );
+
     const colorFormats = bundleAttachments.map(i => (i ? 'rgba8uint' : null));
     const bundleEncoder = t.device.createRenderBundleEncoder({
       colorFormats,
@@ -351,6 +366,9 @@ Test that color attachment formats in render passes or bundles match the pipelin
   )
   .fn(t => {
     const { encoderType, encoderFormat, pipelineFormat } = t.params;
+
+    t.skipIfTextureFormatNotSupported(encoderFormat, pipelineFormat);
+
     const pipeline = t.createRenderPipeline([{ format: pipelineFormat, writeMask: 0 }]);
 
     const { encoder, validateFinishAndSubmit } = t.createEncoder(encoderType, {
@@ -409,6 +427,16 @@ Test that each of color attachments in render passes or bundles match that of th
   )
   .fn(t => {
     const { encoderType, encoderAttachments, pipelineAttachments } = t.params;
+    const maxColorAttachments = t.device.limits.maxColorAttachments;
+    t.skipIf(
+      encoderAttachments.length > maxColorAttachments,
+      `num encoderAttachments: ${encoderAttachments.length} > maxColorAttachments for device: ${maxColorAttachments}`
+    );
+
+    t.skipIf(
+      pipelineAttachments.length > maxColorAttachments,
+      `num pipelineAttachments: ${pipelineAttachments.length} > maxColorAttachments for device: ${maxColorAttachments}`
+    );
 
     const colorTargets = pipelineAttachments.map(i =>
       i ? { format: 'rgba8uint', writeMask: 0 } : null

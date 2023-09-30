@@ -412,6 +412,17 @@ g.test('subresources_and_binding_types_combination_for_color')
       arrayLayerCount: layerCount1,
     });
 
+    const viewsAreSame =
+      dimension0 === dimension1 &&
+      layerCount0 === layerCount1 &&
+      BASE_LEVEL === baseLevel1 &&
+      levelCount0 === levelCount1 &&
+      BASE_LAYER === baseLayer1 &&
+      layerCount0 === layerCount1;
+    if (!viewsAreSame && t.isCompatibility) {
+      t.skip('different views of same texture are not supported in compatibility mode');
+    }
+
     const encoder = t.device.createCommandEncoder();
     if (type0 === 'render-target') {
       // Note that type1 is 'render-target' too. So we don't need to create bindings.

@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
  **/ export const description = `
-copyToTexture with HTMLVideoElement (and other video-type sources?).
+copyToTexture with HTMLVideoElement and VideoFrame.
 
 - videos with various encodings/formats (webm vp8, webm vp9, ogg theora, mp4), color spaces
   (bt.601, bt.709, bt.2020)
@@ -11,6 +11,7 @@ import { GPUTest, TextureTestMixin } from '../../gpu_test.js';
 import {
   startPlayingAndWaitForVideo,
   getVideoElement,
+  getVideoFrameFromVideoElement,
   kVideoExpectations,
 } from '../../web_platform/util.js';
 
@@ -18,10 +19,10 @@ const kFormat = 'rgba8unorm';
 
 export const g = makeTestGroup(TextureTestMixin(GPUTest));
 
-g.test('copy_from_video_element')
+g.test('copy_from_video')
   .desc(
     `
-Test HTMLVideoElement can be copied to WebGPU texture correctly.
+Test HTMLVideoElement and VideoFrame can be copied to WebGPU texture correctly.
 
 It creates HTMLVideoElement with videos under Resource folder.
 
@@ -42,16 +43,30 @@ It creates HTMLVideoElement with videos under Resource folder.
   .params(u =>
     u //
       .combineWithParams(kVideoExpectations)
+      .combine('sourceType', ['VideoElement', 'VideoFrame'])
       .combine('srcDoFlipYDuringCopy', [true, false])
   )
   .fn(async t => {
-    const { videoName, srcDoFlipYDuringCopy } = t.params;
+    const { videoName, sourceType, srcDoFlipYDuringCopy } = t.params;
+
+    if (sourceType === 'VideoFrame' && typeof VideoFrame === 'undefined') {
+      t.skip('WebCodec is not supported');
+    }
 
     const videoElement = getVideoElement(t, videoName);
 
-    await startPlayingAndWaitForVideo(videoElement, () => {
-      const width = videoElement.videoWidth;
-      const height = videoElement.videoHeight;
+    await startPlayingAndWaitForVideo(videoElement, async () => {
+      let source, width, height;
+      if (sourceType === 'VideoFrame') {
+        source = await getVideoFrameFromVideoElement(t, videoElement);
+        width = source.codedWidth;
+        height = source.codedHeight;
+      } else {
+        source = videoElement;
+        width = source.videoWidth;
+        height = source.videoHeight;
+      }
+
       const dstTexture = t.device.createTexture({
         format: kFormat,
         size: { width, height, depthOrArrayLayers: 1 },
@@ -60,7 +75,11 @@ It creates HTMLVideoElement with videos under Resource folder.
       });
 
       t.queue.copyExternalImageToTexture(
-        { source: videoElement, origin: { x: 0, y: 0 }, flipY: srcDoFlipYDuringCopy },
+        {
+          source,
+          origin: { x: 0, y: 0 },
+          flipY: srcDoFlipYDuringCopy,
+        },
         {
           texture: dstTexture,
           origin: { x: 0, y: 0 },
@@ -92,6 +111,10 @@ It creates HTMLVideoElement with videos under Resource folder.
           // Bottom-right should be green.
           { coord: { x: width * 0.75, y: height * 0.75 }, exp: t.params._greenExpectation },
         ]);
+      }
+
+      if (source instanceof VideoFrame) {
+        source.close();
       }
     });
   });

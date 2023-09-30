@@ -15,8 +15,10 @@ import {
   kDepthStencilFormats,
   textureDimensionAndFormatCompatible,
   depthStencilFormatAspectSize,
+  isCompressedTextureFormat,
+  viewCompatible,
 } from '../../../format_info.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { makeBufferWithContents } from '../../../util/buffer.js';
 import { checkElementsEqual, checkElementsEqualEither } from '../../../util/check_contents.js';
 import { align } from '../../../util/math.js';
@@ -26,7 +28,7 @@ import { kBytesPerRowAlignment, dataBytesForCopyOrFail } from '../../../util/tex
 
 const dataGenerator = new DataArrayGenerator();
 
-class F extends GPUTest {
+class F extends TextureTestMixin(GPUTest) {
   GetInitialDataPerMipLevel(dimension, textureSize, format, mipLevel) {
     const textureSizeAtLevel = physicalMipSize(textureSize, format, dimension, mipLevel);
     const bytesPerBlock = kTextureFormatInfo[format].color.bytes;
@@ -62,6 +64,14 @@ class F extends GPUTest {
     srcCopyLevel,
     dstCopyLevel
   ) {
+    this.skipIfTextureFormatNotSupported(srcFormat, dstFormat);
+
+    // If we're in compatibility mode and it's a compressed texture
+    // then we need to render the texture to test the results of the copy.
+    const extraTextureUsageFlags =
+      isCompressedTextureFormat(dstFormat) && this.isCompatibility
+        ? GPUTextureUsage.TEXTURE_BINDING
+        : 0;
     const mipLevelCount = dimension === '1d' ? 1 : 4;
 
     // Create srcTexture and dstTexture
@@ -78,7 +88,7 @@ class F extends GPUTest {
       dimension,
       size: dstTextureSize,
       format: dstFormat,
-      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
+      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | extraTextureUsageFlags,
       mipLevelCount,
     };
     const dstTexture = this.device.createTexture(dstTextureDesc);
@@ -165,14 +175,23 @@ class F extends GPUTest {
 
     assert(appliedCopyDepth >= 0);
 
-    const encoder = this.device.createCommandEncoder();
-    encoder.copyTextureToTexture(
-      { texture: srcTexture, mipLevel: srcCopyLevel, origin: appliedSrcOffset },
-      { texture: dstTexture, mipLevel: dstCopyLevel, origin: appliedDstOffset },
-      { width: appliedCopyWidth, height: appliedCopyHeight, depthOrArrayLayers: appliedCopyDepth }
-    );
+    const appliedSize = {
+      width: appliedCopyWidth,
+      height: appliedCopyHeight,
+      depthOrArrayLayers: appliedCopyDepth,
+    };
 
-    // Copy the whole content of dstTexture at dstCopyLevel to dstBuffer.
+    {
+      const encoder = this.device.createCommandEncoder();
+      encoder.copyTextureToTexture(
+        { texture: srcTexture, mipLevel: srcCopyLevel, origin: appliedSrcOffset },
+        { texture: dstTexture, mipLevel: dstCopyLevel, origin: appliedDstOffset },
+        appliedSize
+      );
+
+      this.device.queue.submit([encoder.finish()]);
+    }
+
     const dstBlocksPerRow = dstTextureSizeAtLevel.width / blockWidth;
     const dstBlockRowsPerImage = dstTextureSizeAtLevel.height / blockHeight;
     const bytesPerDstAlignedBlockRow = align(dstBlocksPerRow * bytesPerBlock, 256);
@@ -180,6 +199,67 @@ class F extends GPUTest {
       (dstBlockRowsPerImage * dstTextureSizeAtLevel.depthOrArrayLayers - 1) *
         bytesPerDstAlignedBlockRow +
       align(dstBlocksPerRow * bytesPerBlock, 4);
+
+    if (isCompressedTextureFormat(dstTexture.format) && this.isCompatibility) {
+      assert(viewCompatible(srcFormat, dstFormat));
+      // compare by rendering. We need the expected texture to match
+      // the dstTexture so we'll create a texture where we supply
+      // all of the data in JavaScript.
+      const expectedTexture = this.device.createTexture({
+        size: [dstTexture.width, dstTexture.height, dstTexture.depthOrArrayLayers],
+        mipLevelCount: dstTexture.mipLevelCount,
+        format: dstTexture.format,
+        usage: dstTexture.usage,
+      });
+      const expectedData = new Uint8Array(dstBufferSize);
+
+      // Execute the equivalent of `copyTextureToTexture`, copying
+      // from `initialSrcData` to `expectedData`.
+      this.updateLinearTextureDataSubBox(dstFormat, appliedSize, {
+        src: {
+          dataLayout: {
+            bytesPerRow: srcBlocksPerRow * bytesPerBlock,
+            rowsPerImage: srcBlockRowsPerImage,
+            offset: 0,
+          },
+          origin: appliedSrcOffset,
+          data: initialSrcData,
+        },
+        dest: {
+          dataLayout: {
+            bytesPerRow: dstBlocksPerRow * bytesPerBlock,
+            rowsPerImage: dstBlockRowsPerImage,
+            offset: 0,
+          },
+          origin: appliedDstOffset,
+          data: expectedData,
+        },
+      });
+
+      // Upload `expectedData` to `expectedTexture`. If `copyTextureToTexture`
+      // worked then the contents of `dstTexture` should match `expectedTexture`
+      this.queue.writeTexture(
+        { texture: expectedTexture, mipLevel: dstCopyLevel },
+        expectedData,
+        {
+          bytesPerRow: dstBlocksPerRow * bytesPerBlock,
+          rowsPerImage: dstBlockRowsPerImage,
+        },
+        dstTextureSizeAtLevel
+      );
+
+      this.expectTexturesToMatchByRendering(
+        dstTexture,
+        expectedTexture,
+        dstCopyLevel,
+        appliedDstOffset,
+        appliedSize
+      );
+
+      return;
+    }
+
+    // Copy the whole content of dstTexture at dstCopyLevel to dstBuffer.
     const dstBufferDesc = {
       size: dstBufferSize,
       usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
@@ -187,17 +267,20 @@ class F extends GPUTest {
     const dstBuffer = this.device.createBuffer(dstBufferDesc);
     this.trackForCleanup(dstBuffer);
 
-    encoder.copyTextureToBuffer(
-      { texture: dstTexture, mipLevel: dstCopyLevel },
-      {
-        buffer: dstBuffer,
-        bytesPerRow: bytesPerDstAlignedBlockRow,
-        rowsPerImage: dstBlockRowsPerImage,
-      },
-      dstTextureSizeAtLevel
-    );
+    {
+      const encoder = this.device.createCommandEncoder();
+      encoder.copyTextureToBuffer(
+        { texture: dstTexture, mipLevel: dstCopyLevel },
+        {
+          buffer: dstBuffer,
+          bytesPerRow: bytesPerDstAlignedBlockRow,
+          rowsPerImage: dstBlockRowsPerImage,
+        },
+        dstTextureSizeAtLevel
+      );
 
-    this.device.queue.submit([encoder.finish()]);
+      this.device.queue.submit([encoder.finish()]);
+    }
 
     // Fill expectedUint8DataWithPadding with the expected data of dstTexture. The other values in
     // expectedUint8DataWithPadding are kept 0 to check if the texels untouched by the copy are 0
@@ -810,6 +893,7 @@ g.test('color_textures,compressed,non_array')
   )
   .beforeAllSubcases(t => {
     const { srcFormat, dstFormat } = t.params;
+    t.skipIfCopyTextureToTextureNotSupportedForFormat(srcFormat, dstFormat);
     t.selectDeviceOrSkipTestCase([
       kTextureFormatInfo[srcFormat].feature,
       kTextureFormatInfo[dstFormat].feature,
@@ -963,7 +1047,7 @@ g.test('color_textures,compressed,array')
   )
   .beforeAllSubcases(t => {
     const { srcFormat, dstFormat } = t.params;
-
+    t.skipIfCopyTextureToTextureNotSupportedForFormat(srcFormat, dstFormat);
     t.selectDeviceOrSkipTestCase([
       kTextureFormatInfo[srcFormat].feature,
       kTextureFormatInfo[dstFormat].feature,

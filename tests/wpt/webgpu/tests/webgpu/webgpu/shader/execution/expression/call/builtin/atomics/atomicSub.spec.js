@@ -36,7 +36,7 @@ fn atomicSub(atomic_ptr: ptr<AS, atomic<T>, read_write>, v: T) -> T
     u
       .combine('workgroupSize', workgroupSizes)
       .combine('dispatchSize', dispatchSizes)
-      .combine('scalarKind', ['u32', 'i32'])
+      .combine('scalarType', ['u32', 'i32'])
   )
   .fn(t => {
     const numInvocations = t.params.workgroupSize * t.params.dispatchSize;
@@ -45,7 +45,7 @@ fn atomicSub(atomic_ptr: ptr<AS, atomic<T>, read_write>, v: T) -> T
 
     const initValue = 0;
     const op = `atomicSub(&output[0], 1)`;
-    const expected = new (typedArrayCtor(t.params.scalarKind))(bufferNumElements);
+    const expected = new (typedArrayCtor(t.params.scalarType))(bufferNumElements);
     expected[0] = -1 * numInvocations;
 
     runStorageVariableTest({
@@ -73,7 +73,7 @@ fn atomicSub(atomic_ptr: ptr<AS, atomic<T>, read_write>, v: T) -> T
     u
       .combine('workgroupSize', workgroupSizes)
       .combine('dispatchSize', dispatchSizes)
-      .combine('scalarKind', ['u32', 'i32'])
+      .combine('scalarType', ['u32', 'i32'])
   )
   .fn(t => {
     // Allocate one extra element to ensure it doesn't get modified
@@ -82,7 +82,7 @@ fn atomicSub(atomic_ptr: ptr<AS, atomic<T>, read_write>, v: T) -> T
     const initValue = 0;
     const op = `atomicSub(&wg[0], 1)`;
 
-    const expected = new (typedArrayCtor(t.params.scalarKind))(
+    const expected = new (typedArrayCtor(t.params.scalarType))(
       wgNumElements * t.params.dispatchSize
     );
 

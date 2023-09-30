@@ -159,6 +159,13 @@ export class Fixture {
     throw new SkipTestCase(msg);
   }
 
+  /** Throws an exception marking the subcase as skipped if condition is true */
+  skipIf(cond, msg = '') {
+    if (cond) {
+      this.skip(typeof msg === 'function' ? msg() : msg);
+    }
+  }
+
   /** Log a warning and increase the result status to "Warn". */
   warn(msg) {
     this.rec.warn(new Error(msg));

@@ -11,7 +11,7 @@ Returns the reciprocal of sqrt(e). Component-wise when T is a vector.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
 import { kValue } from '../../../../../util/constants.js';
-import { TypeF32 } from '../../../../../util/conversion.js';
+import { TypeF32, TypeF16 } from '../../../../../util/conversion.js';
 import { FP } from '../../../../../util/floating_point.js';
 import { biasedRange, linearRange } from '../../../../../util/math.js';
 import { makeCaseCache } from '../../case_cache.js';
@@ -35,6 +35,19 @@ export const d = makeCaseCache('inverseSqrt', {
       FP.f32.inverseSqrtInterval
     );
   },
+  f16: () => {
+    return FP.f16.generateScalarToIntervalCases(
+      [
+        // 0 < x <= 1 linearly spread
+        ...linearRange(kValue.f16.positive.min, 1, 100),
+        // 1 <= x < 2^15, biased towards 1
+        ...biasedRange(1, 2 ** 15, 1000),
+      ],
+
+      'unfiltered',
+      FP.f16.inverseSqrtInterval
+    );
+  },
 });
 
 g.test('abstract_float')
@@ -56,4 +69,10 @@ g.test('f16')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
   .desc(`f16 tests`)
   .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
-  .unimplemented();
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  })
+  .fn(async t => {
+    const cases = await d.get('f16');
+    await run(t, builtin('inverseSqrt'), [TypeF16], TypeF16, t.params, cases);
+  });

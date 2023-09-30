@@ -2,17 +2,23 @@
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
  **/ import { assert } from '../../../../../../../common/util/util.js';
 
+// Use these in combination.
 export const workgroupSizes = [1, 2, 32, 64];
 export const dispatchSizes = [1, 4, 8, 16];
+
+// Use this alone - dispatch size should be 1.
+export const onlyWorkgroupSizes = [1, 2, 4, 8, 16, 32, 64, 128, 256];
+
 export const kMapId = {
   passthrough: {
     f: (id, max) => id,
-    wgsl: max => 'fn map_id(id: u32) -> u32 { return id; }',
+    wgsl: (max, scalarType = 'u32') =>
+      `fn map_id(id: ${scalarType}) -> ${scalarType} { return id; }`,
   },
   remap: {
     f: (id, max) => (((id >>> 0) * 14957) ^ (((id >>> 0) * 26561) >> 2)) % max,
-    wgsl: max =>
-      `fn map_id(id: u32) -> u32 { return ((id * 14957) ^ ((id * 26561) >> 2)) % ${max}; }`,
+    wgsl: (max, scalarType = 'u32') =>
+      `fn map_id(id: ${scalarType}) -> ${scalarType} { return ((id * 14957) ^ ((id * 26561) >> 2)) % ${max}; }`,
   },
 };
 
@@ -34,7 +40,9 @@ export function runStorageVariableTest({
   dispatchSize, // Dispatch X-size
   bufferNumElements, // Number of 32-bit elements in output buffer
   initValue, // 32-bit initial value used to fill output buffer
-  op, // Atomic op source executed by the compute shader, NOTE: 'id' is global_invocation_id.x
+  // Atomic op source executed by the compute shader, NOTE: 'id' is global_invocation_id.x,
+  // and `output` is a storage array of atomics.
+  op,
   expected, // Expected values array to compare against output buffer
   extra, // Optional extra WGSL source
 }) {
@@ -45,7 +53,7 @@ export function runStorageVariableTest({
 
   const wgsl = `
     @group(0) @binding(0)
-    var<storage, read_write> output: array<atomic<${scalarType}>>;
+    var<storage, read_write> output : array<atomic<${scalarType}>>;
 
     @compute @workgroup_size(${workgroupSize})
     fn main(
@@ -99,7 +107,11 @@ export function runWorkgroupVariableTest({
   dispatchSize, // Dispatch X-size
   wgNumElements, // Number of 32-bit elements in 'wg' array. Output buffer is sized to wgNumElements * dispatchSize.
   initValue, // 32-bit initial value used to fill 'wg' array
-  op, // Atomic op source executed by the compute shader, NOTE: 'id' is local_invocation_index
+  // Atomic op source executed by the compute shader, NOTE: 'id' is local_invocation_index,
+  // `wg` is a workgroup array of atomics of size `workgroupSize`, `output` is a storage array of non-atomics of size
+  // `workgroupSize * dispatcSize` to which each dispatch of `wg` gets copied to (dispatch 0 to first workgroupSize elements,
+  // dispatch 1 to second workgroupSize elements, etc.).
+  op,
   expected, // Expected values array to compare against output buffer
   extra, // Optional extra WGSL source
 }) {
@@ -121,6 +133,7 @@ export function runWorkgroupVariableTest({
         @builtin(workgroup_id) workgroup_id : vec3<u32>
         ) {
       let id = ${scalarType}(local_invocation_index);
+      let global_id = ${scalarType}(workgroup_id.x * ${wgNumElements} + local_invocation_index);
 
       // Initialize workgroup array
       if (local_invocation_index == 0) {

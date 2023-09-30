@@ -2,6 +2,7 @@
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
  **/ import { keysOf } from '../common/util/data_tables.js';
 import { assert } from '../common/util/util.js';
+import { align } from './util/math.js';
 
 //
 // Texture format tables
@@ -644,6 +645,24 @@ const kRegularTextureFormatInfo = formatTableWithDefaults({
 
     // plain, mixed component width, 32 bits per texel
 
+    rgb10a2uint: {
+      color: { type: 'uint', copySrc: true, copyDst: true, storage: false, bytes: 4 },
+      colorRender: { blend: false, resolve: false, byteCost: 8, alignment: 4 },
+      renderable: true,
+      get renderTargetComponentAlignment() {
+        return this.colorRender.alignment;
+      },
+      get renderTargetPixelByteCost() {
+        return this.colorRender.byteCost;
+      },
+      multisample: true,
+      get sampleType() {
+        return this.color.type;
+      },
+      get bytesPerBlock() {
+        return this.color.bytes;
+      },
+    },
     rgb10a2unorm: {
       color: { type: 'float', copySrc: true, copyDst: true, storage: false, bytes: 4 },
       colorRender: { blend: true, resolve: true, byteCost: 8, alignment: 4 },
@@ -1471,4 +1490,28 @@ export function filterFormatsByFeature(feature, formats) {
   return formats.filter(f => f === undefined || kTextureFormatInfo[f].feature === feature);
 }
 
+export function isCompressedTextureFormat(format) {
+  return format in kCompressedTextureFormatInfo;
+}
+
 export const kFeaturesForFormats = getFeaturesForFormats(kTextureFormats);
+
+/**
+ * Given an array of texture formats return the number of bytes per sample.
+ */
+export function computeBytesPerSampleFromFormats(formats) {
+  let bytesPerSample = 0;
+  for (const format of formats) {
+    const info = kTextureFormatInfo[format];
+    const alignedBytesPerSample = align(bytesPerSample, info.colorRender.alignment);
+    bytesPerSample = alignedBytesPerSample + info.colorRender.byteCost;
+  }
+  return bytesPerSample;
+}
+
+/**
+ * Given an array of GPUColorTargetState return the number of bytes per sample
+ */
+export function computeBytesPerSample(targets) {
+  return computeBytesPerSampleFromFormats(targets.map(({ format }) => format));
+}

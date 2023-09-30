@@ -55,6 +55,8 @@ g.test('format')
     const { textureFormat, viewFormat, useViewFormatList } = t.params;
     const { blockWidth, blockHeight } = kTextureFormatInfo[textureFormat];
 
+    t.skipIfTextureFormatNotSupported(textureFormat, viewFormat);
+
     const compatible = viewFormat === undefined || viewCompatible(textureFormat, viewFormat);
 
     const texture = t.device.createTexture({
@@ -89,6 +91,9 @@ g.test('dimension')
       .combine('textureDimension', kTextureDimensions)
       .combine('viewDimension', [...kTextureViewDimensions, undefined])
   )
+  .beforeAllSubcases(t => {
+    t.skipIfTextureViewDimensionNotSupported(t.params.viewDimension);
+  })
   .fn(t => {
     const { textureDimension, viewDimension } = t.params;
 
@@ -213,6 +218,8 @@ g.test('array_layers')
       arrayLayerCount,
     } = t.params;
 
+    t.skipIfTextureViewDimensionNotSupported(viewDimension);
+
     const kWidth = 1 << (kLevels - 1); // 32
     const textureDescriptor = {
       format: 'rgba8unorm',
@@ -272,6 +279,8 @@ g.test('mip_levels')
       mipLevelCount,
     } = t.params;
 
+    t.skipIfTextureViewDimensionNotSupported(viewDimension);
+
     const textureDescriptor = {
       format: 'rgba8unorm',
       dimension: textureDimension,
@@ -309,6 +318,8 @@ g.test('cube_faces_square')
   )
   .fn(t => {
     const { dimension, size } = t.params;
+
+    t.skipIfTextureViewDimensionNotSupported(dimension);
 
     const texture = t.device.createTexture({
       format: 'rgba8unorm',

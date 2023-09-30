@@ -322,6 +322,9 @@ g.test('blending,formats')
     u //
       .combine('format', kBlendableFormats)
   )
+  .beforeAllSubcases(t => {
+    t.skipIfTextureFormatNotSupported(t.params.format);
+  })
   .fn(t => {
     const { format } = t.params;
 

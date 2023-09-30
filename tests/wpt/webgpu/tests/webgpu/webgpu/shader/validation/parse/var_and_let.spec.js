@@ -71,3 +71,37 @@ g.test('initializer_type')
     const expectation = lhsType === rhsType;
     t.expectCompileResult(expectation, code);
   });
+
+g.test('var_access_mode_bad_other_template_contents')
+  .desc(
+    'A variable declaration with explicit access mode with varying other template list contents'
+  )
+  .specURL('https://gpuweb.github.io/gpuweb/wgsl/#var-decls')
+  .params(u =>
+    u
+      .combine('accessMode', ['read', 'read_write'])
+      .combine('prefix', ['storage,', '', ','])
+      .combine('suffix', [',storage', ',read', ',', ''])
+  )
+  .fn(t => {
+    const prog = `@group(0) @binding(0)
+                  var<${t.params.prefix}${t.params.accessMode}${t.params.suffix}> x: i32;`;
+    const ok = t.params.prefix === 'storage,' && t.params.suffix === '';
+    t.expectCompileResult(ok, prog);
+  });
+
+g.test('var_access_mode_bad_template_delim')
+  .desc('A variable declaration has explicit access mode with varying template list delimiters')
+  .specURL('https://gpuweb.github.io/gpuweb/wgsl/#var-decls')
+  .params(u =>
+    u
+      .combine('accessMode', ['read', 'read_write'])
+      .combine('prefix', ['', '<', '>', ','])
+      .combine('suffix', ['', '<', '>', ','])
+  )
+  .fn(t => {
+    const prog = `@group(0) @binding(0)
+                  var ${t.params.prefix}storage,${t.params.accessMode}${t.params.suffix} x: i32;`;
+    const ok = t.params.prefix === '<' && t.params.suffix === '>';
+    t.expectCompileResult(ok, prog);
+  });

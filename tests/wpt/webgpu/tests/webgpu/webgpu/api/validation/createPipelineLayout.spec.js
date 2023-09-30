@@ -34,7 +34,13 @@ g.test('number_of_dynamic_buffers_exceeds_the_maximum_value')
   )
   .fn(t => {
     const { type, visibility } = t.params;
-    const { maxDynamic } = bufferBindingTypeInfo({ type }).perPipelineLimitClass;
+    const info = bufferBindingTypeInfo({ type });
+    const { maxDynamicLimit } = info.perPipelineLimitClass;
+    const perStageLimit = t.getDefaultLimit(info.perStageLimitClass.maxLimit);
+    const maxDynamic = Math.min(
+      maxDynamicLimit ? t.getDefaultLimit(maxDynamicLimit) : 0,
+      perStageLimit
+    );
 
     const maxDynamicBufferBindings = [];
     for (let binding = 0; binding < maxDynamic; binding++) {
@@ -53,15 +59,17 @@ g.test('number_of_dynamic_buffers_exceeds_the_maximum_value')
       entries: [{ binding: 0, visibility, buffer: { type, hasDynamicOffset: false } }],
     };
 
-    const goodPipelineLayoutDescriptor = {
-      bindGroupLayouts: [
-        maxDynamicBufferBindGroupLayout,
-        t.device.createBindGroupLayout(goodDescriptor),
-      ],
-    };
+    if (perStageLimit > maxDynamic) {
+      const goodPipelineLayoutDescriptor = {
+        bindGroupLayouts: [
+          maxDynamicBufferBindGroupLayout,
+          t.device.createBindGroupLayout(goodDescriptor),
+        ],
+      };
 
-    // Control case
-    t.device.createPipelineLayout(goodPipelineLayoutDescriptor);
+      // Control case
+      t.device.createPipelineLayout(goodPipelineLayoutDescriptor);
+    }
 
     // Check dynamic buffers exceed maximum in pipeline layout.
     const badDescriptor = clone(goodDescriptor);

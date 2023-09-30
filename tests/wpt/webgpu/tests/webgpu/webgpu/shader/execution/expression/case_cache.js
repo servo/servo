@@ -1,6 +1,7 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
  **/ import { dataCache } from '../../../../common/framework/data_cache.js';
+import { unreachable } from '../../../../common/util/util.js';
 import { deserializeComparator, serializeComparator } from '../../../util/compare.js';
 import {
   Scalar,
@@ -51,7 +52,7 @@ export function serializeExpectation(e) {
   if (isComparator(e)) {
     return { kind: 'comparator', value: serializeComparator(e) };
   }
-  throw `cannot serialize Expectation ${e}`;
+  unreachable(`cannot serialize Expectation ${e}`);
 }
 
 /** deserializeExpectation() converts a SerializedExpectation to a Expectation */

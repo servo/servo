@@ -2,7 +2,7 @@
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
  **/
 
-import { ErrorWithExtra, assert } from './util.js';
+import { ErrorWithExtra, assert, objectEquals } from './util.js';
 
 /**
  * Finds and returns the `navigator.gpu` object (or equivalent, for non-browser implementations).
@@ -37,6 +37,10 @@ let impl = undefined;
 let defaultRequestAdapterOptions;
 
 export function setDefaultRequestAdapterOptions(options) {
+  // It's okay to call this if you don't change the options
+  if (objectEquals(options, defaultRequestAdapterOptions)) {
+    return;
+  }
   if (impl) {
     throw new Error('must call setDefaultRequestAdapterOptions before getGPU');
   }

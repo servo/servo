@@ -5,8 +5,9 @@ createRenderBundleEncoder validation tests.
 `;
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { range } from '../../../../common/util/util.js';
-import { kMaxColorAttachments } from '../../../capability_info.js';
+import { kMaxColorAttachmentsToTest } from '../../../capability_info.js';
 import {
+  computeBytesPerSampleFromFormats,
   kAllTextureFormats,
   kDepthStencilFormats,
   kTextureFormatInfo,
@@ -21,11 +22,17 @@ g.test('attachment_state,limits,maxColorAttachments')
   .params(u =>
     u.beginSubcases().combine(
       'colorFormatCount',
-      range(kMaxColorAttachments + 1, i => i + 1) // 1-9
+      range(kMaxColorAttachmentsToTest, i => i + 1)
     )
   )
   .fn(t => {
     const { colorFormatCount } = t.params;
+    const maxColorAttachments = t.device.limits.maxColorAttachments;
+    t.skipIf(
+      colorFormatCount > maxColorAttachments,
+      `${colorFormatCount} > maxColorAttachments: ${maxColorAttachments}`
+    );
+
     t.expectValidationError(() => {
       t.device.createRenderBundleEncoder({
         colorFormats: Array(colorFormatCount).fill('r8unorm'),
@@ -47,11 +54,20 @@ g.test('attachment_state,limits,maxColorAttachmentBytesPerSample,aligned')
       .beginSubcases()
       .combine(
         'colorFormatCount',
-        range(kMaxColorAttachments, i => i + 1)
+        range(kMaxColorAttachmentsToTest, i => i + 1)
       )
   )
+  .beforeAllSubcases(t => {
+    t.skipIfTextureFormatNotSupported(t.params.format);
+  })
   .fn(t => {
     const { format, colorFormatCount } = t.params;
+    const maxColorAttachments = t.device.limits.maxColorAttachments;
+    t.skipIf(
+      colorFormatCount > maxColorAttachments,
+      `${colorFormatCount} > maxColorAttachments: ${maxColorAttachments}`
+    );
+
     const info = kTextureFormatInfo[format];
     const shouldError =
       !info.colorRender ||
@@ -81,24 +97,28 @@ g.test('attachment_state,limits,maxColorAttachmentBytesPerSample,unaligned')
       // is allowed: 4+8+16+1+1 < 32.
       {
         formats: ['r8unorm', 'r32float', 'rgba8unorm', 'rgba32float', 'r8unorm'],
-
-        _shouldError: true,
       },
       {
         formats: ['r32float', 'rgba8unorm', 'rgba32float', 'r8unorm', 'r8unorm'],
-
-        _shouldError: false,
       },
     ])
   )
   .fn(t => {
-    const { formats, _shouldError } = t.params;
+    const { formats } = t.params;
+
+    t.skipIf(
+      formats.length > t.device.limits.maxColorAttachments,
+      `numColorAttachments: ${formats.length} > maxColorAttachments: ${t.device.limits.maxColorAttachments}`
+    );
+
+    const shouldError =
+      computeBytesPerSampleFromFormats(formats) > t.device.limits.maxColorAttachmentBytesPerSample;
 
     t.expectValidationError(() => {
       t.device.createRenderBundleEncoder({
         colorFormats: formats,
       });
-    }, _shouldError);
+    }, shouldError);
   });
 
 g.test('attachment_state,empty_color_formats')

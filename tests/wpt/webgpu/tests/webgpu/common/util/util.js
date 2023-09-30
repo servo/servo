@@ -158,6 +158,13 @@ export function rejectWithoutUncaught(err) {
 }
 
 /**
+ * Returns true if v is a plain JavaScript object.
+ */
+export function isPlainObject(v) {
+  return !!v && Object.getPrototypeOf(v).constructor === Object.prototype.constructor;
+}
+
+/**
  * Makes a copy of a JS `object`, with the keys reordered into sorted order.
  */
 export function sortObjectByKey(v) {
@@ -282,6 +289,51 @@ export const kTypedArrayBufferViews = {
 export const kTypedArrayBufferViewKeys = keysOf(kTypedArrayBufferViews);
 export const kTypedArrayBufferViewConstructors = Object.values(kTypedArrayBufferViews);
 
+/**
+ * Creates a case parameter for a typedarray.
+ *
+ * You can't put typedarrays in case parameters directly so instead of
+ *
+ * ```
+ * u.combine('data', [
+ *   new Uint8Array([1, 2, 3]),
+ *   new Float32Array([4, 5, 6]),
+ * ])
+ * ```
+ *
+ * You can use
+ *
+ * ```
+ * u.combine('data', [
+ *   typedArrayParam('Uint8Array' [1, 2, 3]),
+ *   typedArrayParam('Float32Array' [4, 5, 6]),
+ * ])
+ * ```
+ *
+ * and then convert the params to typedarrays eg.
+ *
+ * ```
+ *  .fn(t => {
+ *    const data = t.params.data.map(v => typedArrayFromParam(v));
+ *  })
+ * ```
+ */
+export function typedArrayParam(type, data) {
+  return { type, data };
+}
+
+export function createTypedArray(type, data) {
+  return new kTypedArrayBufferViews[type](data);
+}
+
+/**
+ * Converts a TypedArrayParam to a typedarray. See typedArrayParam
+ */
+export function typedArrayFromParam(param) {
+  const { type, data } = param;
+  return createTypedArray(type, data);
+}
+
 function subarrayAsU8(buf, { start = 0, length }) {
   if (buf instanceof ArrayBuffer) {
     return new Uint8Array(buf, start, length);
@@ -306,4 +358,26 @@ function subarrayAsU8(buf, { start = 0, length }) {
  */
 export function memcpy(src, dst) {
   subarrayAsU8(dst.dst, dst).set(subarrayAsU8(src.src, src));
+}
+
+/**
+ * Used to create a value that is specified by multiplying some runtime value
+ * by a constant and then adding a constant to it.
+ */
+
+/**
+ * Filters out SpecValues that are the same.
+ */
+export function filterUniqueValueTestVariants(valueTestVariants) {
+  return new Map(valueTestVariants.map(v => [`m:${v.mult},a:${v.add}`, v])).values();
+}
+
+/**
+ * Used to create a value that is specified by multiplied some runtime value
+ * by a constant and then adding a constant to it. This happens often in test
+ * with limits that can only be known at runtime and yet we need a way to
+ * add parameters to a test and those parameters must be constants.
+ */
+export function makeValueTestVariant(base, variant) {
+  return base * variant.mult + variant.add;
 }

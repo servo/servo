@@ -2,6 +2,7 @@
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
  **/ export const description = `Validation tests for the interpolate attribute`;
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
+import { keysOf } from '../../../../common/util/data_tables.js';
 import { ShaderValidationTest } from '../shader_validation_test.js';
 
 import { generateShader } from './util.js';
@@ -142,4 +143,76 @@ g.test('duplicate')
       use_struct: false,
     });
     t.expectCompileResult(t.params.attr === '', code);
+  });
+
+const kValidationTests = {
+  valid: {
+    src: `@interpolate(flat)`,
+    pass: true,
+  },
+  no_space: {
+    src: `@interpolate(perspective,center)`,
+    pass: true,
+  },
+  trailing_comma_one_arg: {
+    src: `@interpolate(flat,)`,
+    pass: true,
+  },
+  trailing_comma_two_arg: {
+    src: `@interpolate(perspective, center,)`,
+    pass: true,
+  },
+  newline: {
+    src: '@\ninterpolate(flat)',
+    pass: true,
+  },
+  comment: {
+    src: `@/* comment */interpolate(flat)`,
+    pass: true,
+  },
+
+  no_params: {
+    src: `@interpolate()`,
+    pass: false,
+  },
+  missing_left_paren: {
+    src: `@interpolate flat)`,
+    pass: false,
+  },
+  missing_value_and_left_paren: {
+    src: `@interpolate)`,
+    pass: false,
+  },
+  missing_right_paren: {
+    src: `@interpolate(flat`,
+    pass: false,
+  },
+  missing_parens: {
+    src: `@interpolate`,
+    pass: false,
+  },
+  missing_comma: {
+    src: `@interpolate(perspective center)`,
+    pass: false,
+  },
+  numeric: {
+    src: `@interpolate(1)`,
+    pass: false,
+  },
+  numeric_second_param: {
+    src: `@interpolate(perspective, 1)`,
+    pass: false,
+  },
+};
+
+g.test('interpolation_validation')
+  .desc(`Test validation of interpolation`)
+  .params(u => u.combine('attr', keysOf(kValidationTests)))
+  .fn(t => {
+    const code = `
+@vertex fn main(${kValidationTests[t.params.attr].src} @location(0) b: f32) ->
+    @builtin(position) vec4<f32> {
+  return vec4f(0);
+}`;
+    t.expectCompileResult(kValidationTests[t.params.attr].pass, code);
   });

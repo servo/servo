@@ -1,12 +1,91 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `Validation tests for resource interface bindings`;
+ **/ export const description = `Validation tests for group and binding`;
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { ShaderValidationTest } from '../shader_validation_test.js';
 
-import { declareEntrypoint, kResourceEmitters, kResourceKindsA, kResourceKindsB } from './util.js';
+import {
+  declareEntrypoint,
+  kResourceEmitters,
+  kResourceKindsA,
+  kResourceKindsAll,
+  kResourceKindsB,
+} from './util.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
+
+g.test('binding_attributes')
+  .desc(`Test that both @group and @binding attributes must both be declared.`)
+  .params(u =>
+    u
+      .combine('stage', ['vertex', 'fragment', 'compute'])
+      .combine('has_group', [true, false])
+      .combine('has_binding', [true, false])
+      .combine('resource', kResourceKindsAll)
+      .beginSubcases()
+  )
+  .fn(t => {
+    const emitter = kResourceEmitters.get(t.params.resource);
+    //const emitter = kResourceEmitters.get('uniform') as ResourceDeclarationEmitter;
+    const code = emitter(
+      'R',
+      t.params.has_group ? 0 : undefined,
+      t.params.has_binding ? 0 : undefined
+    );
+
+    const expect = t.params.has_group && t.params.has_binding;
+    t.expectCompileResult(expect, code);
+  });
+
+g.test('private_module_scope')
+  .desc(`Test validation of group and binding on private resources`)
+  .fn(t => {
+    const code = `
+@group(1) @binding(1)
+var<private> a: i32;
+
+@workgroup_size(1, 1, 1)
+@compute fn main() {
+  _ = a;
+}`;
+    t.expectCompileResult(false, code);
+  });
+
+g.test('private_function_scope')
+  .desc(`Test validation of group and binding on function-scope private resources`)
+  .fn(t => {
+    const code = `
+@workgroup_size(1, 1, 1)
+@compute fn main() {
+  @group(1) @binding(1)
+  var<private> a: i32;
+}`;
+    t.expectCompileResult(false, code);
+  });
+
+g.test('function_scope')
+  .desc(`Test validation of group and binding on function-scope private resources`)
+  .fn(t => {
+    const code = `
+@workgroup_size(1, 1, 1)
+@compute fn main() {
+  @group(1) @binding(1)
+  var a: i32;
+}`;
+    t.expectCompileResult(false, code);
+  });
+
+g.test('function_scope_texture')
+  .desc(`Test validation of group and binding on function-scope private resources`)
+  .fn(t => {
+    const code = `
+@workgroup_size(1, 1, 1)
+@compute fn main() {
+  @group(1) @binding(1)
+  var a: texture_2d<f32>;
+}`;
+    t.expectCompileResult(false, code);
+  });
 
 g.test('single_entry_point')
   .desc(
@@ -90,25 +169,4 @@ ${declareEntrypoint('main_b', t.params.b_stage, 'use_b();')}
 `;
       t.expectCompileResult(expect, code);
     }
-  });
-
-g.test('binding_attributes')
-  .desc(`Test that both @group and @binding attributes must both be declared.`)
-  .params(u =>
-    u
-      .combine('stage', ['vertex', 'fragment', 'compute'])
-      .combine('has_group', [true, false])
-      .combine('has_binding', [true, false])
-      .beginSubcases()
-  )
-  .fn(t => {
-    const emitter = kResourceEmitters.get('uniform');
-    const code = emitter(
-      'R',
-      t.params.has_group ? 0 : undefined,
-      t.params.has_binding ? 0 : undefined
-    );
-
-    const expect = t.params.has_group && t.params.has_binding;
-    t.expectCompileResult(expect, code);
   });

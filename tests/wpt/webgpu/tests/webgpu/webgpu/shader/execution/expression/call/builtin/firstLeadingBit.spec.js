@@ -147,6 +147,9 @@ g.test('i32')
       // Zero
       { input: i32Bits(0b00000000000000000000000000000000), expected: i32(-1) },
 
+      // Negative One
+      { input: i32Bits(0b11111111111111111111111111111111), expected: i32(-1) },
+
       // One
       { input: i32Bits(0b00000000000000000000000000000001), expected: i32(0) },
 
