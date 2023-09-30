@@ -13,7 +13,7 @@ dictionary GPUObjectDescriptorBase {
     USVString label = "";
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUSupportedLimits {
     readonly attribute unsigned long maxTextureDimension1D;
     readonly attribute unsigned long maxTextureDimension2D;
@@ -49,17 +49,17 @@ interface GPUSupportedLimits {
     readonly attribute unsigned long maxComputeWorkgroupsPerDimension;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUSupportedFeatures {
     readonly setlike<DOMString>;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface WGSLLanguageFeatures {
     readonly setlike<DOMString>;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUAdapterInfo {
     readonly attribute DOMString vendor;
     readonly attribute DOMString architecture;
@@ -68,14 +68,14 @@ interface GPUAdapterInfo {
 };
 
 interface mixin NavigatorGPU {
-    [SameObject, Pref="dom.webgpu.enabled", SecureContext, Pref="dom.webgpu.enabled"] readonly attribute GPU gpu;
+    [SameObject, Pref="dom.webgpu.enabled", Pref="dom.webgpu.enabled"] readonly attribute GPU gpu;
 };
 // NOTE: see `Navigator.webidl`
 // Navigator includes NavigatorGPU;
 // NOTE: see `WorkerNavigator.webidl`
 // WorkerNavigator includes NavigatorGPU;
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPU {
     Promise<GPUAdapter?> requestAdapter(optional GPURequestAdapterOptions options = {});
     GPUTextureFormat getPreferredCanvasFormat();
@@ -92,7 +92,7 @@ enum GPUPowerPreference {
     "high-performance",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUAdapter {
     [SameObject] readonly attribute GPUSupportedFeatures features;
     [SameObject] readonly attribute GPUSupportedLimits limits;
@@ -105,7 +105,7 @@ interface GPUAdapter {
 dictionary GPUDeviceDescriptor
          : GPUObjectDescriptorBase {
     sequence<GPUFeatureName> requiredFeatures = [];
-    record<DOMString, GPUSize64> requiredLimits = {};
+    record<DOMString, GPUSize64> requiredLimits;// = {}
     GPUQueueDescriptor defaultQueue = {};
 };
 
@@ -123,7 +123,7 @@ enum GPUFeatureName {
     "float32-filterable",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUDevice : EventTarget {
     [SameObject] readonly attribute GPUSupportedFeatures features;
     [SameObject] readonly attribute GPUSupportedLimits limits;
@@ -154,7 +154,7 @@ interface GPUDevice : EventTarget {
 };
 GPUDevice includes GPUObjectBase;
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUBuffer {
     readonly attribute GPUSize64Out size;
     readonly attribute GPUFlagsConstant usage;
@@ -183,7 +183,7 @@ dictionary GPUBufferDescriptor
 };
 
 typedef [EnforceRange] unsigned long GPUBufferUsageFlags;
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 namespace GPUBufferUsage {
     const GPUFlagsConstant MAP_READ      = 0x0001;
     const GPUFlagsConstant MAP_WRITE     = 0x0002;
@@ -198,13 +198,13 @@ namespace GPUBufferUsage {
 };
 
 typedef [EnforceRange] unsigned long GPUMapModeFlags;
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 namespace GPUMapMode {
     const GPUFlagsConstant READ  = 0x0001;
     const GPUFlagsConstant WRITE = 0x0002;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUTexture {
     GPUTextureView createView(optional GPUTextureViewDescriptor descriptor = {});
 
@@ -239,7 +239,7 @@ enum GPUTextureDimension {
 };
 
 typedef [EnforceRange] unsigned long GPUTextureUsageFlags;
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 namespace GPUTextureUsage {
     const GPUFlagsConstant COPY_SRC          = 0x01;
     const GPUFlagsConstant COPY_DST          = 0x02;
@@ -248,7 +248,7 @@ namespace GPUTextureUsage {
     const GPUFlagsConstant RENDER_ATTACHMENT = 0x10;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUTextureView {
 };
 GPUTextureView includes GPUObjectBase;
@@ -400,18 +400,20 @@ enum GPUTextureFormat {
     "astc-12x12-unorm-srgb",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUExternalTexture {
 };
 GPUExternalTexture includes GPUObjectBase;
 
 dictionary GPUExternalTextureDescriptor
          : GPUObjectDescriptorBase {
-    required (HTMLVideoElement or VideoFrame) source;
+    // servo does not support VideoFrame
+    // required (HTMLVideoElement or VideoFrame) source;
+    required HTMLVideoElement source;
     PredefinedColorSpace colorSpace = "srgb";
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUSampler {
 };
 GPUSampler includes GPUObjectBase;
@@ -457,7 +459,7 @@ enum GPUCompareFunction {
     "always",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUBindGroupLayout {
 };
 GPUBindGroupLayout includes GPUObjectBase;
@@ -479,7 +481,7 @@ dictionary GPUBindGroupLayoutEntry {
 };
 
 typedef [EnforceRange] unsigned long GPUShaderStageFlags;
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 namespace GPUShaderStage {
     const GPUFlagsConstant VERTEX   = 0x1;
     const GPUFlagsConstant FRAGMENT = 0x2;
@@ -535,7 +537,7 @@ dictionary GPUStorageTextureBindingLayout {
 dictionary GPUExternalTextureBindingLayout {
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUBindGroup {
 };
 GPUBindGroup includes GPUObjectBase;
@@ -559,7 +561,7 @@ dictionary GPUBufferBinding {
     GPUSize64 size;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUPipelineLayout {
 };
 GPUPipelineLayout includes GPUObjectBase;
@@ -569,7 +571,7 @@ dictionary GPUPipelineLayoutDescriptor
     required sequence<GPUBindGroupLayout> bindGroupLayouts;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUShaderModule {
     Promise<GPUCompilationInfo> getCompilationInfo();
 };
@@ -592,7 +594,7 @@ enum GPUCompilationMessageType {
     "info",
 };
 
-[Exposed=(Window, DedicatedWorker), Serializable, SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUCompilationMessage {
     readonly attribute DOMString message;
     readonly attribute GPUCompilationMessageType type;
@@ -602,12 +604,15 @@ interface GPUCompilationMessage {
     readonly attribute unsigned long long length;
 };
 
-[Exposed=(Window, DedicatedWorker), Serializable, SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUCompilationInfo {
-    readonly attribute FrozenArray<GPUCompilationMessage> messages;
+    // frozen arrays are not supported yet
+    // readonly attribute FrozenArray<GPUCompilationMessage> messages;
+    readonly attribute any messages;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Serializable]
+// TODO: DOMException Serializable
+[Exposed=(Window, DedicatedWorker), /* Serializable */]
 interface GPUPipelineError : DOMException {
     constructor(optional DOMString message = "", GPUPipelineErrorInit options);
     readonly attribute GPUPipelineErrorReason reason;
@@ -643,7 +648,7 @@ dictionary GPUProgrammableStage {
 
 typedef double GPUPipelineConstantValue; // May represent WGSL’s bool, f32, i32, u32, and f16 if enabled.
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUComputePipeline {
 };
 GPUComputePipeline includes GPUObjectBase;
@@ -654,7 +659,7 @@ dictionary GPUComputePipelineDescriptor
     required GPUProgrammableStage compute;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPURenderPipeline {
 };
 GPURenderPipeline includes GPUObjectBase;
@@ -722,7 +727,7 @@ dictionary GPUBlendState {
 };
 
 typedef [EnforceRange] unsigned long GPUColorWriteFlags;
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 namespace GPUColorWrite {
     const GPUFlagsConstant RED   = 0x1;
     const GPUFlagsConstant GREEN = 0x2;
@@ -881,11 +886,11 @@ dictionary GPUImageCopyTextureTagged
     boolean premultipliedAlpha = false;
 };
 
+// videoframe is not supported
 typedef (ImageBitmap or
          ImageData or
          HTMLImageElement or
          HTMLVideoElement or
-         VideoFrame or
          HTMLCanvasElement or
          OffscreenCanvas) GPUImageCopyExternalImageSource;
 
@@ -895,7 +900,7 @@ dictionary GPUImageCopyExternalImage {
     boolean flipY = false;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUCommandBuffer {
 };
 GPUCommandBuffer includes GPUObjectBase;
@@ -907,7 +912,7 @@ dictionary GPUCommandBufferDescriptor
 interface mixin GPUCommandsMixin {
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUCommandEncoder {
     GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
     GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
@@ -974,7 +979,7 @@ interface mixin GPUDebugCommandsMixin {
     undefined insertDebugMarker(USVString markerLabel);
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUComputePassEncoder {
     undefined setPipeline(GPUComputePipeline pipeline);
     undefined dispatchWorkgroups(GPUSize32 workgroupCountX,
@@ -1000,7 +1005,7 @@ dictionary GPUComputePassDescriptor
     GPUComputePassTimestampWrites timestampWrites;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPURenderPassEncoder {
     undefined setViewport(float x, float y,
         float width, float height,
@@ -1074,7 +1079,9 @@ enum GPUStoreOp {
 
 dictionary GPURenderPassLayout
          : GPUObjectDescriptorBase {
-    required sequence<GPUTextureFormat?> colorFormats;
+    // We don't support nullable enumerated arguments yet GPUTextureFormatOrNull
+    // required sequence<GPUTextureFormat?> colorFormats;
+    required sequence<GPUTextureFormat> colorFormats;
     GPUTextureFormat depthStencilFormat;
     GPUSize32 sampleCount = 1;
 };
@@ -1102,7 +1109,7 @@ interface mixin GPURenderCommandsMixin {
     undefined drawIndexedIndirect(GPUBuffer indirectBuffer, GPUSize64 indirectOffset);
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPURenderBundle {
 };
 GPURenderBundle includes GPUObjectBase;
@@ -1111,7 +1118,7 @@ dictionary GPURenderBundleDescriptor
          : GPUObjectDescriptorBase {
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPURenderBundleEncoder {
     GPURenderBundle finish(optional GPURenderBundleDescriptor descriptor = {});
 };
@@ -1131,7 +1138,7 @@ dictionary GPUQueueDescriptor
          : GPUObjectDescriptorBase {
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUQueue {
     undefined submit(sequence<GPUCommandBuffer> commandBuffers);
 
@@ -1140,13 +1147,15 @@ interface GPUQueue {
     undefined writeBuffer(
         GPUBuffer buffer,
         GPUSize64 bufferOffset,
-        AllowSharedBufferSource data,
+        // AllowSharedBufferSource is not supported in WebIDL
+        BufferSource data,
         optional GPUSize64 dataOffset = 0,
         optional GPUSize64 size);
 
     undefined writeTexture(
         GPUImageCopyTexture destination,
-        AllowSharedBufferSource data,
+        // AllowSharedBufferSource is not supported in WebIDL
+        BufferSource data,
         GPUImageDataLayout dataLayout,
         GPUExtent3D size);
 
@@ -1157,7 +1166,7 @@ interface GPUQueue {
 };
 GPUQueue includes GPUObjectBase;
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUQuerySet {
     undefined destroy();
 
@@ -1177,7 +1186,7 @@ enum GPUQueryType {
     "timestamp",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUCanvasContext {
     readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;
 
@@ -1206,7 +1215,7 @@ enum GPUDeviceLostReason {
     "destroyed",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUDeviceLostInfo {
     readonly attribute GPUDeviceLostReason reason;
     readonly attribute DOMString message;
@@ -1216,24 +1225,24 @@ partial interface GPUDevice {
     readonly attribute Promise<GPUDeviceLostInfo> lost;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUError {
     readonly attribute DOMString message;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUValidationError
         : GPUError {
     constructor(DOMString message);
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUOutOfMemoryError
         : GPUError {
     constructor(DOMString message);
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUInternalError
         : GPUError {
     constructor(DOMString message);
@@ -1250,7 +1259,7 @@ partial interface GPUDevice {
     Promise<GPUError?> popErrorScope();
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUUncapturedErrorEvent : Event {
     constructor(
         DOMString type,
