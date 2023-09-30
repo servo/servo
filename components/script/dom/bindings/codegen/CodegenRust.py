@@ -1057,7 +1057,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         if type.nullable():
             raise TypeError("We don't support nullable enumerated arguments "
-                            "yet")
+                            f"yet {type.name}")
         enum = type.inner.identifier.name
         if invalidEnumValueFatal:
             handleInvalidEnumValueCode = failureCode or "throw_type_error(*cx, &error); %s" % exceptionCode
