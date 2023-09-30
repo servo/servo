@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+// Spec: https://gpuweb.github.io/gpuweb
 // Content was automatically extracted by Reffy into webref
 // https://github.com/w3c/webref/blob/c0e523e0f541880b5ac046dc78f834830b1f7dc7/ed/idl/webgpu.idl
 
