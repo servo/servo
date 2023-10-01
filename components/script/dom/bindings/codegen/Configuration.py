@@ -214,7 +214,7 @@ class Descriptor(DescriptorProvider):
             self.nativeType = typeName
             pathDefault = 'crate::dom::types::%s' % typeName
         elif self.interface.isCallback():
-            ty = 'crate::dom::bindings::codegen::Bindings::%sBinding::%s' % (ifaceName, ifaceName)
+            ty = f"{getModuleFromObject(self.interface)}::{ifaceName}"
             pathDefault = ty
             self.returnType = "Rc<%s>" % ty
             self.argumentType = "???"
@@ -232,7 +232,7 @@ class Descriptor(DescriptorProvider):
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
         self.inRealmMethods = [name for name in desc.get('inRealms', [])]
-        self.bindingPath = f"crate::dom::bindings::codegen::Bindings::{ifaceName}Binding::{ifaceName}_Binding"
+        self.bindingPath = f"{getModuleFromObject(self.interface)}::{ifaceName}_Binding"
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
         self.weakReferenceable = desc.get('weakReferenceable', False)
