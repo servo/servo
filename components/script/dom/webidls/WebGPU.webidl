@@ -55,10 +55,10 @@ interface GPUSupportedFeatures {
     readonly setlike<DOMString>;
 };
 
-[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
+/*[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface WGSLLanguageFeatures {
     readonly setlike<DOMString>;
-};
+};*/
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUAdapterInfo {
@@ -80,7 +80,7 @@ interface mixin NavigatorGPU {
 interface GPU {
     Promise<GPUAdapter?> requestAdapter(optional GPURequestAdapterOptions options = {});
     GPUTextureFormat getPreferredCanvasFormat();
-    [SameObject] readonly attribute WGSLLanguageFeatures wgslLanguageFeatures;
+    //[SameObject] readonly attribute WGSLLanguageFeatures wgslLanguageFeatures;
 };
 
 dictionary GPURequestAdapterOptions {
