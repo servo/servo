@@ -16,7 +16,7 @@ use compositing_traits::{
 };
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
-use euclid::{Point2D, Rect, Scale, Vector2D};
+use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use gfx_traits::{Epoch, FontData};
 #[cfg(feature = "gl")]
@@ -45,11 +45,14 @@ use time::{now, precise_time_ns, precise_time_s};
 use webrender;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutVector2D, WorldPoint,
+    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
+    LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
-    self, BuiltDisplayList, DirtyRect, DocumentId, Epoch as WebRenderEpoch, ExternalScrollId,
-    HitTestFlags, PipelineId as WebRenderPipelineId, ScrollClamping, ScrollLocation, ZoomFactor,
+    self, BuiltDisplayList, ClipId, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
+    ExternalScrollId, HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding,
+    ReferenceFrameKind, ScrollClamping, ScrollLocation, SpaceAndClipInfo, SpatialId,
+    TransformStyle, ZoomFactor,
 };
 use webrender_surfman::WebrenderSurfman;
 
@@ -128,8 +131,10 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// The port on which we receive messages.
     port: CompositorReceiver,
 
-    /// The root pipeline.
-    root_pipeline: RootPipeline,
+    /// The root content pipeline ie the pipeline which contains the main frame
+    /// to display. In the WebRender scene, this will be the only child of another
+    /// pipeline which applies a pinch zoom transformation.
+    root_content_pipeline: RootPipeline,
 
     /// Tracks details about each active pipeline that the compositor knows about.
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
@@ -356,7 +361,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             embedder_coordinates: window.get_coordinates(),
             window,
             port: state.receiver,
-            root_pipeline: RootPipeline {
+            root_content_pipeline: RootPipeline {
                 top_level_browsing_context_id,
                 id: None,
             },
@@ -862,20 +867,81 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
+    /// Create a WebRender display list for the root pipeline in the given transaction.
+    /// This display list contains a full-screen iframe with the root content pipeline
+    /// with any pinch zoom transform applied to it.
+    fn set_root_display_list(&self, transaction: &mut Transaction) {
+        let root_content_pipeline = match self.root_content_pipeline.id {
+            Some(id) => id.to_webrender(),
+            None => return,
+        };
+
+        let zoom_factor = self.pinch_zoom_level();
+        if zoom_factor == 1.0 {
+            transaction.set_root_pipeline(root_content_pipeline);
+            return;
+        }
+
+        // Every display list needs a pipeline, but we'd like to choose one that is unlikely
+        // to conflict with our content pipelines, which start at (1, 1). (0, 0) is WebRender's
+        // dummy pipeline, so we choose (0, 1).
+        let root_pipeline = WebRenderPipelineId(0, 1);
+        transaction.set_root_pipeline(root_pipeline);
+
+        let mut builder = webrender_api::DisplayListBuilder::new(root_pipeline);
+        let viewport_size = LayoutSize::new(
+            self.embedder_coordinates.get_viewport().width() as f32,
+            self.embedder_coordinates.get_viewport().height() as f32,
+        );
+        let viewport_rect = LayoutRect::new(LayoutPoint::zero(), viewport_size);
+        let zoom_reference_frame = builder.push_reference_frame(
+            LayoutPoint::zero(),
+            SpatialId::root_reference_frame(root_pipeline),
+            TransformStyle::Flat,
+            PropertyBinding::Value(Transform3D::scale(zoom_factor, zoom_factor, 1.)),
+            ReferenceFrameKind::Transform {
+                is_2d_scale_translation: true,
+                should_snap: true,
+            },
+        );
+
+        builder.push_iframe(
+            viewport_rect,
+            viewport_rect,
+            &SpaceAndClipInfo {
+                spatial_id: zoom_reference_frame,
+                clip_id: ClipId::root(root_pipeline),
+            },
+            root_content_pipeline,
+            true,
+        );
+        let built_display_list = builder.finalize();
+
+        // NB: We are always passing 0 as the epoch here, but this doesn't seem to
+        // be an issue. WebRender will still update the scene and generate a new
+        // frame even though the epoch hasn't changed.
+        transaction.set_display_list(
+            WebRenderEpoch(0),
+            None,
+            viewport_rect.size,
+            built_display_list,
+            false,
+        );
+    }
+
     fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         debug!(
             "Setting the frame tree for pipeline {}",
             frame_tree.pipeline.id
         );
 
-        self.root_pipeline = RootPipeline {
+        self.root_content_pipeline = RootPipeline {
             top_level_browsing_context_id: frame_tree.pipeline.top_level_browsing_context_id,
             id: Some(frame_tree.pipeline.id),
         };
 
-        let pipeline_id = frame_tree.pipeline.id.to_webrender();
         let mut txn = Transaction::new();
-        txn.set_root_pipeline(pipeline_id);
+        self.set_root_display_list(&mut txn);
         txn.generate_frame(0);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
@@ -943,7 +1009,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             initial_viewport: initial_viewport,
         };
 
-        let top_level_browsing_context_id = self.root_pipeline.top_level_browsing_context_id;
+        let top_level_browsing_context_id =
+            self.root_content_pipeline.top_level_browsing_context_id;
 
         let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
 
@@ -1038,7 +1105,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         flags: HitTestFlags,
         pipeline_id: Option<WebRenderPipelineId>,
     ) -> Vec<CompositorHitTestResult> {
-        let root_pipeline_id = match self.root_pipeline.id {
+        let root_pipeline_id = match self.root_content_pipeline.id {
             Some(root_pipeline_id) => root_pipeline_id,
             None => return vec![],
         };
@@ -1307,7 +1374,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             if combined_event.magnification != 1.0 {
                 let old_zoom = self.pinch_zoom_level();
                 self.set_pinch_zoom_level(old_zoom * combined_event.magnification);
-                txn.set_pinch_zoom(ZoomFactor::new(self.pinch_zoom_level()));
+                self.set_root_display_list(&mut txn);
             }
             txn.generate_frame(0);
             self.webrender_api
@@ -1726,8 +1793,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // Perform the page flip. This will likely block for a while.
         if self.external_present {
             self.waiting_on_present = true;
-            let msg =
-                ConstellationMsg::ReadyToPresent(self.root_pipeline.top_level_browsing_context_id);
+            let msg = ConstellationMsg::ReadyToPresent(
+                self.root_content_pipeline.top_level_browsing_context_id,
+            );
             if let Err(e) = self.constellation_chan.send(msg) {
                 warn!("Sending event to constellation failed ({:?}).", e);
             }
