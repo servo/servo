@@ -7,7 +7,6 @@ use style::computed_values::text_decoration_style::T as ComputedTextDecorationSt
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::{Filter as ComputedFilter, Length};
 use style::values::RGBA;
-use webrender_api::units::LayoutVector2D;
 use webrender_api::{units, FilterOp, LineStyle, MixBlendMode, Shadow, TransformStyle};
 
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
@@ -37,7 +36,7 @@ impl FilterToWebRender for ComputedFilter {
             ComputedFilter::Sepia(amount) => FilterOp::Sepia(amount.0),
             ComputedFilter::DropShadow(ref shadow) => FilterOp::DropShadow(Shadow {
                 blur_radius: shadow.blur.px(),
-                offset: LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
+                offset: units::LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
                 color: super::rgba(shadow.color.clone().into_rgba(*current_color)),
             }),
             // Statically check that Url is impossible.
