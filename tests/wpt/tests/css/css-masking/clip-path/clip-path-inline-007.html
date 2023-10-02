@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>clip-path on inline with border-box and border-radius</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#valdef-shape-box-border-box">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#typedef-shape-box">
+<link rel="match" href="clip-path-inline-007-ref.html">
+<meta name="fuzzy" content="maxDifference=0-62; totalPixels=0-325">
+<meta content="ahem" name="flags">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .container {
+    font: 100px/1 Ahem;
+    line-height: 100px;
+  }
+  .container > span {
+    border-radius: 50px;
+    clip-path: border-box;
+    color: green;
+    /* This outline draws outside the border box and should be clipped. */
+    outline: 8px solid red;
+  }
+</style>
+<p>Test passes if there is a filled green circle with radius 50px.
+<div class="container">
+  <span>X</span>
+</div>

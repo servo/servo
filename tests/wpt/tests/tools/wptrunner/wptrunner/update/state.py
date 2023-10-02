@@ -63,8 +63,8 @@ class BaseState:
             raise AttributeError
         try:
             return self._data[self._index][key]
-        except KeyError:
-            raise AttributeError
+        except KeyError as e:
+            raise AttributeError from e
 
     def __contains__(self, key):
         return key in self._data[self._index]

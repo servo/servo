@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Tests auto fallbacks with scrolling</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback-automatic">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+#container {
+  position: relative;
+  width: 200px;
+  height: 300px;
+}
+
+#scroller {
+  height: 300px;
+  overflow-y: scroll;
+}
+
+#anchor {
+  width: 100px;
+  height: 100px;
+  margin-top: 200px;
+  margin-bottom: 200px;
+  background: orange;
+  anchor-name: --a;
+}
+
+#target {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  anchor-default: --a;
+  left: anchor(left);
+  top: anchor(auto);
+  background: lime;
+}
+</style>
+
+<div id="container">
+  <div id="scroller">
+    <div id="anchor"></div>
+  </div>
+  <div id="target"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'top');
+}, 'Should be above the anchor when at initial scroll position');
+
+promise_test(async () => {
+  scroller.scrollTop = 100;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(target, anchor, 'bottom');
+}, 'Scroll down to allow enough space below the anchor, should move target below');
+</script>

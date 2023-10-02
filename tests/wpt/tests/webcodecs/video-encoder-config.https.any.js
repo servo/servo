@@ -90,6 +90,14 @@ const validButUnsupportedConfigs = [
     },
   },
   {
+    comment: 'Codec with bad casing',
+    config: {
+      codec: 'vP8',
+      width: 640,
+      height: 480,
+    },
+  },
+  {
     comment: 'Width is too large',
     config: {
       codec: 'vp8',
@@ -183,11 +191,22 @@ validButUnsupportedConfigs.forEach(entry => {
 validButUnsupportedConfigs.forEach(entry => {
   async_test(
       t => {
-        let codec = new VideoEncoder(getDefaultCodecInit(t));
-        assert_throws_dom('NotSupportedError', () => {
-          codec.configure(entry.config);
+        let codec = new VideoEncoder({
+          output: t.unreached_func('unexpected output'),
+          error: t.step_func_done(e => {
+            assert_true(e instanceof DOMException);
+            assert_equals(e.name, 'NotSupportedError');
+            assert_equals(codec.state, 'closed', 'state');
+          })
         });
-        t.done();
+        codec.configure(entry.config);
+        codec.flush()
+            .then(t.unreached_func('flush succeeded unexpectedly'))
+            .catch(t.step_func(e => {
+              assert_true(e instanceof DOMException);
+              assert_equals(e.name, 'NotSupportedError');
+              assert_equals(codec.state, 'closed', 'state');
+            }));
       },
       'Test that VideoEncoder.configure() doesn\'t support config: ' +
           entry.comment);
@@ -251,12 +270,7 @@ validConfigs.forEach(config => {
       assert_equals(new_config.latencyMode, config.latencyMode);
     if (config.alpha)
       assert_equals(new_config.alpha, config.alpha);
-    if (config.codec.startsWith('avc')) {
-      if (config.avc) {
-        assert_equals(new_config.avc.format, config.avc.format);
-      }
-    } else {
-      assert_equals(new_config.avc, undefined);
-    }
+    if (config.avc)
+      assert_equals(new_config.avc.format, config.avc.format);
   }, "VideoEncoder.isConfigSupported() supports:" + JSON.stringify(config));
 });

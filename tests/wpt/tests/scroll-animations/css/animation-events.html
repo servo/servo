@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html id="top">
+<meta charset="utf-8">
+<title>View timeline animation events</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#events">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style type="text/css">
+  @keyframes anim {
+    from { transform: translateX(0); }
+    to   { transform: translateX(100px); }
+  }
+  #target {
+    background: green;
+    height: 100px;
+    width: 100px;
+    margin-bottom: 150vh;
+    animation-timeline: view();
+  }
+  .animate {
+    animation:  anim auto;
+  }
+</style>
+<body>
+  <div id="target"></div>
+</body>
+<script type="text/javascript">
+  promise_test(async t => {
+    const target = document.getElementById('target');
+
+    // Create a timeline and advance to the next frame to ensure that the
+    // timeline has a value for currentTime.
+    await waitForNextFrame();
+    const timeline = new ViewTimeline({ subject: target });
+    await waitForNextFrame();
+
+    let animationstart_events = 0;
+    let animationend_events = 0;
+    document.addEventListener('animationstart', () => {
+      animationstart_events++;
+    });
+    document.addEventListener('animationend', () => {
+      animationend_events++;
+    });
+
+    // Start the animation and swap out its timeline while still play-pending
+    // so that it already has a value for current time.
+    target.classList.add('animate');
+    const anim = target.getAnimations();
+    anim.timeline = timeline;
+    // Introduce a style change that will make the timeline state stale when
+    // "ticked" at the start of the next animation frame.
+    target.style = 'margin-top: 150vh';
+
+    assert_false(!!anim.startTime,
+                 'Start time deferred until timeline is updated');
+
+    // Verify that we are not evaluating a start time based on a stale timeline.
+    await waitForNextFrame();
+    await waitForNextFrame();
+    assert_equals(animationstart_events, 0,
+                  'Target initially off-screen and no animationstart event');
+    assert_equals(animationend_events, 0,
+                  'Target initially off-screen and no animationend event');
+
+    const scroller = document.scrollingElement;
+    scroller.scrollTop = target.getBoundingClientRect().top;
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    assert_equals(animationstart_events, 1,
+                  'scrollstart event received after scrolling into view.');
+    assert_equals(animationend_events, 0,
+                  "No scrollend event until after scrolling out of view");
+
+    scroller.scrollTop = target.getBoundingClientRect().bottom;
+
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    assert_equals(animationstart_events, 1,
+                  'No additional scrollstart event');
+    assert_equals(animationend_events, 1,
+                  'scrollend event received after scrolling out of view');
+  }, 'View timelime generates animationstart and animationend events');
+</script>

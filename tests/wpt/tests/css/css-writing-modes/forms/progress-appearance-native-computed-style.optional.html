@@ -13,8 +13,11 @@
 test(() => {
   const progress = document.querySelector(`progress[style="writing-mode: horizontal-tb"]`);
   const style = getComputedStyle(progress);
-  assert_equals(style.blockSize, "16px");
-  assert_equals(style.inlineSize, "160px");
+  const blockSize = parseInt(style.blockSize, 10);
+  const inlineSize = parseInt(style.inlineSize, 10);
+  assert_not_equals(blockSize, 0);
+  assert_not_equals(inlineSize, 0);
+  assert_greater_than(inlineSize, blockSize);
   assert_equals(style.blockSize, style.height);
   assert_equals(style.inlineSize, style.width);
 }, `progress[style="writing-mode: horizontal-tb"] block size should match height and inline size should match width`);
@@ -23,8 +26,11 @@ for (const writingMode of ["vertical-lr", "vertical-rl"]) {
   test(() => {
     const progress = document.querySelector(`progress[style="writing-mode: ${writingMode}"]`);
     const style = getComputedStyle(progress);
-    assert_equals(style.blockSize, "16px");
-    assert_equals(style.inlineSize, "160px");
+    const blockSize = parseInt(style.blockSize, 10);
+    const inlineSize = parseInt(style.inlineSize, 10);
+    assert_not_equals(blockSize, 0);
+    assert_not_equals(inlineSize, 0);
+    assert_greater_than(inlineSize, blockSize);
     assert_equals(style.blockSize, style.width);
     assert_equals(style.inlineSize, style.height);
   }, `progress[style="writing-mode: ${writingMode}"] block size should match width and inline size should match height`);

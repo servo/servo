@@ -23,6 +23,7 @@ const client_hints_list = [
   "sec-ch-viewport-width",
   "sec-ch-ua-full-version-list",
   "sec-ch-ua-wow64",
+  "sec-ch-prefers-reduced-transparency",
 ];
 
 const client_hints_full_list = client_hints_list.concat(["width", "sec-ch-width"])

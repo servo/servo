@@ -16,6 +16,7 @@ async_test(t => {
     assert_equals(e.destination.id, "");
     assert_equals(e.destination.index, -1);
     assert_equals(e.formData, null);
+    assert_equals(e.sourceElement, null);
   });
   navigation.navigate("#foo");
 }, "navigate event for navigation.navigate()");

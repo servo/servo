@@ -31,29 +31,38 @@ def test_all_browser_abc():
 
 
 def test_edgechromium_webdriver_supports_browser():
-    # EdgeDriver binary cannot be called.
+    # MSEdgeDriver binary cannot be called.
     edge = browser.EdgeChromium(logger)
     edge.webdriver_version = mock.MagicMock(return_value=None)
-    assert not edge.webdriver_supports_browser('/usr/bin/edgedriver', '/usr/bin/edge')
+    assert not edge.webdriver_supports_browser('/usr/bin/edgedriver', '/usr/bin/edge', 'stable')
 
     # Browser binary cannot be called.
     edge = browser.EdgeChromium(logger)
     edge.webdriver_version = mock.MagicMock(return_value='70.0.1')
     edge.version = mock.MagicMock(return_value=None)
-    assert edge.webdriver_supports_browser('/usr/bin/edgedriver', '/usr/bin/edge')
+    assert edge.webdriver_supports_browser('/usr/bin/edgedriver', '/usr/bin/edge', 'stable')
 
     # Browser version matches.
     edge = browser.EdgeChromium(logger)
-    edge.webdriver_version = mock.MagicMock(return_value='70.0.1')
+    # Versions should be an exact match to be compatible.
+    edge.webdriver_version = mock.MagicMock(return_value='70.1.5')
     edge.version = mock.MagicMock(return_value='70.1.5')
-    assert edge.webdriver_supports_browser('/usr/bin/edgedriver', '/usr/bin/edge')
+    assert edge.webdriver_supports_browser('/usr/bin/edgedriver', '/usr/bin/edge', 'stable')
 
     # Browser version doesn't match.
     edge = browser.EdgeChromium(logger)
     edge.webdriver_version = mock.MagicMock(return_value='70.0.1')
     edge.version = mock.MagicMock(return_value='69.0.1')
-    assert not edge.webdriver_supports_browser('/usr/bin/edgedriver', '/usr/bin/edge')
+    assert not edge.webdriver_supports_browser('/usr/bin/edgedriver', '/usr/bin/edge', 'stable')
 
+    # MSEdgeDriver version should match for MAJOR.MINOR.BUILD version.
+    edge = browser.EdgeChromium(logger)
+    edge.webdriver_version = mock.MagicMock(return_value='70.0.1.0')
+    edge.version = mock.MagicMock(return_value='70.0.1.1 dev')
+    assert edge.webdriver_supports_browser('/usr/bin/edgedriver', '/usr/bin/edge', 'dev')
+    # Mismatching minor version should not match.
+    edge.webdriver_version = mock.MagicMock(return_value='70.9.1')
+    assert not edge.webdriver_supports_browser('/usr/bin/edgedriver', '/usr/bin/edge', 'dev')
 
 # On Windows, webdriver_version directly calls _get_fileversion, so there is no
 # logic to test there.

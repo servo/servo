@@ -15,6 +15,7 @@ from .base import (
 )
 from .executorwebdriver import (
     WebDriverCrashtestExecutor,
+    WebDriverFedCMProtocolPart,
     WebDriverProtocol,
     WebDriverRefTestExecutor,
     WebDriverRun,
@@ -79,6 +80,8 @@ class ChromeDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
         # exposed to the base WebDriver testharness executor.
         self.test_window = None
         self.reuse_window = self.parent.reuse_window
+        # Company prefix to apply to vendor-specific WebDriver extension commands.
+        self.cdp_company_prefix = "goog"
 
     def close_test_window(self):
         if self.test_window:
@@ -107,7 +110,8 @@ class ChromeDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
                     "cmd": "Page.resetNavigationHistory",
                     "params": {},
                 }
-                self.webdriver.send_session_command("POST", "goog/cdp/execute",
+                self.webdriver.send_session_command("POST",
+                                                    self.cdp_company_prefix + "/cdp/execute",
                                                     body=body)
                 self.webdriver.url = "about:blank"
                 return
@@ -135,6 +139,8 @@ class ChromeDriverPrintProtocolPart(PrintProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
         self.runner_handle = None
+        # Company prefix to apply to vendor-specific WebDriver extension commands.
+        self.cdp_company_prefix = "goog"
 
     def load_runner(self):
         url = urljoin(self.parent.executor.server_url("http"), "/print_pdf_runner.html")
@@ -166,7 +172,9 @@ class ChromeDriverPrintProtocolPart(PrintProtocolPart):
                 "printBackground": True,
             }
         }
-        return self.webdriver.send_session_command("POST", "goog/cdp/execute", body=body)["data"]
+        return self.webdriver.send_session_command("POST",
+                                                   self.cdp_company_prefix + "/cdp/execute",
+                                                   body=body)["data"]
 
     def pdf_to_png(self, pdf_base64, ranges):
         handle = self.webdriver.window_handle
@@ -182,12 +190,26 @@ render('%s').then(result => callback(result))""" % pdf_base64)
             self.webdriver.window_handle = handle
 
 
+class ChromeDriverFedCMProtocolPart(WebDriverFedCMProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+        # Company prefix to apply to vendor-specific WebDriver extension commands.
+        self.fedcm_company_prefix = "goog"
+
+
+    def confirm_idp_login(self):
+        return self.webdriver.send_session_command("POST",
+                                                   self.fedcm_company_prefix + "/fedcm/confirmidplogin")
+
+
 class ChromeDriverProtocol(WebDriverProtocol):
     implements = [
+        ChromeDriverFedCMProtocolPart,
         ChromeDriverPrintProtocolPart,
         ChromeDriverTestharnessProtocolPart,
         *(part for part in WebDriverProtocol.implements
-          if part.name != ChromeDriverTestharnessProtocolPart.name)
+          if part.name != ChromeDriverTestharnessProtocolPart.name and
+            part.name != ChromeDriverFedCMProtocolPart.name)
     ]
     reuse_window = False
 

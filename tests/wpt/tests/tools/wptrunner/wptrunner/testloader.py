@@ -1,20 +1,21 @@
 # mypy: allow-untyped-defs
+from __future__ import annotations
 
 import abc
 import hashlib
 import itertools
 import json
 import os
+import queue
 from urllib.parse import urlsplit
 from abc import ABCMeta, abstractmethod
 from queue import Empty
 from collections import defaultdict, deque, namedtuple
-from typing import Any, cast
+from typing import cast, Any, Dict, List, Optional, Set
 
 from . import manifestinclude
 from . import manifestexpected
 from . import manifestupdate
-from . import mpcontext
 from . import wpttest
 from mozlog import structured
 
@@ -31,29 +32,108 @@ def do_delayed_imports():
     from manifest.download import download_from_github  # type: ignore
 
 
-class TestGroupsFile:
-    """
-    Mapping object representing {group name: [test ids]}
-    """
-
-    def __init__(self, logger, path):
+class TestGroups:
+    def __init__(self, logger, path, subsuites):
         try:
             with open(path) as f:
-                self._data = json.load(f)
+                data = json.load(f)
         except ValueError:
             logger.critical("test groups file %s not valid json" % path)
             raise
 
+        self.tests_by_group = defaultdict(set)
         self.group_by_test = {}
-        for group, test_ids in self._data.items():
+        for group, test_ids in data.items():
+            id_parts = group.split(":", 1)
+            if len(id_parts) == 1:
+                group_name = id_parts[0]
+                subsuite = ""
+            else:
+                subsuite, group_name = id_parts
+                if subsuite not in subsuites:
+                    raise ValueError(f"Unknown subsuite {subsuite} in group data {group}")
             for test_id in test_ids:
-                self.group_by_test[test_id] = group
+                self.group_by_test[(subsuite, test_id)] = group_name
+                self.tests_by_group[group_name].add(test_id)
 
-    def __contains__(self, key):
-        return key in self._data
 
-    def __getitem__(self, key):
-        return self._data[key]
+def load_subsuites(logger: Any,
+                   base_run_info: wpttest.RunInfo,
+                   path: Optional[str],
+                   include_subsuites: Set[str]) -> Dict[str, Subsuite]:
+    subsuites: Dict[str, Subsuite] = {}
+    run_all_subsuites = not include_subsuites
+    include_subsuites.add("")
+
+    def maybe_add_subsuite(name: str, data: Dict[str, Any]) -> None:
+        if run_all_subsuites or name in include_subsuites:
+            subsuites[name] = Subsuite(name,
+                                       data.get("config", {}),
+                                       base_run_info,
+                                       run_info_extras=data.get("run_info", {}),
+                                       include=data.get("include"),
+                                       tags=set(data["tags"]) if "tags" in data else None)
+            if name in include_subsuites:
+                include_subsuites.remove(name)
+
+    maybe_add_subsuite("", {})
+
+    if path is None:
+        if include_subsuites:
+            raise ValueError("Unrecognised subsuites {','.join(include_subsuites)}, missing --subsuite-file?")
+        return subsuites
+
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except ValueError:
+        logger.critical("subsuites file %s not valid json" % path)
+        raise
+
+    for key, subsuite in data.items():
+        if key == "":
+            raise ValueError("Subsuites must have a non-empty name")
+        maybe_add_subsuite(key, subsuite)
+
+    if include_subsuites:
+        raise ValueError(f"Unrecognised subsuites {','.join(include_subsuites)}")
+
+    return subsuites
+
+
+class Subsuite:
+    def __init__(self,
+                 name: str,
+                 config: Dict[str, Any],
+                 base_run_info: Optional[wpttest.RunInfo] = None,
+                 run_info_extras: Optional[Dict[str, Any]] = None,
+                 include: Optional[List[str]] = None,
+                 tags: Optional[Set[str]] = None):
+        self.name = name
+        self.config = config
+        self.run_info_extras = run_info_extras or {}
+        self.run_info_extras["subsuite"] = name
+        self.include = include
+        self.tags = tags
+
+        run_info = base_run_info.copy() if base_run_info is not None else {}
+        run_info.update(self.run_info_extras)
+        self.run_info = run_info
+
+    def manifest_filters(self, manifests):
+        if self.name:
+            manifest_filters = [TestFilter(manifests,
+                                           include=self.include,
+                                           explicit=True)]
+            return manifest_filters
+
+        # use base manifest_filters for default subsuite
+        return []
+
+    def __repr__(self):
+        return "Subsuite('%s', config:%s, run_info:%s)" % (self.name or 'default',
+                                                           str(self.config),
+                                                           str(self.run_info))
 
 
 def read_include_from_file(file):
@@ -69,15 +149,17 @@ def read_include_from_file(file):
 
 
 def update_include_for_groups(test_groups, include):
+    new_include = []
     if include is None:
         # We're just running everything
-        return
-    new_include = []
-    for item in include:
-        if item in test_groups:
-            new_include.extend(test_groups[item])
-        else:
-            new_include.append(item)
+        for tests in test_groups.tests_by_group.values():
+            new_include.extend(tests)
+    else:
+        for item in include:
+            if item in test_groups.tests_by_group:
+                new_include.extend(test_groups.tests_by_group[item])
+            else:
+                new_include.append(item)
     return new_include
 
 
@@ -240,7 +322,8 @@ class TestLoader:
     def __init__(self,
                  test_manifests,
                  test_types,
-                 run_info,
+                 base_run_info,
+                 subsuites=None,
                  manifest_filters=None,
                  test_filters=None,
                  chunk_type="none",
@@ -250,11 +333,13 @@ class TestLoader:
                  include_h2=True,
                  include_webtransport_h3=False,
                  skip_timeout=False,
+                 skip_crash=False,
                  skip_implementation_status=None,
                  chunker_kwargs=None):
 
         self.test_types = test_types
-        self.run_info = run_info
+        self.base_run_info = base_run_info
+        self.subsuites = subsuites or {}
 
         self.manifest_filters = manifest_filters if manifest_filters is not None else []
         self.test_filters = test_filters if test_filters is not None else []
@@ -266,6 +351,7 @@ class TestLoader:
         self.include_h2 = include_h2
         self.include_webtransport_h3 = include_webtransport_h3
         self.skip_timeout = skip_timeout
+        self.skip_crash = skip_crash
         self.skip_implementation_status = skip_implementation_status
 
         self.chunk_type = chunk_type
@@ -284,7 +370,6 @@ class TestLoader:
         self._test_ids = None
 
         self.directory_manifests = {}
-
         self._load_tests()
 
     @property
@@ -292,8 +377,9 @@ class TestLoader:
         if self._test_ids is None:
             self._test_ids = []
             for test_dict in [self.disabled_tests, self.tests]:
-                for test_type in self.test_types:
-                    self._test_ids += [item.id for item in test_dict[test_type]]
+                for subsuite in self.subsuites:
+                    for test_type in self.test_types:
+                        self._test_ids += [item.id for item in test_dict[subsuite][test_type]]
         return self._test_ids
 
     def get_test(self, manifest_file, manifest_test, inherit_metadata, test_metadata):
@@ -303,31 +389,31 @@ class TestLoader:
 
         return wpttest.from_manifest(manifest_file, manifest_test, inherit_metadata, test_metadata)
 
-    def load_dir_metadata(self, test_manifest, metadata_path, test_path):
+    def load_dir_metadata(self, run_info, test_manifest, metadata_path, test_path):
         rv = []
         path_parts = os.path.dirname(test_path).split(os.path.sep)
         for i in range(len(path_parts) + 1):
             path = os.path.join(metadata_path, os.path.sep.join(path_parts[:i]), "__dir__.ini")
             if path not in self.directory_manifests:
                 self.directory_manifests[path] = manifestexpected.get_dir_manifest(path,
-                                                                                   self.run_info)
+                                                                                   run_info)
             manifest = self.directory_manifests[path]
             if manifest is not None:
                 rv.append(manifest)
         return rv
 
-    def load_metadata(self, test_manifest, metadata_path, test_path):
-        inherit_metadata = self.load_dir_metadata(test_manifest, metadata_path, test_path)
+    def load_metadata(self, run_info, test_manifest, metadata_path, test_path):
+        inherit_metadata = self.load_dir_metadata(run_info, test_manifest, metadata_path, test_path)
         test_metadata = manifestexpected.get_manifest(
-            metadata_path, test_path, self.run_info)
+            metadata_path, test_path, run_info)
         return inherit_metadata, test_metadata
 
-    def iter_tests(self):
+    def iter_tests(self, run_info, manifest_filters):
         manifest_items = []
         manifests_by_url_base = {}
 
         for manifest in sorted(self.manifests.keys(), key=lambda x:x.url_base):
-            manifest_iter = iterfilter(self.manifest_filters,
+            manifest_iter = iterfilter(manifest_filters,
                                        manifest.itertypes(*self.test_types))
             manifest_items.extend(manifest_iter)
             manifests_by_url_base[manifest.url_base] = manifest
@@ -339,32 +425,44 @@ class TestLoader:
             manifest_file = manifests_by_url_base[next(iter(tests)).url_base]
             metadata_path = self.manifests[manifest_file]["metadata_path"]
 
-            inherit_metadata, test_metadata = self.load_metadata(manifest_file, metadata_path, test_path)
+            inherit_metadata, test_metadata = self.load_metadata(run_info, manifest_file, metadata_path, test_path)
             for test in tests:
                 wpt_test = self.get_test(manifest_file, test, inherit_metadata, test_metadata)
                 if all(f(wpt_test) for f in self.test_filters):
                     yield test_path, test_type, wpt_test
 
     def _load_tests(self):
-        """Read in the tests from the manifest file and add them to a queue"""
-        tests = {"enabled":defaultdict(list),
-                 "disabled":defaultdict(list)}
+        """Read in the tests from the manifest file"""
+        tests_enabled = {}
+        tests_disabled = {}
 
-        for test_path, test_type, test in self.iter_tests():
-            enabled = not test.disabled()
-            if not self.include_https and test.environment["protocol"] == "https":
-                enabled = False
-            if not self.include_h2 and test.environment["protocol"] == "h2":
-                enabled = False
-            if self.skip_timeout and test.expected() == "TIMEOUT":
-                enabled = False
-            if self.skip_implementation_status and test.implementation_status() in self.skip_implementation_status:
-                enabled = False
-            key = "enabled" if enabled else "disabled"
-            tests[key][test_type].append(test)
+        for subsuite_name, subsuite in self.subsuites.items():
+            tests_enabled[subsuite_name] = defaultdict(list)
+            tests_disabled[subsuite_name] = defaultdict(list)
+            run_info = subsuite.run_info
+            if not subsuite_name:
+                manifest_filters = self.manifest_filters
+            else:
+                manifest_filters = subsuite.manifest_filters(self.manifests)
+            for test_path, test_type, test in self.iter_tests(run_info, manifest_filters):
+                enabled = not test.disabled()
+                if not self.include_https and test.environment["protocol"] == "https":
+                    enabled = False
+                if not self.include_h2 and test.environment["protocol"] == "h2":
+                    enabled = False
+                if self.skip_timeout and test.expected() == "TIMEOUT":
+                    enabled = False
+                if self.skip_crash and test.expected() == "CRASH":
+                    enabled = False
+                if self.skip_implementation_status and test.implementation_status() in self.skip_implementation_status:
+                    # for backlog, we want to run timeout/crash:
+                    if not (test.implementation_status() == "implementing" and test.expected() in ["TIMEOUT", "CRASH"]):
+                        enabled = False
+                target = tests_enabled if enabled else tests_disabled
+                target[subsuite_name][test_type].append(test)
 
-        self.tests = tests["enabled"]
-        self.disabled_tests = tests["disabled"]
+        self.tests = tests_enabled
+        self.disabled_tests = tests_disabled
 
     def groups(self, test_types, chunk_type="none", total_chunks=1, chunk_number=1):
         groups = set()
@@ -377,11 +475,16 @@ class TestLoader:
         return groups
 
 
+TestSourceData = namedtuple("TestSourceData", ["cls", "kwargs"])
+
+
 def get_test_src(**kwargs):
     test_source_kwargs = {"processes": kwargs["processes"],
                           "logger": kwargs["logger"]}
     chunker_kwargs = {}
-    if kwargs["run_by_dir"] is not False:
+    if kwargs["fully_parallel"]:
+        test_source_cls = FullyParallelGroupedSource
+    elif kwargs["run_by_dir"] is not False:
         # A value of None indicates infinite depth
         test_source_cls = PathGroupedSource
         test_source_kwargs["depth"] = kwargs["run_by_dir"]
@@ -391,10 +494,10 @@ def get_test_src(**kwargs):
         test_source_kwargs["test_groups"] = kwargs["test_groups"]
     else:
         test_source_cls = SingleTestSource
-    return test_source_cls, test_source_kwargs, chunker_kwargs
+    return TestSourceData(test_source_cls, test_source_kwargs), chunker_kwargs
 
 
-TestGroup = namedtuple("TestGroup", ["group", "test_type", "metadata"])
+TestGroup = namedtuple("TestGroup", ["group", "subsuite", "test_type", "metadata"])
 
 
 class TestSource:
@@ -402,15 +505,14 @@ class TestSource:
 
     def __init__(self, test_queue):
         self.test_queue = test_queue
-        self.current_group = TestGroup(None, None, None)
+        self.current_group = TestGroup(None, None, None, None)
         self.logger = structured.get_default_logger()
         if self.logger is None:
             self.logger = structured.structuredlog.StructuredLogger("TestSource")
 
     @classmethod
     def make_queue(cls, tests_by_type, **kwargs):
-        mp = mpcontext.get_context()
-        test_queue = mp.Queue()
+        test_queue = queue.SimpleQueue()
         groups = cls.make_groups(tests_by_type, **kwargs)
         processes = cls.process_count(kwargs["processes"], len(groups))
         if processes > 1:
@@ -427,11 +529,12 @@ class TestSource:
         cls.add_sentinal(test_queue, processes)
         return test_queue, processes
 
+    @classmethod
     @abstractmethod
-    #@classmethod (doesn't compose with @abstractmethod in < 3.3)
     def make_groups(cls, tests_by_type, **kwargs):  # noqa: N805
         pass
 
+    @classmethod
     @abstractmethod
     def tests_by_group(cls, tests_by_type, **kwargs):  # noqa: N805
         pass
@@ -446,14 +549,14 @@ class TestSource:
                 self.current_group = self.test_queue.get(block=True, timeout=5)
             except Empty:
                 self.logger.warning("Timed out getting test group from queue")
-                return TestGroup(None, None, None)
+                return TestGroup(None, None, None, None)
         return self.current_group
 
     @classmethod
     def add_sentinal(cls, test_queue, num_of_workers):
         # add one sentinal for each worker
         for _ in range(num_of_workers):
-            test_queue.put(TestGroup(None, None, None))
+            test_queue.put(TestGroup(None, None, None, None))
 
     @classmethod
     def process_count(cls, requested_processes, num_test_groups):
@@ -463,42 +566,11 @@ class TestSource:
         return max(1, min(requested_processes, num_test_groups))
 
 
-class GroupedSource(TestSource):
-    @classmethod
-    def new_group(cls, state, test_type, test, **kwargs):
-        raise NotImplementedError
-
-    @classmethod
-    def make_groups(cls, tests_by_type, **kwargs):
-        groups, state = [], {}
-        for test_type, tests in tests_by_type.items():
-            for test in tests:
-                if cls.new_group(state, test_type, test, **kwargs):
-                    group_metadata = cls.group_metadata(state)
-                    groups.append(TestGroup(deque(), test_type, group_metadata))
-                group, _, metadata = groups[-1]
-                group.append(test)
-                test.update_metadata(metadata)
-        return groups
-
-    @classmethod
-    def tests_by_group(cls, tests_by_type, **kwargs):
-        groups = defaultdict(list)
-        state = {}
-        current = None
-        for test_type, tests in tests_by_type.items():
-            for test in tests:
-                if cls.new_group(state, test_type, test, **kwargs):
-                    current = cls.group_metadata(state)['scope']
-                groups[current].append(test.id)
-        return groups
-
-
 class SingleTestSource(TestSource):
     @classmethod
     def make_groups(cls, tests_by_type, **kwargs):
         groups = []
-        for test_type, tests in tests_by_type.items():
+        for (subsuite, test_type), tests in tests_by_type.items():
             processes = kwargs["processes"]
             queues = [deque([]) for _ in range(processes)]
             metadatas = [cls.group_metadata(None) for _ in range(processes)]
@@ -509,41 +581,84 @@ class SingleTestSource(TestSource):
                 group.append(test)
                 test.update_metadata(metadata)
 
-            for item in zip(queues, itertools.repeat(test_type), metadatas):
+            for item in zip(queues,
+                            itertools.repeat(subsuite),
+                            itertools.repeat(test_type),
+                            metadatas):
                 if len(item[0]) > 0:
                     groups.append(TestGroup(*item))
         return groups
 
     @classmethod
     def tests_by_group(cls, tests_by_type, **kwargs):
-        return {cls.group_metadata(None)['scope']:
-                [t.id for t in itertools.chain.from_iterable(tests_by_type.values())]}
+        groups = defaultdict(list)
+        for (subsuite, test_type), tests in tests_by_type.items():
+            group_name = f"{subsuite}:{cls.group_metadata(None)['scope']}"
+            groups[group_name].extend(test.id for test in tests)
+        return groups
 
 
-class PathGroupedSource(GroupedSource):
+class PathGroupedSource(TestSource):
     @classmethod
-    def new_group(cls, state, test_type, test, **kwargs):
+    def new_group(cls, state, subsuite, test_type, test, **kwargs):
         depth = kwargs.get("depth")
         if depth is True or depth == 0:
             depth = None
         path = urlsplit(test.url).path.split("/")[1:-1][:depth]
-        rv = (test_type != state.get("prev_test_type") or
-              path != state.get("prev_path"))
-        state["prev_test_type"] = test_type
-        state["prev_path"] = path
+        rv = (subsuite, test_type, path) != state.get("prev_group_key")
+        state["prev_group_key"] = (subsuite, test_type, path)
         return rv
 
     @classmethod
+    def make_groups(cls, tests_by_type, **kwargs):
+        groups, state = [], {}
+        for (subsuite, test_type), tests in tests_by_type.items():
+            for test in tests:
+                if cls.new_group(state, subsuite, test_type, test, **kwargs):
+                    group_metadata = cls.group_metadata(state)
+                    groups.append(TestGroup(deque(), subsuite, test_type, group_metadata))
+                group, _, _, metadata = groups[-1]
+                group.append(test)
+                test.update_metadata(metadata)
+        return groups
+
+    @classmethod
+    def tests_by_group(cls, tests_by_type, **kwargs):
+        groups = defaultdict(list)
+        state = {}
+        for (subsuite, test_type), tests in tests_by_type.items():
+            for test in tests:
+                if cls.new_group(state, subsuite, test_type, test, **kwargs):
+                    group = cls.group_metadata(state)['scope']
+                if subsuite is not None:
+                    group_name = f"{subsuite}:{group}"
+                else:
+                    group_name = group
+                groups[group_name].append(test.id)
+        return groups
+
+    @classmethod
     def group_metadata(cls, state):
-        return {"scope": "/%s" % "/".join(state["prev_path"])}
+        return {"scope": "/%s" % "/".join(state["prev_group_key"][2])}
+
+
+class FullyParallelGroupedSource(PathGroupedSource):
+    # Chuck every test into a different group, so that they can run
+    # fully parallel with each other. Useful to run a lot of tests
+    # clustered in a few directories.
+    @classmethod
+    def new_group(cls, state, subsuite, test_type, test, **kwargs):
+        path = urlsplit(test.url).path.split("/")[1:-1]
+        state["prev_group_key"] = (subsuite, test_type, path)
+        return True
 
 
 class GroupFileTestSource(TestSource):
     @classmethod
     def make_groups(cls, tests_by_type, **kwargs):
         groups = []
-        for test_type, tests in tests_by_type.items():
-            tests_by_group = cls.tests_by_group({test_type: tests},
+        for (subsuite, test_type), tests in tests_by_type.items():
+            tests_by_group = cls.tests_by_group({(subsuite, test_type): tests},
                                                 **kwargs)
             ids_to_tests = {test.id: test for test in tests}
             for group_name, test_ids in tests_by_group.items():
@@ -553,21 +668,25 @@ class GroupFileTestSource(TestSource):
                     test = ids_to_tests[test_id]
                     group.append(test)
                     test.update_metadata(group_metadata)
-                groups.append(TestGroup(group, test_type, group_metadata))
+                groups.append(TestGroup(group, subsuite, test_type, group_metadata))
         return groups
 
     @classmethod
     def tests_by_group(cls, tests_by_type, **kwargs):
-        logger = kwargs["logger"]
         test_groups = kwargs["test_groups"]
 
         tests_by_group = defaultdict(list)
-        for test in itertools.chain.from_iterable(tests_by_type.values()):
-            try:
-                group = test_groups.group_by_test[test.id]
-            except KeyError:
-                logger.error("%s is missing from test groups file" % test.id)
-                raise
-            tests_by_group[group].append(test.id)
+        for (subsuite, test_type), tests in tests_by_type.items():
+            for test in tests:
+                try:
+                    group = test_groups.group_by_test[(subsuite, test.id)]
+                except KeyError:
+                    print(f"{test.id} is missing from test groups file")
+                    raise
+                if subsuite:
+                    group_name = f"{subsuite}:{group}"
+                else:
+                    group_name = group
+                tests_by_group[group_name].append(test.id)
 
         return tests_by_group

@@ -80,9 +80,9 @@ dictionary FileSystemReadWriteOptions {
 
 [Exposed=DedicatedWorker, SecureContext]
 interface FileSystemSyncAccessHandle {
-  unsigned long long read([AllowShared] BufferSource buffer,
+  unsigned long long read(AllowSharedBufferSource buffer,
                           optional FileSystemReadWriteOptions options = {});
-  unsigned long long write([AllowShared] BufferSource buffer,
+  unsigned long long write(AllowSharedBufferSource buffer,
                            optional FileSystemReadWriteOptions options = {});
 
   undefined truncate([EnforceRange] unsigned long long newSize);

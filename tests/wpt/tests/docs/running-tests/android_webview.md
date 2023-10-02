@@ -32,7 +32,7 @@ If you have an issue with ChromeDriver version mismatch, try one of the followin
 
 Configure host remap rules in the [webview commandline file](https://cs.chromium.org/chromium/src/android_webview/docs/commandline-flags.md?l=57):
 ```
-adb shell "echo '_ --host-resolver-rules=\"MAP nonexistent.*.test ~NOTFOUND, MAP *.test 127.0.0.1\"' > /data/local/tmp/webview-command-line"
+adb shell "echo '_ --host-resolver-rules=\"MAP nonexistent.*.test ^NOTFOUND, MAP *.test 127.0.0.1\"' > /data/local/tmp/webview-command-line"
 ```
 
 Ensure that `adb` can be found on your system's PATH.

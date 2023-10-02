@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html parseparts>
+<title>DOM Parts: parseparts on root</title>
+<meta name="author" href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/domparts-utils.js"></script>
+
+<div>{{#}}Parts{{/}}</div>
+
+<script>
+  test(() => {
+    const target = document.currentScript.previousElementSibling;
+    assert_true(document.documentElement.hasAttribute('parseparts'));
+    const root = document.getPartRoot();
+    assert_equals(root.getParts().length,0);
+    assert_equals(target.innerHTML,'{{#}}Parts{{/}}');
+    target.remove();
+  }, 'It is not possible to put parseparts on the root element');
+</script>

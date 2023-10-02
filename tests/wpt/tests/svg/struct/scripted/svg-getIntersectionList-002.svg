@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="root" xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script>
+    const test = async_test('getIntersectionList() on clipped element');
+    window.onload = test.step_func_done(() => {
+      const testSVG = document.getElementById('root');
+      const r = testSVG.createSVGRect();
+      r.x = 0;
+      r.y = 0;
+      r.width = 100;
+      r.height = 100;
+
+      assert_equals(testSVG.getIntersectionList(r, testSVG).length, 1);
+    });
+  </script>
+  <rect x="0" y="0" width="200" height="200"/>
+  <clipPath id="MyClip">
+    <rect y="100" width="200" height="100"/>
+  </clipPath>
+  <rect x="0" y="0" width="200" height="200" clip-path="url(#MyClip)" fill="green"/>
+</svg>

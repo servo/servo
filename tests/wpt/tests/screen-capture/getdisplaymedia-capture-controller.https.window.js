@@ -4,7 +4,9 @@
 
 'use strict';
 
-const validFocusBehaviors = ['focus-captured-surface', 'no-focus-change'];
+const validFocusBehaviors = [
+  'focus-capturing-application', 'focus-captured-surface', 'no-focus-change'
+];
 const validDisplaySurfaces = ['window', 'browser'];
 
 test(() => {

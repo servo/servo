@@ -3,22 +3,33 @@ Need tests for (likely not a complete list):
 * directFromSellerSignals.
 * All generateBid() and scoreAd() input parameters.
 * All interest group fields (passed to auction, have effect on auction).
-    Validation when joining/leaving interest group is already covered.
+    Very few fields covered.
+    Should be sure to cover buyerAndSellerReportingId and buyerReportingId for
+        component ads, as they should not be settable.
+    Already covered:
+        Validation when joining/leaving interest group.
+        renderURL and metadata for component ads (only integers covered, but
+            probably not worth covering all types, if we have coverage for the
+            main renderURL).
 * Filtering/prioritization (including bidding signals influencing priorities)
 * Size restrictions.
+* additionalBids.
+* adCost.
+* bidCurrency.
+* modellingSignals.
+* Ad and component ad sizes.
 * Updates (both after auction and triggered).
 * All auctionConfig parameters (including invalid auctionConfigs, and ones
     with no buyers).
 * Joining interest group with duration of 0 should just leave the IG (not
     currently guaranteed to work, due to potential time skew between processes).
 * Multiple buyers.
-* Multiple interest group with same owner.
+* Multiple interest groups with same owner.
 * Multiple origin auctions (buyer != publisher != seller).
 * Multiple frame tests (including join IG policy, run auction policy,
     loading URNs in fencedframes in other frames, loading component
     ad URNs in fenced frames of other frames, etc)
 * adAuctionConfig passed to reportResult().
-* Component ads (including scoring signals fetches).
 * Component auctions.
 * browserSignals fields in scoring/bidding methods.
 * In reporting methods, browserSignals fields: dataVersion, topLevelSeller,

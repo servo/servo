@@ -568,7 +568,6 @@ promise_test(async t => {
   });
 }, 'Test low-latency decoding');
 
-
 promise_test(async t => {
   await checkImplements();
   const callbacks = {};

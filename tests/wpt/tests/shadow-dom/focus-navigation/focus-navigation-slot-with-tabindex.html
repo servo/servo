@@ -58,8 +58,6 @@ promise_test(async () => {
         'x-foo/x-bar/k1',
     ];
 
-    await assert_focus_navigation_forward(elements);
-    elements.reverse();
-    await assert_focus_navigation_backward(elements);
+    await assert_focus_navigation_bidirectional(elements);
 }, 'Slots tabindex should be considred in focus navigation.');
 </script>

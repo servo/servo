@@ -3,6 +3,9 @@
 <title></title>
 <meta name="assert" content="Test passes if snap is to the nearest edge">
 <style>
+  body {
+    margin: 0px;
+  }
   #scroller {
     scroll-snap-type: block mandatory;
     overflow-y: scroll;
@@ -35,6 +38,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <script src="../support/common.js"></script>
 
 <div id="scroller" tabindex="0">
@@ -78,10 +82,9 @@ promise_test(async t => {
   assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
 
   // Ensure we can freely scroll in an oversized element.
-  const scrollPromise = waitForScrollEvent(scroller);
+  let scrollEndPromise = waitForScrollEnd(scroller);
   await keyPress(scroller, "ArrowDown");
-  await scrollPromise;
-  await waitForAnimationEnd(scrollTop);
+  await scrollEndPromise;
   assert_greater_than(scroller.scrollTop, 0,
                       'Arrowkey scroll moved scroll position');
   assert_less_than_equal(scroller.scrollTop, target.clientHeight,
@@ -92,20 +95,23 @@ promise_test(async t => {
   // Otherwise it is not possible to scroll to the last line of the snap-area
   // via keyboard.
   const scrollAmount = scroller.scrollTop;
-  target.style.height = `${scroller.clientHeight + scrollAmount - 1}px`;
-  assert_equals(scroller.scrollTop, 0, "Verify snap on relayout");
+  target.style.height = `${scroller.clientHeight + 2 * scrollAmount - 1}px`;
+  assert_equals(scroller.scrollTop, scrollAmount, "Verify container remains " +
+      "at the same covering snap offset.");
+  scrollEndPromise = waitForScrollEnd(scroller);
   await keyPress(scroller, "ArrowDown");
-  await waitForAnimationEnd(scrollTop);
+  await scrollEndPromise;
   assert_equals(scroller.scrollTop,
                 target.clientHeight - scroller.clientHeight,
                 'End boundary of snap-area is valid snap target');
 
   // Must not get stuck at a snap position. Since already at the end of the
   // snap area, we should advance to the next.
+  scrollEndPromise = waitForScrollEnd(scroller);
   await keyPress(scroller, "ArrowDown");
-  await waitForAnimationEnd(scrollTop);
+  await scrollEndPromise;
   assert_equals(scroller.scrollTop,
-                next.clientTop,
+                next.offsetTop,
                 'Advance to next snap-area');
 
 }, "Keyboard scrolling with vertical snap-area overflow");
@@ -115,35 +121,37 @@ promise_test(async t => {
   assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
 
   // Ensure we can freely scroll in an oversized element.
-  const scrollPromise = waitForScrollEvent(scroller);
+  let scrollEndPromise = waitForScrollEnd(scroller);
   await new test_driver.Actions()
-       .scroll(50, 50, 0, 50, {origin: scroller})
-       .send();
-  await scrollPromise;
-  await waitForAnimationEnd(scrollTop);
+  .scroll(50, 50, 0, 50, {origin: scroller})
+  .send();
+  await scrollEndPromise;
   assert_equals(scroller.scrollTop, 50,
                       'Wheel-scroll moved scroll position');
 
   // Target position for wheel scroll overshoots the boundary of the snap-area.
   // Ensure that we stop at the boundary.
-  const scrollAmount =
+  let scrollAmount =
       target.clientHeight - scroller.clientHeight - scroller.scrollTop + 1;
 
+  scrollEndPromise = waitForScrollEnd(scroller);
   await new test_driver.Actions()
-       .scroll(50, 50, 0, scrollAmount, {origin: scroller})
-       .send();
-  await waitForAnimationEnd(scrollTop);
+  .scroll(50, 50, 0, scrollAmount, {origin: scroller})
+  .send();
+  await scrollEndPromise;
   assert_equals(scroller.scrollTop, 100,
                       'End boundary of snap-area is valid snap target');
 
   // Must not get stuck at a snap position. Since already at the end of the
-  // snap area, we should advance to the next.
+  // snap area, we should advance to the next. scrollAmount must be enough to
+  // advance to next snap position.
+  scrollAmount = next.clientHeight / 2 + 10 /* margin-bottom */;
+  scrollEndPromise = waitForScrollEnd(scroller);
   await new test_driver.Actions()
-       .scroll(50, 50, 0, 50, {origin: scroller})
-       .send();
-  await waitForAnimationEnd(scrollTop);
-  assert_equals(scroller.scrollTop,
-                next.clientTop,
+  .scroll(50, 50, 0, scrollAmount, {origin: scroller})
+  .send();
+  await scrollEndPromise;
+  assert_equals(scroller.scrollTop, next.offsetTop,
                 'Advance to next snap-area');
 
 }, "Mouse-wheel scrolling with vertical snap-area overflow");

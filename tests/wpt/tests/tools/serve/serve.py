@@ -423,7 +423,7 @@ class ShadowRealmHandler(HtmlWrapperHandler):
 <script>
 (async function() {
   const r = new ShadowRealm();
-
+  r.evaluate("globalThis.self = globalThis; undefined;");
   await new Promise(r.evaluate(`
     (resolve, reject) => {
       (async () => {

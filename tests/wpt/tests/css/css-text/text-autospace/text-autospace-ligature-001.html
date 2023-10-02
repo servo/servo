@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: ligature-font;
+  src: url('../../css-fonts/support/fonts/Lato-Medium-Liga.ttf');
+}
+#test-container {
+  font-family: ligature-font;
+  font-size: 40px;
+}
+.base {
+  text-autospace: no-autospace;
+}
+</style>
+<div id="test-container">
+  <div id="test1">国fi</div>
+  <div id="test2">fi国</div>
+  <div id="test3">国fi国</div>
+</div>
+<script>
+function getAdvance(node, start, end) {
+  const range = document.createRange();
+  range.setStart(node, start);
+  range.setEnd(node, end);
+  const bounds = range.getBoundingClientRect();
+  return bounds.width;
+}
+
+class AutoSpaceTest {
+  constructor(id) {
+    const element = document.getElementById(id);
+
+    // Create a base element with the `base` class.
+    const baseElement = element.cloneNode(true);
+    baseElement.removeAttribute('id');
+    baseElement.classList.add('base');
+    element.after(baseElement);
+
+    this.element = element;
+    this.baseElement = baseElement;
+  }
+
+  assert(start, end, spacing) {
+    const node = this.element.firstChild;
+    const advance = getAdvance(node, start, end);
+    const baseNode = this.baseElement.firstChild;
+    const baseAdvance = getAdvance(baseNode, start, end);
+    assert_approx_equals(advance, baseAdvance + spacing, 0.001);
+  }
+}
+
+const test1 = new AutoSpaceTest('test1');
+const test2 = new AutoSpaceTest('test2');
+const test3 = new AutoSpaceTest('test3');
+
+function run() {
+  if (!CSS.supports('text-autospace', 'no-autospace')) {
+    test(() => assert_true(false), 'text-autospace not implemented');
+    return;
+  }
+
+  // The `getBoundingClientRect()` for the middle of a ligature isn't
+  // well-defined. Ensure ligatures are measured as a range.
+  const spacing = 5;
+  test(() => test1.assert(0, 1, spacing));
+  test(() => test1.assert(1, 3, 0));
+
+  test(() => test2.assert(0, 2, spacing));
+  test(() => test2.assert(2, 3, 0));
+
+  test(() => test3.assert(0, 1, spacing));
+  test(() => test3.assert(1, 3, spacing));
+  test(() => test3.assert(3, 4, 0));
+}
+
+setup({explicit_done: true});
+window.addEventListener('load', () => {
+  document.fonts.ready.then(() => {
+    run();
+    done();
+  });
+});
+</script>

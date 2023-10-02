@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8" />
     <title>HTML Test: dir=auto, start with N, then EN, then L</title>
-    <link rel="match" href="dir_auto-N-EN-L-ref.html" />
     <link rel="author" title="Matitiahu Allouche" href="mailto:matitiahu.allouche@google.com" />
     <link rel="author" title="Oren Roth" href="mailto:oren.roth@gmail.com" />
     <link rel="author" title="HTML5 bidi test WG" href="mailto:html5bidi@googlegroups.com" />
@@ -11,7 +10,7 @@
     <meta name="assert" content="
       When dir='auto', the direction is set according to the first strong character
       of the text, ignoring neutrals and numbers.
-      If there is no strong character, as in this test, the direction defaults to LTR." />
+      If there is no strong character, as in this test, the direction defaults to the parent." />
     <style>
       input, textarea {
         font-size:1em;
@@ -36,7 +35,7 @@
         <p dir="ltr">@123!</p>
       </div>
       <div dir="rtl">
-        <p dir="ltr">@123!</p>
+        <p dir="rtl">@123!</p>
       </div>
     </div>
     <div class="ref">
@@ -44,7 +43,7 @@
         <p dir="ltr">@123!</p>
       </div>
       <div dir="rtl">
-        <p dir="ltr">@123!</p>
+        <p dir="rtl">@123!</p>
       </div>
     </div>
   </body>

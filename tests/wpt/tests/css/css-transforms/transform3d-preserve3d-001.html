@@ -5,16 +5,22 @@
     <link rel="author" title="Matt Woodrow" href="mailto:mwoodrow@mozilla.com">
     <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
     <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#transform-style-property">
+    <link rel="stylesheet" href="/fonts/ahem.css">
     <meta name="assert" content="This tests that if preserve-3d is specified,
     four 45deg rotations equal one 180deg rotation.">
     <link rel="match" href="transform3d-preserve3d-001-ref.html">
+    <style>
+      div {
+        font: 25px/1 Ahem;
+      }
+    </style>
   </head>
   <body>
     <div style="transform: rotatex(45deg); transform-style: preserve-3d;">
       <div style="transform: rotatex(45deg); transform-style: preserve-3d;">
         <div style="transform: rotatex(45deg); transform-style: preserve-3d;">
           <div style="transform: rotatex(45deg); width: 100px; height: 100px;">
-            Test Text
+            XXpp
           </div>
         </div>
       </div>

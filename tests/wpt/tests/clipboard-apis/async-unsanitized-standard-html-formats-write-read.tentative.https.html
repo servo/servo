@@ -20,7 +20,7 @@ function reformatHtml(html) {
   const parser = new DOMParser();
   const htmlString =
         parser.parseFromString(html, 'text/html').documentElement.innerHTML;
-  const reformattedString = htmlString.replace(/\>\s*\</g, '> <');
+  const reformattedString = htmlString.replace(/\>\s*\</g, '> <').replace(/<!--[a-zA-Z]*?-->/g, '');
   return reformattedString;
 }
 

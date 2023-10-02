@@ -76,9 +76,7 @@ async def test_non_printable_key_sends_events(
         (Keys.R_SHIFT, "R_SHIFT"),
     ],
 )
-async def test_key_modifier_key(
-    bidi_session, top_context, setup_key_test, key, event
-):
+async def test_key_modifier_key(bidi_session, top_context, setup_key_test, key, event):
     code = ALL_EVENTS[event]["code"]
     value = ALL_EVENTS[event]["key"]
 

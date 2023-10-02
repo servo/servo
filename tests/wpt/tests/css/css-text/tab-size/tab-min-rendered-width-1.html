@@ -7,9 +7,13 @@
   <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
   <link rel="match" href="tab-min-rendered-width-1-ref.html">
   <meta name="assert" content="If [rendered width of tab would be] less than 0.5ch, then the subsequent tab stop is used instead.">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
   <style>
-    span { background-color: yellow; display: inline-block; letter-spacing: -.1em; }
-    pre { position: absolute; top: 0; }
+    span { background-color: yellow; display: inline-block; }
+    /* Using 16px Ahem means that the 'ch' unit will be evenly divisible by 8 (for the 0.125ch
+       increment used below) without running into floating-point accuracy limitations */
+    pre { position: absolute; top: 0; font: 16px Ahem; }
+    tt { font: 16px monospace; }
   </style>
 </head>
 <body>
@@ -19,7 +23,7 @@
   let pre = document.getElementsByTagName("pre")[0];
   let test = "";
   for (i = 7.0; i <= 8.125; i += 0.125) {
-    test += `<span style="width:${i}ch">${i}ch</span>&#9;foo\n`;
+    test += `<span style="width:${i}ch"><tt>${i}ch</tt></span>&#9;<tt>foo</tt>\n`;
   }
   pre.innerHTML = test;
 </script>

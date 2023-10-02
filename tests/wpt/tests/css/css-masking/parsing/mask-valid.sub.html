@@ -53,8 +53,12 @@ test_valid_value('mask', 'url("https://{{host}}/") alpha');
 
 // <mask-layer> = <mask-reference> || <position> [ / <bg-size> ]? || <repeat-style> ||
 // <geometry-box> || [ <geometry-box> | no-clip ] || <compositing-operator> || <masking-mode>
-test_valid_value('mask', 'intersect no-clip space round 1px 2px / contain stroke-box linear-gradient(to left bottom, red, blue) luminance', 'linear-gradient(to left bottom, red, blue) luminance 1px 2px / contain space round stroke-box no-clip intersect');
-test_valid_value('mask', 'intersect no-clip space round 1px 2px / contain view-box, stroke-box linear-gradient(to left bottom, red, blue) luminance', '1px 2px / contain space round view-box no-clip intersect, linear-gradient(to left bottom, red, blue) luminance stroke-box');
+test_valid_value('mask',
+    'intersect no-clip space round 1px 2px / contain stroke-box linear-gradient(to left bottom, red, blue) luminance',
+    'linear-gradient(to left bottom, red, blue) 1px 2px / contain space round stroke-box no-clip intersect luminance');
+test_valid_value('mask',
+    'intersect no-clip space round 1px 2px / contain view-box, stroke-box linear-gradient(to left bottom, red, blue) luminance',
+    '1px 2px / contain space round view-box no-clip intersect, linear-gradient(to left bottom, red, blue) stroke-box luminance');
 
 // Earlier versions of the mask shorthand always required a <mask-reference>.
 // To avoid unnecessarily losing test coverage, keep one of the test cases from back then.
@@ -69,6 +73,11 @@ test_shorthand_value('mask', 'none', {
     'mask-clip': 'border-box',
     'mask-composite': 'add',
     'mask-mode': 'match-source',
+    'mask-border-source': 'none',
+    'mask-border-outset': '0',
+    'mask-border-repeat': 'stretch',
+    'mask-border-slice': '0',
+    'mask-border-width': 'auto'
 })
 test_shorthand_value('mask', 'none, linear-gradient(to left bottom, red, blue) padding-box', {
     'mask-image': 'none, linear-gradient(to left bottom, red, blue)',
@@ -79,6 +88,11 @@ test_shorthand_value('mask', 'none, linear-gradient(to left bottom, red, blue) p
     'mask-clip': 'border-box, padding-box',
     'mask-composite': 'add, add',
     'mask-mode': 'match-source, match-source',
+    'mask-border-source': 'none',
+    'mask-border-outset': '0',
+    'mask-border-repeat': 'stretch',
+    'mask-border-slice': '0',
+    'mask-border-width': 'auto'
 })
 
 </script>

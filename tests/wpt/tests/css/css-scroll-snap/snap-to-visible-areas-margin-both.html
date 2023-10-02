@@ -65,10 +65,14 @@ test(() => {
   scroller.scrollTo(0, 0);
   assert_equals(scroller.scrollLeft, 0);
   assert_equals(scroller.scrollTop, 0);
-  scroller.scrollTo(500, 600);
+  // 750 and 650 are picked as those are closer to top left of the intersection
+  // (800, 800) of the snap areas where the browser should snap. This makes the
+  // intersection a closer snap option than a covering option that the browser
+  // might choose where the snapport is aligned on the bottom and right.
+  scroller.scrollTo(650, 750);
   assert_equals(scroller.scrollLeft, 800);
   assert_equals(scroller.scrollTop, 800);
-  scroller.scrollTo(600, 500);
+  scroller.scrollTo(750, 650);
   assert_equals(scroller.scrollLeft, 800);
   assert_equals(scroller.scrollTop, 800);
 }, 'Snap to area such that only the scroll margin from both axes\' areas are \

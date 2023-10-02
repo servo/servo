@@ -24,6 +24,7 @@ async_test(t => {
         assert_equals(e.formData, null);
         assert_equals(e.info, "hi");
         assert_not_equals(e.hasUAVisualTransition, undefined);
+        assert_equals(e.sourceElement, null);
       });
       assert_true(navigation.canGoBack);
       navigation.back({ info: "hi" });

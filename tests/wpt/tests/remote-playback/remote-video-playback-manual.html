@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <title>Test if video is playing on remote device</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
+  <script>
+    setup({ explicit_timeout: true });
+  </script>
+  <style>
+    button {
+      padding: 2em;
+    }
+  </style>
+  <body>
+    <div id="pick-device">
+      <p>
+        Click the button below to prompt for a remote playback device and select
+        one!
+      </p>
+      <p>
+        <button id="prompt-button">Pick device</button>
+      </p>
+    </div>
+    <video src="/media/green-at-15.mp4" id="video"></video>
+    <div id="evaluate" style="display: none">
+      <p>Does the video play back on the remote device?</p>
+      <p>
+        <button id="yes">Yes</button>
+      </p>
+      <p>
+        <button id="no">No</button>
+      </p>
+    </div>
+  </body>
+  <script>
+    let v = document.getElementById("video");
+
+    async_test(t => {
+      let button = document.getElementById("prompt-button");
+      button.onclick = t.step_func(() => {
+        promise_test(() => {
+          return v.remote.prompt().then(() => {
+            v.play();
+            document.getElementById("evaluate").style.display = "block";
+          });
+        }, "Prompt resolves");
+      });
+
+      let evaluate = success =>
+        assert_true(success, "Video paused and has correct play position.");
+
+      document.getElementById("yes").onclick = t.step_func_done(() =>
+        evaluate(true)
+      );
+      document.getElementById("no").onclick = t.step_func_done(() =>
+        evaluate(false)
+      );
+    }, "Test if video is playing on remote device.");
+  </script>
+</html>

@@ -66,9 +66,7 @@ promise_test(async () => {
     'host/i7'
   ];
 
-  await assert_focus_navigation_forward(elements);
-  elements.reverse();
-  await assert_focus_navigation_backward(elements);
+  await assert_focus_navigation_bidirectional(elements);
 }, 'Default tabindex for a slot node should be 0.');
 
 </script>

@@ -77,18 +77,50 @@ async_test(t => {
 }, 'Timeline time should be the same for all RAF callbacks in an animation'
    + ' frame');
 
-async_test(t => {
+promise_test(async t => {
+  // A microtask checkpoint is run as part of the process of updating
+  // timelines to ensure that any microtasks queued during promise
+  // resolution are handled before dispatching animation events.
   const div = createDiv(t);
-  const animation = div.animate(null, 100 * MS_PER_SEC);
+  const events = [];
+  let microtaskFrameTime = undefined;
+  let finishFrameTime = undefined;
+  const waitForMicrotask = (animation) => {
+    return new Promise(resolve => {
+      queueMicrotask(() => {
+        events.push('microtask');
+        microtaskFrameTime = document.timeline.currentTime;
+        resolve();
+      });
+    });
+  }
+  const waitForFinishEvent = (animation) => {
+    return new Promise(resolve => {
+      animation.onfinish = (event) => {
+        events.push('finish');
+        finishFrameTime = event.timelineTime;
+        resolve();
+      };
+    });
+  }
 
-  animation.ready.then(t.step_func(() => {
-    const readyTimelineTime = document.timeline.currentTime;
-    requestAnimationFrame(t.step_func_done(() => {
-      assert_equals(readyTimelineTime, document.timeline.currentTime,
-                    'There should be a microtask checkpoint');
-    }));
-  }));
-}, 'Performs a microtask checkpoint after updating timelins');
+  await waitForNextFrame();
+
+  const animation = div.animate({ opacity: [0, 1] }, 1000 * MS_PER_SEC);
+  const finishPromise = waitForFinishEvent(animation);
+  await animation.ready;
+
+  // Advance the timing to effect end, to asynchronously queue up a finish task.
+  // Queue up microtask, which must be processed ahead of the finish event.
+  // See "Perform a microtask checkpoint" step in
+  // https://www.w3.org/TR/web-animations-1/#timelines.
+  animation.currentTime = animation.effect.getComputedTiming().duration;
+  const microtaskPromise = waitForMicrotask(animation);
+  await Promise.all([finishPromise, microtaskPromise]);
+  assert_array_equals(events, ['microtask', 'finish']);
+  assert_times_equal(microtaskFrameTime, finishFrameTime);
+
+}, 'Performs a microtask checkpoint after updating timelines');
 
 async_test(t => {
   const div = createDiv(t);

@@ -456,7 +456,7 @@ async function iframeTest(t, { source, target, expected }) {
   const result = await Promise.race([
       messagePromise.then((data) => data.message),
       new Promise((resolve) => {
-        t.step_timeout(() => resolve("timeout"), 500 /* ms */);
+        t.step_timeout(() => resolve("timeout"), 2000 /* ms */);
       }),
   ]);
 

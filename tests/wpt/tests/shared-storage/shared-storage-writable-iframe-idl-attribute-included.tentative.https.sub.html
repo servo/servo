@@ -1,0 +1,37 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script src=/shared-storage/resources/util.sub.js></script>
+  <script>
+    const sameOrigin = new URL("", location.href).origin;
+    const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+
+    promise_test(async () => {
+      await navigateSharedStorageIframe({
+        hasSharedStorageWritableAttribute: true,
+        rawWriteHeader: "set;key=a;value=b",
+        isSameOrigin: true,
+        expectSharedStorageWritableHeader: true,
+      });
+      await verifyKeyValueForOrigin('a', 'b', sameOrigin);
+      await deleteKeyForOrigin('a', sameOrigin);
+    }, 'test <iframe sharedstoragewritable src=[url]></iframe> via JS for'
+       + ' same origin iframe');
+
+    promise_test(async () => {
+      await navigateSharedStorageIframe({
+        hasSharedStorageWritableAttribute: true,
+        rawWriteHeader: "set;key=c;value=d",
+        isSameOrigin: false,
+        expectSharedStorageWritableHeader: true,
+      });
+      await verifyKeyValueForOrigin('c', 'd', crossOrigin);
+      await deleteKeyForOrigin('c', crossOrigin);
+    }, 'test <iframe sharedstoragewritable src=[url]></iframe> via JS for'
+       + ' cross origin iframe');
+  </script>
+</body>

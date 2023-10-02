@@ -9,6 +9,7 @@ promise_test(t => {
   // Can't use `promise_rejects_dom` here, since the error comes from the wrong global.
   return promise.then(t.unreached_func("Should have rejected: " + description), (e) => {
     assert_equals(e.name, 'InvalidStateError', description);
+    t.done();
   });
 }, "[non-fully-active] document.requestStorageAccess() should not resolve when run in a detached frame");
 

@@ -25,7 +25,6 @@
             log("FAIL " + "XMLHttpRequest.open() should not throw an exception.");
         }
         xhr.onload = function() {
-            //cons/**/ole.log(xhr.responseText);
             if(xhr.responseText == "FAIL") {
                 log("FAIL " + "XMLHttpRequest.send() should fail to follow the disallowed redirect.");
             } else {

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Broken Image Icon Should Not Be LCP</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <img src="../non-existent-image.jpg">
+  <img src="/css/css-images/support/colors-16x8.png">
+
+  <script>
+    promise_test(async () => {
+      // Wait for the first-contentful-paint entry so that we know the broken image
+      // icon has been painted.
+      await new Promise(resolve => {
+        new PerformanceObserver((entryList, observer) => {
+          if (entryList.getEntriesByName('first-contentful-paint').length > 0) {
+            observer.disconnect();
+            resolve();
+          }
+        }).observe({ type: 'paint', buffered: true });
+      });
+
+      // There should be only 1 LCP entry and it should be the colors-16x8.png though
+      // being smaller than the broken image icon. The broken image icon should not
+      // emit an LCP entry.
+      let LcpEntryListLength = await new Promise(resolve => {
+        new PerformanceObserver((entryList, observer) => {
+          if (entryList.getEntries().filter(e => e.url.includes('colors-16x8.png'))) {
+            observer.disconnect();
+            resolve(entryList.getEntries().length);
+          }
+        }).observe({ type: 'largest-contentful-paint', buffered: true });
+      });
+
+      assert_equals(LcpEntryListLength, 1, 'There should be one and only one LCP entry.');
+
+    }, "The broken image icon should not emit an LCP entry.");
+  </script>
+</body>
+
+</html>

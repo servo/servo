@@ -1,26 +1,11 @@
 <!DOCTYPE html>
-<title>DOM Parts: Basic object structure</title>
+<title>DOM Parts: Basic object structure, imperative API</title>
 <meta name="author" href="mailto:masonf@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="./resources/domparts-utils.js"></script>
 
 <body>
-
-<script>
-  function assertEqualParts(parts,partDescriptions,expectedParts,description) {
-    assert_equals(parts.length,partDescriptions.length,`${description}: lengths differ`);
-    for(let i=0;i<parts.length;++i) {
-      assert_true(parts[i] instanceof Part,`${description}: not a Part`);
-      assert_true(parts[i] instanceof window[partDescriptions[i].type],`${description}: index ${i} expected ${partDescriptions[i].type}`);
-      assert_array_equals(parts[i].metadata,partDescriptions[i].metadata,`${description}: index ${i} wrong metadata`);
-      if (expectedParts) {
-        assert_equals(parts[i],expectedParts[i],`${description}: index ${i} object equality`);
-      }
-    }
-  }
-</script>
-
-
 <template id=imperative>
   <div>
     <div id=target1 style="display:none">
@@ -34,7 +19,7 @@
   <span id=direct_child_2></span>
 </template>
 
-<script>{
+<script>
 const template = document.getElementById('imperative');
 function addCleanup(t, part) {
   t.add_cleanup(() => part.disconnect());
@@ -276,149 +261,4 @@ function addCleanup(t, part) {
 
   wrapper?.remove(); // Cleanup
 });
-}</script>
-
-<div>
-  <!-- Note - the test will remove this chunk of DOM once the test completes -->
-  <div id=target2>
-    Declarative syntax - The *two* templates below should have IDENTICAL STRUCTURE
-    to this one. There are four cases to test:
-      1. Main document parsing (this chunk)
-      2. Template parsing (the template below with id=declarative)
-      3. Template/fragment cloning (a clone of the template with id=declarative)
-      4. Declarative Shadow DOM parsing (template with id=declarative_shadow_dom and shadowrootmode attribute)
-    <h1 id="name">
-      <?child-node-part fullname?>
-        First
-        <!--?child-node-part middle?--> <?node-part middle-node?>Middle <?/child-node-part middle?>
-        Last
-    <!-- ?/child-node-part foobar? -->
-    </h1>
-    Email: <?node-part email-link?><a id="link"></a>
-
-    Here are some invalid parts that should not get parsed:
-    <!--child-node-part test comment without leading ?-->
-    <child-node-part test PI without leading ?>
-    <!--?child-node-partfoobar?-->
-    <?child-node-partfoobar?>
-  </div>
-</div>
-<template id=declarative>
-  <div>
-    <div id=target3>Declarative syntax
-      <h1 id="name">
-        <?child-node-part fullname?>
-          First
-          <!--?child-node-part middle?--> <?node-part middle-node?>Middle <?/child-node-part middle?>
-          Last
-        <!-- ?/child-node-part foobar? -->
-      </h1>
-      Email: <?node-part email-link?><a id="link"></a>
-
-      Here are some invalid parts that should not get parsed:
-      <!--child-node-part test comment without leading ?-->
-      <child-node-part test PI without leading ?>
-      <!--?child-node-partfoobar?-->
-      <?child-node-partfoobar?>
-    </div>
-  </div>
-</template>
-<div id=declarative_shadow_dom>
-  <template shadowrootmode="open">
-    <div>
-      <div id=target3>Declarative syntax
-        <h1 id="name">
-          <?child-node-part fullname?>
-            First
-            <!--?child-node-part middle?--> <?node-part middle-node?>Middle <?/child-node-part middle?>
-            Last
-          <!-- ?/child-node-part foobar? -->
-        </h1>
-        Email: <?node-part email-link?><a id="link"></a>
-
-        Here are some invalid parts that should not get parsed:
-        <!--child-node-part test comment without leading ?-->
-        <child-node-part test PI without leading ?>
-        <!--?child-node-partfoobar?-->
-        <?child-node-partfoobar?>
-      </div>
-    </div>
-  </template>
-</div>
-
-<script> {
-const template = document.getElementById('declarative');
-['Main Document','Template','Clone','PartClone','DeclarativeShadowDOM'].forEach(testCase => {
-  function assertIsComment(node,commentText) {
-    assert_true(node instanceof Comment);
-    assert_equals(node.textContent,commentText);
-  }
-
-  test((t) => {
-    let doc,target,wrapper,cleanup;
-    let expectDOMParts = true;
-    switch (testCase) {
-      case 'Main Document':
-        doc = document;
-        target = doc.querySelector('#target2');
-        cleanup = [target.parentElement];
-        break;
-      case 'Template':
-        doc = template.content;
-        target = doc.querySelector('#target3');
-        cleanup = [];
-        break;
-      case 'Clone':
-        doc = document;
-        wrapper = document.body.appendChild(document.createElement('div'));
-        wrapper.appendChild(template.content.cloneNode(true));
-        target = wrapper.querySelector('#target3');
-        // A "normal" tree clone should not keep DOM Parts:
-        expectDOMParts = false;
-        cleanup = [wrapper];
-        break;
-      case 'PartClone':
-        doc = document;
-        wrapper = document.body.appendChild(document.createElement('div'));
-        wrapper.appendChild(template.content.getPartRoot().clone().rootContainer);
-        target = wrapper.querySelector('#target3');
-        cleanup = [wrapper];
-        break;
-      case 'DeclarativeShadowDOM': {
-        const host = document.getElementById('declarative_shadow_dom');
-        doc = host.shadowRoot;
-        target = doc.querySelector('#target3'); // Shadow isolated
-        cleanup = [host];
-        break;
-      }
-      default:
-        assert_unreached('Invalid test case');
-    }
-    assert_true(!!(doc && target && target.parentElement));
-    t.add_cleanup(() => cleanup.forEach(el => el.remove())); // Cleanup
-
-    const root = doc.getPartRoot();
-    assert_true(root instanceof DocumentPartRoot);
-    if (expectDOMParts) {
-      const expectedRootParts = [{type:'ChildNodePart',metadata:['fullname']},{type:'NodePart',metadata:['email-link']}];
-      assertEqualParts(root.getParts(),expectedRootParts,0,'declarative root should have two parts');
-      assert_equals(root.getParts()[1].node,target.querySelector('#link'));
-      const childPart1 = root.getParts()[0];
-      assertIsComment(childPart1.previousSibling,'?child-node-part fullname?');
-      assertIsComment(childPart1.nextSibling,' ?/child-node-part foobar? ');
-      const expectedChild1Parts = [{type:'ChildNodePart',metadata:['middle']}];
-      assertEqualParts(childPart1.getParts(),expectedChild1Parts,0,'First level childpart should just have one child part');
-      const childPart2 = childPart1.getParts()[0];
-      assertIsComment(childPart2.previousSibling,'?child-node-part middle?');
-      assertIsComment(childPart2.nextSibling,'?/child-node-part middle?');
-      const expectedChild2Parts = [{type:'NodePart',metadata:['middle-node']}];
-      assertEqualParts(childPart2.getParts(),expectedChild2Parts,0,'Second level childpart should have just the node part');
-      assert_true(childPart2.getParts()[0].node instanceof Text);
-      assert_equals(childPart2.getParts()[0].node.textContent,'Middle ');
-    } else {
-      assertEqualParts(root.getParts(),[],[]);
-    }
-  }, `Basic declarative DOM Parts (${testCase})`);
-});
-
-}</script>
+</script>

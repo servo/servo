@@ -20,10 +20,9 @@ interface DocumentPictureInPicture : EventTarget {
 dictionary DocumentPictureInPictureOptions {
   [EnforceRange] unsigned long long width = 0;
   [EnforceRange] unsigned long long height = 0;
-  boolean copyStyleSheets = false;
 };
 
-[Exposed=Window]
+[Exposed=Window, SecureContext]
 interface DocumentPictureInPictureEvent : Event {
   constructor(DOMString type, DocumentPictureInPictureEventInit eventInitDict);
   [SameObject] readonly attribute Window window;

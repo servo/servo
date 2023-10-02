@@ -1,23 +1,12 @@
 # 'import credential-management.support.fedcm.keys' does not work.
 import importlib
 keys = importlib.import_module("credential-management.support.fedcm.keys")
+error_checker = importlib.import_module("credential-management.support.fedcm.request-params-check")
 
 def main(request, response):
-  if (request.GET.get(b'skip_checks', b'0') != b'1'):
-    if len(request.cookies) > 0:
-      return (530, [], "Cookie should not be sent to this endpoint")
-    if request.headers.get(b"Accept") != b"application/json":
-      return (531, [], "Wrong Accept")
-    if request.headers.get(b"Sec-Fetch-Dest") != b"webidentity":
-      return (532, [], "Wrong Sec-Fetch-Dest header")
-    if request.headers.get(b"Referer"):
-      return (533, [], "Should not have Referer")
-    if not request.headers.get(b"Origin"):
-      return (534, [], "Missing Origin")
-    if request.headers.get(b"Sec-Fetch-Mode") != b"no-cors":
-      return (535, [], "Wrong Sec-Fetch-Mode header")
-    if request.headers.get(b"Sec-Fetch-Site") != b"cross-site":
-      return (536, [], "Wrong Sec-Fetch-Site header")
+  request_error = error_checker.clientMetadataCheck(request)
+  if (request_error):
+    return request_error
 
   counter = request.server.stash.take(keys.CLIENT_METADATA_COUNTER_KEY)
   try:

@@ -15,7 +15,7 @@ promise_test(async test => {
   await runReportTest(test, uuid,
     { scoreAd:
     `privateAggregation.contributeToHistogram(${contribution});
-    forDebuggingOnly.reportAdAuctionWin('${createWritingUrl(uuid)}');`
+    forDebuggingOnly.reportAdAuctionWin('${createWritingURL(uuid)}');`
     },
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with positive bucket in scoreAd()');
@@ -27,7 +27,7 @@ promise_test(async test => {
   await runReportTest(test, uuid,
     { reportResult:
     `privateAggregation.contributeToHistogram(${contribution});
-    sendReportTo('${createWritingUrl(uuid)}');`
+    sendReportTo('${createWritingURL(uuid)}');`
     },
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with zero bucket in reportResult()');
@@ -40,7 +40,7 @@ promise_test(async test => {
   await runReportTest(test, uuid,
     { generateBid:
     `privateAggregation.contributeToHistogram(${contribution});
-    forDebuggingOnly.reportAdAuctionWin('${createWritingUrl(uuid)}');`
+    forDebuggingOnly.reportAdAuctionWin('${createWritingURL(uuid)}');`
     },
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with large bucket in generateBid()');
@@ -52,7 +52,7 @@ promise_test(async test => {
   await runReportTest(test, uuid,
     { reportWin:
     `privateAggregation.contributeToHistogram(${contribution});
-    sendReportTo('${createWritingUrl(uuid)}');`
+    sendReportTo('${createWritingURL(uuid)}');`
     },
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with max bucket in reportWin()');
@@ -64,7 +64,7 @@ promise_test(async test => {
   await runReportTest(test, uuid,
     { scoreAd:
     `privateAggregation.contributeToHistogram(${contribution});
-    forDebuggingOnly.reportAdAuctionWin('${createWritingUrl(uuid)}');`
+    forDebuggingOnly.reportAdAuctionWin('${createWritingURL(uuid)}');`
     },
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with positive value in scoreAd()');
@@ -76,7 +76,7 @@ promise_test(async test => {
   await runReportTest(test, uuid,
     { reportResult:
     `privateAggregation.contributeToHistogram(${contribution});
-    sendReportTo('${createWritingUrl(uuid)}');`
+    sendReportTo('${createWritingURL(uuid)}');`
     },
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with zero value in reportResult()');
@@ -88,7 +88,7 @@ promise_test(async test => {
   await runReportTest(test, uuid,
     { generateBid:
     `privateAggregation.contributeToHistogram(${contribution});
-    forDebuggingOnly.reportAdAuctionWin('${createWritingUrl(uuid)}');`
+    forDebuggingOnly.reportAdAuctionWin('${createWritingURL(uuid)}');`
     },
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with non-integer value in generateBid()');

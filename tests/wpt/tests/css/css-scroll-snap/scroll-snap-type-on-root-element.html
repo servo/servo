@@ -4,12 +4,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<body>
 <style>
-html {
+body {
   height: 8000px;
   width: 3000px;
+  margin: 0px;
 }
-
 #target {
   position: absolute;
   background-color: blue;
@@ -68,7 +69,13 @@ test(t => {
 
   window.scrollTo(200, 1800);
 
-  assert_equals(document.scrollingElement.scrollLeft, 100, "inline should snap");
+  // Though the target's width is 100vw, there may be room to scroll the window
+  // within the target because of the scrollbar width and the browser may snap
+  // to the right edge (instead of the left edge of the target, since it is
+  // closer to the offset of 200 and still a valid snap point) within this room.
+  const scrollbar_width = window.innerWidth - document.documentElement.clientWidth;
+  assert_approx_equals(document.scrollingElement.scrollLeft, 100, scrollbar_width, "inline should snap");
   assert_equals(document.scrollingElement.scrollTop, 1800, "block should not snap");
 }, "The writing-mode (horizontal-tb) on the body is used ");
 </script>
+</body>

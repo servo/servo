@@ -1,24 +1,30 @@
 # mypy: allow-untyped-defs
-
-from .base import cmd_arg, require_arg
-from .base import WebDriverBrowser
+from .base import WebDriverBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
+from .base import cmd_arg
+from .chrome import executor_kwargs as chrome_executor_kwargs
+from ..executors.executorwebdriver import WebDriverCrashtestExecutor  # noqa: F401
 from ..executors.base import WdspecExecutor  # noqa: F401
-from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
-                                           WebDriverRefTestExecutor)  # noqa: F401
+from ..executors.executoredge import (  # noqa: F401
+    EdgeChromiumDriverPrintRefTestExecutor,
+    EdgeChromiumDriverRefTestExecutor,
+    EdgeChromiumDriverTestharnessExecutor,
+)
 
 
 __wptrunner__ = {"product": "edgechromium",
                  "check_args": "check_args",
                  "browser": "EdgeChromiumBrowser",
-                 "executor": {"testharness": "WebDriverTestharnessExecutor",
-                              "reftest": "WebDriverRefTestExecutor",
-                              "wdspec": "WdspecExecutor"},
+                 "executor": {"testharness": "EdgeChromiumDriverTestharnessExecutor",
+                              "reftest": "EdgeChromiumDriverRefTestExecutor",
+                              "print-reftest": "EdgeChromiumDriverPrintRefTestExecutor",
+                              "wdspec": "WdspecExecutor",
+                              "crashtest": "WebDriverCrashtestExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
                  "env_options": "env_options",
+                 "update_properties": "update_properties",
                  "timeout_multiplier": "get_timeout_multiplier",}
 
 
@@ -34,44 +40,9 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data,
                     **kwargs):
-    executor_kwargs = base_executor_kwargs(test_type,
-                                           test_environment,
-                                           run_info_data,
-                                           **kwargs)
-    executor_kwargs["close_after_done"] = True
-
-    capabilities = {
-        "ms:edgeOptions": {
-            "prefs": {
-                "profile": {
-                    "default_content_setting_values": {
-                        "popups": 1
-                    }
-                }
-            },
-            "useAutomationExtension": False,
-            "excludeSwitches": ["enable-automation"],
-            "w3c": True
-        }
-    }
-
-    for (kwarg, capability) in [("binary", "binary"), ("binary_args", "args")]:
-        if kwargs[kwarg] is not None:
-            capabilities["ms:edgeOptions"][capability] = kwargs[kwarg]
-
-    if kwargs["headless"]:
-        if "args" not in capabilities["ms:edgeOptions"]:
-            capabilities["ms:edgeOptions"]["args"] = []
-        if "--headless" not in capabilities["ms:edgeOptions"]["args"]:
-            capabilities["ms:edgeOptions"]["args"].append("--headless")
-        capabilities["ms:edgeOptions"]["args"].append("--use-fake-device-for-media-stream")
-        capabilities["ms:edgeOptions"]["args"].append("--use-fake-ui-for-fedcm")
-
-    if kwargs["enable_experimental"]:
-        capabilities["ms:edgeOptions"]["args"].append("--enable-experimental-web-platform-features")
-
-    executor_kwargs["capabilities"] = capabilities
-
+    executor_kwargs = chrome_executor_kwargs(logger, test_type, test_environment, run_info_data, **kwargs)
+    capabilities = executor_kwargs["capabilities"]
+    capabilities["ms:edgeOptions"] = capabilities.pop("goog:chromeOptions")
     return executor_kwargs
 
 
@@ -80,7 +51,11 @@ def env_extras(**kwargs):
 
 
 def env_options():
-    return {}
+    return {"server_host": "127.0.0.1"}
+
+
+def update_properties():
+    return (["debug", "os", "processor"], {"os": ["version"], "processor": ["bits"]})
 
 
 class EdgeChromiumBrowser(WebDriverBrowser):
@@ -91,4 +66,5 @@ class EdgeChromiumBrowser(WebDriverBrowser):
     def make_command(self):
         return [self.webdriver_binary,
                 cmd_arg("port", str(self.port)),
-                cmd_arg("url-base", self.base_path)] + self.webdriver_args
+                cmd_arg("url-base", self.base_path),
+                cmd_arg("enable-edge-logs")] + self.webdriver_args

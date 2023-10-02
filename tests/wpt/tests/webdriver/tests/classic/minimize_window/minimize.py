@@ -1,7 +1,7 @@
 # META: timeout=long
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import document_hidden, is_fullscreen
+from tests.support.helpers import document_hidden, is_fullscreen, is_maximized
 
 
 def minimize(session):
@@ -19,41 +19,52 @@ def test_no_browsing_context(session, closed_frame):
     assert_success(response)
 
 
-def test_fully_exit_fullscreen(session):
-    session.window.fullscreen()
-    assert is_fullscreen(session)
+def test_response_payload(session):
+    assert not document_hidden(session)
 
     response = minimize(session)
-    assert_success(response)
+    value = assert_success(response, session.window.rect)
+
+    assert document_hidden(session)
+
+    assert isinstance(value, dict)
+    assert isinstance(value.get("x"), int)
+    assert isinstance(value.get("y"), int)
+    assert isinstance(value.get("width"), int)
+    assert isinstance(value.get("height"), int)
+
+
+def test_restore_from_fullscreen(session):
+    assert not document_hidden(session)
+
+    session.window.fullscreen()
+    assert is_fullscreen(session)
+    assert not document_hidden(session)
+
+    response = minimize(session)
+    assert_success(response, session.window.rect)
     assert not is_fullscreen(session)
     assert document_hidden(session)
 
 
-def test_minimize(session):
+def test_restore_from_maximized(session):
+    assert not document_hidden(session)
+
+    session.window.maximize()
+    assert is_maximized(session)
     assert not document_hidden(session)
 
     response = minimize(session)
-    assert_success(response)
+    assert_success(response, session.window.rect)
+    assert not is_maximized(session)
     assert document_hidden(session)
 
 
-def test_payload(session):
+def test_minimize_from_normal_window(session):
     assert not document_hidden(session)
 
     response = minimize(session)
-    value = assert_success(response)
-    assert isinstance(value, dict)
-
-    value = response.body["value"]
-    assert "width" in value
-    assert "height" in value
-    assert "x" in value
-    assert "y" in value
-    assert isinstance(value["width"], int)
-    assert isinstance(value["height"], int)
-    assert isinstance(value["x"], int)
-    assert isinstance(value["y"], int)
-
+    assert_success(response, session.window.rect)
     assert document_hidden(session)
 
 
@@ -61,9 +72,9 @@ def test_minimize_twice_is_idempotent(session):
     assert not document_hidden(session)
 
     first_response = minimize(session)
-    assert_success(first_response)
+    assert_success(first_response, session.window.rect)
     assert document_hidden(session)
 
     second_response = minimize(session)
-    assert_success(second_response)
+    assert_success(second_response, session.window.rect)
     assert document_hidden(session)

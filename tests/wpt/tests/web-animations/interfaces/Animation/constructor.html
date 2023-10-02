@@ -109,5 +109,16 @@ async_test(t => {
   document.body.appendChild(iframe);
 }, 'Animation constructed with a keyframe that target element is in iframe');
 
+test(t => {
+    const div = createDiv(t);
+    const effect = new KeyframeEffect(div, { opacity: [0, 1]}, 10000);
+    const anim1 = new Animation(effect);
+    anim1.play();
+    const anim2 = new Animation(effect);
+    anim2.play();
+    assert_equals(anim1.effect, null, 'Effect is reset on first animation');
+    assert_equals(anim1.playState, 'finished',
+                'Resetting the affect does not cancel the animation');
+}, 'Animation created with an affect associated with another animation.');
 </script>
 </body>

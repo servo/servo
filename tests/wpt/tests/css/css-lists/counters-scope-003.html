@@ -1,0 +1,19 @@
+﻿<!doctype html>
+<title>CSS Lists and Counters: counters scope</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="match" href="counters-scope-003-ref.html">
+<meta name="assert" content="counters are not inherited from the previous sibling, when can be inherited from the ancestor">
+<style type="text/css">
+body, span#reset:before { counter-reset: c 0; }
+span::before { counter-increment: c 1; content: "B" counters(c,".") "-" }
+span::after  { counter-increment: c 1; content: "A" counters(c,".") "-" }
+</style>
+<p>The following two lines should be the same:</p>
+<div>
+  <span>
+    <span id="reset">
+      <span></span>
+    </span>
+  </span>
+</div>
+<div>B1- B1.1- B2-A3- A4- A5-</div>

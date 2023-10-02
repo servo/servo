@@ -97,6 +97,12 @@ interface CSSRule {
 };
 
 [Exposed=Window]
+interface CSSStyleRule : CSSGroupingRule {
+  attribute CSSOMString selectorText;
+  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
+};
+
+[Exposed=Window]
 interface CSSImportRule : CSSRule {
   readonly attribute USVString href;
   [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
@@ -110,12 +116,6 @@ interface CSSGroupingRule : CSSRule {
   [SameObject] readonly attribute CSSRuleList cssRules;
   unsigned long insertRule(CSSOMString rule, optional unsigned long index = 0);
   undefined deleteRule(unsigned long index);
-};
-
-[Exposed=Window]
-interface CSSStyleRule : CSSGroupingRule {
-  attribute CSSOMString selectorText;
-  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
 };
 
 [Exposed=Window]

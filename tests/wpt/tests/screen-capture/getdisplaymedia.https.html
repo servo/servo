@@ -223,6 +223,7 @@ promise_test(async t => {
  {selfBrowserSurface: "invalid"},
  {surfaceSwitching: "invalid"},
  {systemAudio: "invalid"},
+ {monitorTypeSurfaces: "invalid"},
 ].forEach(constraints => promise_test(async t => {
   await test_driver.bless('getDisplayMedia()');
   const p = navigator.mediaDevices.getDisplayMedia(constraints);
@@ -275,5 +276,39 @@ promise_test(async t => {
       assert_equals, capabilities.displaySurface,
       ['monitor', 'window', 'browser']);
 }, 'getDisplayMedia() with getCapabilities');
+
+promise_test(async (t) => {
+  const constraints = {
+    video: { displaySurface: "monitor" },
+    monitorTypeSurfaces: "exclude",
+  };
+  await test_driver.bless('getDisplayMedia()');
+  const p = navigator.mediaDevices.getDisplayMedia(constraints);
+  t.add_cleanup(async () => {
+    try { stopTracks(await p) } catch {}
+  });
+  await promise_rejects_js(
+    t, TypeError, Promise.race([p, Promise.resolve()]),
+    'getDisplayMedia should have returned an already-rejected promise.');
+  }, `getDisplayMedia({"video":{"displaySurface":"monitor"},"monitorTypeSurfaces":"exclude"}) rejects with TypeError`);
+
+promise_test(async (t) => {
+  const stream = await getDisplayMedia({
+    video: { displaySurface: "monitor" },
+    monitorTypeSurfaces: "include",
+  });
+  t.add_cleanup(() => stopTracks(stream));
+  const { displaySurface } = stream.getTracks()[0].getSettings();
+  assert_equals(displaySurface, "monitor");
+}, `getDisplayMedia({"video":{"displaySurface":"monitor"},"monitorTypeSurfaces":"include"}) resolves with a monitor track`);
+
+promise_test(async (t) => {
+  const stream = await getDisplayMedia({
+    monitorTypeSurfaces: "exclude",
+  });
+  t.add_cleanup(() => stopTracks(stream));
+  const { displaySurface } = stream.getTracks()[0].getSettings();
+  assert_any(assert_equals, displaySurface, ["window", "browser"]);
+}, `getDisplayMedia({"monitorTypeSurfaces":"exclude"}) resolves with a non monitor track`);
 
 </script>

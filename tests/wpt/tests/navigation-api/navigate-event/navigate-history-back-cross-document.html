@@ -23,6 +23,7 @@ async_test(t => {
         assert_equals(e.destination.index, 0);
         assert_equals(e.formData, null);
         assert_equals(e.info, undefined);
+        assert_equals(e.sourceElement, null);
       });
       assert_true(i.contentWindow.navigation.canGoBack);
       i.contentWindow.history.back();

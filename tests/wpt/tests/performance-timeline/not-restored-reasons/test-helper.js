@@ -1,3 +1,5 @@
+// META: script=../../html/browsers/browsing-the-web/back-forward-cache/resources/rc-helper.js
+
 async function assertNotRestoredReasonsEquals(
     remoteContextHelper, blocked, url, src, id, name, reasons, children) {
   let result = await remoteContextHelper.executeScript(() => {
@@ -9,27 +11,24 @@ async function assertNotRestoredReasonsEquals(
 
 function assertReasonsStructEquals(
     result, blocked, url, src, id, name, reasons, children) {
-  assert_equals(result.blocked, blocked);
+  assert_equals(result.preventedBackForwardCache, blocked);
   assert_equals(result.url, url);
   assert_equals(result.src, src);
   assert_equals(result.id, id);
   assert_equals(result.name, name);
   // Reasons should match.
-  assert_equals(result.reasons.length, reasons.length);
-  reasons.sort();
-  result.reasons.sort();
-  for (let i = 0; i < reasons.length; i++) {
-    assert_equals(result.reasons[i], reasons[i]);
-  }
+  matchReasons(new Set(reasons), new Set(result.reasons));
+
   // Children should match.
-  assert_equals(result.children.length, children.length);
-  children.sort();
-  result.children.sort();
-  for (let j = 0; j < children.length; j++) {
-    assertReasonsStructEquals(
-        result.children[0], children[0].blocked, children[0].url,
-        children[0].src, children[0].id, children[0].name, children[0].reasons,
-        children[0].children);
+  if (children == null) {
+    assert_equals(result.children, children);
+  } else {
+    for (let j = 0; j < children.length; j++) {
+      assertReasonsStructEquals(
+          result.children[0], children[0].preventedBackForwardCache, children[0].url,
+          children[0].src, children[0].id, children[0].name, children[0].reasons,
+          children[0].children);
+    }
   }
 }
 

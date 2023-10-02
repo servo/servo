@@ -35,8 +35,9 @@ promise_test(async t => {
       const receiverReader = receiverStreams.readable.getReader();
       const result = await receiverReader.read();
       const original = result.value;
-      let clone = original.clone();
+      let clone = structuredClone(original);
       assert_equals(original.timestamp, clone.timestamp);
+      assert_equals(original.getMetadata().absCaptureTime, clone.getMetadata().absCaptureTime);
       assert_array_equals(Array.from(original.data), Array.from(clone.data));
       await writer2.write(clone);
       resolve();

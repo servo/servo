@@ -26,7 +26,7 @@ a=sendonly
 a=mid:audio
 a=rtpmap:111 opus/48000/2
 a=setup:actpass
-` + extmaps.audio.map(ext => SDPUtils.writeExtmap(ext));
+` + extmaps.audio.map(ext => SDPUtils.writeExtmap(ext)).join('');
   }
   if (extmaps.video) {
     sdp += `m=video 9 RTP/SAVPF 112
@@ -36,7 +36,7 @@ a=sendonly
 a=mid:video
 a=rtpmap:112 VP8/90000
 a=setup:actpass
-` + extmaps.video.map(ext => SDPUtils.writeExtmap(ext));
+` + extmaps.video.map(ext => SDPUtils.writeExtmap(ext)).join('');
   }
   return sdp;
 }
@@ -98,4 +98,36 @@ promise_test(async t => {
     assert_true(!!extensions.find(e => e.uri === answer_extension.uri));
   }
 }, 'Negotiates the subset of supported extensions offered');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  // Some implementations may refuse 15 as invalid id because of
+  // https://www.rfc-editor.org/rfc/rfc8285#section-4.2
+  // which only applies to one-byte extensions with ids 0-14.
+  const sdp = createOfferSdp({audio: [{
+    id: 15, uri: 'urn:ietf:params:rtp-hdrext:sdes:mid',
+  }]});
+  await pc.setRemoteDescription({type: 'offer', sdp});
+}, 'Supports header extensions with id=15');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const sdp = createOfferSdp({audio: [{
+    id: 16, uri: 'urn:ietf:params:rtp-hdrext:sdes:mid',
+  }, {
+    id: 17, uri: 'urn:ietf:params:rtp-hdrext:ssrc-audio-level',
+  }]});
+  await pc.setRemoteDescription({type: 'offer', sdp});
+  await pc.setLocalDescription();
+  const answer_section = SDPUtils.splitSections(pc.localDescription.sdp)[1];
+  const answer_extensions = SDPUtils.matchPrefix(answer_section, 'a=extmap:')
+    .map(line => SDPUtils.parseExtmap(line));
+  assert_equals(answer_extensions.length, 2);
+  assert_true(!!answer_extensions.find(e => e.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid'));
+  assert_true(!!answer_extensions.find(e => e.uri === 'urn:ietf:params:rtp-hdrext:ssrc-audio-level'));
+}, 'Supports two-byte header extensions');
 </script>

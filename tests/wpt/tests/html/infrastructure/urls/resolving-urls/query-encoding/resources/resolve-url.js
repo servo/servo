@@ -165,6 +165,7 @@ onload = function() {
 
   var query_to_image_width = {
     '%E5':1,
+    '%26%23229%3B':1,
     '%C3%A5':2,
     '%3F':16,
     'unknown query':256,
@@ -230,6 +231,7 @@ onload = function() {
 
   var query_to_video_duration = {
     '%E5':3,
+    '%26%23229%3B':3,
     '%C3%A5':5,
     '%3F':30,
     'unknown query':300,
@@ -392,9 +394,9 @@ onload = function() {
       elm.href = input_arr[0];
       elm.search = '?' + input_arr[1];
       var got_href = elm.getAttribute('href');
-      assert_true(got_href.indexOf(expected_current) > -1, 'href content attribute ' + msg(expected_current, got_href));
+      assert_true(got_href.indexOf(expected_utf8) > -1, 'href content attribute ' + msg(expected_utf8, got_href));
       var got_search = elm.search;
-      assert_true(got_search.indexOf(expected_current) > -1, 'getting .search '+msg(expected_current, got_search));
+      assert_true(got_search.indexOf(expected_utf8) > -1, 'getting .search '+msg(expected_utf8, got_search));
     }, '<'+tag+'>.search');
   }
   'a, area'.split(', ').forEach(function(str) {
@@ -405,6 +407,7 @@ onload = function() {
   // history.replaceState
   function test_history(prop) {
     subsetTestByKey('history', async_test, function() {
+      var url = input_url_html.replace('resources/', '');
       var iframe = document.createElement('iframe');
       iframe.src = blank;
       document.body.appendChild(iframe);
@@ -412,10 +415,13 @@ onload = function() {
         document.body.removeChild(iframe);
       });
       iframe.onload = this.step_func_done(function() {
-        iframe.contentWindow.history[prop](null, null, input_url_html); // this should resolve against the test's URL, not the iframe's URL
+        // this should resolve against the iframe's URL
+        // "Parse url, relative to the relevant settings object of history."
+        // https://html.spec.whatwg.org/multipage/nav-history-apis.html#shared-history-push%2Freplace-state-steps
+        iframe.contentWindow.history[prop](null, null, url);
         var got = iframe.contentWindow.location.href;
         assert_true(got.indexOf(expected_current) > -1, msg(expected_current, got));
-        assert_equals(got.indexOf('/resources/resources/'), -1, 'url was resolved against the iframe\'s URL instead of the settings object\'s API base URL');
+        assert_not_equals(got.indexOf('/resources/'), -1, 'url was resolved against the test\'s URL');
       });
     }, 'history.'+prop);
   }
@@ -493,7 +499,7 @@ onload = function() {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', input_url_html);
     xhr.onload = this.step_func_done(function() {
-      assert_equals(xhr.response, expected_utf8);
+      assert_equals(xhr.response, expected_current);
     });
     xhr.send();
   }, 'XMLHttpRequest#open()');
@@ -514,13 +520,6 @@ onload = function() {
   }, 'Worker() in a dedicated worker');
 
   subsetTestByKey('workers', async_test, function() {
-    var worker = new Worker(input_url_worker_sharedworker);
-    worker.onmessage = this.step_func_done(function(e) {
-      assert_equals(e.data, expected_utf8);
-    });
-  }, 'SharedWorker() in a dedicated worker');
-
-  subsetTestByKey('workers', async_test, function() {
     var worker = new SharedWorker(input_url_sharedworker_importScripts);
     worker.port.onmessage = this.step_func_done(function(e) {
       assert_equals(e.data, expected_utf8);
@@ -533,13 +532,6 @@ onload = function() {
       assert_equals(e.data, expected_utf8);
     });
   }, 'Worker() in a shared worker');
-
-  subsetTestByKey('workers', async_test, function() {
-    var worker = new SharedWorker(input_url_sharedworker_sharedworker);
-    worker.port.onmessage = this.step_func_done(function(e) {
-      assert_equals(e.data, expected_utf8);
-    });
-  }, 'SharedWorker() in a shared worker');
 
   // WebSocket()
   subsetTestByKey('websocket', async_test, function() {
@@ -674,13 +666,13 @@ onload = function() {
 
   var test_scheme_urls = ['ftp://example.invalid/?x=\u00E5',
                           'file:///?x=\u00E5',
-                          'gopher://example.invalid/?x=\u00E5',
                           'http://example.invalid/?x=\u00E5',
                           'https://example.invalid/?x=\u00E5',
                          ];
 
   var test_scheme_urls_utf8 = ['ws://example.invalid/?x=\u00E5',
                                'wss://example.invalid/?x=\u00E5',
+                               'gopher://example.invalid/?x=\u00E5',
                                'mailto:example@invalid?x=\u00E5',
                                'data:text/plain;charset='+encoding+',?x=\u00E5',
                                'javascript:"?x=\u00E5"',

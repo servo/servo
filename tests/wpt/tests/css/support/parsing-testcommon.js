@@ -1,9 +1,20 @@
 'use strict';
 
-// serializedValue can be the expected serialization of value,
-// or an array of permitted serializations,
-// or omitted if value should serialize as value.
-function test_valid_value(property, value, serializedValue) {
+/**
+ * Create test that a CSS property computes to the expected value.
+ * The document element #target is used to perform the test.
+ *
+ * @param {string} property  The name of the CSS property being tested.
+ * @param {string} value     A specified value for the property.
+ * @param {string|array} serializedValue  The expected serialized value,
+ *                                 or an array of permitted serializations.
+ *                                 If omitted, defaults to the specified value.
+ * @param {object} options  Additional test information, such as a custom
+ *                          comparison function required for color tests.
+ *                          comparisonFunction is a function that takes two
+ *                          arguments, actual and expected and contains asserts.
+ */
+function test_valid_value(property, value, serializedValue, options = {}) {
     if (arguments.length < 3)
         serializedValue = value;
 
@@ -15,7 +26,9 @@ function test_valid_value(property, value, serializedValue) {
         div.style[property] = value;
         var readValue = div.style.getPropertyValue(property);
         assert_not_equals(readValue, "", "property should be set");
-        if (Array.isArray(serializedValue))
+        if (options.comparisonFunction)
+            options.comparisonFunction(readValue, serializedValue);
+        else if (Array.isArray(serializedValue))
             assert_in_array(readValue, serializedValue, "serialization should be sound");
         else
             assert_equals(readValue, serializedValue, "serialization should be canonical");

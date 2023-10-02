@@ -57,8 +57,8 @@
       // Every pointerdown blocks the main thread for a certain time limit,
       // and then increases the time limit for next round in case the
       // current limit fails to cause event coalescing.
-      let now = performance.now();
-      while (performance.now() < now + current_busyloop_ms)
+      let start = performance.now();
+      while (performance.now() < start + current_busyloop_ms)
         continue;
       current_busyloop_ms *= 2;
     });
@@ -85,7 +85,7 @@
       actions = actions.pointerUp();
 
       await actions.send();
-      await await pointerup_promise;
+      await pointerup_promise;
     }
 
     assert_true(coalesced_event_received, "Coalesed pointermoves received");

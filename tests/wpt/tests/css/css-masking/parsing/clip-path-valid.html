@@ -73,10 +73,10 @@ test_valid_value("clip-path", "stroke-box");
 test_valid_value("clip-path", "view-box");
 
 // <basic-shape> <geometry-box>
-test_valid_value("clip-path", "circle(7% at 8% 9%) border-box");
+test_valid_value("clip-path", "circle(7% at 8% 9%) border-box", "circle(7% at 8% 9%)");
 
 // <geometry-box> <basic-shape>
-test_valid_value("clip-path", "border-box circle(7% at 8% 9%)", ["border-box circle(7% at 8% 9%)", "circle(7% at 8% 9%) border-box"]);
+test_valid_value("clip-path", "border-box circle(7% at 8% 9%)", "circle(7% at 8% 9%)");
 
 // <clip-source>
 test_valid_value("clip-path", "url(https://example.com/)", ["url(https://example.com/)", "url(\"https://example.com/\")"]);

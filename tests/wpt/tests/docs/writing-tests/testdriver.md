@@ -94,7 +94,7 @@ the global scope.
 
 ```
 
-### Seure Payment Confirmation ###
+### Secure Payment Confirmation ###
 ```eval_rst
 .. js:autofunction:: test_driver.set_spc_transaction_mode
 ```
@@ -102,6 +102,7 @@ the global scope.
 ### Federated Credential Management ###
 ```eval_rst
 .. js:autofunction:: test_driver.cancel_fedcm_dialog
+.. js:autofunction:: test_driver.confirm_idp_login
 .. js:autofunction:: test_driver.select_fedcm_account
 .. js:autofunction:: test_driver.get_fedcm_account_list
 .. js:autofunction:: test_driver.get_fedcm_dialog_title
@@ -158,9 +159,9 @@ The requirement to have a handle to the test window does mean it's
 currently not possible to write tests where such handles can't be
 obtained e.g. in the case of `rel=noopener`.
 
-## Actions ##
+### Actions ###
 
-### Markup ###
+#### Markup ####
 
 To use the [Actions](#Actions) API `testdriver-actions.js` must be
 included in the document, in addition to `testdriver.js`:
@@ -169,7 +170,7 @@ included in the document, in addition to `testdriver.js`:
 <script src="/resources/testdriver-actions.js"></script>
 ```
 
-### API ###
+#### API ####
 
 ```eval_rst
 .. js:autoclass:: Actions
@@ -177,7 +178,7 @@ included in the document, in addition to `testdriver.js`:
 ```
 
 
-### Using in other browsing contexts ###
+#### Using in other browsing contexts ####
 
 For the actions API, the context can be set using the `setContext`
 method on the builder:
@@ -194,53 +195,3 @@ Note that if an action uses an element reference, the context will be
 derived from that element, and must match any explicitly set
 context. Using elements in multiple contexts in a single action chain
 is not supported.
-
-### send_keys
-
-Usage: `test_driver.send_keys(element, keys)`
- * _element_: a DOM Element object
- * _keys_: string to send to the element
-
-This function causes the string _keys_ to be sent to the target
-element (an `Element` object), potentially scrolling the document to
-make it possible to send keys. It returns a promise that resolves
-after the keys have been sent, or rejects if the keys cannot be sent
-to the element.
-
-This works with elements in other frames/windows as long as they are
-same-origin with the test, and the test does not depend on the
-window.name property remaining unset on the target window.
-
-Note that if the element that the keys need to be sent to does not have
-a unique ID, the document must not have any DOM mutations made
-between the function being called and the promise settling.
-
-To send special keys, one must send the respective key's codepoint. Since this uses the WebDriver protocol, you can find a [list for code points to special keys in the spec](https://w3c.github.io/webdriver/#keyboard-actions).
-For example, to send the tab key you would send "\uE004".
-
-_Note: these special-key codepoints are not necessarily what you would expect. For example, <kbd>Esc</kbd> is the invalid Unicode character `\uE00C`, not the `\u001B` Escape character from ASCII._
-
-[activation]: https://html.spec.whatwg.org/multipage/interaction.html#activation
-
-### set_permission
-
-Usage: `test_driver.set_permission(descriptor, state, context=null)`
- * _descriptor_: a
-   [PermissionDescriptor](https://w3c.github.io/permissions/#dictdef-permissiondescriptor)
-   or derived object
- * _state_: a
-   [PermissionState](https://w3c.github.io/permissions/#enumdef-permissionstate)
-   value
- * context: a WindowProxy for the browsing context in which to perform the call
-
-This function causes permission requests and queries for the status of a
-certain permission type (e.g. "push", or "background-fetch") to always
-return _state_. It returns a promise that resolves after the permission has
-been set to be overridden with _state_.
-
-Example:
-
-``` js
-await test_driver.set_permission({ name: "background-fetch" }, "denied");
-await test_driver.set_permission({ name: "push", userVisibleOnly: true }, "granted");
-```

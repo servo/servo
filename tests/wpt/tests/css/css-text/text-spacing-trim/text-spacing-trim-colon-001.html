@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-trim-property">
+<link rel="match" href="text-spacing-trim-colon-001-ref.html">
+<meta name="variant" content="?class=halt,htb">
+<meta name="variant" content="?class=chws,htb">
+<meta name="variant" content="?class=halt,vrl">
+<meta name="variant" content="?class=chws,vrl">
+<script src="support/variant-class.js"></script>
+<style>
+@font-face {
+  font-family: halt-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+@font-face {
+  font-family: chws-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-chws.otf');
+}
+#container {
+  font-family: halt-font;
+  font-size: 20px;
+  position: relative;
+}
+.chws #container {
+  font-family: chws-font;
+}
+#container > div {
+  position: absolute;
+}
+:root:not(.vrl) .col1 {
+  left: 6em;
+}
+:root:not(.vrl) .col2 {
+  left: 12em;
+}
+:root.vrl {
+  writing-mode: vertical-rl;
+}
+:root.vrl .col1 {
+  top: 6em;
+}
+:root.vrl div.col2 {
+  top: 12em;
+}
+</style>
+<div id="container">
+  <div lang="ja">
+    <!-- Colon + Open/Close/Middle -->
+    <div>国：（国</div>
+    <div>国：）国</div>
+    <div>国：・国</div>
+    <div>国：　国</div>
+    <!-- Open/Close/Middle + Colon -->
+    <div>国（：国</div>
+    <div>国）：国</div>
+    <div>国・：国</div>
+    <div>国　：国</div>
+    <!-- Semicolon + Open/Close/Middle -->
+    <div>国；（国</div>
+    <div>国；）国</div>
+    <div>国；・国</div>
+    <div>国；　国</div>
+    <!-- Open/Close/Middle + Semicolon -->
+    <div>国（；国</div>
+    <div>国）；国</div>
+    <div>国・；国</div>
+    <div>国　；国</div>
+  </div>
+
+  <!-- The same content with "zh-hans". -->
+  <div lang="zh-hans" class="col1">
+    <!-- Colon + Open/Close/Middle -->
+    <div>国：（国</div>
+    <div>国：）国</div>
+    <div>国：・国</div>
+    <div>国：　国</div>
+    <!-- Open/Close/Middle + Colon -->
+    <div>国（：国</div>
+    <div>国）：国</div>
+    <div>国・：国</div>
+    <div>国　：国</div>
+    <!-- Semicolon + Open/Close/Middle -->
+    <div>国；（国</div>
+    <div>国；）国</div>
+    <div>国；・国</div>
+    <div>国；　国</div>
+    <!-- Open/Close/Middle + Semicolon -->
+    <div>国（；国</div>
+    <div>国）；国</div>
+    <div>国・；国</div>
+    <div>国　；国</div>
+  </div>
+
+  <!-- The same content with "zh-hant". -->
+  <div lang="zh-hant" class="col2">
+    <!-- Colon + Open/Close/Middle -->
+    <div>国：（国</div>
+    <div>国：）国</div>
+    <div>国：・国</div>
+    <div>国：　国</div>
+    <!-- Open/Close/Middle + Colon -->
+    <div>国（：国</div>
+    <div>国）：国</div>
+    <div>国・：国</div>
+    <div>国　：国</div>
+    <!-- Semicolon + Open/Close/Middle -->
+    <div>国；（国</div>
+    <div>国；）国</div>
+    <div>国；・国</div>
+    <div>国；　国</div>
+    <!-- Open/Close/Middle + Semicolon -->
+    <div>国（；国</div>
+    <div>国）；国</div>
+    <div>国・；国</div>
+    <div>国　；国</div>
+  </div>
+</div>

@@ -10,9 +10,6 @@ steps:
       set -eux -o pipefail
       git checkout ${{ parameters.checkoutCommit }}
     displayName: 'Checkout ${{ parameters.checkoutCommit }}'
-- template: pip_install.yml
-  parameters:
-    packages: virtualenv
 - template: install_certs.yml
 - template: color_profile.yml
 - template: install_safari.yml

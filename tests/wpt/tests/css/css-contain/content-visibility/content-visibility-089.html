@@ -1,0 +1,48 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: clientLeft/clientTop/clientWidth/clientHeight measure correctly</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="clientLeft/clientTop/clientWidth/clientHeight measure correctly in content-visibility hidden subtree">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+}
+#outer {
+  width: 100px;
+  height: 100px;
+  background: lightblue;
+
+  content-visibility: hidden;
+}
+#inner {
+  border-left: 25px black solid;
+  border-top: 25px black solid;
+  margin: 25px;
+  width: 50px;
+  height: 50px;
+  background: lightgreen;
+}
+</style>
+
+<body>
+<div id="outer"><div id="inner"></div></div>
+</body>
+
+<script>
+test(() => {
+  const inner = document.getElementById("inner");
+  assert_equals(inner.clientLeft, 25, "left");
+  assert_equals(inner.clientTop, 25, "top");
+  assert_equals(inner.clientWidth, 50, "width");
+  assert_equals(inner.clientHeight, 50, "height");
+});
+
+</script>
+</html>

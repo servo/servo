@@ -17,7 +17,7 @@ promise_test(async test => {
     `try {
       privateAggregation.contributeToHistogram(${contribution});
     } catch {
-      forDebuggingOnly.reportAdAuctionWin('${createWritingUrl(uuid)}');
+      forDebuggingOnly.reportAdAuctionWin('${createWritingURL(uuid)}');
     }`},
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with too large bucket in scoreAd()');
@@ -31,7 +31,7 @@ promise_test(async test => {
     `try {
       privateAggregation.contributeToHistogram(${contribution});
     } catch {
-      sendReportTo('${createWritingUrl(uuid)}');
+      sendReportTo('${createWritingURL(uuid)}');
     }`},
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with negative bucket in reportResult()');
@@ -46,7 +46,7 @@ promise_test(async test => {
     `try {
       privateAggregation.contributeToHistogram(${contribution});
     } catch {
-      forDebuggingOnly.reportAdAuctionWin('${createWritingUrl(uuid)}');
+      forDebuggingOnly.reportAdAuctionWin('${createWritingURL(uuid)}');
     }`},
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with non-BigInt bucket in generateBid()');
@@ -60,7 +60,7 @@ promise_test(async test => {
     `try {
       privateAggregation.contributeToHistogram(${contribution});
     } catch {
-      sendReportTo('${createWritingUrl(uuid)}');
+      sendReportTo('${createWritingURL(uuid)}');
     }`},
     /*expectedNumReports=*/ 1);
 }, 'contributeToHistogram() with negative value in reportWin()');

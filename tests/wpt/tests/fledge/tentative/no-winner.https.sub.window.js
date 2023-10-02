@@ -33,13 +33,13 @@ const BIDDING_LOGIC_SCRIPT_ERRORS = [
   // Bad return values:
   'generateBid=return 5;',
   'generateBid=return "Foo";',
-  'generateBid=return interestGroup.ads[0].renderUrl;',
+  'generateBid=return interestGroup.ads[0].renderURL;',
   'generateBid=return {bid: 1, render: "https://not-in-ads-array.test/"};',
   'generateBid=return {bid: 1};',
-  'generateBid=return {render: interestGroup.ads[0].renderUrl};',
+  'generateBid=return {render: interestGroup.ads[0].renderURL};',
   // These are not bidding rather than errors.
-  'generateBid=return {bid:0, render: interestGroup.ads[0].renderUrl};',
-  'generateBid=return {bid:-1, render: interestGroup.ads[0].renderUrl};',
+  'generateBid=return {bid:0, render: interestGroup.ads[0].renderURL};',
+  'generateBid=return {bid:-1, render: interestGroup.ads[0].renderURL};',
 ];
 
 const DECISION_LOGIC_SCRIPT_ERRORS = [
@@ -61,20 +61,20 @@ const DECISION_LOGIC_SCRIPT_ERRORS = [
 
 for (error of BIDDING_LOGIC_SCRIPT_ERRORS) {
   promise_test((async (error, test) => {
-    let biddingLogicUrl = `${BASE_URL}resources/bidding-logic.sub.py?${error}`;
-    await runBasicFledgeTestExpectingNoWinner(
+    let biddingLogicURL = `${BASE_URL}resources/bidding-logic.sub.py?${error}`;
+    await joinGroupAndRunBasicFledgeTestExpectingNoWinner(
       test,
-      {interestGroupOverrides: {biddingLogicUrl: biddingLogicUrl}}
+      {interestGroupOverrides: {biddingLogicURL: biddingLogicURL}}
     );
   }).bind(undefined, error), `Bidding logic script: ${error}`);
 }
 
 for (error of DECISION_LOGIC_SCRIPT_ERRORS) {
   promise_test((async (error, test) => {
-    let decisionLogicUrl =
+    let decisionLogicURL =
         `${BASE_URL}resources/decision-logic.sub.py?${error}`;
-    await runBasicFledgeTestExpectingNoWinner(
-      test, {auctionConfigOverrides: {decisionLogicUrl: decisionLogicUrl}}
+    await joinGroupAndRunBasicFledgeTestExpectingNoWinner(
+      test, { auctionConfigOverrides: { decisionLogicURL: decisionLogicURL } }
     );
   }).bind(undefined, error), `Decision logic script: ${error}`);
 }

@@ -76,11 +76,11 @@ explicitly-managed secret.
   - kyleju@google.com
   - pastithas@google.com
 - E-mail address: wpt.pr.bot@gmail.com
-  - smcgruer@google.com
+  - jamescscott@google.com
   - boaz@bocoup.com
   - mike@bocoup.com
 - [GitHub](https://github.com/): @wpt-pr-bot account
-  - smcgruer@google.com
+  - jamescscott@google.com
   - boaz@bocoup.com
   - mike@bocoup.com
 

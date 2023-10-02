@@ -24,11 +24,8 @@ promise_test(async t => {
   // The page should not be eligible for BFCache because of the usage
   // of WebSocket.
   await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
-  // The `BrowsingInstanceNotSwapped` reason will be added because of the
-  // sticky feature, and it will be reported as "Internal error".
   await assertNotRestoredFromBFCache(rc1, [
     'WebSocketSticky',
-    'MainResourceHasCacheControlNoStore',
-    'Internal error'
+    'MainResourceHasCacheControlNoStore'
   ]);
 });

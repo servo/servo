@@ -273,6 +273,10 @@
         return create_action("cancel_fedcm_dialog", {context});
     };
     
+    window.test_driver_internal.confirm_idp_login = function(context = null) {
+        return create_action("confirm_idp_login", {context});
+    };
+
     window.test_driver_internal.select_fedcm_account = function(account_index, context = null) {
         return create_action("select_fedcm_account", {account_index, context});
     };
