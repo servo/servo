@@ -302,20 +302,41 @@ impl StackingContext {
     pub(crate) fn sort(&mut self) {
         self.fragments.sort_by(|a, b| a.section.cmp(&b.section));
 
+        // Sort the stacking contexts and stacking containers by their painting order.
+        // <https://drafts.csswg.org/css-position-4/#painting-order>
+        // Anything that generates a stacking context is treated as if it were positioned with a
+        // ‘z-index’ of 0, for the purposes of that section (csswg-drafts#2717).
         self.stacking_contexts.sort_by(|a, b| {
+            // paint a stacking context -> steps 5 and 10:
+            // Sort by used ‘z-index’, or 0 if ‘auto’ or not applicable.
             let a_z_index = a.z_index();
             let b_z_index = b.z_index();
             if a_z_index != 0 || b_z_index != 0 {
                 return a_z_index.cmp(&b_z_index);
             }
 
+            type SCT = StackingContextType;
             match (a.context_type, b.context_type) {
-                (StackingContextType::PseudoFloat, StackingContextType::PseudoFloat) => {
-                    Ordering::Equal
-                },
-                (StackingContextType::PseudoFloat, _) => Ordering::Less,
-                (_, StackingContextType::PseudoFloat) => Ordering::Greater,
-                (_, _) => Ordering::Equal,
+                // paint a stacking context -> step 7:
+                // Floating descendants that do not generate stacking contexts.
+                (SCT::PseudoFloat, SCT::PseudoFloat) => Ordering::Equal,
+                (SCT::PseudoFloat, _) => Ordering::Less,
+                (_, SCT::PseudoFloat) => Ordering::Greater,
+
+                // paint a stacking context -> step 8 -> paint a box in a line box -> step 3:
+                // Inline-level block boxes or inline-level table wrapper boxes that do not
+                // generate stacking contexts.
+                (SCT::PseudoAtomicInline, SCT::PseudoAtomicInline) => Ordering::Equal,
+                (SCT::PseudoAtomicInline, _) => Ordering::Less,
+                (_, SCT::PseudoAtomicInline) => Ordering::Greater,
+
+                // paint a stacking context -> step 9:
+                // Positioned descendants that do not generate stacking contexts, as well as
+                // descendants that generate stacking contexts with ‘z-index’ of ‘auto’ or 0.
+                (SCT::PseudoPositioned, SCT::PseudoPositioned) => Ordering::Equal,
+                (SCT::PseudoPositioned, SCT::Real) => Ordering::Equal,
+                (SCT::Real, SCT::PseudoPositioned) => Ordering::Equal,
+                (SCT::Real, SCT::Real) => Ordering::Equal,
             }
         });
     }
