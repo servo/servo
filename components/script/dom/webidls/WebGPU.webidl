@@ -21,7 +21,7 @@ interface GPUSupportedLimits {
     readonly attribute unsigned long maxTextureDimension3D;
     readonly attribute unsigned long maxTextureArrayLayers;
     readonly attribute unsigned long maxBindGroups;
-    readonly attribute unsigned long maxBindGroupsPlusVertexBuffers;
+    //readonly attribute unsigned long maxBindGroupsPlusVertexBuffers;
     readonly attribute unsigned long maxBindingsPerBindGroup;
     readonly attribute unsigned long maxDynamicUniformBuffersPerPipelineLayout;
     readonly attribute unsigned long maxDynamicStorageBuffersPerPipelineLayout;
@@ -39,9 +39,9 @@ interface GPUSupportedLimits {
     readonly attribute unsigned long maxVertexAttributes;
     readonly attribute unsigned long maxVertexBufferArrayStride;
     readonly attribute unsigned long maxInterStageShaderComponents;
-    readonly attribute unsigned long maxInterStageShaderVariables;
-    readonly attribute unsigned long maxColorAttachments;
-    readonly attribute unsigned long maxColorAttachmentBytesPerSample;
+    //readonly attribute unsigned long maxInterStageShaderVariables;
+    //readonly attribute unsigned long maxColorAttachments;
+    //readonly attribute unsigned long maxColorAttachmentBytesPerSample;
     readonly attribute unsigned long maxComputeWorkgroupStorageSize;
     readonly attribute unsigned long maxComputeInvocationsPerWorkgroup;
     readonly attribute unsigned long maxComputeWorkgroupSizeX;
@@ -402,10 +402,11 @@ enum GPUTextureFormat {
     "astc-12x12-unorm-srgb",
 };
 
+/*
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUExternalTexture {
 };
-GPUExternalTexture includes GPUObjectBase;
+GPUExternalTexture includes GPUObjectBase;*/
 
 dictionary GPUExternalTextureDescriptor
          : GPUObjectDescriptorBase {
@@ -550,7 +551,7 @@ dictionary GPUBindGroupDescriptor
     required sequence<GPUBindGroupEntry> entries;
 };
 
-typedef (GPUSampler or GPUTextureView or GPUBufferBinding or GPUExternalTexture) GPUBindingResource;
+typedef (GPUSampler or GPUTextureView or GPUBufferBinding /*or GPUExternalTexture*/) GPUBindingResource;
 
 dictionary GPUBindGroupEntry {
     required GPUIndex32 binding;
