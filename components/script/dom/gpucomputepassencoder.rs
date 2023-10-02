@@ -117,7 +117,12 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubindingcommandsmixin-setbindgroup
     #[allow(unsafe_code)]
-    fn SetBindGroup(&self, index: u32, bind_group: Option<&GPUBindGroup>, dynamic_offsets: Vec<u32>) {
+    fn SetBindGroup(
+        &self,
+        index: u32,
+        bind_group: Option<&GPUBindGroup>,
+        dynamic_offsets: Vec<u32>,
+    ) {
         if let Some(compute_pass) = self.compute_pass.borrow_mut().as_mut() {
             unsafe {
                 wgpu_comp::wgpu_compute_pass_set_bind_group(
@@ -131,7 +136,14 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
         }
     }
 
-    fn SetBindGroup_(&self, index: u32, bind_group: Option<&GPUBindGroup>, dynamic_offsets_data: js::rust::CustomAutoRooterGuard<js::typedarray::Uint32Array>, dynamic_offsets_data_start: u64, dynamicOffsetsDataLength: u32) -> () {
+    fn SetBindGroup_(
+        &self,
+        index: u32,
+        bind_group: Option<&GPUBindGroup>,
+        dynamic_offsets_data: js::rust::CustomAutoRooterGuard<js::typedarray::Uint32Array>,
+        dynamic_offsets_data_start: u64,
+        dynamicOffsetsDataLength: u32,
+    ) -> () {
         todo!()
     }
 

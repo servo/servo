@@ -16,6 +16,7 @@ use webgpu::identity::WebGPUOpResult;
 use webgpu::wgpu::device::HostMap;
 use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
+pub use super::bindings::codegen::Bindings::WebGPUBinding::GPUBufferMapState;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferMethods, GPUMapModeConstants, GPUSize64,
@@ -30,7 +31,6 @@ use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
-pub use super::bindings::codegen::Bindings::WebGPUBinding::GPUBufferMapState;
 
 const RANGE_OFFSET_ALIGN_MASK: u64 = 8;
 const RANGE_SIZE_ALIGN_MASK: u64 = 4;
@@ -156,9 +156,7 @@ impl GPUBufferMethods for GPUBuffer {
                 WebGPURequest::UnmapBuffer {
                     buffer_id: self.id().0,
                     device_id: self.device.id().0,
-                    array_buffer: IpcSharedMemory::from_bytes(
-                        m_info.mapping.borrow().as_slice(),
-                    ),
+                    array_buffer: IpcSharedMemory::from_bytes(m_info.mapping.borrow().as_slice()),
                     is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
                     offset: m_range.start,
                     size: m_range.end - m_range.start,
@@ -214,38 +212,38 @@ impl GPUBufferMethods for GPUBuffer {
         *self.pending_map.borrow_mut() = Some(promise.clone());
         // Step 5
         {
-        let range_size = if let Some(s) = size {
-            s
-        } else if offset >= self.size {
-            promise.reject_error(Error::Operation);
-            return promise;
-        } else {
-            self.size - offset
-        };
-        let scope_id = self.device.use_current_scope();
-        if self.state.get() != GPUBufferMapState::Unmapped {
-            self.device.handle_server_msg(
-                scope_id,
-                WebGPUOpResult::ValidationError(String::from("Buffer is not Unmapped")),
-            );
-            promise.reject_error(Error::Abort);
-            return promise;
-        }
-        let host_map = match mode {
-            GPUMapModeConstants::READ => HostMap::Read,
-            GPUMapModeConstants::WRITE => HostMap::Write,
-            _ => {
+            let range_size = if let Some(s) = size {
+                s
+            } else if offset >= self.size {
+                promise.reject_error(Error::Operation);
+                return promise;
+            } else {
+                self.size - offset
+            };
+            let scope_id = self.device.use_current_scope();
+            if self.state.get() != GPUBufferMapState::Unmapped {
                 self.device.handle_server_msg(
                     scope_id,
-                    WebGPUOpResult::ValidationError(String::from("Invalid MapModeFlags")),
+                    WebGPUOpResult::ValidationError(String::from("Buffer is not Unmapped")),
                 );
                 promise.reject_error(Error::Abort);
                 return promise;
-            },
-        };
+            }
+            let host_map = match mode {
+                GPUMapModeConstants::READ => HostMap::Read,
+                GPUMapModeConstants::WRITE => HostMap::Write,
+                _ => {
+                    self.device.handle_server_msg(
+                        scope_id,
+                        WebGPUOpResult::ValidationError(String::from("Invalid MapModeFlags")),
+                    );
+                    promise.reject_error(Error::Abort);
+                    return promise;
+                },
+            };
 
-        let map_range = offset..offset + range_size;
-    }
+            let map_range = offset..offset + range_size;
+        }
         let sender = response_async(&promise, self);
         if let Err(e) = self.channel.0.send((
             scope_id,

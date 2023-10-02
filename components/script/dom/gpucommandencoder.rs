@@ -133,10 +133,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             Some(wgpu_com::ComputePass::new(
                 self.encoder.0,
                 &wgpu_com::ComputePassDescriptor {
-                    label: Some(Cow::Borrowed(descriptor
-                        .parent
-                        .label
-                        .as_ref())),
+                    label: Some(Cow::Borrowed(descriptor.parent.label.as_ref())),
                 },
             ))
         };
@@ -228,10 +225,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                         .collect::<Vec<_>>(),
                 ),
                 depth_stencil_attachment: depth_stencil.as_ref(),
-                label: Some(Cow::Borrowed(descriptor
-                    .parent
-                    .label
-                    .as_ref())),
+                label: Some(Cow::Borrowed(descriptor.parent.label.as_ref())),
             };
             Some(wgpu_com::RenderPass::new(self.encoder.0, &desc))
         };

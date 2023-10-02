@@ -82,7 +82,12 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup
     #[allow(unsafe_code)]
-    fn SetBindGroup(&self, index: u32, bind_group: Option<&GPUBindGroup>, dynamic_offsets: Vec<u32>) {
+    fn SetBindGroup(
+        &self,
+        index: u32,
+        bind_group: Option<&GPUBindGroup>,
+        dynamic_offsets: Vec<u32>,
+    ) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             unsafe {
                 wgpu_bundle::wgpu_render_bundle_set_bind_group(
@@ -96,7 +101,14 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         }
     }
 
-    fn SetBindGroup_(&self, index: u32, bind_group: Option<&GPUBindGroup>, dynamic_offsets_data: js::rust::CustomAutoRooterGuard<js::typedarray::Uint32Array>, dynamic_offsets_data_start: u64, dynamic_offsets_data_length: u32) -> () {
+    fn SetBindGroup_(
+        &self,
+        index: u32,
+        bind_group: Option<&GPUBindGroup>,
+        dynamic_offsets_data: js::rust::CustomAutoRooterGuard<js::typedarray::Uint32Array>,
+        dynamic_offsets_data_start: u64,
+        dynamic_offsets_data_length: u32,
+    ) -> () {
         todo!()
     }
 
@@ -133,14 +145,20 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer
-    fn SetVertexBuffer(&self, slot: u32, buffer: Option<&GPUBuffer>, offset: u64, size: Option<u64>) {
+    fn SetVertexBuffer(
+        &self,
+        slot: u32,
+        buffer: Option<&GPUBuffer>,
+        offset: u64,
+        size: Option<u64>,
+    ) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_set_vertex_buffer(
                 encoder,
                 slot,
-                buffer.unwrap().id().0,//TODO(wpu)
+                buffer.unwrap().id().0, //TODO(wpu)
                 offset,
-                wgt::BufferSize::new(size.unwrap()),//TODO(wpu)
+                wgt::BufferSize::new(size.unwrap()), //TODO(wpu)
             );
         }
     }

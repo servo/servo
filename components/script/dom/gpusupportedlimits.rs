@@ -173,4 +173,21 @@ impl GPUSupportedLimitsMethods for GPUSupportedLimits {
     fn MaxComputeWorkgroupsPerDimension(&self) -> u32 {
         self.limits.max_compute_workgroups_per_dimension
     }
+
+    /*
+    fn MaxBindGroupsPlusVertexBuffers(&self) -> u32 {
+        todo!()
+    }
+
+    fn MaxInterStageShaderVariables(&self) -> u32 {
+        self.limits.max_inter_stage_shader_variables
+    }
+
+    fn MaxColorAttachments(&self) -> u32 {
+        todo!()
+    }
+
+    fn MaxColorAttachmentBytesPerSample(&self) -> u32 {
+        todo!()
+    }*/
 }

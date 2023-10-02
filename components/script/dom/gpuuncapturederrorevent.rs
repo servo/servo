@@ -21,13 +21,13 @@ use crate::dom::gpuerror::GPUError;
 pub struct GPUUncapturedErrorEvent {
     event: Event,
     #[ignore_malloc_size_of = "Because it is non-owning"]
-    gpu_error: Dom<GPUError>,
+    gpu_error: DomRoot<GPUError>,
 }
 
 impl GPUUncapturedErrorEvent {
     fn new_inherited(init: &GPUUncapturedErrorEventInit) -> Self {
         Self {
-            gpu_error: clone_gpu_error(&init.error),
+            gpu_error: init.error.clone(),
             event: Event::new_inherited(),
         }
     }
@@ -79,19 +79,12 @@ impl GPUUncapturedErrorEvent {
 
 impl GPUUncapturedErrorEventMethods for GPUUncapturedErrorEvent {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-error
-    fn Error(&self) -> GPUError {
-        clone_gpu_error(&self.gpu_error)
+    fn Error(&self) -> DomRoot<GPUError> {
+        self.gpu_error.clone()
     }
 
     /// https://dom.spec.whatwg.org/#dom-event-istrusted
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
-    }
-}
-
-fn clone_gpu_error(error: &GPUError) -> GPUError {
-    match *error {
-        GPUError::GPUValidationError(ref v) => GPUError::GPUValidationError(v.clone()),
-        GPUError::GPUOutOfMemoryError(ref w) => GPUError::GPUOutOfMemoryError(w.clone()),
     }
 }

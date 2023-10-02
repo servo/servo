@@ -194,7 +194,12 @@ impl GPUQueueMethods for GPUQueue {
         todo!()
     }
 
-    fn CopyExternalImageToTexture(&self, source: &crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUImageCopyExternalImage, destination: &crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUImageCopyTextureTagged, copySize: super::bindings::codegen::UnionTypes::RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict) -> () {
+    fn CopyExternalImageToTexture(
+        &self,
+        source: &crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUImageCopyExternalImage,
+        destination: &crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUImageCopyTextureTagged,
+        copySize: super::bindings::codegen::UnionTypes::RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict,
+    ) -> () {
         todo!()
     }
 }

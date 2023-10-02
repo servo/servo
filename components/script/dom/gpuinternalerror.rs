@@ -46,8 +46,8 @@ impl GPUInternalError {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
-    ) -> Fallible<DomRoot<Self>> {
-        Ok(GPUInternalError::new_with_proto(global, proto, message))
+    ) -> DomRoot<Self> {
+        GPUInternalError::new_with_proto(global, proto, message)
     }
 
     pub fn base(&self) -> DomRoot<GPUError> {

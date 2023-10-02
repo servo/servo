@@ -18,10 +18,11 @@ use webgpu::wgpu::{
     binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
 };
 use webgpu::{self, wgt, ErrorScopeId, WebGPU, WebGPURequest};
+use wgt::{AstcBlock, AstcChannel};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBlendComponent, GPUBufferBindingType, GPUDeviceLostReason, GPUPrimitiveState,
-    GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType, GPUVertexStepMode,
+    GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType, GPUVertexStepMode, GPUMipmapFilterMode,
 };
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
@@ -422,7 +423,7 @@ impl GPUDeviceMethods for GPUDevice {
             state = GPUBufferMapState::Unmapped;
         }
 
-        Ok(GPUBuffer::new(
+        GPUBuffer::new(
             &self.global(),
             self.channel.clone(),
             buffer,
@@ -431,7 +432,7 @@ impl GPUDeviceMethods for GPUDevice {
             descriptor.size,
             map_info,
             descriptor.parent.label.clone(),
-        ))
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout
@@ -548,11 +549,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         let bgl = webgpu::WebGPUBindGroupLayout(bind_group_layout_id);
 
-        GPUBindGroupLayout::new(
-            &self.global(),
-            bgl,
-            descriptor.parent.label.clone(),
-        )
+        GPUBindGroupLayout::new(&self.global(), bgl, descriptor.parent.label.clone())
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout
@@ -626,7 +623,6 @@ impl GPUDeviceMethods for GPUDevice {
                             size: b.size.and_then(wgt::BufferSize::new),
                         })
                     },
-                    GPUBindingResource::GPUExternalTexture(_) => todo!(),
                 },
             })
             .collect::<Vec<_>>();
@@ -863,7 +859,7 @@ impl GPUDeviceMethods for GPUDevice {
             ],
             mag_filter: convert_filter_mode(descriptor.magFilter),
             min_filter: convert_filter_mode(descriptor.minFilter),
-            mipmap_filter: convert_filter_mode(descriptor.mipmapFilter),
+            mipmap_filter: convert_mipmap_filter_mode(descriptor.mipmapFilter),
             lod_min_clamp: *descriptor.lodMinClamp,
             lod_max_clamp: *descriptor.lodMaxClamp,
             compare: descriptor.compare.map(|c| convert_compare_function(c)),
@@ -1209,7 +1205,7 @@ fn convert_primitive_state(primitive_state: &GPUPrimitiveState) -> wgt::Primitiv
             GPUCullMode::Front => Some(wgt::Face::Front),
             GPUCullMode::Back => Some(wgt::Face::Back),
         },
-        unclipped_depth: primitive_state.clampDepth,
+        unclipped_depth: primitive_state.unclippedDepth,
         ..Default::default()
     }
 }
@@ -1247,6 +1243,13 @@ fn convert_filter_mode(filter_mode: GPUFilterMode) -> wgt::FilterMode {
     match filter_mode {
         GPUFilterMode::Nearest => wgt::FilterMode::Nearest,
         GPUFilterMode::Linear => wgt::FilterMode::Linear,
+    }
+}
+
+fn convert_mipmap_filter_mode(mipmap_filter: GPUMipmapFilterMode) -> wgt::FilterMode {
+    match mipmap_filter {
+        GPUMipmapFilterMode::Nearest => wgt::FilterMode::Nearest,
+        GPUMipmapFilterMode::Linear => wgt::FilterMode::Linear,
     }
 }
 
@@ -1381,8 +1384,135 @@ pub fn convert_texture_format(format: GPUTextureFormat) -> wgt::TextureFormat {
         GPUTextureFormat::Bc6h_rgb_ufloat => wgt::TextureFormat::Bc6hRgbUfloat,
         GPUTextureFormat::Bc7_rgba_unorm => wgt::TextureFormat::Bc7RgbaUnorm,
         GPUTextureFormat::Bc7_rgba_unorm_srgb => wgt::TextureFormat::Bc7RgbaUnormSrgb,
-        GPUTextureFormat::Rg11b10float => wgt::TextureFormat::Rg11b10Float,
         GPUTextureFormat::Bc6h_rgb_float => wgt::TextureFormat::Bc6hRgbFloat,
+        GPUTextureFormat::Rgb9e5ufloat => wgt::TextureFormat::Rgb9e5Ufloat,
+        GPUTextureFormat::Rgb10a2uint => todo!(),
+        GPUTextureFormat::Rg11b10ufloat => wgt::TextureFormat::Rg11b10Float,
+        GPUTextureFormat::Stencil8 => wgt::TextureFormat::Stencil8,
+        GPUTextureFormat::Depth16unorm => wgt::TextureFormat::Depth16Unorm,
+        GPUTextureFormat::Depth32float_stencil8 => wgt::TextureFormat::Depth32FloatStencil8,
+        GPUTextureFormat::Etc2_rgb8unorm => wgt::TextureFormat::Etc2Rgb8Unorm,
+        GPUTextureFormat::Etc2_rgb8unorm_srgb => wgt::TextureFormat::Etc2Rgb8UnormSrgb,
+        GPUTextureFormat::Etc2_rgb8a1unorm => wgt::TextureFormat::Etc2Rgb8A1Unorm,
+        GPUTextureFormat::Etc2_rgb8a1unorm_srgb => wgt::TextureFormat::Etc2Rgb8A1UnormSrgb,
+        GPUTextureFormat::Etc2_rgba8unorm => wgt::TextureFormat::Etc2Rgba8Unorm,
+        GPUTextureFormat::Etc2_rgba8unorm_srgb => wgt::TextureFormat::Etc2Rgba8UnormSrgb,
+        GPUTextureFormat::Eac_r11unorm => wgt::TextureFormat::EacR11Unorm,
+        GPUTextureFormat::Eac_r11snorm => wgt::TextureFormat::EacR11Snorm,
+        GPUTextureFormat::Eac_rg11unorm => wgt::TextureFormat::EacRg11Unorm,
+        GPUTextureFormat::Eac_rg11snorm => wgt::TextureFormat::EacRg11Snorm,
+        GPUTextureFormat::Astc_4x4_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B4x4,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_4x4_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B4x4,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_5x4_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B5x4,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_5x4_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B5x4,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_5x5_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B5x5,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_5x5_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B5x5,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_6x5_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B6x5,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_6x5_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B6x5,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_6x6_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B6x6,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_6x6_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B6x6,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_8x5_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B8x5,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_8x5_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B8x5,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_8x6_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B8x6,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_8x6_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B8x6,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_8x8_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B8x8,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_8x8_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B8x8,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_10x5_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B10x5,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_10x5_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B10x5,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_10x6_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B10x6,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_10x6_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B10x6,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_10x8_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B10x8,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_10x8_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B10x8,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_10x10_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B10x10,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_10x10_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B10x10,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_12x10_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B12x10,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_12x10_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B12x10,
+            channel: AstcChannel::UnormSrgb,
+        },
+        GPUTextureFormat::Astc_12x12_unorm => wgt::TextureFormat::Astc {
+            block: AstcBlock::B12x12,
+            channel: AstcChannel::Unorm,
+        },
+        GPUTextureFormat::Astc_12x12_unorm_srgb => wgt::TextureFormat::Astc {
+            block: AstcBlock::B12x12,
+            channel: AstcChannel::UnormSrgb,
+        },
     }
 }
 

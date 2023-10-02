@@ -86,13 +86,18 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup
     #[allow(unsafe_code)]
-    fn SetBindGroup(&self, index: u32, bind_group: Option<&GPUBindGroup>, dynamic_offsets: Vec<u32>) {
+    fn SetBindGroup(
+        &self,
+        index: u32,
+        bind_group: Option<&GPUBindGroup>,
+        dynamic_offsets: Vec<u32>,
+    ) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             unsafe {
                 wgpu_render::wgpu_render_pass_set_bind_group(
                     render_pass,
                     index,
-                    bind_group.unwrap().id().0,//TODO(wpu)
+                    bind_group.unwrap().id().0, //TODO(wpu)
                     dynamic_offsets.as_ptr(),
                     dynamic_offsets.len(),
                 )
@@ -100,7 +105,14 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
-    fn SetBindGroup_(&self, index: u32, bind_group: Option<&GPUBindGroup>, dynamic_offsets_data: CustomAutoRooterGuard<Uint32Array>, dynamic_offsets_data_start: u64, dynamic_offsets_data_length: u32) -> () {
+    fn SetBindGroup_(
+        &self,
+        index: u32,
+        bind_group: Option<&GPUBindGroup>,
+        dynamic_offsets_data: CustomAutoRooterGuard<Uint32Array>,
+        dynamic_offsets_data_start: u64,
+        dynamic_offsets_data_length: u32,
+    ) -> () {
         todo!()
     }
 
@@ -212,20 +224,26 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
                     GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
                 },
                 offset,
-                wgt::BufferSize::new(size.unwrap()),//TODO(wpu)
+                wgt::BufferSize::new(size.unwrap()), //TODO(wpu)
             );
         }
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer
-    fn SetVertexBuffer(&self, slot: u32, buffer: Option<&GPUBuffer>, offset: u64, size: Option<u64>) {
+    fn SetVertexBuffer(
+        &self,
+        slot: u32,
+        buffer: Option<&GPUBuffer>,
+        offset: u64,
+        size: Option<u64>,
+    ) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             wgpu_render::wgpu_render_pass_set_vertex_buffer(
                 render_pass,
                 slot,
-                buffer.unwrap().id().0,//TODO(wpu)
+                buffer.unwrap().id().0, //TODO(wpu)
                 offset,
-                wgt::BufferSize::new(size),//TODO(wpu)
+                wgt::BufferSize::new(size.unwrap()), //TODO(wpu)
             );
         }
     }
