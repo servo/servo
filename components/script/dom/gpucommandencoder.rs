@@ -32,7 +32,7 @@ use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_t
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 
 // TODO(sagudev): this is different now
-// https://gpuweb.github.io/gpuweb/#enumdef-encoder-state
+// https://gpuweb.github.io/gpuweb/#encoder-state
 #[derive(MallocSizeOf, PartialEq)]
 pub enum GPUCommandEncoderState {
     Open,
@@ -133,11 +133,10 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             Some(wgpu_com::ComputePass::new(
                 self.encoder.0,
                 &wgpu_com::ComputePassDescriptor {
-                    label: descriptor
+                    label: Some(Cow::Borrowed(descriptor
                         .parent
                         .label
-                        .as_ref()
-                        .map(|l| Cow::Borrowed(&**l)),
+                        .as_ref())),
                 },
             ))
         };
@@ -147,7 +146,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             &self,
             compute_pass,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -229,11 +228,10 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                         .collect::<Vec<_>>(),
                 ),
                 depth_stencil_attachment: depth_stencil.as_ref(),
-                label: descriptor
+                label: Some(Cow::Borrowed(descriptor
                     .parent
                     .label
-                    .as_ref()
-                    .map(|l| Cow::Borrowed(&**l)),
+                    .as_ref())),
             };
             Some(wgpu_com::RenderPass::new(self.encoder.0, &desc))
         };
@@ -243,7 +241,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             render_pass,
             &self,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -396,8 +394,12 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             buffer,
             self.buffers.borrow_mut().drain().collect(),
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
+    }
+
+    fn ClearBuffer(&self, buffer: &GPUBuffer, offset: u64, size: Option<u64>) -> () {
+        todo!()
     }
 }
 
@@ -425,11 +427,13 @@ fn convert_ic_buffer(ic_buffer: &GPUImageCopyBuffer) -> wgpu_com::ImageCopyBuffe
 }
 
 pub fn convert_ic_texture(ic_texture: &GPUImageCopyTexture) -> wgpu_com::ImageCopyTexture {
+    // Here we should have GPUOrigin3D origin, but beacuse = {} in idl we have this monster
+    use crate::dom::bindings::codegen::UnionTypes::RangeEnforcedUnsignedLongSequenceOrGPUOrigin3DDict::*;
     wgpu_com::ImageCopyTexture {
         texture: ic_texture.texture.id().0,
         mip_level: ic_texture.mipLevel,
         origin: match ic_texture.origin {
-            Some(GPUOrigin3D::RangeEnforcedUnsignedLongSequence(ref v)) => {
+            RangeEnforcedUnsignedLongSequence(ref v) => {
                 let mut w = v.clone();
                 w.resize(3, 0);
                 wgt::Origin3d {
@@ -438,12 +442,11 @@ pub fn convert_ic_texture(ic_texture: &GPUImageCopyTexture) -> wgpu_com::ImageCo
                     z: w[2],
                 }
             },
-            Some(GPUOrigin3D::GPUOrigin3DDict(ref d)) => wgt::Origin3d {
+            GPUOrigin3DDict(ref d) => wgt::Origin3d {
                 x: d.x,
                 y: d.y,
                 z: d.z,
             },
-            None => wgt::Origin3d::default(),
         },
         aspect: match ic_texture.aspect {
             GPUTextureAspect::All => wgt::TextureAspect::All,

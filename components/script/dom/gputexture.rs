@@ -185,7 +185,7 @@ impl GPUTextureMethods for GPUTexture {
             &self.global(),
             texture_view,
             &self,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -205,5 +205,45 @@ impl GPUTextureMethods for GPUTexture {
             );
         };
         self.destroyed.set(true);
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-width
+    fn Width(&self) -> u32 {
+        self.texture_size.width
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-height
+    fn Height(&self) -> u32 {
+        self.texture_size.height
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-depthorarraylayers
+    fn DepthOrArrayLayers(&self) -> u32 {
+        self.texture_size.depthOrArrayLayers
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-miplevelcount
+    fn MipLevelCount(&self) -> u32 {
+        self.mip_level_count
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-samplecount
+    fn SampleCount(&self) -> u32 {
+        self.sample_count
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-dimension
+    fn Dimension(&self) -> GPUTextureDimension {
+        self.dimension
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-format
+    fn Format(&self) -> GPUTextureFormat {
+        self.format
+    }
+
+    ///  https://gpuweb.github.io/gpuweb/#dom-gputexture-usage
+    fn Usage(&self) -> u32 {
+        self.texture_usage
     }
 }

@@ -6,7 +6,7 @@
 
 use dom_struct::dom_struct;
 
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUQuerySetMethods;
+use super::bindings::codegen::Bindings::WebGPUBinding::{GPUQuerySetMethods, GPUQueryType};
 use super::bindings::str::USVString;
 use crate::dom::bindings::reflector::Reflector;
 
@@ -30,6 +30,14 @@ impl GPUQuerySetMethods for GPUQuerySet {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn SetLabel(&self, _value: USVString) {
+        todo!()
+    }
+
+    fn Type(&self) -> GPUQueryType {
+        todo!()
+    }
+
+    fn Count(&self) -> u32 {
         todo!()
     }
 }

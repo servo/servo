@@ -30,17 +30,16 @@ use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
+pub use super::bindings::codegen::Bindings::WebGPUBinding::GPUBufferMapState;
 
 const RANGE_OFFSET_ALIGN_MASK: u64 = 8;
 const RANGE_SIZE_ALIGN_MASK: u64 = 4;
 
-// https://gpuweb.github.io/gpuweb/#buffer-state
+// https://gpuweb.github.io/gpuweb/#buffer-internals-state
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum GPUBufferState {
-    Mapped,
-    MappedAtCreation,
-    MappingPending,
-    Unmapped,
+    Available,
+    Unavailable,
     Destroyed,
 }
 
@@ -62,14 +61,18 @@ pub struct GPUBuffer {
     #[no_trace]
     channel: WebGPU,
     label: DomRefCell<USVString>,
+    #[no_trace]
     state: Cell<GPUBufferState>,
+    map_state: Cell<GPUBufferMapState>,
     #[no_trace]
     buffer: WebGPUBuffer,
     device: Dom<GPUDevice>,
     size: GPUSize64,
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-pending_map-slot>
     #[ignore_malloc_size_of = "promises are hard"]
-    map_promise: DomRefCell<Option<Rc<Promise>>>,
-    map_info: DomRefCell<Option<GPUBufferMapInfo>>,
+    pending_map: DomRefCell<Option<Rc<Promise>>>,
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
+    mapping: DomRefCell<Option<GPUBufferMapInfo>>,
 }
 
 impl GPUBuffer {
@@ -78,6 +81,7 @@ impl GPUBuffer {
         buffer: WebGPUBuffer,
         device: &GPUDevice,
         state: GPUBufferState,
+        map_state: GPUBufferMapState,
         size: GPUSize64,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
         label: USVString,
@@ -86,12 +90,13 @@ impl GPUBuffer {
             reflector_: Reflector::new(),
             channel,
             label: DomRefCell::new(label),
+            map_state: Cell::new(map_state),
             state: Cell::new(state),
             device: Dom::from_ref(device),
             buffer,
-            map_promise: DomRefCell::new(None),
+            pending_map: DomRefCell::new(None),
             size,
-            map_info,
+            mapping: map_info,
         }
     }
 
@@ -102,13 +107,14 @@ impl GPUBuffer {
         buffer: WebGPUBuffer,
         device: &GPUDevice,
         state: GPUBufferState,
+        map_state: GPUBufferMapState,
         size: GPUSize64,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
-                channel, buffer, device, state, size, map_info, label,
+                channel, buffer, device, state, map_state, size, map_info, label,
             )),
             global,
         )
@@ -120,77 +126,61 @@ impl GPUBuffer {
         self.buffer
     }
 
-    pub fn state(&self) -> GPUBufferState {
-        self.state.get()
+    pub fn state(&self) -> GPUBufferMapState {
+        self.map_state.get()
     }
 }
 
 impl Drop for GPUBuffer {
     fn drop(&mut self) {
-        if let Err(e) = self.Destroy() {
-            error!("GPUBuffer destruction failed with {e:?}!"); // TODO: should we allow panic here?
-        };
+        self.Destroy()
     }
 }
 
 impl GPUBufferMethods for GPUBuffer {
     #[allow(unsafe_code)]
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
-    fn Unmap(&self) -> Fallible<()> {
+    fn Unmap(&self) {
         let cx = GlobalScope::get_cx();
         // Step 1
-        match self.state.get() {
-            GPUBufferState::Unmapped | GPUBufferState::Destroyed => {
-                // TODO: Record validation error on the current scope
-                return Ok(());
-            },
-            // Step 3
-            GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
-                let mut info = self.map_info.borrow_mut();
-                let m_info = info.as_mut().unwrap();
-                let m_range = m_info.mapping_range.clone();
-                if let Err(e) = self.channel.0.send((
-                    self.device.use_current_scope(),
-                    WebGPURequest::UnmapBuffer {
-                        buffer_id: self.id().0,
-                        device_id: self.device.id().0,
-                        array_buffer: IpcSharedMemory::from_bytes(
-                            m_info.mapping.borrow().as_slice(),
-                        ),
-                        is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
-                        offset: m_range.start,
-                        size: m_range.end - m_range.start,
-                    },
-                )) {
-                    warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
-                }
-                // Step 3.3
-                m_info.js_buffers.drain(..).for_each(|obj| unsafe {
-                    DetachArrayBuffer(*cx, obj.handle());
-                });
-            },
-            // Step 2
-            GPUBufferState::MappingPending => {
-                let promise = self.map_promise.borrow_mut().take().unwrap();
-                promise.reject_error(Error::Operation);
-            },
-        };
-        // Step 4
-        self.state.set(GPUBufferState::Unmapped);
-        *self.map_info.borrow_mut() = None;
-        Ok(())
+        if let Some(promise) = self.pending_map.borrow_mut().take() {
+            promise.reject_error(Error::Abort);
+        }
+
+        let mut info = self.mapping.borrow_mut();
+        // Step 2
+        if let Some(m_info) = info.as_mut() {
+            let m_range = m_info.mapping_range.clone();
+            if let Err(e) = self.channel.0.send((
+                self.device.use_current_scope(),
+                WebGPURequest::UnmapBuffer {
+                    buffer_id: self.id().0,
+                    device_id: self.device.id().0,
+                    array_buffer: IpcSharedMemory::from_bytes(
+                        m_info.mapping.borrow().as_slice(),
+                    ),
+                    is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
+                    offset: m_range.start,
+                    size: m_range.end - m_range.start,
+                },
+            )) {
+                warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
+            }
+            // Step 3.3
+            m_info.js_buffers.drain(..).for_each(|obj| unsafe {
+                DetachArrayBuffer(*cx, obj.handle());
+            });
+        } else {
+            return;
+        }
+        // Step 6
+        *self.mapping.borrow_mut() = None;
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
-    fn Destroy(&self) -> Fallible<()> {
-        let state = self.state.get();
-        match state {
-            GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
-                self.Unmap()?;
-            },
-            GPUBufferState::Destroyed => return Ok(()),
-            _ => {},
-        };
+    fn Destroy(&self) {
+        // Step 1
+        self.Unmap();
         if let Err(e) = self
             .channel
             .0
@@ -201,8 +191,8 @@ impl GPUBufferMethods for GPUBuffer {
                 self.buffer.0, e
             );
         };
+        // Step 2
         self.state.set(GPUBufferState::Destroyed);
-        Ok(())
     }
 
     #[allow(unsafe_code)]
@@ -214,7 +204,16 @@ impl GPUBufferMethods for GPUBuffer {
         size: Option<GPUSize64>,
         comp: InRealm,
     ) -> Rc<Promise> {
+        // Step 2
+        if let Some(promise) = self.pending_map.borrow_mut().take() {
+            promise.reject_error(Error::Abort);
+        }
+        // Step 3
         let promise = Promise::new_in_current_realm(comp);
+        // Step 4
+        *self.pending_map.borrow_mut() = Some(promise.clone());
+        // Step 5
+        {
         let range_size = if let Some(s) = size {
             s
         } else if offset >= self.size {
@@ -224,7 +223,7 @@ impl GPUBufferMethods for GPUBuffer {
             self.size - offset
         };
         let scope_id = self.device.use_current_scope();
-        if self.state.get() != GPUBufferState::Unmapped {
+        if self.state.get() != GPUBufferMapState::Unmapped {
             self.device.handle_server_msg(
                 scope_id,
                 WebGPUOpResult::ValidationError(String::from("Buffer is not Unmapped")),
@@ -246,7 +245,7 @@ impl GPUBufferMethods for GPUBuffer {
         };
 
         let map_range = offset..offset + range_size;
-
+    }
         let sender = response_async(&promise, self);
         if let Err(e) = self.channel.0.send((
             scope_id,
@@ -266,15 +265,15 @@ impl GPUBufferMethods for GPUBuffer {
             return promise;
         }
 
-        self.state.set(GPUBufferState::MappingPending);
-        *self.map_info.borrow_mut() = Some(GPUBufferMapInfo {
+        self.state.set(GPUBufferMapState::MappingPending);
+        *self.mapping.borrow_mut() = Some(GPUBufferMapInfo {
             mapping: Rc::new(RefCell::new(Vec::with_capacity(0))),
             mapping_range: map_range,
             mapped_ranges: Vec::new(),
             js_buffers: Vec::new(),
             map_mode: Some(mode),
         });
-        *self.map_promise.borrow_mut() = Some(promise.clone());
+        // Step 6
         promise
     }
 
@@ -294,11 +293,11 @@ impl GPUBufferMethods for GPUBuffer {
             self.size - offset
         };
         let m_end = offset + range_size;
-        let mut info = self.map_info.borrow_mut();
+        let mut info = self.mapping.borrow_mut();
         let m_info = info.as_mut().unwrap();
 
         let mut valid = match self.state.get() {
-            GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => true,
+            GPUBufferMapState::Mapped | GPUBufferMapState::MappedAtCreation => true,
             _ => false,
         };
         valid &= offset % RANGE_OFFSET_ALIGN_MASK == 0 &&
@@ -342,6 +341,18 @@ impl GPUBufferMethods for GPUBuffer {
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
+
+    fn Size(&self) -> u64 {
+        self.size
+    }
+
+    fn Usage(&self) -> u32 {
+        self.usage
+    }
+
+    fn MapState(&self) -> GPUBufferMapState {
+        self.state.get()
+    }
 }
 
 impl AsyncWGPUListener for GPUBuffer {
@@ -350,14 +361,14 @@ impl AsyncWGPUListener for GPUBuffer {
         match response {
             Ok(WebGPUResponse::BufferMapAsync(bytes)) => {
                 *self
-                    .map_info
+                    .mapping
                     .borrow_mut()
                     .as_mut()
                     .unwrap()
                     .mapping
                     .borrow_mut() = bytes.to_vec();
                 promise.resolve_native(&());
-                self.state.set(GPUBufferState::Mapped);
+                self.state.set(GPUBufferMapState::Mapped);
             },
             Err(e) => {
                 warn!("Could not map buffer({:?})", e);
@@ -368,7 +379,7 @@ impl AsyncWGPUListener for GPUBuffer {
                 promise.reject_error(Error::Operation);
             },
         }
-        *self.map_promise.borrow_mut() = None;
+        *self.pending_map.borrow_mut() = None;
         if let Err(e) = self
             .channel
             .0

@@ -27,13 +27,14 @@ use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpusupportedlimits::GPUSupportedLimits;
+use super::types::GPUInternalError;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBindingResource,
     GPUBlendFactor, GPUBlendOperation, GPUBufferDescriptor, GPUCommandEncoderDescriptor,
-    GPUCompareFunction, GPUComputePipelineDescriptor, GPUCullMode, GPUDeviceMethods, GPUError,
+    GPUCompareFunction, GPUComputePipelineDescriptor, GPUCullMode, GPUDeviceMethods,
     GPUErrorFilter, GPUExtent3D, GPUExtent3DDict, GPUFilterMode, GPUFrontFace, GPUIndexFormat,
     GPUObjectDescriptorBase, GPUPipelineLayoutDescriptor, GPUPrimitiveTopology,
     GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor, GPUSamplerDescriptor,
@@ -51,9 +52,10 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::dom::gpubuffer::{GPUBuffer, GPUBufferMapInfo, GPUBufferState};
+use crate::dom::gpubuffer::{GPUBuffer, GPUBufferMapInfo, GPUBufferMapState};
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
+use crate::dom::gpuerror::GPUError;
 use crate::dom::gpuoutofmemoryerror::GPUOutOfMemoryError;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpuqueue::GPUQueue;
@@ -183,11 +185,18 @@ impl GPUDevice {
                     GPUErrorFilter::Validation,
                 ))
             },
-            WebGPUOpResult::OutOfMemoryError => {
-                let oom_err = GPUOutOfMemoryError::new(&self.global());
+            WebGPUOpResult::OutOfMemoryError(m) => {
+                let oom_err = GPUOutOfMemoryError::new(&self.global(), DOMString::from_string(m));
                 Err((
                     GPUError::GPUOutOfMemoryError(oom_err),
                     GPUErrorFilter::Out_of_memory,
+                ))
+            },
+            WebGPUOpResult::InternalError(m) => {
+                let oom_err = GPUInternalError::new(&self.global(), DOMString::from_string(m));
+                Err((
+                    GPUError::GPUInternalError(oom_err),
+                    GPUErrorFilter::Internal,
                 ))
             },
         };
@@ -339,7 +348,7 @@ impl GPUDeviceMethods for GPUDevice {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-queue
-    fn GetQueue(&self) -> DomRoot<GPUQueue> {
+    fn Queue(&self) -> DomRoot<GPUQueue> {
         DomRoot::from_ref(&self.default_queue)
     }
 
@@ -354,14 +363,14 @@ impl GPUDeviceMethods for GPUDevice {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost
-    fn GetLost(&self, comp: InRealm) -> Fallible<Rc<Promise>> {
+    fn Lost(&self, comp: InRealm) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp);
         *self.lost_promise.borrow_mut() = Some(promise.clone());
-        Ok(promise)
+        promise
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
-    fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> Fallible<DomRoot<GPUBuffer>> {
+    fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> DomRoot<GPUBuffer> {
         let desc =
             wgt::BufferUsages::from_bits(descriptor.usage).map(|usg| wgpu_res::BufferDescriptor {
                 label: convert_label(&descriptor.parent),
@@ -407,10 +416,10 @@ impl GPUDeviceMethods for GPUDevice {
                 js_buffers: Vec::new(),
                 map_mode: None,
             }));
-            state = GPUBufferState::MappedAtCreation;
+            state = GPUBufferMapState::MappedAtCreation;
         } else {
             map_info = DomRefCell::new(None);
-            state = GPUBufferState::Unmapped;
+            state = GPUBufferMapState::Unmapped;
         }
 
         Ok(GPUBuffer::new(
@@ -421,7 +430,7 @@ impl GPUDeviceMethods for GPUDevice {
             state,
             descriptor.size,
             map_info,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         ))
     }
 
@@ -542,7 +551,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUBindGroupLayout::new(
             &self.global(),
             bgl,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -591,7 +600,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUPipelineLayout::new(
             &self.global(),
             pipeline_layout,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
             bgls,
         )
     }
@@ -617,6 +626,7 @@ impl GPUDeviceMethods for GPUDevice {
                             size: b.size.and_then(wgt::BufferSize::new),
                         })
                     },
+                    GPUBindingResource::GPUExternalTexture(_) => todo!(),
                 },
             })
             .collect::<Vec<_>>();
@@ -653,7 +663,7 @@ impl GPUDeviceMethods for GPUDevice {
             bind_group,
             self.device,
             &*descriptor.layout,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -686,7 +696,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUShaderModule::new(
             &self.global(),
             shader_module,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -730,7 +740,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUComputePipeline::new(
             &self.global(),
             compute_pipeline,
-            descriptor.parent.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.parent.label.clone(),
             bgls,
             &self,
         )
@@ -766,7 +776,7 @@ impl GPUDeviceMethods for GPUDevice {
             self.channel.clone(),
             &self,
             encoder,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -832,7 +842,7 @@ impl GPUDeviceMethods for GPUDevice {
             descriptor.dimension,
             descriptor.format,
             descriptor.usage,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -881,7 +891,7 @@ impl GPUDeviceMethods for GPUDevice {
             self.device,
             compare_enable,
             sampler,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -1033,7 +1043,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPURenderPipeline::new(
             &self.global(),
             render_pipeline,
-            descriptor.parent.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.parent.label.clone(),
             bgls,
             &self,
         )
@@ -1072,7 +1082,7 @@ impl GPUDeviceMethods for GPUDevice {
             render_bundle_encoder,
             &self,
             self.channel.clone(),
-            descriptor.parent.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.parent.label.clone(),
         )
     }
 
@@ -1417,5 +1427,5 @@ pub fn convert_texture_size_to_wgt(size: &GPUExtent3DDict) -> wgt::Extent3d {
 }
 
 pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, str>> {
-    parent.label.as_ref().map(|s| Cow::Owned(s.to_string()))
+    Some(Cow::Borrowed(parent.label.as_ref()))
 }

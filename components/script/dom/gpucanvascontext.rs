@@ -46,6 +46,7 @@ impl Clone for GPUCanvasConfiguration {
             format: self.format.clone(),
             usage: self.usage.clone(),
             viewFormats: self.viewFormats.clone(),
+            colorSpace: self.colorSpace.clone(),
         }
     }
 }
@@ -239,7 +240,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             }),
             viewFormats: descriptor.viewFormats.clone(),
             // other members to default
-            parent: GPUObjectDescriptorBase { label: None },
+            parent: GPUObjectDescriptorBase::empty(),
             dimension: GPUTextureDimension::_2d,
         };
 

@@ -8,19 +8,20 @@ use servo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUError, GPUUncapturedErrorEventInit, GPUUncapturedErrorEventMethods,
+    GPUUncapturedErrorEventInit, GPUUncapturedErrorEventMethods,
 };
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpuerror::GPUError;
 
 #[dom_struct]
 pub struct GPUUncapturedErrorEvent {
     event: Event,
     #[ignore_malloc_size_of = "Because it is non-owning"]
-    gpu_error: GPUError,
+    gpu_error: Dom<GPUError>,
 }
 
 impl GPUUncapturedErrorEvent {

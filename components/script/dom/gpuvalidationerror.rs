@@ -6,23 +6,21 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
 use super::bindings::error::Fallible;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUValidationErrorMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpuerror::GPUError;
 
 #[dom_struct]
 pub struct GPUValidationError {
-    reflector_: Reflector,
-    message: DOMString,
+    gpu_error: GPUError,
 }
 
 impl GPUValidationError {
     fn new_inherited(message: DOMString) -> Self {
         Self {
-            reflector_: Reflector::new(),
-            message,
+            gpu_error: GPUError::new_inherited(message),
         }
     }
 
@@ -51,11 +49,8 @@ impl GPUValidationError {
     ) -> Fallible<DomRoot<Self>> {
         Ok(GPUValidationError::new_with_proto(global, proto, message))
     }
-}
 
-impl GPUValidationErrorMethods for GPUValidationError {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuvalidationerror-message
-    fn Message(&self) -> DOMString {
-        self.message.clone()
+    pub fn base(&self) -> DomRoot<GPUError> {
+        DomRoot::from_ref(&self.gpu_error)
     }
 }

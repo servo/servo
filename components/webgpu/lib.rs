@@ -1264,9 +1264,11 @@ impl<'a> WGPU<'a> {
             result: if let Err(e) = result {
                 let err = format!("{:?}", e);
                 if err.contains("OutOfMemory") {
-                    WebGPUOpResult::OutOfMemoryError
-                } else {
+                    WebGPUOpResult::OutOfMemoryError(err)
+                } else if err.contains("Validation") {
                     WebGPUOpResult::ValidationError(err)
+                } else {
+                    WebGPUOpResult::InternalError(err)
                 }
             } else {
                 WebGPUOpResult::Success
