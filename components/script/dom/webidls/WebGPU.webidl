@@ -136,7 +136,7 @@ interface GPUDevice : EventTarget {
     GPUBuffer createBuffer(GPUBufferDescriptor descriptor);
     GPUTexture createTexture(GPUTextureDescriptor descriptor);
     GPUSampler createSampler(optional GPUSamplerDescriptor descriptor = {});
-    GPUExternalTexture importExternalTexture(GPUExternalTextureDescriptor descriptor);
+    //GPUExternalTexture importExternalTexture(GPUExternalTextureDescriptor descriptor);
 
     GPUBindGroupLayout createBindGroupLayout(GPUBindGroupLayoutDescriptor descriptor);
     GPUPipelineLayout createPipelineLayout(GPUPipelineLayoutDescriptor descriptor);
@@ -151,7 +151,7 @@ interface GPUDevice : EventTarget {
     GPUCommandEncoder createCommandEncoder(optional GPUCommandEncoderDescriptor descriptor = {});
     GPURenderBundleEncoder createRenderBundleEncoder(GPURenderBundleEncoderDescriptor descriptor);
 
-    GPUQuerySet createQuerySet(GPUQuerySetDescriptor descriptor);
+    //GPUQuerySet createQuerySet(GPUQuerySetDescriptor descriptor);
 };
 GPUDevice includes GPUObjectBase;
 
@@ -163,6 +163,7 @@ interface GPUBuffer {
     readonly attribute GPUBufferMapState mapState;
 
     Promise<undefined> mapAsync(GPUMapModeFlags mode, optional GPUSize64 offset = 0, optional GPUSize64 size);
+    [Throws]
     ArrayBuffer getMappedRange(optional GPUSize64 offset = 0, optional GPUSize64 size);
     undefined unmap();
 
@@ -638,7 +639,7 @@ dictionary GPUPipelineDescriptorBase
 };
 
 interface mixin GPUPipelineBase {
-    [NewObject] GPUBindGroupLayout getBindGroupLayout(unsigned long index);
+    [NewObject, Throws] GPUBindGroupLayout getBindGroupLayout(unsigned long index);
 };
 
 dictionary GPUProgrammableStage {
@@ -945,20 +946,20 @@ interface GPUCommandEncoder {
         optional GPUSize64 offset = 0,
         optional GPUSize64 size);
 
-    undefined writeTimestamp(GPUQuerySet querySet, GPUSize32 queryIndex);
+    /*undefined writeTimestamp(GPUQuerySet querySet, GPUSize32 queryIndex);
 
     undefined resolveQuerySet(
         GPUQuerySet querySet,
         GPUSize32 firstQuery,
         GPUSize32 queryCount,
         GPUBuffer destination,
-        GPUSize64 destinationOffset);
+        GPUSize64 destinationOffset);*/
 
     GPUCommandBuffer finish(optional GPUCommandBufferDescriptor descriptor = {});
 };
 GPUCommandEncoder includes GPUObjectBase;
 GPUCommandEncoder includes GPUCommandsMixin;
-GPUCommandEncoder includes GPUDebugCommandsMixin;
+//GPUCommandEncoder includes GPUDebugCommandsMixin;
 
 dictionary GPUCommandEncoderDescriptor
          : GPUObjectDescriptorBase {
@@ -974,11 +975,11 @@ interface mixin GPUBindingCommandsMixin {
         GPUSize32 dynamicOffsetsDataLength);
 };
 
-interface mixin GPUDebugCommandsMixin {
+/*interface mixin GPUDebugCommandsMixin {
     undefined pushDebugGroup(USVString groupLabel);
     undefined popDebugGroup();
     undefined insertDebugMarker(USVString markerLabel);
-};
+};*/
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUComputePassEncoder {
@@ -992,7 +993,7 @@ interface GPUComputePassEncoder {
 };
 GPUComputePassEncoder includes GPUObjectBase;
 GPUComputePassEncoder includes GPUCommandsMixin;
-GPUComputePassEncoder includes GPUDebugCommandsMixin;
+//GPUComputePassEncoder includes GPUDebugCommandsMixin;
 GPUComputePassEncoder includes GPUBindingCommandsMixin;
 
 dictionary GPUComputePassTimestampWrites {
@@ -1018,15 +1019,15 @@ interface GPURenderPassEncoder {
     undefined setBlendConstant(GPUColor color);
     undefined setStencilReference(GPUStencilValue reference);
 
-    undefined beginOcclusionQuery(GPUSize32 queryIndex);
-    undefined endOcclusionQuery();
+    //undefined beginOcclusionQuery(GPUSize32 queryIndex);
+    //undefined endOcclusionQuery();
 
     undefined executeBundles(sequence<GPURenderBundle> bundles);
     undefined end();
 };
 GPURenderPassEncoder includes GPUObjectBase;
 GPURenderPassEncoder includes GPUCommandsMixin;
-GPURenderPassEncoder includes GPUDebugCommandsMixin;
+//GPURenderPassEncoder includes GPUDebugCommandsMixin;
 GPURenderPassEncoder includes GPUBindingCommandsMixin;
 GPURenderPassEncoder includes GPURenderCommandsMixin;
 
@@ -1125,7 +1126,7 @@ interface GPURenderBundleEncoder {
 };
 GPURenderBundleEncoder includes GPUObjectBase;
 GPURenderBundleEncoder includes GPUCommandsMixin;
-GPURenderBundleEncoder includes GPUDebugCommandsMixin;
+//GPURenderBundleEncoder includes GPUDebugCommandsMixin;
 GPURenderBundleEncoder includes GPUBindingCommandsMixin;
 GPURenderBundleEncoder includes GPURenderCommandsMixin;
 
@@ -1145,6 +1146,7 @@ interface GPUQueue {
 
     Promise<undefined> onSubmittedWorkDone();
 
+    [Throws]
     undefined writeBuffer(
         GPUBuffer buffer,
         GPUSize64 bufferOffset,
@@ -1153,6 +1155,7 @@ interface GPUQueue {
         optional GPUSize64 dataOffset = 0,
         optional GPUSize64 size);
 
+    [Throws]
     undefined writeTexture(
         GPUImageCopyTexture destination,
         // AllowSharedBufferSource is not supported in WebIDL
@@ -1194,6 +1197,7 @@ interface GPUCanvasContext {
     undefined configure(GPUCanvasConfiguration configuration);
     undefined unconfigure();
 
+    [Throws]
     GPUTexture getCurrentTexture();
 };
 
