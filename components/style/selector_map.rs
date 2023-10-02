@@ -13,7 +13,6 @@ use crate::selector_parser::SelectorImpl;
 use crate::stylist::{CascadeData, ContainerConditionId, Rule, Stylist};
 use crate::AllocErr;
 use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded, WeakAtom};
-use dom::ElementState;
 use precomputed_hash::PrecomputedHash;
 use selectors::matching::{matches_selector, MatchingContext};
 use selectors::parser::{Combinator, Component, SelectorIter};
@@ -21,6 +20,7 @@ use smallvec::SmallVec;
 use std::collections::hash_map;
 use std::collections::{HashMap, HashSet};
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+use style_traits::dom::ElementState;
 
 /// A hasher implementation that doesn't hash anything, because it expects its
 /// input to be a suitable u32 hash.
