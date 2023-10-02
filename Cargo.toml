@@ -15,7 +15,7 @@ accountable-refcell = "0.2.0"
 app_units = "0.7"
 arrayvec = "0.7"
 async-tungstenite = { version = "0.22", features = ["tokio-rustls-webpki-roots"] }
-atomic_refcell = "0.1.11"
+atomic_refcell = "0.1.12"
 backtrace = "0.3"
 base64 = "0.21.4"
 bitflags = "2.4"
