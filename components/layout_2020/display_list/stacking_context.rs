@@ -487,36 +487,22 @@ impl StackingContext {
                 })
         });
 
-        macro_rules! debug_panic {
-            ($msg: expr) => {
-                if cfg!(debug_assertions) {
-                    panic!($msg)
-                } else {
-                    // ::log::error!($msg)
-                    panic!($msg)
-                }
-            };
-        }
-
         let first_stacking_context_fragment = if let Some(first) = first_if_any {
             first
         } else {
             // This should only happen if the root element has `display: none`
-            debug_panic!("`CanvasBackground::for_root_element` should have returned `style: None`");
-            // return;
+            panic!("`CanvasBackground::for_root_element` should have returned `style: None`");
         };
 
         let StackingContextFragment::Fragment { fragment, scroll_node_id, containing_block, .. }
             = first_stacking_context_fragment else {
-                debug_panic!("Expected a fragment, not a stacking container");
-                // return;
+                panic!("Expected a fragment, not a stacking container");
             };
         let fragment = fragment.borrow();
         let box_fragment = match &*fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
             _ => {
-                debug_panic!("Expected a box-generated fragment");
-                // return;
+                panic!("Expected a box-generated fragment");
             },
         };
 
