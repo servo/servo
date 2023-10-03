@@ -35,7 +35,7 @@ const RANGE_OFFSET_ALIGN_MASK: u64 = 8;
 const RANGE_SIZE_ALIGN_MASK: u64 = 4;
 
 // https://gpuweb.github.io/gpuweb/#buffer-internals-state
-#[derive(Clone, Copy, MallocSizeOf, PartialEq, JSTraceable)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum GPUBufferState {
     Mapped,
     MappedAtCreation,
@@ -341,10 +341,12 @@ impl GPUBufferMethods for GPUBuffer {
         *self.label.borrow_mut() = value;
     }
 
+    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-size
     fn Size(&self) -> u64 {
         self.size
     }
 
+    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-usage
     fn Usage(&self) -> u32 {
         //self.usage
         todo!()

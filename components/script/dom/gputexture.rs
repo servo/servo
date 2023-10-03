@@ -242,7 +242,7 @@ impl GPUTextureMethods for GPUTexture {
         self.format
     }
 
-    ///  https://gpuweb.github.io/gpuweb/#dom-gputexture-usage
+    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-usage
     fn Usage(&self) -> u32 {
         self.texture_usage
     }

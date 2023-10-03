@@ -2,15 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use webgpu::identity::WebGPUOpResult;
 use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
+use super::bindings::codegen::UnionTypes::RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict;
+use super::promise::Promise;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUExtent3D, GPUQueueMethods, GPUSize64,
+    GPUExtent3D, GPUImageCopyExternalImage, GPUImageCopyTextureTagged, GPUQueueMethods, GPUSize64,
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -190,16 +194,18 @@ impl GPUQueueMethods for GPUQueue {
         Ok(())
     }
 
-    fn OnSubmittedWorkDone(&self) -> std::rc::Rc<super::promise::Promise> {
+    /// https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone
+    fn OnSubmittedWorkDone(&self) -> Rc<Promise> {
         todo!()
     }
 
+    /// https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture
     fn CopyExternalImageToTexture(
         &self,
-        source: &crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUImageCopyExternalImage,
-        destination: &crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUImageCopyTextureTagged,
-        copySize: super::bindings::codegen::UnionTypes::RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict,
-    ) -> () {
+        source: &GPUImageCopyExternalImage,
+        destination: &GPUImageCopyTextureTagged,
+        copySize: RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict,
+    ) {
         todo!()
     }
 }

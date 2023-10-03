@@ -392,7 +392,8 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         )
     }
 
-    fn ClearBuffer(&self, buffer: &GPUBuffer, offset: u64, size: Option<u64>) -> () {
+    /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-clearbuffer
+    fn ClearBuffer(&self, buffer: &GPUBuffer, offset: u64, size: Option<u64>) {
         todo!()
     }
 }

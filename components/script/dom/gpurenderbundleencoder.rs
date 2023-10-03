@@ -101,6 +101,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         }
     }
 
+    /// https://gpuweb.github.io/gpuweb/#dom-gpubindingcommandsmixin-setbindgroup-index-bindgroup-dynamicoffsetsdata-dynamicoffsetsdatastart-dynamicoffsetsdatalength
     fn SetBindGroup_(
         &self,
         index: u32,
@@ -108,7 +109,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         dynamic_offsets_data: js::rust::CustomAutoRooterGuard<js::typedarray::Uint32Array>,
         dynamic_offsets_data_start: u64,
         dynamic_offsets_data_length: u32,
-    ) -> () {
+    ) {
         todo!()
     }
 

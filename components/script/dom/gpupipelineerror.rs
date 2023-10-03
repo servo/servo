@@ -68,6 +68,7 @@ impl GPUPipelineError {
 }
 
 impl GPUPipelineErrorMethods for GPUPipelineError {
+    /// https://gpuweb.github.io/gpuweb/#dom-gpupipelineerror-reason
     fn Reason(&self) -> GPUPipelineErrorReason {
         self.reason
     }

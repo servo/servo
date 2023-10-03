@@ -33,10 +33,12 @@ impl GPUQuerySetMethods for GPUQuerySet {
         todo!()
     }
 
+    /// https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-type
     fn Type(&self) -> GPUQueryType {
         todo!()
     }
 
+    /// https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-count
     fn Count(&self) -> u32 {
         todo!()
     }

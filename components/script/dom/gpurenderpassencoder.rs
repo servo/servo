@@ -105,6 +105,8 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
+    /// https://gpuweb.github.io/gpuweb/#dom-gpubindingcommandsmixin-setbindgroup-index-bindgroup-dynamicoffsetsdata-dynamicoffsetsdatastart-dynamicoffsetsdatalength
+    ///
     fn SetBindGroup_(
         &self,
         index: u32,
@@ -112,7 +114,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         dynamic_offsets_data: CustomAutoRooterGuard<Uint32Array>,
         dynamic_offsets_data_start: u64,
         dynamic_offsets_data_length: u32,
-    ) -> () {
+    ) {
         todo!()
     }
 
