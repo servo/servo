@@ -28,14 +28,14 @@ impl GPUError {
         reflect_dom_object(Box::new(GPUError::new_inherited(message)), global)
     }
 
-    pub fn msg(&self) -> DOMString {
-        self.message
+    pub fn msg(&self) -> &str {
+        &self.message
     }
 }
 
 impl GPUErrorMethods for GPUError {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuerror-message>
     fn Message(&self) -> DOMString {
-        self.message
+        self.message.clone()
     }
 }

@@ -75,8 +75,7 @@ use crate::realms::InRealm;
 #[derive(JSTraceable, MallocSizeOf)]
 struct ErrorScopeInfo {
     op_count: u64,
-    #[ignore_malloc_size_of = "Because it is non-owning"]
-    error: Option<Dom<GPUError>>,
+    error: Option<DomRoot<GPUError>>,
     #[ignore_malloc_size_of = "promises are hard"]
     promise: Option<Rc<Promise>>,
 }
@@ -182,15 +181,15 @@ impl GPUDevice {
             WebGPUOpResult::Success => Ok(()),
             WebGPUOpResult::ValidationError(m) => {
                 let val_err = GPUValidationError::new(&self.global(), DOMString::from_string(m));
-                Err((val_err.upcast::<GPUError>(), GPUErrorFilter::Validation))
+                Err((DomRoot::from_ref(val_err.upcast::<GPUError>()), GPUErrorFilter::Validation))
             },
             WebGPUOpResult::OutOfMemoryError(m) => {
                 let oom_err = GPUOutOfMemoryError::new(&self.global(), DOMString::from_string(m));
-                Err((oom_err.upcast::<GPUError>(), GPUErrorFilter::Out_of_memory))
+                Err((DomRoot::from_ref(oom_err.upcast::<GPUError>()), GPUErrorFilter::Out_of_memory))
             },
             WebGPUOpResult::InternalError(m) => {
                 let err = GPUInternalError::new(&self.global(), DOMString::from_string(m));
-                Err((err.upcast::<GPUError>(), GPUErrorFilter::Internal))
+                Err((DomRoot::from_ref(err.upcast::<GPUError>()), GPUErrorFilter::Internal))
             },
         };
 
@@ -213,16 +212,16 @@ impl GPUDevice {
             self.try_remove_scope(s_id);
         } else {
             if let Err((err, _)) = result {
-                self.fire_uncaptured_error(&err);
+                self.fire_uncaptured_error(err);
             }
         }
     }
 
-    fn handle_error(&self, scope: ErrorScopeId, error: &GPUError) {
+    fn handle_error(&self, scope: ErrorScopeId, error: DomRoot<GPUError>) {
         let mut context = self.scope_context.borrow_mut();
         if let Some(mut err_scope) = context.error_scopes.get_mut(&scope) {
             if err_scope.error.is_none() {
-                err_scope.error = Some(Dom::from_ref(error));
+                err_scope.error = Some(error);
             }
         } else {
             warn!("Could not find ErrorScope with Id({})", scope);
@@ -253,12 +252,12 @@ impl GPUDevice {
         }
     }
 
-    fn fire_uncaptured_error(&self, err: &GPUError) {
+    fn fire_uncaptured_error(&self, err: DomRoot<GPUError>) {
         let ev = GPUUncapturedErrorEvent::new(
             &self.global(),
             DOMString::from("uncapturederror"),
             &GPUUncapturedErrorEventInit {
-                error: DomRoot::from_ref(err),
+                error: err,
                 parent: EventInit::empty(),
             },
         );
@@ -1549,5 +1548,5 @@ pub fn convert_texture_size_to_wgt(size: &GPUExtent3DDict) -> wgt::Extent3d {
 }
 
 pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, str>> {
-    Some(Cow::Borrowed(parent.label.as_ref()))
+    Some(Cow::Owned(parent.label.0.clone()))
 }
