@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![allow(bare_trait_objects)] // Until https://github.com/brendanzab/gl-rs/pull/493
-
+                              //
 pub type ServoGl = std::rc::Rc<dyn servo::gl::Gl>;
 
 #[cfg(any(target_os = "android", target_os = "windows"))]
@@ -12,6 +12,7 @@ pub mod egl {
     use std::ffi::CString;
     use std::os::raw::c_void;
 
+    use log::info;
     use servo::gl::GlesFns;
 
     pub type EGLNativeWindowType = *const libc::c_void;
@@ -73,6 +74,7 @@ pub mod gl {
         CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName,
     };
     use core_foundation::string::CFString;
+    use log::info;
     use servo::gl::GlFns;
 
     pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
@@ -104,6 +106,7 @@ pub mod gl {
     use std::os::raw::c_void;
 
     use libloading::{Library, Symbol};
+    use log::info;
     use servo::gl::GlFns;
 
     pub fn init() -> Result<crate::gl_glue::ServoGl, &'static str> {
