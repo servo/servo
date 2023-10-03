@@ -2910,15 +2910,6 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b8467d9c1cebe26feb08c640139247fac215782d35371ade9a2136ed6085358"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
@@ -4865,7 +4856,7 @@ dependencies = [
  "image",
  "indexmap",
  "ipc-channel",
- "itertools 0.8.0",
+ "itertools",
  "jstraceable_derive",
  "keyboard-types",
  "lazy_static",
@@ -5364,7 +5355,7 @@ dependencies = [
 name = "servo_config_plugins"
 version = "0.0.1"
 dependencies = [
- "itertools 0.8.0",
+ "itertools",
  "proc-macro2",
  "quote",
  "syn 2.0.37",
@@ -5784,7 +5775,7 @@ dependencies = [
  "fxhash",
  "html5ever",
  "indexmap",
- "itertools 0.10.5",
+ "itertools",
  "itoa",
  "lazy_static",
  "log",

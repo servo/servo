@@ -27,7 +27,6 @@ packages = [
     "core-foundation",
     "core-foundation-sys",
     "futures",
-    "itertools",
     "libloading",
     "mio",
     "nix",
