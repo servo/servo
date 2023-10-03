@@ -2102,6 +2102,7 @@ impl ScriptThread {
                 result,
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
+                let _ac = enter_realm(&*global);
                 global.handle_wgpu_msg(device, scope_id, result);
             },
             WebGPUMsg::CleanDevice {
