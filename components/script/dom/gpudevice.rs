@@ -54,7 +54,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::dom::gpubuffer::{GPUBuffer, GPUBufferMapInfo, GPUBufferMapState};
+use crate::dom::gpubuffer::{GPUBuffer, GPUBufferMapInfo, GPUBufferState};
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use crate::dom::gpuerror::GPUError;
@@ -409,10 +409,10 @@ impl GPUDeviceMethods for GPUDevice {
                 js_buffers: Vec::new(),
                 map_mode: None,
             }));
-            state = GPUBufferMapState::Mapped;
+            state = GPUBufferState::Mapped;
         } else {
             map_info = DomRefCell::new(None);
-            state = GPUBufferMapState::Unmapped;
+            state = GPUBufferState::Unmapped;
         }
 
         GPUBuffer::new(

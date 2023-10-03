@@ -18,7 +18,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpubuffer::{GPUBuffer, GPUBufferMapState};
+use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucommandencoder::{convert_ic_texture, convert_image_data_layout};
 use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt, GPUDevice};
@@ -72,7 +72,7 @@ impl GPUQueueMethods for GPUQueue {
     fn Submit(&self, command_buffers: Vec<DomRoot<GPUCommandBuffer>>) {
         let valid = command_buffers.iter().all(|cb| {
             cb.buffers().iter().all(|b| match b.state() {
-                GPUBufferMapState::Unmapped => true,
+                GPUBufferState::Unmapped => true,
                 _ => false,
             })
         });
@@ -119,7 +119,7 @@ impl GPUQueueMethods for GPUQueue {
             bytes.len() as GPUSize64 - data_offset
         };
         let valid = data_offset + content_size <= bytes.len() as u64 &&
-            buffer.state() == GPUBufferMapState::Unmapped &&
+            buffer.state() == GPUBufferState::Unmapped &&
             content_size % wgt::COPY_BUFFER_ALIGNMENT == 0 &&
             buffer_offset % wgt::COPY_BUFFER_ALIGNMENT == 0;
 
