@@ -21,11 +21,11 @@ use webgpu::{self, wgt, ErrorScopeId, WebGPU, WebGPURequest};
 use wgt::{AstcBlock, AstcChannel};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUBlendComponent, GPUBufferBindingType, GPUDeviceLostReason, GPUPrimitiveState,
-    GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType, GPUVertexStepMode, GPUMipmapFilterMode,
+    GPUBlendComponent, GPUBufferBindingType, GPUDeviceLostReason, GPUMipmapFilterMode,
+    GPUPrimitiveState, GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType,
+    GPUVertexStepMode,
 };
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
-use crate::dom::bindings::inheritance::Castable;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpusupportedlimits::GPUSupportedLimits;
 use super::types::GPUInternalError;
@@ -44,6 +44,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUUncapturedErrorEventInit, GPUVertexFormat,
 };
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -181,24 +182,15 @@ impl GPUDevice {
             WebGPUOpResult::Success => Ok(()),
             WebGPUOpResult::ValidationError(m) => {
                 let val_err = GPUValidationError::new(&self.global(), DOMString::from_string(m));
-                Err((
-                    val_err.upcast::<GPUError>(),
-                    GPUErrorFilter::Validation,
-                ))
+                Err((val_err.upcast::<GPUError>(), GPUErrorFilter::Validation))
             },
             WebGPUOpResult::OutOfMemoryError(m) => {
                 let oom_err = GPUOutOfMemoryError::new(&self.global(), DOMString::from_string(m));
-                Err((
-                    oom_err.upcast::<GPUError>(),
-                    GPUErrorFilter::Out_of_memory,
-                ))
+                Err((oom_err.upcast::<GPUError>(), GPUErrorFilter::Out_of_memory))
             },
             WebGPUOpResult::InternalError(m) => {
                 let err = GPUInternalError::new(&self.global(), DOMString::from_string(m));
-                Err((
-                    err.upcast::<GPUError>(),
-                    GPUErrorFilter::Internal,
-                ))
+                Err((err.upcast::<GPUError>(), GPUErrorFilter::Internal))
             },
         };
 
