@@ -25,7 +25,7 @@ use super::bindings::codegen::Bindings::WebGPUBinding::{
     GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType, GPUVertexStepMode, GPUMipmapFilterMode,
 };
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
-use super::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpusupportedlimits::GPUSupportedLimits;
 use super::types::GPUInternalError;
@@ -75,7 +75,7 @@ use crate::realms::InRealm;
 struct ErrorScopeInfo {
     op_count: u64,
     #[ignore_malloc_size_of = "Because it is non-owning"]
-    error: Option<GPUError>,
+    error: Option<Dom<GPUError>>,
     #[ignore_malloc_size_of = "promises are hard"]
     promise: Option<Rc<Promise>>,
 }
@@ -182,21 +182,21 @@ impl GPUDevice {
             WebGPUOpResult::ValidationError(m) => {
                 let val_err = GPUValidationError::new(&self.global(), DOMString::from_string(m));
                 Err((
-                    GPUError::GPUValidationError(val_err),
+                    val_err.upcast::<GPUError>(),
                     GPUErrorFilter::Validation,
                 ))
             },
             WebGPUOpResult::OutOfMemoryError(m) => {
                 let oom_err = GPUOutOfMemoryError::new(&self.global(), DOMString::from_string(m));
                 Err((
-                    GPUError::GPUOutOfMemoryError(oom_err),
+                    oom_err.upcast::<GPUError>(),
                     GPUErrorFilter::Out_of_memory,
                 ))
             },
             WebGPUOpResult::InternalError(m) => {
-                let oom_err = GPUInternalError::new(&self.global(), DOMString::from_string(m));
+                let err = GPUInternalError::new(&self.global(), DOMString::from_string(m));
                 Err((
-                    GPUError::GPUInternalError(oom_err),
+                    err.upcast::<GPUError>(),
                     GPUErrorFilter::Internal,
                 ))
             },
@@ -221,16 +221,16 @@ impl GPUDevice {
             self.try_remove_scope(s_id);
         } else {
             if let Err((err, _)) = result {
-                self.fire_uncaptured_error(err);
+                self.fire_uncaptured_error(&err);
             }
         }
     }
 
-    fn handle_error(&self, scope: ErrorScopeId, error: GPUError) {
+    fn handle_error(&self, scope: ErrorScopeId, error: &GPUError) {
         let mut context = self.scope_context.borrow_mut();
         if let Some(mut err_scope) = context.error_scopes.get_mut(&scope) {
             if err_scope.error.is_none() {
-                err_scope.error = Some(error);
+                err_scope.error = Some(Dom::from_ref(error));
             }
         } else {
             warn!("Could not find ErrorScope with Id({})", scope);
@@ -244,7 +244,7 @@ impl GPUDevice {
             if let Some(ref promise) = err_scope.promise {
                 if !promise.is_fulfilled() {
                     if let Some(ref e) = err_scope.error {
-                        promise.resolve_native(e);
+                        promise.resolve_native(&**e);
                     } else if err_scope.op_count == 0 {
                         promise.resolve_native(&None::<GPUError>);
                     }
@@ -261,12 +261,12 @@ impl GPUDevice {
         }
     }
 
-    fn fire_uncaptured_error(&self, err: GPUError) {
+    fn fire_uncaptured_error(&self, err: &GPUError) {
         let ev = GPUUncapturedErrorEvent::new(
             &self.global(),
             DOMString::from("uncapturederror"),
             &GPUUncapturedErrorEventInit {
-                error: err,
+                error: DomRoot::from_ref(err),
                 parent: EventInit::empty(),
             },
         );
@@ -1115,7 +1115,7 @@ impl GPUDeviceMethods for GPUDevice {
             };
         let remove = if let Some(mut err_scope) = context.error_scopes.get_mut(&scope_id) {
             if let Some(ref e) = err_scope.error {
-                promise.resolve_native(e);
+                promise.resolve_native(&**e);
             } else if err_scope.op_count == 0 {
                 promise.resolve_native(&None::<GPUError>);
             }

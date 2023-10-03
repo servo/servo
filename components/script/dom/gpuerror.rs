@@ -27,6 +27,10 @@ impl GPUError {
     pub fn new(global: &GlobalScope, message: DOMString) -> DomRoot<Self> {
         reflect_dom_object(Box::new(GPUError::new_inherited(message)), global)
     }
+
+    pub fn msg(&self) -> DOMString {
+        self.message
+    }
 }
 
 impl GPUErrorMethods for GPUError {
