@@ -118,6 +118,9 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// text, image, non-white canvas or SVG). Used by metrics.
     /// See https://w3c.github.io/paint-timing/#first-contentful-paint.
     is_contentful: bool,
+
+    #[cfg(debug_assertions)]
+    debug_print_indent: usize,
 }
 
 impl DisplayList {
@@ -135,6 +138,9 @@ impl DisplayList {
             context,
             display_list: self,
             iframe_sizes: FnvHashMap::default(),
+
+            #[cfg(debug_assertions)]
+            debug_print_indent: 0,
         };
         fragment_tree.build_display_list(&mut builder, root_stacking_context);
         (builder.iframe_sizes, builder.is_contentful)
