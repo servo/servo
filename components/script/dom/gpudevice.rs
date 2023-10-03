@@ -417,7 +417,7 @@ impl GPUDeviceMethods for GPUDevice {
                 js_buffers: Vec::new(),
                 map_mode: None,
             }));
-            state = GPUBufferMapState::MappedAtCreation;
+            state = GPUBufferMapState::Mapped;
         } else {
             map_info = DomRefCell::new(None);
             state = GPUBufferMapState::Unmapped;

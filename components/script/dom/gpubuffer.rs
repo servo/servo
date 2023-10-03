@@ -194,7 +194,7 @@ impl GPUBufferMethods for GPUBuffer {
     }
 
     #[allow(unsafe_code)]
-    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync-offset-size
+    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync
     fn MapAsync(
         &self,
         mode: u32,
@@ -203,25 +203,28 @@ impl GPUBufferMethods for GPUBuffer {
         comp: InRealm,
     ) -> Rc<Promise> {
         // Step 2
-        if let Some(promise) = self.pending_map.borrow_mut().take() {
-            promise.reject_error(Error::Abort);
+        if self.pending_map.borrow().is_some() {
+            let promise = Promise::new_in_current_realm(comp);
+            promise.reject_error(Error::Operation);
+            return promise;
         }
         // Step 3
         let promise = Promise::new_in_current_realm(comp);
         // Step 4
         *self.pending_map.borrow_mut() = Some(promise.clone());
+
+        let scope_id = self.device.use_current_scope();
         // Step 5
         {
+            // Step 1
             let range_size = if let Some(s) = size {
                 s
             } else if offset >= self.size {
-                promise.reject_error(Error::Operation);
-                return promise;
+                0
             } else {
                 self.size - offset
             };
-            let scope_id = self.device.use_current_scope();
-            if self.state.get() != GPUBufferMapState::Unmapped {
+            if self.state.get() != GPUBufferState::Available {
                 self.device.handle_server_msg(
                     scope_id,
                     WebGPUOpResult::ValidationError(String::from("Buffer is not Unmapped")),
