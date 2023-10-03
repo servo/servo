@@ -181,15 +181,24 @@ impl GPUDevice {
             WebGPUOpResult::Success => Ok(()),
             WebGPUOpResult::ValidationError(m) => {
                 let val_err = GPUValidationError::new(&self.global(), DOMString::from_string(m));
-                Err((DomRoot::from_ref(val_err.upcast::<GPUError>()), GPUErrorFilter::Validation))
+                Err((
+                    DomRoot::from_ref(val_err.upcast::<GPUError>()),
+                    GPUErrorFilter::Validation,
+                ))
             },
             WebGPUOpResult::OutOfMemoryError(m) => {
                 let oom_err = GPUOutOfMemoryError::new(&self.global(), DOMString::from_string(m));
-                Err((DomRoot::from_ref(oom_err.upcast::<GPUError>()), GPUErrorFilter::Out_of_memory))
+                Err((
+                    DomRoot::from_ref(oom_err.upcast::<GPUError>()),
+                    GPUErrorFilter::Out_of_memory,
+                ))
             },
             WebGPUOpResult::InternalError(m) => {
                 let err = GPUInternalError::new(&self.global(), DOMString::from_string(m));
-                Err((DomRoot::from_ref(err.upcast::<GPUError>()), GPUErrorFilter::Internal))
+                Err((
+                    DomRoot::from_ref(err.upcast::<GPUError>()),
+                    GPUErrorFilter::Internal,
+                ))
             },
         };
 
