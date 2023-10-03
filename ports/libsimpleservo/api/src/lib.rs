@@ -13,6 +13,7 @@ use std::rc::Rc;
 
 use getopts::Options;
 use ipc_channel::ipc::IpcSender;
+use log::{debug, info, warn};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
     WindowMethods,
@@ -40,7 +41,7 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_surfman::WebrenderSurfman;
 use servo::{self, gl, BrowserId, Servo};
 use servo_media::player::context as MediaPlayerContext;
-use surfman::{Adapter, Connection, SurfaceType};
+use surfman::{Connection, SurfaceType};
 
 thread_local! {
     pub static SERVO: RefCell<Option<ServoGlue>> = RefCell::new(None);

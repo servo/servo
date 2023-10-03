@@ -12,6 +12,8 @@ use std::collections::{BTreeMap, HashMap};
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
 
+use log::debug;
+
 use crate::simpleservo::{self, PrefValue};
 
 thread_local! {

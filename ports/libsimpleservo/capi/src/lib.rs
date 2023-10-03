@@ -18,7 +18,8 @@ use std::sync::{Mutex, RwLock};
 #[cfg(not(target_os = "windows"))]
 use env_logger;
 use keyboard_types::Key;
-use log::LevelFilter;
+use lazy_static::lazy_static;
+use log::{debug, error, info, warn, LevelFilter};
 use simpleservo::{
     self, gl_glue, ContextMenuResult, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait,
     InitOptions, InputMethodType, MediaSessionActionType, MediaSessionPlaybackState, MouseButton,
