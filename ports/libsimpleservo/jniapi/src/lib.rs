@@ -14,11 +14,12 @@ use android_logger::{self, FilterBuilder, Filter, Config};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
+use log::{debug, error, info, warn};
 use libc::{dup2, pipe, read};
 use simpleservo::{
     self, deinit, gl_glue, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait,
-    InitOptions, InputMethodType, MediaSessionPlaybackState, MouseButton, PromptResult, ServoGlue,
-    ServoGlue, VRInitOptions, SERVO,
+    InitOptions, InputMethodType, MediaSessionPlaybackState, MouseButton, PromptResult,
+    ServoGlue,  SERVO, // TODO: figure out why VRInitOptions is missing
 };
 
 struct HostCallbacks {

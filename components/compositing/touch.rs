@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::{Point2D, Scale, Vector2D};
-use log::warn;
+use log::{info, warn};
 use script_traits::{EventResult, TouchId};
 use style_traits::DevicePixel;
 
