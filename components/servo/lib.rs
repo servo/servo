@@ -548,8 +548,8 @@ where
                 self.compositor.on_zoom_reset_window_event();
             },
 
-            EmbedderEvent::PinchZoom(magnification) => {
-                self.compositor.on_pinch_zoom_window_event(magnification);
+            EmbedderEvent::PinchZoom(zoom) => {
+                self.compositor.on_pinch_zoom_window_event(zoom);
             },
 
             EmbedderEvent::Navigation(top_level_browsing_context_id, direction) => {
