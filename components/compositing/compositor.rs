@@ -1783,7 +1783,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             viewport.size.width,
             viewport.size.height,
         );
-        gl.clear_color(1.0, 1.0, 1.0, 1.0);
+
+        if servo_config::pref!(shell.transparent_background.enabled) {
+            gl.clear_color(0.0, 0.0, 0.0, 0.0);
+        } else {
+            gl.clear_color(1.0, 1.0, 1.0, 1.0);
+        }
         gl.enable(gleam::gl::SCISSOR_TEST);
         gl.clear(gleam::gl::COLOR_BUFFER_BIT);
         gl.disable(gleam::gl::SCISSOR_TEST);

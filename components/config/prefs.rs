@@ -492,6 +492,10 @@ mod gen {
                     enabled: bool,
                 },
                 searchpage: String,
+                transparent_background: {
+                    #[serde(rename = "shell.transparent-background.enabled")]
+                    enabled: bool,
+                },
             },
             webgl: {
                 testing: {

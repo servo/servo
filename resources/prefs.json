@@ -116,5 +116,6 @@
   "shell.native-orientation": "both",
   "shell.native-titlebar.enabled": true,
   "shell.searchpage": "https://duckduckgo.com/html/?q=%s",
+  "shell.transparent-background.enabled": false,
   "webgl.testing.context_creation_error": false
 }

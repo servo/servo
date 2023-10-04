@@ -915,6 +915,7 @@ dependencies = [
  "profile_traits",
  "script_traits",
  "servo-media",
+ "servo_config",
  "servo_geometry",
  "servo_url",
  "style_traits",
