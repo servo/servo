@@ -36,7 +36,7 @@ pub type Filter = GenericFilter<
     NonNegativeNumber,
     ZeroToOneNumber,
     NonNegativeLength,
-    Impossible,
+    SimpleShadow,
     Impossible,
 >;
 

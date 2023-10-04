@@ -47,7 +47,7 @@ pub type SpecifiedFilter = GenericFilter<
     NonNegativeFactor,
     ZeroToOneFactor,
     NonNegativeLength,
-    Impossible,
+    SimpleShadow,
     Impossible,
 >;
 

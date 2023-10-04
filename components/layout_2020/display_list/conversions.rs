@@ -6,7 +6,8 @@ use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::{Filter as ComputedFilter, Length};
-use webrender_api::{units, FilterOp, LineStyle, MixBlendMode, TransformStyle};
+use style::values::RGBA;
+use webrender_api::{units, FilterOp, LineStyle, MixBlendMode, Shadow, TransformStyle};
 
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 
@@ -15,9 +16,14 @@ pub trait ToWebRender {
     fn to_webrender(&self) -> Self::Type;
 }
 
-impl ToWebRender for ComputedFilter {
+pub trait FilterToWebRender {
+    type Type;
+    fn to_webrender(&self, current_color: &RGBA) -> Self::Type;
+}
+
+impl FilterToWebRender for ComputedFilter {
     type Type = FilterOp;
-    fn to_webrender(&self) -> Self::Type {
+    fn to_webrender(&self, current_color: &RGBA) -> Self::Type {
         match *self {
             ComputedFilter::Blur(radius) => FilterOp::Blur(radius.px(), radius.px()),
             ComputedFilter::Brightness(amount) => FilterOp::Brightness(amount.0),
@@ -28,13 +34,17 @@ impl ToWebRender for ComputedFilter {
             ComputedFilter::Opacity(amount) => FilterOp::Opacity(amount.0.into(), amount.0),
             ComputedFilter::Saturate(amount) => FilterOp::Saturate(amount.0),
             ComputedFilter::Sepia(amount) => FilterOp::Sepia(amount.0),
-            // Statically check that DropShadow is impossible.
-            ComputedFilter::DropShadow(ref shadow) => match *shadow {},
+            ComputedFilter::DropShadow(ref shadow) => FilterOp::DropShadow(Shadow {
+                blur_radius: shadow.blur.px(),
+                offset: units::LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
+                color: super::rgba(shadow.color.clone().into_rgba(*current_color)),
+            }),
             // Statically check that Url is impossible.
             ComputedFilter::Url(ref url) => match *url {},
         }
     }
 }
+
 impl ToWebRender for ComputedMixBlendMode {
     type Type = MixBlendMode;
     fn to_webrender(&self) -> Self::Type {
