@@ -29,6 +29,9 @@ Servo.app
 capture_webrender/
 /screenshots
 
+# Allow CSV files to be used as resources in tests
+!/tests/**/*.csv
+
 # Editors
 ## IntelliJ
 .idea
