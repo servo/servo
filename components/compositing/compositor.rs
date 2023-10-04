@@ -1784,12 +1784,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             viewport.size.height,
         );
 
-        let color = servo_config::pref!(shell.background_color);
+        let color = servo_config::pref!(shell.background_color.rgba);
         gl.clear_color(
-            color.red as f32,
-            color.green as f32,
-            color.blue as f32,
-            color.alpha as f32,
+            color[0] as f32,
+            color[1] as f32,
+            color[2] as f32,
+            color[3] as f32,
         );
         gl.enable(gleam::gl::SCISSOR_TEST);
         gl.clear(gleam::gl::COLOR_BUFFER_BIT);

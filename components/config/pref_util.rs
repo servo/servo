@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::RwLock;
@@ -16,6 +17,7 @@ pub enum PrefValue {
     Int(i64),
     Str(String),
     Bool(bool),
+    Array(Vec<PrefValue>),
     Missing,
 }
 
@@ -147,6 +149,36 @@ impl_from_pref! {
     PrefValue::Int => i64,
     PrefValue::Str => String,
     PrefValue::Bool => bool,
+}
+
+impl From<[f64; 4]> for PrefValue {
+    fn from(other: [f64; 4]) -> PrefValue {
+        PrefValue::Array(IntoIterator::into_iter(other).map(|v| v.into()).collect())
+    }
+}
+
+impl From<PrefValue> for [f64; 4] {
+    fn from(other: PrefValue) -> [f64; 4] {
+        match other {
+            PrefValue::Array(values) if values.len() == 4 => {
+                let mut f = values.into_iter().map(|v| v.try_into());
+                if f.all(|v| v.is_ok()) {
+                    let f = f.flatten().collect::<Vec<f64>>();
+                    return [f[0], f[1], f[2], f[3]];
+                } else {
+                    panic!(
+                        "Cannot convert PrefValue to {:?}",
+                        std::any::type_name::<[f64; 4]>()
+                    )
+                }
+            },
+            _ => panic!(
+                "Cannot convert {:?} to {:?}",
+                other,
+                std::any::type_name::<[f64; 4]>()
+            ),
+        }
+    }
 }
 
 #[derive(Debug)]

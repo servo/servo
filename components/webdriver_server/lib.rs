@@ -283,6 +283,11 @@ impl Serialize for WebDriverPrefValue {
             PrefValue::Float(f) => serializer.serialize_f64(f),
             PrefValue::Int(i) => serializer.serialize_i64(i),
             PrefValue::Missing => serializer.serialize_unit(),
+            PrefValue::Array(ref v) => v
+                .iter()
+                .map(|value| WebDriverPrefValue(value.clone()))
+                .collect::<Vec<WebDriverPrefValue>>()
+                .serialize(serializer),
         }
     }
 }
