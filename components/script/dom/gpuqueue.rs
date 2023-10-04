@@ -7,10 +7,11 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use webgpu::identity::WebGPUOpResult;
-use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest};
+use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
 use super::bindings::codegen::UnionTypes::RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict;
+use super::gpu::{response_async, AsyncWGPUListener};
 use super::promise::Promise;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -18,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -196,7 +197,19 @@ impl GPUQueueMethods for GPUQueue {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone
     fn OnSubmittedWorkDone(&self) -> Rc<Promise> {
-        todo!()
+        let global = self.global();
+        let promise = Promise::new(&global);
+        let sender = response_async(&promise, self);
+        if let Err(e) = self.channel.0.send((
+            self.device.borrow().as_ref().unwrap().use_current_scope(),
+            WebGPURequest::QueueOnSubmittedWorkDone {
+                sender,
+                queue_id: self.queue.0,
+            },
+        )) {
+            todo!("QueueOnSubmittedWorkDone failed")
+        }
+        promise
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture
@@ -207,5 +220,20 @@ impl GPUQueueMethods for GPUQueue {
         copySize: RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict,
     ) {
         todo!()
+    }
+}
+
+impl AsyncWGPUListener for GPUQueue {
+    #[allow(unsafe_code)]
+    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
+        match response {
+            Ok(WebGPUResponse::SubmittedWorkDone) => {
+                promise.resolve_native(&());
+            },
+            _ => {
+                warn!("GPUQueue received wrong WebGPUResponse");
+                promise.reject_error(Error::Operation);
+            },
+        }
     }
 }
