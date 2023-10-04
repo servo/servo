@@ -75,9 +75,9 @@ promise_test(async t => {
     assert_array_equals([first.open, second.open, third.open], [expected_first, expected_second, expected_third], description);
   }
 
-  assert_states(true, false, true, "initial states from open attribute");
+  assert_states(true, false, false, "initial states from open attribute");
   first.open = true;
-  assert_states(true, false, true, "non-mutation doesn't change state");
+  assert_states(true, false, false, "non-mutation doesn't change state");
   second.open = true;
   assert_states(false, true, false, "mutation closes multiple open elements");
   third.setAttribute("open", "");
@@ -148,19 +148,19 @@ promise_test(async t => {
     }));
   }
   assert_array_equals(mutation_event_received_ids, []);
-  assert_element_states(elements, [1, 0, 1, 1], "states before mutation");
+  assert_element_states(elements, [1, 0, 0, 0], "states before mutation");
   elements[1].open = true;
   if (mutation_event_received_ids.length == 0) {
     // ok if mutation events are not supported
   } else {
-    assert_array_equals(mutation_event_received_ids, ["e0", "e2", "e3", "e1"],
-                        "removal events received in tree order, followed by addition event");
+    assert_array_equals(mutation_event_received_ids, ["e0", "e1"],
+                        "removal event followed by addition event");
   }
   assert_element_states(elements, [0, 1, 0, 0], "states after mutation");
   assert_array_equals(toggle_event_received_ids, [], "toggle events received before awaiting promises");
   await Promise.all(toggle_event_promises);
-  assert_array_equals(toggle_event_received_ids, ["e1", "e0", "e2", "e3"], "toggle events received after awaiting promises");
-}, "mutation event and toggle event order matches tree order");
+  assert_array_equals(toggle_event_received_ids, ["e3", "e2", "e1", "e0"], "toggle events received after awaiting promises, including toggle events from parser insertion");
+}, "mutation event and toggle event order");
 
 // This function is used to guard tests that test behavior that is
 // relevant only because of Mutation Events.  If mutation events (for
@@ -203,9 +203,9 @@ promise_test(async t => {
     element.addEventListener("DOMSubtreeModified", listener);
   }
   assert_array_equals(received_ids, []);
-  assert_element_states(elements, [1, 0, 1], "states before mutation");
+  assert_element_states(elements, [1, 0, 0], "states before mutation");
   elements[1].open = true;
-  assert_array_equals(received_ids, ["e0", "e2", "e1"],
+  assert_array_equals(received_ids, ["e0", "e1"],
                       "removal events received in tree order, followed by addition event, despite changes to name during mutation event");
   assert_element_states(elements, [0, 1, 0], "states after mutation");
 }, "interaction of open attribute changes with mutation events");
@@ -325,5 +325,95 @@ for (const [scenario, scenario_callbacks] of Object.entries(connected_scenarios)
     assert_element_states(elements, [0, 1], "state after toggle enforces exclusivity");
   }, `exclusivity enforcement with attachment scenario ${scenario}`);
 }
+
+promise_test(async t => {
+  container.innerHTML = `
+    <details name="a" id="e0" open></details>
+    <details name="a" id="e1"></details>
+    <details name="b" id="e2" open></details>
+  `;
+  let elements = [ document.getElementById("e0"),
+                   document.getElementById("e1"),
+                   document.getElementById("e2") ];
+
+  assert_element_states(elements, [1, 0, 1], "states before first mutation");
+  elements[2].name = "a";
+  assert_element_states(elements, [1, 0, 0], "states after first mutation");
+  elements[0].name = "c";
+  elements[2].open = true;
+  assert_element_states(elements, [1, 0, 1], "states before second mutation");
+  elements[0].name = "a";
+  assert_element_states(elements, [0, 0, 1], "states after second mutation");
+}, "handling of name attribute changes");
+
+promise_test(async t => {
+  container.innerHTML = `
+    <details name="a" id="e0" open></details>
+    <details name="a" id="e1" open></details>
+    <details open name="a" id="e2"></details>
+  `;
+  let elements = [ document.getElementById("e0"),
+                   document.getElementById("e1"),
+                   document.getElementById("e2") ];
+
+  assert_element_states(elements, [1, 0, 0], "states after insertion by parser");
+}, "closing as a result of parsing doesn't depend on attribute order");
+
+promise_test(async t => {
+  container.innerHTML = `
+    <details name="a" id="e0" open></details>
+    <details name="a" id="e1"></details>
+  `;
+  let elements = [ document.getElementById("e0"),
+                   document.getElementById("e1") ];
+
+  assert_element_states(elements, [1, 0], "states before first mutation");
+
+  let make_details = () => {
+    let e = document.createElement("details");
+    e.setAttribute("name", "a");
+    return e;
+  };
+
+  let watch_e0 = new EventWatcher(t, elements[0], ['toggle']);
+  let watch_e1 = new EventWatcher(t, elements[1], ['toggle']);
+
+  let expect_opening = async (watcher) => {
+    await watcher.wait_for(['toggle'], {record: 'all'}).then((events) => {
+      assert_equals(events[0].oldState, "closed");
+      assert_equals(events[0].newState, "open");
+    });
+  };
+
+  let expect_closing = async (watcher) => {
+    await watcher.wait_for(['toggle'], {record: 'all'}).then((events) => {
+      assert_equals(events[0].oldState, "open");
+      assert_equals(events[0].newState, "closed");
+    });
+  };
+
+  await expect_opening(watch_e0);
+
+  // Test appending an open element in the group.
+  let new1 = make_details();
+  let watch_new1 = new EventWatcher(t, new1, ['toggle']);
+  new1.open = true;
+  await expect_opening(watch_new1);
+  container.appendChild(new1);
+  await expect_closing(watch_new1);
+
+  // Test appending a closed element in the group.
+  let new2 = make_details();
+  let watch_new2 = new EventWatcher(t, new2, ['toggle']);
+  container.appendChild(new2);
+
+  // Test inserting an open element at the start of the group.
+  let new3 = make_details();
+  new3.open = true; // this time do this before creating the EventWatcher
+  let watch_new3 = new EventWatcher(t, new3, ['toggle']);
+  await expect_opening(watch_new3);
+  container.insertBefore(new3, elements[0]);
+  await expect_closing(watch_new3);
+}, "handling of insertion of elements into group");
 
 </script>

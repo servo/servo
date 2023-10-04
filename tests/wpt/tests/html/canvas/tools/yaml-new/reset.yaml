@@ -163,3 +163,124 @@
 
     ctx.reset();
     @assert ctx.getLineDash().length == 0;
+
+- name: 2d.reset.render.drop_shadow
+  desc: check that drop shadows are correctly rendered after reset
+  size: [500, 500]
+  code: |
+    ctx.shadowOffsetX = 10;
+    ctx.shadowOffsetY = 10;
+    ctx.shadowColor = "red";
+    ctx.shadowBlur = 10;
+
+    ctx.reset();
+
+    ctx.fillRect(100, 100, 100, 100);
+  reference: |
+    ctx.fillRect(100, 100, 100, 100);
+
+- name: 2d.reset.render.text
+  desc: check that text is correctly rendered after reset
+  size: [400, 400]
+  code: |
+    ctx.font = "24px serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "hanging";
+    ctx.direction = "rtl";
+    ctx.letterSpacing = "10px";
+    ctx.fontKerning = "none";
+    ctx.fontStretch = "semi-condensed";
+    ctx.fontVariantCaps = "tilting-caps";
+    ctx.textRendering = "optimizeLegibility";
+    ctx.wordSpacing = "20px";
+
+    ctx.reset();
+
+    ctx.fillText("Lorem ipsum dolor sit amet, consectetur adipiscing elit", 0, 10);
+  reference: |
+    ctx.fillText("Lorem ipsum dolor sit amet, consectetur adipiscing elit", 0, 10);
+
+- name: 2d.reset.render.line
+  desc: check that lines are correctly rendered after reset
+  size: [400, 400]
+  code: |
+    ctx.lineWidth = 10;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "bevel";
+    ctx.lineDashOffset = 10;
+    ctx.setLineDash([20]);
+
+    ctx.reset();
+
+    ctx.beginPath();
+    ctx.moveTo(100, 100);
+    ctx.lineTo(100, 300);
+    ctx.lineTo(300, 300);
+    ctx.lineTo(300, 100);
+    ctx.stroke();
+  reference: |
+    ctx.beginPath();
+    ctx.moveTo(100, 100);
+    ctx.lineTo(100, 300);
+    ctx.lineTo(300, 300);
+    ctx.lineTo(300, 100);
+    ctx.stroke();
+
+- name: 2d.reset.render.miter_limit
+  desc: check that the lines are correctly rendered with the default miter limit after reset
+  size: [400, 400]
+  code: |
+    ctx.miterLimit = 6;
+
+    ctx.reset();
+
+    ctx.lineWidth = 10;
+
+    ctx.beginPath();
+    ctx.moveTo(0, 100);
+    for (let i = 0; i < 24; i++) {
+      const dy = i % 2 === 0 ? 25 : -25;
+      ctx.lineTo(Math.pow(i, 1.5) * 2, 75 + dy);
+    }
+    ctx.stroke();
+  reference: |
+    ctx.lineWidth = 10;
+
+    ctx.beginPath();
+    ctx.moveTo(0, 100);
+    for (let i = 0; i < 24; i++) {
+      const dy = i % 2 === 0 ? 25 : -25;
+      ctx.lineTo(Math.pow(i, 1.5) * 2, 75 + dy);
+    }
+    ctx.stroke();
+
+- name: 2d.reset.render.global_composite_operation
+  desc: check that canvas correctly renders rectangles with the default global composite operation after reset
+  size: [400, 400]
+  code: |
+    ctx.globalCompositeOperation = "xor";
+
+    ctx.reset();
+
+    ctx.fillRect(10, 10, 100, 100);
+    ctx.fillRect(50, 50, 100, 100);
+  reference: |
+    ctx.fillRect(10, 10, 100, 100);
+    ctx.fillRect(50, 50, 100, 100);
+
+- name: 2d.reset.render.misc
+  desc: check that canvas correctly renders rectangles after reset (states not covered by other tests)
+  size: [400, 400]
+  code: |
+    ctx.fillStyle = "red";
+    ctx.strokeStyle = "red";
+    ctx.globalAlpha = 0.5;
+    ctx.filter = "blur(2px)";
+
+    ctx.reset();
+
+    ctx.fillRect(0, 0, 100, 100);
+    ctx.strokeRect(150, 150, 100, 100);
+  reference: |
+    ctx.fillRect(0, 0, 100, 100);
+    ctx.strokeRect(150, 150, 100, 100);

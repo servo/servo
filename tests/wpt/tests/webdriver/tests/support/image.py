@@ -4,16 +4,21 @@ from typing import NamedTuple, Tuple
 from tests.support.asserts import assert_png
 
 
-PPI = 96
 inch_in_cm = 2.54
+inch_in_pixel = 96
+inch_in_point = 72
 
 
 def cm_to_px(cm: float) -> float:
-    return round(cm * PPI / inch_in_cm)
+    return round(cm * inch_in_pixel / inch_in_cm)
 
 
 def px_to_cm(px: float) -> float:
-    return px * inch_in_cm / PPI
+    return px * inch_in_cm / inch_in_pixel
+
+
+def pt_to_cm(pt: float) -> float:
+    return pt * inch_in_cm / inch_in_point
 
 
 def png_dimensions(screenshot) -> Tuple[int, int]:

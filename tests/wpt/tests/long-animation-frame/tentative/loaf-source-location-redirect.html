@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: source location should not expose cross-origin redirects</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: source location with cross-origin redirects</h1>
+<div id="log"></div>
+<script>
+
+const {REMOTE_ORIGIN} = get_host_info();
+
+function crossOriginRedirectURL(path) {
+  const url = new URL(`/common/redirect.py`, REMOTE_ORIGIN);
+  url.searchParams.set("location", path);
+  return url.href;
+}
+
+function test_source_location_pre_redirect({path, type, name}) {
+  promise_test(async t => {
+    const very_long_frame_duration = 360;
+    const url = crossOriginRedirectURL(path);
+    let [entry, script] = await expect_long_frame_with_script(() => {
+      const script = document.createElement("script");
+      script.src = url;
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+    }, script => (
+          script.type === type &&
+          (!name || script.name.startsWith(name)) &&
+          script.duration >= very_long_frame_duration), t);
+
+      assert_true(script.sourceLocation.includes("redirect.py"),
+        `${script.sourceLocation} should be pre-redirect`);
+    }, `${type} doesn't expose post-redirect source location`);
+}
+
+test_source_location_pre_redirect({
+  path: "/long-animation-frame/tentative/resources/busy.js",
+  type: "classic-script"
+});
+test_source_location_pre_redirect({
+  path: "/long-animation-frame/tentative/resources/raf-generates-loaf.js",
+  name: "FrameRequestCallback",
+  type: "user-callback"
+});
+test_source_location_pre_redirect({
+  path: "/long-animation-frame/tentative/resources/promise-generates-loaf.js",
+  type: "resolve-promise",
+  name: "Window.fetch.then"
+});
+test_source_location_pre_redirect({
+  path: "/long-animation-frame/tentative/resources/event-generates-loaf.js",
+  type: "event-listener",
+  name: "XMLHttpRequest.onload"
+});
+</script>
+</body>

@@ -4,30 +4,11 @@
 <link rel="help" href="https://wicg.github.io/ScrollToTextFragment/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
 <script>
   function reset() {
     location.hash = '';
     window.scrollTo(0, 0);
-  }
-
-  function isInViewport(element) {
-    const viewportRect = {
-      left: visualViewport.offsetLeft,
-      top: visualViewport.offsetTop,
-      right: visualViewport.offsetLeft + visualViewport.width,
-      bottom: visualViewport.offsetTop + visualViewport.height
-    };
-
-    const elementRect = element.getBoundingClientRect();
-    const elementCenter = {
-      x: elementRect.left + elementRect.width / 2,
-      y: elementRect.top + elementRect.height / 2
-    };
-
-    return elementCenter.x > viewportRect.left &&
-           elementCenter.x < viewportRect.right &&
-           elementCenter.y > viewportRect.top &&
-           elementCenter.y < viewportRect.bottom;
   }
 
   function runTests() {

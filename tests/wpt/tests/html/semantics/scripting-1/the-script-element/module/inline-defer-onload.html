@@ -1,0 +1,29 @@
+<html>
+  <head>
+    <title>Inline defer module script without external deps onload blocking</title>
+    <meta name=timeout content=long>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      let loadFired = false;
+      let moduleRan = false
+      let test = async_test("Inline defer module script vs. onload");
+      window.addEventListener("load", test.step_func(function() {
+        loadFired = true;
+        assert_true(moduleRan, "Module should have run before the load event");
+        test.step_timeout(function() {
+          test.done();
+        }, 0);
+      }));
+    </script>
+    <!-- defer should be equivalent to neither defer nor async specified -->
+    <script type="module" defer>
+      moduleRan = true;
+      test.step_func(function() {
+        assert_false(loadFired, "onload should not have fired yet");
+      });
+    </script>
+  </body>
+</html>

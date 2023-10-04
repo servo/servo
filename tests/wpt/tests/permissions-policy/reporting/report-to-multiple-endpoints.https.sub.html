@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src='/resources/testdriver-vendor.js'></script>
+    <script src='../../mediacapture-streams/permission-helper.js'></script>
+    <script src='/reporting/resources/report-helper.js'></script>
+  </head>
+  <body>
+    <script>
+  const base_url = `${location.protocol}//${location.host}`;
+  const endpoint = `${base_url}/reporting/resources/report.py`;
+  const camera_id = '6e0f343f-0a7a-4fee-82d9-00eb64531c26';
+  const microphone_id = 'c63eecea-490b-4c38-8c4b-d72ecccd4e31';
+
+  promise_test(async t => {
+    await setMediaPermission("granted", ["camera","microphone"]);
+    await promise_rejects_dom(
+        t, "NotAllowedError", navigator.mediaDevices.getUserMedia({video: true}),
+        "UserMedia camera access should not be allowed in this document.");
+    await promise_rejects_dom(
+        t, "NotAllowedError", navigator.mediaDevices.getUserMedia({audio: true}),
+        "UserMedia microphone access should not be allowed in this document.");
+
+    let camera_reports=[], microphone_reports=[];
+    while(true) {
+      await wait(100);
+      if (!camera_reports.length) {
+        camera_reports = await pollReports(endpoint, camera_id);
+      }
+      if (!microphone_reports.length) {
+        microphone_reports = await pollReports(endpoint, microphone_id);
+      }
+      if (camera_reports.length && microphone_reports.length) {
+        checkReportExists(camera_reports, 'permissions-policy-violation', location.href);
+        checkReportExists(microphone_reports, 'permissions-policy-violation', location.href);
+        break;
+      }
+    }
+  }, "Reporting-Endpoints defined endpoint received reports.");
+    </script>
+  </body>
+</html>

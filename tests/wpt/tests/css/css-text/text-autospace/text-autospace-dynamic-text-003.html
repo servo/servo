@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="help" href="text-autospace-dynamic-text-001-ref.html">
+<div id="target">国国国国国</div>
+<script>
+const target_text = document.getElementById('target').firstChild;
+document.body.offsetTop;  // Force layout.
+target_text.replaceData(2, 1, 'AA国国AA');
+</script>

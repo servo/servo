@@ -1,1 +1,1 @@
-Permissions-Policy: ch-device-memory=*, ch-dpr=(), ch-viewport-width=(self), ch-mobile, ch-prefers-color-scheme=(), ch-prefers-reduced-motion=(), ch-viewport-height=()
+Permissions-Policy: ch-device-memory=*, ch-dpr=(), ch-viewport-width=(self), ch-mobile, ch-prefers-color-scheme=(), ch-prefers-reduced-motion=(), ch-viewport-height=(), ch-prefers-reduced-transparency=()

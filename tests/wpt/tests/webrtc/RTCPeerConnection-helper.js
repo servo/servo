@@ -657,6 +657,13 @@ function preferCodec(transceiver, mimeType, sdpFmtpLine) {
   return transceiver.setCodecPreferences(codecs);
 }
 
+function findSendCodecCapability(mimeType, sdpFmtpLine) {
+  return RTCRtpSender.getCapabilities(mimeType.split('/')[0])
+    .codecs
+    .filter(c => c.mimeType.localeCompare(name, undefined, { sensitivity: 'base' }) === 0
+      && (c.sdpFmtpLine === sdpFmtpLine || !sdpFmtpLine))[0];
+}
+
 // Contains a set of values and will yell at you if you try to add a value twice.
 class UniqueSet extends Set {
   constructor(items) {

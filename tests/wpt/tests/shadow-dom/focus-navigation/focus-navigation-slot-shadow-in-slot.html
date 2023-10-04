@@ -40,8 +40,6 @@ promise_test(async () => {
         'assigned/x-foo/a2'
     ];
 
-    await assert_focus_navigation_forward(elements);
-    elements.reverse();
-    await assert_focus_navigation_backward(elements);
+    await assert_focus_navigation_bidirectional(elements);
 }, 'Focus should cover assigned elements of an assigned slot, as well as elements that are directly assigned to a slot.');
 </script>

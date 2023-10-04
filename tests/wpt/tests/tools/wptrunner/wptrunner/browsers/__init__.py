@@ -43,4 +43,5 @@ product_list = ["android_weblayer",
                 "webkit",
                 "webkitgtk_minibrowser",
                 "wktr",
-                "epiphany"]
+                "epiphany",
+                "ladybird"]

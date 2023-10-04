@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<!-- user agents are not required to support open features other than `noopener`
+     and on some platforms position and size features don't make sense -->
+<meta name="flags" content="may">
+<title>Window Management test: Fullscreen popups with window.open()</title>
+<link rel="help" href="https://w3c.github.io/window-management/">
+Tests the ability to open a fullscreen popup window on each screen.<br>
+The host device must have 2+ screens to test cross-screen fullscreen popups.
+<br><br>
+<button id="closeButton" onclick="closePopups">Close popups</button><br>
+<input id="autoClose" type="checkbox" checked=true>Auto-close popups</input>
+<ul id="list"></ul>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+  'use strict';
+
+  let popups = [];
+  function closePopups() {
+    popups.forEach(p => p.close());
+    popups = [];
+  }
+
+  promise_test(async setUpTest => {
+    await setUpWindowManagement(setUpTest);
+    for (const [i, s] of window.screenDetails.screens.entries()) {
+      const name = `Open a fullscreen popup on '${s.label || i}'`;
+      await promise_test(async test => {
+        await buttonClick(test, name);
+        const popup = await openPopupOnScreen(s, /*assertPlacement=*/false,
+                            /*fullscreen=*/true);
+        popups.push(popup);
+        await poll(() => {
+          return popup.document.fullscreenElement ==
+            popup.document.documentElement
+        });
+        const context = `popup: ${windowLog(popup)}, ${screenLog(screen)}`;
+        assert_equals(popup.screenLeft, s.availLeft, context)
+        assert_equals(popup.screenRight, s.availRight, context);
+        assert_equals(popup.screen.availHeight, s.availHeight, context);
+        assert_equals(popup.screen.availWidth, s.availWidth, context);
+        if (autoClose.checked)
+          closePopups();
+      }, name);
+    }
+  }, 'Use multi-screen details to open a fullscreen popup window on each screen');
+</script>

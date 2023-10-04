@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>font-palette multiple family-name and @font-palette-values</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-palette-prop">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-palette-values">
+<link rel="match" href="font-palette-36-ref.html">
+<meta name="assert" content="A single @font-palette-values can be applied to multiple font-families">
+<style>
+@font-face {
+    font-family: "COLR-test-font";
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+@font-face {
+    font-family: "foo bar";
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+@font-face {
+    font-family: foo;
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+@font-palette-values --MyPalette {
+    font-family: "COLR-test-font", "foo bar", foo;
+    base-palette: light;
+}
+</style>
+</head>
+<body>
+<div style="font: 48px 'COLR-test-font'; font-palette: --MyPalette;">A</div>
+<div style="font: 48px foo; font-palette: --MyPalette;">A</div>
+<div style="font: 48px 'foo bar'; font-palette: --MyPalette;">A</div>
+</body>
+</html>

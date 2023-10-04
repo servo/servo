@@ -4,6 +4,8 @@
 <script src="../navigation-methods/return-value/resources/helpers.js"></script>
 <script>
 promise_test(async t => {
+  let start_index = navigation.currentEntry.index;
+
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
@@ -12,7 +14,7 @@ promise_test(async t => {
   let back_destination;
   navigation.addEventListener("navigate", t.step_func(e => {
     back_destination = e.destination;
-    assert_equals(back_destination.index, 0);
+    assert_equals(back_destination.index, start_index);
   }), { once: true });
   await navigation.back().finished;
 
@@ -23,7 +25,7 @@ promise_test(async t => {
   assert_equals(back_destination.index, -1);
 
   navigation.addEventListener("navigate", t.step_func(e => {
-    assert_equals(e.destination.index, 1);
+    assert_equals(e.destination.index, start_index + 1);
 
     // Dispose the destination entry and destination.index should update.
     navigation.navigate("#clobber_forward");

@@ -1,4 +1,4 @@
-// META: global=window,worker
+// META: global=window,worker,shadowrealm
 // META: timeout=long
 //
 // This test isn't actually slow usually, but sometimes it takes >10 seconds on

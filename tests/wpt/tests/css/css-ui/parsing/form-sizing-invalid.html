@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS UI: parsing form-sizing with invalid values</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/9251">
+<link rel="author" title="Kent Tamura" href="mailto:tkent@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+test_invalid_value('form-sizing', 'none');
+test_invalid_value('form-sizing', 'legacy');
+test_invalid_value('form-sizing', 'normal auto');
+test_invalid_value('form-sizing', '100%');
+test_invalid_value('form-sizing', '10px');
+</script>
+</body>

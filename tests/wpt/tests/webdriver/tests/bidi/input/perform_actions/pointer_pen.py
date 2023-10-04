@@ -1,11 +1,65 @@
 import pytest
 
 from webdriver.bidi.modules.input import Actions, get_element_origin
+from webdriver.bidi.modules.script import ContextTarget
 
 from .. import get_events
-from . import get_inview_center_bidi
+from . import (
+    assert_pointer_events,
+    get_inview_center_bidi,
+    get_shadow_root_from_test_page,
+    record_pointer_events,
+)
 
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.mark.parametrize("mode", ["open", "closed"])
+@pytest.mark.parametrize("nested", [False, True], ids=["outer", "inner"])
+async def test_pen_pointer_in_shadow_tree(
+    bidi_session, top_context, get_test_page, mode, nested
+):
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=get_test_page(
+            shadow_doc="""
+            <div id="pointer-target"
+                 style="width: 10px; height: 10px; background-color:blue;">
+            </div>""",
+            shadow_root_mode=mode,
+            nested_shadow_dom=nested,
+        ),
+        wait="complete",
+    )
+
+    shadow_root = await get_shadow_root_from_test_page(
+        bidi_session, top_context, nested
+    )
+
+    # Add a simplified event recorder to track events in the test ShadowRoot.
+    target = await record_pointer_events(
+        bidi_session, top_context, shadow_root, "#pointer-target"
+    )
+
+    actions = Actions()
+    (
+        actions.add_pointer(pointer_type="pen")
+        .pointer_move(x=0, y=0, origin=get_element_origin(target))
+        .pointer_down(button=0)
+        .pointer_up(button=0)
+    )
+
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    await assert_pointer_events(
+        bidi_session,
+        top_context,
+        expected_events=["pointerdown", "pointerup"],
+        target="pointer-target",
+        pointer_type="pen",
+    )
 
 
 async def test_pen_pointer_properties(

@@ -34,6 +34,12 @@ tests = [
     ["hsla(0)", "The hsla function requires 3 or 4 arguments"],
     ["hsla(0, 0%)", "The hsla function requires 3 or 4 arguments"],
     ["hsla(0, 0%, 0%, 1, 0%)", "The hsla function requires 3 or 4 arguments"],
+    ["hsl(90 calc(infinity) 50%)", "Saturation must be a percentage."],
+    ["hsl(90 calc(0) 50%)", "Saturation must be a percentage."],
+    ["hsl(90 calc(0 / 0) 50%)", "Saturation must be a percentage."],
+    ["hsl(90 50% calc(infinity))", "Lightness must be a percentage."],
+    ["hsl(90 50% calc(-infinity))", "Lightness must be a percentage."],
+    ["hsl(90 50% calc(0 / 0))", "Lightness must be a percentage."],
 ];
 
 for (const test of tests) {

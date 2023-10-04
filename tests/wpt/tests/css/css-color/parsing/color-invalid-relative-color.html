@@ -35,16 +35,6 @@
 
     // hsl(from ...)
 
-    // Testing invalid permutation (types don't match).
-    test_invalid_value(`color`, `hsl(from rebeccapurple s h l)`);
-    test_invalid_value(`color`, `hsl(from rebeccapurple s s s / s)`);
-    test_invalid_value(`color`, `hsl(from rebeccapurple h h h / h)`);
-    test_invalid_value(`color`, `hsl(from rebeccapurple alpha alpha alpha / alpha)`);
-    test_invalid_value(`color`, `hsl(from rgb(10%, 20%, 30%, 40%) s h l)`);
-    test_invalid_value(`color`, `hsl(from rgb(10%, 20%, 30%, 40%) s s s / s)`);
-    test_invalid_value(`color`, `hsl(from rgb(10%, 20%, 30%, 40%) h h h / h)`);
-    test_invalid_value(`color`, `hsl(from rgb(10%, 20%, 30%, 40%) alpha alpha alpha / alpha)`);
-
     // Testing invalid values.
     test_invalid_value(`color`, `hsl(from rebeccapurple h 10% 10)`);
     test_invalid_value(`color`, `hsl(from rebeccapurple h 10 10%)`);
@@ -63,16 +53,6 @@
     test_invalid_value(`color`, `hsla(from rgb(10%, 20%, 30%, 40%) h s l / alpha)`);
 
     // hwb(from ...)
-
-    // Testing invalid permutation (types don't match).
-    test_invalid_value(`color`, `hwb(from rebeccapurple w h b)`);
-    test_invalid_value(`color`, `hwb(from rebeccapurple b b b / b)`);
-    test_invalid_value(`color`, `hwb(from rebeccapurple h h h / h)`);
-    test_invalid_value(`color`, `hwb(from rebeccapurple alpha alpha alpha / alpha)`);
-    test_invalid_value(`color`, `hwb(from rgb(10%, 20%, 30%, 40%) w b h)`);
-    test_invalid_value(`color`, `hwb(from rgb(10%, 20%, 30%, 40%) b b b / b)`);
-    test_invalid_value(`color`, `hwb(from rgb(10%, 20%, 30%, 40%) h h h / h)`);
-    test_invalid_value(`color`, `hwb(from rgb(10%, 20%, 30%, 40%) alpha alpha alpha / alpha)`);
 
     // Testing invalid values.
     test_invalid_value(`color`, `hwb(from rebeccapurple h 10% 10)`);
@@ -103,12 +83,6 @@
     }
 
     for (const colorSpace of [ "lch", "oklch" ]) {
-        // Testing invalid permutation (types don't match).
-        test_invalid_value(`color`, `${colorSpace}(from ${colorSpace}(.70 45 30) h l c / alpha)`);
-        test_invalid_value(`color`, `${colorSpace}(from ${colorSpace}(.70 45 30) alpha alpha alpha / alpha)`);
-        test_invalid_value(`color`, `${colorSpace}(from ${colorSpace}(.70 45 30 / 40%) h l c / alpha)`);
-        test_invalid_value(`color`, `${colorSpace}(from ${colorSpace}(.70 45 30 / 40%) alpha alpha alpha / alpha)`);
-
         // Testing invalid values.
         test_invalid_value(`color`, `${colorSpace}(from ${colorSpace}(.70 45 30) l 10deg h)`);
         test_invalid_value(`color`, `${colorSpace}(from ${colorSpace}(.70 45 30) l c 10%)`);

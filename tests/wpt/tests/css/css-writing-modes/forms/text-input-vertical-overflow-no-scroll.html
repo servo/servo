@@ -12,7 +12,22 @@
     .spacer {
         height: 100vh;
     }
-    input { font-family: monospace; }
+    input {
+        font-family: monospace;
+
+        /* Use an explicit whole-number-of-pixels height, to avoid tripping
+           Mozilla bug 1851066, regarding fractional scroll positions
+           triggering an async 1px adjustment to scrollTop. We can remove this
+           once that bug is fixed.
+           (Without this hack, the input element may end up with a height
+           that's a fractional number of pixels, depending on the font.
+           And then this test's call to 'scrollIntoView' puts us at a
+           fractional scroll-position, to bottom-align the input element. And
+           that's sufficient to trigger bug 1851066 and get an asynchronous 1px
+           adjustment to scrollTop, which this test doesn't expect.
+        */
+        height: 200px;
+    }
 </style>
 
 <div class="spacer"></div>

@@ -9,7 +9,6 @@
 <selectlist id="selectList0">
   <option>one</option>
   <option id="selectList0-child2">two</option>
-  <div id="selectList0-child3">I'm a div with no part attr</div>
   <option>three</option>
   <option>four</option>
 </selectlist>
@@ -50,7 +49,6 @@
   promise_test(async () => {
     const selectList0 = document.getElementById("selectList0");
     const selectList0Child2 = document.getElementById("selectList0-child2");
-    const selectList0Child3 = document.getElementById("selectList0-child3");
     assert_equals(selectList0.value, "one");
     assert_equals(selectList0.open, false);
     await clickOn(selectList0);
@@ -60,9 +58,6 @@
     assert_equals(selectList0.open, false);
 
     await clickOn(selectList0);
-    assert_equals(selectList0.open, true);
-    await clickOn(selectList0Child3);
-    assert_equals(selectList0.value, "two", "Clicking a non-option should not change the value");
     assert_equals(selectList0.open, true);
     await clickOn(selectList0Child2);
     assert_equals(selectList0.open, false);

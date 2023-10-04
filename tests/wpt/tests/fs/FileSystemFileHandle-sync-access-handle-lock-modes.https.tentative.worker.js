@@ -4,45 +4,13 @@ importScripts('resources/test-helpers.js');
 
 'use strict';
 
-const SAH_MODES = ['readwrite', 'read-only', 'readwrite-unsafe'];
-
-const LOCK_ACCESS = {
-  SHARED: 'shared',
-  EXCLUSIVE: 'exclusive',
-};
 const LOCK_WRITE_PERMISSION = {
   NOT_WRITABLE: 'not writable',
   WRITABLE: 'writable',
 };
 
-async function testLockAccess(t, fileHandle, sahMode) {
-  const syncHandle1 = await fileHandle.createSyncAccessHandle({mode: sahMode});
-  t.add_cleanup(() => syncHandle1.close());
-
-  let access;
-  try {
-    const syncHandle2 =
-        await fileHandle.createSyncAccessHandle({mode: sahMode});
-    syncHandle2.close();
-    access = LOCK_ACCESS.SHARED;
-  } catch (e) {
-    access = LOCK_ACCESS.EXCLUSIVE;
-    assert_throws_dom('NoModificationAllowedError', () => {
-      throw e;
-    });
-  }
-  syncHandle1.close();
-
-  // Can open another sync access handle after other handles have closed.
-  const syncHandle3 = await fileHandle.createSyncAccessHandle({mode: sahMode});
-  syncHandle3.close();
-
-  return access;
-}
-
-async function testLockWritePermission(t, fileHandle, sahMode) {
-  const syncHandle = await fileHandle.createSyncAccessHandle({mode: sahMode});
-  t.add_cleanup(() => syncHandle.close());
+async function testLockWritePermission(t, fileHandle, createSAHLock) {
+  const syncHandle = await createSAHLock(t, fileHandle);
 
   let permission;
   const writeBuffer = new TextEncoder().encode('Hello Storage Foundation');
@@ -73,86 +41,66 @@ async function testLockWritePermission(t, fileHandle, sahMode) {
 // mode.
 function lockPropertyTests(
     sahMode, expectedLockAccess, expectedLockWritePermission) {
-  const sahOptions = {mode: sahMode};
+  const createSAHLock = createSAHWithCleanupFactory({mode: sahMode});
 
   directory_test(async (t, rootDir) => {
-    const fileHandle =
-        await rootDir.getFileHandle('OPFS.test', {create: true});
+    const [fileHandle] = await createFileHandles(rootDir, 'BFS.test');
 
-    const syncHandle = await fileHandle.createSyncAccessHandle(sahOptions);
-    const {mode} = syncHandle;
-    syncHandle.close();
+    const {mode} = await createSAHLock(t, fileHandle);
     assert_equals(mode, sahMode);
   }, `An access handle in ${sahMode} mode has a mode property equal to` +
-  ` ${sahMode}`);
+    ` ${sahMode}`);
 
   directory_test(async (t, rootDir) => {
-    const fileHandle = await rootDir.getFileHandle('OPFS.test', {create: true});
+    const [fileHandle] = await createFileHandles(rootDir, 'BFS.test');
     assert_equals(
-        await testLockAccess(t, fileHandle, sahMode), expectedLockAccess);
-  }, `${sahMode} mode takes a ${expectedLockAccess}`);
+        await testLockAccess(t, fileHandle, createSAHLock), expectedLockAccess);
+  }, `An access handle in ${sahMode} mode takes a lock that is` +
+    ` ${expectedLockAccess}`);
 
   directory_test(async (t, rootDir) => {
-    const fileHandle = await rootDir.getFileHandle('OPFS.test', {create: true});
+    const [fileHandle] = await createFileHandles(rootDir, 'BFS.test');
     assert_equals(
-        await testLockWritePermission(t, fileHandle, sahMode),
+        await testLockWritePermission(t, fileHandle, createSAHLock),
         expectedLockWritePermission);
-  }, `${sahMode} mode is ${expectedLockWritePermission}`);
+  }, `An access handle in ${sahMode} mode is ${expectedLockWritePermission}`);
 
-  directory_test(async (t, rootDir) => {
-    const fileHandle =
-        await rootDir.getFileHandle('OPFS.test', {create: true});
-
-    const syncHandle = await fileHandle.createSyncAccessHandle(sahOptions);
-    t.add_cleanup(() => syncHandle.close());
-    for (const mode of SAH_MODES) {
-      if (sahMode !== mode) {
-        await promise_rejects_dom(
-            t, 'NoModificationAllowedError',
-            fileHandle.createSyncAccessHandle({mode: mode}));
-      }
+  // Test interaction with other access handle modes.
+  for (const mode of SAH_MODES) {
+    // Add tests depending on which access handle modes are being tested against
+    // each other.
+    const testingAgainstSelf = mode === sahMode;
+    const testingExclusiveLock = expectedLockAccess === 'exclusive';
+    const tests = {
+      diffFile: `When there's an open access handle in ${sahMode} mode on a` +
+          ` file, can open another access handle in ${mode} on a different` +
+          ` file`,
+    };
+    if (!testingAgainstSelf || testingExclusiveLock) {
+      tests.sameFile = `When there's an open access handle in ${sahMode} mode` +
+          ` on a file, cannot open another access handle in ${mode} on that` +
+          ` same file`;
     }
-  }, `When there's an open access handle in ${sahMode} mode on a file, cannot` +
-  ` open another access handle of another mode on that same file`);
-
-  directory_test(async (t, rootDir) => {
-    const fooFileHandle =
-        await rootDir.getFileHandle('foo.test', {create: true});
-    const barFileHandle =
-        await rootDir.getFileHandle('bar.test', {create: true});
-
-    const fooSyncHandle =
-        await fooFileHandle.createSyncAccessHandle(sahOptions);
-    t.add_cleanup(() => fooSyncHandle.close());
-
-    for (const mode of SAH_MODES) {
-      const barSyncHandle =
-          await barFileHandle.createSyncAccessHandle({mode});
-      barSyncHandle.close();
+    if (testingExclusiveLock) {
+      tests.acquireAfterRelease = `After an access handle in ${sahMode} mode` +
+          ` on a file has been closed, can open another access handle in` +
+          ` ${mode} on the same file`;
     }
-  }, `When there's an open access handle in ${sahMode} mode on a file, can` +
-  ` open another access handle of any mode on a different file`);
-
-  directory_test(async (t, rootDir) => {
-    const fileHandle =
-        await rootDir.getFileHandle('OPFS.test', {create: true});
-
-    const syncHandle1 = await fileHandle.createSyncAccessHandle(sahOptions);
-    syncHandle1.close();
-
-    for (const mode of SAH_MODES) {
-      const syncHandle2 = await fileHandle.createSyncAccessHandle({mode});
-      syncHandle2.close();
+    if (!testingExclusiveLock && !testingAgainstSelf) {
+      tests.multiAcquireAfterRelease = `After all access handles in` +
+          ` ${sahMode} mode on a file has been closed, can open another` +
+          ` access handle in ${mode} on the same file`;
     }
-  }, `After an access handle in ${sahMode} mode on a file has been closed,` +
-  ` can open another access handle of any mode on the same file`);
+
+    generateCrossLockTests(
+        createSAHLock, createSAHWithCleanupFactory({mode: mode}), tests);
+  }
 }
 
 directory_test(async (t, rootDir) => {
-  const fileHandle = await rootDir.getFileHandle('OPFS.test', {create: true});
+  const [fileHandle] = await createFileHandles(rootDir, 'BFS.test');
 
-  const syncHandle = await fileHandle.createSyncAccessHandle();
-  t.add_cleanup(() => syncHandle.close());
+  const syncHandle = await createSAHWithCleanup(t, fileHandle);
   assert_equals(syncHandle.mode, 'readwrite');
 }, 'A sync access handle opens in readwrite mode by default');
 

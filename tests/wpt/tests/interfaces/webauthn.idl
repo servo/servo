@@ -27,8 +27,19 @@ dictionary RegistrationResponseJSON {
 
 dictionary AuthenticatorAttestationResponseJSON {
     required Base64URLString clientDataJSON;
-    required Base64URLString attestationObject;
+    required Base64URLString authenticatorData;
     required sequence<DOMString> transports;
+    // The publicKey field will be missing if pubKeyCredParams was used to
+    // negotiate a public-key algorithm that the user agent doesn’t
+    // understand. (See section “Easily accessing credential data” for a
+    // list of which algorithms user agents must support.) If using such an
+    // algorithm then the public key must be parsed directly from
+    // attestationObject or authenticatorData.
+    Base64URLString publicKey;
+    required long long publicKeyAlgorithm;
+    // This value contains copies of some of the fields above. See
+    // section “Easily accessing credential data”.
+    required Base64URLString attestationObject;
 };
 
 dictionary AuthenticationResponseJSON {
@@ -45,6 +56,7 @@ dictionary AuthenticatorAssertionResponseJSON {
     required Base64URLString authenticatorData;
     required Base64URLString signature;
     Base64URLString userHandle;
+    Base64URLString attestationObject;
 };
 
 dictionary AuthenticationExtensionsClientOutputsJSON {
@@ -63,6 +75,10 @@ partial interface PublicKeyCredential {
 };
 
 partial interface PublicKeyCredential {
+    static Promise<boolean> isPasskeyPlatformAuthenticatorAvailable();
+};
+
+partial interface PublicKeyCredential {
     static PublicKeyCredentialCreationOptions parseCreationOptionsFromJSON(PublicKeyCredentialCreationOptionsJSON options);
 };
 
@@ -74,7 +90,9 @@ dictionary PublicKeyCredentialCreationOptionsJSON {
     unsigned long                                           timeout;
     sequence<PublicKeyCredentialDescriptorJSON>             excludeCredentials = [];
     AuthenticatorSelectionCriteria                          authenticatorSelection;
+    sequence<DOMString>                                     hints = [];
     DOMString                                               attestation = "none";
+    sequence<DOMString>                                     attestationFormats = [];
     AuthenticationExtensionsClientInputsJSON                extensions;
 };
 
@@ -103,6 +121,9 @@ dictionary PublicKeyCredentialRequestOptionsJSON {
     DOMString                                               rpId;
     sequence<PublicKeyCredentialDescriptorJSON>             allowCredentials = [];
     DOMString                                               userVerification = "preferred";
+    sequence<DOMString>                                     hints = [];
+    DOMString                                               attestation = "none";
+    sequence<DOMString>                                     attestationFormats = [];
     AuthenticationExtensionsClientInputsJSON                extensions;
 };
 
@@ -143,6 +164,7 @@ dictionary PublicKeyCredentialCreationOptions {
     unsigned long                                timeout;
     sequence<PublicKeyCredentialDescriptor>      excludeCredentials = [];
     AuthenticatorSelectionCriteria               authenticatorSelection;
+    sequence<DOMString>                          hints = [];
     DOMString                                    attestation = "none";
     sequence<DOMString>                          attestationFormats = [];
     AuthenticationExtensionsClientInputs         extensions;
@@ -192,6 +214,7 @@ dictionary PublicKeyCredentialRequestOptions {
     USVString                            rpId;
     sequence<PublicKeyCredentialDescriptor> allowCredentials = [];
     DOMString                            userVerification = "preferred";
+    sequence<DOMString>                  hints = [];
     DOMString                            attestation = "none";
     sequence<DOMString>                  attestationFormats = [];
     AuthenticationExtensionsClientInputs extensions;
@@ -243,6 +266,12 @@ enum UserVerificationRequirement {
     "required",
     "preferred",
     "discouraged"
+};
+
+enum PublicKeyCredentialHints {
+    "security-key",
+    "client-device",
+    "hybrid",
 };
 
 partial dictionary AuthenticationExtensionsClientInputs {

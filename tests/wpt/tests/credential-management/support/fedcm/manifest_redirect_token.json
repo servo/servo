@@ -2,5 +2,6 @@
   "accounts_endpoint": "accounts.py",
   "client_metadata_endpoint": "client_metadata.py",
   "id_assertion_endpoint": "/common/redirect.py?location=/credential-management/support/fedcm/token.py&status=308",
-  "revocation_endpoint": "revoke.py"
+  "revocation_endpoint": "revoke.py",
+  "login_url": "signin.html"
 }

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Test showPicker() disabled requirement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<select id="select" disabled>
+    <option>Item 1</option>
+</select>
+<script>
+    test(() => {
+        assert_throws_dom('InvalidStateError', () => { select.showPicker(); });
+    }, 'select showPicker() throws when disabled');
+</script>

@@ -44,6 +44,20 @@
 <p id=p2 contenteditable>paragraph2.</p>
 </div>
 
+<div id=set5>
+  <div id=cd1 contenteditable>
+    <p id=p3></p>
+    <input id=ci1 readonly>
+    <input id=ci2 disabled>
+    <input id=ci3>
+    <input id=ci4>
+    <textarea id=ct1 readonly></textarea>
+    <textarea id=ct2 disabled></textarea>
+    <textarea id=ct3></textarea>
+    <textarea id=ct4></textarea>
+  </div>
+</div>
+
 <script>
   testSelectorIdsMatch("#set0 :read-write", [], "The :read-write pseudo-class must not match input elements to which the readonly attribute does not apply");
 
@@ -96,5 +110,9 @@
   testSelectorIdsMatch("#set4 :read-write", ["p1", "p2"], "The :read-write pseudo-class must match elements that are editing hosts");
 
   testSelectorIdsMatch("#set4 :read-only", [], "The :read-only pseudo-class must not match elements that are editing hosts");
+
+  document.designMode = "off";
+
+  testSelectorIdsMatch("#set5 :read-write", ["cd1", "p3", "ci3", "ci4", "ct3", "ct4"], "The :read-write pseudo-class must match elements that are inside editing hosts, but not match inputs and textareas inside that aren't");
 
 </script>

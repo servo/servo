@@ -91,7 +91,7 @@
 
 </style>
 </head>
-<body>
+<body onload="run()">
   <p>None of the activity indicators should be active all of the animations are outside of their active range.</p>
   <div class="scroller">
     <div class="anim after"><div class="indicator">After cover phase: <div><div></div></div></div></div>
@@ -105,10 +105,13 @@
 </body>
 <script>
   async function run() {
+    await waitForCompositorReady();
+    await waitForNextFrame();
+
     let scroller = document.querySelector('.scroller');
     // Scroll such that each animation becomes active.
     scroller.scrollTo({top: 0});
-    await waitForCompositorReady();
+    await waitForNextFrame();
     scroller.scrollTo({top: 400});
     await waitForNextFrame();
 
@@ -117,6 +120,5 @@
     await waitForNextFrame();
     takeScreenshot();
   }
-  run();
 </script>
 </html>

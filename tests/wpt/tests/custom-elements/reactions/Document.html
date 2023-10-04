@@ -61,6 +61,7 @@ test_with_window(function (contentWindow, contentDocument) {
     assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
 
     container.focus();
+    contentDocument.getSelection().collapse(container, 1);
     contentDocument.execCommand('delete', false, null);
 
     assert_array_equals(element.takeLog().types(), ['disconnected']);

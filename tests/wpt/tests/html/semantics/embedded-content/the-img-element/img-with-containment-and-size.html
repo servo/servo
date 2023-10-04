@@ -13,10 +13,12 @@ img {
 }
 </style>
 <script>
+onload = () => {
   var i = new Image();
   i.onload = function() {
     document.body.appendChild(i);
     document.documentElement.classList.remove("reftest-wait");
   };
   i.src = "image.png";
+};
 </script>

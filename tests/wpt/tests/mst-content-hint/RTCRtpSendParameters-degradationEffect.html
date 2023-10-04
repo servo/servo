@@ -1,0 +1,120 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCRtpSendParameters degradationPreference effect</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+// This file contains tests that check that degradation preference
+// actually has the desired effect. These tests take a long time to run.
+
+// Returns incoming bandwidth usage between stats1 and stats2
+// in bits per second.
+function bandwidth(stats1, stats2) {
+  const transport1 = [...stats1.values()].filter(({type}) => type === 'transport')[0];
+  const transport2 = [...stats2.values()].filter(({type}) => type === 'transport')[0];
+  const bytes = transport2.bytesReceived - transport1.bytesReceived;
+  // Multiply by 1000 to get per second, divide by 8 to get bits.
+  const bandwidth = 1000 * 8 * bytes /
+        (transport2.timestamp - transport1.timestamp);
+  return bandwidth;
+}
+
+// Returns tuple of { bandwidth, fps, x-res, y-res }
+async function measureStuff(t, pc, intervalMs) {
+  const stats1 = await pc.getStats();
+  await new Promise(r => t.step_timeout(r, intervalMs));
+  const stats2 = await pc.getStats();
+  // RTCInboundStreamStats
+  const inboundRtp1List = [...stats1.values()].filter(({type}) => type === 'inbound-rtp');
+  const inboundRtp2List = [...stats2.values()].filter(({type}) => type === 'inbound-rtp');
+  const inboundRtp1 = inboundRtp1List[0];
+  const inboundRtp2 = inboundRtp2List[0];
+  const fps = 1000 * (inboundRtp2.framesReceived - inboundRtp1.framesReceived) /
+        (inboundRtp2.timestamp - inboundRtp1.timestamp);
+  const result = {
+    bandwidth: bandwidth(stats1, stats2),
+    fps: fps,
+    width: inboundRtp2.frameWidth,
+    height: inboundRtp2.frameHeight
+  };
+  // Unbreak for debugging.
+  // con sole.log('Measure: ', performance.now(), " ", JSON.stringify(result));
+  return result;
+}
+
+// Wait for a certain condition to be true on the traffic measures
+// on the PC. Will typically be conditions on resolution, framerate
+// or bandwidth.
+async function waitForCondition(t, pc, condition, maxWait, stepName) {
+  let counter = 1;
+  let measure = await measureStuff(t, pc, 1000);
+  while (counter < maxWait && !condition(measure)) {
+    measure = await measureStuff(t, pc, 1000);
+    counter += 1;
+  }
+  assert_true(condition(measure),
+              `failure in ${stepName}, measure is ${JSON.stringify(measure)}`);
+  return condition(measure);
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const track = stream.getTracks()[0];
+  const { sender } = pc1.addTransceiver(track);
+
+  let param = sender.getParameters();
+
+  assert_equals(param.degradationPreference, undefined,
+    'Expect initial param.degradationPreference to be undefined');
+
+  param.degradationPreference = 'maintain-framerate';
+  await sender.setParameters(param);
+
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+  await listenToConnected(pc1);
+  // Wait a few seconds to allow things to settle (rampup)
+  // We know that the generator is supposed to produce 640x480
+  // at 10 fps with a bandwidth exceeding 30 kbits/second.
+  assert_true(await waitForCondition(t, pc2, (measure) => {
+    return (measure.bandwidth > 30000 &&
+            measure.width == 640 &&
+            measure.fps > 9);
+  }, 60, 'preconditions'));
+
+  // Measure BW, resolution and frame rate over one second
+  const stats1 = await measureStuff(t, pc2, 1000);
+
+  // Constrain BW to 1/2 of measured value
+  const newBandwidth = stats1.bandwidth / 2;
+
+  const parameters = sender.getParameters();
+  parameters.encodings[0].maxBitrate = newBandwidth;
+  await sender.setParameters(parameters);
+  // Wait until the expected result happens.
+  let stats2 = await measureStuff(t, pc2, 1000);
+  let counter = 1;
+  const maxWaitCount = 20;
+  const kBandwidthMargin = 1.3;
+  // It takes time to adapt to a new bandwidth, time to scale down,
+  // and time to acknowledge that framerate should not be reduced.
+  // Measured time is around 16 seconds.
+  assert_true(await waitForCondition(t, pc2, (measure) => {
+    return (measure.bandwidth < newBandwidth * kBandwidthMargin &&
+            measure.width < stats1.width &&
+            measure.fps > stats1.fps * 0.9);
+  }, 60, 'adaptation'),
+             `Target bandwidth ${newBandwidth * kBandwidthMargin}, target min FPS ${stats1.fps * 0.9}`);
+}, 'Maintain-framerate reduces resolution on bandwidth cut', { timeout: 35000 });
+
+</script>

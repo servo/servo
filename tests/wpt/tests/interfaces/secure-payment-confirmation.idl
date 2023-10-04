@@ -16,6 +16,10 @@ dictionary SecurePaymentConfirmationRequest {
     boolean showOptOut;
 };
 
+partial interface PaymentRequest {
+    static Promise<boolean> isSecurePaymentConfirmationAvailable();
+};
+
 partial dictionary AuthenticationExtensionsClientInputs {
   AuthenticationExtensionsPaymentInputs payment;
 };

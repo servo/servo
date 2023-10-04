@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Test that making a content-visibility: hidden subtree visible restarts animations in it</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/">
+<link rel="match" href="content-visibility-animation-becomes-visible-ref.html">
+<meta name="assert" content="animations in content-visibility: hidden subtree should restart once visible">
+
+<script src="/common/reftest-wait.js"></script>
+<script src="../resources/utils.js"></script>
+
+<style>
+#container {
+  content-visibility: hidden;
+}
+@keyframes fade {
+  from { opacity: 0; transform: none; }
+  to { opacity: 1; transform: translate(100px); }
+}
+#target {
+  background: green;
+  height: 100px;
+  width: 100px;
+}
+.animate {
+  animation: fade 1s linear 1 alternate;
+  animation-fill-mode: forwards;
+}
+</style>
+<body>
+  <div id="container"></div>
+</body>
+
+<script>
+function createAnimatingElement(name) {
+  const container = document.getElementById('container');
+  const target = document.createElement('div');
+  container.appendChild(target);
+  target.id = 'target';
+  target.className = name;
+  return target;
+}
+
+function runTest() {
+  const container = document.getElementById('container');
+  const target = createAnimatingElement('animate');
+  container.style.contentVisibility = "visible";
+  const listener = (e) => {
+    takeScreenshot();
+  };
+
+  target.addEventListener("animationend", listener);
+}
+window.onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

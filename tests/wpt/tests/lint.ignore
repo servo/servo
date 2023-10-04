@@ -89,7 +89,7 @@ CR AT EOL: html/syntax/charset/after-head-after-1kb-crlf.html
 CR AT EOL: html/syntax/charset/after-head-in-1kb-crlf.html
 
 # Intentional use of tabs
-INDENT TABS: html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
+INDENT TABS: html/canvas/element/canvas-host/2d.canvas.host.size.attributes.parse.whitespace.html
 INDENT TABS: webvtt/parsing/file-parsing/tests/support/header-tab.vtt
 INDENT TABS: webvtt/parsing/file-parsing/tests/support/whitespace-chars.vtt
 
@@ -214,6 +214,7 @@ SET TIMEOUT: performance-timeline/resources/navigation-id-detached-frame-page.ht
 SET TIMEOUT: portals/resources/portals-adopt-predecessor-portal.html
 SET TIMEOUT: preload/single-download-preload.html
 SET TIMEOUT: preload/resources/slow-exec.js
+SET TIMEOUT: print/crashtests/reload-crash.html
 SET TIMEOUT: resize-observer/resources/iframe.html
 SET TIMEOUT: resource-timing/resources/nested-contexts.js
 SET TIMEOUT: reporting/resources/first-csp-report.https.sub.html
@@ -621,6 +622,7 @@ AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-metrics-override.html
 AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-metrics-override-ref.html
 AHEM SYSTEM FONT: css/css-fonts/line-gap-override.html
 AHEM SYSTEM FONT: css/css-fonts/parsing/font-size-adjust-computed.html
+AHEM SYSTEM FONT: css/css-fonts/size-adjust-unicode-range-system-fallback.html
 AHEM SYSTEM FONT: html/dom/render-blocking/remove-attr-unblocks-rendering.optional.html
 AHEM SYSTEM FONT: html/dom/render-blocking/remove-element-unblocks-rendering.optional.html
 
@@ -705,3 +707,17 @@ SET TIMEOUT: editing/crashtests/outdent-across-svg-boundary.html
 SET TIMEOUT: editing/crashtests/textarea-will-be-blurred-by-focus-event-listener.html
 SET TIMEOUT: mathml/crashtests/mozilla/*
 PARSE-FAILED: mathml/crashtests/mozilla/289180-1.xml
+
+# Invalid HTML syntax /> on non-void elements
+HTML INVALID SYNTAX: acid/*
+HTML INVALID SYNTAX: conformance-checkers/*
+HTML INVALID SYNTAX: css/css-scoping/shadow-cascade-order-001.html
+HTML INVALID SYNTAX: dom/nodes/Document-createElement-namespace.html
+HTML INVALID SYNTAX: dom/nodes/Node-lookupNamespaceURI.html
+HTML INVALID SYNTAX: dom/nodes/Node-normalize.html
+HTML INVALID SYNTAX: domparsing/DOMParser-parseFromString-xml-doctype.html
+HTML INVALID SYNTAX: domparsing/DOMParser-parseFromString-xml-parsererror.html
+HTML INVALID SYNTAX: domparsing/XMLSerializer-serializeToString.html
+HTML INVALID SYNTAX: html/canvas/element/manual/unclosed-canvas-4.htm
+HTML INVALID SYNTAX: quirks/percentage-height-calculation.html
+HTML INVALID SYNTAX: trusted-types/TrustedTypePolicyFactory-getAttributeType-namespace.tentative.html

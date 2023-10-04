@@ -13,7 +13,7 @@
 <style>
   div.target {
       width: 100px;
-      height: 50px;
+      height: 100px;
   }
 </style>
 <div class="target" id="parent">
@@ -31,43 +31,58 @@
 
   let event_log = [];
   let logged_event_prefix = "";
+  let received_compat_mouse_events = false;
 
   function logEvent(e) {
-    if (e.type.startsWith(logged_event_prefix) && e.eventPhase == e.AT_TARGET)
-      event_log.push(e.type);
+    if (e.type.startsWith(logged_event_prefix) && e.eventPhase == e.AT_TARGET) {
+      event_log.push(e.type + "@" + e.target.id);
+    }
+    if (e.type.startsWith("mouse")) {
+      received_compat_mouse_events = true;
+    }
+  }
+
+  function removeChild() {
+    parent.removeChild(child);
+    event_log.push("(child-removed)");
   }
 
   function setup() {
-    const logged_events = [
-      "pointerover", "pointerout", "pointerenter", "pointerleave",
-      "mouseover", "mouseout", "mouseenter", "mouseleave"
-    ];
-    logged_events.forEach(ename => parent.addEventListener(ename, logEvent));
+    const logged_event_suffixes =
+        ["over", "out", "enter", "leave", "down", "up"];
+    let targets = document.getElementsByClassName("target");
+    for (let i = 0; i < targets.length; i++) {
+      logged_event_suffixes.forEach(suffix => {
+        targets[i].addEventListener("pointer" + suffix, logEvent);
+        targets[i].addEventListener("mouse" + suffix, logEvent);
+      });
+    }
   }
 
-  function addPromiseTest(remover_event, tested_event_prefix) {
+  function addPromiseTest(remover_event, tested_event_prefix, expected_events) {
     const test_name = `${tested_event_prefix} events from ${pointer_type} `+
-        `at parent after child is removed at ${remover_event}`;
-    const expected_events = ["enter", "over", "out", "leave"]
-        .map(suffix => tested_event_prefix + suffix);
+          `received before/after child removal at ${remover_event}`;
 
-    promise_test(async () => {
+    promise_test(async test => {
       event_log = [];
       logged_event_prefix = tested_event_prefix;
 
-      // Bring the child back if it was removed in the previous promise_test.
-      if (!child.parentElement)
-        parent.appendChild(child);
-
-      child.addEventListener(remover_event,
-          () => parent.removeChild(child),
-          { once:true });
+      child.addEventListener(remover_event, removeChild);
+      test.add_cleanup(() => {
+        child.removeEventListener(remover_event, removeChild);
+        if (!child.parentElement) {
+          parent.appendChild(child);
+        }
+      });
 
       let done_click_promise = getEvent("click", done);
 
       let actions = new test_driver.Actions()
           .addPointer("TestPointer", pointer_type)
-          .pointerMove(0, 0, {origin: parent})
+          .pointerMove(-30, -30, {origin: parent})
+          .pointerDown()
+          .pointerUp()
+          .pointerMove(30, 30, {origin: parent})
           .pointerDown()
           .pointerUp()
           .pointerMove(0, 0, {origin: done})
@@ -77,14 +92,42 @@
       await actions.send();
       await done_click_promise;
 
+      if (tested_event_prefix == "mouse" && !received_compat_mouse_events) {
+        expected_events = [];
+      }
+
       assert_equals(event_log.toString(), expected_events.toString(),
-          "received events");
+          "events received");
     }, test_name);
   }
 
   setup();
-  addPromiseTest("pointerdown", "pointer");
-  addPromiseTest("pointerdown", "mouse");
-  addPromiseTest("pointerup", "pointer");
-  addPromiseTest("pointerup", "mouse");
+
+  // Tests for dispatched pointer events.
+  addPromiseTest("pointerdown", "pointer", [
+    "pointerover@child", "pointerenter@parent", "pointerenter@child",
+    "pointerdown@child", "(child-removed)", "pointerup@parent",
+    "pointerdown@parent", "pointerup@parent",
+    "pointerout@parent", "pointerleave@parent"
+  ]);
+  addPromiseTest("pointerup", "pointer", [
+    "pointerover@child", "pointerenter@parent", "pointerenter@child",
+    "pointerdown@child", "pointerup@child", "(child-removed)",
+    "pointerdown@parent", "pointerup@parent",
+    "pointerout@parent", "pointerleave@parent"
+  ]);
+
+  // Same tests for dispatched compatibility mouse events.
+  addPromiseTest("pointerdown", "mouse", [
+    "mouseover@child", "mouseenter@parent", "mouseenter@child",
+    "(child-removed)", "mouseup@parent",
+    "mousedown@parent", "mouseup@parent",
+    "mouseout@parent", "mouseleave@parent"
+  ]);
+  addPromiseTest("pointerup", "mouse", [
+    "mouseover@child", "mouseenter@parent", "mouseenter@child",
+    "mousedown@child", "(child-removed)",
+    "mousedown@parent", "mouseup@parent",
+    "mouseout@parent", "mouseleave@parent"
+  ]);
 </script>

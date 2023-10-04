@@ -4,6 +4,7 @@
 <link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
 <link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
 <link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Karl Dubost" href="https://github.com/karlcow">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <style>
@@ -54,6 +55,12 @@
 #contents-pseudos-dynamic.contents::after {
   display: contents;
 }
+#pseudo-invalid::marker {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid {
+  color: rgb(255, 0, 0)
+}
 </style>
 <div id="test">
   <div id="contents"></div>
@@ -62,6 +69,7 @@
   <div id="flex-no-pseudo"></div>
   <div id="contents-pseudos"></div>
   <div id="contents-pseudos-dynamic"></div>
+  <ul><li id="pseudo-invalid">Item</li></ul>
 </div>
 <script>
 test(function() {
@@ -150,4 +158,19 @@ test(function() {
     getComputedStyle(div, ":totallynotapseudo").length == 0,
     "Should return an empty style for unknown pseudo-elements starting with colon");
 }, "Unknown pseudo-elements");
+test(function() {
+  let li = document.querySelector('li');
+  assert_true(
+    getComputedStyle(li, ':marker').length == 0,
+    "Should return an empty style for :marker");
+  assert_true(
+    getComputedStyle(li, 'marker').length != 0,
+    "Should return the element style for marker");
+  assert_equals(
+    getComputedStyle(li, 'marker').color, "rgb(255, 0, 0)",
+    "Should return the element style for marker (ex: color is rgb(255, 0, 0), not rgb(0, 128, 0)");
+  assert_equals(
+  getComputedStyle(li, '::marker').color, "rgb(0, 128, 0)",
+  "Should return the element style for marker (ex: color is rgb(0, 128, 0)");
+}, "Unknown pseudo-element with a known string (ex: marker)");
 </script>

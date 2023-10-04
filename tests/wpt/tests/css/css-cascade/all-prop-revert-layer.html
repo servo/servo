@@ -24,6 +24,7 @@
   animation-iteration-count: 123;
   animation-name: \.;
   animation-play-state: paused;
+  animation-range: 10% 20%;
   animation-timeline: none;
   animation-timing-function: linear;
   app-region: drag;
@@ -41,6 +42,7 @@
   background-repeat: round;
   background-size: 123px;
   baseline-shift: 123px;
+  baseline-source: first;
   block-size: 123px;
   border-block-end: 123px dashed #123;
   border-block-start: 123px dashed #123;
@@ -96,6 +98,7 @@
   container-name: foo;
   container-type: size;
   content: "b";
+  content-visibility: auto;
   counter-increment: add 123;
   counter-reset: add 123;
   counter-set: add 123;
@@ -133,11 +136,13 @@
   font-variant-alternates: historical-forms;
   font-variant-caps: small-caps;
   font-variant-east-asian: full-width;
+  font-variant-emoji: emoji;
   font-variant-ligatures: none;
   font-variant-numeric: tabular-nums;
   font-variant-position: super;
   font-variation-settings: "smcp" 1;
   font-weight: 123;
+  forced-color-adjust: none;
   glyph-orientation-horizontal: 123deg;
   glyph-orientation-vertical: 123deg;
   grid-auto-columns: 123px;
@@ -153,6 +158,7 @@
   hanging-punctuation: first;
   height: 123px;
   hyphenate-character: "e";
+  hyphenate-limit-chars: 5;
   hyphens: auto;
   image-orientation: none;
   image-rendering: pixelated;
@@ -187,6 +193,7 @@
   margin-left: 123px;
   margin-right: 123px;
   margin-top: 123px;
+  margin-trim: block;
   marker-end: url("#ref");
   marker-mid: url("#ref");
   marker-start: url("#ref");
@@ -248,6 +255,7 @@
   padding-left: 123px;
   padding-right: 123px;
   padding-top: 123px;
+  page: page;
   paint-order: fill;
   perspective: 123px;
   perspective-origin: 123px 123%;
@@ -285,6 +293,7 @@
   scroll-snap-align: center;
   scroll-snap-stop: always;
   scroll-snap-type: both;
+  scroll-timeline: --foo inline;
   scrollbar-color: #123 #123;
   scrollbar-gutter: stable;
   scrollbar-width: none;
@@ -329,13 +338,14 @@
   text-transform: lowercase;
   text-underline-offset: 123px;
   text-underline-position: under;
-  text-wrap: nowrap;
+  timeline-scope: --foo;
   top: 123px;
   touch-action: none;
   transform: scale(-1);
   transform-box: fill-box;
   transform-origin: 123px 123px 123px;
   transform-style: preserve-3d;
+  transition-behavior: allow-discrete;
   transition-delay: 123s;
   transition-duration: 123s;
   transition-property: add;
@@ -345,8 +355,10 @@
   user-select: all;
   vector-effect: non-scaling-stroke;
   vertical-align: 123px;
+  view-timeline: --foo inline 10px;
+  view-transition-name: --foo;
   visibility: collapse;
-  white-space-collapse: preserve;
+  white-space: pre;
   white-space-trim: discard-inner;
   widows: 123;
   width: 123px;

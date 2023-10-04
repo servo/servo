@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>'box-decoration-break: slice' and 'mask-image'</title>
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#break-decoration">
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#the-mask-image">
+<link rel="match" href="reference/mask-image-inline-sliced-1-ref.html">
+<style>
+  .mask-image {
+    font: 100px/1 Ahem;
+    color: green;
+    -webkit-mask-image: linear-gradient(to right, white 50%, transparent 50%);
+    mask-image: linear-gradient(to right, white 50%, transparent 50%);
+  }
+</style>
+<p>There should be a green square below.</p>
+<div style="width: 100px">
+  <span class="mask-image">A A</span>
+</div>

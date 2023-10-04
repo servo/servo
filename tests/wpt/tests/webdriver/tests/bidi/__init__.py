@@ -50,6 +50,11 @@ def any_list(actual: Any) -> None:
     assert isinstance(actual, list)
 
 
+def any_list_or_null(actual: Any) -> None:
+    if actual is not None:
+        any_list(actual)
+
+
 def any_string(actual: Any) -> None:
     assert isinstance(actual, str)
 

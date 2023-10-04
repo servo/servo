@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>'box-decoration-break: clone' and 'border-image' (reference)</title>
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  .border-image {
+    font: 81px/1 Ahem;
+    color: transparent;
+    border-image: radial-gradient(green 50%, transparent 50%) 27 fill / 27px;
+  }
+</style>
+<p>There should be two green circles below.</p>
+<div style="width: 81px">
+  <span class="border-image">A</span>
+  <span class="border-image">A</span>
+</div>

@@ -145,35 +145,6 @@ var TestUtils = (function() {
         });
       }
     },
-    {
-      "name": "WebSQL",
-      "supported": function() { return !!window.openDatabase; },
-      "add": function() {
-        return new Promise(function(resolve, reject) {
-          var database = window.openDatabase(
-              "database", "1.0", "database", 1024 /* 1 kB */);
-          database.transaction(function(context) {
-            context.executeSql("CREATE TABLE IF NOT EXISTS data (column)");
-            context.executeSql(
-                "INSERT INTO data (column) VALUES (1)", [], resolve);
-          });
-        });
-      },
-      "isEmpty": function() {
-        return new Promise(function(resolve, reject) {
-          var database = window.openDatabase(
-              "database", "1.0", "database", 1024 /* 1 kB */);
-          database.transaction(function(context) {
-            context.executeSql("CREATE TABLE IF NOT EXISTS data (column)");
-            context.executeSql(
-                "SELECT * FROM data", [],
-                function(transaction, result) {
-                  resolve(!result.rows.length);
-                });
-          });
-        });
-      }
-    }
   ].filter(function(backend) { return backend.supported(); });
 
   /**

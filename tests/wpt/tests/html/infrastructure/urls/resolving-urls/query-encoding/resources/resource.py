@@ -39,23 +39,12 @@ def main(request, response):
                    } catch(ex) {
                      postMessage(String(ex));
                    }""" % encoding)
-    elif type == b'worker_sharedworker':
-        return ([(b"Content-Type", b"text/javascript; charset=%s" % encoding)], # charset should be ignored for workers
-                b"""try {
-                   var worker = new SharedWorker('?q=\\u00E5&type=sharedworker&encoding=%s');
-                     worker.port.onmessage = function(e) {
-                       postMessage(e.data);
-                       close();
-                     };
-                   } catch(ex) {
-                     postMessage(String(ex));
-                   }""" % encoding)
     elif type == b'sharedworker_importScripts':
-        return ([(b"Content-Type", b"text/javascript; charset=%s" % request.GET[b'encoding'])], # charset should be ignored for workers
-                b"""onconnect = function(e) {
+        return ([(b"Content-Type", b"text/javascript; charset=%s" % encoding)], # charset should be ignored for workers
+                b"""var x = 'importScripts failed to run';
+                     onconnect = function(e) {
                      var connect_port = e.source;
                      try {
-                       var x = 'importScripts failed to run';
                        importScripts('?q=\\u00E5&type=js&var=x&encoding=%s');
                        connect_port.postMessage(x);
                        close();
@@ -77,25 +66,6 @@ def main(request, response):
                        connect_port.postMessage(String(ex));
                      }
                    };""" % encoding)
-    elif type == b'sharedworker_sharedworker':
-        return ([(b"Content-Type", b"text/javascript; charset=%s" % encoding)], # charset should be ignored for workers
-                b"""onconnect = function(e) {
-                     var connect_port = e.source;
-                     try {
-                       onerror = function(msg) {
-                         connect_port.postMessage(msg);
-                         close();
-                         return false;
-                       };
-                       var worker = new SharedWorker('?q=\\u00E5&type=sharedworker&encoding=%s');
-                       worker.port.onmessage = function(e) {
-                         connect_port.postMessage(e.data);
-                         close();
-                       };
-                     } catch(ex) {
-                       connect_port.postMessage(String(ex));
-                     }
-                   };""" % encoding)
     elif type == b'eventstream':
         return [(b"Content-Type", b"text/event-stream")], b"data: %s\n\n" % isomorphic_encode(q)
     elif type == b'svg':
@@ -105,7 +75,7 @@ def main(request, response):
                 (u"""<?xml-stylesheet href="?q=&#x00E5;&amp;type=css&amp;encoding=%s"?><html xmlns="http://www.w3.org/1999/xhtml"/>""" % isomorphic_decode(encoding))
                 .encode(isomorphic_decode(encoding)))
     elif type == b'png':
-        if q == u'%E5':
+        if q == u'%E5' or q == u'%26%23229%3B':
             image = u'green-1x1.png'
         elif q == u'%C3%A5':
             image = u'green-2x2.png'
@@ -117,7 +87,7 @@ def main(request, response):
         return [(b"Content-Type", b"image/png")], rv
     elif type == b'video':
         ext = request.GET[b'ext']
-        if q == u'%E5':
+        if q == u'%E5' or q == u'%26%23229%3B':
             video = u'A4' # duration: 3
         elif q == u'%C3%A5':
             video = u'movie_5' # duration: 5

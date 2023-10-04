@@ -288,6 +288,17 @@ class CancelFedCMDialogAction:
         self.logger.debug("Canceling FedCM dialog")
         return self.protocol.fedcm.cancel_fedcm_dialog()
 
+class ConfirmIDPLoginAction:
+    name = "confirm_idp_login"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        self.logger.debug("Confirming IDP login")
+        return self.protocol.fedcm.confirm_idp_login()
+
 class SelectFedCMAccountAction:
     name = "select_fedcm_account"
 
@@ -377,6 +388,7 @@ actions = [ClickAction,
            SetUserVerifiedAction,
            SetSPCTransactionModeAction,
            CancelFedCMDialogAction,
+           ConfirmIDPLoginAction,
            SelectFedCMAccountAction,
            GetFedCMAccountListAction,
            GetFedCMDialogTitleAction,

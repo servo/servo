@@ -12,8 +12,11 @@ const import_from_data_url_worker_test = (importType, isDataURL, expectation) =>
     const dataURL = `data:text/javascript,import "${importURL}";`;
     const worker = new SharedWorker(dataURL, { type: 'module' });
     worker.port.postMessage('Send message for tests from main script.');
-    const msgEvent =
-        await new Promise(resolve => worker.port.onmessage = resolve);
+    const msgEvent = await new Promise((resolve, reject) =>{
+        worker.port.onmessage = resolve;
+        worker.onerror = reject;
+    }).catch(e => assert_true(false));
+
     assert_array_equals(msgEvent.data,
         expectation === 'blocked' ? ['ERROR']
                                   : ['export-block-cross-origin.js']);

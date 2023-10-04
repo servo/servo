@@ -629,3 +629,27 @@ promise_test(async () => {
   p25.hidePopover(); // Cleanup
 }, 'Nested showPopover');
 </script>
+
+<div id=p29 popover>Popover 29</div>
+<button id=b29 popovertarget=p29>Open popover 29</button>
+<iframe id=iframe29 width=100 height=100></iframe>
+<script>
+promise_test(async () => {
+  let iframe_url = (new URL("/common/blank.html", location.href)).href;
+  iframe29.src = iframe_url;
+  iframe29.contentDocument.body.style.height = '100%';
+  assert_false(p29.matches(':popover-open'));
+  p29.showPopover();
+  assert_true(p29.matches(':popover-open'));
+  let actions = new test_driver.Actions();
+  await actions.pointerMove(0,0,{origin: b29})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .send();
+
+  actions = new test_driver.Actions();
+  await actions.pointerMove(0,0,{origin: iframe29.contentDocument.body})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  assert_true(p29.matches(':popover-open'));
+},`Pointer down in one document and pointer up in another document shouldn't dismiss popover`);
+</script>

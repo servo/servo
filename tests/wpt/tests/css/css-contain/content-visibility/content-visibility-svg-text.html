@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+}
+div {
+  content-visibility:hidden;
+}
+</style>
+
+<div>
+  <svg xmlns="http://www.w3.org/2000/svg">
+    <text><tspan id="tspan1" x="50 150 100" y="100" transform="scale(2, 2)">abc</tspan></text>
+  </svg>
+</div>
+
+<script>
+  test(() => {
+    const element = document.querySelector('#tspan1');
+    assert_greater_than(element.getComputedTextLength(), 0);
+  }, `getComputedTextLength() should return nonzero values in a c-v:hidden subtree.`);
+
+  test(() => {
+    const element = document.querySelector('#tspan1');
+    assert_greater_than(element.getCharNumAtPosition(new DOMPoint(51, 101), 0), -1, "position");
+  }, `getCharNumAtPosition() should return nonzero values in a c-v:hidden subtree.`);
+
+  test(() => {
+    const element = document.querySelector('#tspan1');
+    assert_equals(element.getNumberOfChars(), 3);
+  }, `getNumberOfChars() should return nonzero values in a c-v:hidden subtree.`);
+
+  test(() => {
+    const element = document.querySelector('#tspan1');
+    const ctm = element.getCTM();
+    assert_equals(ctm.a, 2, 'a');
+    assert_equals(ctm.b, 0, 'b');
+    assert_equals(ctm.c, 0, 'c');
+    assert_equals(ctm.d, 2, 'd');
+    assert_equals(ctm.e, 0, 'e');
+    assert_equals(ctm.f, 0, 'f');
+  }, `getCTM() should return nonzero values in a c-v:hidden subtree.`);
+
+  test(() => {
+    const element = document.querySelector('#tspan1');
+    const ctm = element.getScreenCTM();
+    assert_equals(ctm.a, 2, 'a');
+    assert_equals(ctm.b, 0, 'b');
+    assert_equals(ctm.c, 0, 'c');
+    assert_equals(ctm.d, 2, 'd');
+    assert_equals(ctm.e, 0, 'e');
+    assert_equals(ctm.f, 0, 'f');
+  }, `getScreenCTM() should return nonzero values in a c-v:hidden subtree.`);
+</script>

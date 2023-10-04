@@ -212,3 +212,7 @@ class SafariBrowser(WebDriverBrowser):
                         proc.wait(10)
                 except psutil.NoSuchProcess:
                     pass
+                except Exception:
+                    # Safari is a singleton, so treat failure here as a critical error.
+                    self.logger.critical("Failed to stop Safari")
+                    raise

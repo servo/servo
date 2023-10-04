@@ -3,9 +3,11 @@
 <head>
   <title>CSS Text Test: minimum rendered width of tab character</title>
   <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
   <style>
-    span { background-color: yellow; display: inline-block; letter-spacing: -.1em; }
-    pre { position: absolute; top: 0; }
+    span { background-color: yellow; display: inline-block; }
+    pre { position: absolute; top: 0; font: 16px Ahem; }
+    tt { font: 16px monospace; }
   </style>
 </head>
 <body>
@@ -17,16 +19,16 @@
   let pre = document.getElementsByTagName("pre")[0];
   let test = "";
   for (i = 7.0; i <= 8.125; i += 0.125) {
-    test += `<span style="width:${i}ch">${i}ch</span>\n`;
+    test += `<span style="width:${i}ch"><tt>${i}ch</tt></span>\n`;
   }
   pre.innerHTML = test;
   pre = document.getElementsByTagName("pre")[1];
   test = "";
   for (i = 0; i < 5; i++) {
-    test += `\tfoo\n`;
+    test += `\t<tt>foo</tt>\n`;
   }
   for (i = 0; i < 5; i++) {
-    test += `\t\tfoo\n`;
+    test += `\t\t<tt>foo</tt>\n`;
   }
   pre.innerHTML = test;
 </script>

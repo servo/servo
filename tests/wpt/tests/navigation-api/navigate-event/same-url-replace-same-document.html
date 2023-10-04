@@ -5,19 +5,22 @@
 
 <script>
 promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
   // Wait for after the load event so that we are definitely testing the
   // same URL as the cause of the rejections.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
-  assert_equals(navigation.entries().length, 1);
+  assert_equals(navigation.entries().length, start_length);
   await navigation.navigate("#").finished;
-  assert_equals(navigation.entries().length, 2);
-  assert_equals(navigation.currentEntry.index, 1);
+  assert_equals(navigation.entries().length, start_length + 1);
+  assert_equals(navigation.currentEntry.index, start_index + 1);
 
   navigation.onnavigate = t.step_func(e => {
     assert_equals(e.navigationType, "replace");
   });
   await navigation.navigate(location.href).finished;
-  assert_equals(navigation.entries().length, 2);
-  assert_equals(navigation.currentEntry.index, 1);
+  assert_equals(navigation.entries().length, start_length + 1);
+  assert_equals(navigation.currentEntry.index, start_index + 1);
 }, "navigate() to the current URL same document should replace");
 </script>

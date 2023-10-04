@@ -1,7 +1,14 @@
 # META: timeout=long
+from math import ceil
 import pytest
 
+from webdriver.bidi.error import UnsupportedOperationException
+from tests.support.image import inch_in_cm, inch_in_point
+
 pytestmark = pytest.mark.asyncio
+
+DEFAULT_PAGE_HEIGHT = 27.94
+DEFAULT_PAGE_WIDTH = 21.59
 
 
 def get_content(css=""):
@@ -14,7 +21,7 @@ def get_content(css=""):
             }}
             div {{
                 background-color: black;
-                height: 27.94cm;
+                height: {DEFAULT_PAGE_HEIGHT}cm;
                 {css}
             }}
         </style>
@@ -25,22 +32,22 @@ def get_content(css=""):
     "margin, reference_css, css",
     [
         (
-            {"top": 2.54},
+            {"top": inch_in_cm},
             "margin-top: 1.54cm;",
             "",
         ),
         (
-            {"left": 2.54},
+            {"left": inch_in_cm},
             "margin-left: 1.54cm;",
             "",
         ),
         (
-            {"right": 2.54},
+            {"right": inch_in_cm},
             "margin-right: 1.54cm;",
             "",
         ),
         (
-            {"bottom": 2.54},
+            {"bottom": inch_in_cm},
             "height: 24.4cm;",
             "height: 26.94cm;",
         ),
@@ -63,7 +70,9 @@ async def test_margin_default(
 ):
     default_content_page = inline(get_content(css))
     await bidi_session.browsing_context.navigate(
-        context=top_context["context"], url=default_content_page, wait="complete"
+        context=top_context["context"],
+        url=default_content_page,
+        wait="complete"
     )
     value_with_margin = await bidi_session.browsing_context.print(
         context=top_context["context"],
@@ -80,11 +89,16 @@ async def test_margin_default(
 @pytest.mark.parametrize(
     "margin",
     [
-        {"top": 27.94},
-        {"left": 21.59},
-        {"right": 21.59},
-        {"bottom": 27.94},
-        {"top": 27.94, "left": 21.59, "right": 21.59, "bottom": 27.94},
+        {"top": DEFAULT_PAGE_HEIGHT},
+        {"left": DEFAULT_PAGE_WIDTH},
+        {"right": DEFAULT_PAGE_WIDTH},
+        {"bottom": DEFAULT_PAGE_HEIGHT},
+        {
+            "top": DEFAULT_PAGE_HEIGHT,
+            "left": DEFAULT_PAGE_WIDTH,
+            "right": DEFAULT_PAGE_WIDTH,
+            "bottom": DEFAULT_PAGE_HEIGHT,
+        },
     ],
     ids=[
         "top",
@@ -98,21 +112,70 @@ async def test_margin_same_as_page_dimension(
     bidi_session,
     top_context,
     inline,
-    assert_pdf_content,
     margin,
 ):
     page = inline("Text")
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=page, wait="complete"
     )
-    print_value = await bidi_session.browsing_context.print(
-        context=top_context["context"],
-        shrink_to_fit=False,
-        margin=margin,
+
+    # This yields an empty content area: https://github.com/w3c/webdriver-bidi/issues/473
+    with pytest.raises(UnsupportedOperationException):
+        await bidi_session.browsing_context.print(
+            context=top_context["context"],
+            shrink_to_fit=False,
+            margin=margin,
+        )
+
+
+@pytest.mark.parametrize(
+    "margin",
+    [
+        {"top": DEFAULT_PAGE_HEIGHT - ceil(inch_in_cm / inch_in_point)},
+        {"left": DEFAULT_PAGE_WIDTH - ceil(inch_in_cm / inch_in_point)},
+        {"right": DEFAULT_PAGE_WIDTH - ceil(inch_in_cm / inch_in_point)},
+        {"bottom": DEFAULT_PAGE_HEIGHT - ceil(inch_in_cm / inch_in_point)},
+    ],
+    ids=[
+        "top",
+        "left",
+        "right",
+        "bottom",
+    ],
+)
+async def test_margin_minimum_page_size(
+    bidi_session,
+    top_context,
+    inline,
+    assert_pdf_dimensions,
+    margin,
+):
+    page = inline("Text")
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=page, wait="complete"
     )
 
-    # Check that content is out of page dimensions.
-    await assert_pdf_content(print_value, [{"type": "string", "value": ""}])
+    value = await bidi_session.browsing_context.print(
+        context=top_context["context"],
+        shrink_to_fit=False,
+        margin=margin
+    )
+
+    if "top" in margin or "bottom" in margin:
+        expected_width = DEFAULT_PAGE_WIDTH
+    else:
+        expected_width = DEFAULT_PAGE_WIDTH - (inch_in_cm / inch_in_point)
+
+    if "left" in margin or "right" in margin:
+        expected_height = DEFAULT_PAGE_HEIGHT
+    else:
+        expected_height = DEFAULT_PAGE_HEIGHT - (inch_in_cm / inch_in_point)
+
+    # Check that margins don't affect page dimensions and equal defaults.
+    await assert_pdf_dimensions(value, {
+       "width": expected_width,
+       "height": expected_height,
+    })
 
 
 @pytest.mark.parametrize(
@@ -144,5 +207,9 @@ async def test_margin_does_not_affect_page_size(
         margin=margin
     )
 
-    # Check that margins don't affect page dimencions and equal in this case defaults.
-    await assert_pdf_dimensions(value, {"width": 21.59, "height": 27.94})
+    # Check that margins don't affect page dimensions
+    # and equal in this case defaults.
+    await assert_pdf_dimensions(value, {
+        "width": DEFAULT_PAGE_WIDTH,
+        "height": DEFAULT_PAGE_HEIGHT,
+    })

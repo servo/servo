@@ -57,6 +57,10 @@ let empty_data_blob = new Blob([], {type: "text/plain"});
 checkFetchResponse(URL.createObjectURL(empty_data_blob), "", "text/plain", 0,
                   "Fetching URL.createObjectURL(empty_data_blob) is OK");
 
+let invalid_type_blob = new Blob([], {type: "invalid"});
+checkFetchResponse(URL.createObjectURL(invalid_type_blob), "", "", 0,
+                  "Fetching URL.createObjectURL(invalid_type_blob) is OK");
+
 promise_test(function(test) {
   return fetch("/images/blue.png").then(function(resp) {
     return resp.arrayBuffer();

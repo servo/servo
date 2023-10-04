@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Handling of invalid module type import attributes</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    setup({allow_uncaught_exception: true});
+
+    var log = [];
+    window.addEventListener("error", ev => log.push(ev.error));
+
+    const test_load = async_test(
+        "Test that the errors order for invalid import declarations is" +
+        " specifier, then attribute key, and then type attribute value.");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      assert_equals(log.length, 3);
+      assert_equals(log[0].constructor, SyntaxError);
+      assert_equals(log[1].constructor, SyntaxError);
+      assert_equals(log[2].constructor, SyntaxError);
+    }));
+
+    function unreachable() { log.push("unexpected"); }
+</script>
+<script type="module" onerror="unreachable()">
+  // unknown attribute is reported before invalid specifier
+  import "INVALID" assert { unknown: "foo" };
+</script>
+<script type="module" onerror="unreachable()">
+  // unknown attribute is reported before unknown type
+  import "./valid" assert { unknown: "foo", type: "unknown" };
+</script>
+<script type="module" onerror="unreachable()">
+  // unknown attribute is reported before invalid specifier in subsequent import
+  import "./valid" assert { unknown: "foo" };
+  import "INVALID";
+</script>

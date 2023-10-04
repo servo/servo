@@ -17,7 +17,7 @@ interface HID : EventTarget {
     attribute EventHandler onconnect;
     attribute EventHandler ondisconnect;
     Promise<sequence<HIDDevice>> getDevices();
-    Promise<sequence<HIDDevice>> requestDevice(
+    [Exposed=Window] Promise<sequence<HIDDevice>> requestDevice(
         HIDDeviceRequestOptions options);
 };
 

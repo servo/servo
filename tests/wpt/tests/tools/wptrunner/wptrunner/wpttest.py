@@ -86,7 +86,7 @@ def get_run_info(metadata_root, product, **kwargs):
 
 
 class RunInfo(Dict[str, Any]):
-    def __init__(self, metadata_root, product, debug,
+    def __init__(self, metadata_root, product_name, debug,
                  browser_version=None,
                  browser_channel=None,
                  verify=None,
@@ -107,7 +107,7 @@ class RunInfo(Dict[str, Any]):
             self["revision"] = rev.decode("utf-8")
 
         self["python_version"] = sys.version_info.major
-        self["product"] = product
+        self["product"] = product_name
         if debug is not None:
             self["debug"] = debug
         elif "debug" not in self:

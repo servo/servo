@@ -1,10 +1,9 @@
 import pytest
 
-from webdriver.error import InvalidArgumentException, NoSuchWindowException
+from webdriver.error import NoSuchWindowException
+
 
 from tests.classic.perform_actions.support.refine import get_events
-from tests.support.asserts import assert_move_to_coordinates
-from tests.support.helpers import filter_dict
 
 
 def test_null_response_value(session, wheel_chain):
@@ -22,51 +21,51 @@ def test_no_browsing_context(session, closed_window, wheel_chain):
         wheel_chain.scroll(0, 0, 0, 10).perform()
 
 
-def test_wheel_scroll(session, test_actions_scroll_page, wheel_chain):
-    session.execute_script("document.scrollingElement.scrollTop = 0")
+def test_scroll_not_scrollable(session, test_actions_scroll_page, wheel_chain):
+    target = session.find.css("#not-scrollable", all=False)
 
-    outer = session.find.css("#outer", all=False)
-    wheel_chain.scroll(0, 0, 5, 10, origin=outer).perform()
+    wheel_chain.scroll(0, 0, 5, 10, origin=target).perform()
+
     events = get_events(session)
     assert len(events) == 1
     assert events[0]["type"] == "wheel"
-    assert events[0]["deltaX"] >= 5
-    assert events[0]["deltaY"] >= 10
+    assert events[0]["deltaX"] == 5
+    assert events[0]["deltaY"] == 10
     assert events[0]["deltaZ"] == 0
-    assert events[0]["target"] == "outer"
+    assert events[0]["target"] == "not-scrollable-content"
 
 
-def test_wheel_scroll_overflow(session, test_actions_scroll_page, wheel_chain):
-    session.execute_script("document.scrollingElement.scrollTop = 0")
+def test_scroll_scrollable_overflow(session, test_actions_scroll_page, wheel_chain):
+    target = session.find.css("#scrollable", all=False)
 
-    scrollable = session.find.css("#scrollable", all=False)
-    wheel_chain.scroll(0, 0, 5, 10, origin=scrollable).perform()
+    wheel_chain.scroll(0, 0, 5, 10, origin=target).perform()
+
     events = get_events(session)
     assert len(events) == 1
     assert events[0]["type"] == "wheel"
-    assert events[0]["deltaX"] >= 5
-    assert events[0]["deltaY"] >= 10
+    assert events[0]["deltaX"] == 5
+    assert events[0]["deltaY"] == 10
     assert events[0]["deltaZ"] == 0
-    assert events[0]["target"] == "scrollContent"
+    assert events[0]["target"] == "scrollable-content"
 
 
-def test_wheel_scroll_iframe(session, test_actions_scroll_page, wheel_chain):
-    session.execute_script("document.scrollingElement.scrollTop = 0")
+def test_scroll_iframe(session, test_actions_scroll_page, wheel_chain):
+    target = session.find.css("#iframe", all=False)
 
-    subframe = session.find.css("#subframe", all=False)
-    wheel_chain.scroll(0, 0, 5, 10, origin=subframe).perform()
+    wheel_chain.scroll(0, 0, 5, 10, origin=target).perform()
+
     events = get_events(session)
     assert len(events) == 1
     assert events[0]["type"] == "wheel"
-    assert events[0]["deltaX"] >= 5
-    assert events[0]["deltaY"] >= 10
+    assert events[0]["deltaX"] == 5
+    assert events[0]["deltaY"] == 10
     assert events[0]["deltaZ"] == 0
     assert events[0]["target"] == "iframeContent"
 
 
 @pytest.mark.parametrize("mode", ["open", "closed"])
 @pytest.mark.parametrize("nested", [False, True], ids=["outer", "inner"])
-def test_wheel_scroll_shadow_tree(session, get_test_page, wheel_chain, mode, nested):
+def test_scroll_shadow_tree(session, get_test_page, wheel_chain, mode, nested):
     session.url = get_test_page(
         shadow_doc="""
         <div id="scrollableShadowTree"
@@ -109,17 +108,6 @@ def test_wheel_scroll_shadow_tree(session, get_test_page, wheel_chain, mode, nes
 
     events = session.execute_script("return window.wheelEvents;") or []
     assert len(events) == 1
-    assert events[0]["deltaX"] >= 5
-    assert events[0]["deltaY"] >= 10
+    assert events[0]["deltaX"] == 5
+    assert events[0]["deltaY"] == 10
     assert events[0]["target"] == "scrollableShadowTreeContent"
-
-
-@pytest.mark.parametrize("missing", ["x", "y", "deltaX", "deltaY"])
-def test_wheel_missing_prop(session, test_actions_scroll_page, wheel_chain, missing):
-    session.execute_script("document.scrollingElement.scrollTop = 0")
-
-    outer = session.find.css("#outer", all=False)
-    actions = wheel_chain.scroll(0, 0, 5, 10, origin=outer)
-    del actions._actions[-1][missing]
-    with pytest.raises(InvalidArgumentException):
-        actions.perform()

@@ -151,10 +151,7 @@ def center_point(element):
 
 
 def document_hidden(session):
-    """Polls for the document to become hidden."""
-    def hidden(session):
-        return session.execute_script("return document.hidden")
-    return Poll(session, timeout=3, raises=None).until(hidden)
+    return session.execute_script("return document.hidden")
 
 
 def document_location(session):
@@ -207,27 +204,24 @@ def is_fullscreen(session):
         """)
 
 
-def screen_size(session):
-    """Returns the available width/height size of the screen."""
-    return tuple(session.execute_script("""
-        return [
-            screen.availWidth,
-            screen.availHeight,
-        ];
-        """))
+def is_maximized(session):
+    dimensions = session.execute_script("""
+        return {
+            availWidth: screen.availWidth,
+            availHeight: screen.availHeight,
+            windowWidth: window.outerWidth,
+            windowHeight: window.outerHeight,
+        }
+        """)
 
-
-def available_screen_size(session):
-    """
-    Returns the effective available screen width/height size,
-    excluding any fixed window manager elements.
-    """
-    return tuple(session.execute_script("""
-        return [
-            screen.availWidth - screen.availLeft,
-            screen.availHeight - screen.availTop,
-        ];
-        """))
+    return (
+        # The maximized window can still have a border attached which would
+        # cause its dimensions to exceed the whole available screen.
+        dimensions["windowWidth"] >= dimensions["availWidth"] and
+        dimensions["windowHeight"] >= dimensions["availHeight"] and
+        # Only return true if the window is not in fullscreen mode
+        not is_fullscreen(session)
+    )
 
 
 def filter_dict(source, d):

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>CSS Text Decoration Test: Invalidation of text decorations in css-pseudo ::selection</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/">
+<meta name="assert" content="text-decorations should be correctly invalidated on selection change.">
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="match" href="reference/selection-pseudo-with-decoration-invalidation-001-ref.html">
+<style>
+    div {
+        display: block;
+        margin-top: 30px;
+        margin-bottom: 30px;
+        will-change: transform;
+    }
+    ::selection {
+        background: yellow;
+        color: currentColor;
+        text-decoration-line: underline overline;
+        text-decoration-style: wavy;
+        text-decoration-color: black;
+        text-decoration-thickness: 5px;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+</head>
+<body>
+<div id="top-decorated-div">
+There should be no sign of decorations when the test completes.
+</div>
+<div id="bottom-decorated-div">
+There should be decorations when the test completes.
+</div>
+</body>
+<script>
+
+function selectByID(id) {
+  const selection = window.getSelection();
+  const node = document.getElementById(id);
+  const range = document.createRange();
+  range.selectNodeContents(node);
+  selection.addRange(range);
+}
+
+selectByID("top-decorated-div");
+
+async function runTest() {
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selectByID("bottom-decorated-div");
+  takeScreenshot();
+}
+onload = () => {
+  waitForAtLeastOneFrame().then(() => { runTest() });
+}
+</script>
+</html>

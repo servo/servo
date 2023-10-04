@@ -4,6 +4,10 @@
 <iframe id="i" src="/common/blank.html"></iframe>
 <script>
 promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+  let start_history_length = history.length;
+
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
@@ -11,14 +15,14 @@ promise_test(async t => {
   await i.contentWindow.navigation.navigate("#").finished;
   assert_equals(i.contentWindow.navigation.entries().length, 2);
   assert_equals(i.contentWindow.navigation.currentEntry.index, 1);
-  assert_equals(navigation.entries().length, 1);
-  assert_equals(navigation.currentEntry.index, 0);
-  assert_equals(history.length, 2);
+  assert_equals(navigation.entries().length, start_length);
+  assert_equals(navigation.currentEntry.index, start_index);
+  assert_equals(history.length, start_history_length + 1);
 
   i.remove();
-  assert_equals(navigation.entries().length, 1);
-  assert_equals(navigation.currentEntry.index, 0);
-  assert_equals(history.length, 2);
+  assert_equals(navigation.entries().length, start_length);
+  assert_equals(navigation.currentEntry.index, start_index);
+  assert_equals(history.length, start_history_length + 1);
 
   // back() here should do nothing. The iframe that would have navigated has
   // been removed. No navigate event should be fired.

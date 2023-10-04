@@ -35,7 +35,7 @@ enum WellKnownDirectory {
 typedef (WellKnownDirectory or FileSystemHandle) StartInDirectory;
 
 dictionary FilePickerAcceptType {
-    USVString description;
+    USVString description = "";
     record<USVString, (USVString or sequence<USVString>)> accept;
 };
 

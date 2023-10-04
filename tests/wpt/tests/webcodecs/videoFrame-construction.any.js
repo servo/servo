@@ -404,16 +404,8 @@ test(t => {
       'invalid coded height');
   assert_throws_js(
       TypeError,
-      () => constructFrame({timestamp: 1234, codedWidth: 4, codedHeight: 1}),
-      'odd coded height');
-  assert_throws_js(
-      TypeError,
       () => constructFrame({timestamp: 1234, codedWidth: 0, codedHeight: 4}),
       'invalid coded width');
-  assert_throws_js(
-      TypeError,
-      () => constructFrame({timestamp: 1234, codedWidth: 3, codedHeight: 2}),
-      'odd coded width');
   assert_throws_js(
       TypeError, () => constructFrame({
                    timestamp: 1234,

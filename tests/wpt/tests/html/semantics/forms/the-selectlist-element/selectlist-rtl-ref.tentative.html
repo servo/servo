@@ -4,6 +4,7 @@
 <script>
   const selectlist = createFakeSelectlist('option');
   document.body.appendChild(selectlist);
-  selectlist.style.direction = "rtl";
-  selectlist.style.width = "300px";
+  const button = selectlist.querySelector('.fake-selectlist-internal-selectlist-button');
+  button.style.direction = "rtl";
+  button.style.width = "300px";
 </script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="match" href="text-autospace-vertical-upright-001-ref.html">
+<style>
+#container {
+  writing-mode: vertical-rl;
+  font-size: 20px;
+}
+.upright {
+  text-orientation: upright;
+}
+</style>
+<div id="container">
+  <div class="upright">国X国</div>
+  <div class="upright">国1国</div>
+  <div>国<span class="upright">X</span>国</div>
+  <div>国<span class="upright">1</span>国</div>
+</div>

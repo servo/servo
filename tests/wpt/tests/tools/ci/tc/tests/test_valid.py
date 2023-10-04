@@ -61,6 +61,27 @@ def test_exclude_users(event_path, expected):
         assert set(tasks) == expected
 
 
+def test_sink_task_depends():
+    """Verify that sink task only depends on required tasks"""
+    from tools.ci.tc.decision import decide
+    files_changed = {"layout-instability/clip-negative-bottom-margin.html",
+                     "layout-instability/composited-element-movement.html"}
+    with open(data_path("pr_event_tests_affected.json"), encoding="utf8") as f:
+        event = json.load(f)
+        with mock.patch("tools.ci.tc.decision.get_fetch_rev", return_value=(None, None, None)):
+            with mock.patch("tools.wpt.testfiles.repo_files_changed",
+                            return_value=files_changed):
+                # Ensure we don't exclude the Chrome jobs
+                event["pull_request"]["user"]["login"] = "test"
+                task_id_map = decide(event)
+
+        sink_task = task_id_map["sink-task"][1]
+
+        assert set(sink_task["dependencies"]) == (
+            set(task_id for (task_name, (task_id, _)) in task_id_map.items()
+                if task_name not in {"sink-task", "wpt-chrome-dev-stability"}))
+
+
 def test_verify_payload():
     """Verify that the decision task produces tasks with a valid payload"""
     from tools.ci.tc.decision import decide

@@ -3,13 +3,15 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
   await navigation.navigate("#foo").finished;
-  assert_equals(navigation.entries().length, 2);
+  assert_equals(navigation.entries().length, start_length+1);
   await navigation.back().finished;
-  assert_equals(navigation.currentEntry.index, 0);
+  assert_equals(navigation.currentEntry.index, start_index);
 
   // Traverse forward then immediately do a same-document push. This will
   // truncate the back forward list, and by the time the traverse commits, the
@@ -19,15 +21,15 @@ promise_test(async t => {
   navigation.onnavigateerror = t.unreached_func("navigateerror should not fire");
   let forward_value = navigation.forward();
   await navigation.navigate("#clobber").finished;
-  assert_equals(navigation.currentEntry.index, 1);
+  assert_equals(navigation.currentEntry.index, start_index+1);
   await promise_rejects_dom(t, "AbortError", forward_value.committed);
   await promise_rejects_dom(t, "AbortError", forward_value.finished);
 
   // This leaves navigation.entries() in a consistent state where traversing
   // back and forward still works.
   await navigation.back().finished;
-  assert_equals(navigation.currentEntry.index, 0);
+  assert_equals(navigation.currentEntry.index, start_index);
   await navigation.forward().finished;
-  assert_equals(navigation.currentEntry.index, 1);
+  assert_equals(navigation.currentEntry.index, start_index+1);
 }, "If forward pruning clobbers the target of a traverse, abort");
 </script>

@@ -64,8 +64,6 @@ promise_test(async () => {
       'x-foo/l1'
     ];
 
-    await assert_focus_navigation_forward(elements);
-    elements.reverse();
-    await assert_focus_navigation_backward(elements);
+    await assert_focus_navigation_bidirectional(elements);
 }, 'Focus should jump to fallback elements when a slot does not have any assigned nodes.');
 </script>

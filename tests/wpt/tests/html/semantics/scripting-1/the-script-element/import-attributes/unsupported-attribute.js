@@ -1,2 +1,2 @@
-import "./hello.js" assert { unsupportedAttributeKey: "unsupportedAttributeValue" };
+import "./hello.js" with { unsupportedAttributeKey: "unsupportedAttributeValue" };
 log.push("unsupported-attribute");

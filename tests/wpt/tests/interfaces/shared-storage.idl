@@ -11,6 +11,8 @@ interface SharedStorageWorklet : Worklet {
 interface SharedStorageWorkletGlobalScope : WorkletGlobalScope {
   undefined register(DOMString name,
                      SharedStorageOperationConstructor operationCtor);
+
+  readonly attribute WorkletSharedStorage sharedStorage;
 };
 
 callback SharedStorageOperationConstructor =
@@ -68,6 +70,10 @@ interface WindowSharedStorage : SharedStorage {
 dictionary SharedStorageUrlWithMetadata {
   required USVString url;
   object reportingMetadata;
+};
+
+partial interface Window {
+  [SecureContext] readonly attribute WindowSharedStorage? sharedStorage;
 };
 
 [Exposed=(SharedStorageWorklet)]

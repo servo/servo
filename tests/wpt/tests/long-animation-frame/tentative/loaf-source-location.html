@@ -44,5 +44,15 @@ promise_test(async t => {
   assert_regexp_match(script.sourceLocation, source_location_regex);
 }, "Source location should be extracted for setTimeout");
 
+promise_test(async t => {
+  const scriptLocation = new URL("resources/promise-generates-loaf.js", location.href);
+  const [entry, script] = await expect_long_frame_with_script(() => {
+    const scriptElement = document.createElement("script");
+    scriptElement.src = scriptLocation;
+    document.body.appendChild(scriptElement);
+  }, script => script.name === "Window.fetch.then", t);
+  assert_true(script.sourceLocation?.includes("promise-generates-loaf.js"));
+}, "Source location should be extracted for promises");
+
 </script>
 </body>

@@ -5,13 +5,13 @@
 
 <script>
 promise_test(async t => {
-  assert_equals(navigation.entries().length, 1);
+  let start_length = navigation.entries().length;
   const entry = navigation.currentEntry;
 
   const result = navigation.traverseTo(navigation.currentEntry.key);
   await assertBothFulfill(t, result, entry);
 
-  assert_equals(navigation.entries().length, 1);
+  assert_equals(navigation.entries().length, start_length);
   assert_equals(navigation.currentEntry, entry);
 }, "traverseTo() with current key");
 </script>

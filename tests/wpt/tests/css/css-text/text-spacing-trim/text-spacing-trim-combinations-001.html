@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-trim-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/get-char-advances.js"></script>
+<style>
+#container {
+  /* This test prefers fonts with the `halt` feature. */
+  font-family: 'Yu Gothic', 'Noto Sans CJK JP';
+  font-size: 10px;
+}
+</style>
+<div id="container">
+  <div expect="FFHF">国（（国</div>
+  <div expect="FFHF">国・（国</div>
+  <div expect="FFHF">国）（国</div>
+  <div expect="FFHF">国　（国</div>
+  <div expect="FHFF">国））国</div>
+  <div expect="FHFF">国）・国</div>
+  <div expect="FHFF">国）　国</div>
+  <div expect="FFHHF">国（（（国</div>
+  <div expect="FHHFF">国）））国</div>
+</div>
+<script>
+const range = document.createRange();
+
+function assertNode(element, expect) {
+  const advances = getCharAdvances(element);
+  const results = advances.map(advance => advance >= 8 ? 'F' : 'H');
+  const result = results.join('');
+  assert_equals(result, expect);
+}
+
+for (const element of document.querySelectorAll('div[expect]')) {
+  test(() => {
+    let expect = element.getAttribute('expect');
+    assertNode(element, expect);
+  }, `"${element.innerHTML}"`);
+}
+</script>

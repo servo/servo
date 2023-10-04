@@ -4,11 +4,12 @@
 <script>
 async_test(t => {
   window.onload = () => t.step_timeout(() => {
-    let start_length = history.length;
+    let start_history_length = history.length;
+    let start_index = navigation.currentEntry.index;
     let target_key = navigation.currentEntry.key;
     let target_id = navigation.currentEntry.id;
     history.pushState(1, "", "pushState.html");
-    assert_equals(history.length, start_length + 1);
+    assert_equals(history.length, start_history_length + 1);
 
     navigation.onnavigate = t.step_func_done(e => {
       assert_equals(e.navigationType, "traverse");
@@ -21,8 +22,9 @@ async_test(t => {
       assert_true(e.destination.sameDocument);
       assert_equals(e.destination.key, target_key);
       assert_equals(e.destination.id, target_id);
-      assert_equals(e.destination.index, 0);
+      assert_equals(e.destination.index, start_index);
       assert_equals(e.formData, null);
+      assert_equals(e.sourceElement, null);
     });
 
     history.back();

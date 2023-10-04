@@ -20,9 +20,23 @@ MediaStream is handled correctly by HTMLVideoElement.</p>
 <script src=/resources/testdriver-vendor.js></script>
 <script src=permission-helper.js></script>
 <script>
-const vid = document.getElementById("vid");
-const cv = document.createElement("canvas");
+
+function assertVideoElementIsBlack(vid) {
+  const cv = document.createElement("canvas");
+  cv.width = vid.videoWidth;
+  cv.height = vid.videoHeight;
+  const ctx = cv.getContext("2d");
+  ctx.drawImage(vid,0,0);
+  const imageData = ctx.getImageData(0, 0, cv.width, cv.height);
+  for (let i = 0; i < imageData.data.length / 4; ++i) {
+    assert_equals(imageData.data[i * 4], 0, "No red component in pixel #" + i);
+    assert_equals(imageData.data[i * 4 + 1], 0, "No green component in pixel #" + i);
+    assert_equals(imageData.data[i * 4 + 2], 0, "No blue component in pixel #" + i);
+  }
+}
+
 promise_test(async t => {
+  const vid = document.getElementById("vid");
   await setMediaPermission("granted", ["camera"]);
   const stream = await navigator.mediaDevices.getUserMedia({video: true});
   t.add_cleanup(() => {
@@ -36,21 +50,12 @@ promise_test(async t => {
   vid.srcObject = stream;
   vid.play();
   await new Promise(r => vid.onloadeddata = r);
-
-  cv.width = vid.videoWidth;
-  cv.height = vid.videoHeight;
-  const ctx = cv.getContext("2d");
-  ctx.drawImage(vid,0,0);
-  const imageData = ctx.getImageData(0, 0, cv.width, cv.height);
-  for (let i = 0; i < imageData.data.length / 4; ++i) {
-    assert_equals(imageData.data[i * 4], 0, "No red component in pixel #" + i);
-    assert_equals(imageData.data[i * 4 + 1], 0, "No green component in pixel #" + i);
-    assert_equals(imageData.data[i * 4 + 2], 0, "No blue component in pixel #" + i);
-    assert_equals(imageData.data[i * 4 + 3], 255, "No transparency in pixel #" + i);
-  }
+  assertVideoElementIsBlack(vid);
 }, "Tests that a disabled video track in a MediaStream is rendered as blackness");
 
 promise_test(async t => {
+  const vid = document.getElementById("vid");
+  const cv = document.createElement("canvas");
   const ctx = cv.getContext("2d");
   ctx.fillStyle = "red";
   ctx.fillRect(0, 0, cv.width, cv.height);
@@ -72,6 +77,8 @@ promise_test(async t => {
 }, "Test that a video element rendering a disabled video track reports correct intrinsic dimensions");
 
 promise_test(async t => {
+  const vid = document.getElementById("vid");
+  const cv = document.createElement("canvas");
   const originalWidth = cv.width;
   const originalHeight = cv.height;
 
@@ -103,13 +110,9 @@ promise_test(async t => {
   ]);
 
   // Test "flow" of the disabled track by checking for "resize" events on a
-  // video element rendering that track. They should not fire. As a reference,
-  // we look for two "resize" events on a different video element rendering an
-  // enabled clone of the disabled track. We look for two and not one event
-  // because then we don't rely on any ordering of events coming from the two
-  // video elements.
+  // video element rendering that track. Any delivered frames must be black.
   let resized = 0;
-  vid.addEventListener("resize", () => ++resized);
+  vid.addEventListener("resize", t.step_func(() => assertVideoElementIsBlack(vid)));
 
   for (let i = 0; i < 2; ++i) {
     cv.width = cv.width / 2;
@@ -117,9 +120,7 @@ promise_test(async t => {
     ctx.fillRect(0, 0, cv.width, cv.height);
     await new Promise(r => vid2.onresize = r);
   }
-
-  assert_equals(resized, 0);
-}, "Test that frames don't flow for a disabled video track");
+}, "Test that frames are black for a disabled video track with an enabled clone");
 </script>
 </body>
 </html>

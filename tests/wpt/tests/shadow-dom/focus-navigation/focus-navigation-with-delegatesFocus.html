@@ -54,9 +54,7 @@ promise_test(async () => {
     'input-after',
   ];
 
-  await assert_focus_navigation_forward(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward(elements, false);
+  await assert_focus_navigation_bidirectional(elements);
 }, 'Testing tab navigation order with mode open, no tabindex and delegatesFocus=false.');
 
 promise_test(async () => {
@@ -70,9 +68,7 @@ promise_test(async () => {
     'input-after',
   ];
 
-  await assert_focus_navigation_forward(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward(elements, false);
+  await assert_focus_navigation_bidirectional(elements);
 }, 'Testing tab navigation order with mode open, no tabindex and delegatesFocus=true.');
 
 promise_test(async () => {
@@ -87,9 +83,7 @@ promise_test(async () => {
     'input-after',
   ];
 
-  await assert_focus_navigation_forward(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward(elements, false);
+  await assert_focus_navigation_bidirectional(elements);
 }, 'Testing tab navigation order with mode open, tabindex=0 and delegatesFocus=false.');
 
 promise_test(async () => {
@@ -104,9 +98,7 @@ promise_test(async () => {
     'input-after',
   ];
 
-  await assert_focus_navigation_forward(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward(elements, false);
+  await assert_focus_navigation_bidirectional(elements);
 }, 'Testing tab navigation order with mode open, tabindex=0 and delegatesFocus=true.');
 
 promise_test(async () => {
@@ -119,9 +111,7 @@ promise_test(async () => {
     'input-after',
   ];
 
-  await assert_focus_navigation_forward(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward(elements, false);
+  await assert_focus_navigation_bidirectional(elements);
 }, 'Testing tab navigation order with mode open, tabindex=-1 and delegatesFocus=false.');
 
 promise_test(async () => {
@@ -135,9 +125,7 @@ promise_test(async () => {
     'input-after',
   ];
 
-  await assert_focus_navigation_forward(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward(elements, false);
+  await assert_focus_navigation_bidirectional(elements);
 }, 'Testing tab navigation order with mode open, tabindex=-1 and delegatesFocus=true.');
 
 promise_test(async () => {
@@ -152,9 +140,7 @@ promise_test(async () => {
     'input-after',
   ];
 
-  await assert_focus_navigation_forward(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward(elements, false);
+  await assert_focus_navigation_bidirectional(elements);
 }, 'Testing tab navigation order with mode open, tabindex=1 and delegatesFocus=false.');
 
 promise_test(async () => {
@@ -169,9 +155,7 @@ promise_test(async () => {
     'input-after',
   ];
 
-  await assert_focus_navigation_forward(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward(elements, false);
+  await assert_focus_navigation_bidirectional(elements);
 }, 'Testing tab navigation order with mode open, tabindex=1 and delegatesFocus=true.');
 
 
@@ -192,9 +176,7 @@ promise_test(async () => {
     [inputAfter],
   ];
 
-  await assert_focus_navigation_forward_with_shadow_root(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+  await assert_focus_navigation_bidirectional_with_shadow_root(elements, false);
 }, 'Testing tab navigation order with mode closed, no tabindex and delegatesFocus=false.');
 
 promise_test(async () => {
@@ -214,9 +196,7 @@ promise_test(async () => {
     [inputAfter],
   ];
 
-  await assert_focus_navigation_forward_with_shadow_root(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+  await assert_focus_navigation_bidirectional_with_shadow_root(elements, false);
 }, 'Testing tab navigation order with mode closed, no tabindex and delegatesFocus=true.');
 
 promise_test(async () => {
@@ -237,9 +217,7 @@ promise_test(async () => {
     [inputAfter],
   ];
 
-  await assert_focus_navigation_forward_with_shadow_root(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+  await assert_focus_navigation_bidirectional_with_shadow_root(elements, false);
 }, 'Testing tab navigation order with mode closed, tabindex=0 and delegatesFocus=false.');
 
 promise_test(async () => {
@@ -260,9 +238,7 @@ promise_test(async () => {
     [inputAfter],
   ];
 
-  await assert_focus_navigation_forward_with_shadow_root(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+  await assert_focus_navigation_bidirectional_with_shadow_root(elements, false);
 }, 'Testing tab navigation order with mode closed, tabindex=0 and delegatesFocus=true.');
 
 promise_test(async () => {
@@ -281,9 +257,7 @@ promise_test(async () => {
     [inputAfter],
   ];
 
-  await assert_focus_navigation_forward_with_shadow_root(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+  await assert_focus_navigation_bidirectional_with_shadow_root(elements, false);
 }, 'Testing tab navigation order with mode closed, tabindex=-1 and delegatesFocus=false.');
 
 promise_test(async () => {
@@ -303,9 +277,7 @@ promise_test(async () => {
     [inputAfter],
   ];
 
-  await assert_focus_navigation_forward_with_shadow_root(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+  await assert_focus_navigation_bidirectional_with_shadow_root(elements, false);
 }, 'Testing tab navigation order with mode closed, tabindex=-1 and delegatesFocus=true.');
 
 promise_test(async () => {
@@ -326,9 +298,7 @@ promise_test(async () => {
     [inputAfter],
   ];
 
-  await assert_focus_navigation_forward_with_shadow_root(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+  await assert_focus_navigation_bidirectional_with_shadow_root(elements, false);
 }, 'Testing tab navigation order with mode closed, tabindex=1 and delegatesFocus=false.');
 
 promise_test(async () => {
@@ -349,9 +319,7 @@ promise_test(async () => {
     [inputAfter],
   ];
 
-  await assert_focus_navigation_forward_with_shadow_root(elements, false);
-  elements.reverse();
-  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+  await assert_focus_navigation_bidirectional_with_shadow_root(elements, false);
 }, 'Testing tab navigation order with mode closed, tabindex=1 and delegatesFocus=true.');
 
 

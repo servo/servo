@@ -196,7 +196,7 @@ class MockVRService {
 
       // If there were no successful results, returns a null session.
       return {
-        result: {failureReason: vrMojom.RequestSessionError.NO_RUNTIME_FOUND}
+        result: {failureReason: xrSessionMojom.RequestSessionError.NO_RUNTIME_FOUND}
       };
     });
   }
@@ -1212,11 +1212,14 @@ class MockRuntime {
             deviceConfig: {
               defaultFramebufferScale: this.defaultFramebufferScale_,
               supportsViewportScaling: true,
-              depthConfiguration:
-                enabled_features.includes(xrSessionMojom.XRSessionFeature.DEPTH) ? {
-                  depthUsage: vrMojom.XRDepthUsage.kCPUOptimized,
-                  depthDataFormat: vrMojom.XRDepthDataFormat.kLuminanceAlpha,
-                } : null,
+              depthConfiguration: enabled_features.includes(
+                                      xrSessionMojom.XRSessionFeature.DEPTH) ?
+                  {
+                    depthUsage: xrSessionMojom.XRDepthUsage.kCPUOptimized,
+                    depthDataFormat:
+                        xrSessionMojom.XRDepthDataFormat.kLuminanceAlpha,
+                  } :
+                  null,
               views: this._getDefaultViews(),
             },
             enviromentBlendMode: this.enviromentBlendMode_,
@@ -1234,8 +1237,10 @@ class MockRuntime {
 
     if (options.requiredFeatures.includes(xrSessionMojom.XRSessionFeature.DEPTH)
     || options.optionalFeatures.includes(xrSessionMojom.XRSessionFeature.DEPTH)) {
-      result &= options.depthOptions.usagePreferences.includes(vrMojom.XRDepthUsage.kCPUOptimized);
-      result &= options.depthOptions.dataFormatPreferences.includes(vrMojom.XRDepthDataFormat.kLuminanceAlpha);
+      result &= options.depthOptions.usagePreferences.includes(
+          xrSessionMojom.XRDepthUsage.kCPUOptimized);
+      result &= options.depthOptions.dataFormatPreferences.includes(
+          xrSessionMojom.XRDepthDataFormat.kLuminanceAlpha);
     }
 
     return Promise.resolve({

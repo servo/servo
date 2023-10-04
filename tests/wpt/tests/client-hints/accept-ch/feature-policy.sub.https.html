@@ -45,6 +45,7 @@ promise_test(t => {
     assert_in_array(r.headers.get("mobile-received"), ["?0", "?1"], 'mobile is unexpected');
     assert_false(r.headers.has("prefers-color-scheme-received"), "prefers-color-scheme-received");
     assert_false(r.headers.has("prefers-reduced-motion-received"), "prefers-reduced-motion-received");
+    assert_false(r.headers.has("prefers-reduced-transparency-received"), "prefers-reduced-transparency-received");
     assert_false(r.headers.has("viewport-height-received"), "viewport-height-received");
   });
 }, "Accept-CH header test");
@@ -65,6 +66,7 @@ promise_test(t => {
     assert_false(r.headers.has("ect-received"), "ect-received");
     assert_false(r.headers.has("prefers-color-scheme-received"), "prefers-color-scheme-received");
     assert_false(r.headers.has("prefers-reduced-motion-received"), "prefers-reduced-motion-received");
+    assert_false(r.headers.has("prefers-reduced-transparency-received"), "prefers-reduced-transparency-received");
     assert_false(r.headers.has("viewport-height-received"), "viewport-height-received");
   });
 }, "Cross-Origin Accept-CH header test");

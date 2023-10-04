@@ -46,11 +46,12 @@
     }
 
  /* verifyComputedStyle(property_name, initial_value, specified_value, expected_value, description) */
-
+    verifyComputedStyle("z-index", "auto", "calc(2.5 / 2)", "1", "testing z-index: calc(2.5 / 2)");
     verifyComputedStyle("z-index", "auto", "calc(3 / 2)", "2", "testing z-index: calc(3 / 2)");
-
+    verifyComputedStyle("z-index", "auto", "calc(3.5 / 2)", "2", "testing z-index: calc(3.5 / 2)");
+    verifyComputedStyle("z-index", "auto", "calc(-2.5 / 2)", "-1", "testing z-index: calc(-2.5 / 2)");
     verifyComputedStyle("z-index", "auto", "calc(-3 / 2)", "-1", "testing z-index: calc(-3 / 2)");
-
+    verifyComputedStyle("z-index", "auto", "calc(-3.5 / 2)", "-2", "testing z-index: calc(-3.5 / 2)");
   }
 
   startTesting();

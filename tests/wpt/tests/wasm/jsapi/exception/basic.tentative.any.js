@@ -1,4 +1,4 @@
-// META: global=window,worker,jsshell
+// META: global=window,worker,jsshell,shadowrealm
 // META: script=/wasm/jsapi/wasm-module-builder.js
 
 function assert_throws_wasm(fn, message) {

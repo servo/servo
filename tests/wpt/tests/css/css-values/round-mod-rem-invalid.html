@@ -7,6 +7,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="../support/parsing-testcommon.js"></script>
 <script>
+function test_invalid_length_percentage(value) {
+  test_invalid_value('height', value);
+  test_invalid_value('height', `calc(${value})`);
+}
+
 function test_invalid_number(value) {
   test_invalid_value('opacity', value);
 }
@@ -91,4 +96,20 @@ test_invalid_number('rem(1, 0deg)');
 test_invalid_number('rem(1, 0Hz)');
 test_invalid_number('rem(1, 0dpi)');
 test_invalid_number('rem(1, 0fr)');
+
+test_invalid_length_percentage('round(0px, 0s)');
+test_invalid_length_percentage('round(0px, 0deg)');
+test_invalid_length_percentage('round(0px, 0Hz)');
+test_invalid_length_percentage('round(0px, 0dpi)');
+test_invalid_length_percentage('round(0px, 0fr)');
+test_invalid_length_percentage('mod(0px, 0s)');
+test_invalid_length_percentage('mod(0px, 0deg)');
+test_invalid_length_percentage('mod(0px, 0Hz)');
+test_invalid_length_percentage('mod(0px, 0dpi)');
+test_invalid_length_percentage('mod(0px, 0fr)');
+test_invalid_length_percentage('rem(0px, 0s)');
+test_invalid_length_percentage('rem(0px, 0deg)');
+test_invalid_length_percentage('rem(0px, 0Hz)');
+test_invalid_length_percentage('rem(0px, 0dpi)');
+test_invalid_length_percentage('rem(0px, 0fr)');
 </script>

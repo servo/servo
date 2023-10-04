@@ -7,6 +7,7 @@ async_test(t => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation (which would defeat the point of the test).
   window.onload = () => t.step_timeout(() => {
+    let start_length = navigation.entries().length;
     let start_history_length = history.length;
     let start_entry_top = navigation.currentEntry;
     let start_entry_iframe_id = i.contentWindow.navigation.currentEntry.id;
@@ -16,7 +17,7 @@ async_test(t => {
     i.onload = t.step_func_done(() => {
       assert_equals(history.length, start_history_length);
 
-      assert_equals(navigation.entries().length, 1);
+      assert_equals(navigation.entries().length, start_length);
       assert_equals(navigation.currentEntry, start_entry_top);
 
       assert_equals(i.contentWindow.navigation.entries().length, 1);

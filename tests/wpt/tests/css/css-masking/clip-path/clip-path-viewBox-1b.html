@@ -7,13 +7,13 @@
     <link rel="author" title="Mozilla" href="https://www.mozilla.org">
     <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-clip-path">
     <link rel="match" href="clip-path-geometryBox-1-ref.html">
-    <meta name="fuzzy" content="maxDifference=0-7; totalPixels=0-150">
+    <meta name="fuzzy" content="maxDifference=0-36; totalPixels=0-376">
     <meta name="assert" content="Test checks whether clip-path view-box with viewbox works correctly or not.">
   </head>
   <body>
     <svg width="200" height="200" viewBox="50 50 100 100" preserveAspectRatio="none" style="position: absolute; left: 10px; top: 10px;">
       <rect x="0" y="0" width="200" height="200" fill="blue"
-            clip-path="circle(25% at calc(50% - 5px) calc(50% - 5px)) view-box"/>
+            clip-path="circle(25% at calc(100% - 5px) calc(100% - 5px)) view-box"/>
     </svg>
   </body>
 </html>

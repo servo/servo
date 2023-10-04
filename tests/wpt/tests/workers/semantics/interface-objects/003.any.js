@@ -2,11 +2,9 @@
 
 var expected = [
   // https://html.spec.whatwg.org/
-  "ApplicationCache",
   "WorkerGlobalScope",
   "SharedWorkerGlobalScope",
   "Worker",
-  "SharedWorker",
   "MessagePort",
   "MessageEvent",
   "WorkerNavigator",
@@ -16,7 +14,6 @@ var expected = [
   "ImageBitmap",
   "CanvasGradient",
   "CanvasPattern",
-  "CanvasPath",
   "Path2D",
   "PromiseRejectionEvent",
   "EventSource",

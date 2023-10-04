@@ -2,7 +2,7 @@ import base64
 import pytest
 
 from tests.support.asserts import assert_pdf
-from tests.support.image import px_to_cm
+from tests.support.image import pt_to_cm
 
 pytestmark = pytest.mark.asyncio
 
@@ -46,8 +46,8 @@ async def test_background(
             "left": 0
         },
         page={
-            "width": px_to_cm(1),
-            "height": px_to_cm(1)
+            "width": pt_to_cm(1),
+            "height": pt_to_cm(1),
         },
     )
 

@@ -5,6 +5,7 @@
 async_test(t => {
   window.onload = () => t.step_timeout(() => {
     let start_length = history.length;
+    let start_index = navigation.currentEntry.index;
     let target_key = navigation.currentEntry.key;
     let target_id = navigation.currentEntry.id;
     location.hash = "#1";
@@ -21,8 +22,9 @@ async_test(t => {
       assert_true(e.destination.sameDocument);
       assert_equals(e.destination.key, target_key);
       assert_equals(e.destination.id, target_id);
-        assert_equals(e.destination.index, 0);
+        assert_equals(e.destination.index, start_index);
       assert_equals(e.formData, null);
+      assert_equals(e.sourceElement, null);
     });
 
     history.back();

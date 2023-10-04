@@ -10,16 +10,19 @@
 BEACON_KEY = "0c02dba4-f01e-11ed-a05b-0242ac120003"
 
 def main(request, response):
-    # Requests with a body imply they were sent as an automatic beacon for
-    # reserved.top_navigation. Note that this only stores the most recent beacon
-    # that was sent.
-    if request.body:
-        request.server.stash.put(BEACON_KEY, request.body)
-        return (200, [], b"")
+    stash = request.server.stash;
 
-    # Requests without a body imply they were sent as the request from
-    # nextAutomaticBeacon().
-    data = request.server.stash.take(BEACON_KEY)
-    if not data and data != "":
-        return (200, [], b"<Not set>")
-    return (200, [], data)
+    # The stash is accessed concurrently by many clients. A lock is used to
+    # avoid interleaved read/write from different clients.
+    with stash.lock:
+        # Requests with a body imply they were sent as an automatic beacon for
+        # reserved.top_navigation. Note that this only stores the most recent
+        # beacon that was sent.
+        if request.method == "POST":
+            stash.put(BEACON_KEY, request.body or "<No data>")
+            return (200, [], b"")
+
+        # Requests without a body imply they were sent as the request from
+        # nextAutomaticBeacon().
+        data = stash.take(BEACON_KEY) or "<Not set>"
+        return(200, [], data)

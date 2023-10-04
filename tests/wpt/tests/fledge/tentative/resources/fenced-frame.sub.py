@@ -8,6 +8,13 @@ def main(request, response):
     return """
         <!DOCTYPE html>
         <html>
+        <head>
+        <!--- Allow injected scripts to use functions in fledge-util.js --->
+        <base href="..">
+        <script src="/resources/testharness.js"></script>
+        <script src="/common/utils.js"></script>
+        <script src="resources/fledge-util.js"></script>
+        </head>
         <body>
         <script>
         {{GET[script]}}

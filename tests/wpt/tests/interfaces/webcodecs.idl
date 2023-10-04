@@ -146,7 +146,7 @@ dictionary AudioDecoderConfig {
 
 dictionary VideoDecoderConfig {
   required DOMString codec;
-  [AllowShared] BufferSource description;
+  AllowSharedBufferSource description;
   [EnforceRange] unsigned long codedWidth;
   [EnforceRange] unsigned long codedHeight;
   [EnforceRange] unsigned long displayAspectWidth;
@@ -161,7 +161,7 @@ dictionary AudioEncoderConfig {
   [EnforceRange] unsigned long sampleRate;
   [EnforceRange] unsigned long numberOfChannels;
   [EnforceRange] unsigned long long bitrate;
-  BitrateMode bitrateMode;
+  BitrateMode bitrateMode = "variable";
 };
 
 dictionary VideoEncoderConfig {
@@ -221,7 +221,7 @@ interface EncodedAudioChunk {
   readonly attribute unsigned long long? duration; // microseconds
   readonly attribute unsigned long byteLength;
 
-  undefined copyTo([AllowShared] BufferSource destination);
+  undefined copyTo(AllowSharedBufferSource destination);
 };
 
 dictionary EncodedAudioChunkInit {
@@ -244,14 +244,14 @@ interface EncodedVideoChunk {
   readonly attribute unsigned long long? duration;    // microseconds
   readonly attribute unsigned long byteLength;
 
-  undefined copyTo([AllowShared] BufferSource destination);
+  undefined copyTo(AllowSharedBufferSource destination);
 };
 
 dictionary EncodedVideoChunkInit {
   required EncodedVideoChunkType type;
   [EnforceRange] required long long timestamp;        // microseconds
   [EnforceRange] unsigned long long duration;         // microseconds
-  required [AllowShared] BufferSource data;
+  required AllowSharedBufferSource data;
 };
 
 enum EncodedVideoChunkType {
@@ -271,7 +271,7 @@ interface AudioData {
   readonly attribute long long timestamp;          // microseconds
 
   unsigned long allocationSize(AudioDataCopyToOptions options);
-  undefined copyTo([AllowShared] BufferSource destination, AudioDataCopyToOptions options);
+  undefined copyTo(AllowSharedBufferSource destination, AudioDataCopyToOptions options);
   AudioData clone();
   undefined close();
 };
@@ -283,6 +283,7 @@ dictionary AudioDataInit {
   [EnforceRange] required unsigned long numberOfChannels;
   [EnforceRange] required long long timestamp;  // microseconds
   required BufferSource data;
+  sequence<ArrayBuffer> transfer = [];
 };
 
 dictionary AudioDataCopyToOptions {
@@ -306,7 +307,7 @@ enum AudioSampleFormat {
 [Exposed=(Window,DedicatedWorker), Serializable, Transferable]
 interface VideoFrame {
   constructor(CanvasImageSource image, optional VideoFrameInit init = {});
-  constructor([AllowShared] BufferSource data, VideoFrameBufferInit init);
+  constructor(AllowSharedBufferSource data, VideoFrameBufferInit init);
 
   readonly attribute VideoPixelFormat? format;
   readonly attribute unsigned long codedWidth;
@@ -324,7 +325,7 @@ interface VideoFrame {
   unsigned long allocationSize(
       optional VideoFrameCopyToOptions options = {});
   Promise<sequence<PlaneLayout>> copyTo(
-      [AllowShared] BufferSource destination,
+      AllowSharedBufferSource destination,
       optional VideoFrameCopyToOptions options = {});
   VideoFrame clone();
   undefined close();
@@ -365,6 +366,8 @@ dictionary VideoFrameBufferInit {
   [EnforceRange] unsigned long displayHeight;
 
   VideoColorSpaceInit colorSpace;
+
+  sequence<ArrayBuffer> transfer = [];
 };
 
 dictionary VideoFrameMetadata {
@@ -470,6 +473,7 @@ dictionary ImageDecoderInit {
   [EnforceRange] unsigned long desiredWidth;
   [EnforceRange] unsigned long desiredHeight;
   boolean preferAnimation;
+  sequence<ArrayBuffer> transfer = [];
 };
 
 dictionary ImageDecodeOptions {

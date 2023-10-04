@@ -1,4 +1,4 @@
-const image_delay = 1000;
+const image_delay = 2000;
 const delay_pipe_value = image_delay / 1000;
 
 const await_with_timeout = async (delay, message, promise, cleanup = ()=>{}) => {

@@ -41,23 +41,29 @@ test_valid_value("color", "rgba(-20% 20% 40% / 50%)", "rgba(0, 51, 102, 0.5)");
 test_valid_value("color", "rgba(257 30 40 / 50%)", "rgba(255, 30, 40, 0.5)");
 test_valid_value("color", "rgba(250% 20% 40% / .5)", "rgba(255, 51, 102, 0.5)");
 
-// Test non-finite values. See: https://github.com/w3c/csswg-drafts/issues/8629
-test_valid_value("color", "rgb(calc(infinity), 0, 0)", "rgb(calc(infinity), 0, 0)");
-test_valid_value("color", "rgb(0, calc(infinity), 0)", "rgb(0, calc(infinity), 0)");
-test_valid_value("color", "rgb(0, 0, calc(infinity))", "rgb(0, 0, calc(infinity))");
-test_valid_value("color", "rgba(0, 0, 0, calc(infinity))", "rgba(0, 0, 0, calc(infinity))");
-test_valid_value("color", "rgb(calc(-infinity), 0, 0)", "rgb(calc(-infinity), 0, 0)");
-test_valid_value("color", "rgb(0, calc(-infinity), 0)", "rgb(0, calc(-infinity), 0)");
-test_valid_value("color", "rgb(0, 0, calc(-infinity))", "rgb(0, 0, calc(-infinity))");
-test_valid_value("color", "rgba(0, 0, 0, calc(-infinity))", "rgba(0, 0, 0, calc(-infinity))");
-test_valid_value("color", "rgb(calc(NaN), 0, 0)", "rgb(calc(NaN), 0, 0)");
-test_valid_value("color", "rgb(0, calc(NaN), 0)", "rgb(0, calc(NaN), 0)");
-test_valid_value("color", "rgb(0, 0, calc(NaN))", "rgb(0, 0, calc(NaN))");
-test_valid_value("color", "rgba(0, 0, 0, calc(NaN))", "rgba(0, 0, 0, calc(NaN))");
-test_valid_value("color", "rgb(calc(0 / 0), 0, 0)", "rgb(calc(NaN), 0, 0)");
-test_valid_value("color", "rgb(0, calc(0 / 0), 0)", "rgb(0, calc(NaN), 0)");
-test_valid_value("color", "rgb(0, 0, calc(0 / 0))", "rgb(0, 0, calc(NaN))");
-test_valid_value("color", "rgba(0, 0, 0, calc(0 / 0))", "rgba(0, 0, 0, calc(NaN))");
+// rgb are in the range [0, 255], alpha is in the range [0, 1].
+// Values above or below these numbers should get resolved to the upper/lower bound.
+test_valid_value("color", "rgb(500, 0, 0)", "rgb(255, 0, 0)");
+test_valid_value("color", "rgb(-500, 64, 128)", "rgb(0, 64, 128)");
+
+// calc(infinity) resolves to the upper bound while calc(-infinity) and calc(NaN) resolves the lower bound.
+// See: https://github.com/w3c/csswg-drafts/issues/8629
+test_valid_value("color", "rgb(calc(infinity), 0, 0)", "rgb(255, 0, 0)");
+test_valid_value("color", "rgb(0, calc(infinity), 0)", "rgb(0, 255, 0)");
+test_valid_value("color", "rgb(0, 0, calc(infinity))", "rgb(0, 0, 255)");
+test_valid_value("color", "rgba(0, 0, 0, calc(infinity))", "rgb(0, 0, 0)");
+test_valid_value("color", "rgb(calc(-infinity), 0, 0)", "rgb(0, 0, 0)");
+test_valid_value("color", "rgb(0, calc(-infinity), 0)", "rgb(0, 0, 0)");
+test_valid_value("color", "rgb(0, 0, calc(-infinity))", "rgb(0, 0, 0)");
+test_valid_value("color", "rgba(0, 0, 0, calc(-infinity))", "rgba(0, 0, 0, 0)");
+test_valid_value("color", "rgb(calc(NaN), 0, 0)", "rgb(0, 0, 0)");
+test_valid_value("color", "rgb(0, calc(NaN), 0)", "rgb(0, 0, 0)");
+test_valid_value("color", "rgb(0, 0, calc(NaN))", "rgb(0, 0, 0)");
+test_valid_value("color", "rgba(0, 0, 0, calc(NaN))", "rgba(0, 0, 0, 0)");
+test_valid_value("color", "rgb(calc(0 / 0), 0, 0)", "rgb(0, 0, 0)");
+test_valid_value("color", "rgb(0, calc(0 / 0), 0)", "rgb(0, 0, 0)");
+test_valid_value("color", "rgb(0, 0, calc(0 / 0))", "rgb(0, 0, 0)");
+test_valid_value("color", "rgba(0, 0, 0, calc(0 / 0))", "rgba(0, 0, 0, 0)");
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSS Test: Invalidation for :host() and :host-context() inside :has()</title>
+<title>CSS Test: Invalidation for :host() inside :has()</title>
 <link rel="author" title="Byungwoo" href="mailto:blee@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/selectors/#relational">
 <script src="/resources/testharness.js"></script>
@@ -13,10 +13,8 @@
       .subject {
         color: red;
       }
-      .subject:has(:is(:host-context(.a) > .foo .bar)) { color: green }
-      .subject:has(:is(:host(.a) > .foo .bar)) { color: yellowgreen }
-      .subject:has(:is(:host-context(.a) .bar)) { color: blue }
-      .subject:has(:is(:host(.a) .bar)) { color: skyblue }
+      .subject:has(:is(:host(.a) > .foo .bar)) { color: green }
+      .subject:has(:is(:host(.a) .bar)) { color: blue }
     </style>
     <div class="foo">
       <div id="subject1" class="subject">
@@ -34,9 +32,7 @@
 
   const red = "rgb(255, 0, 0)";
   const green = "rgb(0, 128, 0)";
-  const yellowgreen = "rgb(154, 205, 50)";
   const blue = "rgb(0, 0, 255)";
-  const skyblue = "rgb(135, 206, 235)";
 
   function checkColor(test_name, subject_id, subject_color) {
     test(function() {
@@ -45,21 +41,11 @@
     }, test_name + ": Check #" + subject_id + " color");
   }
 
-  checkColor("Before adding 'a' to #host_parent", "subject1", red);
-  checkColor("Before adding 'a' to #host_parent", "subject2", red);
-
-  host_parent.classList.add('a');
-
-  checkColor("After adding 'a' to #host_parent", "subject1", green);
-  checkColor("After adding 'a' to #host_parent", "subject2", blue);
-
-  host_parent.classList.remove('a');
-
-  checkColor("After removing 'a' from #host_parent", "subject1", red);
-  checkColor("After removing 'a' from #host_parent", "subject2", red);
+  checkColor("Before adding 'a' to #host", "subject1", red);
+  checkColor("Before adding 'a' to #host", "subject2", red);
 
   host.classList.add('a');
 
-  checkColor("After adding 'a' to #host", "subject1", yellowgreen);
-  checkColor("After adding 'a' to #host", "subject2", skyblue);
+  checkColor("After adding 'a' to #host", "subject1", green);
+  checkColor("After adding 'a' to #host", "subject2", blue);
 </script>

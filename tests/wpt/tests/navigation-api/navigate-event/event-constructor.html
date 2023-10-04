@@ -18,7 +18,8 @@ test(() => {
       signal: (new AbortController()).signal,
       formData: null,
       downloadRequest: null,
-      info: null
+      info: null,
+      sourceElement: null
     });
   });
 }, "destination is required");
@@ -35,7 +36,8 @@ async_test(t => {
         hashChange: false,
         formData: null,
         downloadRequest: null,
-        info: null
+        info: null,
+        sourceElement: null
       });
     });
   });
@@ -49,6 +51,8 @@ async_test(t => {
     const formData = new FormData();
     const signal = (new AbortController()).signal;
     const downloadRequest = "abc";
+    const hasUAVisualTransition = true;
+    const sourceElement = document.createElement("a");
 
     const event = new NavigateEvent("navigate", {
       navigationType: "replace",
@@ -59,7 +63,9 @@ async_test(t => {
       signal,
       formData,
       downloadRequest,
-      info
+      info,
+      hasUAVisualTransition,
+      sourceElement
     });
 
     assert_equals(event.navigationType, "replace");
@@ -71,6 +77,8 @@ async_test(t => {
     assert_equals(event.formData, formData);
     assert_equals(event.downloadRequest, downloadRequest);
     assert_equals(event.info, info);
+    assert_equals(event.hasUAVisualTransition, hasUAVisualTransition);
+    assert_equals(event.sourceElement, sourceElement);
   });
   history.pushState(2, null, "#2");
 }, "all properties are reflected back");
@@ -90,7 +98,20 @@ async_test(t => {
     assert_equals(event.formData, null);
     assert_equals(event.downloadRequest, null);
     assert_equals(event.info, undefined);
+    assert_equals(event.sourceElement, null);
   });
   history.pushState(3, null, "#3");
 }, "defaults are as expected");
+
+async_test(t => {
+  navigation.onnavigate = t.step_func_done(e => {
+    const event = new NavigateEvent("navigate", {
+      destination: e.destination,
+      signal: (new AbortController()).signal
+    });
+
+    assert_false(event.hasUAVisualTransition);
+  });
+  history.pushState(3, null, "#3");
+}, "hasUAVisualTransition is default false");
 </script>
