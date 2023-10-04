@@ -22,6 +22,7 @@ clangStdenv.mkDerivation rec {
     gst_all_1.gst-plugins-bad
 
     rustup
+    taplo
     llvmPackages.bintools # provides lld
 
     # Build utilities
