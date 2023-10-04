@@ -18,7 +18,7 @@ use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
-use gfx_traits::{Epoch, FontData};
+use gfx_traits::{Epoch, FontData, WebRenderEpochToU16};
 #[cfg(feature = "gl")]
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
@@ -283,6 +283,10 @@ struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
     pipeline: Option<CompositionPipeline>,
 
+    /// The epoch of the most recent display list for this pipeline. Note that this display
+    /// list might not be displayed, as WebRender processes display lists asynchronously.
+    most_recent_display_list_epoch: Option<WebRenderEpoch>,
+
     /// Whether animations are running
     animations_running: bool,
 
@@ -305,6 +309,7 @@ impl PipelineDetails {
     fn new() -> PipelineDetails {
         PipelineDetails {
             pipeline: None,
+            most_recent_display_list_epoch: None,
             animations_running: false,
             animation_callbacks_running: false,
             visible: true,
@@ -696,6 +701,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
                 let pipeline_id = display_list_info.pipeline_id;
                 let details = self.pipeline_details(PipelineId::from_webrender(pipeline_id));
+                details.most_recent_display_list_epoch = Some(display_list_info.epoch);
                 details.hit_test_items = display_list_info.hit_test_info;
                 details.install_new_scroll_tree(display_list_info.scroll_tree);
 
@@ -1133,6 +1139,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     Some(details) => details,
                     None => return None,
                 };
+
+                // If the epoch in the tag does not match the current epoch of the pipeline,
+                // then the hit test is against an old version of the display list and we
+                // should ignore this hit test for now.
+                match details.most_recent_display_list_epoch {
+                    Some(epoch) if epoch.as_u16() == item.tag.1 => {},
+                    _ => return None,
+                }
 
                 let info = &details.hit_test_items[item.tag.0 as usize];
                 Some(CompositorHitTestResult {
