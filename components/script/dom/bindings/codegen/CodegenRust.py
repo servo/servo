@@ -3281,19 +3281,24 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 methods = self.properties.static_methods.variableName()
             else:
                 methods = "&[]"
-            return CGGeneric("""\
-rooted!(in(*cx) let proto = %(proto)s);
+            if self.descriptor.interface.hasConstants():
+                constants = "sConstants"
+            else:
+                constants = "&[]"
+            id = MakeNativeName(name)
+            return CGGeneric(f"""\
+rooted!(in(*cx) let proto = {proto});
 assert!(!proto.is_null());
 rooted!(in(*cx) let mut namespace = ptr::null_mut::<JSObject>());
 create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
-                        %(methods)s, %(name)s, namespace.handle_mut());
+                        {methods}, {constants}, {str_to_const_array(name)}, namespace.handle_mut());
 assert!(!namespace.is_null());
-assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
-(*cache)[PrototypeList::Constructor::%(id)s as usize] = namespace.get();
-<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize),
+assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
+(*cache)[PrototypeList::Constructor::{id} as usize] = namespace.get();
+<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::{id} as isize),
                               ptr::null_mut(),
                               namespace.get());
-""" % {"id": MakeNativeName(name), "methods": methods, "name": str_to_const_array(name), "proto": proto})
+""")
         if self.descriptor.interface.isCallback():
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
