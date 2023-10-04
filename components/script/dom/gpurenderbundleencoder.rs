@@ -7,6 +7,7 @@ use webgpu::wgpu::command::{bundle_ffi as wgpu_bundle, RenderBundleEncoder};
 use webgpu::{wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
+use super::gpurenderpassencoder::buffer_size;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPURenderBundleDescriptor, GPURenderBundleEncoderMethods,
@@ -136,11 +137,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
                     GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
                 },
                 offset,
-                wgt::BufferSize::new(if let Some(size) = size {
-                    size
-                } else {
-                    todo!("buffer.size - offset")
-                }),
+                buffer_size(size),
             );
         }
     }
@@ -153,13 +150,17 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         offset: u64,
         size: Option<u64>,
     ) {
+        if buffer.is_none() {
+            warn!("Buffer is none, and we are doing nothing about it.");
+            return;
+        }
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_set_vertex_buffer(
                 encoder,
                 slot,
-                buffer.unwrap().id().0, //TODO(wpu)
+                buffer.unwrap().id().0,
                 offset,
-                wgt::BufferSize::new(size.unwrap()), //TODO(wpu)
+                buffer_size(size),
             );
         }
     }

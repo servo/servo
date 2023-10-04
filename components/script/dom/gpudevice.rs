@@ -62,6 +62,7 @@ use crate::dom::gpuoutofmemoryerror::GPUOutOfMemoryError;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpuqueue::GPUQueue;
 use crate::dom::gpurenderbundleencoder::GPURenderBundleEncoder;
+use crate::dom::gpurenderpassencoder::buffer_size;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use crate::dom::gpusampler::GPUSampler;
 use crate::dom::gpushadermodule::GPUShaderModule;
@@ -620,7 +621,7 @@ impl GPUDeviceMethods for GPUDevice {
                         wgpu_bind::BindingResource::Buffer(wgpu_bind::BufferBinding {
                             buffer_id: b.buffer.id().0,
                             offset: b.offset,
-                            size: b.size.and_then(wgt::BufferSize::new),
+                            size: buffer_size(b.size),
                         })
                     },
                 },
