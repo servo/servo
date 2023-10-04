@@ -73,6 +73,17 @@ pub fn read_prefs_map(txt: &str) -> Result<HashMap<String, PrefValue>, PrefError
                     Value::Number(n) if n.is_i64() => PrefValue::Int(n.as_i64().unwrap()),
                     Value::Number(n) if n.is_f64() => PrefValue::Float(n.as_f64().unwrap()),
                     Value::String(s) => PrefValue::Str(s.to_owned()),
+                    Value::Array(v) => {
+                        let mut array = v.iter().map(|v| PrefValue::from_json_value(v));
+                        if array.all(|v| v.is_some()) {
+                            PrefValue::Array(array.flatten().collect())
+                        } else {
+                            return Err(PrefError::InvalidValue(format!(
+                                "Invalid value: {}",
+                                pref_value
+                            )));
+                        }
+                    },
                     _ => {
                         return Err(PrefError::InvalidValue(format!(
                             "Invalid value: {}",
@@ -478,6 +489,10 @@ mod gen {
                 max_length: i64,
             },
             shell: {
+                background_color: {
+                    #[serde(rename = "shell.background-color.rgba")]
+                    rgba: [f64; 4],
+                },
                 crash_reporter: {
                     enabled: bool,
                 },

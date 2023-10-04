@@ -1873,7 +1873,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.assert_gl_framebuffer_complete();
         }
 
-        // Make the viewport white.
+        // Set the viewport background based on prefs.
         let viewport = self.embedder_coordinates.get_flipped_viewport();
         gl.scissor(
             viewport.origin.x,
@@ -1881,7 +1881,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             viewport.size.width,
             viewport.size.height,
         );
-        gl.clear_color(1.0, 1.0, 1.0, 1.0);
+
+        let color = servo_config::pref!(shell.background_color.rgba);
+        gl.clear_color(
+            color[0] as f32,
+            color[1] as f32,
+            color[2] as f32,
+            color[3] as f32,
+        );
         gl.enable(gleam::gl::SCISSOR_TEST);
         gl.clear(gleam::gl::COLOR_BUFFER_BIT);
         gl.disable(gleam::gl::SCISSOR_TEST);
