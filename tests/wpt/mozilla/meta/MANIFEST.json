@@ -13639,6 +13639,31 @@
       {}
      ]
     ],
+    "ns.any.js": [
+     "05087872b02abdeeb48c21ee9ec037b3a1483c03",
+     [
+      "mozilla/ns.any.html",
+      {
+       "script_metadata": [
+        [
+         "title",
+         "Namespace bindings"
+        ]
+       ]
+      }
+     ],
+     [
+      "mozilla/ns.any.worker.html",
+      {
+       "script_metadata": [
+        [
+         "title",
+         "Namespace bindings"
+        ]
+       ]
+      }
+     ]
+    ],
     "out-of-order-stylesheet-loads-and-imports.html": [
      "d22ae59c689daf77ccda9fa38979413658778dcb",
      [
