@@ -55,7 +55,19 @@ class MacOS(Base):
         return True
 
     def _platform_bootstrap(self, _force: bool) -> bool:
-        return self._platform_bootstrap_gstreamer(False)
+        installed_something = False
+        try:
+            brewfile = os.path.join(util.SERVO_ROOT, "support", "macos", "Brewfile")
+            output = subprocess.check_output(
+                ['brew', 'bundle', 'install', "--file", brewfile]
+            ).decode("utf-8")
+            print(output)
+            installed_something = "Installing" in output
+        except subprocess.CalledProcessError as e:
+            print("Could not run homebrew. Is it installed?")
+            raise e
+        installed_something |= self._platform_bootstrap_gstreamer(False)
+        return installed_something
 
     def _platform_bootstrap_gstreamer(self, force: bool) -> bool:
         if not force and self.is_gstreamer_installed(cross_compilation_target=None):
