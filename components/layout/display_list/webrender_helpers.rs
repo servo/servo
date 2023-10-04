@@ -7,6 +7,7 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
+use gfx_traits::WebRenderEpochToU16;
 use log::trace;
 use msg::constellation_msg::PipelineId;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId, ScrollableNodeInfo};
@@ -190,7 +191,7 @@ impl DisplayItem {
                     clip_id: ClipId::ClipChain(current_clip_chain_id),
                     flags: PrimitiveFlags::default(),
                 },
-                (hit_test_index as u64, 0u16),
+                (hit_test_index as u64, state.compositor_info.epoch.as_u16()),
             );
         };
 

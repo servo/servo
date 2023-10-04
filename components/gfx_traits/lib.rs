@@ -31,6 +31,19 @@ impl Into<WebRenderEpoch> for Epoch {
     }
 }
 
+pub trait WebRenderEpochToU16 {
+    fn as_u16(&self) -> u16;
+}
+
+impl WebRenderEpochToU16 for WebRenderEpoch {
+    /// The value of this [`Epoch`] as a u16 value. Note that if this Epoch's
+    /// value is more than u16::MAX, then the return value will be modulo
+    /// u16::MAX.
+    fn as_u16(&self) -> u16 {
+        (self.0 % u16::MAX as u32) as u16
+    }
+}
+
 /// A unique ID for every stacking context.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct StackingContextId(
