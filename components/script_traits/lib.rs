@@ -1116,7 +1116,7 @@ pub struct CompositorHitTestResult {
 
 /// The set of WebRender operations that can be initiated by the content process.
 #[derive(Deserialize, Serialize)]
-pub enum WebrenderMsg {
+pub enum ScriptToCompositorMsg {
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),
     /// Perform a scroll operation.
@@ -1147,24 +1147,30 @@ pub enum WebrenderMsg {
 
 #[derive(Clone, Deserialize, Serialize)]
 /// A mechanism to communicate with the parent process' WebRender instance.
-pub struct WebrenderIpcSender(IpcSender<WebrenderMsg>);
+pub struct WebrenderIpcSender(IpcSender<ScriptToCompositorMsg>);
 
 impl WebrenderIpcSender {
     /// Create a new WebrenderIpcSender object that wraps the provided channel sender.
-    pub fn new(sender: IpcSender<WebrenderMsg>) -> Self {
+    pub fn new(sender: IpcSender<ScriptToCompositorMsg>) -> Self {
         Self(sender)
     }
 
     /// Inform WebRender of the existence of this pipeline.
     pub fn send_initial_transaction(&self, pipeline: WebRenderPipelineId) {
-        if let Err(e) = self.0.send(WebrenderMsg::SendInitialTransaction(pipeline)) {
+        if let Err(e) = self
+            .0
+            .send(ScriptToCompositorMsg::SendInitialTransaction(pipeline))
+        {
             warn!("Error sending initial transaction: {}", e);
         }
     }
 
     /// Perform a scroll operation.
     pub fn send_scroll_node(&self, point: LayoutPoint, scroll_id: ExternalScrollId) {
-        if let Err(e) = self.0.send(WebrenderMsg::SendScrollNode(point, scroll_id)) {
+        if let Err(e) = self
+            .0
+            .send(ScriptToCompositorMsg::SendScrollNode(point, scroll_id))
+        {
             warn!("Error sending scroll node: {}", e);
         }
     }
@@ -1177,7 +1183,7 @@ impl WebrenderIpcSender {
     ) {
         let (display_list_data, display_list_descriptor) = list.into_data();
         let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
-        if let Err(e) = self.0.send(WebrenderMsg::SendDisplayList {
+        if let Err(e) = self.0.send(ScriptToCompositorMsg::SendDisplayList {
             display_list_info,
             display_list_descriptor,
             display_list_receiver,
@@ -1200,7 +1206,9 @@ impl WebrenderIpcSender {
     ) -> Vec<CompositorHitTestResult> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0
-            .send(WebrenderMsg::HitTest(pipeline, point, flags, sender))
+            .send(ScriptToCompositorMsg::HitTest(
+                pipeline, point, flags, sender,
+            ))
             .expect("error sending hit test");
         receiver.recv().expect("error receiving hit test result")
     }
@@ -1209,7 +1217,7 @@ impl WebrenderIpcSender {
     pub fn generate_image_key(&self) -> Result<ImageKey, ()> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0
-            .send(WebrenderMsg::GenerateImageKey(sender))
+            .send(ScriptToCompositorMsg::GenerateImageKey(sender))
             .map_err(|_| ())?;
         receiver.recv().map_err(|_| ())
     }
@@ -1249,7 +1257,7 @@ impl WebrenderIpcSender {
             })
             .collect();
 
-        if let Err(e) = self.0.send(WebrenderMsg::UpdateImages(updates)) {
+        if let Err(e) = self.0.send(ScriptToCompositorMsg::UpdateImages(updates)) {
             warn!("error sending image updates: {}", e);
         }
 

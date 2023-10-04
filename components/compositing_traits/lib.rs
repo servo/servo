@@ -18,9 +18,10 @@ use ipc_channel::ipc::IpcSender;
 use log::warn;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
+use net_traits::NetToCompositorMsg;
 use script_traits::{
     AnimationState, ConstellationControlMsg, EventResult, LayoutControlMsg, MouseButton,
-    MouseEventType,
+    MouseEventType, ScriptToCompositorMsg,
 };
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
@@ -148,8 +149,9 @@ pub enum CompositorMsg {
     /// Get screen available size.
     GetScreenAvailSize(IpcSender<DeviceIntSize>),
 
-    /// Webrender operations requested from non-compositor threads.
-    Webrender(WebrenderMsg),
+    /// Messages forwarded to the compositor by the constellation from other crates. These
+    /// messages are mainly passed on from the compositor to WebRender.
+    Forwarded(ForwardedToCompositorMsg),
 }
 
 pub struct SendableFrameTree {
@@ -166,21 +168,22 @@ pub struct CompositionPipeline {
     pub layout_chan: IpcSender<LayoutControlMsg>,
 }
 
-pub enum WebrenderFontMsg {
+pub enum FontToCompositorMsg {
     AddFontInstance(FontKey, f32, Sender<FontInstanceKey>),
     AddFont(gfx_traits::FontData, Sender<FontKey>),
 }
 
-pub enum WebrenderCanvasMsg {
+pub enum CanvasToCompositorMsg {
     GenerateKey(Sender<ImageKey>),
     UpdateImages(Vec<ImageUpdate>),
 }
 
-pub enum WebrenderMsg {
-    Layout(script_traits::WebrenderMsg),
-    Net(net_traits::WebrenderImageMsg),
-    Font(WebrenderFontMsg),
-    Canvas(WebrenderCanvasMsg),
+/// Messages forwarded by the Constellation to the Compositor.
+pub enum ForwardedToCompositorMsg {
+    Layout(ScriptToCompositorMsg),
+    Net(NetToCompositorMsg),
+    Font(FontToCompositorMsg),
+    Canvas(CanvasToCompositorMsg),
 }
 
 impl Debug for CompositorMsg {
@@ -206,7 +209,7 @@ impl Debug for CompositorMsg {
             CompositorMsg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             CompositorMsg::GetScreenSize(..) => write!(f, "GetScreenSize"),
             CompositorMsg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
-            CompositorMsg::Webrender(..) => write!(f, "Webrender"),
+            CompositorMsg::Forwarded(..) => write!(f, "Webrender"),
         }
     }
 }

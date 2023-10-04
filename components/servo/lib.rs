@@ -32,8 +32,8 @@ use canvas_traits::webgl::WebGLThreads;
 use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
 use compositing::{IOCompositor, InitialCompositorState, ShutdownState};
 use compositing_traits::{
-    CompositingReason, CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg,
-    WebrenderCanvasMsg, WebrenderFontMsg, WebrenderMsg,
+    CanvasToCompositorMsg, CompositingReason, CompositorMsg, CompositorProxy, CompositorReceiver,
+    ConstellationMsg, FontToCompositorMsg, ForwardedToCompositorMsg,
 };
 #[cfg(all(
     not(target_os = "windows"),
@@ -897,16 +897,20 @@ struct FontCacheWR(CompositorProxy);
 impl gfx_traits::WebrenderApi for FontCacheWR {
     fn add_font_instance(&self, font_key: FontKey, size: f32) -> FontInstanceKey {
         let (sender, receiver) = unbounded();
-        let _ = self.0.send(CompositorMsg::Webrender(WebrenderMsg::Font(
-            WebrenderFontMsg::AddFontInstance(font_key, size, sender),
-        )));
+        let _ = self
+            .0
+            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+                FontToCompositorMsg::AddFontInstance(font_key, size, sender),
+            )));
         receiver.recv().unwrap()
     }
     fn add_font(&self, data: gfx_traits::FontData) -> FontKey {
         let (sender, receiver) = unbounded();
-        let _ = self.0.send(CompositorMsg::Webrender(WebrenderMsg::Font(
-            WebrenderFontMsg::AddFont(data, sender),
-        )));
+        let _ = self
+            .0
+            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+                FontToCompositorMsg::AddFont(data, sender),
+            )));
         receiver.recv().unwrap()
     }
 }
@@ -917,15 +921,19 @@ struct CanvasWebrenderApi(CompositorProxy);
 impl canvas_paint_thread::WebrenderApi for CanvasWebrenderApi {
     fn generate_key(&self) -> Result<ImageKey, ()> {
         let (sender, receiver) = unbounded();
-        let _ = self.0.send(CompositorMsg::Webrender(WebrenderMsg::Canvas(
-            WebrenderCanvasMsg::GenerateKey(sender),
-        )));
+        let _ = self
+            .0
+            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Canvas(
+                CanvasToCompositorMsg::GenerateKey(sender),
+            )));
         receiver.recv().map_err(|_| ())
     }
     fn update_images(&self, updates: Vec<canvas_paint_thread::ImageUpdate>) {
-        let _ = self.0.send(CompositorMsg::Webrender(WebrenderMsg::Canvas(
-            WebrenderCanvasMsg::UpdateImages(updates),
-        )));
+        let _ = self
+            .0
+            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Canvas(
+                CanvasToCompositorMsg::UpdateImages(updates),
+            )));
     }
     fn clone(&self) -> Box<dyn canvas_paint_thread::WebrenderApi> {
         Box::new(<Self as Clone>::clone(self))
