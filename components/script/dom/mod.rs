@@ -537,6 +537,7 @@ pub mod testbindingmaplike;
 pub mod testbindingpairiterable;
 pub mod testbindingproxy;
 pub mod testbindingsetlike;
+pub mod testns;
 pub mod testrunner;
 pub mod testworklet;
 pub mod testworkletglobalscope;

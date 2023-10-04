@@ -9,6 +9,7 @@ use std::ptr;
 use js::jsapi::{JSClass, JSFunctionSpec};
 use js::rust::{HandleObject, MutableHandleObject};
 
+use super::constant::ConstantSpec;
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::interface::{create_object, define_on_global_object};
 use crate::script_runtime::JSContext;
@@ -40,9 +41,10 @@ pub fn create_namespace_object(
     proto: HandleObject,
     class: &'static NamespaceObjectClass,
     methods: &[Guard<&'static [JSFunctionSpec]>],
+    constants: &[Guard<&'static [ConstantSpec]>],
     name: &[u8],
     rval: MutableHandleObject,
 ) {
-    create_object(cx, global, proto, &class.0, methods, &[], &[], rval);
+    create_object(cx, global, proto, &class.0, methods, &[], constants, rval);
     define_on_global_object(cx, global, name, rval.handle());
 }
