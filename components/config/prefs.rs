@@ -478,6 +478,16 @@ mod gen {
                 max_length: i64,
             },
             shell: {
+                background_color: {
+                    #[serde(rename = "shell.background-color.red")]
+                    red: f64,
+                    #[serde(rename = "shell.background-color.green")]
+                    green: f64,
+                    #[serde(rename = "shell.background-color.blue")]
+                    blue: f64,
+                    #[serde(rename = "shell.background-color.alpha")]
+                    alpha: f64,
+                },
                 crash_reporter: {
                     enabled: bool,
                 },
@@ -492,10 +502,6 @@ mod gen {
                     enabled: bool,
                 },
                 searchpage: String,
-                transparent_background: {
-                    #[serde(rename = "shell.transparent-background.enabled")]
-                    enabled: bool,
-                },
             },
             webgl: {
                 testing: {
