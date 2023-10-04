@@ -1508,7 +1508,7 @@ dependencies = [
  "egui",
  "instant",
  "log",
- "raw-window-handle",
+ "raw-window-handle 0.5.2",
  "smithay-clipboard",
  "winit",
 ]
@@ -3761,7 +3761,7 @@ dependencies = [
  "jni-sys",
  "ndk-sys",
  "num_enum",
- "raw-window-handle",
+ "raw-window-handle 0.5.2",
  "thiserror",
 ]
 
@@ -4593,6 +4593,12 @@ name = "raw-window-handle"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2ff9a1f06a88b01621b7ae906ef0211290d1c8a168a15542486a8f61c0833b9"
+
+[[package]]
+name = "raw-window-handle"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42a9830a0e1b9fb145ebb365b8bc4ccd75f290f98c0247deafbbe2c75cefb544"
 
 [[package]]
 name = "rayon"
@@ -5436,7 +5442,7 @@ dependencies = [
  "libc",
  "libservo",
  "log",
- "raw-window-handle",
+ "raw-window-handle 0.6.0",
  "servo-media",
  "shellwords",
  "sig",
@@ -5892,7 +5898,7 @@ dependencies = [
  "mach",
  "metal 0.24.0",
  "objc",
- "raw-window-handle",
+ "raw-window-handle 0.5.2",
  "servo-display-link",
  "sparkle",
  "wayland-sys 0.30.1",
@@ -6968,7 +6974,7 @@ dependencies = [
  "parking_lot",
  "profiling",
  "range-alloc",
- "raw-window-handle",
+ "raw-window-handle 0.5.2",
  "rustc-hash",
  "smallvec",
  "thiserror",
@@ -7204,7 +7210,7 @@ dependencies = [
  "once_cell",
  "orbclient",
  "percent-encoding",
- "raw-window-handle",
+ "raw-window-handle 0.5.2",
  "redox_syscall 0.3.5",
  "sctk-adwaita",
  "smithay-client-toolkit",

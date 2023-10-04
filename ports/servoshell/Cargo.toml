@@ -59,7 +59,7 @@ lazy_static = { workspace = true }
 libc = { workspace = true }
 libservo = { path = "../../components/servo" }
 log = { workspace = true }
-raw-window-handle = "0.5"
+raw-window-handle = "0.6"
 servo-media = { git = "https://github.com/servo/media" }
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle"] }
