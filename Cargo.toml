@@ -119,6 +119,3 @@ mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 [patch."https://github.com/servo/webrender"]
 webrender = { path = "third_party/webrender/webrender" }
 webrender_api = { path = "third_party/webrender/webrender_api" }
-
-[patch."https://github.com/servo/mozjs"]
-mozjs = { git = "https://github.com/sagudev/mozjs.git", branch = "optional-streams" }
