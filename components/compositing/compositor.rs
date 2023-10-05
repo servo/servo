@@ -11,8 +11,9 @@ use std::rc::Rc;
 
 use canvas::canvas_paint_thread::ImageUpdate;
 use compositing_traits::{
-    CompositingReason, CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg,
-    SendableFrameTree, WebrenderCanvasMsg, WebrenderFontMsg, WebrenderMsg,
+    CanvasToCompositorMsg, CompositingReason, CompositionPipeline, CompositorMsg,
+    CompositorReceiver, ConstellationMsg, FontToCompositorMsg, ForwardedToCompositorMsg,
+    SendableFrameTree,
 };
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
@@ -645,7 +646,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (CompositorMsg::Webrender(msg), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::Forwarded(msg), ShutdownState::NotShuttingDown) => {
                 self.handle_webrender_message(msg);
             },
 
@@ -660,9 +661,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     /// Accept messages from content processes that need to be relayed to the WebRender
     /// instance in the parent process.
-    fn handle_webrender_message(&mut self, msg: WebrenderMsg) {
+    fn handle_webrender_message(&mut self, msg: ForwardedToCompositorMsg) {
         match msg {
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendInitialTransaction(pipeline)) => {
+            ForwardedToCompositorMsg::Layout(
+                script_traits::ScriptToCompositorMsg::SendInitialTransaction(pipeline),
+            ) => {
                 self.waiting_on_pending_frame = true;
                 let mut txn = Transaction::new();
                 txn.set_display_list(
@@ -677,7 +680,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendScrollNode(point, scroll_id)) => {
+            ForwardedToCompositorMsg::Layout(
+                script_traits::ScriptToCompositorMsg::SendScrollNode(point, scroll_id),
+            ) => {
                 self.waiting_for_results_of_scroll = true;
 
                 let mut txn = Transaction::new();
@@ -687,11 +692,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList {
-                display_list_info,
-                display_list_descriptor,
-                display_list_receiver,
-            }) => {
+            ForwardedToCompositorMsg::Layout(
+                script_traits::ScriptToCompositorMsg::SendDisplayList {
+                    display_list_info,
+                    display_list_descriptor,
+                    display_list_receiver,
+                },
+            ) => {
                 let display_list_data = match display_list_receiver.recv() {
                     Ok(display_list_data) => display_list_data,
                     _ => return warn!("Could not recieve WebRender display list."),
@@ -721,7 +728,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(
+            ForwardedToCompositorMsg::Layout(script_traits::ScriptToCompositorMsg::HitTest(
                 pipeline,
                 point,
                 flags,
@@ -743,12 +750,18 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let _ = sender.send(result);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::GenerateImageKey(sender)) |
-            WebrenderMsg::Net(net_traits::WebrenderImageMsg::GenerateImageKey(sender)) => {
+            ForwardedToCompositorMsg::Layout(
+                script_traits::ScriptToCompositorMsg::GenerateImageKey(sender),
+            ) |
+            ForwardedToCompositorMsg::Net(net_traits::NetToCompositorMsg::GenerateImageKey(
+                sender,
+            )) => {
                 let _ = sender.send(self.webrender_api.generate_image_key());
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::UpdateImages(updates)) => {
+            ForwardedToCompositorMsg::Layout(
+                script_traits::ScriptToCompositorMsg::UpdateImages(updates),
+            ) => {
                 let mut txn = Transaction::new();
                 for update in updates {
                     match update {
@@ -773,14 +786,22 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Net(net_traits::WebrenderImageMsg::AddImage(key, desc, data)) => {
+            ForwardedToCompositorMsg::Net(net_traits::NetToCompositorMsg::AddImage(
+                key,
+                desc,
+                data,
+            )) => {
                 let mut txn = Transaction::new();
                 txn.add_image(key, desc, data, None);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Font(WebrenderFontMsg::AddFontInstance(font_key, size, sender)) => {
+            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddFontInstance(
+                font_key,
+                size,
+                sender,
+            )) => {
                 let key = self.webrender_api.generate_font_instance_key();
                 let mut txn = Transaction::new();
                 txn.add_font_instance(key, font_key, size, None, None, Vec::new());
@@ -789,7 +810,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let _ = sender.send(key);
             },
 
-            WebrenderMsg::Font(WebrenderFontMsg::AddFont(data, sender)) => {
+            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddFont(data, sender)) => {
                 let font_key = self.webrender_api.generate_font_key();
                 let mut txn = Transaction::new();
                 match data {
@@ -801,11 +822,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let _ = sender.send(font_key);
             },
 
-            WebrenderMsg::Canvas(WebrenderCanvasMsg::GenerateKey(sender)) => {
+            ForwardedToCompositorMsg::Canvas(CanvasToCompositorMsg::GenerateKey(sender)) => {
                 let _ = sender.send(self.webrender_api.generate_image_key());
             },
 
-            WebrenderMsg::Canvas(WebrenderCanvasMsg::UpdateImages(updates)) => {
+            ForwardedToCompositorMsg::Canvas(CanvasToCompositorMsg::UpdateImages(updates)) => {
                 let mut txn = Transaction::new();
                 for update in updates {
                     match update {

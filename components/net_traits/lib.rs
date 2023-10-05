@@ -823,23 +823,23 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
 }
 
 #[derive(Deserialize, Serialize)]
-pub enum WebrenderImageMsg {
+pub enum NetToCompositorMsg {
     AddImage(ImageKey, ImageDescriptor, ImageData),
     GenerateImageKey(IpcSender<ImageKey>),
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct WebrenderIpcSender(IpcSender<WebrenderImageMsg>);
+pub struct WebrenderIpcSender(IpcSender<NetToCompositorMsg>);
 
 impl WebrenderIpcSender {
-    pub fn new(sender: IpcSender<WebrenderImageMsg>) -> Self {
+    pub fn new(sender: IpcSender<NetToCompositorMsg>) -> Self {
         Self(sender)
     }
 
     pub fn generate_image_key(&self) -> ImageKey {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0
-            .send(WebrenderImageMsg::GenerateImageKey(sender))
+            .send(NetToCompositorMsg::GenerateImageKey(sender))
             .expect("error sending image key generation");
         receiver.recv().expect("error receiving image key result")
     }
@@ -847,7 +847,7 @@ impl WebrenderIpcSender {
     pub fn add_image(&self, key: ImageKey, descriptor: ImageDescriptor, data: ImageData) {
         if let Err(e) = self
             .0
-            .send(WebrenderImageMsg::AddImage(key, descriptor, data))
+            .send(NetToCompositorMsg::AddImage(key, descriptor, data))
         {
             warn!("Error sending image update: {}", e);
         }
