@@ -207,9 +207,9 @@ pub(crate) enum StackingContextContent {
         fragment: ArcRefCell<Fragment>,
     },
 
-    /// An index into [StackingContext::inline_stacking_containers].
+    /// An index into [StackingContext::atomic_inline_stacking_containers].
     ///
-    /// There is no section field, because these are always in [StackingContextSection::Content].
+    /// There is no section field, because these are always in [StackingContextSection::Foreground].
     InlineStackingContainer { index: usize },
 }
 
@@ -298,16 +298,16 @@ pub struct StackingContext {
     /// >     if it created a new stacking context, but omitting any positioned
     /// >     descendants or descendants that actually create a stacking context
     /// >     (letting the parent stacking context paint them, instead).
-    stacking_contexts_and_positioned_stacking_containers: Vec<StackingContext>,
+    real_stacking_contexts_and_positioned_stacking_containers: Vec<StackingContext>,
 
     /// Float stacking containers.
-    /// Separate from stacking_contexts_or_positioned_stacking_containers
+    /// Separate from real_stacking_contexts_or_positioned_stacking_containers
     /// because they should never be stolen by the parent stacking context.
     /// <https://drafts.csswg.org/css-position-4/#paint-a-stacking-container>
     float_stacking_containers: Vec<StackingContext>,
 
     /// Atomic inline stacking containers.
-    /// Separate from stacking_contexts_or_positioned_stacking_containers
+    /// Separate from real_stacking_contexts_or_positioned_stacking_containers
     /// because they should never be stolen by the parent stacking context, and
     /// separate from float_stacking_containers so that [StackingContextContent]
     /// can index into this vec to paint them in fragment order.
@@ -327,7 +327,7 @@ impl StackingContext {
             initializing_fragment_style: Some(initializing_fragment_style),
             context_type,
             contents: vec![],
-            stacking_contexts_and_positioned_stacking_containers: vec![],
+            real_stacking_contexts_and_positioned_stacking_containers: vec![],
             float_stacking_containers: vec![],
             atomic_inline_stacking_containers: vec![],
         }
@@ -339,7 +339,7 @@ impl StackingContext {
             initializing_fragment_style: None,
             context_type: StackingContextType::RealStackingContext,
             contents: vec![],
-            stacking_contexts_and_positioned_stacking_containers: vec![],
+            real_stacking_contexts_and_positioned_stacking_containers: vec![],
             float_stacking_containers: vec![],
             atomic_inline_stacking_containers: vec![],
         }
@@ -349,10 +349,10 @@ impl StackingContext {
     fn add_stacking_context(&mut self, stacking_context: StackingContext) {
         match stacking_context.context_type {
             StackingContextType::RealStackingContext => {
-                &mut self.stacking_contexts_and_positioned_stacking_containers
+                &mut self.real_stacking_contexts_and_positioned_stacking_containers
             },
             StackingContextType::PositionedStackingContainer => {
-                &mut self.stacking_contexts_and_positioned_stacking_containers
+                &mut self.real_stacking_contexts_and_positioned_stacking_containers
             },
             StackingContextType::FloatStackingContainer => &mut self.float_stacking_containers,
             StackingContextType::AtomicInlineStackingContainer => {
@@ -370,11 +370,11 @@ impl StackingContext {
 
     pub(crate) fn sort(&mut self) {
         self.contents.sort_by(|a, b| a.section().cmp(&b.section()));
-        self.stacking_contexts_and_positioned_stacking_containers
+        self.real_stacking_contexts_and_positioned_stacking_containers
             .sort_by(|a, b| a.z_index().cmp(&b.z_index()));
 
         debug_assert!(self
-            .stacking_contexts_and_positioned_stacking_containers
+            .real_stacking_contexts_and_positioned_stacking_containers
             .iter()
             .all(|c| match c.context_type {
                 StackingContextType::RealStackingContext |
@@ -500,7 +500,7 @@ impl StackingContext {
         let first_if_any = self.contents.first().or_else(|| {
             // There wasn’t any `StackingContextFragment` in the root `StackingContext`,
             // because the root element generates a stacking context. Let’s find that one.
-            self.stacking_contexts_and_positioned_stacking_containers
+            self.real_stacking_contexts_and_positioned_stacking_containers
                 .first()
                 .and_then(|first_child_stacking_context| {
                     first_child_stacking_context.contents.first()
@@ -601,7 +601,7 @@ impl StackingContext {
 
         // Step 3: Stacking contexts with negative ‘z-index’
         let mut stealable_children = self
-            .stacking_contexts_and_positioned_stacking_containers
+            .real_stacking_contexts_and_positioned_stacking_containers
             .iter()
             .peekable();
         while stealable_children
@@ -911,7 +911,8 @@ impl BoxFragment {
         let mut stolen_children = vec![];
         if context_type != StackingContextType::RealStackingContext {
             stolen_children = mem::replace(
-                &mut child_stacking_context.stacking_contexts_and_positioned_stacking_containers,
+                &mut child_stacking_context
+                    .real_stacking_contexts_and_positioned_stacking_containers,
                 stolen_children,
             );
         }
@@ -919,7 +920,7 @@ impl BoxFragment {
         child_stacking_context.sort();
         parent_stacking_context.add_stacking_context(child_stacking_context);
         parent_stacking_context
-            .stacking_contexts_and_positioned_stacking_containers
+            .real_stacking_contexts_and_positioned_stacking_containers
             .append(&mut stolen_children);
     }
 
