@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::mem;
 
 use euclid::default::Rect;
-#[cfg(debug_assertions)]
-use log::debug;
+use gfx_traits::print_tree::PrintTree;
 use script_traits::compositor::{ScrollTreeNodeId, ScrollableNodeInfo};
 use servo_arc::Arc as ServoArc;
+use servo_config::opts::DebugOptions;
 use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
@@ -78,7 +79,11 @@ pub(crate) enum StackingContextSection {
 }
 
 impl DisplayList {
-    pub fn build_stacking_context_tree(&mut self, fragment_tree: &FragmentTree) -> StackingContext {
+    pub fn build_stacking_context_tree(
+        &mut self,
+        fragment_tree: &FragmentTree,
+        debug: &DebugOptions,
+    ) -> StackingContext {
         let root_clip_chain_id = self
             .wr
             .define_clip_chain(None, [wr::ClipId::root(self.wr.pipeline_id)]);
@@ -106,7 +111,7 @@ impl DisplayList {
             for_absolute_and_fixed_descendants: &cb_for_fixed_descendants,
         };
 
-        let mut root_stacking_context = StackingContext::create_root(&self.wr);
+        let mut root_stacking_context = StackingContext::create_root(&self.wr, debug);
         for fragment in &fragment_tree.root_fragments {
             fragment.borrow().build_stacking_context_tree(
                 fragment,
@@ -226,8 +231,6 @@ impl StackingContextContent {
         builder: &mut DisplayListBuilder,
         inline_stacking_containers: &[StackingContext],
     ) {
-        #[cfg(debug_assertions)]
-        let indent = "    ".repeat(builder.debug_print_indent);
         match self {
             Self::Fragment {
                 scroll_node_id,
@@ -236,10 +239,6 @@ impl StackingContextContent {
                 containing_block,
                 fragment,
             } => {
-                #[cfg(debug_assertions)]
-                {
-                    debug!("{}{:?}", indent, section);
-                }
                 builder.current_scroll_node_id = *scroll_node_id;
                 builder.current_clip_chain_id = *clip_chain_id;
                 fragment
@@ -247,16 +246,7 @@ impl StackingContextContent {
                     .build_display_list(builder, containing_block, *section);
             },
             Self::AtomicInlineStackingContainer { index } => {
-                #[cfg(debug_assertions)]
-                {
-                    debug!("{}InlineStackingContainer {}", indent, *index);
-                    builder.debug_print_indent += 1;
-                }
                 inline_stacking_containers[*index].build_display_list(builder);
-                #[cfg(debug_assertions)]
-                {
-                    builder.debug_print_indent -= 1;
-                }
             },
         }
     }
@@ -314,10 +304,30 @@ pub struct StackingContext {
     /// <https://drafts.csswg.org/css-position-4/#paint-a-stacking-container>
     /// <https://drafts.csswg.org/css-position-4/#paint-a-box-in-a-line-box>
     atomic_inline_stacking_containers: Vec<StackingContext>,
+
+    /// Information gathered about the painting order, for [Self::debug_print].
+    debug_print_items: Option<RefCell<Vec<DebugPrintItem>>>,
+}
+
+/// Refers to one of the child contents or stacking contexts of a [StackingContext].
+#[derive(Clone, Copy)]
+pub struct DebugPrintItem {
+    field: DebugPrintField,
+    index: usize,
+}
+
+/// Refers to one of the vecs of a [StackingContext].
+#[derive(Clone, Copy)]
+pub enum DebugPrintField {
+    Contents,
+    RealStackingContextsAndPositionedStackingContainers,
+    FloatStackingContainers,
+    AtomicInlineStackingContainers,
 }
 
 impl StackingContext {
-    pub(crate) fn new(
+    fn create_descendant(
+        &self,
         spatial_id: wr::SpatialId,
         initializing_fragment_style: ServoArc<ComputedValues>,
         context_type: StackingContextType,
@@ -330,10 +340,11 @@ impl StackingContext {
             real_stacking_contexts_and_positioned_stacking_containers: vec![],
             float_stacking_containers: vec![],
             atomic_inline_stacking_containers: vec![],
+            debug_print_items: self.debug_print_items.is_some().then(|| vec![].into()),
         }
     }
 
-    pub(crate) fn create_root(wr: &wr::DisplayListBuilder) -> Self {
+    pub(crate) fn create_root(wr: &wr::DisplayListBuilder, debug: &DebugOptions) -> Self {
         Self {
             spatial_id: wr::SpaceAndClipInfo::root_scroll(wr.pipeline_id).spatial_id,
             initializing_fragment_style: None,
@@ -342,6 +353,7 @@ impl StackingContext {
             real_stacking_contexts_and_positioned_stacking_containers: vec![],
             float_stacking_containers: vec![],
             atomic_inline_stacking_containers: vec![],
+            debug_print_items: debug.dump_stacking_context_tree.then(|| vec![].into()),
         }
     }
 
@@ -569,18 +581,6 @@ impl StackingContext {
     pub(crate) fn build_display_list(&self, builder: &mut DisplayListBuilder) {
         let pushed_context = self.push_webrender_stacking_context_if_necessary(builder);
 
-        #[cfg(debug_assertions)]
-        {
-            let indent = "    ".repeat(builder.debug_print_indent);
-            match self.context_type {
-                StackingContextType::RealStackingContext => {
-                    debug!("{}{:?} z={}", indent, self.context_type, self.z_index())
-                },
-                _ => debug!("{}{:?}", indent, self.context_type),
-            }
-            builder.debug_print_indent += 1;
-        }
-
         // Properly order display items that make up a stacking context.
         // “Steps” here refer to the steps in CSS 2.1 Appendix E.
         // Note that “positioned descendants” is generalised to include all descendants that
@@ -589,77 +589,144 @@ impl StackingContext {
         // means positioned descendants that do not generate stacking contexts.
 
         // Steps 1 and 2: Borders and background for the root
-        let mut child_fragments = self.contents.iter().peekable();
-        while child_fragments.peek().map_or(false, |child| {
+        let mut contents = self.contents.iter().enumerate().peekable();
+        while contents.peek().map_or(false, |(_, child)| {
             child.section() == StackingContextSection::OwnBackgroundsAndBorders
         }) {
-            child_fragments
-                .next()
-                .unwrap()
-                .build_display_list(builder, &self.atomic_inline_stacking_containers);
+            let (i, child) = contents.next().unwrap();
+            self.debug_push_print_item(DebugPrintField::Contents, i);
+            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
         // Step 3: Stacking contexts with negative ‘z-index’
-        let mut stealable_children = self
+        let mut real_stacking_contexts_and_positioned_stacking_containers = self
             .real_stacking_contexts_and_positioned_stacking_containers
             .iter()
+            .enumerate()
             .peekable();
-        while stealable_children
+        while real_stacking_contexts_and_positioned_stacking_containers
             .peek()
-            .map_or(false, |child| child.z_index() < 0)
+            .map_or(false, |(_, child)| child.z_index() < 0)
         {
-            let child_context = stealable_children.next().unwrap();
-            child_context.build_display_list(builder);
+            let (i, child) = real_stacking_contexts_and_positioned_stacking_containers
+                .next()
+                .unwrap();
+            self.debug_push_print_item(
+                DebugPrintField::RealStackingContextsAndPositionedStackingContainers,
+                i,
+            );
+            child.build_display_list(builder);
         }
 
         // Step 4: Block backgrounds and borders
-        while child_fragments.peek().map_or(false, |child| {
+        while contents.peek().map_or(false, |(_, child)| {
             child.section() == StackingContextSection::DescendantBackgroundsAndBorders
         }) {
-            child_fragments
-                .next()
-                .unwrap()
-                .build_display_list(builder, &self.atomic_inline_stacking_containers);
+            let (i, child) = contents.next().unwrap();
+            self.debug_push_print_item(DebugPrintField::Contents, i);
+            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
         // Step 5: Float stacking containers
-        for child in &self.float_stacking_containers {
+        for (i, child) in self.float_stacking_containers.iter().enumerate() {
+            self.debug_push_print_item(DebugPrintField::FloatStackingContainers, i);
             child.build_display_list(builder);
         }
 
         // Steps 6 and 7: Fragments and inline stacking containers
-        while child_fragments.peek().map_or(false, |child| {
+        while contents.peek().map_or(false, |(_, child)| {
             child.section() == StackingContextSection::Foreground
         }) {
-            child_fragments
-                .next()
-                .unwrap()
-                .build_display_list(builder, &self.atomic_inline_stacking_containers);
+            let (i, child) = contents.next().unwrap();
+            self.debug_push_print_item(DebugPrintField::Contents, i);
+            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
         // Steps 8 and 9: Stacking contexts with non-negative ‘z-index’, and
         // positioned stacking containers (where ‘z-index’ is auto)
-        for child_context in stealable_children {
-            child_context.build_display_list(builder);
+        for (i, child) in real_stacking_contexts_and_positioned_stacking_containers {
+            self.debug_push_print_item(
+                DebugPrintField::RealStackingContextsAndPositionedStackingContainers,
+                i,
+            );
+            child.build_display_list(builder);
         }
 
         // Step 10: Outline
-        while child_fragments.peek().map_or(false, |child| {
+        while contents.peek().map_or(false, |(_, child)| {
             child.section() == StackingContextSection::Outline
         }) {
-            child_fragments
-                .next()
-                .unwrap()
-                .build_display_list(builder, &self.atomic_inline_stacking_containers);
-        }
-
-        #[cfg(debug_assertions)]
-        {
-            builder.debug_print_indent -= 1;
+            let (i, child) = contents.next().unwrap();
+            self.debug_push_print_item(DebugPrintField::Contents, i);
+            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
         if pushed_context {
             builder.display_list.wr.pop_stacking_context();
+        }
+    }
+
+    /// Store the fact that something was painted, if [Self::debug_print_items] is not None.
+    ///
+    /// This is used to help reconstruct the original painting order in [Self::debug_print] without
+    /// duplicating our painting order logic, which could fall out of sync with the real logic.
+    fn debug_push_print_item(&self, field: DebugPrintField, index: usize) {
+        if let Some(items) = self.debug_print_items.as_ref() {
+            items.borrow_mut().push(DebugPrintItem { field, index });
+        }
+    }
+
+    /// Print the stacking context tree, or panics if [Self::debug_print_items] is None.
+    pub fn debug_print(&self) {
+        let mut tree = PrintTree::new("Stacking context tree".to_owned());
+        self.debug_print_with_tree(&mut tree);
+    }
+
+    fn debug_print_with_tree(&self, tree: &mut PrintTree) {
+        match self.context_type {
+            StackingContextType::RealStackingContext => {
+                tree.new_level(format!("{:?} z={}", self.context_type, self.z_index()));
+            },
+            StackingContextType::AtomicInlineStackingContainer => {
+                // do nothing; we print the heading with its index in DebugPrintField::Contents
+            },
+            _ => {
+                tree.new_level(format!("{:?}", self.context_type));
+            },
+        }
+        for DebugPrintItem { field, index } in
+            self.debug_print_items.as_ref().unwrap().borrow().iter()
+        {
+            match field {
+                DebugPrintField::Contents => match self.contents[*index] {
+                    StackingContextContent::Fragment { section, .. } => {
+                        tree.add_item(format!("{:?}", section));
+                    },
+                    StackingContextContent::AtomicInlineStackingContainer { index } => {
+                        tree.new_level(format!("AtomicInlineStackingContainer {}", index));
+                        self.atomic_inline_stacking_containers[index].debug_print_with_tree(tree);
+                        tree.end_level();
+                    },
+                },
+                DebugPrintField::RealStackingContextsAndPositionedStackingContainers => {
+                    self.real_stacking_contexts_and_positioned_stacking_containers[*index]
+                        .debug_print_with_tree(tree);
+                },
+                DebugPrintField::FloatStackingContainers => {
+                    self.float_stacking_containers[*index].debug_print_with_tree(tree);
+                },
+                DebugPrintField::AtomicInlineStackingContainers => {
+                    // do nothing; we print these in DebugPrintField::Contents
+                },
+            }
+        }
+        match self.context_type {
+            StackingContextType::AtomicInlineStackingContainer => {
+                // do nothing; we print the heading with its index in DebugPrintField::Contents
+            },
+            _ => {
+                tree.end_level();
+            },
         }
     }
 }
@@ -895,7 +962,7 @@ impl BoxFragment {
             );
         }
 
-        let mut child_stacking_context = StackingContext::new(
+        let mut child_stacking_context = parent_stacking_context.create_descendant(
             containing_block.scroll_node_id.spatial_id,
             self.style.clone(),
             context_type,
